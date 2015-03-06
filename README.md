@@ -1,7 +1,7 @@
 This is the Aquamark application - a web-based survey tool for assessing
 water management utilities.
 
-![Aquamark Logo](doc/aquamark_logo.svg)
+![Aquamark Logo](doc/aquamark_logo.png)
 
 ## Deployment
 
