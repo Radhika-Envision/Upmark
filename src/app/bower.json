@@ -1,0 +1,27 @@
+{
+  "name": "aquamark",
+  "version": "1.0.0",
+  "homepage": "https://github.com/vpac-innovations/aquamark",
+  "authors": [
+    "Alex Fraser <alex@vpac-innovations.com.au>"
+  ],
+  "description": "Water utility survey tool",
+  "license": "none",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    ".bower_components"
+  ],
+  "dependencies": {
+    "angular": "~1.3.0",
+    "angular-bootstrap": "~0.12.0",
+    "angular-route": "~1.3.0",
+    "angular-resource": "~1.3.0",
+    "bootstrap": "~3.3.0",
+    "font-awesome": "~4.2.0",
+    "angular-animate": "~1.3.0"
+  },
+  "resolutions": {
+    "angular": "~1.3.0"
+  }
+}

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="lcm">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    {% for s in stylesheets %}
+    <link rel="stylesheet" type="text/css" href="{{s}}">
+    {% end %}
+
+    {% for s in scripts %}
+    <script src="{{s}}"></script>
+    {% end %}
+
+    {% include analytics.html %}
+
+</head>
+
+<body ng-controller="RootCtrl">
+
+<header>
+    <nav class="navbar navbar-static-top" role="navigation">
+        <div class="container-fluid">
+            <!-- Logo -->
+            <div class="col-md-3 nav navbar-nav">
+                <a href="#/" class="navbar-brand"><img src="/images/logo.svg" title="Aquamark" alt="Aquamark logo"></a>
+            </div>
+
+            <!-- Title and toolbar buttons -->
+            <ng-include src="title.template" ng-controller="TitleController"></ng-include>
+        </div>
+    </nav>
+</header>
+
+<div id="page-content">
+
+</div>
+
+</body>
+</html>
