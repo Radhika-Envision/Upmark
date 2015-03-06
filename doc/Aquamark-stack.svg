@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.1"
+   viewBox="0 0 530 360"
+   stroke-miterlimit="10"
+   id="svg2"
+   inkscape:version="0.48.5 r10040"
+   width="100%"
+   height="100%"
+   sodipodi:docname="LCM-stack .svg"
+   style="fill:none;stroke:none"
+   inkscape:export-filename="/home/adfries/Documents/WSAA_AMIP/docs/Aquamark-stack .png"
+   inkscape:export-xdpi="68.008217"
+   inkscape:export-ydpi="68.008217">
+  <metadata
+     id="metadata71">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs69">
+    <clipPath
+       clipPathUnits="userSpaceOnUse"
+       id="clipPath4028">
+      <use
+         x="0"
+         y="0"
+         xlink:href="#rect3109"
+         id="use4030"
+         width="1"
+         height="1" />
+    </clipPath>
+    <clipPath
+       clipPathUnits="userSpaceOnUse"
+       id="clipPath4054">
+      <use
+         x="0"
+         y="0"
+         xlink:href="#rect3143"
+         id="use4056"
+         transform="translate(0,270)"
+         width="1"
+         height="1" />
+    </clipPath>
+  </defs>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1855"
+     inkscape:window-height="1176"
+     id="namedview67"
+     showgrid="false"
+     inkscape:snap-bbox="true"
+     inkscape:object-paths="false"
+     inkscape:zoom="1.4142136"
+     inkscape:cx="168.41985"
+     inkscape:cy="150.92998"
+     inkscape:window-x="65"
+     inkscape:window-y="24"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     showborder="true"
+     inkscape:snap-nodes="true">
+    <inkscape:grid
+       type="xygrid"
+       id="grid3048"
+       empspacing="5"
+       visible="true"
+       enabled="true"
+       snapvisiblegridlinesonly="true"
+       originx="-240px"
+       originy="-130px" />
+  </sodipodi:namedview>
+  <clipPath
+     id="p.0">
+    <path
+       d="m 0,0 1024,0 0,768 L 0,768 0,0 z"
+       clip-rule="nonzero"
+       id="path5"
+       inkscape:connector-curvature="0" />
+  </clipPath>
+  <g
+     inkscape:groupmode="layer"
+     id="layer1"
+     inkscape:label="Layer"
+     transform="translate(-240,-278)">
+    <g
+       clip-path="url(#clipPath4054)"
+       id="g4040"
+       transform="translate(0,-270)">
+      <rect
+         ry="2.3898306"
+         y="618"
+         x="240"
+         height="40"
+         width="530"
+         id="rect4044"
+         style="color:#000000;fill:#cee2c8;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.00000012;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+         rx="2.3898306" />
+    </g>
+    <g
+       id="g3985"
+       clip-path="url(#clipPath4028)"
+       transform="matrix(1,0,0,0.49985404,0,234.07707)">
+      <rect
+         rx="2.3898306"
+         style="color:#000000;fill:#cee2c8;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.00000012;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+         id="rect4034"
+         width="530"
+         height="70"
+         x="240"
+         y="458"
+         ry="4.7810569" />
+    </g>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-opacity:1;stroke-dasharray:2, 2;stroke-dashoffset:0"
+       d="m 500,378 0,90"
+       id="path3979"
+       inkscape:connector-curvature="0" />
+    <rect
+       style="color:#000000;fill:none;stroke:#96c18a;stroke-width:1.85609031;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+       id="rect3109"
+       width="510.03506"
+       height="155.01755"
+       x="249.98247"
+       y="467.98248"
+       ry="10"
+       rx="10" />
+    <text
+       xml:space="preserve"
+       style="font-size:14px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-indent:0;text-align:center;text-decoration:none;line-height:125%;letter-spacing:0px;word-spacing:0px;text-transform:none;direction:ltr;block-progression:tb;writing-mode:lr-tb;text-anchor:middle;baseline-shift:baseline;color:#000000;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1px;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;font-family:Bitstream Vera Sans;-inkscape-font-specification:Sans"
+       x="500"
+       y="578"
+       id="text3115"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan3117"
+         x="500"
+         y="578">GNU/Linux</tspan></text>
+    <text
+       sodipodi:linespacing="125%"
+       id="text3119"
+       y="548"
+       x="500"
+       style="font-size:14px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-indent:0;text-align:center;text-decoration:none;line-height:125%;letter-spacing:0px;word-spacing:0px;text-transform:none;direction:ltr;block-progression:tb;writing-mode:lr-tb;text-anchor:middle;baseline-shift:baseline;color:#000000;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1px;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;font-family:Bitstream Vera Sans;-inkscape-font-specification:Sans"
+       xml:space="preserve"><tspan
+         y="548"
+         x="500"
+         sodipodi:role="line"
+         id="tspan3123">Python, PostgreSQL</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:14px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-indent:0;text-align:center;text-decoration:none;line-height:125%;letter-spacing:0px;word-spacing:0px;text-transform:none;direction:ltr;block-progression:tb;writing-mode:lr-tb;text-anchor:middle;baseline-shift:baseline;color:#000000;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1px;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;font-family:Bitstream Vera Sans;-inkscape-font-specification:Sans"
+       x="500"
+       y="518"
+       id="text3127"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         x="500"
+         y="518"
+         id="tspan3131">Tornado, psycopg</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:14px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-indent:0;text-align:center;text-decoration:none;line-height:125%;letter-spacing:0px;word-spacing:0px;text-transform:none;direction:ltr;block-progression:tb;writing-mode:lr-tb;text-anchor:middle;baseline-shift:baseline;color:#000000;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1px;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;font-family:Bitstream Vera Sans;-inkscape-font-specification:Sans"
+       x="500"
+       y="488"
+       id="text3139"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         x="500"
+         y="488"
+         id="tspan3141"
+         style="font-weight:bold">Aquamark web server</tspan></text>
+    <rect
+       ry="10"
+       y="288"
+       x="250"
+       height="90"
+       width="510"
+       id="rect3143"
+       style="color:#000000;fill:none;stroke:#96c18a;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+       rx="10" />
+    <text
+       sodipodi:linespacing="125%"
+       id="text3145"
+       y="368"
+       x="500"
+       style="font-size:14px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-indent:0;text-align:center;text-decoration:none;line-height:125%;letter-spacing:0px;word-spacing:0px;text-transform:none;direction:ltr;block-progression:tb;writing-mode:lr-tb;text-anchor:middle;baseline-shift:baseline;color:#000000;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1px;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;font-family:Bitstream Vera Sans;-inkscape-font-specification:Sans"
+       xml:space="preserve"><tspan
+         id="tspan3147"
+         y="368"
+         x="500"
+         sodipodi:role="line"
+         style="font-weight:bold">Aquamark web app</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:14px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-indent:0;text-align:center;text-decoration:none;line-height:125%;letter-spacing:0px;word-spacing:0px;text-transform:none;direction:ltr;block-progression:tb;writing-mode:lr-tb;text-anchor:middle;baseline-shift:baseline;color:#000000;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1px;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;font-family:Bitstream Vera Sans;-inkscape-font-specification:Sans"
+       x="500"
+       y="338"
+       id="text3149"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         x="500"
+         y="338"
+         id="tspan3151">AngularJS, Bootstrap, d3</tspan></text>
+    <text
+       sodipodi:linespacing="125%"
+       id="text3153"
+       y="308"
+       x="500"
+       style="font-size:14px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-indent:0;text-align:center;text-decoration:none;line-height:125%;letter-spacing:0px;word-spacing:0px;text-transform:none;direction:ltr;block-progression:tb;writing-mode:lr-tb;text-anchor:middle;baseline-shift:baseline;color:#000000;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1px;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;font-family:Bitstream Vera Sans;-inkscape-font-specification:Sans"
+       xml:space="preserve"><tspan
+         id="tspan3155"
+         y="308"
+         x="500"
+         sodipodi:role="line"
+         style="font-style:italic">Web browser</tspan></text>
+    <path
+       style="color:#000000;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#686868;stroke-width:2;stroke-miterlimit:10;stroke-opacity:1;stroke-dasharray:none;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+       d="m 473.0625,396.9375 c -5.84111,0 -10.59375,4.38945 -10.59375,9.78125 0,0.93196 0.14205,1.83384 0.40625,2.6875 -4.65911,0.91384 -8.45926,4.36914 -10.09375,8.96875 -1.0384,-1.17946 -2.49226,-1.90625 -4.125,-1.90625 -3.14521,0 -5.71875,2.72388 -5.71875,6.09375 0,2.71109 1.65455,5.01758 3.9375,5.8125 -0.94133,1.55687 -1.5,3.3174 -1.5,5.1875 0,6.29043 6.02378,11.375 13.4375,11.375 4.09278,0 7.75657,-1.54934 10.21875,-4 2.65396,4.3054 8.18741,7.28125 14.59375,7.28125 3.25436,0 6.26962,-0.8085 8.8125,-2.125 1.19314,0.30805 2.48199,0.46875 3.8125,0.46875 1.77936,0 3.45588,-0.30858 4.96875,-0.84375 1.361,0.54175 2.82923,0.84375 4.375,0.84375 4.03339,0 7.59067,-2.00848 9.8125,-5.125 0.84754,-0.15331 1.66966,-0.35549 2.46875,-0.65625 1.48766,1.5429 3.81339,2.53125 6.4375,2.53125 1.78199,0 3.40979,-0.4414 4.75,-1.21875 2.25982,2.27811 5.29825,3.65625 8.65625,3.65625 4.90482,0 9.16479,-2.95967 11.25,-7.3125 3.9275,-0.13981 7.0625,-3.53902 7.0625,-7.71875 0,-4.26851 -3.26865,-7.75 -7.3125,-7.75 -0.60518,0 -1.18754,0.10389 -1.75,0.25 -2.19818,-2.51901 -5.29809,-4.13945 -8.75,-4.28125 -1.58559,-1.39098 -3.65688,-2.29217 -5.9375,-2.4375 0.11379,-0.52961 0.15625,-1.0946 0.15625,-1.65625 0,-4.49316 -3.81343,-8.125 -8.53125,-8.125 -0.58973,0 -1.16266,0.0479 -1.71875,0.15625 -2.63353,-2.15475 -5.82887,-3.40625 -9.28125,-3.40625 -3.60944,0 -6.92636,1.38199 -9.625,3.71875 -3.70915,-3.78076 -8.94431,-6.15625 -14.78125,-6.15625 -2.17601,0 -4.2531,0.33011 -6.21875,0.9375 -1.80749,-2.99065 -5.24536,-5.03125 -9.21875,-5.03125 z"
+       id="path3159"
+       inkscape:connector-curvature="0" />
+    <text
+       xml:space="preserve"
+       style="font-size:14px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-indent:0;text-align:center;text-decoration:none;line-height:125%;letter-spacing:0px;word-spacing:0px;text-transform:none;direction:ltr;block-progression:tb;writing-mode:lr-tb;text-anchor:middle;baseline-shift:baseline;opacity:0.5;color:#000000;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1px;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;font-family:Bitstream Vera Sans;-inkscape-font-specification:Sans"
+       x="494.96826"
+       y="429"
+       id="text4062"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan4064"
+         x="494.96826"
+         y="429">Internet</tspan></text>
+    <text
+       sodipodi:linespacing="125%"
+       id="text3017"
+       y="608"
+       x="500"
+       style="font-size:14px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-indent:0;text-align:center;text-decoration:none;line-height:125%;letter-spacing:0px;word-spacing:0px;text-transform:none;direction:ltr;block-progression:tb;writing-mode:lr-tb;text-anchor:middle;baseline-shift:baseline;color:#000000;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1px;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;font-family:Bitstream Vera Sans;-inkscape-font-specification:Sans"
+       xml:space="preserve"><tspan
+         y="608"
+         x="500"
+         id="tspan3019"
+         sodipodi:role="line">Amazon Web Services</tspan></text>
+  </g>
+</svg>
