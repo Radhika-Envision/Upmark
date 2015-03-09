@@ -1,3 +1,12 @@
-.navbar-brand img {
-    height: 50px;
+
+/* Logo is included inline as raw SVG, so we can do some funky styling. */
+.navbar-brand {
+    padding: 5px 15px;
+}
+.navbar-brand svg {
+    transform: scale(0.3);
+    transform-origin: 0 0;
+}
+g#logo-text-subtitle {
+    display: none;
 }
