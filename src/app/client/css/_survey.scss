@@ -1,20 +1,6 @@
+@import '_utils.scss';
+
 $gutter: 200px;
-
-@mixin fontawesome($content) {
-    font-family: FontAwesome;
-    content: $content;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
-
-@mixin transition($rules...) {
-    -webkit-transition: $rules;
-    -moz-transition: $rules;
-    -ms-transition: $rules;
-    -o-transition: $rules;
-    transition: $rules;
-}
-
 $anim-time: 0.5s;
 
 .survey-tree {

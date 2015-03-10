@@ -1,0 +1,30 @@
+@mixin fontawesome($content) {
+    font-family: FontAwesome;
+    content: $content;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+@mixin transition($rules...) {
+    -webkit-transition: $rules;
+    -moz-transition: $rules;
+    -ms-transition: $rules;
+    -o-transition: $rules;
+    transition: $rules;
+}
+
+@mixin transition-duration($rules...) {
+    -webkit-transition-duration: $rules;
+    -moz-transition-duration: $rules;
+    -ms-transition-duration: $rules;
+    -o-transition-duration: $rules;
+    transition-duration: $rules;
+}
+
+@mixin transition-property($rules...) {
+    -webkit-transition-property: $rules;
+    -moz-transition-property: $rules;
+    -ms-transition-property: $rules;
+    -o-transition-property: $rules;
+    transition-property: $rules;
+}

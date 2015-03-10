@@ -1,12 +1,17 @@
+@import '_utils.scss';
+
 $button-bg: #f0f0f0;
 $button-fg: black;
 $button-border-width: 3px;
+$anim-time: 0.3s;
 
 .btn {
     background-color: $button-bg;
     border-bottom: $button-border-width solid transparent;
     padding: 6px 12px (6px - $button-border-width);
     color: lighten($button-fg, 30%);
+    @include transition-property(color, background-color);
+    @include transition-duration($anim-time);
 
     &:hover {
         background-color: lighten($button-bg, 2%);
