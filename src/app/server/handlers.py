@@ -233,7 +233,7 @@ class MinifyHandler(RamCacheHandler):
 
     def initialize(self, path, root):
         self.path = path
-        self.root = root
+        self.root = os.path.abspath(root)
 
     def resolve_path(self, path):
         return self.path + path
@@ -297,6 +297,10 @@ class MinifyHandler(RamCacheHandler):
             else:
                 s = os.path.join(self.root, s)
             s = resolve_file(s, extension_map)
+            s = os.path.abspath(s)
+            if not s.startswith(self.root):
+                raise tornado.web.HTTPError(
+                    404, "No such file %s." % s)
             with open(s, 'r') as f:
                 text += f.read()
             text += "\n"
@@ -310,7 +314,7 @@ class CssHandler(RamCacheHandler):
     '''
 
     def initialize(self, root):
-        self.root = root
+        self.root = os.path.abspath(root)
 
     def generate(self, path):
         path = self.resolve_path(path)
@@ -321,9 +325,13 @@ class CssHandler(RamCacheHandler):
             path = os.path.join(self.root, path)
 
         try:
-            s = resolve_file(path, extension_map={'.css': ['.scss']})
+            path = resolve_file(path, extension_map={'.css': ['.scss']})
         except FileNotFoundError:
             raise tornado.web.HTTPError(
                 404, "No such file %s." % path)
 
-        return 'text/css', sass.compile(filename=s)
+        if not path.startswith(self.root):
+            raise tornado.web.HTTPError(
+                404, "No such file %s." % path)
+
+        return 'text/css', sass.compile(filename=path)
