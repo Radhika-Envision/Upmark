@@ -13,6 +13,9 @@ $button-border-width: 3px;
     }
     &:active {
         box-shadow: none;
+        color: $button-fg;
+    }
+    &.active {
         border-bottom-color: #177fb5;
         color: $button-fg;
     }

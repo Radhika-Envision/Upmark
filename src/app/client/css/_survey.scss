@@ -7,6 +7,16 @@ $gutter: 200px;
     -moz-osx-font-smoothing: grayscale;
 }
 
+@mixin transition($rules...) {
+    -webkit-transition: $rules;
+    -moz-transition: $rules;
+    -ms-transition: $rules;
+    -o-transition: $rules;
+    transition: $rules;
+}
+
+$anim-time: 0.5s;
+
 .survey-tree {
     background: #bbe2f6;
     margin: 0;
@@ -67,21 +77,41 @@ $gutter: 200px;
             }
         }
 
-        .score {
-            color: #aaa;
-        }
-
-        li:not(.active) {
+        li {
             label {
-                color: #888;
-
                 &:before {
-                    display: none;
+                    visibility: hidden;
+                    opacity: 0;
                 }
             }
 
-            .score {
+            .score, label:before {
+                opacity: 0;
                 visibility: hidden;
+                @include transition(
+                    opacity $anim-time ease,
+                    visibility $anim-time step-end
+                );
+            }
+            .score {
+                color: #aaa;
+            }
+        }
+
+        li.active {
+            .score, label:before {
+                opacity: 1;
+                visibility: visible;
+                @include transition(
+                    opacity $anim-time ease,
+                    visibility $anim-time step-start
+                );
+            }
+        }
+
+        li.disabled {
+            label {
+                color: #888;
             }
         }
     }

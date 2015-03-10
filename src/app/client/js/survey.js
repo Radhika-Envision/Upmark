@@ -43,7 +43,21 @@ function ResponseStandardCtrl($scope) {
     BaseResponseCtrl.call(this, $scope);
 
     $scope.$watch('schema', function(schema) {
-        $scope.activeResponse = schema.responses[0];
+        $scope.response = {
+            active: 0,
+            responses: []
+        };
+        for (var i = 0; i < schema.responses.length; i++) {
+            $scope.response.responses[i] = -1;
+        }
     });
+
+    $scope.respond = function(response, choice) {
+        var i = $scope.schema.responses.indexOf(response);
+        var j = response.choices.indexOf(choice);
+        console.log('Storing' + i + ' <- ' + j);
+        $scope.response.responses[i] = j;
+        $scope.response.active = i;
+    };
 };
 ResponseStandardCtrl.prototype = Object.create(BaseResponseCtrl.prototype)
