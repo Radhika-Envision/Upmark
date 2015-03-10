@@ -50,18 +50,18 @@ class InternalModelError(tornado.web.HTTPError):
 STYLESHEETS = [
     {
         'cdn': '//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css', # @IgnorePep8
-        'href': '/bower_components/bootstrap/dist/css/bootstrap.css'
+        'href': '/.bower_components/bootstrap/dist/css/bootstrap.css'
     },
     {
         'cdn': '//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css', # @IgnorePep8
-        'href': '/bower_components/font-awesome/css/font-awesome.css'
+        'href': '/.bower_components/font-awesome/css/font-awesome.css'
     },
     {
         'cdn': '//fonts.googleapis.com/css?family=Ubuntu',
         'href': '/fonts/Ubuntu.css'
     },
     {
-        'min-href': '/minify/app.css',
+        'min-href': '/minify/app-min.css',
         'href': '/css/app.css'
     },
 ]
@@ -69,28 +69,28 @@ STYLESHEETS = [
 SCRIPTS = [
     {
         'cdn': '//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js',
-        'href': '/bower_components/jquery/dist/jquery.js'
+        'href': '/.bower_components/jquery/dist/jquery.js'
     },
     {
         'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular.min.js', # @IgnorePep8
-        'href': '/bower_components/angular/angular.js'
+        'href': '/.bower_components/angular/angular.js'
     },
     {
         'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-route.min.js', # @IgnorePep8
-        'href': '/bower_components/angular-route/angular-route.js'
+        'href': '/.bower_components/angular-route/angular-route.js'
     },
     {
         'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-resource.min.js', # @IgnorePep8
-        'href': '/bower_components/angular-resource/angular-resource.js'
+        'href': '/.bower_components/angular-resource/angular-resource.js'
     },
     {
         'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-animate.min.js', # @IgnorePep8
-        'href': '/bower_components/angular-animate/angular-animate.js'
+        'href': '/.bower_components/angular-animate/angular-animate.js'
     },
     {
         'min-href': '/minify/3rd-party-min.js',
         'hrefs': [
-            '/bower_components/angular-bootstrap/ui-bootstrap-tpls.js',
+            '/.bower_components/angular-bootstrap/ui-bootstrap-tpls.js',
         ]
     },
     {
@@ -169,9 +169,10 @@ class RamCacheHandler(tornado.web.RequestHandler):
 
     def get(self, path):
         qpath = self.resolve_path(path)
-        if path in RamCacheHandler.CACHE and tornado.options.options.dev not in {'True', 'true'}:
+        if qpath in RamCacheHandler.CACHE and tornado.options.options.dev not in {'True', 'true'}:
             self.write_from_cache(qpath)
         else:
+            log.info('Generating %s', path)
             mimetype, text = self.generate(path)
             self.add_to_cache(qpath, mimetype, text)
             self.write_from_cache(qpath)
@@ -194,6 +195,32 @@ class RamCacheHandler(tornado.web.RequestHandler):
         self.set_header("Content-Type", entry['mimetype'])
         self.write(entry['text'])
         self.finish()
+
+
+def read_file_with_fallback(path, extension_map):
+    if extension_map is None:
+        extension_map = {}
+
+    extensions = list(extension_map.items())
+    # Add one phony, empty extension
+    extensions.insert(0, ("", [""]))
+
+    for ext1, vs in extensions:
+        if not path.endswith(ext1):
+            continue
+        if len(ext1) > 0:
+            base_path = path[:-len(ext1)]
+        else:
+            base_path = path
+        for ext2 in vs:
+            p = base_path + ext2
+            try:
+                with open(p, 'r') as f:
+                    return f.read()
+            except FileNotFoundError:
+                continue
+
+    raise FileNotFoundError("No such file %s." % path)
 
 
 class MinifyHandler(RamCacheHandler):
@@ -220,7 +247,6 @@ class MinifyHandler(RamCacheHandler):
                 decl = s
                 break
         if decl is not None:
-            print('Minifying JavaScript', path)
             return 'text/javascript', self.minify_js(decl)
 
         decl = None
@@ -229,7 +255,6 @@ class MinifyHandler(RamCacheHandler):
                 decl = s
                 break
         if decl is not None:
-            print('Minifying CSS', path)
             return 'text/css', self.minify_css(decl)
 
         raise tornado.web.HTTPError(
@@ -253,19 +278,18 @@ class MinifyHandler(RamCacheHandler):
         else:
             sources = decl['hrefs']
 
-        text = self.read_all(sources)
+        text = self.read_all(sources, extension_map={'.css': ['.sass']})
         return sass.compile(string=text, output_style='compressed')
 
-    def read_all(self, sources):
+    def read_all(self, sources, extension_map=None):
         text = ""
         for s in sources:
             if s.startswith('/'):
                 s = os.path.join(self.root, s[1:])
             else:
                 s = os.path.join(self.root, s)
-            with open(s, 'r') as f:
-                text += f.read()
-                text += '\n'
+            text += read_file_with_fallback(s, extension_map)
+            text += "\n"
         return text
 
 
@@ -285,6 +309,11 @@ class CssHandler(RamCacheHandler):
             path = os.path.join(self.root, path[1:])
         else:
             path = os.path.join(self.root, path)
-        with open(path, 'r') as f:
-            text = f.read()
+
+        try:
+            text = read_file_with_fallback(path, extension_map={'.css': ['.sass']})
+        except FileNotFoundError:
+            raise tornado.web.HTTPError(
+                404, "No such file %s." % path)
+
         return 'text/css', sass.compile(string=text)

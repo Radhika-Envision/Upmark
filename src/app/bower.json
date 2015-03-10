@@ -10,7 +10,7 @@
   "private": true,
   "ignore": [
     "**/.*",
-    ".bower_components"
+    "client/.bower_components"
   ],
   "dependencies": {
     "angular": "~1.3.0",
