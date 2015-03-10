@@ -1,5 +1,12 @@
 $gutter: 200px;
 
+@mixin fontawesome($content) {
+    font-family: FontAwesome;
+    content: $content;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
 .survey-tree {
     background: #bbe2f6;
     margin: 0;
@@ -46,10 +53,36 @@ $gutter: 200px;
         li>* {
             display: table-cell;
         }
+
         label {
             padding: 6px 30px 6px 0;
             font-weight: normal;
             line-height: 1.42857143;
+            position: relative;
+
+            &:before {
+                @include fontawesome("\f0da");
+                position: absolute;
+                left: -12px;
+            }
+        }
+
+        .score {
+            color: #aaa;
+        }
+
+        li:not(.active) {
+            label {
+                color: #888;
+
+                &:before {
+                    display: none;
+                }
+            }
+
+            .score {
+                visibility: hidden;
+            }
         }
     }
 

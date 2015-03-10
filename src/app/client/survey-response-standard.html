@@ -1,0 +1,13 @@
+<div ng-controller="ResponseStandardCtrl">
+<ol class="responses">
+    <li ng-repeat="resp in schema.responses"
+            ng-class="{active: resp == activeResponse}">
+        <label>{{resp.name}}</label>
+        <div class="btn-group">
+            <button ng-repeat="c in resp.choices" class="btn">
+                <span class="score">{{c.score}}</span> {{c.name}}
+            </button>
+        </div>
+    </li>
+</ol>
+</div>
