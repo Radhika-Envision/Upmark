@@ -21,6 +21,7 @@ $anim-time: 0.3s;
         color: $button-fg;
     }
     &.active {
+        box-shadow: none;
         border-bottom-color: #177fb5;
         color: $button-fg;
     }

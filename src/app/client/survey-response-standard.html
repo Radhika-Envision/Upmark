@@ -5,13 +5,15 @@
                 active: $index == response.active,
                 disabled: $index > response.maxAnswered}">
         <label>{{resp.name}}</label>
-        <div class="btn-group">
-            <button ng-repeat="c in resp.choices" ng-init="respi = $index"
+        <div class="btn-group" ng-init="respi = $index">
+            <button ng-repeat="c in resp.choices"
                     class="btn"
-                    ng-class="{active: responses[respi] == $index}"
+                    ng-class="{active: response.responses[respi] == $index}"
                     ng-click="respond(resp, c)"
                     ng-disabled="">
-                <span class="score">{{c.score}}</span> {{c.name}}
+                <span class="score">{{c.score}}</span>
+                {{c.name}}
+                <span class="text-hidden">{{c.score}}</span>
             </button>
         </div>
     </li>
