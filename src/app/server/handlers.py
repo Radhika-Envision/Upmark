@@ -197,7 +197,10 @@ class RamCacheHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-def read_file_with_fallback(path, extension_map):
+def resolve_file(path, extension_map):
+    if os.path.exists(path):
+        return path
+
     if extension_map is None:
         extension_map = {}
 
@@ -214,11 +217,8 @@ def read_file_with_fallback(path, extension_map):
             base_path = path
         for ext2 in vs:
             p = base_path + ext2
-            try:
-                with open(p, 'r') as f:
-                    return f.read()
-            except FileNotFoundError:
-                continue
+            if os.path.exists(p):
+                return p
 
     raise FileNotFoundError("No such file %s." % path)
 
@@ -278,8 +278,16 @@ class MinifyHandler(RamCacheHandler):
         else:
             sources = decl['hrefs']
 
-        text = self.read_all(sources, extension_map={'.css': ['.sass']})
-        return sass.compile(string=text, output_style='compressed')
+        text = ""
+        for s in sources:
+            if s.startswith('/'):
+                s = os.path.join(self.root, s[1:])
+            else:
+                s = os.path.join(self.root, s)
+            s = resolve_file(s, extension_map={'.css': ['.scss']})
+            text += sass.compile(filename=s, output_style='compressed')
+            text += "\n"
+        return text
 
     def read_all(self, sources, extension_map=None):
         text = ""
@@ -288,7 +296,9 @@ class MinifyHandler(RamCacheHandler):
                 s = os.path.join(self.root, s[1:])
             else:
                 s = os.path.join(self.root, s)
-            text += read_file_with_fallback(s, extension_map)
+            s = resolve_file(s, extension_map)
+            with open(s, 'r') as f:
+                text += f.read()
             text += "\n"
         return text
 
@@ -311,9 +321,9 @@ class CssHandler(RamCacheHandler):
             path = os.path.join(self.root, path)
 
         try:
-            text = read_file_with_fallback(path, extension_map={'.css': ['.sass']})
+            s = resolve_file(path, extension_map={'.css': ['.scss']})
         except FileNotFoundError:
             raise tornado.web.HTTPError(
                 404, "No such file %s." % path)
 
-        return 'text/css', sass.compile(string=text)
+        return 'text/css', sass.compile(filename=s)
