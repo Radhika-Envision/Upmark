@@ -10,7 +10,7 @@ $anim-time: 0.3s;
     border-bottom: $button-border-width solid transparent;
     padding: 6px 12px (6px - $button-border-width);
     color: lighten($button-fg, 30%);
-    @include transition-property(color, background-color);
+    @include transition-property(color, background-color, border-bottom-color);
     @include transition-duration($anim-time);
 
     &:hover {
