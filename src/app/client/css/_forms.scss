@@ -1,0 +1,19 @@
+$button-bg: #f0f0f0;
+$button-fg: black;
+$button-border-width: 3px;
+
+.btn {
+    background-color: $button-bg;
+    border-bottom: $button-border-width solid transparent;
+    padding: 6px 12px (6px - $button-border-width);
+    color: lighten($button-fg, 30%);
+
+    &:hover {
+        background-color: lighten($button-bg, 2%);
+    }
+    &:active {
+        box-shadow: none;
+        border-bottom-color: #177fb5;
+        color: $button-fg;
+    }
+}

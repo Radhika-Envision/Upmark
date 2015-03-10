@@ -1,8 +1,16 @@
+$nav-height: 64px;
+$std-padding: 4px;
+
+.navbar-brand {
+    padding: $std-padding 15px;
+    height: $nav-height - $std-padding;
+}
+nav.navbar.navbar-static-top {
+    height: $nav-height;
+    margin-bottom: 0;
+}
 
 /* Logo is included inline as raw SVG, so we can do some funky styling. */
-.navbar-brand {
-    padding: 5px 15px;
-}
 .navbar-brand svg {
     transform: scale(0.3);
     transform-origin: 0 0;
@@ -11,4 +19,5 @@ g#logo-text-subtitle {
     display: none;
 }
 
+@import '_forms.scss';
 @import '_survey.scss';
