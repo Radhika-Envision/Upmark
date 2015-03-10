@@ -72,6 +72,8 @@ def start_web_server():
                 'path': os.path.join(package_dir, "..", ".bower_components")}),
             (r"/minify/(.*)", handlers.MinifyHandler, {
                 'path': '/minify/', 'root': os.path.abspath(package_dir)}),
+            (r"/(.*\.css)", handlers.CssHandler, {
+                'root': os.path.join(package_dir, "..", "client")}),
             (r"/(.*)", tornado.web.StaticFileHandler, {
                 'path': os.path.join(package_dir, "..", "client")}),
         ], **settings

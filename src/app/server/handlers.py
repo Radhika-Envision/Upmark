@@ -1,10 +1,11 @@
 # Handlers
 
+import logging
 import os
 import re
 
-import csscompressor
-import slimit
+import sass
+#import slimit
 import tornado.gen
 import tornado.httpclient
 import tornado.httputil
@@ -12,6 +13,9 @@ import tornado.options
 import tornado.web
 
 #import data
+
+
+log = logging.getLogger('app.handlers')
 
 
 class ModelError(tornado.web.HTTPError):
@@ -93,6 +97,8 @@ SCRIPTS = [
         'min-href': '/minify/app-min.js',
         'hrefs': [
             '/js/app.js',
+            '/js/survey.js',
+            '/js/utils.js',
         ]
     }
 ]
@@ -157,7 +163,40 @@ class MainHandler(tornado.web.RequestHandler):
             analytics_id=tornado.options.options.analytics_id)
 
 
-class MinifyHandler(tornado.web.RequestHandler):
+class RamCacheHandler(tornado.web.RequestHandler):
+
+    CACHE = {}
+
+    def get(self, path):
+        qpath = self.resolve_path(path)
+        if path in RamCacheHandler.CACHE and tornado.options.options.dev not in {'True', 'true'}:
+            self.write_from_cache(qpath)
+        else:
+            mimetype, text = self.generate(path)
+            self.add_to_cache(qpath, mimetype, text)
+            self.write_from_cache(qpath)
+
+    def resolve_path(self, path):
+        return path
+
+    def generate(self, path):
+        raise tornado.web.HTTPError(
+            404, "Path %s not found in cache.", path)
+
+    def add_to_cache(self, path, mimetype, text):
+        RamCacheHandler.CACHE[path] = {
+            'mimetype': mimetype,
+            'text': text
+        }
+
+    def write_from_cache(self, path):
+        entry = RamCacheHandler.CACHE[path]
+        self.set_header("Content-Type", entry['mimetype'])
+        self.write(entry['text'])
+        self.finish()
+
+
+class MinifyHandler(RamCacheHandler):
     '''
     Reduces the size of some text resources such as JavaScript and CSS files.
 
@@ -165,18 +204,15 @@ class MinifyHandler(tornado.web.RequestHandler):
     STYLESHEETS objects.
     '''
 
-    CACHE = {}
-
     def initialize(self, path, root):
         self.path = path
         self.root = root
 
-    def get(self, path):
-        path = self.path + path
+    def resolve_path(self, path):
+        return self.path + path
 
-        if path in MinifyHandler.CACHE:
-            self.write_from_cache(path)
-            return
+    def generate(self, path):
+        path = self.resolve_path(path)
 
         decl = None
         for s in SCRIPTS:
@@ -185,9 +221,7 @@ class MinifyHandler(tornado.web.RequestHandler):
                 break
         if decl is not None:
             print('Minifying JavaScript', path)
-            self.add_to_cache(path, 'text/javascript', self.minify_js(decl))
-            self.write_from_cache(path)
-            return
+            return 'text/javascript', self.minify_js(decl)
 
         decl = None
         for s in STYLESHEETS:
@@ -196,24 +230,10 @@ class MinifyHandler(tornado.web.RequestHandler):
                 break
         if decl is not None:
             print('Minifying CSS', path)
-            self.add_to_cache(path, 'text/css', self.minify_css(decl))
-            self.write_from_cache(path)
-            return
+            return 'text/css', self.minify_css(decl)
 
         raise tornado.web.HTTPError(
-            400, "Specify text search terms using the 'value' paramter.")
-
-    def add_to_cache(self, path, mimetype, text):
-        MinifyHandler.CACHE[path] = {
-            'mimetype': mimetype,
-            'text': text
-        }
-
-    def write_from_cache(self, path):
-        entry = MinifyHandler.CACHE[path]
-        self.set_header("Content-Type", entry['mimetype'])
-        self.write(entry['text'])
-        self.finish()
+            400, "No matching minification declaration.")
 
     def minify_js(self, decl):
         if 'href' in decl:
@@ -222,7 +242,10 @@ class MinifyHandler(tornado.web.RequestHandler):
             sources = decl['hrefs']
 
         text = self.read_all(sources)
-        return slimit.minify(text, mangle=True)
+        # FIXME: slimit is broken on Python 3. For now, just concatenate sources
+        # https://github.com/rspivak/slimit/issues/64
+        return text
+        #return slimit.minify(text, mangle=True)
 
     def minify_css(self, decl):
         if 'href' in decl:
@@ -231,7 +254,7 @@ class MinifyHandler(tornado.web.RequestHandler):
             sources = decl['hrefs']
 
         text = self.read_all(sources)
-        return csscompressor.compress(text)
+        return sass.compile(string=text, output_style='compressed')
 
     def read_all(self, sources):
         text = ""
@@ -244,3 +267,24 @@ class MinifyHandler(tornado.web.RequestHandler):
                 text += f.read()
                 text += '\n'
         return text
+
+
+class CssHandler(RamCacheHandler):
+    '''
+    Converts funky CSS formats to regular CSS. This is generally used in
+    non-minification mode; the MinifyHandler also compiles SASS.
+    '''
+
+    def initialize(self, root):
+        self.root = root
+
+    def generate(self, path):
+        path = self.resolve_path(path)
+        log.info("Compiling CSS for %s", path)
+        if path.startswith('/'):
+            path = os.path.join(self.root, path[1:])
+        else:
+            path = os.path.join(self.root, path)
+        with open(path, 'r') as f:
+            text = f.read()
+        return 'text/css', sass.compile(string=text)

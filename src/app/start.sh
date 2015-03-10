@@ -54,8 +54,8 @@ function install_deps() {
         mkvirtualenv --python=$(which python3) $VIRTENV
     fi
 
-    pip3 install -U setuptools
-    pip3 install -qr ${projdir}/requirements.txt
+    pip3 install -vU setuptools
+    pip3 install -r ${projdir}/requirements.txt
     if [ $? -ne 0 ]; then
         error "Failed to install Python dependencies."
         exit 1

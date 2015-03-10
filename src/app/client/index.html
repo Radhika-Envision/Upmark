@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" ng-app="lcm">
+<html lang="en" ng-app="wsaa.aquamark">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -26,15 +26,12 @@
                     {% include images/logo.svg %}
                 </a>
             </div>
-
-            <!-- Title and toolbar buttons -->
-            <ng-include src="title.template" ng-controller="TitleController"></ng-include>
         </div>
     </nav>
 </header>
 
 <div id="page-content">
-
+    <div ng-view autoscroll="true"></div>
 </div>
 
 </body>

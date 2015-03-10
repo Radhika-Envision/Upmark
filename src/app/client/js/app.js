@@ -1,11 +1,8 @@
 'use strict';
 
-angular.module('lcm',
-               ['ngRoute', 'ngAnimate',
-                'ui.bootstrap.typeahead', 'leaflet-directive',
-                'lcm.services', 'lcm.text', 'lcm.events',
-                'lcm.controllers', 'lcm.selectable', 'lcm.visualisation',
-                'lcm.constraints', 'lcm.query', 'lcm.credits', 'lcm.sticky'])
+angular.module('wsaa.aquamark',
+               ['ngRoute', 'ngAnimate', 'ui.bootstrap',
+                'wsaa.survey', 'vpac.utils'])
 
 .config(['$routeProvider', '$httpProvider', '$parseProvider', '$animateProvider',
          'logProvider',
@@ -13,28 +10,16 @@ angular.module('lcm',
                 logProvider) {
 
         $routeProvider
-            .when('/layer/:datasetId', {
-                templateUrl : 'templates/view.html',
-                controller : 'ViewCtrl'
-            })
-            .when('/query/:queryId', {
-                templateUrl : 'templates/query.html',
-                controller : 'QueryCtrl'
-            })
-            .when('/query', {
-                templateUrl : 'templates/queries.html',
-                controller : 'QueryListCtrl'
+            .when('/survey/:survey/:function/:proc/:subproc/:measure', {
+                templateUrl : 'survey-measure.html',
+                controller : 'SurveyCtrl'
             })
             .when('/', {
-                templateUrl : 'templates/empty.html',
+                templateUrl : 'start.html',
                 controller : 'EmptyCtrl'
             })
-            .when('/regions', {
-                templateUrl : 'templates/regions.html',
-                controller : 'RegionSelectController'
-            })
             .when('/legal', {
-                templateUrl : 'templates/legal.html',
+                templateUrl : 'legal.html',
                 controller : 'EmptyCtrl'
             })
             .otherwise({
@@ -62,7 +47,19 @@ angular.module('lcm',
 //        $httpProvider.responseInterceptors.push(handlerFactory);
 }])
 
-.run(['lruCache', '$http', function(lruCache, $http) {
-    $http.defaults.cache = lruCache;
+
+.run(['$cacheFactory', '$http', function($cacheFactory, $http) {
+    $http.defaults.cache = $cacheFactory('lruCache', {capacity: 20});
 }])
+
+
+.controller('RootCtrl', ['$scope',
+        function($scope) {
+}])
+
+
+.controller('EmptyCtrl', ['$scope',
+        function($scope) {
+}])
+
 ;
