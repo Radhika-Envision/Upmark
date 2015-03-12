@@ -31,23 +31,28 @@
             "choices": [
                 {
                     "name": "None",
-                    "score": 1
+                    "score": 1,
+                    "prevMin": 1
                 },
                 {
                     "name": "Minimal",
-                    "score": 2
+                    "score": 2,
+                    "prevMin": 2
                 },
                 {
                     "name": "Moderate",
-                    "score": 3
+                    "score": 3,
+                    "prevMin": 3
                 },
                 {
                     "name": "Advanced",
-                    "score": 4
+                    "score": 4,
+                    "prevMin": 4
                 },
                 {
                     "name": "Complete",
-                    "score": 5
+                    "score": 5,
+                    "prevMin": 5
                 }
             ]
         },
@@ -56,23 +61,28 @@
             "choices": [
                 {
                     "name": "Poor",
-                    "score": 1
+                    "score": 1,
+                    "prevMin": 1
                 },
                 {
                     "name": "Limited",
-                    "score": 2
+                    "score": 2,
+                    "prevMin": 1
                 },
                 {
                     "name": "Adequate",
-                    "score": 3
+                    "score": 3,
+                    "prevMin": 3
                 },
                 {
                     "name": "Good",
-                    "score": 4
+                    "score": 4,
+                    "prevMin": 3
                 },
                 {
                     "name": "Comprehensive",
-                    "score": 5
+                    "score": 5,
+                    "prevMin": 3
                 }
             ]
         },
@@ -81,23 +91,28 @@
             "choices": [
                 {
                     "name": "Difficult",
-                    "score": 1
+                    "score": 1,
+                    "prevMin": 1
                 },
                 {
                     "name": "Limited",
-                    "score": 2
+                    "score": 2,
+                    "prevMin": 1
                 },
                 {
                     "name": "Adequate",
-                    "score": 3
+                    "score": 3,
+                    "prevMin": 3
                 },
                 {
                     "name": "Good",
-                    "score": 4
+                    "score": 4,
+                    "prevMin": 3
                 },
                 {
                     "name": "Effective",
-                    "score": 5
+                    "score": 5,
+                    "prevMin": 3
                 }
             ]
         }

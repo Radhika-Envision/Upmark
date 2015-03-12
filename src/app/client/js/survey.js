@@ -57,7 +57,16 @@ function ResponseStandardCtrl($scope) {
         var j = response.choices.indexOf(choice);
         console.log('Storing' + i + ' <- ' + j);
         $scope.response.responses[i] = j;
-        $scope.response.active = i;
+        $scope.response.active = i + 1;
+    };
+
+    $scope.disabled = function(i, j) {
+        var currDecl = $scope.schema.responses[i].choices[j];
+        if (i == 0 || currDecl.prevMin == null)
+            return false;
+
+        var prevResp = $scope.response.responses[i - 1];
+        return prevResp + 1 < currDecl.prevMin;
     };
 };
 ResponseStandardCtrl.prototype = Object.create(BaseResponseCtrl.prototype)

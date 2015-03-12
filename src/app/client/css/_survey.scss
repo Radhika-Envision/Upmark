@@ -85,7 +85,7 @@ $anim-time: 0.5s;
         }
 
         li.active {
-            .score, label:before {
+            .btn:not([disabled]) .score, label:before {
                 opacity: 1;
                 visibility: visible;
                 @include transition(

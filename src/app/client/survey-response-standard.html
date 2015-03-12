@@ -10,7 +10,7 @@
                     class="btn"
                     ng-class="{active: response.responses[respi] == $index}"
                     ng-click="respond(resp, c)"
-                    ng-disabled="">
+                    ng-disabled="disabled(respi, $index)">
                 <span class="score">{{c.score}}</span>
                 {{c.name}}
                 <span class="text-hidden">{{c.score}}</span>
