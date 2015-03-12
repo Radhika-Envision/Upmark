@@ -3,6 +3,7 @@
 $button-bg: #f0f0f0;
 $button-fg: black;
 $button-border-width: 3px;
+$primary-col: #177fb5;
 $anim-time: 0.3s;
 
 .btn {
@@ -13,16 +14,19 @@ $anim-time: 0.3s;
     @include transition-property(color, background-color, border-bottom-color);
     @include transition-duration($anim-time);
 
-    &:hover {
-        background-color: lighten($button-bg, 2%);
-    }
-    &:active {
-        box-shadow: none;
+    &:hover, &.active:focus, &:focus, &:active.focus, &:active:focus {
+        background-color: lighten($button-bg, 3%);
         color: $button-fg;
+        border-bottom-color: rgba($primary-col, 0.5);
     }
-    &.active {
+    &.active:focus, &:focus, &:active.focus, &:active:focus {
+/*         outline: rgba($primary-col, 0.2) solid 2px; */
+        outline: none;
+        outline-offset: 2px;
+    }
+    &:active, &.active, &.active:focus, &:active.focus, &:active:focus {
         box-shadow: none;
-        border-bottom-color: #177fb5;
+        border-bottom-color: $primary-col;
         color: $button-fg;
     }
 }
