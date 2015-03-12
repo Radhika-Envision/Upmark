@@ -1,11 +1,12 @@
 <div ng-controller="ResponseStandardCtrl">
 <ol class="responses">
     <li ng-repeat="resp in schema.responses"
+            ng-init="respi = $index"
             ng-class="{
                 active: $index == response.active,
-                disabled: $index > response.maxAnswered}">
-        <label>{{resp.name}}</label>
-        <div class="btn-group" ng-init="respi = $index">
+                disabled: disabled(respi)}">
+        <label ng-click="response.active = $index">{{resp.name}}</label>
+        <div class="btn-group">
             <button ng-repeat="c in resp.choices"
                     class="btn"
                     ng-class="{active: response.responses[respi] == $index}"

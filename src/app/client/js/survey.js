@@ -55,17 +55,22 @@ function ResponseStandardCtrl($scope) {
     $scope.respond = function(response, choice) {
         var i = $scope.schema.responses.indexOf(response);
         var j = response.choices.indexOf(choice);
-        console.log('Storing' + i + ' <- ' + j);
         $scope.response.responses[i] = j;
         $scope.response.active = i + 1;
     };
 
     $scope.disabled = function(i, j) {
-        var currDecl = $scope.schema.responses[i].choices[j];
-        if (i == 0 || currDecl.prevMin == null)
+        if (i == 0)
             return false;
 
         var prevResp = $scope.response.responses[i - 1];
+        if (j == undefined)
+            return prevResp < 0;
+
+        var currDecl = $scope.schema.responses[i].choices[j];
+        if (currDecl.prevMin == null)
+            return false;
+
         return prevResp + 1 < currDecl.prevMin;
     };
 };

@@ -98,6 +98,7 @@ $anim-time: 0.5s;
         li.disabled {
             label {
                 color: #888;
+                pointer-events: none;
             }
         }
     }
