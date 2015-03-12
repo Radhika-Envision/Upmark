@@ -6,8 +6,11 @@
     <h4>1. Governance and Policy</h4>
 </div>
 <div class="measure">
-    <h5>2. The agency has a policy for capital program prioritisation</h5>
-    <p><span class="text-muted">Intent:</span> To identify the extent to which the agency has a Board/Executive team approved policy in place for capital program prioritisation. The policy should be consistent with other agency policies, refers to the key outcomes or objectives to be achieved through capital program prioritisation, outline the approach to prioritisation, and provide sufficient flexibility in unusual circumstances.</p>
+    <h5>{{measure.seq}}. {{measure.title}}</h5>
+    <p ng-repeat="desc in measure.description">
+        <span class="text-muted">{{desc.name}}:</span>
+        {{desc.text}}
+    </p>
 
     <div ng-include="schema.template"></div>
 

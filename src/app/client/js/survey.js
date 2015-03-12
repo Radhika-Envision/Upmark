@@ -10,21 +10,22 @@ angular.module('wsaa.survey', ['ngResource'])
 }])
 
 
-.controller('SurveyCtrl', ['$scope', 'Schema',
-        function($scope, Schema) {
+.factory('Measure', ['$resource', function($resource) {
+    return $resource('/survey/:survey/function/:fn/process/:proc/sub-process/:subProc/measure/:measure.json', {}, {
+        get: { method: 'GET' }
+    });
+}])
 
-    $scope.measure = {
-        description: [
-            {
-                name: "Intent",
-                text: "To identify the extent to which the agency has a Board/Executive team approved policy in place for capital program prioritisation. The policy should be consistent with other agency policies, refers to the key outcomes or objectives to be achieved through capital program prioritisation, outline the approach to prioritisation, and provide sufficient flexibility in unusual circumstances."
-            }
-        ],
-        responseType: 'standard'
-    };
+
+.controller('SurveyCtrl', ['$scope', '$routeParams', 'Schema', 'Measure',
+        function($scope, $routeParams, Schema, Measure) {
+
+    $scope.measure = Measure.get($routeParams);
     $scope.schema = null;
 
     $scope.$watch('measure.responseType', function(responseType) {
+        if (responseType == null)
+            return;
         $scope.schema = Schema.get({name: responseType});
     });
 

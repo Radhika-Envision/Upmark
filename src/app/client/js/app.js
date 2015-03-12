@@ -10,7 +10,7 @@ angular.module('wsaa.aquamark',
                 logProvider) {
 
         $routeProvider
-            .when('/survey/:survey/:function/:proc/:subproc/:measure', {
+            .when('/survey/:survey/:fn/:proc/:subProc/:measure', {
                 templateUrl : 'survey-measure.html',
                 controller : 'SurveyCtrl'
             })
