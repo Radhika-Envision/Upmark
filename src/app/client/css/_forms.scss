@@ -29,4 +29,17 @@ $anim-time: 0.3s;
         border-bottom-color: $primary-col;
         color: $button-fg;
     }
+
+    &.disabled, &[disabled] {
+        opacity: 1;
+        background: white;
+        color: #aaa;
+        border-color: rgba(0,0,0, 0.05);
+        &:not(:first-child) {
+            border-left-color: transparent;
+        }
+        &:not(:last-child) {
+            border-right-color: transparent;
+        }
+    }
 }
