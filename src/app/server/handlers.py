@@ -64,6 +64,12 @@ STYLESHEETS = [
         'min-href': '/minify/app-min.css',
         'href': '/css/app.css'
     },
+    {
+        'min-href': '/minify/3rd-party-min.css',
+        'hrefs': [
+            '/.bower_components/angular-hotkeys/build/hotkeys.css',
+        ]
+    },
 ]
 
 SCRIPTS = [
@@ -91,6 +97,7 @@ SCRIPTS = [
         'min-href': '/minify/3rd-party-min.js',
         'hrefs': [
             '/.bower_components/angular-bootstrap/ui-bootstrap-tpls.js',
+            '/.bower_components/angular-hotkeys/build/hotkeys.js'
         ]
     },
     {

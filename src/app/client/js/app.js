@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('wsaa.aquamark',
-               ['ngRoute', 'ngAnimate', 'ui.bootstrap',
+               ['ngRoute', 'ngAnimate', 'ui.bootstrap', 'cfp.hotkeys',
                 'wsaa.survey', 'vpac.utils'])
 
 .config(['$routeProvider', '$httpProvider', '$parseProvider', '$animateProvider',
