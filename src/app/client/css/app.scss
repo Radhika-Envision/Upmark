@@ -3,6 +3,10 @@
 $nav-height: 64px;
 $std-padding: 4px;
 
+body {
+    overflow-y: scroll;
+}
+
 .navbar-brand {
     padding: $std-padding 15px;
     height: $nav-height - $std-padding;

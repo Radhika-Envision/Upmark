@@ -17,9 +17,14 @@ angular.module('wsaa.survey', ['ngResource'])
 }])
 
 
-.controller('SurveyCtrl', ['$scope', '$routeParams', 'Schema', 'Measure',
-        function($scope, $routeParams, Schema, Measure) {
+.controller('SurveyCtrl', ['$scope', '$routeParams', 'Schema', 'Measure', 'format',
+        function($scope, $routeParams, Schema, Measure, format) {
 
+    $scope.route = {
+        params: $routeParams,
+        nextUrl: null,
+        prevUrl: null
+    };
     $scope.measure = Measure.get($routeParams);
     $scope.schema = null;
     $scope.response = {
@@ -31,6 +36,42 @@ angular.module('wsaa.survey', ['ngResource'])
         if (responseType == null)
             return;
         $scope.schema = Schema.get({name: responseType});
+    });
+
+    $scope.$watchGroup(['route.params', 'measure.first'], function(vars) {
+        var params = vars[0];
+        var end = vars[1];
+        if (end) {
+            $scope.route.prevUrl = null;
+            return;
+        }
+
+        $scope.route.prevUrl = format(
+            "#/survey/{}/{}/{}/{}/{}",
+            $scope.route.params.survey,
+            $scope.route.params.fn,
+            $scope.route.params.proc,
+            $scope.route.params.subProc,
+            Number($scope.route.params.measure) - 1
+        );
+    });
+
+    $scope.$watchGroup(['route.params', 'measure.last'], function(vars) {
+        var params = vars[0];
+        var end = vars[1];
+        if (end) {
+            $scope.route.nextUrl = null;
+            return;
+        }
+
+        $scope.route.nextUrl = format(
+            "#/survey/{}/{}/{}/{}/{}",
+            $scope.route.params.survey,
+            $scope.route.params.fn,
+            $scope.route.params.proc,
+            $scope.route.params.subProc,
+            Number($scope.route.params.measure) + 1
+        );
     });
 
 }])
