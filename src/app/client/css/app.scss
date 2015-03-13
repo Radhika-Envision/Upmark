@@ -1,3 +1,5 @@
+@import '_utils.scss';
+
 $nav-height: 64px;
 $std-padding: 4px;
 
@@ -12,8 +14,8 @@ nav.navbar.navbar-static-top {
 
 /* Logo is included inline as raw SVG, so we can do some funky styling. */
 .navbar-brand svg {
-    transform: scale(0.3);
-    transform-origin: 0 0;
+    @include transform(scale(0.3));
+    @include transform-origin(0 0);
 }
 g#logo-text-subtitle {
     display: none;

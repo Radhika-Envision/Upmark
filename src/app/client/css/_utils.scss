@@ -28,3 +28,19 @@
     -o-transition-property: $rules;
     transition-property: $rules;
 }
+
+@mixin transform($rules...) {
+    -webkit-transform: $rules;
+    -moz-transform: $rules;
+    -ms-transform: $rules;
+    -o-transform: $rules;
+    transform: $rules;
+}
+
+@mixin transform-origin($rules...) {
+    -webkit-transform-origin: $rules;
+    -moz-transform-origin: $rules;
+    -ms-transform-origin: $rules;
+    -o-transform-origin: $rules;
+    transform-origin: $rules;
+}
