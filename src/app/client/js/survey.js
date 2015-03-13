@@ -17,8 +17,8 @@ angular.module('wsaa.survey', ['ngResource'])
 }])
 
 
-.controller('SurveyCtrl', ['$scope', '$routeParams', 'Schema', 'Measure', 'format',
-        function($scope, $routeParams, Schema, Measure, format) {
+.controller('SurveyCtrl', ['$scope', '$routeParams', 'Schema', 'Measure', 'format', 'hotkeys', '$location',
+        function($scope, $routeParams, Schema, Measure, format, hotkeys, $location) {
 
     $scope.route = {
         params: $routeParams,
@@ -47,7 +47,7 @@ angular.module('wsaa.survey', ['ngResource'])
         }
 
         $scope.route.prevUrl = format(
-            "#/survey/{}/{}/{}/{}/{}",
+            "/survey/{}/{}/{}/{}/{}",
             $scope.route.params.survey,
             $scope.route.params.fn,
             $scope.route.params.proc,
@@ -65,7 +65,7 @@ angular.module('wsaa.survey', ['ngResource'])
         }
 
         $scope.route.nextUrl = format(
-            "#/survey/{}/{}/{}/{}/{}",
+            "/survey/{}/{}/{}/{}/{}",
             $scope.route.params.survey,
             $scope.route.params.fn,
             $scope.route.params.proc,
@@ -74,6 +74,32 @@ angular.module('wsaa.survey', ['ngResource'])
         );
     });
 
+    hotkeys.bindTo($scope)
+        .add({
+            combo: ['p'],
+            description: "Save, and view previous method",
+            callback: function(event, hotkey) {
+                if ($scope.route.prevUrl == null)
+                    return;
+                $location.url($scope.route.prevUrl);
+            }
+        })
+        .add({
+            combo: ['n'],
+            description: "Save, and view next method",
+            callback: function(event, hotkey) {
+                if ($scope.route.nextUrl == null)
+                    return;
+                $location.url($scope.route.nextUrl);
+            }
+        })
+        .add({
+            combo: ['c'],
+            description: "Edit comment",
+            callback: function(event, hotkey) {
+                $scope.$emit('focus-comment');
+            }
+        });
 }])
 
 
