@@ -6,7 +6,14 @@
     <h4>1. Governance and Policy</h4>
 </div>
 <div class="measure">
-    <h5>{{measure.seq}}. {{measure.title}}</h5>
+    <h5>
+        {{measure.seq}}. {{measure.title}}
+        <button class="btn btn-on-danger"
+                ng-click="response.na = !response.na"
+                ng-class="{active: response.na}">
+            <i class="fa fa-fw fa-times"></i>
+        </button>
+    </h5>
     <p ng-repeat="desc in measure.description">
         <span class="text-muted">{{desc.name}}:</span>
         {{desc.text}}

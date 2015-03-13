@@ -22,6 +22,9 @@ angular.module('wsaa.survey', ['ngResource'])
 
     $scope.measure = Measure.get($routeParams);
     $scope.schema = null;
+    $scope.response = {
+        na: false
+    };
 
     $scope.$watch('measure.responseType', function(responseType) {
         if (responseType == null)
@@ -44,10 +47,8 @@ function ResponseStandardCtrl($scope, hotkeys) {
     BaseResponseCtrl.call(this, $scope);
 
     $scope.$watch('schema', function(schema) {
-        $scope.response = {
-            active: 0,
-            responses: []
-        };
+        $scope.response.active = 0;
+        $scope.response.responses = [];
         for (var i = 0; i < schema.responses.length; i++) {
             $scope.response.responses[i] = -1;
         }
@@ -61,6 +62,9 @@ function ResponseStandardCtrl($scope, hotkeys) {
     };
 
     $scope.disabled = function(i, j) {
+        if ($scope.response.na)
+            return true;
+
         if (i == 0)
             return false;
 

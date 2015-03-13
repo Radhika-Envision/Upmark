@@ -2,6 +2,7 @@
 
 $gutter: 200px;
 $anim-time: 0.5s;
+$round-button-width: 26px;
 
 .survey-tree {
     background: #bbe2f6;
@@ -27,6 +28,17 @@ $anim-time: 0.5s;
         color: #4e4e4e;
         line-height: 1.6;
         font-size: 19px;
+
+        /* N/A button etc. */
+        .btn {
+            border-radius: 100%;
+            width: $round-button-width;
+            height: $round-button-width;
+            padding: 0;
+            line-height: $round-button-width - 2px;
+            font-size: $round-button-width - 8px;
+            float: right;
+        }
     }
 
     p {
