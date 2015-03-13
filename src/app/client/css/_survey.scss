@@ -41,7 +41,7 @@ $round-button-width: 26px;
         }
     }
 
-    p {
+    >p {
         margin: 20px $gutter;
     }
 
@@ -115,8 +115,47 @@ $round-button-width: 26px;
         }
     }
 
-    .comments {
+    .comments-box {
+        $default-height: 150px;
+
         border-top: 1px solid #cecece;
+        margin: (30px - $response-spacing) $gutter;
+        position: relative;
+
+        textarea {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: $default-height;
+            border: none;
+            background-color: rgba(white, 0.75);
+            @include transition(
+                background-color $anim-time ease
+            );
+
+            &.empty {
+                background-color: rgba(white, 0);
+            }
+            &:focus {
+                background-color: rgba(white, 1);
+            }
+        }
+        label {
+            pointer-events: none;
+            text-align: center;
+            font-size: $default-height / 1.5;
+            font-weight: normal;
+            line-height: $default-height;
+            height: $default-height;
+            margin: 0;
+            padding: 0;
+            color: #ccc;
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+        }
     }
 }
 

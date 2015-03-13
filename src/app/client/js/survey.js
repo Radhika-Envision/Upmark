@@ -23,7 +23,8 @@ angular.module('wsaa.survey', ['ngResource'])
     $scope.measure = Measure.get($routeParams);
     $scope.schema = null;
     $scope.response = {
-        na: false
+        na: false,
+        comment: ""
     };
 
     $scope.$watch('measure.responseType', function(responseType) {

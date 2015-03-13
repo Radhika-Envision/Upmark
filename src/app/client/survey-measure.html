@@ -21,9 +21,12 @@
 
     <div ng-include="schema.template"></div>
 
-    <p class="comments">
-    Comments
-    </p>
+    <div class="comments-box">
+        <label for="comments">Comments</label>
+        <textarea id="comments"
+                ng-model="response.comment"
+                ng-class="{empty: response.comment == ''}"></textarea>
+    </div>
 </div>
 
 </div>

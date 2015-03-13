@@ -9,6 +9,15 @@ $danger-col: #d43f3a;
 
 $anim-time: 0.3s;
 
+button, .btn, a, textarea, input, select {
+    outline: 5px none rgba($primary-col, 0);
+
+    &.active:focus, &:focus, &:active.focus, &:active:focus {
+        outline: 5px solid rgba($primary-col, 0.1);
+        outline-offset: 0px;
+    }
+}
+
 .btn {
     background-color: $button-bg;
     border-bottom: $button-border-width solid transparent;
