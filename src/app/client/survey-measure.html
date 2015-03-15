@@ -39,7 +39,9 @@
         <label for="comments">Comments</label>
         <textarea id="comments"
                 ng-model="response.comment"
-                ng-class="{empty: response.comment == ''}"></textarea>
+                ng-class="{empty: response.comment == ''}"
+                focus-on="focus-comment"
+                blur-on="blur-comment"></textarea>
     </div>
 </div>
 

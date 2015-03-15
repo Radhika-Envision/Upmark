@@ -92,13 +92,6 @@ angular.module('wsaa.survey', ['ngResource'])
                     return;
                 $location.url($scope.route.nextUrl);
             }
-        })
-        .add({
-            combo: ['c'],
-            description: "Edit comment",
-            callback: function(event, hotkey) {
-                $scope.$emit('focus-comment');
-            }
         });
 }])
 
@@ -108,11 +101,36 @@ angular.module('wsaa.survey', ['ngResource'])
 ;
 
 
-function BaseResponseCtrl($scope) {
+function BaseResponseCtrl($scope, hotkeys) {
+    hotkeys.bindTo($scope)
+        .add({
+            combo: ['x'],
+            description: "Mark as not applicable",
+            callback: function(event, hotkey) {
+                $scope.response.na = !$scope.response.na;
+            }
+        })
+        .add({
+            combo: ['c'],
+            description: "Edit comment",
+            callback: function(event, hotkey) {
+                event.stopPropagation();
+                event.preventDefault();
+                $scope.$emit('focus-comment');
+            }
+        })
+        .add({
+            combo: ['esc'],
+            description: "Stop editing comment",
+            allowIn: ['TEXTAREA'],
+            callback: function(event, hotkey) {
+                $scope.$emit('blur-comment');
+            }
+        });
 };
 
 function ResponseStandardCtrl($scope, hotkeys) {
-    BaseResponseCtrl.call(this, $scope);
+    BaseResponseCtrl.call(this, $scope, hotkeys);
 
     $scope.$watch('schema', function(schema) {
         $scope.response.active = 0;

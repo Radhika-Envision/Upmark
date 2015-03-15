@@ -541,4 +541,63 @@ angular.module('vpac.utils', [])
     };
 }])
 
+
+/**
+ * Focus an element in response to an event.
+ */
+.directive('focusOn', [function() {
+    return {
+        restrict: 'A',
+        link: function(scope, element, attrs) {
+            scope.$on(attrs.focusOn, function(event) {
+                element.focus();
+            });
+        }
+    }
+}])
+
+
+/**
+ * Return focus to the last-focussed element in response to an event.
+ */
+.directive('blurOn', ['$window', '$document', function($window, $document) {
+    return {
+        restrict: 'A',
+        link: function(scope, element, attrs) {
+            var lastFocussedElement = null;
+
+            var globalFocusHandler = function(event) {
+                var target = angular.element(event.target);
+                if (target.prop('tagName') === undefined) {
+                    // Don't store window; it may be only temporarily focussed
+                    // when the user switches back to the window.
+                } else if (!element.is(target)) {
+                    lastFocussedElement = target;
+                }
+            };
+            angular.element($window).on('focusin', globalFocusHandler);
+
+            scope.$on(attrs.blurOn, function(event) {
+                if (!element.is(':focus'))
+                    return;
+
+                var lastElem = lastFocussedElement;
+                lastFocussedElement = null;
+
+                // Transfer focus to last selected element, or fall back to
+                // window if lastElem can't be focussed.
+                if (lastElem && $.contains($document[0].documentElement, lastElem[0]))
+                    lastElem.focus();
+                else
+                    element.blur();
+            });
+
+            scope.$on('$destroy', function() {
+                lastFocussedElement = null;
+                angular.element($window).off('focusin', globalFocusHandler);
+            });
+        }
+    }
+}])
+
 ;
