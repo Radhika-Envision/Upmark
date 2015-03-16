@@ -1,0 +1,23 @@
+
+.legal {
+    >* {
+        margin-left: 200px;
+        margin-right: 200px;
+    }
+
+    li {
+        margin-bottom: 6px;
+    }
+}
+
+.software-list {
+    a {
+        font-weight: bold;
+        color: #444;
+    }
+    .attribution {
+        display: block;
+        font-size: 90%;
+        color: #888;
+    }
+}
