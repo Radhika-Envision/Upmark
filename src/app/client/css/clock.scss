@@ -1,0 +1,16 @@
+$fg-colour: #444;
+$bg-colour: white;
+
+#clock-face {
+    fill: $bg-colour;
+    stroke: none;
+}
+#clock-edge {
+    fill: none;
+    stroke: $fg-colour;
+    stroke-width: 1px;
+}
+#clock-fill {
+    fill: $fg-colour;
+    stroke: none;
+}
