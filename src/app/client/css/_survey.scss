@@ -14,9 +14,19 @@ $round-button-width: 26px;
         margin: 0 $gutter;
         color: #494854;
         line-height: 1.6;
+        position: relative;
+        .clock-progress {
+            position: absolute;
+            top: 0.2em;
+            right: 0;
+        }
     }
     h2 {
         font-size: 19px;
+        .clock-progress {
+            @include transform(scale(19/16));
+            @include transform-origin(9px 1px);
+        }
     }
     h3, h4 {
         font-size: 16px;

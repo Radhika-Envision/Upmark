@@ -39,7 +39,7 @@ angular.module('vpac.widgets', [])
 
     return {
         restrict: 'E',
-        template: '<object data="images/clock.svg" type="image/svg+xml"></object>',
+        template: '<object data="images/clock.svg" class="clock-progress" type="image/svg+xml"></object>',
         replace: true,
         scope: {
             fraction: '='
