@@ -17,8 +17,8 @@ angular.module('wsaa.survey', ['ngResource'])
 }])
 
 
-.controller('SurveyCtrl', ['$scope', '$routeParams', 'Schema', 'Measure', 'format', 'hotkeys', '$location',
-        function($scope, $routeParams, Schema, Measure, format, hotkeys, $location) {
+.controller('SurveyCtrl', ['$scope', '$routeParams', 'Schema', 'Measure', 'format', 'hotkeys', '$location', '$timeout',
+        function($scope, $routeParams, Schema, Measure, format, hotkeys, $location, $timeout) {
 
     $scope.route = {
         params: $routeParams,
@@ -37,6 +37,15 @@ angular.module('wsaa.survey', ['ngResource'])
             proc: 0.16,
             subProc: 0.5
         }
+    };
+
+    $scope.testClock = function() {
+        var bump = function() {
+            $scope.overview.progress.fn += 0.01;
+            $scope.overview.progress.fn %= 1.0
+            $timeout(bump, 100);
+        };
+        bump();
     };
 
     $scope.$watch('measure.responseType', function(responseType) {
