@@ -594,6 +594,9 @@ angular.module('vpac.utils', [])
 
             scope.$on('$destroy', function() {
                 lastFocussedElement = null;
+                scope = null;
+                element = null;
+                attrs = null;
                 angular.element($window).off('focusin', globalFocusHandler);
             });
         }

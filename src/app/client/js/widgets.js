@@ -54,6 +54,11 @@ angular.module('vpac.widgets', [])
                 });
             };
             elem.one('load', init);
+            scope.$on('$destroy', function() {
+                scope = null;
+                elem = null;
+                attrs = null;
+            });
         }
     };
 }])
