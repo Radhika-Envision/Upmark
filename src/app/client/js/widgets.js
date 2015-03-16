@@ -45,13 +45,15 @@ angular.module('vpac.widgets', [])
             fraction: '='
         },
         link: function(scope, elem, attrs) {
+            var update = function(fraction) {
+                var svg = elem[0].getSVGDocument();
+                var path = drawSemicircle(fraction);
+                var fillElem = $(svg).find("#clock-fill");
+                fillElem.attr('d', path);
+            };
             var init = function() {
-                scope.$watch('fraction', function(fraction) {
-                    var svg = elem[0].getSVGDocument();
-                    var path = drawSemicircle(fraction);
-                    var fillElem = $(svg).find("#clock-fill");
-                    fillElem.attr('d', path);
-                });
+                update(scope.fraction);
+                scope.$watch('fraction', update);
             };
             elem.one('load', init);
             scope.$on('$destroy', function() {
