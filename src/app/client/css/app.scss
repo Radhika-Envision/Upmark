@@ -42,6 +42,11 @@ g#logo-text-subtitle {
     display: none;
 }
 
+.navbar-right p {
+    margin: 10px 15px;
+    text-align: right;
+}
+
 @import '_forms.scss';
 @import '_survey.scss';
 @import '_legal.scss';
