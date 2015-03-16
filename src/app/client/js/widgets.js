@@ -53,11 +53,7 @@ angular.module('vpac.widgets', [])
                     fillElem.attr('d', path);
                 });
             };
-            if (elem[0].getSVGDocument()) {
-                init();
-            } else {
-                elem.one('load', init);
-            }
+            elem.one('load', init);
         }
     };
 }])
