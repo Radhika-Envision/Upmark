@@ -9,6 +9,7 @@ RUN DEBIAN_FRONTEND=noninteractive \
         nodejs \
         build-essential \
         python3 \
+        python3.4-dev \
         virtualenvwrapper \
         python3-pip \
         git \

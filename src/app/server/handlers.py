@@ -309,7 +309,7 @@ class MinifyHandler(RamCacheHandler):
             if not s.startswith(self.root):
                 raise tornado.web.HTTPError(
                     404, "No such file %s." % s)
-            with open(s, 'r') as f:
+            with open(s, 'r', encoding='utf8') as f:
                 text += f.read()
             text += "\n"
         return text
