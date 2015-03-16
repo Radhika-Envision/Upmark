@@ -1,18 +1,19 @@
 @import '_utils.scss';
+@import '_defines.scss';
 
 $gutter: 200px;
 $anim-time: 0.5s;
 $round-button-width: 26px;
 
 .survey-tree {
-    background: #bbe2f6;
+    background: $primary-colour;
     margin: 0;
     padding: 10px 0;
     position: relative;
 
     h2, h3, h4 {
         margin: 0 $gutter;
-        color: #494854;
+        color: mix(black, $primary-colour, 70%);
         line-height: 1.6;
         position: relative;
         .clock-progress {
@@ -41,7 +42,7 @@ $round-button-width: 26px;
 .measure {
     h5 {
         margin: 30px $gutter 10px;
-        color: #4e4e4e;
+        color: mix(black, white, 70%);
         line-height: 1.6;
         font-size: 19px;
 

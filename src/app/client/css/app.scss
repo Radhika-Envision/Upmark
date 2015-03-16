@@ -1,4 +1,5 @@
 @import '_utils.scss';
+@import '_defines.scss';
 
 $nav-height: 64px;
 $std-padding: 4px;
@@ -45,6 +46,12 @@ g#logo-text-subtitle {
 .navbar-right p {
     margin: 10px 15px;
     text-align: right;
+}
+
+.jumbotron {
+    text-align: center;
+    background: $primary-colour;
+    color: mix(black, $primary-colour, 70%);
 }
 
 @import '_forms.scss';
