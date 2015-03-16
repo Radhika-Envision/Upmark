@@ -2,7 +2,7 @@
 
 angular.module('wsaa.aquamark',
                ['ngRoute', 'ngAnimate', 'ui.bootstrap', 'cfp.hotkeys',
-                'wsaa.survey', 'vpac.utils'])
+                'wsaa.survey', 'vpac.utils', 'vpac.widgets'])
 
 .config(['$routeProvider', '$httpProvider', '$parseProvider', '$animateProvider',
          'logProvider',

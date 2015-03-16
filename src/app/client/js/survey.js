@@ -31,6 +31,13 @@ angular.module('wsaa.survey', ['ngResource'])
         na: false,
         comment: ""
     };
+    $scope.overview = {
+        progress: {
+            fn: 0.12,
+            proc: 0.16,
+            subProc: 0.5
+        }
+    };
 
     $scope.$watch('measure.responseType', function(responseType) {
         if (responseType == null)

@@ -106,6 +106,7 @@ SCRIPTS = [
             '/js/app.js',
             '/js/survey.js',
             '/js/utils.js',
+            '/js/widgets.js',
         ]
     }
 ]
