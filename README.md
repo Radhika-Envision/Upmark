@@ -17,6 +17,11 @@ Run with:
 sudo docker run --name aquamark vpac/aquamark
 ```
 
+For the development use this to run docker
+```bash
+sudo docker run -d --name aquamark -p 8000:8000 -v "$YOUR_GIT_ROOT/src/app:/usr/share/aquamark" vpac/aquamark
+```
+
 ## Dependencies
 
 Client-side scripts are managed with Bower, which will automatically download
