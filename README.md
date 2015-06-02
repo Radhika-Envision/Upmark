@@ -20,7 +20,7 @@ sudo docker run --name aquamark vpac/aquamark
 For the development use this to run docker
 1. for the postgresql
 ```bash
-sudo docker run --name postgres -e POSTGRES_PASSWORD=mysecretpassword -d postgres
+sudo docker run --name postgres -e POSTGRES_PASSWORD=postgres -d postgres
 ```
 2. link postgre to aquamark
 ```bash

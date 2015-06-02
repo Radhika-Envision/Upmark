@@ -12,6 +12,7 @@ RUN DEBIAN_FRONTEND=noninteractive \
         python3.4-dev \
         virtualenvwrapper \
         python3-pip \
+        python3-psycopg2 \
         git \
         --no-install-recommends && \
     which node || sudo apt-get install -y nodejs-legacy && \
@@ -29,6 +30,8 @@ COPY config/config.sh.DOCKER_SAMPLE /usr/share/aquamark/config/config.sh
 WORKDIR /usr/share/aquamark
 
 ENV PORT=80 DEV_MODE=False
+ENV POSTGRE_URL=postgresql://postgres:postgres@postgres/aquamark
+
 EXPOSE 80
 
 RUN ["pip3", "install", "-vU", "setuptools"]
