@@ -18,8 +18,13 @@ sudo docker run --name aquamark vpac/aquamark
 ```
 
 For the development use this to run docker
+1. for the postgresql
 ```bash
-sudo docker run -d --name aquamark -p 8000:8000 -v "$YOUR_GIT_ROOT/src/app:/usr/share/aquamark" vpac/aquamark
+sudo docker run --name postgres -e POSTGRES_PASSWORD=mysecretpassword -d postgres
+```
+2. link postgre to aquamark
+```bash
+sudo docker run -d --name aquamark -p 8000:8000 -v "$YOUR_GIT_ROOT/src/app:/usr/share/aquamark" --link postgres:postgres vpac/aquamark
 ```
 
 ## Dependencies

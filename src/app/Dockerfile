@@ -21,8 +21,8 @@ RUN DEBIAN_FRONTEND=noninteractive \
 #ENV MONGO_URL mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]][/[database][?options]]
 ENV MONGO_URL mongodb://mongodb/aquamark
 
-#COPY ./ /usr/share/aquamark
-#COPY config/config.sh.DOCKER_SAMPLE /usr/share/aquamark/config/config.sh
+COPY ./ /usr/share/aquamark
+COPY config/config.sh.DOCKER_SAMPLE /usr/share/aquamark/config/config.sh
 #for the development use docker -v to link your source code to container
 #refer to aquamark wiki
 
@@ -31,6 +31,9 @@ WORKDIR /usr/share/aquamark
 ENV PORT=80 DEV_MODE=False
 EXPOSE 80
 
-RUN ["/usr/share/aquamark/start.sh", "install"]
+RUN ["pip3", "install", "-vU", "setuptools"]
+RUN ["pip3", "install", "-r",  "./requirements.txt"]
 
-CMD ["/usr/share/aquamark/start.sh"]
+#RUN /bin/bash -c ./config/config.sh
+
+CMD ["python3", "./server/app.py"]
