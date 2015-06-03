@@ -38,7 +38,7 @@ class AuthLoginHandler(BaseHandler):
             errormessage = self.get_argument("error")
         except:
             errormessage = ""
-        self.render("login.html", errormessage = errormessage)
+        self.render("../client/login.html", errormessage = errormessage)
 
     def check_permission(self, password, username):
         if username == "admin" and password == "admin":
@@ -113,7 +113,6 @@ def start_web_server():
         [
             (r"/()", handlers.MainHandler, {
                 'path': '../client/index.html'}),
-
             (r"/bower_components/(.*)", tornado.web.StaticFileHandler, {
                 'path': os.path.join(package_dir, "..", ".bower_components")}),
             (r"/minify/(.*)", handlers.MinifyHandler, {
@@ -122,7 +121,8 @@ def start_web_server():
                 'root': os.path.join(package_dir, "..", "client")}),
             (r"/(.*)", tornado.web.StaticFileHandler, {
                 'path': os.path.join(package_dir, "..", "client")}),
-            (r"/auth/login/", AuthLoginHandler),
+            (r"/auth/login/", AuthLoginHandler, {
+                'path': '../client/login.html'}),
             (r"/auth/logout/", AuthLogoutHandler),
         ], **settings
     )

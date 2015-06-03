@@ -18,6 +18,10 @@ angular.module('wsaa.aquamark',
                 templateUrl : 'start.html',
                 controller : 'EmptyCtrl'
             })
+            .when('/login', {
+                templateUrl : 'login.html',
+                controller : 'LoginCtrl'
+            })
             .when('/legal', {
                 templateUrl : 'legal.html',
                 controller : 'EmptyCtrl'
@@ -61,5 +65,7 @@ angular.module('wsaa.aquamark',
 .controller('EmptyCtrl', ['$scope',
         function($scope) {
 }])
-
+.controller('LoginCtrl', ['$scope',
+        function($scope) {
+}])
 ;
