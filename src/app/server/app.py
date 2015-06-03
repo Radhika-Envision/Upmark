@@ -106,7 +106,8 @@ def start_web_server():
         "cookie_secret": os.environ.get('COOKIE_SECRET'),
         "debug": True,
         "gzip": True,
-        "template_path": os.path.join(package_dir, "..", "client")
+        "template_path": os.path.join(package_dir, "..", "client"),
+        "login_url": "/auth/login/"
     }
 
     application = tornado.web.Application(

@@ -2,7 +2,7 @@ import os
 import sys
 import uuid
 
-from sqlalchemy import create_engine, Column, ForeignKey, Integer, String, Float, Date
+from sqlalchemy import create_engine, Column, ForeignKey, Integer, String, Float, Date, Text, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
@@ -19,7 +19,7 @@ POSTGRES_TARGET_URL  = 'postgresql://postgres:postgres@postgres/aquamark'
 POSTGRES_DEFAULT_URL = 'postgresql://postgres:postgres@postgres/postgres'
 
 
-# TODO: Use String() instead of String(128) etc.
+# TODO: Use String() instead of Text etc. : Done
 
 
 class Response(Versioned, Base):
@@ -30,10 +30,10 @@ class Response(Versioned, Base):
     user_id = Column(GUID, ForeignKey('appuser.id'))
     assessment_id = Column(GUID, ForeignKey('assessment.id'))
     measure_id = Column(GUID, ForeignKey('measure.id'))
-    comment = Column(String(256), nullable=False)
+    comment = Column(Text, nullable=False)
     not_relevant = Column(Boolean, nullable=False)
-    response_parts = Column(String(1024), nullable=False)
-    audit_reason = Column(String(1024), nullable=True)
+    response_parts = Column(Text, nullable=False)
+    audit_reason = Column(Text, nullable=True)
     # TODO: Test modified field from history table.
 
 
@@ -42,19 +42,21 @@ class Assessment(Versioned, Base):
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
     utility_id = Column(GUID, ForeignKey('utility.id'))
     survey_id = Column(GUID, ForeignKey('survey.id'))
-    functionset_id = Column(GUID, ForeignKey('functionset.id'))
+    measureset_id = Column(GUID, ForeignKey('measureset.id'))
     # TODO: Make this field an enum
-    approval = Column(String(256), nullable=False)
+    approval = Column(Text, nullable=False)
+    created = Column(Date, nullable=False)
     # TODO: Add created field
 
 
 class Utility(Versioned, Base):
     __tablename__ = 'utility'
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
-    name = Column(String(128), nullable=False)
-    url = Column(String(1024), nullable=True)
-    region = Column(String(128), nullable=False)
+    name = Column(Text, nullable=False)
+    url = Column(Text, nullable=True)
+    region = Column(Text, nullable=False)
     number_of_customers = Column(Integer, nullable=False)
+    created = Column(Date, nullable=False)
     # TODO: Add created field
 
 
@@ -62,33 +64,26 @@ class Survey(Versioned, Base):
     __tablename__ = 'survey'
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
     created = Column(Date, nullable=False)
-    title = Column(String(256), nullable=False)
+    title = Column(Text, nullable=False)
 
 
 class AppUser(Versioned, Base):
     __tablename__ = 'appuser'
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
-    name = Column(String(128), nullable=False)
-    password = Column(String(128), nullable=False)
-    privileges = Column(String(128), nullable=False)
+    name = Column(Text, nullable=False)
+    password = Column(Text, nullable=False)
+    privileges = Column(Text, nullable=False)
     utility_id = Column(GUID, ForeignKey('utility.id'))
+    created = Column(Date, nullable=False)
     # TODO: Add created field
-
-
-# TODO: Change this to MethodSet, and add many-to-many mapping to methods.
-class FunctionSet(Versioned, Base):
-    __tablename__ = 'functionset'
-    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
-    survey_id = Column(GUID, ForeignKey('survey.id'))
-    title = Column(String(256), nullable=False)
 
 
 class Function(Versioned, Base):
     __tablename__ = 'function'
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
     seq = Column(Integer, nullable=False)
-    title = Column(String(256), nullable=False)
-    description = Column(String(256), nullable=False)
+    title = Column(Text, nullable=False)
+    description = Column(Text, nullable=False)
 
 
 class Process(Versioned, Base):
@@ -96,8 +91,8 @@ class Process(Versioned, Base):
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
     function_id = Column(GUID, ForeignKey('function.id'))
     seq = Column(Integer, nullable=False)
-    title = Column(String(256), nullable=False)
-    description = Column(String(256), nullable=False)
+    title = Column(Text, nullable=False)
+    description = Column(Text, nullable=False)
 
 
 class Subprocess(Versioned, Base):
@@ -105,8 +100,8 @@ class Subprocess(Versioned, Base):
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
     process_id = Column(GUID, ForeignKey('process.id'))
     seq = Column(Integer, nullable=False)
-    title = Column(String(256), nullable=False)
-    description = Column(String(256), nullable=False)
+    title = Column(Text, nullable=False)
+    description = Column(Text, nullable=False)
 
 
 class Measure(Versioned, Base):
@@ -114,14 +109,34 @@ class Measure(Versioned, Base):
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
     subprocess_id = Column(GUID, ForeignKey('subprocess.id'), nullable=True)
     seq = Column(Integer, nullable=False)
-    title = Column(String(256), nullable=False)
+    title = Column(Text, nullable=False)
     weight = Column(Float, nullable=False)
-    intent = Column(String(256), nullable=False)
-    inputs = Column(String(256), nullable=False)
-    scenario = Column(String(256), nullable=False)
-    questions = Column(String(256), nullable=False)
-    response_type = Column(String(256), nullable=False)
+    intent = Column(Text, nullable=False)
+    inputs = Column(Text, nullable=False)
+    scenario = Column(Text, nullable=False)
+    questions = Column(Text, nullable=False)
+    response_type = Column(Text, nullable=False)
     #response = relationship("Response", uselist=False, backref="measure")
+
+
+# TODO: Change this to MethodSet, and add many-to-many mapping to methods.
+class MeasureSet(Base):
+    __tablename__ = 'measureset'
+    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
+    survey_id = Column(GUID, ForeignKey('survey.id'))
+    title = Column(Text, nullable=False)
+    measures = relationship(
+        Measure,
+        secondary='measureset_measure_link'
+    )
+
+
+class MeasureSetMeasureLink(Base):
+    __tablename__ = 'measureset_measure_link'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    measureset_id = Column(GUID, ForeignKey('measureset.id'))
+    measure_id = Column(GUID, ForeignKey('measure.id'))
+    version = Column(Integer, nullable=True, default=None)
 
 
 # TODO: I don't think this script should create the database. It should be done
@@ -161,15 +176,15 @@ def testing():
     Session = sessionmaker(bind=engine)
     versioned_session(Session)
     session = Session()
-    testFunction = Function(seq=1, title="Function 1", description="Test Description", weight=1)
+    testFunction = Function(seq=1, title="Function 1", description="Test Description")
     session.add(testFunction)
     session.commit()
     testFunction.title="F1"
     session.commit()
-    testProcess = Process(seq=1, title="Process 1", function_id=testFunction.id, description="Test Description", weight=1)
+    testProcess = Process(seq=1, title="Process 1", function_id=testFunction.id, description="Test Description")
     session.add(testProcess)
     session.commit()
-    testSubprocess = Subprocess(seq=1, title="Subprocess 1", process_id=testProcess.id, description="Test Description", weight=1)
+    testSubprocess = Subprocess(seq=1, title="Subprocess 1", process_id=testProcess.id, description="Test Description")
     session.add(testSubprocess)
     session.commit()
     testMeasure = Measure(seq=1, title="How are you?", subprocess_id=testSubprocess.id, weight=1, intent="intent", inputs="inputs", scenario="scenario", questions="questions", response_type="1")
