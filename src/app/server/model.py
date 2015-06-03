@@ -1,21 +1,23 @@
 import os
 import sys
 import uuid
-from sqlalchemy import Column, ForeignKey, Integer, String, Float, Date
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.schema import Index, MetaData
-from history_meta import Versioned, versioned_session
+
+from sqlalchemy import create_engine, Column, ForeignKey, Integer, String, Float, Date
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.schema import Index, MetaData
+
 from guid import GUID
+from history_meta import Versioned, versioned_session
+
 
 metadata = MetaData()
 Base = declarative_base(metadata=metadata)
 session = None
 POSTGRES_TARGET_URL  = 'postgresql://postgres:postgres@postgres/aquamark'
 POSTGRES_DEFAULT_URL = 'postgresql://postgres:postgres@postgres/postgres'
+
 
 class Response(Versioned, Base):
     __tablename__ = 'response'
@@ -42,6 +44,7 @@ class Assessment(Versioned, Base):
     title = Column(String(256), nullable=False)
     approval = Column(String(256), nullable=False)
 
+
 class Utility(Versioned, Base):
     __tablename__ = 'utility'
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
@@ -49,6 +52,7 @@ class Utility(Versioned, Base):
     url = Column(String(1024), nullable=False)
     region = Column(String(128), nullable=False)
     number_of_customers = Column(Integer, nullable=False)
+
 
 class Survey(Versioned, Base):
     __tablename__ = 'survey'
@@ -76,6 +80,7 @@ class FunctionSet(Versioned, Base):
     survey_id = Column(GUID, ForeignKey('survey.id'))
     title = Column(String(256), nullable=False)
 
+
 class Function(Versioned, Base):
     __tablename__ = 'function'
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
@@ -83,6 +88,7 @@ class Function(Versioned, Base):
     title = Column(String(256), nullable=False)
     description = Column(String(256), nullable=False)
     weight = Column(Float, nullable=False)
+
 
 class Process(Versioned, Base):
     __tablename__ = 'process'
@@ -93,6 +99,7 @@ class Process(Versioned, Base):
     description = Column(String(256), nullable=False)
     weight = Column(Float, nullable=False)
 
+
 class Subprocess(Versioned, Base):
     __tablename__ = 'subprocess'
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
@@ -101,6 +108,7 @@ class Subprocess(Versioned, Base):
     title = Column(String(256), nullable=False)
     description = Column(String(256), nullable=False)
     weight = Column(Float, nullable=False)
+
 
 class Measure(Versioned, Base):
     __tablename__ = 'measure'
@@ -116,6 +124,7 @@ class Measure(Versioned, Base):
     response_type = Column(String(256), nullable=False)
     #response = relationship("Response", uselist=False, backref="measure")
 
+
 def create_database(database_name):
     db_url = os.environ.get('POSTGRES_DEFAULT_URL', POSTGRES_DEFAULT_URL)
     print ("db_url2", db_url)
@@ -124,9 +133,11 @@ def create_database(database_name):
     conn.execute("commit")
     conn.execute("CREATE DATABASE " + database_name)
     conn.close()
- 
+
+
 def get_session():
     pass
+
 
 def testing():
     db_url = os.environ.get('POSTGRES_URL', POSTGRES_TARGET_URL)
@@ -165,6 +176,7 @@ def testing():
     session.add(testResponse)
     '''
     session.commit()
+
 
 print("session creating")
 get_session()
