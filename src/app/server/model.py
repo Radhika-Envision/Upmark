@@ -19,21 +19,23 @@ POSTGRES_TARGET_URL  = 'postgresql://postgres:postgres@postgres/aquamark'
 POSTGRES_DEFAULT_URL = 'postgresql://postgres:postgres@postgres/postgres'
 
 
+# TODO: Use String() instead of String(128) etc.
+
+
 class Response(Versioned, Base):
     __tablename__ = 'response'
     # Here we define columns for the table response
     # Notice that each column is also a normal Python instance attribute.
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
-    user_id = Column(GUID, ForeignKey('wassuser.id'))
+    user_id = Column(GUID, ForeignKey('appuser.id'))
     assessment_id = Column(GUID, ForeignKey('assessment.id'))
     measure_id = Column(GUID, ForeignKey('measure.id'))
     comment = Column(String(256), nullable=False)
     not_relevant = Column(Boolean, nullable=False)
     response_parts = Column(String(1024), nullable=False)
-    audit_reason = Column(String(1024), nullable=False)
-    name = Column(String(128), nullable=False)
+    audit_reason = Column(String(1024), nullable=True)
+    # TODO: Test modified field from history table.
 
-Index('response_index', Response.name)
 
 class Assessment(Versioned, Base):
     __tablename__ = 'assessment'
@@ -41,39 +43,39 @@ class Assessment(Versioned, Base):
     utility_id = Column(GUID, ForeignKey('utility.id'))
     survey_id = Column(GUID, ForeignKey('survey.id'))
     functionset_id = Column(GUID, ForeignKey('functionset.id'))
-    title = Column(String(256), nullable=False)
+    # TODO: Make this field an enum
     approval = Column(String(256), nullable=False)
+    # TODO: Add created field
 
 
 class Utility(Versioned, Base):
     __tablename__ = 'utility'
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
     name = Column(String(128), nullable=False)
-    url = Column(String(1024), nullable=False)
+    url = Column(String(1024), nullable=True)
     region = Column(String(128), nullable=False)
     number_of_customers = Column(Integer, nullable=False)
+    # TODO: Add created field
 
 
 class Survey(Versioned, Base):
     __tablename__ = 'survey'
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
-    date = Column(Date, nullable=False)
+    created = Column(Date, nullable=False)
     title = Column(String(256), nullable=False)
 
-class WassUser(Versioned, Base):
-    __tablename__ = 'wassuser'
+
+class AppUser(Versioned, Base):
+    __tablename__ = 'appuser'
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
     name = Column(String(128), nullable=False)
     password = Column(String(128), nullable=False)
-    role = Column(String(128), nullable=False)
+    privileges = Column(String(128), nullable=False)
     utility_id = Column(GUID, ForeignKey('utility.id'))
+    # TODO: Add created field
 
-class Survey(Versioned, Base):
-    __tablename__ = 'survey'
-    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
-    date = Column(Date, nullable=False)
-    title = Column(String(256), nullable=False)
 
+# TODO: Change this to MethodSet, and add many-to-many mapping to methods.
 class FunctionSet(Versioned, Base):
     __tablename__ = 'functionset'
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
@@ -87,7 +89,6 @@ class Function(Versioned, Base):
     seq = Column(Integer, nullable=False)
     title = Column(String(256), nullable=False)
     description = Column(String(256), nullable=False)
-    weight = Column(Float, nullable=False)
 
 
 class Process(Versioned, Base):
@@ -97,7 +98,6 @@ class Process(Versioned, Base):
     seq = Column(Integer, nullable=False)
     title = Column(String(256), nullable=False)
     description = Column(String(256), nullable=False)
-    weight = Column(Float, nullable=False)
 
 
 class Subprocess(Versioned, Base):
@@ -107,7 +107,6 @@ class Subprocess(Versioned, Base):
     seq = Column(Integer, nullable=False)
     title = Column(String(256), nullable=False)
     description = Column(String(256), nullable=False)
-    weight = Column(Float, nullable=False)
 
 
 class Measure(Versioned, Base):
@@ -125,6 +124,8 @@ class Measure(Versioned, Base):
     #response = relationship("Response", uselist=False, backref="measure")
 
 
+# TODO: I don't think this script should create the database. It should be done
+# by an admin.
 def create_database(database_name):
     db_url = os.environ.get('POSTGRES_DEFAULT_URL', POSTGRES_DEFAULT_URL)
     print ("db_url2", db_url)
@@ -139,6 +140,13 @@ def get_session():
     pass
 
 
+# TODO: Separate these tests out into a different module. Use PyUnit.
+# TODO: Add test that shows how to pull data out of the database.
+# TODO: Add test that shows a failed transaction, with exception handling.
+# TODO: Always use exception handling to ensure the session is closed:
+#       http://docs.sqlalchemy.org/en/latest/orm/session_transaction.html#managing-transactions
+#       Or use a context manager (preferred):
+#       http://stackoverflow.com/a/29805305/320036
 def testing():
     db_url = os.environ.get('POSTGRES_URL', POSTGRES_TARGET_URL)
     print ("db_url", db_url)
@@ -169,7 +177,7 @@ def testing():
     testMeasure.name = "How old are you?"
     '''
     session.commit()
-    testUser = WassUser(name="Jin Park", id="forjin", password="guesswhat")
+    testUser = AppUser(name="Jin Park", id="forjin", password="guesswhat")
     session.add(testUser)
     session.commit()
     testResponse = Response(name="Answer 1", measure_id=testMeasure.id, user_id=testUser.id)
