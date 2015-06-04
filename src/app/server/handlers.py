@@ -62,8 +62,7 @@ STYLESHEETS = [
     },
     {
         'min-href': '/minify/app-min.css',
-        'href': '/css/app.css',
-        'href': '/css/login.css'
+        'href': '/css/app.css'
     },
     {
         'min-href': '/minify/3rd-party-min.css',

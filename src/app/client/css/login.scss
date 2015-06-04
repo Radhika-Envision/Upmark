@@ -9,26 +9,6 @@ $input-color: lighten(#AB9E95, 10%);
 $input-border-color: #5E5165;
 $button-background-color: #27AE60;
 
-* {
-  margin: 0;
-  padding: 0;
-}
-
-html { 
-  -webkit-background-size: cover;
-  -moz-background-size: cover;
-  -o-background-size: cover;
-  background-size: cover;
-}
-
-body {
-  background: transparent;
-}
-
-body, input, button {
-  font-family: 'Source Sans Pro', sans-serif;
-}
-
 @mixin normalize-input {
   display: block;
   width: auto;
