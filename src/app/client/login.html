@@ -1,19 +1,47 @@
-<form action="/auth/login/" method="post" id="login_form">
-    <fieldset>
-        <label for="username">Username</label>
-        <input class="text-input" id="username" name="username" type="text" value="">
-    </fieldset>
-
-    <fieldset>
-        <label for="password">Password</label>
-        <input class="text-input" id="password" name="password" type="password" value="">
-    </fieldset>
-
-    <fieldset>
-        <span class="errormessage"></span>
-    </fieldset>
-
-    <div id="form_btn">
-        <input id="signin-btn" class="btn btn-blue" type="submit" value="Sign In" tabindex="3">
-    </div>
-</form>
+<!DOCTYPE html>
+<html lang="en" ng-app="wsaa.aquamark">
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        {% for s in stylesheets %}
+            <link rel="stylesheet" type="text/css" href="{{s}}">
+        {% end %}
+        {% for s in scripts %}
+            <script src="{{s}}"></script>
+        {% end %}
+        {% include analytics.html %}
+    </head>
+    <body ng-controller="RootCtrl">
+        <header>
+            <nav class="navbar navbar-static-top" role="navigation">
+                <div class="container-fluid">
+                    <!-- Logo -->
+                    <div class="col-md-3 nav navbar-nav">
+                        <a href="#/" class="navbar-brand">
+                            {% include images/logo.svg %}
+                        </a>
+                    </div>
+                    <div class="nav navbar-nav navbar-right">
+                        <p>Fred<br>
+                        ACME Water</p>
+                    </div>
+                </div>
+            </nav>
+        </header>
+        <div class="login">
+            <div class="heading">
+                <h2>Sign in</h2>
+                <form action="#">
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-addon"><i class="fa fa-user"></i></span>
+                        <input type="text" class="form-control" placeholder="Username or email">
+                    </div>
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-addon"><i class="fa fa-lock"></i></span>
+                        <input type="password" class="form-control" placeholder="Password">
+                    </div>
+                    <button type="submit" class="float">Login</button>
+                </form>
+            </div>
+        </div>
+    </body>
+</html>

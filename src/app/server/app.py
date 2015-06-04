@@ -15,53 +15,6 @@ log = logging.getLogger('app')
 
 tornado.options.options.logging = 'none'
 
-class BaseHandler(tornado.web.RequestHandler):
-
-    def get_login_url(self):
-        return u"/login"
-
-    def get_current_user(self):
-        user_json = self.get_secure_cookie("user")
-        if user_json:
-            return tornado.escape.json_decode(user_json)
-        else:
-            return None
-
-class AuthLogoutHandler(BaseHandler):
-    def get(self):
-        self.clear_cookie("user")
-        self.redirect(self.get_argument("next", "/"))
-
-class AuthLoginHandler(BaseHandler):
-    def get(self):
-        try:
-            errormessage = self.get_argument("error")
-        except:
-            errormessage = ""
-        self.render("../client/login.html", errormessage = errormessage)
-
-    def check_permission(self, password, username):
-        if username == "admin" and password == "admin":
-            return True
-        return False
-
-    def post(self):
-        username = self.get_argument("username", "")
-        password = self.get_argument("password", "")
-        auth = self.check_permission(password, username)
-        if auth:
-            self.set_current_user(username)
-            self.redirect(self.get_argument("next", u"/"))
-        else:
-            error_msg = u"?error=" + tornado.escape.url_escape("Login incorrect")
-            self.redirect(u"/auth/login/" + error_msg)
-
-    def set_current_user(self, user):
-        if user:
-            self.set_secure_cookie("user", tornado.escape.json_encode(user))
-        else:
-            self.clear_cookie("user")
-
 def get_package_dir():
     frameinfo = inspect.getframeinfo(inspect.currentframe())
     return os.path.dirname(frameinfo.filename)
@@ -103,15 +56,19 @@ def start_web_server():
     package_dir = get_package_dir()
 
     settings = {
-        "cookie_secret": os.environ.get('COOKIE_SECRET'),
+        #"cookie_secret": os.environ.get('COOKIE_SECRET'),
+        "cookie_secret": "this_is_the_secret_for_cookie",
         "debug": True,
         "gzip": True,
         "template_path": os.path.join(package_dir, "..", "client"),
-        "login_url": "/auth/login/"
+        "login_url": "/login/",
     }
 
     application = tornado.web.Application(
         [
+            (r"/login/", handlers.AuthLoginHandler, {
+                'path': os.path.join(package_dir, "..", "client")}),
+            (r"/logout/", handlers.AuthLogoutHandler),
             (r"/()", handlers.MainHandler, {
                 'path': '../client/index.html'}),
             (r"/bower_components/(.*)", tornado.web.StaticFileHandler, {
@@ -122,9 +79,6 @@ def start_web_server():
                 'root': os.path.join(package_dir, "..", "client")}),
             (r"/(.*)", tornado.web.StaticFileHandler, {
                 'path': os.path.join(package_dir, "..", "client")}),
-            (r"/auth/login/", AuthLoginHandler, {
-                'path': '../client/login.html'}),
-            (r"/auth/logout/", AuthLogoutHandler),
         ], **settings
     )
 
