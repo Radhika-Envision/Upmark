@@ -5,14 +5,13 @@ import os
 import re
 
 import sass
-#import slimit
 import tornado.gen
 import tornado.httpclient
 import tornado.httputil
 import tornado.options
 import tornado.web
 
-#import data
+from model import AppUser, get_session
 
 
 log = logging.getLogger('app.handlers')
@@ -164,21 +163,27 @@ class AuthLoginHandler(BaseHandler):
             "../client/login.html", scripts=self.scripts, stylesheets=self.stylesheets,
             analytics_id=tornado.options.options.analytics_id)
  
-    def check_permission(self, password, username):
-        if username == "admin" and password == "admin":
-            return True
+    def check_permission(self, user_id, password):
+        session = get_session(False)
+        if session:
+            user = session.query(AppUser).filter_by(user_id =user_id).first()
+            print ("user", user)
+            if user:
+                return True
         return False
  
     def post(self):
         username = self.get_argument("username", "")
         password = self.get_argument("password", "")
-        auth = self.check_permission(password, username)
+        print ("username", username)
+        print ("password", password)
+        auth = self.check_permission(username, password)
         if auth:
             self.set_current_user(username)
             self.redirect(self.get_argument("next", u"/"))
         else:
             error_msg = u"?error=" + tornado.escape.url_escape("Login incorrect")
-            self.redirect(u"/auth/login/" + error_msg)
+            self.redirect(u"/login/" + error_msg)
  
     def set_current_user(self, user):
         if user:
@@ -191,6 +196,7 @@ class AuthLoginHandler(BaseHandler):
         self.path = path
         self.scripts = self.prepare_resources(SCRIPTS)
         self.stylesheets = self.prepare_resources(STYLESHEETS)
+
 
 class AuthLogoutHandler(BaseHandler):
     def get(self):

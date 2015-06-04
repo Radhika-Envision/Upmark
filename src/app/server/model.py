@@ -71,6 +71,7 @@ class AppUser(Versioned, Base):
     __tablename__ = 'appuser'
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
     name = Column(Text, nullable=False)
+    user_id = Column(Text, nullable=False)
     password = Column(Text, nullable=False)
     privileges = Column(Text, nullable=False)
     utility_id = Column(GUID, ForeignKey('utility.id'))
@@ -143,16 +144,22 @@ class MeasureSetMeasureLink(Base):
 # by an admin.
 def create_database(database_name):
     db_url = os.environ.get('POSTGRES_DEFAULT_URL', POSTGRES_DEFAULT_URL)
-    print ("db_url2", db_url)
     engine = create_engine(db_url)
     conn = engine.connect()
     conn.execute("commit")
     conn.execute("CREATE DATABASE " + database_name)
     conn.close()
 
-
-def get_session():
-    pass
+def get_session(delete_all):
+    db_url = os.environ.get('POSTGRES_URL', POSTGRES_TARGET_URL)
+    engine = create_engine(db_url)
+    if delete_all:
+        Base.metadata.drop_all(engine)
+        Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+    versioned_session(Session)
+    session = Session()
+    return session
 
 
 # TODO: Separate these tests out into a different module. Use PyUnit.
@@ -163,19 +170,12 @@ def get_session():
 #       Or use a context manager (preferred):
 #       http://stackoverflow.com/a/29805305/320036
 def testing():
-    db_url = os.environ.get('POSTGRES_URL', POSTGRES_TARGET_URL)
-    print ("db_url", db_url)
-    engine = create_engine(db_url)
-    conn = None
+    session = None
     try:
-        conn = engine.connect()
+        session = get_session(True)
     except:
         create_database("aquamark")
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
-    Session = sessionmaker(bind=engine)
-    versioned_session(Session)
-    session = Session()
+        session = get_session(True)
     testFunction = Function(seq=1, title="Function 1", description="Test Description")
     session.add(testFunction)
     session.commit()
@@ -202,5 +202,4 @@ def testing():
 
 
 print("session creating")
-get_session()
 testing()
