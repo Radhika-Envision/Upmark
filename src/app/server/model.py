@@ -62,7 +62,6 @@ class Assessment(Versioned, Base):
     # TODO: Make this field an enum
     approval = Column(Text, nullable=False)
     created = Column(Date, nullable=False)
-    # TODO: Add created field
 
 
 class Utility(Versioned, Base):
@@ -73,7 +72,6 @@ class Utility(Versioned, Base):
     region = Column(Text, nullable=False)
     number_of_customers = Column(Integer, nullable=False)
     created = Column(Date, nullable=False)
-    # TODO: Add created field
 
 
 class Survey(Versioned, Base):

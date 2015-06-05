@@ -15,7 +15,14 @@ from server.model import AppUser, connect_db, session_scope, Utility
 
 def add_user(args):
     connect_db(os.environ.get('DATABASE_URL'))
-    password = getpass.getpass()
+
+    password = getpass.getpass(prompt='Enter new password: ')
+    password2 = getpass.getpass(prompt='Re-enter password: ')
+    if password != password2:
+        print('Failed to add user %s' % args.name)
+        print('Passwords do not match')
+        sys.exit(1)
+
     try:
         with session_scope() as session:
             user = AppUser(user_id=args.email, name=args.name, role=args.role)
