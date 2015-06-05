@@ -12,8 +12,8 @@ from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.schema import Index, MetaData
 from passlib.hash import sha256_crypt
 
-from guid import GUID
-from history_meta import Versioned, versioned_session
+from .guid import GUID
+from .history_meta import Versioned, versioned_session
 
 
 SCHEMA_VERSION = '0.0.1'
@@ -68,7 +68,7 @@ class Assessment(Versioned, Base):
 class Utility(Versioned, Base):
     __tablename__ = 'utility'
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
-    name = Column(Text, nullable=False)
+    name = Column(Text, nullable=False, unique=True)
     url = Column(Text, nullable=True)
     region = Column(Text, nullable=False)
     number_of_customers = Column(Integer, nullable=False)
@@ -87,12 +87,12 @@ class AppUser(Versioned, Base):
     __tablename__ = 'appuser'
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
     name = Column(Text, nullable=False)
-    user_id = Column(Text, nullable=False)
+    user_id = Column(Text, nullable=False, unique=True)
     password = Column(Text, nullable=False)
-    privileges = Column(Text, nullable=False)
+    role = Column(Text, nullable=False)
     utility_id = Column(GUID, ForeignKey('utility.id'))
     created = Column(Date, default=func.now(), nullable=False)
-    
+
     def set_password(self, plaintext):
         self.password = sha256_crypt.encrypt(plaintext)
 
@@ -184,7 +184,6 @@ def session_scope():
         yield session
         session.commit()
     except:
-        print('Rolling back')
         session.rollback()
         raise
     finally:
