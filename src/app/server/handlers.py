@@ -11,7 +11,7 @@ import tornado.httputil
 import tornado.options
 import tornado.web
 
-from model import AppUser, get_session
+from model import AppUser
 
 
 log = logging.getLogger('app.handlers')
@@ -164,8 +164,7 @@ class AuthLoginHandler(BaseHandler):
             analytics_id=tornado.options.options.analytics_id)
  
     def check_permission(self, user_id, password):
-        session = get_session(False)
-        if session:
+        with model.session_scope() as session:
             user = session.query(AppUser).filter_by(user_id =user_id).first()
             print ("user", user)
             if user:

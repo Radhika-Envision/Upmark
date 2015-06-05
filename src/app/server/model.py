@@ -4,11 +4,13 @@ import sys
 import uuid
 
 from sqlalchemy import create_engine, Column, ForeignKey, Integer, String, Float, Date, Text, Boolean
+from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID
 import sqlalchemy.exc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.schema import Index, MetaData
+from passlib.hash import sha256_crypt
 
 from guid import GUID
 from history_meta import Versioned, versioned_session
@@ -89,8 +91,13 @@ class AppUser(Versioned, Base):
     password = Column(Text, nullable=False)
     privileges = Column(Text, nullable=False)
     utility_id = Column(GUID, ForeignKey('utility.id'))
-    created = Column(Date, nullable=False)
-    # TODO: Add created field
+    created = Column(Date, default=func.now(), nullable=False)
+    
+    def set_password(self, plaintext):
+        self.password = sha256_crypt.encrypt(plaintext)
+
+    def check_password(self, plaintext):
+        return sha256_crypt.verify(plaintext, self.password)
 
 
 class Function(Versioned, Base):
@@ -226,8 +233,13 @@ def update_model():
 #       Or use a context manager (preferred):
 #       http://stackoverflow.com/a/29805305/320036
 def testing():
-    connect_db(os.environ.get('DATABASE_URL', DATABASE_URL))
-    session = Session()
+    connect_db(os.environ.get('DATABASE_URL'))
+    with session_scope() as session:
+        testUser = AppUser(user_id="forjin", name="Jin", privileges="admin")
+        testUser.set_password("test")
+        session.add(testUser)
+        assert testUser.check_password("Test")
+    '''
     testFunction = Function(seq=1, title="Function 1", description="Test Description")
     session.add(testFunction)
     session.commit()
@@ -242,7 +254,6 @@ def testing():
     testMeasure = Measure(seq=1, title="How are you?", subprocess_id=testSubprocess.id, weight=1, intent="intent", inputs="inputs", scenario="scenario", questions="questions", response_type="1")
     session.add(testMeasure)
     testMeasure.name = "How old are you?"
-    '''
     session.commit()
     testUser = AppUser(name="Jin Park", id="forjin", password="guesswhat")
     session.add(testUser)
