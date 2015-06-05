@@ -12,8 +12,8 @@ from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.schema import Index, MetaData
 from passlib.hash import sha256_crypt
 
-from .guid import GUID
-from .history_meta import Versioned, versioned_session
+from guid import GUID
+from history_meta import Versioned, versioned_session
 
 
 SCHEMA_VERSION = '0.0.1'

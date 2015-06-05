@@ -10,7 +10,7 @@ try:
 except ImportError:
     print('Failed to load sqlalchemy. Do you need to enter a virtual environment?')
 
-from server.model import AppUser, connect_db, session_scope, Utility
+from model import AppUser, connect_db, session_scope, Utility
 
 
 def add_user(args):

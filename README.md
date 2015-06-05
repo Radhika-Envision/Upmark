@@ -25,7 +25,7 @@ The first time you start the server, you will need to create a super user.
 
 ```bash
 sudo docker run -it --rm --link postgres_aq:postgres vpac/aquamark \
-    ./admin.py adduser joe@bloggs.com 'Joe Bloggs' super
+    server/admin.py adduser joe@bloggs.com 'Joe Bloggs' super
 ```
 
 
