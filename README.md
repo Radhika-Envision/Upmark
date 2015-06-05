@@ -14,7 +14,30 @@ sudo docker build -t vpac/aquamark src/app
 Run with:
 
 ```bash
-sudo docker run --name aquamark vpac/aquamark
+sudo docker run -d --name postgres_aq postgres:9
+sudo docker run -d --name aquamark \
+    --link postgres_aq:postgres \
+    -e ANALYTICS_ID=foo \
+    vpac/aquamark
+```
+
+## Development
+
+The easiest way to run during development is to start a Docker container as
+shown above, but mount your code as a volume. Changes you make to the code will
+automatically apply to the running container. This way you don't need to worry
+about creating a database. Also, expose the web server's port - then you can
+just connect to http://localhost:8000 for testing.
+
+```bash
+sudo docker run -d --name postgres_aq postgres:9
+sudo docker run --rm --name aquamark \
+    --link postgres_aq:postgres \
+    -v "$YOUR_GIT_ROOT/src/app:/usr/share/aquamark" \
+    -p 8000:8000 \
+    -e DEV_MODE=True \
+    -e XSRF_PROTECTION=False \
+    vpac/aquamark
 ```
 
 ## Dependencies

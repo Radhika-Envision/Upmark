@@ -5,14 +5,13 @@ import os
 import re
 
 import sass
-#import slimit
 import tornado.gen
 import tornado.httpclient
 import tornado.httputil
 import tornado.options
 import tornado.web
 
-#import data
+from model import AppUser, get_session
 
 
 log = logging.getLogger('app.handlers')
@@ -111,17 +110,9 @@ SCRIPTS = [
     }
 ]
 
-
-class MainHandler(tornado.web.RequestHandler):
-    '''
-    Renders content from templates.
-    '''
-
-    def initialize(self, path):
-        self.path = path
-
-        self.scripts = self.prepare_resources(SCRIPTS)
-        self.stylesheets = self.prepare_resources(STYLESHEETS)
+class BaseHandler(tornado.web.RequestHandler):
+    def get_current_user(self):
+        return self.get_secure_cookie("user")
 
     def prepare_resources(self, declarations):
         '''
@@ -160,6 +151,71 @@ class MainHandler(tornado.web.RequestHandler):
                     print('Warning: unrecognised resource')
         return resources
 
+
+class AuthLoginHandler(BaseHandler):
+    def get(self):
+        try:
+            errormessage = self.get_argument("error")
+        except:
+            errormessage = ""
+
+        self.render(
+            "../client/login.html", scripts=self.scripts, stylesheets=self.stylesheets,
+            analytics_id=tornado.options.options.analytics_id)
+ 
+    def check_permission(self, user_id, password):
+        session = get_session(False)
+        if session:
+            user = session.query(AppUser).filter_by(user_id =user_id).first()
+            print ("user", user)
+            if user:
+                return True
+        return False
+ 
+    def post(self):
+        username = self.get_argument("username", "")
+        password = self.get_argument("password", "")
+        print ("username", username)
+        print ("password", password)
+        auth = self.check_permission(username, password)
+        if auth:
+            self.set_current_user(username)
+            self.redirect(self.get_argument("next", u"/"))
+        else:
+            error_msg = u"?error=" + tornado.escape.url_escape("Login incorrect")
+            self.redirect(u"/login/" + error_msg)
+ 
+    def set_current_user(self, user):
+        if user:
+            self.set_secure_cookie("user", tornado.escape.json_encode(user))
+        else:
+            self.clear_cookie("user")
+
+    def initialize(self, path):
+        print ("path", path)
+        self.path = path
+        self.scripts = self.prepare_resources(SCRIPTS)
+        self.stylesheets = self.prepare_resources(STYLESHEETS)
+
+
+class AuthLogoutHandler(BaseHandler):
+    def get(self):
+        self.clear_cookie("user")
+        self.redirect(self.get_argument("next", "/"))
+
+
+class MainHandler(BaseHandler):
+    '''
+    Renders content from templates.
+    '''
+
+    def initialize(self, path):
+        self.path = path
+
+        self.scripts = self.prepare_resources(SCRIPTS)
+        self.stylesheets = self.prepare_resources(STYLESHEETS)
+
+    @tornado.web.authenticated
     def get(self, path):
         if path != "":
             template = os.path.join(self.path, path)

@@ -5,6 +5,7 @@ $nav-height: 64px;
 $std-padding: 4px;
 
 body {
+    background-color: #eee;
     overflow-y: scroll;
 }
 
@@ -57,3 +58,4 @@ g#logo-text-subtitle {
 @import '_forms.scss';
 @import '_survey.scss';
 @import '_legal.scss';
+@import 'login.scss';

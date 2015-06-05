@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="wsaa.aquamark">
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        {% for s in stylesheets %}
+            <link rel="stylesheet" type="text/css" href="{{s}}">
+        {% end %}
+        {% for s in scripts %}
+            <script src="{{s}}"></script>
+        {% end %}
+        {% include analytics.html %}
+    </head>
+    <body ng-controller="RootCtrl">
+        <header>
+            <nav class="navbar navbar-static-top" role="navigation">
+                <div class="container-fluid">
+                    <!-- Logo -->
+                    <div class="col-md-3 nav navbar-nav">
+                        <a href="#/" class="navbar-brand">
+                            {% include images/logo.svg %}
+                        </a>
+                    </div>
+                    <div class="nav navbar-nav navbar-right">
+                        <p>Fred<br>
+                        ACME Water</p>
+                    </div>
+                </div>
+            </nav>
+        </header>
+        <div class="container">
+            <form class="form-signin" action="/login/" method="POST">
+                <h2 class="form-signin-heading">Please sign in</h2>
+                <label for="inputEmail" class="sr-only">Email address</label>
+                <input type="text" id="inputEmail" class="form-control" placeholder="Email address" name="username" required autofocus>
+                <label for="inputPassword" class="sr-only">Password</label>
+                <input type="password" id="inputPassword" class="form-control" placeholder="Password" name="password" required>
+                <div class="checkbox">
+                    <label>
+                        <input type="checkbox" value="remember-me"> Remember me
+                    </label>
+                </div>
+                <button class="btn-submit btn-lg btn-primary btn-block" type="submit">Sign in</button>
+            </form>
+        </div> <!-- /container -->
+    </body>
+</html>
