@@ -19,16 +19,6 @@ function read_config() {
         cp ${config}.SAMPLE ${config}
     fi
 
-    # Generate a cookie secret if:
-    # - It's not already defined as an environment variable
-    # - It's not already in the config file
-    $(grep 'COOKIE_SECRET' ${config})
-    if [ x = x${COOKIE_SECRET} -a $? -ne 0 ]; then
-        echo "Generating cookie secret."
-        secret=$(${projdir}/server/cookie_secret_generator.py)
-        echo "export COOKIE_SECRET=$secret" >> ${config}
-    fi
-
     source ${config}
 }
 

@@ -1,34 +1,33 @@
 #!/usr/bin/env python3
 
+import base64
 import inspect
 import logging.config
 import os
 
+import sqlalchemy.orm
 import tornado.options
 import tornado.web
 
-#import data
 import handlers
+import model
 
 
 log = logging.getLogger('app')
-
 tornado.options.options.logging = 'none'
+
 
 def get_package_dir():
     frameinfo = inspect.getframeinfo(inspect.currentframe())
     return os.path.dirname(frameinfo.filename)
 
 
-def read_config():
-    # Logging configuration
+def parse_options():
     package_dir = get_package_dir()
 
-    port = os.environ.get('PORT')
-    if port is None:
-        port = 8000
-    tornado.options.define("port", default=port,
-                           help="Bind to this port", type=int)
+    tornado.options.define(
+        "port", default=os.environ.get('PORT', '8000'),
+        help="Bind to this port")
 
     logconf_path = os.path.join(package_dir, 'logging.cfg')
     if not os.path.exists(logconf_path):
@@ -36,33 +35,51 @@ def read_config():
     else:
         logging.config.fileConfig(logconf_path)
 
-    dev = os.environ.get('DEV_MODE')
-    if dev is None:
-        dev = 'True'
-    tornado.options.define("dev", default=dev,
-                           help="Development mode (default: True)")
+    tornado.options.define(
+        "dev", default=os.environ.get('DEV_MODE', 'True'),
+        help="Development mode (default: True)")
 
-    analytics_id = os.environ.get('ANALYTICS_ID')
-    if analytics_id is None:
-        analytics_id = ''
-    tornado.options.define("analytics_id", default=analytics_id,
-                           help="Google Analytics ID (default: '')")
+    tornado.options.define(
+        "debug", default=os.environ.get('DEBUG_MODE', 'True'),
+        help="Debug mode (default: True)")
+
+    tornado.options.define(
+        "analytics_id", default=os.environ.get('ANALYTICS_ID', ''),
+        help="Google Analytics ID, leave blank to disable (default: '')")
 
     tornado.options.parse_command_line()
 
 
-def start_web_server():
+def get_cookie_secret():
+    with model.session_scope() as session:
+        try:
+            q = session.query(model.SystemConfig)
+            conf = q.filter_by(name='cookie_secret').one()
+        except sqlalchemy.orm.exc.NoResultFound:
+            # TODO: Use a cookie secret dictionary, and cause keys to expire
+            # after some time.
+            log.info("Generating new cookie secret")
+            secret = base64.b64encode(os.urandom(50)).decode('ascii')
+            conf = model.SystemConfig(name='cookie_secret', value=secret)
+            session.add(conf)
+        print(conf)
+        return conf.value
 
+
+def get_settings():
     package_dir = get_package_dir()
-
-    settings = {
-        #"cookie_secret": os.environ.get('COOKIE_SECRET'),
-        "cookie_secret": "this_is_the_secret_for_cookie",
+    return {
+        "cookie_secret": get_cookie_secret(),
         "debug": True,
         "gzip": True,
         "template_path": os.path.join(package_dir, "..", "client"),
         "login_url": "/login/",
     }
+
+
+def start_web_server():
+
+    package_dir = get_package_dir()
 
     application = tornado.web.Application(
         [
@@ -79,7 +96,7 @@ def start_web_server():
                 'root': os.path.join(package_dir, "..", "client")}),
             (r"/(.*)", tornado.web.StaticFileHandler, {
                 'path': os.path.join(package_dir, "..", "client")}),
-        ], **settings
+        ], **get_settings()
     )
 
     try:
@@ -99,16 +116,11 @@ def start_web_server():
         log.info("Try opening http://%s:%s", socket.gethostname(), port)
     tornado.ioloop.IOLoop.instance().start()
 
+
 if __name__ == "__main__":
     try:
-        read_config()
-    except Exception as e:
-        raise e
-#    try:
-#        data.connect()
-#    except Exception as e:
-#        raise e
-    try:
+        parse_options()
+        model.connect_db(os.environ.get('DATABASE_URL'))
         start_web_server()
     except KeyboardInterrupt:
         log.info("Shutting down due to user request (e.g. Ctrl-C)")

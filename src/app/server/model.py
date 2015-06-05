@@ -1,9 +1,11 @@
+from contextlib import contextmanager
 import os
 import sys
 import uuid
 
 from sqlalchemy import create_engine, Column, ForeignKey, Integer, String, Float, Date, Text, Boolean
 from sqlalchemy.dialects.postgresql import UUID
+import sqlalchemy.exc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.schema import Index, MetaData
@@ -12,14 +14,26 @@ from guid import GUID
 from history_meta import Versioned, versioned_session
 
 
-metadata = MetaData()
-Base = declarative_base(metadata=metadata)
-session = None
-POSTGRES_TARGET_URL  = 'postgresql://postgres:postgres@postgres/aquamark'
+SCHEMA_VERSION = '0.0.1'
+DATABASE_URL  = 'postgresql://postgres:postgres@postgres/aquamark'
 POSTGRES_DEFAULT_URL = 'postgresql://postgres:postgres@postgres/postgres'
 
 
-# TODO: Use String() instead of Text etc. : Done
+metadata = MetaData()
+Base = declarative_base(metadata=metadata)
+
+
+class ModelError(Exception):
+    pass
+
+
+class SystemConfig(Base):
+    __tablename__ = 'systemconfig'
+    name = Column(String, primary_key=True, nullable=False)
+    value = Column(String, nullable=True)
+
+    def __str__(self):
+        return "SystemConfig(name={}, value={})".format(self.name, self.value)
 
 
 class Response(Versioned, Base):
@@ -150,16 +164,58 @@ def create_database(database_name):
     conn.execute("CREATE DATABASE " + database_name)
     conn.close()
 
-def get_session(delete_all):
-    db_url = os.environ.get('POSTGRES_URL', POSTGRES_TARGET_URL)
-    engine = create_engine(db_url)
-    if delete_all:
-        Base.metadata.drop_all(engine)
-        Base.metadata.create_all(engine)
+
+Session = None
+
+
+@contextmanager
+def session_scope():
+    # http://docs.sqlalchemy.org/en/latest/orm/session_basics.html#when-do-i-construct-a-session-when-do-i-commit-it-and-when-do-i-close-it
+    """Provide a transactional scope around a series of operations."""
+    session = Session()
+    try:
+        yield session
+        session.commit()
+    except:
+        print('Rolling back')
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def connect_db(url):
+    global Session
+    engine = create_engine(url)
+    conn = engine.connect()
+    #Base.metadata.drop_all(engine)
+    Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
     versioned_session(Session)
-    session = Session()
-    return session
+    update_model()
+
+
+def update_model():
+    with session_scope() as session:
+        try:
+            q = session.query(SystemConfig)
+            conf = q.filter_by(name='schema_version').one()
+        except sqlalchemy.exc.SQLAlchemyError:
+            conf = SystemConfig(name='schema_version', value=SCHEMA_VERSION)
+            session.add(conf)
+
+        current_version = conf.value.split('.')
+        target_version = SCHEMA_VERSION.split('.')
+        if current_version == target_version:
+            return
+        elif current_version > target_version:
+            raise ModelError('Database schema version is not supported.')
+
+        conf.value = SCHEMA_VERSION
+
+        # When the schema changes, add migration code here. E.g.
+        #if current_version < [0, 1, 0]:
+        #    do_something()
 
 
 # TODO: Separate these tests out into a different module. Use PyUnit.
@@ -170,12 +226,8 @@ def get_session(delete_all):
 #       Or use a context manager (preferred):
 #       http://stackoverflow.com/a/29805305/320036
 def testing():
-    session = None
-    try:
-        session = get_session(True)
-    except:
-        create_database("aquamark")
-        session = get_session(True)
+    connect_db(os.environ.get('DATABASE_URL', DATABASE_URL))
+    session = Session()
     testFunction = Function(seq=1, title="Function 1", description="Test Description")
     session.add(testFunction)
     session.commit()
@@ -201,5 +253,5 @@ def testing():
     session.commit()
 
 
-print("session creating")
-testing()
+if __name__ == '__main__':
+    testing()

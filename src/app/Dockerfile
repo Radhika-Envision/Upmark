@@ -19,24 +19,31 @@ RUN DEBIAN_FRONTEND=noninteractive \
     npm install -g bower && \
     rm -rf /var/lib/apt/lists/*
 
-#ENV MONGO_URL mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]][/[database][?options]]
-ENV MONGO_URL mongodb://mongodb/aquamark
+RUN pip3 install -vU setuptools
 
+# Install dependencies before copying full source directory. This speeds up
+# Docker rebuilds.
+COPY requirements.txt bower.json /tmp/
+WORKDIR /tmp
+RUN pip3 install -r requirements.txt
+RUN bower \
+        --allow-root \
+        --config.interactive=false \
+        --config.directory=bower_components \
+        --force-latest \
+        install
+
+# Copy application to container. For development, mount a volume over this
+# directory.
 COPY ./ /usr/share/aquamark
-COPY config/config.sh.DOCKER_SAMPLE /usr/share/aquamark/config/config.sh
-#for the development use docker -v to link your source code to container
-#refer to aquamark wiki
-
 WORKDIR /usr/share/aquamark
+RUN mv /tmp/bower_components client/.bower_components
 
-ENV PORT=80 DEV_MODE=False
-ENV POSTGRE_URL=postgresql://postgres:postgres@postgres/aquamark
+ENV PORT=8000 \
+    DEV_MODE=False \
+    DATABASE_URL=postgresql://postgres:postgres@postgres/postgres \
+    ANALYTICS_ID=
 
-EXPOSE 80
-
-RUN ["pip3", "install", "-vU", "setuptools"]
-RUN ["pip3", "install", "-r",  "./requirements.txt"]
-
-#RUN /bin/bash -c ./config/config.sh
+EXPOSE 8000
 
 CMD ["python3", "./server/app.py"]
