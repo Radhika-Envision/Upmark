@@ -48,11 +48,11 @@ class InternalModelError(tornado.web.HTTPError):
 STYLESHEETS = [
     {
         'cdn': '//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css', # @IgnorePep8
-        'href': '/.bower_components/bootstrap/dist/css/bootstrap.css'
+        'href': '/bower_components/bootstrap/dist/css/bootstrap.css'
     },
     {
         'cdn': '//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css', # @IgnorePep8
-        'href': '/.bower_components/font-awesome/css/font-awesome.css'
+        'href': '/bower_components/font-awesome/css/font-awesome.css'
     },
     {
         'cdn': '//fonts.googleapis.com/css?family=Ubuntu',
@@ -65,7 +65,7 @@ STYLESHEETS = [
     {
         'min-href': '/minify/3rd-party-min.css',
         'hrefs': [
-            '/.bower_components/angular-hotkeys/build/hotkeys.css',
+            '/bower_components/angular-hotkeys/build/hotkeys.css',
         ]
     },
 ]
@@ -73,29 +73,29 @@ STYLESHEETS = [
 SCRIPTS = [
     {
         'cdn': '//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js',
-        'href': '/.bower_components/jquery/dist/jquery.js'
+        'href': '/bower_components/jquery/dist/jquery.js'
     },
     {
         'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular.min.js', # @IgnorePep8
-        'href': '/.bower_components/angular/angular.js'
+        'href': '/bower_components/angular/angular.js'
     },
     {
         'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-route.min.js', # @IgnorePep8
-        'href': '/.bower_components/angular-route/angular-route.js'
+        'href': '/bower_components/angular-route/angular-route.js'
     },
     {
         'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-resource.min.js', # @IgnorePep8
-        'href': '/.bower_components/angular-resource/angular-resource.js'
+        'href': '/bower_components/angular-resource/angular-resource.js'
     },
     {
         'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-animate.min.js', # @IgnorePep8
-        'href': '/.bower_components/angular-animate/angular-animate.js'
+        'href': '/bower_components/angular-animate/angular-animate.js'
     },
     {
         'min-href': '/minify/3rd-party-min.js',
         'hrefs': [
-            '/.bower_components/angular-bootstrap/ui-bootstrap-tpls.js',
-            '/.bower_components/angular-hotkeys/build/hotkeys.js'
+            '/bower_components/angular-bootstrap/ui-bootstrap-tpls.js',
+            '/bower_components/angular-hotkeys/build/hotkeys.js'
         ]
     },
     {

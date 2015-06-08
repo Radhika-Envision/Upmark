@@ -25,7 +25,7 @@ The first time you start the server, you will need to create a super user.
 
 ```bash
 sudo docker run -it --rm --link postgres_aq:postgres vpac/aquamark \
-    server/admin.py adduser joe@bloggs.com 'Joe Bloggs' super
+    app/server/admin.py adduser joe@bloggs.com 'Joe Bloggs' super
 ```
 
 
@@ -41,7 +41,7 @@ just connect to http://localhost:8000 for testing.
 sudo docker run -d --name postgres_aq postgres:9
 sudo docker run --rm \
     --link postgres_aq:postgres \
-    -v "$YOUR_GIT_ROOT/src/app:/usr/share/aquamark" \
+    -v "$YOUR_GIT_ROOT/src/app:/usr/share/aquamark/app" \
     -p 8000:8000 \
     -e DEV_MODE=True \
     -e XSRF_PROTECTION=False \
