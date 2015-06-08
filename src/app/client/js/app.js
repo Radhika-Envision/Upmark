@@ -34,6 +34,11 @@ angular.module('wsaa.aquamark',
 
         logProvider.setLevel('info');
 
+        // Set up XSRF protection for Tornado.
+        // http://tornado.readthedocs.org/en/branch4.0/web.html#tornado.web.RequestHandler.check_xsrf_cookie
+        $httpProvider.defaults.xsrfCookieName = '_xsrf';
+        $httpProvider.defaults.xsrfHeaderName = 'X-Xsrftoken';
+
         // Add a delay to all requests - simulates network latency.
         // http://blog.brillskills.com/2013/05/simulating-latency-for-angularjs-http-calls-with-response-interceptors/
 //        var handlerFactory = ['$q', '$timeout', function($q, $timeout) {
