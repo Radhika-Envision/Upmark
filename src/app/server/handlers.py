@@ -11,6 +11,7 @@ import tornado.httputil
 import tornado.options
 import tornado.web
 import model
+from utils import falsy, truthy
 
 
 log = logging.getLogger('app.handlers')
@@ -120,7 +121,7 @@ class BaseHandler(tornado.web.RequestHandler):
         development or release mode.
         '''
         resources = []
-        if tornado.options.options.dev in {'True', 'true'}:
+        if truthy(tornado.options.options.dev):
             for sdef in declarations:
                 if 'href' in sdef:
                     resources.append(sdef['href'])
@@ -228,7 +229,7 @@ class RamCacheHandler(tornado.web.RequestHandler):
 
     def get(self, path):
         qpath = self.resolve_path(path)
-        if qpath in RamCacheHandler.CACHE and tornado.options.options.dev not in {'True', 'true'}:
+        if qpath in RamCacheHandler.CACHE and falsy(tornado.options.options.dev):
             self.write_from_cache(qpath)
         else:
             log.info('Generating %s', path)
