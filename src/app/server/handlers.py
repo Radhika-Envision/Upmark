@@ -103,6 +103,7 @@ SCRIPTS = [
         'min-href': '/minify/app-min.js',
         'hrefs': [
             '/js/app.js',
+            '/js/admin.js',
             '/js/survey.js',
             '/js/utils.js',
             '/js/widgets.js',

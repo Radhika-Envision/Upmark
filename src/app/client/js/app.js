@@ -2,7 +2,7 @@
 
 angular.module('wsaa.aquamark',
                ['ngRoute', 'ngAnimate', 'ui.bootstrap', 'cfp.hotkeys',
-                'wsaa.survey', 'vpac.utils', 'vpac.widgets'])
+                'wsaa.survey', 'wsaa.admin', 'vpac.utils', 'vpac.widgets'])
 
 .config(['$routeProvider', '$httpProvider', '$parseProvider', '$animateProvider',
          'logProvider',
@@ -18,9 +18,13 @@ angular.module('wsaa.aquamark',
                 templateUrl : 'start.html',
                 controller : 'EmptyCtrl'
             })
-            .when('/login', {
-                templateUrl : 'login.html',
-                controller : 'LoginCtrl'
+            .when('/user/:id', {
+                templateUrl : 'user.html',
+                controller : 'UserCtrl'
+            })
+            .when('/org/:id', {
+                templateUrl : 'organisation.html',
+                controller : 'OrganisationCtrl'
             })
             .when('/legal', {
                 templateUrl : 'legal.html',

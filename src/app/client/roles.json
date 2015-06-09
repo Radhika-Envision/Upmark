@@ -1,0 +1,29 @@
+[{
+    "id": "super",
+    "name": "Super User",
+    "description": "Can do anything at all"
+}, {
+    "id": "admin",
+    "name": "Administrator",
+    "description": "Can do almost anything"
+}, {
+    "id": "author",
+    "name": "Author",
+    "description": "Create new surveys and edits questions"
+}, {
+    "id": "authority",
+    "name": "Authority",
+    "description": "Gives final approval to assessments"
+}, {
+    "id": "consultant",
+    "name": "Consultant",
+    "description": "Gives initial approval to assessments"
+}, {
+    "id": "org_admin",
+    "name": "Utility Administrator",
+    "description": "Manages a utility, and responds to surveys"
+}, {
+    "id": "clerk",
+    "name": "Utility Clerk",
+    "description": "Responds to surveys"
+}]

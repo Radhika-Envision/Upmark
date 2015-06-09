@@ -1,0 +1,40 @@
+<div>
+
+<div class="survey-tree secondary">
+    <h2>
+        <i class="fa fa-fw fa-user"></i>
+        {{user.name}}
+        <span class="text-muted">- {{roleDict[user.role].name}}
+            <span ng-if="user.organisation">
+                of {{user.organisation}}
+            </span>
+        </span>
+    </h2>
+</div>
+<div class="measure">
+    <form>
+        <div class="form-group">
+            <label for="user_name">Name</label>
+            <input type="text" class="form-control" id="user_name"
+                ng-model="user.name" />
+        </div>
+        <div class="form-group">
+            <label for="user_email">Email</label>
+            <input type="text" class="form-control" id="user_email"
+                ng-model="user.email" />
+        </div>
+        <div class="form-group">
+            <label for="user_role">Role</label>
+            <select type="text" class="form-control" id="user_role"
+                ng-options="role.id as role.name for role in roles"
+                ng-model="user.role"></select>
+        </div>
+        <div class="form-group">
+            <label for="user_org">Utility</label>
+            <input type="text" class="form-control" id="user_org"
+                ng-model="user.organisation" />
+        </div>
+    </form>
+</div>
+
+</div>

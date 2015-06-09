@@ -1,4 +1,5 @@
 @import '_utils.scss';
+@import '_defines.scss';
 
 $button-bg: #f0f0f0;
 $button-fg: black;
@@ -8,6 +9,11 @@ $primary-col: #177fb5;
 $danger-col: #d43f3a;
 
 $anim-time: 0.3s;
+
+form {
+    margin-left: $gutter;
+    margin-right: $gutter;
+}
 
 button, .btn, a, textarea, input, select {
     outline: 5px none rgba($primary-col, 0);

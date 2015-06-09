@@ -212,4 +212,4 @@ function ResponseStandardCtrl($scope, hotkeys) {
             }
         });
 };
-ResponseStandardCtrl.prototype = Object.create(BaseResponseCtrl.prototype)
+ResponseStandardCtrl.prototype = Object.create(BaseResponseCtrl.prototype);

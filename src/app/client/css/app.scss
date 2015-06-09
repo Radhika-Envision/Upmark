@@ -53,6 +53,10 @@ g#logo-text-subtitle {
     text-align: center;
     background: $primary-colour;
     color: mix(black, $primary-colour, 70%);
+
+    .text-muted {
+        color: mix(black, $primary-colour, 50%);
+    }
 }
 
 @import '_forms.scss';
