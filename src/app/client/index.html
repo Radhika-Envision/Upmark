@@ -27,8 +27,8 @@
                 </a>
             </div>
             <div class="nav navbar-nav navbar-right">
-                <p><b>{{user["user_id"]}}</b><br>
-                <b>{{user["utility"]}}</b></p>
+                <p><b>{{user and user.name or ""}}</b><br>
+                <b>{{organisation and organisation.name or ""}}</b></p>
             </div>
         </div>
     </nav>

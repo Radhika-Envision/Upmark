@@ -2,7 +2,6 @@ def truthy(value):
     '''
     @return True if the value is a string like 'True' (etc), or the boolean True
     '''
-    print(value)
     if isinstance(value, str):
         try:
             value = int(value)

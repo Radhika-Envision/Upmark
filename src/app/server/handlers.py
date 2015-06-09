@@ -112,7 +112,27 @@ SCRIPTS = [
 
 class BaseHandler(tornado.web.RequestHandler):
     def get_current_user(self):
-        return self.get_secure_cookie("user")
+        # Cached value is available in current_user property.
+        # http://tornado.readthedocs.org/en/latest/web.html#tornado.web.RequestHandler.current_user
+        uid = self.get_secure_cookie('user')
+        if uid is None:
+            return None
+        uid = uid.decode('utf8')
+        print(uid)
+        with model.session_scope() as session:
+            user = session.query(model.AppUser).get(uid)
+            session.expunge(user)
+            return user
+
+    @property
+    def organisation(self):
+        if self.current_user.utility_id is None:
+            return None
+        with model.session_scope() as session:
+            organisation = session.query(model.Utility).\
+                get(self.current_user.utility_id)
+            session.expunge(organisation)
+            return organisation
 
     def prepare_resources(self, declarations):
         '''
@@ -162,33 +182,22 @@ class AuthLoginHandler(BaseHandler):
         self.render(
             "../client/login.html", scripts=self.scripts, stylesheets=self.stylesheets,
             analytics_id=tornado.options.options.analytics_id)
- 
-    def check_permission(self, user_id, password):
-        with model.session_scope() as session:
-            user = session.query(model.AppUser).filter_by(user_id =user_id).first()
-            if user:
-                return user.check_password(password), user.user_id, "utility 1"
-        return False, None, None
- 
+
     def post(self):
         username = self.get_argument("username", "")
         password = self.get_argument("password", "")
-        auth, user_id, utility = self.check_permission(username, password)
-        if auth:
-            self.set_current_user({"user_id" : user_id, "utility" : utility})
+        with model.session_scope() as session:
+            user = session.query(model.AppUser).filter_by(user_id=username).one()
+            session.expunge(user)
+        if user.check_password(password):
+            self.set_secure_cookie("user", str(user.id).encode('utf8'))
             self.redirect(self.get_argument("next", u"/"))
         else:
+            self.clear_cookie("user")
             error_msg = u"?error=" + tornado.escape.url_escape("Login incorrect")
             self.redirect(u"/login/" + error_msg)
- 
-    def set_current_user(self, user):
-        if user:
-            self.set_secure_cookie("user", tornado.escape.json_encode(user))
-        else:
-            self.clear_cookie("user")
 
     def initialize(self, path):
-        print ("path", path)
         self.path = path
         self.scripts = self.prepare_resources(SCRIPTS)
         self.stylesheets = self.prepare_resources(STYLESHEETS)
@@ -219,7 +228,8 @@ class MainHandler(BaseHandler):
             template = self.path
 
         self.render(
-            template, user=tornado.escape.json_decode(self.get_current_user()), scripts=self.scripts, stylesheets=self.stylesheets,
+            template, user=self.current_user, organisation=self.organisation,
+            scripts=self.scripts, stylesheets=self.stylesheets,
             analytics_id=tornado.options.options.analytics_id)
 
 
