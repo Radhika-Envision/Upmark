@@ -37,8 +37,7 @@ nav.navbar.navbar-static-top {
 
 /* Logo is included inline as raw SVG, so we can do some funky styling. */
 .navbar-brand svg {
-    @include transform(scale(0.3));
-    @include transform-origin(0 0);
+    height: 100%;
 }
 g#logo-text-subtitle {
     display: none;
