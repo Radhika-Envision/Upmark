@@ -10,7 +10,7 @@ try:
 except ImportError:
     print('Failed to load sqlalchemy. Do you need to enter a virtual environment?')
 
-from model import AppUser, connect_db, session_scope, Utility
+from model import AppUser, connect_db, session_scope, Organisation
 
 
 def add_user(args):
@@ -25,12 +25,12 @@ def add_user(args):
 
     try:
         with session_scope() as session:
-            user = AppUser(user_id=args.email, name=args.name, role=args.role)
+            user = AppUser(email=args.email, name=args.name, role=args.role)
             user.set_password(password)
-            if args.utility is not None:
-                utility = session.query(Utility) \
-                    .filter_by(name=args.utility).one()
-                user.utility_id = utility.id
+            if args.organisation is not None:
+                organisation = session.query(Organisation) \
+                    .filter_by(name=args.organisation).one()
+                user.organisation_id = organisation.id
             session.add(user)
     except sqlalchemy.exc.IntegrityError as e:
         print('Failed to add user %s' % args.name)
@@ -52,7 +52,7 @@ def run(argv):
     subparser.add_argument('email')
     subparser.add_argument('name')
     subparser.add_argument('role', default='clerk')
-    subparser.add_argument('--utility')
+    subparser.add_argument('--organisation')
     subparser.set_defaults(func=add_user)
 
     args = parser.parse_args(argv)

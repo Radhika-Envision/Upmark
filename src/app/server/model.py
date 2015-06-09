@@ -192,7 +192,9 @@ def connect_db(url):
     global Session
     engine = create_engine(url)
     conn = engine.connect()
-    Base.metadata.drop_all(engine)
+    # Never drop the schema here.
+    # - For short-term testing, use psql.
+    # - For breaking changes, add migration code to update_model below.
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
     versioned_session(Session)
