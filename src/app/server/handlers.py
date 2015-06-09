@@ -121,15 +121,15 @@ class BaseHandler(tornado.web.RequestHandler):
         if uid is None:
             return None
         uid = uid.decode('utf8')
-        print(uid)
         with model.session_scope() as session:
             user = session.query(model.AppUser).get(uid)
-            session.expunge(user)
+            if user is not None:
+                session.expunge(user)
             return user
 
     @property
     def organisation(self):
-        if self.current_user.organisation_id is None:
+        if self.current_user is None or self.current_user.organisation_id is None:
             return None
         with model.session_scope() as session:
             organisation = session.query(model.Organisation).\
