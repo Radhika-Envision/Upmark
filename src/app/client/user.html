@@ -5,43 +5,49 @@
         <i class="fa fa-fw fa-user"></i>
         {{user.name}}
         <button class="btn btn-round" title="Edit"
-                ng-click="edit()"
-                ng-if="!user_edit">
+                ng-click="edit.edit()"
+                ng-if="!edit.model">
             <i class="fa fa-pencil"></i></button>
         <button class="btn btn-round" title="Save"
-                ng-click="save()"
-                ng-if="user_edit">
+                ng-click="edit.save()"
+                ng-if="edit.model">
             <i class="fa fa-check"></i></button>
+        <button class="btn btn-round" title="Cancel"
+                ng-click="edit.cancel()"
+                ng-if="edit.model">
+            <i class="fa fa-times"></i></button>
     </h2>
 </div>
 
-<div class="measure" ng-if="user_edit">
+<editor-error class="measure" edit="edit"></editor-error>
+
+<div class="measure" ng-if="edit.model">
     <form>
         <div class="form-group">
             <label for="user_name">Name</label>
             <input type="text" class="form-control" id="user_name"
-                ng-model="user_edit.name" />
+                ng-model="edit.model.name" />
         </div>
         <div class="form-group">
             <label for="user_email">Email</label>
             <input type="text" class="form-control" id="user_email"
-                ng-model="user_edit.email" />
+                ng-model="edit.model.email" />
         </div>
         <div class="form-group">
             <label for="user_role">Role</label>
             <select type="text" class="form-control" id="user_role"
                 ng-options="role.id as role.name for role in roles"
-                ng-model="user_edit.role"></select>
+                ng-model="edit.model.role"></select>
         </div>
         <div class="form-group">
             <label for="user_org">Utility</label>
             <input type="text" class="form-control" id="user_org"
-                ng-model="user_edit.organisation" />
+                ng-model="edit.model.organisation" />
         </div>
     </form>
 </div>
 
-<div class="measure" ng-if="!user_edit">
+<div class="measure" ng-if="!edit.model">
     <dl>
         <dt>Role</dt>
         <dd>{{roleDict[user.role].name}}</dd>

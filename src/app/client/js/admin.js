@@ -30,8 +30,8 @@ angular.module('wsaa.admin', ['ngResource'])
 }])
 
 
-.factory('Editor', ['$parse', function($parse) {
-    Editor = function(dao, targetPath, scope) {
+.factory('Editor', ['$parse', 'log', function($parse, log) {
+    function Editor(dao, targetPath, scope) {
         this.dao = dao;
         this.model = null;
         this.scope = scope;
@@ -54,24 +54,27 @@ angular.module('wsaa.admin', ['ngResource'])
         var new_model;
         if (!this.model.id) {
             log.info("Saving as new organisation");
-            new_model = dao.create(this.model);
+            new_model = this.dao.create(this.model);
         } else {
             log.info("Saving over old organisation");
-            new_model = dao.save(this.model);
+            new_model = this.dao.save(this.model);
         }
         this.saving = true;
 
+        var that = this;
         new_model.$promise.then(
             function success(new_model) {
                 log.debug("Success");
-                this.getter.assign(this.scope, new_model);
-                this.model = null;
-                this.saving = false;
+                that.getter.assign(this.scope, new_model);
+                that.model = null;
+                that.saving = false;
+                that = null;
             },
             function error(details) {
                 log.error("Could not save object");
-                this.error = "Could not save object";
-                this.saving = false;
+                that.error = "Could not save object";
+                that.saving = false;
+                that = null;
             }
         );
     };
@@ -84,6 +87,7 @@ angular.module('wsaa.admin', ['ngResource'])
     };
 
     return function(dao, targetPath, scope) {
+        log.info('Creating editor');
         var editor = new Editor(dao, targetPath, scope);
         scope.$on('$destroy', function() {
             editor.destroy();
@@ -93,11 +97,23 @@ angular.module('wsaa.admin', ['ngResource'])
 }])
 
 
-.controller('UserCtrl', ['$scope', 'User', 'user', 'roles', 'log',
-        function($scope, User, user, roles, log) {
+.directive('editorError', [function() {
+    return {
+        restrict: 'E',
+        template: '<div ng-if="edit.error"><div class="panel panel-warning"><div class="panel-body bg-warning text-warning">{{edit.error}}</div></div></div>',
+        scope: {
+            edit: '='
+        },
+        replace: true
+    };
+}])
+
+
+.controller('UserCtrl', ['$scope', 'User', 'user', 'roles', 'Editor', 'log',
+        function($scope, User, user, roles, Editor, log) {
 
     $scope.user = user;
-    $scope.user_edit = null;
+    $scope.edit = Editor(User, 'user', $scope);
 
     $scope.roles = roles;
     $scope.roleDict = {};
@@ -105,78 +121,16 @@ angular.module('wsaa.admin', ['ngResource'])
         var role = roles[i];
         $scope.roleDict[role.id] = role;
     }
-
-    $scope.edit = function() {
-        log.debug("Creating edit object");
-        $scope.user_edit = angular.copy(user);
-    };
-
-    $scope.save = function() {
-        var new_user;
-        if (!$scope.id) {
-            log.info("Saving as new organisation");
-            new_user = User.create($scope.user_edit);
-        } else {
-            log.info("Saving over old organisation");
-            new_user = User.save($scope.user_edit);
-        }
-        new_user.$promise.then(
-            function success(new_user) {
-                log.debug("Success");
-                $scope.user = new_user;
-                $scope.user_edit = null;
-                new_user = null;
-            },
-            function error(details) {
-                log.error("Could not save organisation");
-                new_user = null;
-            }
-        );
-    };
-
-    $scope.$on('$destroy', function() {
-        $scope = null;
-    });
+    console.log(roles)
+    console.log($scope.roleDict);
 }])
 
 
-.controller('OrganisationCtrl', ['$scope', 'Organisation', 'org', 'log',
-        function($scope, Organisation, org, log) {
+.controller('OrganisationCtrl', ['$scope', 'Organisation', 'org', 'Editor', 'log',
+        function($scope, Organisation, org, Editor, log) {
 
     $scope.org = org;
-    $scope.org_edit = null;
-
-    $scope.edit = function() {
-        log.debug("Creating edit object");
-        $scope.org_edit = angular.copy(org);
-    };
-
-    $scope.save = function() {
-        var new_org;
-        if (!$scope.id) {
-            log.info("Saving as new organisation");
-            new_org = Organisation.create($scope.org_edit);
-        } else {
-            log.info("Saving over old organisation");
-            new_org = Organisation.save($scope.org_edit);
-        }
-        new_org.$promise.then(
-            function success(new_org) {
-                log.debug("Success");
-                $scope.org = new_org;
-                $scope.org_edit = null;
-                new_org = null;
-            },
-            function error(details) {
-                log.error("Could not save organisation");
-                new_org = null;
-            }
-        );
-    };
-
-    $scope.$on('$destroy', function() {
-        $scope = null;
-    });
+    $scope.edit = Editor(Organisation, 'org', $scope);
 }])
 
 ;
