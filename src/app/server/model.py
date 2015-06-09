@@ -232,10 +232,10 @@ def update_model():
 def testing():
     connect_db(os.environ.get('DATABASE_URL'))
     with session_scope() as session:
-        testUser = AppUser(user_id="forjin", name="Jin", privileges="admin")
+        testUser = AppUser(user_id="forjin", name="Jin", role="admin")
         testUser.set_password("test")
         session.add(testUser)
-        assert testUser.check_password("Test")
+        assert testUser.check_password("test")
     '''
     testFunction = Function(seq=1, title="Function 1", description="Test Description")
     session.add(testFunction)
