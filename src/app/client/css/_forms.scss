@@ -4,16 +4,12 @@
 $button-bg: #f0f0f0;
 $button-fg: black;
 $button-border-width: 3px;
+$round-button-width: 26px;
 
 $primary-col: #177fb5;
 $danger-col: #d43f3a;
 
 $anim-time: 0.3s;
-
-form {
-    margin-left: $gutter;
-    margin-right: $gutter;
-}
 
 button, .btn, a, textarea, input, select {
     outline: 5px none rgba($primary-col, 0);
@@ -57,6 +53,17 @@ button, .btn, a, textarea, input, select {
         &:not(:last-child) {
             border-right-color: transparent;
         }
+    }
+
+    /* N/A button etc. */
+    &.btn-round {
+        border-radius: 100%;
+        width: $round-button-width;
+        height: $round-button-width;
+        padding: 0;
+        line-height: $round-button-width - 2px;
+        font-size: $round-button-width - 8px;
+        float: right;
     }
 }
 

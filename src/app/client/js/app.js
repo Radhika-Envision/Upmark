@@ -45,7 +45,12 @@ angular.module('wsaa.aquamark',
             })
             .when('/org/:id', {
                 templateUrl : 'organisation.html',
-                controller : 'OrganisationCtrl'
+                controller : 'OrganisationCtrl',
+                resolve: {
+                    org: ['Organisation', '$route', function(Organisation, $route) {
+                        return Organisation.get($route.current.params);
+                    }]
+                }
             })
             .when('/legal', {
                 templateUrl : 'legal.html',
@@ -83,7 +88,7 @@ angular.module('wsaa.aquamark',
 
 
 .run(['$cacheFactory', '$http', function($cacheFactory, $http) {
-    $http.defaults.cache = $cacheFactory('lruCache', {capacity: 20});
+    $http.defaults.cache = $cacheFactory('lruCache', {capacity: 100});
 }])
 
 

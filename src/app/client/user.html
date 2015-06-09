@@ -4,37 +4,56 @@
     <h2>
         <i class="fa fa-fw fa-user"></i>
         {{user.name}}
-        <span class="text-muted">- {{roleDict[user.role].name}}
-            <span ng-if="user.organisation">
-                of {{user.organisation}}
-            </span>
-        </span>
+        <button class="btn btn-round" title="Edit"
+                ng-click="edit()"
+                ng-if="!user_edit">
+            <i class="fa fa-pencil"></i></button>
+        <button class="btn btn-round" title="Save"
+                ng-click="save()"
+                ng-if="user_edit">
+            <i class="fa fa-check"></i></button>
     </h2>
 </div>
-<div class="measure">
+
+<div class="measure" ng-if="user_edit">
     <form>
         <div class="form-group">
             <label for="user_name">Name</label>
             <input type="text" class="form-control" id="user_name"
-                ng-model="user.name" />
+                ng-model="user_edit.name" />
         </div>
         <div class="form-group">
             <label for="user_email">Email</label>
             <input type="text" class="form-control" id="user_email"
-                ng-model="user.email" />
+                ng-model="user_edit.email" />
         </div>
         <div class="form-group">
             <label for="user_role">Role</label>
             <select type="text" class="form-control" id="user_role"
                 ng-options="role.id as role.name for role in roles"
-                ng-model="user.role"></select>
+                ng-model="user_edit.role"></select>
         </div>
         <div class="form-group">
             <label for="user_org">Utility</label>
             <input type="text" class="form-control" id="user_org"
-                ng-model="user.organisation" />
+                ng-model="user_edit.organisation" />
         </div>
     </form>
+</div>
+
+<div class="measure" ng-if="!user_edit">
+    <dl>
+        <dt>Role</dt>
+        <dd>{{roleDict[user.role].name}}</dd>
+    </dl>
+    <dl>
+        <dt>Email</dt>
+        <dd>{{user.email}} <span class="text-muted">TODO: Hide this in JSON</span></dd>
+    </dl>
+    <dl>
+        <dt>Utility</dt>
+        <dd><a ng-href="/org/{{utility.id}}">{{utility.name}}</a></dd>
+    </dl>
 </div>
 
 </div>

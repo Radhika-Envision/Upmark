@@ -2,7 +2,6 @@
 @import '_defines.scss';
 
 $anim-time: 0.5s;
-$round-button-width: 26px;
 
 .survey-tree {
     background: $primary-colour;
@@ -44,20 +43,9 @@ $round-button-width: 26px;
         color: mix(black, white, 70%);
         line-height: 1.6;
         font-size: 19px;
-
-        /* N/A button etc. */
-        .btn {
-            border-radius: 100%;
-            width: $round-button-width;
-            height: $round-button-width;
-            padding: 0;
-            line-height: $round-button-width - 2px;
-            font-size: $round-button-width - 8px;
-            float: right;
-        }
     }
 
-    >p {
+    >p, >dl, form {
         margin: 20px $gutter;
     }
 
