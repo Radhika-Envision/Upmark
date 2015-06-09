@@ -17,16 +17,16 @@ angular.module('wsaa.survey', ['ngResource'])
 }])
 
 
-.controller('SurveyCtrl', ['$scope', '$routeParams', 'Schema', 'Measure', 'format', 'hotkeys', '$location', '$timeout',
-        function($scope, $routeParams, Schema, Measure, format, hotkeys, $location, $timeout) {
+.controller('SurveyCtrl', ['$scope', '$routeParams', 'routeData', 'format', 'hotkeys', '$location', '$timeout',
+        function($scope, $routeParams, routeData, format, hotkeys, $location, $timeout) {
 
     $scope.route = {
         params: $routeParams,
         nextUrl: null,
         prevUrl: null
     };
-    $scope.measure = Measure.get($routeParams);
-    $scope.schema = null;
+    $scope.measure = routeData.measure;
+    $scope.schema = routeData.schema;
     $scope.response = {
         na: false,
         comment: ""
@@ -47,12 +47,6 @@ angular.module('wsaa.survey', ['ngResource'])
         };
         bump();
     };
-
-    $scope.$watch('measure.responseType', function(responseType) {
-        if (responseType == null)
-            return;
-        $scope.schema = Schema.get({name: responseType});
-    });
 
     $scope.$watchGroup(['route.params', 'measure.first'], function(vars) {
         var params = vars[0];

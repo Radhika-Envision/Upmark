@@ -24,22 +24,16 @@ angular.module('wsaa.admin', ['ngResource'])
 }])
 
 
-.controller('UserCtrl', ['$scope', 'User', 'Roles', '$routeParams',
-        function($scope, User, Roles, $routeParams) {
+.controller('UserCtrl', ['$scope', 'User', 'user', 'roles',
+        function($scope, User, user, roles) {
 
-    $scope.user = User.get($routeParams);
-    $scope.roles = Roles.get();
+    $scope.user = user;
+    $scope.roles = roles;
     $scope.roleDict = {};
-    $scope.$watch('roles', function(roles) {
-        roles.$promise.then(function(roles) {
-            var dict = {};
-            for (var i in roles) {
-                var role = roles[i];
-                dict[role.id] = role;
-            }
-            $scope.roleDict = dict;
-        });
-    });
+    for (var i in roles) {
+        var role = roles[i];
+        $scope.roleDict[role.id] = role;
+    }
 }])
 
 ;

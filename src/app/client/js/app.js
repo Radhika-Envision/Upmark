@@ -12,7 +12,20 @@ angular.module('wsaa.aquamark',
         $routeProvider
             .when('/survey/:survey/:fn/:proc/:subProc/:measure', {
                 templateUrl : 'survey-measure.html',
-                controller : 'SurveyCtrl'
+                controller : 'SurveyCtrl',
+                resolve: {
+                    routeData: ['Measure', 'Schema', '$route', '$q',
+                            function(Measure, Schema, $route, $q) {
+                        var data = {};
+                        data.measure = Measure.get($route.current.params);
+                        return data.measure.$promise.then(function(measure) {
+                            data.schema = Schema.get({name: measure.responseType});
+                            return data.schema.$promise;
+                        }).then(function(schema) {
+                            return data;
+                        });
+                    }]
+                }
             })
             .when('/', {
                 templateUrl : 'start.html',
@@ -20,7 +33,15 @@ angular.module('wsaa.aquamark',
             })
             .when('/user/:id', {
                 templateUrl : 'user.html',
-                controller : 'UserCtrl'
+                controller : 'UserCtrl',
+                resolve: {
+                    user: ['User', '$route', function(User, $route) {
+                        return User.get($route.current.params);
+                    }],
+                    roles: ['Roles', function(Roles) {
+                        return Roles.get();
+                    }]
+                }
             })
             .when('/org/:id', {
                 templateUrl : 'organisation.html',
