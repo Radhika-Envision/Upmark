@@ -56,7 +56,7 @@ class Response(Versioned, Base):
 class Assessment(Versioned, Base):
     __tablename__ = 'assessment'
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
-    utility_id = Column(GUID, ForeignKey('utility.id'))
+    organisation_id = Column(GUID, ForeignKey('organisation.id'))
     survey_id = Column(GUID, ForeignKey('survey.id'))
     measureset_id = Column(GUID, ForeignKey('measureset.id'))
     # TODO: Make this field an enum
@@ -64,8 +64,8 @@ class Assessment(Versioned, Base):
     created = Column(Date, nullable=False)
 
 
-class Utility(Versioned, Base):
-    __tablename__ = 'utility'
+class Organisation(Versioned, Base):
+    __tablename__ = 'organisation'
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
     name = Column(Text, nullable=False, unique=True)
     url = Column(Text, nullable=True)
@@ -84,11 +84,11 @@ class Survey(Versioned, Base):
 class AppUser(Versioned, Base):
     __tablename__ = 'appuser'
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
+    email = Column(Text, nullable=False, unique=True)
     name = Column(Text, nullable=False)
-    user_id = Column(Text, nullable=False, unique=True)
     password = Column(Text, nullable=False)
     role = Column(Text, nullable=False)
-    utility_id = Column(GUID, ForeignKey('utility.id'))
+    organisation_id = Column(GUID, ForeignKey('organisation.id'))
     created = Column(Date, default=func.now(), nullable=False)
 
     def set_password(self, plaintext):
@@ -192,7 +192,7 @@ def connect_db(url):
     global Session
     engine = create_engine(url)
     conn = engine.connect()
-    #Base.metadata.drop_all(engine)
+    Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
     versioned_session(Session)
@@ -232,7 +232,7 @@ def update_model():
 def testing():
     connect_db(os.environ.get('DATABASE_URL'))
     with session_scope() as session:
-        testUser = AppUser(user_id="forjin", name="Jin", role="admin")
+        testUser = AppUser(email="forjin@vpac-innovations.com.au", name="Jin Park", role="admin")
         testUser.set_password("test")
         session.add(testUser)
         assert testUser.check_password("test")

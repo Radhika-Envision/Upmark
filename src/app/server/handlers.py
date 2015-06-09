@@ -127,11 +127,11 @@ class BaseHandler(tornado.web.RequestHandler):
 
     @property
     def organisation(self):
-        if self.current_user.utility_id is None:
+        if self.current_user.organisation_id is None:
             return None
         with model.session_scope() as session:
-            organisation = session.query(model.Utility).\
-                get(self.current_user.utility_id)
+            organisation = session.query(model.Organisation).\
+                get(self.current_user.organisation_id)
             session.expunge(organisation)
             return organisation
 
@@ -182,21 +182,22 @@ class AuthLoginHandler(BaseHandler):
 
         self.render(
             "../client/login.html", scripts=self.scripts, stylesheets=self.stylesheets,
-            analytics_id=tornado.options.options.analytics_id)
+            analytics_id=tornado.options.options.analytics_id, error=errormessage)
 
     def post(self):
-        username = self.get_argument("username", "")
+        email = self.get_argument("email", "")
         password = self.get_argument("password", "")
         with model.session_scope() as session:
-            user = session.query(model.AppUser).filter_by(user_id=username).one()
-            session.expunge(user)
-        if user.check_password(password):
-            self.set_secure_cookie("user", str(user.id).encode('utf8'))
-            self.redirect(self.get_argument("next", u"/"))
-        else:
-            self.clear_cookie("user")
-            error_msg = u"?error=" + tornado.escape.url_escape("Login incorrect")
-            self.redirect(u"/login/" + error_msg)
+            try:
+                user = session.query(model.AppUser).filter_by(email=email).one()
+                session.expunge(user)
+                if user.check_password(password):
+                    self.set_secure_cookie("user", str(user.id).encode('utf8'))
+                    self.redirect(self.get_argument("next", u"/"))
+            except:
+                self.clear_cookie("user")
+                error_msg = u"?error=" + tornado.escape.url_escape("Login incorrect")
+                self.redirect(u"/login/" + error_msg)
 
     def initialize(self, path):
         self.path = path
