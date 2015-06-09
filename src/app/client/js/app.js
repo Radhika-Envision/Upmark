@@ -36,11 +36,19 @@ angular.module('wsaa.aquamark',
                 templateUrl : 'user.html',
                 controller : 'UserCtrl',
                 resolve: {
-                    user: ['User', '$route', function(User, $route) {
-                        return User.get($route.current.params).$promise;
-                    }],
                     roles: ['Roles', function(Roles) {
                         return Roles.get().$promise;
+                    }],
+                    routeData: ['User', 'Organisation', '$route', '$q',
+                            function(User, Organisation, $route, $q) {
+                        var data = {};
+                        data.user = User.get($route.current.params);
+                        return data.user.$promise.then(function(user) {
+                            data.org = Organisation.get({id: user.organisation});
+                            return data.org.$promise;
+                        }).then(function(org) {
+                            return data;
+                        });
                     }]
                 }
             })
