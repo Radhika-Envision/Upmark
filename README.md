@@ -21,6 +21,14 @@ sudo docker run -d --name aquamark \
     vpac/aquamark
 ```
 
+The first time you start the server, you will need to create a super user.
+
+```bash
+sudo docker run -it --rm --link postgres_aq:postgres vpac/aquamark \
+    app/server/admin.py adduser joe@bloggs.com 'Joe Bloggs' super
+```
+
+
 ## Development
 
 The easiest way to run during development is to start a Docker container as
@@ -31,14 +39,15 @@ just connect to http://localhost:8000 for testing.
 
 ```bash
 sudo docker run -d --name postgres_aq postgres:9
-sudo docker run --rm --name aquamark \
+sudo docker run --rm \
     --link postgres_aq:postgres \
-    -v "$YOUR_GIT_ROOT/src/app:/usr/share/aquamark" \
+    -v "$YOUR_GIT_ROOT/src/app:/usr/share/aquamark/app" \
     -p 8000:8000 \
     -e DEV_MODE=True \
     -e XSRF_PROTECTION=False \
     vpac/aquamark
 ```
+
 
 ## Dependencies
 

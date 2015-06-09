@@ -11,6 +11,7 @@ import tornado.web
 
 import handlers
 import model
+from utils import truthy
 
 
 log = logging.getLogger('app')
@@ -34,6 +35,10 @@ def parse_options():
         log.info("Warning: log config file %s does not exist.", logconf_path)
     else:
         logging.config.fileConfig(logconf_path)
+
+    tornado.options.define(
+        "xsrf", default=os.environ.get('AQ_XSRF', 'True'),
+        help="Protect against XSRF attacks (default: True)")
 
     tornado.options.define(
         "dev", default=os.environ.get('DEV_MODE', 'True'),
@@ -62,7 +67,6 @@ def get_cookie_secret():
             secret = base64.b64encode(os.urandom(50)).decode('ascii')
             conf = model.SystemConfig(name='cookie_secret', value=secret)
             session.add(conf)
-        print(conf)
         return conf.value
 
 
@@ -70,6 +74,7 @@ def get_settings():
     package_dir = get_package_dir()
     return {
         "cookie_secret": get_cookie_secret(),
+        "xsrf_cookies": truthy(tornado.options.options.xsrf),
         "debug": True,
         "gzip": True,
         "template_path": os.path.join(package_dir, "..", "client"),
@@ -80,6 +85,7 @@ def get_settings():
 def start_web_server():
 
     package_dir = get_package_dir()
+    settings = get_settings()
 
     application = tornado.web.Application(
         [
@@ -89,14 +95,14 @@ def start_web_server():
             (r"/()", handlers.MainHandler, {
                 'path': '../client/index.html'}),
             (r"/bower_components/(.*)", tornado.web.StaticFileHandler, {
-                'path': os.path.join(package_dir, "..", ".bower_components")}),
+                'path': os.path.join(package_dir, "..", "client", ".bower_components")}),
             (r"/minify/(.*)", handlers.MinifyHandler, {
                 'path': '/minify/', 'root': os.path.join(package_dir, "..", "client")}),
             (r"/(.*\.css)", handlers.CssHandler, {
                 'root': os.path.join(package_dir, "..", "client")}),
             (r"/(.*)", tornado.web.StaticFileHandler, {
                 'path': os.path.join(package_dir, "..", "client")}),
-        ], **get_settings()
+        ], **settings
     )
 
     try:
@@ -111,6 +117,7 @@ def start_web_server():
 
     if log.isEnabledFor(logging.INFO):
         import socket
+        log.info("Settings: %s", settings)
         log.info(
             "Starting web application. Will be available on port %s", port)
         log.info("Try opening http://%s:%s", socket.gethostname(), port)

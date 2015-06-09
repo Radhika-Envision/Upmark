@@ -10,8 +10,8 @@ import tornado.httpclient
 import tornado.httputil
 import tornado.options
 import tornado.web
-
-from model import AppUser, get_session
+import model
+from utils import falsy, truthy
 
 
 log = logging.getLogger('app.handlers')
@@ -121,7 +121,7 @@ class BaseHandler(tornado.web.RequestHandler):
         development or release mode.
         '''
         resources = []
-        if tornado.options.options.dev in {'True', 'true'}:
+        if truthy(tornado.options.options.dev):
             for sdef in declarations:
                 if 'href' in sdef:
                     resources.append(sdef['href'])
@@ -164,22 +164,18 @@ class AuthLoginHandler(BaseHandler):
             analytics_id=tornado.options.options.analytics_id)
  
     def check_permission(self, user_id, password):
-        session = get_session(False)
-        if session:
-            user = session.query(AppUser).filter_by(user_id =user_id).first()
-            print ("user", user)
+        with model.session_scope() as session:
+            user = session.query(model.AppUser).filter_by(user_id =user_id).first()
             if user:
-                return True
-        return False
+                return user.check_password(password), user.user_id, "utility 1"
+        return False, None, None
  
     def post(self):
         username = self.get_argument("username", "")
         password = self.get_argument("password", "")
-        print ("username", username)
-        print ("password", password)
-        auth = self.check_permission(username, password)
+        auth, user_id, utility = self.check_permission(username, password)
         if auth:
-            self.set_current_user(username)
+            self.set_current_user({"user_id" : user_id, "utility" : utility})
             self.redirect(self.get_argument("next", u"/"))
         else:
             error_msg = u"?error=" + tornado.escape.url_escape("Login incorrect")
@@ -223,7 +219,7 @@ class MainHandler(BaseHandler):
             template = self.path
 
         self.render(
-            template, scripts=self.scripts, stylesheets=self.stylesheets,
+            template, user=tornado.escape.json_decode(self.get_current_user()), scripts=self.scripts, stylesheets=self.stylesheets,
             analytics_id=tornado.options.options.analytics_id)
 
 
@@ -233,7 +229,7 @@ class RamCacheHandler(tornado.web.RequestHandler):
 
     def get(self, path):
         qpath = self.resolve_path(path)
-        if qpath in RamCacheHandler.CACHE and tornado.options.options.dev not in {'True', 'true'}:
+        if qpath in RamCacheHandler.CACHE and falsy(tornado.options.options.dev):
             self.write_from_cache(qpath)
         else:
             log.info('Generating %s', path)
