@@ -96,7 +96,9 @@ SCRIPTS = [
         'min-href': '/minify/3rd-party-min.js',
         'hrefs': [
             '/.bower_components/angular-bootstrap/ui-bootstrap-tpls.js',
-            '/.bower_components/angular-hotkeys/build/hotkeys.js'
+            '/.bower_components/angular-hotkeys/build/hotkeys.js',
+            '/.bower_components/angular-bootstrap-show-errors/src/showErrors.js',
+            '/.bower_components/angular-validation-match/dist/angular-input-match.js'
         ]
     },
     {

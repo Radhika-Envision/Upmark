@@ -22,27 +22,47 @@
 <editor-error class="measure" edit="edit"></editor-error>
 
 <div class="measure" ng-if="edit.model">
-    <form>
-        <div class="form-group">
+    <form novalidate name="form">
+        <div class="form-group" show-errors>
             <label for="user_name">Name</label>
-            <input type="text" class="form-control" id="user_name"
-                ng-model="edit.model.name" />
+            <span class="help-label" ng-if="form.user_name.$error.required">
+                Please provide a name.</span>
+            <input type="text" class="form-control" id="user_name" name="user_name"
+                ng-model="edit.model.name" required />
         </div>
-        <div class="form-group">
-            <label for="user_email">Email</label>
-            <input type="text" class="form-control" id="user_email"
-                ng-model="edit.model.email" />
-        </div>
-        <div class="form-group">
+        <div class="form-group" show-errors>
             <label for="user_role">Role</label>
-            <select type="text" class="form-control" id="user_role"
+            <select type="text" class="form-control" id="user_role" name="user_role"
                 ng-options="role.id as role.name for role in roles"
                 ng-model="edit.model.role"></select>
         </div>
-        <div class="form-group">
+        <div class="form-group" show-errors>
+            <label for="user_email">Email</label>
+            <span class="help-label" ng-if="form.user_email.$error.required">
+                Please provide an email address.</span>
+            <span class="help-label" ng-if="form.user_email.$error.email">
+                Please provide a valid email address.</span>
+            <input type="email" class="form-control" id="user_email" name="user_email"
+                ng-model="edit.model.email" required />
+        </div>
+        <div class="form-group" show-errors>
             <label for="user_org">Utility</label>
-            <input type="text" class="form-control" id="user_org"
-                ng-model="edit.model.organisation" />
+            <input type="text" class="form-control" id="user_org" name="user_org"
+                ng-model="edit.model.organisation" required />
+        </div>
+
+        <div class="form-group" show-errors>
+            <label for="user_pwd">Password</label>
+            <span class="help-label" ng-if="edit.model.id">
+                Optional</span>
+            <input type="password" class="form-control" id="user_pwd" name="user_pwd"
+                ng-model="edit.model.password" />
+        </div>
+        <div class="form-group" show-errors>
+            <label for="user_pwd2">Re-enter password</label>
+            <span class="help-label" ng-if="form.user_pwd2.$error.match">Passwords don't match.</span>
+            <input type="password" class="form-control" id="user_pwd2" name="user_pwd2"
+                ng-model="edit.model.password2" match="edit.model.password" />
         </div>
     </form>
 </div>

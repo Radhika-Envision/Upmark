@@ -2,6 +2,7 @@
 
 angular.module('wsaa.aquamark',
                ['ngRoute', 'ngAnimate', 'ui.bootstrap', 'cfp.hotkeys',
+                'ui.bootstrap.showErrors', 'validation.match',
                 'wsaa.survey', 'wsaa.admin', 'vpac.utils', 'vpac.widgets'])
 
 .config(['$routeProvider', '$httpProvider', '$parseProvider', '$animateProvider',

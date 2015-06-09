@@ -30,6 +30,9 @@ angular.module('wsaa.admin', ['ngResource'])
 }])
 
 
+/**
+ * Manages state for a modal editing session.
+ */
 .factory('Editor', ['$parse', 'log', function($parse, log) {
     function Editor(dao, targetPath, scope) {
         this.dao = dao;
