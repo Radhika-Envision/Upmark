@@ -10,6 +10,7 @@ import tornado.httpclient
 import tornado.httputil
 import tornado.options
 import tornado.web
+import sqlalchemy
 import model
 from utils import falsy, truthy
 
@@ -196,7 +197,9 @@ class AuthLoginHandler(BaseHandler):
                 if user.check_password(password):
                     self.set_secure_cookie("user", str(user.id).encode('utf8'))
                     self.redirect(self.get_argument("next", u"/"))
-            except sqlalchemy.orm.exc.NoResult:
+                else:
+                    raise Exception("Login incorrect")
+            except sqlalchemy.orm.exc.NoResultFound:
                 self.clear_cookie("user")
                 error_msg = u"?error=" + tornado.escape.url_escape("Login incorrect")
                 self.redirect(u"/login/" + error_msg)
