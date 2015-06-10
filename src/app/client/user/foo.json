@@ -1,7 +1,7 @@
 {
     "id": "foo",
-    "name": "Fred",
-    "email": "fred@fred.com",
+    "name": "Andrew Axolotl",
+    "email": "aa@salamander.com",
     "organisation": "acme",
     "role": "clerk"
 }

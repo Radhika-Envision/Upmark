@@ -120,6 +120,8 @@ angular.module('wsaa.aquamark',
                         return User.get($route.current.params).$promise;
                     }],
                     org: ['user', 'Organisation', function(user, Organisation) {
+                        if (!user.organisation)
+                            return null;
                         return Organisation.get({id: user.organisation}).$promise;
                     }]
                 })}
