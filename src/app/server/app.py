@@ -9,6 +9,7 @@ import sqlalchemy.orm
 import tornado.options
 import tornado.web
 
+import data_access
 import handlers
 import model
 from utils import truthy
@@ -94,12 +95,18 @@ def start_web_server():
             (r"/logout/", handlers.AuthLogoutHandler),
             (r"/()", handlers.MainHandler, {
                 'path': '../client/index.html'}),
+
             (r"/bower_components/(.*)", tornado.web.StaticFileHandler, {
-                'path': os.path.join(package_dir, "..", "client", ".bower_components")}),
+                'path': os.path.join(
+                    package_dir, "..", "client", ".bower_components")}),
             (r"/minify/(.*)", handlers.MinifyHandler, {
-                'path': '/minify/', 'root': os.path.join(package_dir, "..", "client")}),
+                'path': '/minify/',
+                'root': os.path.join(package_dir, "..", "client")}),
             (r"/(.*\.css)", handlers.CssHandler, {
                 'root': os.path.join(package_dir, "..", "client")}),
+
+            (r"/organisation/?(.*).json", data_access.OrgHandler, {}),
+
             (r"/(.*)", tornado.web.StaticFileHandler, {
                 'path': os.path.join(package_dir, "..", "client")}),
         ], **settings
