@@ -8,7 +8,8 @@ angular.module('wsaa.aquamark',
 
 /**
  * Automatically resolves interdependencies between injected arguments.
- * Returns
+ * Returns a function that can be used with $routeProvier.when's resolve
+ * parameter.
  */
 .provider('chain', function resolveChain() {
 

@@ -184,29 +184,27 @@ class AuthLoginHandler(BaseHandler):
             errormessage = ""
 
         self.render(
-            "../client/login.html", scripts=self.scripts, stylesheets=self.stylesheets,
-            analytics_id=tornado.options.options.analytics_id, error=errormessage)
+            "../client/login.html", scripts=self.scripts,
+            stylesheets=self.stylesheets,
+            analytics_id=tornado.options.options.analytics_id,
+            error=errormessage)
 
     def post(self):
         email = self.get_argument("email", "")
         password = self.get_argument("password", "")
-        with model.session_scope() as session:
-            try:
+        try:
+            with model.session_scope() as session:
                 user = session.query(model.AppUser).filter_by(email=email).one()
+                if not user.check_password(password):
+                    raise ValueError("Login incorrect")
                 session.expunge(user)
-                if user.check_password(password):
-                    self.set_secure_cookie("user", str(user.id).encode('utf8'))
-                    self.redirect(self.get_argument("next", u"/"))
-                else:
-                    raise Exception("Login incorrect")
-            except sqlalchemy.orm.exc.NoResultFound:
-                self.clear_cookie("user")
-                error_msg = u"?error=" + tornado.escape.url_escape("Login incorrect")
-                self.redirect(u"/login/" + error_msg)
-            except Exception as e:
-                self.clear_cookie("user")
-                error_msg = u"?error=" + str(e)
-                self.redirect(u"/login/" + error_msg)
+        except (sqlalchemy.orm.exc.NoResultFound, ValueError):
+            self.clear_cookie("user")
+            error_msg = "?error=" + tornado.escape.url_escape("Login incorrect")
+            self.redirect("/login/" + error_msg)
+
+        self.set_secure_cookie("user", str(user.id).encode('utf8'))
+        self.redirect(self.get_argument("next", "/"))
 
     def initialize(self, path):
         self.path = path
