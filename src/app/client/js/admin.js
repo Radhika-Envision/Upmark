@@ -56,10 +56,10 @@ angular.module('wsaa.admin', ['ngResource'])
     Editor.prototype.save = function() {
         var new_model;
         if (!this.model.id) {
-            log.info("Saving as new organisation");
+            log.info("Saving as new entry");
             new_model = this.dao.create(this.model);
         } else {
-            log.info("Saving over old organisation");
+            log.info("Saving over old entry");
             new_model = this.dao.save(this.model);
         }
         this.saving = true;
@@ -90,7 +90,7 @@ angular.module('wsaa.admin', ['ngResource'])
     };
 
     return function(dao, targetPath, scope) {
-        log.info('Creating editor');
+        log.debug('Creating editor');
         var editor = new Editor(dao, targetPath, scope);
         scope.$on('$destroy', function() {
             editor.destroy();

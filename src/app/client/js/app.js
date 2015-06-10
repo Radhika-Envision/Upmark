@@ -65,7 +65,7 @@ angular.module('wsaa.aquamark',
             }
 
             resolvedDeps[name] = $q.all(locals).then(function(locals) {
-                log.info("Resolving {} with locals {}", name, locals);
+                log.debug("Resolving {} with locals {}", name, locals);
                 return $injector.invoke(dep, null, locals, name);
             });
         });
