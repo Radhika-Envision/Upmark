@@ -3,6 +3,7 @@
 import logging
 import os
 import re
+import time
 
 import sass
 import tornado.gen
@@ -11,11 +12,23 @@ import tornado.httputil
 import tornado.options
 import tornado.web
 import sqlalchemy
+
 import model
 from utils import falsy, truthy
 
 
 log = logging.getLogger('app.handlers')
+
+# A string to break through caches. This changes each time Landblade is
+# deployed.
+DEPLOY_ID = str(time.time())
+
+
+def deploy_id():
+    if tornado.options.options.dev:
+        return str(time.time())
+    else:
+        return DEPLOY_ID
 
 
 class ModelError(tornado.web.HTTPError):
@@ -117,6 +130,7 @@ SCRIPTS = [
     }
 ]
 
+
 class BaseHandler(tornado.web.RequestHandler):
     def get_current_user(self):
         # Cached value is available in current_user property.
@@ -147,6 +161,13 @@ class MainHandler(BaseHandler):
     Renders content from templates.
     '''
 
+    def initialize(self, path):
+        self.path = path
+
+        self.deploy_id = deploy_id()
+        self.scripts = self.prepare_resources(SCRIPTS)
+        self.stylesheets = self.prepare_resources(STYLESHEETS)
+
     def prepare_resources(self, declarations):
         '''
         Resolve a list of resources. Different URLs will be used for the
@@ -154,41 +175,36 @@ class MainHandler(BaseHandler):
         development or release mode.
         '''
         resources = []
-        if truthy(tornado.options.options.dev):
-            for sdef in declarations:
-                if 'href' in sdef:
-                    resources.append(sdef['href'])
-                elif 'hrefs' in sdef:
-                    resources.extend(sdef['hrefs'])
-                elif 'min-href' in sdef:
-                    print('Warning: using minified resource in dev mode')
-                    resources.append(sdef['min-href'])
-                elif 'cdn' in sdef:
-                    print('Warning: using remote resource in dev mode')
-                    resources.append(sdef['cdn'])
-                else:
-                    print('Warning: unrecognised resource')
-        else:
-            for sdef in declarations:
-                if 'cdn' in sdef:
-                    resources.append(sdef['cdn'])
-                elif 'min-href' in sdef:
-                    resources.append(sdef['min-href'])
-                elif 'href' in sdef:
-                    print('Warning: using unminified resource in relese mode')
-                    resources.append(sdef['href'])
-                elif 'hrefs' in sdef:
-                    print('Warning: using unminified resource in relese mode')
-                    resources.extend(sdef['hrefs'])
-                else:
-                    print('Warning: unrecognised resource')
+        dev_mode = truthy(tornado.options.options.dev)
+
+        link_order = ['cdn', 'min-href', 'href', 'hrefs']
+        if dev_mode:
+            link_order.reverse()
+
+        for sdef in declarations:
+            # Convert dictionary to ordered list of tuples (based on precedence)
+            rs = ((k, sdef[k]) for k in link_order if k in sdef)
+            try:
+                k, hrefs = next(rs)
+            except KeyError:
+                print('Warning: unrecognised resource')
+                continue
+            if isinstance(hrefs, str):
+                hrefs = [hrefs]
+
+            # Add a resource deployment version number to bust the cache, except
+            # for CDN links.
+            if k != 'cdn':
+                hrefs = ['%s?v=%s' % (href, self.deploy_id) for href in hrefs]
+
+            if dev_mode and k in {'cdn', 'min-href'}:
+                print('Warning: using release resouce in dev mode')
+            elif not dev_mode and k in {'href', 'hrefs'}:
+                print('Warning: using dev resouce in release')
+
+            resources.extend(hrefs)
+
         return resources
-
-    def initialize(self, path):
-        self.path = path
-
-        self.scripts = self.prepare_resources(SCRIPTS)
-        self.stylesheets = self.prepare_resources(STYLESHEETS)
 
     @tornado.web.authenticated
     def get(self, path):
@@ -200,7 +216,8 @@ class MainHandler(BaseHandler):
         self.render(
             template, user=self.current_user, organisation=self.organisation,
             scripts=self.scripts, stylesheets=self.stylesheets,
-            analytics_id=tornado.options.options.analytics_id)
+            analytics_id=tornado.options.options.analytics_id,
+            deploy_id=self.deploy_id)
 
 
 class AuthLoginHandler(MainHandler):

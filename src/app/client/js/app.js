@@ -2,7 +2,7 @@
 
 angular.module('wsaa.aquamark',
                ['ngRoute', 'ngAnimate', 'ui.bootstrap', 'cfp.hotkeys',
-                'ui.bootstrap.showErrors', 'validation.match',
+                'ui.bootstrap.showErrors', 'validation.match', 'settings',
                 'wsaa.survey', 'wsaa.admin', 'vpac.utils', 'vpac.widgets'])
 
 
@@ -169,6 +169,39 @@ angular.module('wsaa.aquamark',
 //
 //        $httpProvider.responseInterceptors.push(handlerFactory);
 }])
+
+
+/*
+ * Install an HTTP interceptor to add version numbers to the URLs of certain
+ * resources. This is to improve the effectiveness of the browser cache, and to
+ * give control over when the cache should be invalidated.
+ */
+.config(['$httpProvider', 'versionedResources', 'deployId',
+    function($httpProvider, versionedResources, deployId) {
+        var rs = versionedResources.map(function(r) {
+            return new RegExp(r);
+        });
+
+        $httpProvider.interceptors.push([function() {
+            return {
+                request: function(config) {
+                    var test = function(r) {
+                        return r.test(config.url);
+                    };
+                    if (rs.some(test)) {
+                        var query;
+                        if (config.url.indexOf('?') == -1)
+                            query = '?v=' + deployId;
+                        else
+                            query = '&v=' + deployId;
+                        config.url += query;
+                    }
+                    return config;
+                }
+            }
+        }]);
+    }
+])
 
 
 .run(['$cacheFactory', '$http', function($cacheFactory, $http) {

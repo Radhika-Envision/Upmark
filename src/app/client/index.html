@@ -7,12 +7,6 @@
     <link rel="stylesheet" type="text/css" href="{{s}}">
     {% end %}
 
-    {% for s in scripts %}
-    <script src="{{s}}"></script>
-    {% end %}
-
-    {% include analytics.html %}
-
 </head>
 
 <body ng-controller="RootCtrl">
@@ -37,6 +31,14 @@
 <div id="page-content">
     <div ng-view autoscroll="true"></div>
 </div>
+
+{% for s in scripts %}
+<script src="{{s}}"></script>
+{% end %}
+
+{% include settings.html %}
+
+{% include analytics.html %}
 
 </body>
 </html>
