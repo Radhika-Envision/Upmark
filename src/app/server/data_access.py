@@ -32,14 +32,12 @@ def simplify(ob_dict):
             value = time.mktime(value.timetuple())
         elif isinstance(value, uuid.UUID):
             value = str(value)
-        print(value.__class__)
         new_dict[name] = value
     return new_dict
 
 
 class OrgHandler(handlers.BaseHandler):
     def get(self, org_id):
-        print(org_id)
         with model.session_scope() as session:
             try:
                 org = session.query(model.Organisation).get(org_id)
@@ -48,7 +46,25 @@ class OrgHandler(handlers.BaseHandler):
             except (sqlalchemy.exc.StatementError, ValueError):
                 raise handlers.MissingDocError("No such organisation")
             deref_org = simplify(to_dict(org))
-        print(deref_org)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(deref_org))
+        self.finish()
+
+
+class UserHandler(handlers.BaseHandler):
+    def get(self, user_id):
+        with model.session_scope() as session:
+            try:
+                user = session.query(model.AppUser).get(user_id)
+                if user is None:
+                    raise ValueError("No such object")
+            except (sqlalchemy.exc.StatementError, ValueError):
+                raise handlers.MissingDocError("No such user")
+            if user.id != self.current_user.id:
+                exclusion = {'email', 'password'}
+            else:
+                exclusion = {'password'}
+            deref_user = simplify(to_dict(user, exclude=exclusion))
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(deref_user))
         self.finish()

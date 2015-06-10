@@ -106,6 +106,7 @@ def start_web_server():
                 'root': os.path.join(package_dir, "..", "client")}),
 
             (r"/organisation/?(.*).json", data_access.OrgHandler, {}),
+            (r"/user/?(.*).json", data_access.UserHandler, {}),
 
             (r"/(.*)", tornado.web.StaticFileHandler, {
                 'path': os.path.join(package_dir, "..", "client")}),
