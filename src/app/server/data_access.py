@@ -36,8 +36,24 @@ def simplify(ob_dict):
     return new_dict
 
 
+def normalise(ob_dict):
+    new_dict = {}
+    for name, value in ob_dict.items():
+        components = name.split('_')
+        if len(components) > 1 and components[-1] == 'id':
+            components = components[:-1]
+        components = [components[0]] + [c.title() for c in components[1:]]
+        name = ''.join(components)
+        new_dict[name] = value
+    return new_dict
+
+
 class OrgHandler(handlers.BaseHandler):
     def get(self, org_id):
+        if org_id == "":
+            self.query()
+            return
+
         with model.session_scope() as session:
             try:
                 org = session.query(model.Organisation).get(org_id)
@@ -45,14 +61,33 @@ class OrgHandler(handlers.BaseHandler):
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError, ValueError):
                 raise handlers.MissingDocError("No such organisation")
-            deref_org = simplify(to_dict(org))
+            son = to_dict(org)
+            son = simplify(son)
+            son = normalise(son)
         self.set_header("Content-Type", "application/json")
-        self.write(json_encode(deref_org))
+        self.write(json_encode(son))
+        self.finish()
+
+    def query(self):
+        sons = []
+        with model.session_scope() as session:
+            obs = session.query(model.Organisation).all()
+            for ob in obs:
+                son = to_dict(ob, include={'id', 'name'})
+                son = simplify(son)
+                son = normalise(son)
+                sons.append(son)
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(sons))
         self.finish()
 
 
 class UserHandler(handlers.BaseHandler):
     def get(self, user_id):
+        if user_id == "":
+            self.query()
+            return
+
         with model.session_scope() as session:
             try:
                 user = session.query(model.AppUser).get(user_id)
@@ -61,10 +96,24 @@ class UserHandler(handlers.BaseHandler):
             except (sqlalchemy.exc.StatementError, ValueError):
                 raise handlers.MissingDocError("No such user")
             if user.id != self.current_user.id:
-                exclusion = {'email', 'password'}
+                son = to_dict(user, exclude={'email', 'password'})
             else:
-                exclusion = {'password'}
-            deref_user = simplify(to_dict(user, exclude=exclusion))
+                son = to_dict(user, exclude={'password'})
+            son = simplify(son)
+            son = normalise(son)
         self.set_header("Content-Type", "application/json")
-        self.write(json_encode(deref_user))
+        self.write(json_encode(son))
+        self.finish()
+
+    def query(self):
+        sons = []
+        with model.session_scope() as session:
+            obs = session.query(model.AppUser).all()
+            for ob in obs:
+                son = to_dict(ob, include={'id', 'name'})
+                son = simplify(son)
+                son = normalise(son)
+                sons.append(son)
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(sons))
         self.finish()
