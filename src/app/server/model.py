@@ -66,12 +66,12 @@ class Assessment(Versioned, Base):
 
 class Organisation(Versioned, Base):
     __tablename__ = 'organisation'
-    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
     name = Column(Text, nullable=False, unique=True)
     url = Column(Text, nullable=True)
     region = Column(Text, nullable=False)
     number_of_customers = Column(Integer, nullable=False)
-    created = Column(Date, nullable=False)
+    created = Column(Date, default=func.now(), nullable=False)
 
 
 class Survey(Versioned, Base):
@@ -83,7 +83,7 @@ class Survey(Versioned, Base):
 
 class AppUser(Versioned, Base):
     __tablename__ = 'appuser'
-    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
     email = Column(Text, nullable=False, unique=True)
     name = Column(Text, nullable=False)
     password = Column(Text, nullable=False)
@@ -195,7 +195,7 @@ def connect_db(url):
     # Never drop the schema here.
     # - For short-term testing, use psql.
     # - For breaking changes, add migration code to update_model below.
-    #Base.metadata.drop_all(engine)
+    Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
     versioned_session(Session)
     update_model()

@@ -13,7 +13,7 @@ except ImportError:
 from model import AppUser, connect_db, session_scope, Organisation
 
 
-def add_user(args):
+def modify_user(args):
     connect_db(os.environ.get('DATABASE_URL'))
 
     password = getpass.getpass(prompt='Enter new password: ')
@@ -25,18 +25,60 @@ def add_user(args):
 
     try:
         with session_scope() as session:
-            user = AppUser(email=args.email, name=args.name, role=args.role)
-            user.set_password(password)
+            user = AppUser(email=args.email)
+            session.add(user)
+
+            if password != "":
+                user.set_password(password)
+            else:
+                print("Not setting a password. User will not be able to log in.")
+                user.password = "!"
+
+            if args.name is not None:
+                user.name = args.name
+            if args.role is not None:
+                user.role = args.role
             if args.organisation is not None:
                 organisation = session.query(Organisation) \
                     .filter_by(name=args.organisation).one()
                 user.organisation_id = organisation.id
-            session.add(user)
+            session.flush()
+            session.expunge(user)
+
     except sqlalchemy.exc.IntegrityError as e:
-        print('Failed to add user %s' % args.name)
+        print('Failed to add user %s' % args.email)
         print('\n'.join(e.orig.args))
         sys.exit(1)
-    print('Added user %s' % args.name)
+
+    print('Added user %s' % user.email)
+    print('ID: %s' % user.id)
+
+
+def modify_org(args):
+    connect_db(os.environ.get('DATABASE_URL'))
+
+    try:
+        with session_scope() as session:
+            org = Organisation(name=args.name)
+            session.add(org)
+
+            if args.region is not None:
+                org.region = args.region
+            if args.url is not None:
+                org.url = args.url
+            if args.customers is not None:
+                org.number_of_customers = args.customers
+
+            session.flush()
+            session.expunge(org)
+
+    except sqlalchemy.exc.IntegrityError as e:
+        print('Failed to create organisation %s' % args.name)
+        print('\n'.join(e.orig.args))
+        sys.exit(1)
+
+    print('Added organisation %s' % org.name)
+    print('ID: %s' % org.id)
 
 
 def default_command(args):
@@ -48,12 +90,19 @@ def run(argv):
     #parser.add_argument('--foo', type=float)
     subparsers = parser.add_subparsers()
 
-    subparser = subparsers.add_parser('adduser')
+    subparser = subparsers.add_parser('user')
     subparser.add_argument('email')
-    subparser.add_argument('name')
-    subparser.add_argument('role', default='clerk')
+    subparser.add_argument('--name')
+    subparser.add_argument('--role')
     subparser.add_argument('--organisation')
-    subparser.set_defaults(func=add_user)
+    subparser.set_defaults(func=modify_user)
+
+    subparser = subparsers.add_parser('org')
+    subparser.add_argument('name')
+    subparser.add_argument('--region')
+    subparser.add_argument('--url')
+    subparser.add_argument('--customers', default=0)
+    subparser.set_defaults(func=modify_org)
 
     args = parser.parse_args(argv)
     args.func(args)
