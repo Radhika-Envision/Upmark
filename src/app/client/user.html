@@ -47,8 +47,19 @@
         </div>
         <div class="form-group" show-errors>
             <label for="user_org">Utility</label>
-            <input type="text" class="form-control" id="user_org" name="user_org"
+            <!--<input type="text" class="form-control" id="user_org" name="user_org"
                 ng-model="edit.model.organisation" required />
+            <div class="container-fluid">
+                <input type="text" class="form-control" id="organisation" placeholder="input organisation" ng-model="edit.model.organisation" typeahead="organisation as organisation.name for organisation in organisations | filter:$viewValue">
+            </div>-->
+            <ui-select ng-model="edit.model.organisation"
+                ng-disabled="disabled"
+                reset-search-input="false">
+                <ui-select-match placeholder="Enter organisation name">{{edit.model.organisation.name}}</ui-select-match>
+                <ui-select-choices repeat="organisation in organisations | filter: $select.search">
+                    <div ng-bind-html="organisation.name | highlight: $select.search"></div>
+                </ui-select-choices>
+            </ui-select>
         </div>
 
         <div class="form-group" show-errors>

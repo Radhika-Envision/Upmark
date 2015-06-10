@@ -84,6 +84,7 @@ STYLESHEETS = [
         'min-href': '/minify/3rd-party-min.css',
         'hrefs': [
             '/.bower_components/angular-hotkeys/build/hotkeys.css',
+            '/.bower_components/angular-ui-select/dist/select.css'
         ]
     },
 ]
@@ -110,12 +111,17 @@ SCRIPTS = [
         'href': '/.bower_components/angular-animate/angular-animate.js'
     },
     {
+        'cdn': '//code.angularjs.org/1.4.1/angular-sanitize.js', # @IgnorePep8
+        'href': '/.bower_components/angular-sanitize/angular-sanitize.js'
+    },
+    {
         'min-href': '/minify/3rd-party-min.js',
         'hrefs': [
             '/.bower_components/angular-bootstrap/ui-bootstrap-tpls.js',
             '/.bower_components/angular-hotkeys/build/hotkeys.js',
             '/.bower_components/angular-bootstrap-show-errors/src/showErrors.js',
-            '/.bower_components/angular-validation-match/dist/angular-input-match.js'
+            '/.bower_components/angular-validation-match/dist/angular-input-match.js',
+            '/.bower_components/angular-ui-select/dist/select.js'
         ]
     },
     {

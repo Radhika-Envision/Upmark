@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('wsaa.admin', ['ngResource'])
+angular.module('wsaa.admin', ['ngResource', 'ui.select', 'ngSanitize'])
 
 
 .factory('User', ['$resource', function($resource) {
@@ -28,7 +28,6 @@ angular.module('wsaa.admin', ['ngResource'])
         create: { method: 'POST', url: '/organisation.json' }
     });
 }])
-
 
 /**
  * Manages state for a modal editing session.
@@ -125,6 +124,7 @@ angular.module('wsaa.admin', ['ngResource'])
         var role = $scope.roles[i];
         $scope.roleDict[role.id] = role;
     }
+    $scope.organisations = routeData.orgs;
 }])
 
 
