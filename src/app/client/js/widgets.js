@@ -39,23 +39,20 @@ angular.module('vpac.widgets', [])
 
     return {
         restrict: 'E',
-        template: '<object data="images/clock.svg" class="clock-progress" type="image/svg+xml"></object>',
+        templateUrl: 'images/clock.svg',
+        templateNamespace: 'svg',
         replace: true,
         scope: {
             fraction: '='
         },
         link: function(scope, elem, attrs) {
             var update = function(fraction) {
-                var svg = elem[0].getSVGDocument();
                 var path = drawSemicircle(fraction);
-                var fillElem = $(svg).find("#clock-fill");
+                var fillElem = elem.find(".clock-fill");
                 fillElem.attr('d', path);
             };
-            var init = function() {
-                update(scope.fraction);
-                scope.$watch('fraction', update);
-            };
-            elem.one('load', init);
+            update(scope.fraction);
+            scope.$watch('fraction', update);
             scope.$on('$destroy', function() {
                 scope = null;
                 elem = null;

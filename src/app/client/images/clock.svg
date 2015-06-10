@@ -1,6 +1,3 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
-<?xml-stylesheet href="../css/clock.css" type="text/css"?>
 <svg
    xmlns:dc="http://purl.org/dc/elements/1.1/"
    xmlns:cc="http://creativecommons.org/ns#"
@@ -10,11 +7,10 @@
    version="1.1"
    width="18"
    height="18"
-   id="svg4183">
-  <defs
-     id="defs3" />
-  <metadata
-     id="metadata4">
+   id="svg4183"
+   class="clock-progress">
+  <defs />
+  <metadata id="metadata4">
     <rdf:RDF>
       <cc:Work
          rdf:about="">
@@ -25,21 +21,18 @@
       </cc:Work>
     </rdf:RDF>
   </metadata>
-  <g
-     transform="translate(9,9)"
+  <g transform="translate(9,9)"
      id="g4877">
     <path
        d="M -7.5,0 A 7.5,7.5 0 0 0 0,7.5 7.5,7.5 0 0 0 7.5,0 7.5,7.5 0 0 0 0,-7.5 7.5,7.5 0 0 0 -7.5,0 z"
-       id="clock-face" />
-    <g
-       transform="scale(7.5,7.5)"
-       id="g4881">
+       class="clock-face" />
+    <g transform="scale(7.5,7.5)">
       <path
          d="m 0,-1 a 1,1 0 0 1 0.72896863,0.31545289 L 0,0 z"
-         id="clock-fill" />
+         class="clock-fill" />
     </g>
     <path
        d="M -7.5,0 A 7.5,7.5 0 0 0 0,7.5 7.5,7.5 0 0 0 7.5,0 7.5,7.5 0 0 0 0,-7.5 7.5,7.5 0 0 0 -7.5,0 z"
-       id="clock-edge" />
+       class="clock-edge" />
   </g>
 </svg>
