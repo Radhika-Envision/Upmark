@@ -196,9 +196,13 @@ class AuthLoginHandler(BaseHandler):
                 if user.check_password(password):
                     self.set_secure_cookie("user", str(user.id).encode('utf8'))
                     self.redirect(self.get_argument("next", u"/"))
-            except:
+            except sqlalchemy.orm.exc.NoResult:
                 self.clear_cookie("user")
                 error_msg = u"?error=" + tornado.escape.url_escape("Login incorrect")
+                self.redirect(u"/login/" + error_msg)
+            except Exception as e:
+                self.clear_cookie("user")
+                error_msg = u"?error=" + str(e)
                 self.redirect(u"/login/" + error_msg)
 
     def initialize(self, path):
