@@ -141,6 +141,12 @@ class BaseHandler(tornado.web.RequestHandler):
             session.expunge(organisation)
             return organisation
 
+
+class MainHandler(BaseHandler):
+    '''
+    Renders content from templates.
+    '''
+
     def prepare_resources(self, declarations):
         '''
         Resolve a list of resources. Different URLs will be used for the
@@ -178,8 +184,26 @@ class BaseHandler(tornado.web.RequestHandler):
                     print('Warning: unrecognised resource')
         return resources
 
+    def initialize(self, path):
+        self.path = path
 
-class AuthLoginHandler(BaseHandler):
+        self.scripts = self.prepare_resources(SCRIPTS)
+        self.stylesheets = self.prepare_resources(STYLESHEETS)
+
+    @tornado.web.authenticated
+    def get(self, path):
+        if path != "":
+            template = os.path.join(self.path, path)
+        else:
+            template = self.path
+
+        self.render(
+            template, user=self.current_user, organisation=self.organisation,
+            scripts=self.scripts, stylesheets=self.stylesheets,
+            analytics_id=tornado.options.options.analytics_id)
+
+
+class AuthLoginHandler(MainHandler):
     def get(self):
         try:
             errormessage = self.get_argument("error")
@@ -209,40 +233,11 @@ class AuthLoginHandler(BaseHandler):
         self.set_secure_cookie("user", str(user.id).encode('utf8'))
         self.redirect(self.get_argument("next", "/"))
 
-    def initialize(self, path):
-        self.path = path
-        self.scripts = self.prepare_resources(SCRIPTS)
-        self.stylesheets = self.prepare_resources(STYLESHEETS)
-
 
 class AuthLogoutHandler(BaseHandler):
     def get(self):
         self.clear_cookie("user")
         self.redirect(self.get_argument("next", "/"))
-
-
-class MainHandler(BaseHandler):
-    '''
-    Renders content from templates.
-    '''
-
-    def initialize(self, path):
-        self.path = path
-
-        self.scripts = self.prepare_resources(SCRIPTS)
-        self.stylesheets = self.prepare_resources(STYLESHEETS)
-
-    @tornado.web.authenticated
-    def get(self, path):
-        if path != "":
-            template = os.path.join(self.path, path)
-        else:
-            template = self.path
-
-        self.render(
-            template, user=self.current_user, organisation=self.organisation,
-            scripts=self.scripts, stylesheets=self.stylesheets,
-            analytics_id=tornado.options.options.analytics_id)
 
 
 class RamCacheHandler(tornado.web.RequestHandler):
