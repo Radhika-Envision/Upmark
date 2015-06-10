@@ -112,21 +112,19 @@ angular.module('wsaa.admin', ['ngResource'])
 }])
 
 
-.controller('UserCtrl', ['$scope', 'User', 'routeData', 'roles', 'Editor', 'log',
-        function($scope, User, routeData, roles, Editor, log) {
+.controller('UserCtrl', ['$scope', 'User', 'routeData', 'Editor', 'log',
+        function($scope, User, routeData, Editor, log) {
 
     $scope.user = routeData.user;
     $scope.edit = Editor(User, 'user', $scope);
     $scope.org = routeData.org;
 
-    $scope.roles = roles;
+    $scope.roles = routeData.roles;
     $scope.roleDict = {};
-    for (var i in roles) {
-        var role = roles[i];
+    for (var i in $scope.roles) {
+        var role = $scope.roles[i];
         $scope.roleDict[role.id] = role;
     }
-    console.log(roles)
-    console.log($scope.roleDict);
 }])
 
 

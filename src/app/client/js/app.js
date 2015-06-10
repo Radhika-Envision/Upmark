@@ -5,28 +5,105 @@ angular.module('wsaa.aquamark',
                 'ui.bootstrap.showErrors', 'validation.match',
                 'wsaa.survey', 'wsaa.admin', 'vpac.utils', 'vpac.widgets'])
 
+
+/**
+ * Automatically resolves interdependencies between injected arguments.
+ * Returns
+ */
+.provider('chain', function resolveChain() {
+
+    function CyclicException(deps) {
+        this.message = "Detected cyclic dependency: " + deps.join(" -> ");
+        this.name = 'CyclicException';
+    };
+
+    var updateDepth = function(visited, decl, decls, depth) {
+        if (decl.depth === undefined || decl.depth < depth)
+            decl.depth = depth;
+        for (var i = 0; i < decl.length - 1; i ++) {
+            var dependency = decl[i];
+            if (visited.indexOf(dependency) >= 0)
+                throw new CyclicException(visited.concat(dependency));
+            if (decls[dependency]) {
+                updateDepth(visited.concat(dependency), decls[dependency],
+                    decls, depth + 1);
+            }
+        }
+        return null;
+    };
+
+    /*
+     * Compile a resolution declaration to resolve interdependencies.
+     */
+    var _chain = function($q, $injector, log, deps) {
+        deps = angular.copy(deps);
+
+        var orderedDeps = [];
+        for (var name in deps) {
+            var dep = deps[name];
+            updateDepth([name], dep, deps, 0);
+            orderedDeps.push({name: name, dep: dep})
+        }
+        orderedDeps.sort(function(a, b) {
+            return b.dep.depth - a.dep.depth;
+        });
+
+        var resolvedDeps = {};
+        angular.forEach(orderedDeps, function(value) {
+            var name = value.name;
+            var dep = value.dep;
+            if (angular.isString(dep)) {
+                resolvedDeps[name] = $injector.get(dep);
+                return;
+            }
+
+            var locals = {};
+            for (var j = 0; j < dep.length - 1; j++) {
+                var dependency = dep[j];
+                if (resolvedDeps[dependency])
+                    locals[dependency] = $q.when(resolvedDeps[dependency]);
+            }
+
+            resolvedDeps[name] = $q.all(locals).then(function(locals) {
+                log.info("Resolving {} with locals {}", name, locals);
+                return $injector.invoke(dep, null, locals, name);
+            });
+        });
+        var ret = $q.all(resolvedDeps);
+        resolvedDeps = null;
+        return ret;
+    };
+
+    var chain = function(deps) {
+        // Services can't be injected at configure time, so defer injection
+        // until run time.
+        return ['$q', '$injector', 'log', function($q, $injector, log) {
+            return _chain($q, $injector, log, deps);
+        }];
+    };
+    chain.$get = chain;
+
+    return chain;
+})
+
+
 .config(['$routeProvider', '$httpProvider', '$parseProvider', '$animateProvider',
-         'logProvider',
+         'logProvider', 'chainProvider',
         function($routeProvider, $httpProvider, $parseProvider, $animateProvider,
-                logProvider) {
+                logProvider, chain) {
 
         $routeProvider
             .when('/survey/:survey/:fn/:proc/:subProc/:measure', {
                 templateUrl : 'survey-measure.html',
                 controller : 'SurveyCtrl',
-                resolve: {
-                    routeData: ['Measure', 'Schema', '$route', '$q',
-                            function(Measure, Schema, $route, $q) {
-                        var data = {};
-                        data.measure = Measure.get($route.current.params);
-                        return data.measure.$promise.then(function(measure) {
-                            data.schema = Schema.get({name: measure.responseType});
-                            return data.schema.$promise;
-                        }).then(function(schema) {
-                            return data;
-                        });
+                resolve: {routeData: chain({
+                    measure: ['Measure', '$route', function(Measure, $route) {
+                        return Measure.get($route.current.params).$promise;
+                    }],
+                    schema: ['measure', 'Schema', function(measure, Schema) {
+                        return Schema.get({name: measure.responseType}).$promise;
                     }]
-                }
+                })}
             })
             .when('/', {
                 templateUrl : 'start.html',
@@ -35,22 +112,17 @@ angular.module('wsaa.aquamark',
             .when('/user/:id', {
                 templateUrl : 'user.html',
                 controller : 'UserCtrl',
-                resolve: {
+                resolve: {routeData: chain({
                     roles: ['Roles', function(Roles) {
                         return Roles.get().$promise;
                     }],
-                    routeData: ['User', 'Organisation', '$route', '$q',
-                            function(User, Organisation, $route, $q) {
-                        var data = {};
-                        data.user = User.get($route.current.params);
-                        return data.user.$promise.then(function(user) {
-                            data.org = Organisation.get({id: user.organisation});
-                            return data.org.$promise;
-                        }).then(function(org) {
-                            return data;
-                        });
+                    user: ['User', '$route', function(User, $route) {
+                        return User.get($route.current.params).$promise;
+                    }],
+                    org: ['user', 'Organisation', function(user, Organisation) {
+                        return Organisation.get({id: user.organisation}).$promise;
                     }]
-                }
+                })}
             })
             .when('/org/:id', {
                 templateUrl : 'organisation.html',
