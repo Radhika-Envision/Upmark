@@ -111,7 +111,7 @@ SCRIPTS = [
         'href': '/.bower_components/angular-animate/angular-animate.js'
     },
     {
-        'cdn': '//code.angularjs.org/1.4.1/angular-sanitize.js', # @IgnorePep8
+        'cdn': '"//ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular-sanitize.min.js"', # @IgnorePep8
         'href': '/.bower_components/angular-sanitize/angular-sanitize.js'
     },
     {

@@ -32,7 +32,7 @@ angular.module('wsaa.admin', ['ngResource', 'ui.select', 'ngSanitize'])
 /**
  * Manages state for a modal editing session.
  */
-.factory('Editor', ['$parse', 'log', function($parse, log) {
+.factory('Editor', ['$parse', 'log', '$filter', function($parse, log, $filter) {
     function Editor(dao, targetPath, scope) {
         this.dao = dao;
         this.model = null;
@@ -45,6 +45,7 @@ angular.module('wsaa.admin', ['ngResource', 'ui.select', 'ngSanitize'])
     Editor.prototype.edit = function() {
         log.debug("Creating edit object");
         this.model = angular.copy(this.getter(this.scope));
+        this.model.org = $filter('filter')(this.scope.organisations, {id: this.scope.org.id}, true)[0];
     };
 
     Editor.prototype.cancel = function() {
