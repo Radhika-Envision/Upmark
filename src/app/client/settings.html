@@ -4,12 +4,17 @@ angular.module('settings', [])
 
 .constant('deployId', '{{deploy_id}}')
 
-.constant('versionedResources', [
-    '^/?.*\.html$',
-    '^/?images/',
-    '^/?css/',
-    '^/?\.bower_components/'
-])
+.constant('versionedResources', {
+    exclude: [
+        '^/?bootstrap'
+    ],
+    include: [
+        '^/?.*\.html$',
+        '^/?images/',
+        '^/?css/',
+        '^/?\.bower_components/'
+    ]
+})
 
 ;
 </script>

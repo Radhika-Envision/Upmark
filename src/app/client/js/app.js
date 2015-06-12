@@ -181,7 +181,10 @@ angular.module('wsaa.aquamark',
  */
 .config(['$httpProvider', 'versionedResources', 'deployId',
     function($httpProvider, versionedResources, deployId) {
-        var rs = versionedResources.map(function(r) {
+        var includes = versionedResources.include.map(function(r) {
+            return new RegExp(r);
+        });
+        var excludes = versionedResources.exclude.map(function(r) {
             return new RegExp(r);
         });
 
@@ -191,7 +194,7 @@ angular.module('wsaa.aquamark',
                     var test = function(r) {
                         return r.test(config.url);
                     };
-                    if (rs.some(test)) {
+                    if (includes.some(test) && !excludes.some(test)) {
                         var query;
                         if (config.url.indexOf('?') == -1)
                             query = '?v=' + deployId;

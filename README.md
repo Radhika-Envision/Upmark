@@ -56,12 +56,11 @@ just connect to http://localhost:8000 for testing.
 
 ```bash
 sudo docker run -d --name postgres_aq postgres:9
-sudo docker run --rm \
+sudo docker run --rm --name aq \
     --link postgres_aq:postgres \
-    -v "$YOUR_GIT_ROOT/src/app:/usr/share/aquamark/app" \
+    -v "$PWD/src/app:/usr/share/aquamark/app" \
     -p 8000:8000 \
     -e DEV_MODE=True \
-    -e XSRF_PROTECTION=False \
     vpac/aquamark
 ```
 
