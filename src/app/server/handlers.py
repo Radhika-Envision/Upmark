@@ -146,7 +146,10 @@ class BaseHandler(tornado.web.RequestHandler):
             return None
         uid = uid.decode('utf8')
         with model.session_scope() as session:
-            user = session.query(model.AppUser).get(uid)
+            try:
+                user = session.query(model.AppUser).get(uid)
+            except sqlalchemy.exc.StatementError:
+                return None
             if user is not None:
                 session.expunge(user)
             return user
