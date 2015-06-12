@@ -110,6 +110,10 @@ angular.module('wsaa.aquamark',
                 templateUrl : 'start.html',
                 controller : 'EmptyCtrl'
             })
+            .when('/users', {
+                templateUrl : 'user_list.html',
+                controller : 'AdminCtrl'
+            })
             .when('/user/:id', {
                 templateUrl : 'user.html',
                 controller : 'UserCtrl',
@@ -220,5 +224,11 @@ angular.module('wsaa.aquamark',
 }])
 .controller('LoginCtrl', ['$scope',
         function($scope) {
+}])
+.controller('AdminCtrl', ['$scope', 'User',
+        function($scope, User) {
+            User.query({}).$promise.then(function(data){
+                $scope.users = data;
+            })
 }])
 ;

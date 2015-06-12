@@ -91,6 +91,8 @@ class AppUser(Versioned, Base):
     organisation_id = Column(GUID, ForeignKey("organisation.id"))
     created = Column(Date, default=func.now(), nullable=False)
 
+    organisation = relationship(Organisation)
+
     def set_password(self, plaintext):
         self.password = sha256_crypt.encrypt(plaintext)
 

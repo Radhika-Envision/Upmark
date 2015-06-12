@@ -5,10 +5,13 @@ import uuid
 from tornado.escape import json_decode, json_encode
 import tornado.web
 import sqlalchemy
+from sqlalchemy.orm import joinedload
 
 import handlers
 import model
+import logging
 
+log = logging.getLogger('app.data_access')
 
 def to_dict(ob, include=None, exclude=None):
     '''
@@ -125,11 +128,15 @@ class UserHandler(handlers.BaseHandler):
     def query(self):
         sons = []
         with model.session_scope() as session:
-            obs = session.query(model.AppUser).all()
+            obs = session.query(model.AppUser).options(joinedload('organisation')).all()
             for ob in obs:
-                son = to_dict(ob, include={'id', 'name'})
+                org = to_dict(ob.organisation, include={'id', 'name'})
+                org = simplify(org)
+                org = normalise(org)
+                son = to_dict(ob, include={'id', 'name', 'email'})
                 son = simplify(son)
                 son = normalise(son)
+                son["organisation"] = org
                 sons.append(son)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
