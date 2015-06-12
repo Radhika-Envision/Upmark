@@ -7,25 +7,16 @@
         {% end %}
     </head>
     <body ng-controller="RootCtrl">
-        <header>
-            <nav class="navbar navbar-default navbar-static-top" role="navigation">
-                <div class="container-fluid">
-                    <!-- Logo -->
-                    <div class="col-md-3 nav navbar-nav">
-                        <a href="#/" class="navbar-brand">
-                            {% include images/logo.svg %}
-                        </a>
-                    </div>
-                </div>
-            </nav>
-        </header>
 
 <div class="measure">
+
+    <div class="brand">
+    {% include images/logo.svg %}
+    </div>
 
     <div class="jumbotron">
     <form class="form-signin" action="/login/" method="POST">
         {% module xsrf_form_html() %}
-        <h2 class="form-signin-heading">Please sign in</h2>
         <label for="inputEmail" class="sr-only">Email address</label>
         <input type="text" id="inputEmail" class="form-control"
             placeholder="Email address" name="email" required autofocus>
