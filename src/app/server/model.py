@@ -42,7 +42,7 @@ class Response(Versioned, Base):
     __tablename__ = 'response'
     # Here we define columns for the table response
     # Notice that each column is also a normal Python instance attribute.
-    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
     user_id = Column(GUID, ForeignKey('appuser.id'))
     assessment_id = Column(GUID, ForeignKey('assessment.id'))
     measure_id = Column(GUID, ForeignKey('measure.id'))
@@ -55,7 +55,7 @@ class Response(Versioned, Base):
 
 class Assessment(Versioned, Base):
     __tablename__ = 'assessment'
-    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
     organisation_id = Column(GUID, ForeignKey('organisation.id'))
     survey_id = Column(GUID, ForeignKey('survey.id'))
     measureset_id = Column(GUID, ForeignKey('measureset.id'))
@@ -88,7 +88,7 @@ class AppUser(Versioned, Base):
     name = Column(Text, nullable=False)
     password = Column(Text, nullable=False)
     role = Column(Text, nullable=False)
-    organisation_id = Column(GUID, ForeignKey('organisation.id'))
+    organisation_id = Column(GUID, ForeignKey("organisation.id"))
     created = Column(Date, default=func.now(), nullable=False)
 
     def set_password(self, plaintext):
@@ -100,7 +100,7 @@ class AppUser(Versioned, Base):
 
 class Function(Versioned, Base):
     __tablename__ = 'function'
-    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
     seq = Column(Integer, nullable=False)
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
@@ -108,7 +108,7 @@ class Function(Versioned, Base):
 
 class Process(Versioned, Base):
     __tablename__ = 'process'
-    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
     function_id = Column(GUID, ForeignKey('function.id'))
     seq = Column(Integer, nullable=False)
     title = Column(Text, nullable=False)
@@ -117,7 +117,7 @@ class Process(Versioned, Base):
 
 class Subprocess(Versioned, Base):
     __tablename__ = 'subprocess'
-    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
     process_id = Column(GUID, ForeignKey('process.id'))
     seq = Column(Integer, nullable=False)
     title = Column(Text, nullable=False)
@@ -234,9 +234,20 @@ def update_model():
 def testing():
     connect_db(os.environ.get('DATABASE_URL'))
     with session_scope() as session:
-        testUser = AppUser(email="forjin@vpac-innovations.com.au", name="Jin Park", role="admin")
+        testOrganisation = Organisation(name="Jin Company", url="http://test.com", region="Melbourne", number_of_customers=4000)
+        session.add(testOrganisation)
+        session.flush()
+        testOrganisation = Organisation(name="Test", url="http://test.com", region="Melbourne", number_of_customers=4000)
+        session.add(testOrganisation)
+        session.flush()
+        testOrganisation = Organisation(name="Acme", url="http://test.com", region="Melbourne", number_of_customers=4000)
+        session.add(testOrganisation)
+        session.flush()
+        print("testOrganisation.id", testOrganisation.id)
+        testUser = AppUser(email="forjin@vpac-innovations.com.au", name="Jin Park", organisation_id=testOrganisation.id, role="admin")
         testUser.set_password("test")
         session.add(testUser)
+        #assert testUser.organisation.name, "Acme"
         assert testUser.check_password("test")
     '''
     testFunction = Function(seq=1, title="Function 1", description="Test Description")

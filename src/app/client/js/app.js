@@ -124,10 +124,7 @@ angular.module('wsaa.aquamark',
                         if (!user.organisation)
                             return null;
                         return Organisation.get({id: user.organisation}).$promise;
-                    }],
-                    orgs: ['Organisation', function(Organisation) {
-                        return Organisation.query().$promise;
-                    }],
+                    }]
                 })}
             })
             .when('/org/:id', {

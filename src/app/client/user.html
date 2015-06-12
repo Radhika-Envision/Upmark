@@ -50,8 +50,8 @@
             <ui-select ng-model="edit.model.org"
                 ng-disabled="disabled"
                 reset-search-input="false">
-                <ui-select-match placeholder="Enter organisation name">{{edit.model.org.name}}</ui-select-match>
-                <ui-select-choices repeat="organisation in organisations | filter: $select.search">
+                <ui-select-match placeholder="Type and select organisation">{{edit.model.org.name}}</ui-select-match>
+                <ui-select-choices repeat="organisation in organisations | filter: $select.search" refresh="searchOrg($select.search)" refresh-delay="0">
                     <div ng-bind-html="organisation.name | highlight: $select.search"></div>
                 </ui-select-choices>
             </ui-select>

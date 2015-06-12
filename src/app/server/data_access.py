@@ -69,6 +69,11 @@ class OrgHandler(handlers.BaseHandler):
         self.finish()
 
     def query(self):
+        term = self.get_argument('term', None)
+        if term:
+            self.search(term)
+            return
+
         sons = []
         with model.session_scope() as session:
             obs = session.query(model.Organisation).all()
@@ -81,6 +86,18 @@ class OrgHandler(handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
+    def search(self, term):
+        sons = []
+        with model.session_scope() as session:
+            obs = session.query(model.Organisation).filter(model.Organisation.name.ilike('%'+term+'%')).all()
+            for ob in obs:
+                son = to_dict(ob, include={'id', 'name'})
+                son = simplify(son)
+                son = normalise(son)
+                sons.append(son)
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(sons))
+        self.finish()
 
 class UserHandler(handlers.BaseHandler):
     def get(self, user_id):

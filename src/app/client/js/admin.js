@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('wsaa.admin', ['ngResource', 'ui.select', 'ngSanitize'])
+angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
 
 
 .factory('User', ['$resource', function($resource) {
@@ -45,7 +45,7 @@ angular.module('wsaa.admin', ['ngResource', 'ui.select', 'ngSanitize'])
     Editor.prototype.edit = function() {
         log.debug("Creating edit object");
         this.model = angular.copy(this.getter(this.scope));
-        this.model.org = $filter('filter')(this.scope.organisations, {id: this.scope.org.id}, true)[0];
+        console.log(this.scope);
     };
 
     Editor.prototype.cancel = function() {
@@ -112,12 +112,13 @@ angular.module('wsaa.admin', ['ngResource', 'ui.select', 'ngSanitize'])
 }])
 
 
-.controller('UserCtrl', ['$scope', 'User', 'routeData', 'Editor', 'log',
-        function($scope, User, routeData, Editor, log) {
+.controller('UserCtrl', ['$scope', 'User', 'routeData', 'Editor', 'Organisation', 'log',
+        function($scope, User, routeData, Editor, Organisation, log) {
 
+    $scope.organisations = null;
     $scope.user = routeData.user;
-    $scope.edit = Editor(User, 'user', $scope);
     $scope.org = routeData.org;
+    $scope.edit = Editor(User, 'user', $scope);
 
     $scope.roles = routeData.roles;
     $scope.roleDict = {};
@@ -125,7 +126,12 @@ angular.module('wsaa.admin', ['ngResource', 'ui.select', 'ngSanitize'])
         var role = $scope.roles[i];
         $scope.roleDict[role.id] = role;
     }
-    $scope.organisations = routeData.orgs;
+
+    $scope.searchOrg = function(term) {
+        Organisation.query({term: term}).$promise.then(function(orgs) {
+            $scope.organisations = orgs;
+        });
+    };
 }])
 
 
