@@ -106,7 +106,6 @@ class OrgHandler(handlers.BaseHandler):
 
 class UserHandler(handlers.BaseHandler):
     @tornado.web.authenticated
-    @handlers.authz('org_admin', 'consultant')
     def get(self, user_id):
         if user_id == "":
             self.query()
