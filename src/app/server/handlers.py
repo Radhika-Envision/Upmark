@@ -1,5 +1,6 @@
 # Handlers
 
+import functools
 import logging
 import os
 import re
@@ -164,6 +165,27 @@ class BaseHandler(tornado.web.RequestHandler):
                 get(self.current_user.organisation_id)
             session.expunge(organisation)
             return organisation
+
+
+def authz(*roles):
+    '''
+    Decorator to check whether a user is authorised. This only checks whether
+    the user has the privilleges of a certain role. If not, a 403 error will be
+    generated. Attach to a request handler method like this:
+
+    @authz('org_admin', 'consultant')
+    def get(self, path):
+        ...
+    '''
+    def decorator(fn):
+        @functools.wraps(fn)
+        def wrapper(self, *args, **kwargs):
+            if not any(model.has_privillege(
+                    self.current_user.role, role) for role in roles):
+                raise tornado.web.HTTPError(403, log_message="Not authorised")
+            return fn(self, *args, **kwargs)
+        return wrapper
+    return decorator
 
 
 class MainHandler(BaseHandler):

@@ -100,6 +100,30 @@ class AppUser(Versioned, Base):
         return sha256_crypt.verify(plaintext, self.password)
 
 
+ROLE_HIERARCHY = {
+    'super': ['admin', 'author', 'authority', 'consultant', 'org_admin', 'clerk'],
+    'admin': ['author', 'authority', 'consultant', 'org_admin', 'clerk'],
+    'author': [],
+    'authority': ['consultant'],
+    'consultant': [],
+    'org_admin': ['clerk'],
+    'clerk': []
+}
+
+
+def has_privillege(current_role, target_role):
+    '''
+    Checks whether one role has the privilleges of another role. For example,
+        has_privillege('org_admin', 'org_clerk') -> True
+        has_privillege('org_clerk', 'org_admin') -> False
+    '''
+    if target_role == current_role:
+        return True
+    if target_role in ROLE_HIERARCHY[current_role]:
+        return True
+    return False
+
+
 class Function(Versioned, Base):
     __tablename__ = 'function'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)

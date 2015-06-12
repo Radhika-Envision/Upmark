@@ -52,6 +52,7 @@ def normalise(ob_dict):
 
 
 class OrgHandler(handlers.BaseHandler):
+    @tornado.web.authenticated
     def get(self, org_id):
         if org_id == "":
             self.query()
@@ -102,7 +103,10 @@ class OrgHandler(handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
+
 class UserHandler(handlers.BaseHandler):
+    @tornado.web.authenticated
+    @handlers.authz('org_admin', 'consultant')
     def get(self, user_id):
         if user_id == "":
             self.query()
