@@ -90,9 +90,9 @@ def start_web_server():
 
     application = tornado.web.Application(
         [
-            (r"/login/", handlers.AuthLoginHandler, {
+            (r"/login/?", handlers.AuthLoginHandler, {
                 'path': os.path.join(package_dir, "..", "client")}),
-            (r"/logout/", handlers.AuthLogoutHandler),
+            (r"/logout/?", handlers.AuthLogoutHandler),
             (r"/()", handlers.MainHandler, {
                 'path': '../client/index.html'}),
 

@@ -117,6 +117,7 @@ SCRIPTS = [
     {
         'min-href': '/minify/3rd-party-min.js',
         'hrefs': [
+            '/.bower_components/bootstrap/dist/js/bootstrap.js',
             '/.bower_components/angular-bootstrap/ui-bootstrap-tpls.js',
             '/.bower_components/angular-hotkeys/build/hotkeys.js',
             '/.bower_components/angular-bootstrap-show-errors/src/showErrors.js',

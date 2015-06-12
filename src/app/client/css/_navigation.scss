@@ -34,6 +34,20 @@ nav.navbar.navbar-static-top {
         padding-bottom: $nav-item-padding;
     }
 }
+.navbar-toggle {
+    margin-top: ($nav-height - 34px) / 2;
+    margin-bottom: ($nav-height - 34px) / 2;
+}
+@media (min-width: 768px) {
+    .navbar-collapse .when-collapsed {
+        display: none;
+    }
+}
+@media (max-width: 768px) {
+    .navbar-collapse .when-collapsed {
+        display: initial;
+    }
+}
 
 .navbar-default {
     background: white;
@@ -46,7 +60,9 @@ nav.navbar.navbar-static-top {
 
 /* Logo is included inline as raw SVG, so we can do some funky styling. */
 .navbar-brand svg {
-    height: 100%;
+    $height: $nav-height - (2 * $std-padding);
+    height: $height;
+    width: (619px / 183px) * $height;
 }
 g#logo-text-subtitle {
     display: none;
