@@ -3,17 +3,18 @@
 
 $anim-time: 0.5s;
 
-.survey-tree {
+.header {
     background: $primary-colour;
-    margin: 0;
-    padding: 10px 0;
     position: relative;
+    padding-top: 10px;
+    padding-bottom: 10px;
 
     h2, h3, h4 {
-        margin: 0 $gutter;
         color: mix(black, $primary-colour, 70%);
         line-height: 1.6;
         position: relative;
+        margin-top: 4px;
+        margin-bottom: 4px;
         .clock-progress {
             position: absolute;
             top: 0.2em;
@@ -39,20 +40,19 @@ $anim-time: 0.5s;
 
 .measure {
     h5 {
-        margin: 30px $gutter 10px;
+        margin: 30px 0 10px;
         color: mix(black, white, 70%);
         line-height: 1.6;
         font-size: 19px;
     }
 
-    >p, >dl, >form, >.panel {
-        margin: 20px $gutter;
+    ol, dl, .form-group, .comments-box {
+        margin: 10px 0;
     }
 
     $response-spacing: 10px;
 
     ol.responses {
-        margin: (30px - $response-spacing) $gutter;
         padding: 0;
         display: table;
         border-spacing: 0 $response-spacing;
@@ -123,7 +123,6 @@ $anim-time: 0.5s;
         $default-height: 150px;
 
         border-top: 1px solid #cecece;
-        margin: (30px - $response-spacing) $gutter;
         position: relative;
 
         textarea {

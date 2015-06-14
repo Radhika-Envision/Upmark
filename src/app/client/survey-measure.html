@@ -1,14 +1,15 @@
 <div>
 
-<div class="survey-tree secondary">
+<div class="header">
+<div class="container">
     <div class="btn-group">
         <a ng-href="#{{route.prevUrl}}"
-                class="btn" title="Previous"
+                class="btn btn-default" title="Previous"
                 ng-disabled="route.prevUrl == null">
             <i class="fa fa-caret-left"></i>
         </a>
         <a ng-href="#{{route.nextUrl}}"
-                class="btn" title="Next"
+                class="btn btn-default" title="Next"
                 ng-disabled="route.nextUrl == null">
             <i class="fa fa-caret-right"></i> Next
         </a>
@@ -27,10 +28,13 @@
         <clock-progress fraction="overview.progress.subProc"></clock-progress>
     </h4>
 </div>
+</div>
+
 <div class="measure">
+<div class="container">
     <h5>
         {{measure.seq}}. {{measure.title}}
-        <button class="btn btn-on-danger btn-round"
+        <button class="btn btn-default btn-on-danger btn-round"
                 title="Not applicable"
                 ng-click="response.na = !response.na"
                 ng-class="{active: response.na}">
@@ -52,6 +56,7 @@
                 focus-on="focus-comment"
                 blur-on="blur-comment"></textarea>
     </div>
+</div>
 </div>
 
 </div>
