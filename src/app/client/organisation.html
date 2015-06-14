@@ -10,7 +10,8 @@
             <i class="fa fa-pencil"></i></button>
         <button class="btn btn-round" title="Save"
                 ng-click="edit.save()"
-                ng-if="edit.model">
+                ng-if="edit.model"
+                form="editor">
             <i class="fa fa-check"></i></button>
         <button class="btn btn-round" title="Cancel"
                 ng-click="edit.cancel()"
@@ -22,7 +23,7 @@
 <editor-error class="measure" edit="edit"></editor-error>
 
 <div class="measure" ng-if="edit.model">
-    <form novalidate name="form">
+    <form novalidate name="form" id="editor" ng-submit="edit.save()">
         <div class="form-group" show-errors>
             <label for="org_name">Name</label>
             <span class="help-label" ng-if="form.org_name.$error.required">

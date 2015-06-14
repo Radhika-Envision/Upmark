@@ -67,7 +67,7 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
         new_model.$promise.then(
             function success(new_model) {
                 log.debug("Success");
-                that.getter.assign(this.scope, new_model);
+                that.getter.assign(that.scope, new_model);
                 that.model = null;
                 that.saving = false;
                 that = null;
@@ -120,7 +120,9 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
         $scope.user = routeData.user;
     } else {
         // Creating new user
-        $scope.user = {};
+        $scope.user = {
+            role: 'clerk'
+        };
         $scope.edit.edit();
     }
     $scope.org = routeData.org;

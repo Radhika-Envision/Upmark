@@ -13,7 +13,8 @@
             <i class="fa fa-pencil"></i></button>
         <button class="btn btn-default btn-round" title="Save"
                 ng-click="edit.save()"
-                ng-if="edit.model">
+                ng-if="edit.model"
+                form="editor">
             <i class="fa fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
@@ -26,7 +27,7 @@
 <div class="measure" ng-if="edit.model">
 <div class="container">
     <editor-error class="measure" edit="edit"></editor-error>
-    <form novalidate name="form">
+    <form novalidate name="form" id="editor" ng-submit="edit.save()">
         <div class="form-group" show-errors>
             <label for="user_name">Name</label>
             <span class="help-label" ng-if="form.user_name.$error.required">
@@ -84,9 +85,9 @@
         <dt>Role</dt>
         <dd>{{roleDict[user.role].name}}</dd>
     </dl>
-    <dl>
+    <dl ng-if="user.email">
         <dt>Email</dt>
-        <dd>{{user.email}} <span class="text-muted">TODO: Hide this in JSON</span></dd>
+        <dd>{{user.email}}</dd>
     </dl>
     <dl>
         <dt>Utility</dt>

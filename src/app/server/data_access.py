@@ -144,3 +144,47 @@ class UserHandler(handlers.BaseHandler):
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
         self.finish()
+
+    def post(self, user_id):
+        if user_id != '':
+            raise handlers.MethodError("Can't use POST for existing users.")
+        son = json_decode(self.request.body)
+        try:
+            with model.session_scope() as session:
+                user = model.AppUser()
+                self.update(user, son)
+                session.add(user)
+                session.flush()
+                session.expunge(user)
+        except sqlalchemy.exc.IntegrityError:
+            raise handlers.ModelError("Arguments are invalid")
+        self.get(user.id)
+
+    def put(self, user_id):
+        if user_id == '':
+            raise handlers.MethodError("Can't use PUT for new users (no ID).")
+        son = json_decode(self.request.body)
+        try:
+            with model.session_scope() as session:
+                user = session.query(model.AppUser).get(user_id)
+                if user is None:
+                    raise ValueError("No such object")
+                self.update(user, son)
+                session.add(user)
+        except (sqlalchemy.exc.StatementError, ValueError):
+            raise handlers.MissingDocError("No such user")
+        except sqlalchemy.exc.IntegrityError:
+            raise handlers.ModelError("Arguments are invalid")
+        self.get(user_id)
+
+    def update(self, user, son):
+        if son.get('email', '') != '':
+            user.email = son['email']
+        if son.get('name', '') != '':
+            user.name = son['name']
+        if son.get('role', '') != '':
+            user.role = son['role']
+        if son.get('organisation_id', '') != '':
+            user.role = son['organisation_id']
+        if son.get('password', '') != '':
+            user.set_password(son['password'])

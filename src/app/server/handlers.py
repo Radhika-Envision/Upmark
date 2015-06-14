@@ -44,6 +44,12 @@ class MissingDocError(tornado.web.HTTPError):
             self, 404, log_message=log_message, *args, **kwargs)
 
 
+class MethodError(tornado.web.HTTPError):
+    def __init__(self, log_message="Method not allowed", *args, **kwargs):
+        tornado.web.HTTPError.__init__(
+            self, 405, log_message=log_message, *args, **kwargs)
+
+
 class InternalModelError(tornado.web.HTTPError):
     def __init__(self, log_message=None, *args, **kwargs):
         tornado.web.HTTPError.__init__(

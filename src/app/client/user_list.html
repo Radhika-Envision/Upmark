@@ -20,7 +20,7 @@
     </thead>
     <tbody>
       <tr ng-repeat="user in users">
-        <td>{{user.name}}</td>
+        <td><a ng-href="#/user/{{user.id}}">{{user.name}}</a></td>
         <td>{{user.email}}</td>
         <td>{{user.organisation.name}}</td>
       </tr>
