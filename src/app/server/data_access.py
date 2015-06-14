@@ -107,6 +107,9 @@ class OrgHandler(handlers.BaseHandler):
 class UserHandler(handlers.BaseHandler):
     @tornado.web.authenticated
     def get(self, user_id):
+        '''
+        Get a single user.
+        '''
         if user_id == "":
             self.query()
             return
@@ -129,6 +132,9 @@ class UserHandler(handlers.BaseHandler):
         self.finish()
 
     def query(self):
+        '''
+        Get a list of users.
+        '''
         sons = []
         with model.session_scope() as session:
             obs = session.query(model.AppUser).options(joinedload('organisation')).all()
@@ -145,14 +151,18 @@ class UserHandler(handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
+    @handlers.authz('admin', 'org_admin')
     def post(self, user_id):
+        '''
+        Create a new user.
+        '''
         if user_id != '':
             raise handlers.MethodError("Can't use POST for existing users.")
         son = json_decode(self.request.body)
         try:
             with model.session_scope() as session:
                 user = model.AppUser()
-                self.update(user, son)
+                self._update(user, son)
                 session.add(user)
                 session.flush()
                 session.expunge(user)
@@ -161,6 +171,9 @@ class UserHandler(handlers.BaseHandler):
         self.get(user.id)
 
     def put(self, user_id):
+        '''
+        Update an existing user.
+        '''
         if user_id == '':
             raise handlers.MethodError("Can't use PUT for new users (no ID).")
         son = json_decode(self.request.body)
@@ -169,7 +182,7 @@ class UserHandler(handlers.BaseHandler):
                 user = session.query(model.AppUser).get(user_id)
                 if user is None:
                     raise ValueError("No such object")
-                self.update(user, son)
+                self._update(user, son)
                 session.add(user)
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such user")
@@ -177,7 +190,10 @@ class UserHandler(handlers.BaseHandler):
             raise handlers.ModelError("Arguments are invalid")
         self.get(user_id)
 
-    def update(self, user, son):
+    def _update(self, user, son):
+        '''
+        Apply user-provided data to the saved model.
+        '''
         if son.get('email', '') != '':
             user.email = son['email']
         if son.get('name', '') != '':
