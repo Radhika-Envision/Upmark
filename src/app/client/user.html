@@ -4,7 +4,9 @@
 <div class="container">
     <h2>
         <i class="fa fa-fw fa-user"></i>
-        {{user.name}}
+        <a href="#/users">Users</a> &raquo;
+        <span ng-show="user.name">{{user.name}}</span>
+        <span ng-show="!user.name">New user</span>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
                 ng-if="!edit.model">
@@ -15,16 +17,15 @@
             <i class="fa fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
-                ng-if="edit.model">
+                ng-if="edit.model && edit.model.id">
             <i class="fa fa-times"></i></button>
     </h2>
 </div>
 </div>
 
-<editor-error class="measure" edit="edit"></editor-error>
-
 <div class="measure" ng-if="edit.model">
 <div class="container">
+    <editor-error class="measure" edit="edit"></editor-error>
     <form novalidate name="form">
         <div class="form-group" show-errors>
             <label for="user_name">Name</label>

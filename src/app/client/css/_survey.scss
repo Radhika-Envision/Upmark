@@ -8,6 +8,7 @@ $anim-time: 0.5s;
     position: relative;
     padding-top: 10px;
     padding-bottom: 10px;
+    margin-bottom: 20px;
 
     h2, h3, h4 {
         color: mix(black, $primary-colour, 70%);
@@ -36,18 +37,17 @@ $anim-time: 0.5s;
         position: absolute;
         right: 10px;
     }
+
+    a {
+        color: inherit;
+    }
 }
 
 .measure {
     h5 {
-        margin: 30px 0 10px;
         color: mix(black, white, 70%);
         line-height: 1.6;
         font-size: 19px;
-    }
-
-    ol, dl, .form-group, .comments-box {
-        margin: 10px 0;
     }
 
     $response-spacing: 10px;

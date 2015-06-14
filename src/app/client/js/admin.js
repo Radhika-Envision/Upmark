@@ -45,7 +45,6 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
     Editor.prototype.edit = function() {
         log.debug("Creating edit object");
         this.model = angular.copy(this.getter(this.scope));
-        console.log(this.scope);
     };
 
     Editor.prototype.cancel = function() {
@@ -75,7 +74,7 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
             },
             function error(details) {
                 log.error("Could not save object");
-                that.error = "Could not save object";
+                that.error = "Could not save object: " + details.statusText;
                 that.saving = false;
                 that = null;
             }
@@ -115,10 +114,17 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
 .controller('UserCtrl', ['$scope', 'User', 'routeData', 'Editor', 'Organisation', 'log',
         function($scope, User, routeData, Editor, Organisation, log) {
 
-    $scope.organisations = null;
-    $scope.user = routeData.user;
-    $scope.org = routeData.org;
     $scope.edit = Editor(User, 'user', $scope);
+    if (routeData.user) {
+        // Editing old user
+        $scope.user = routeData.user;
+    } else {
+        // Creating new user
+        $scope.user = {};
+        $scope.edit.edit();
+    }
+    $scope.org = routeData.org;
+    $scope.organisations = null;
 
     $scope.roles = routeData.roles;
     $scope.roleDict = {};

@@ -114,6 +114,15 @@ angular.module('wsaa.aquamark',
                 templateUrl : 'user_list.html',
                 controller : 'AdminCtrl'
             })
+            .when('/user/new', {
+                templateUrl : 'user.html',
+                controller : 'UserCtrl',
+                resolve: {routeData: chain({
+                    roles: ['Roles', function(Roles) {
+                        return Roles.get().$promise;
+                    }]
+                })}
+            })
             .when('/user/:id', {
                 templateUrl : 'user.html',
                 controller : 'UserCtrl',
