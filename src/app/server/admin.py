@@ -7,6 +7,7 @@ import sys
 
 try:
     import sqlalchemy
+    import sqlalchemy.orm.exc
 except ImportError:
     print('Failed to load sqlalchemy. Do you need to enter a virtual environment?')
 
@@ -25,14 +26,20 @@ def modify_user(args):
 
     try:
         with session_scope() as session:
-            user = AppUser(email=args.email)
-            session.add(user)
-
-            if password != "":
-                user.set_password(password)
-            else:
-                print("Not setting a password. User will not be able to log in.")
-                user.password = "!"
+            try:
+                user = session.query(AppUser).filter_by(email=args.email).one()
+                is_new = False
+                if password != "":
+                    user.set_password(password)
+            except sqlalchemy.orm.exc.NoResultFound:
+                is_new = True
+                user = AppUser(email=args.email)
+                session.add(user)
+                if password != "":
+                    user.set_password(password)
+                else:
+                    print("Not setting a password. User will not be able to log in.")
+                    user.password = "!"
 
             if args.name is not None:
                 user.name = args.name
@@ -50,7 +57,10 @@ def modify_user(args):
         print('\n'.join(e.orig.args))
         sys.exit(1)
 
-    print('Added user %s' % user.email)
+    if is_new:
+        print('Added user %s' % user.email)
+    else:
+        print('Updated user %s' % user.email)
     print('ID: %s' % user.id)
 
 
@@ -59,8 +69,13 @@ def modify_org(args):
 
     try:
         with session_scope() as session:
-            org = Organisation(name=args.name)
-            session.add(org)
+            try:
+                usorger = session.query(AppOrganisationUser).filter_by(name=args.name).one()
+                is_new = True
+            except sqlalchemy.orm.exc.NoResultFound:
+                is_new = False
+                org = Organisation(name=args.name)
+                session.add(org)
 
             if args.region is not None:
                 org.region = args.region
@@ -77,7 +92,10 @@ def modify_org(args):
         print('\n'.join(e.orig.args))
         sys.exit(1)
 
-    print('Added organisation %s' % org.name)
+    if is_new:
+        print('Added organisation %s' % org.name)
+    else:
+        print('Updated organisation %s' % org.name)
     print('ID: %s' % org.id)
 
 
