@@ -27,7 +27,7 @@ The first time you start the server, you will need to create a super user.
 sudo docker run -it --rm --link postgres_aq:postgres vpac/aquamark \
     app/server/admin.py user joe@bloggs.com \
         --name='Joe Bloggs' \
-        --role=super
+        --role=admin
 ```
 
 You can also create organisations, and assign users to them:

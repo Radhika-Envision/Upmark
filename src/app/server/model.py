@@ -101,7 +101,6 @@ class AppUser(Versioned, Base):
 
 
 ROLE_HIERARCHY = {
-    'super': ['admin', 'author', 'authority', 'consultant', 'org_admin', 'clerk'],
     'admin': ['author', 'authority', 'consultant', 'org_admin', 'clerk'],
     'author': [],
     'authority': ['consultant'],

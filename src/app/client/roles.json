@@ -1,8 +1,4 @@
 [{
-    "id": "super",
-    "name": "Super User",
-    "description": "Can do anything at all"
-}, {
     "id": "admin",
     "name": "Administrator",
     "description": "Can do almost anything"
