@@ -173,6 +173,7 @@ class UserHandler(handlers.BaseHandler):
         try:
             with model.session_scope() as session:
                 user = model.AppUser()
+                user.organisation_id = son['organisation']['id'];
                 self._update(user, son)
                 session.add(user)
                 session.flush()
