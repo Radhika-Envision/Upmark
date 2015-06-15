@@ -52,10 +52,10 @@
         </div>
         <div class="form-group">
             <label for="user_org">Utility</label>
-            <ui-select ng-model="edit.model.org"
+            <ui-select ng-model="edit.model.organisation"
                 ng-disabled="disabled"
                 reset-search-input="false">
-                <ui-select-match placeholder="Type and select organisation">{{edit.model.org.name}}</ui-select-match>
+                <ui-select-match placeholder="Type and select organisation">{{edit.model.organisation.name}}</ui-select-match>
                 <ui-select-choices repeat="organisation in organisations | filter: $select.search" refresh="searchOrg($select.search)" refresh-delay="0">
                     <div ng-bind-html="organisation.name | highlight: $select.search"></div>
                 </ui-select-choices>
@@ -91,7 +91,7 @@
     </dl>
     <dl>
         <dt>Utility</dt>
-        <dd><a ng-href="#/org/{{org.id}}">{{org.name}}</a></dd>
+        <dd><a ng-href="#/org/{{user.organisation.id}}">{{user.organisation.name}}</a></dd>
     </dl>
 </div>
 </div>

@@ -127,7 +127,6 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
         };
         $scope.edit.edit();
     }
-    $scope.org = routeData.org;
 
     $scope.roles = routeData.roles;
     $scope.roleDict = {};

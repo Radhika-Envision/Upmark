@@ -122,12 +122,17 @@ class UserHandler(handlers.BaseHandler):
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError, ValueError):
                 raise handlers.MissingDocError("No such user")
+            org = to_dict(user.organisation, include={'id', 'name'})
+            org = simplify(org)
+            org = normalise(org)
+
             if user.id != self.current_user.id:
                 son = to_dict(user, exclude={'email', 'password'})
             else:
                 son = to_dict(user, exclude={'password'})
             son = simplify(son)
             son = normalise(son)
+            son["organisation"] = org
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
@@ -206,7 +211,7 @@ class UserHandler(handlers.BaseHandler):
             user.name = son['name']
         if son.get('role', '') != '':
             user.role = son['role']
-        if son.get('organisation_id', '') != '':
-            user.role = son['organisation_id']
+        if son.get('organisation', '') != '':
+            user.organisation_id = son['organisation']['id']
         if son.get('password', '') != '':
             user.set_password(son['password'])

@@ -114,8 +114,8 @@ angular.module('wsaa.aquamark',
                 templateUrl : 'user_list.html',
                 controller : 'UserCtrl',
                 resolve: {routeData: chain({
-                    users: ['User', '$routeParams', function(User, $routeParams) {
-                        var org_id = $routeParams["org_id"];
+                    users: ['User', '$location', function(User, $location) {
+                        var org_id = $location.search()["org_id"];
                         return User.query({org_id:org_id}).$promise;
                     }]
                 })}
@@ -138,11 +138,6 @@ angular.module('wsaa.aquamark',
                     }],
                     user: ['User', '$route', function(User, $route) {
                         return User.get($route.current.params).$promise;
-                    }],
-                    org: ['user', 'Organisation', function(user, Organisation) {
-                        if (!user.organisation)
-                            return null;
-                        return Organisation.get({id: user.organisation}).$promise;
                     }]
                 })}
             })
