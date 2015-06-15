@@ -140,6 +140,14 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
+            .when('/orgs', {
+                templateUrl : 'organisation_list.html',
+                controller : 'OrganisationCtrl'
+            })
+            .when('/org/new', {
+                templateUrl : 'organisation.html',
+                controller : 'EmptyCtrl'
+            })
             .when('/org/:id', {
                 templateUrl : 'organisation.html',
                 controller : 'OrganisationCtrl',
@@ -234,10 +242,17 @@ angular.module('wsaa.aquamark',
 .controller('LoginCtrl', ['$scope',
         function($scope) {
 }])
-.controller('AdminCtrl', ['$scope', 'User',
-        function($scope, User) {
-            User.query({}).$promise.then(function(data){
+.controller('AdminCtrl', ['$scope', '$routeParams', 'User',
+        function($scope, $routeParams, User) {
+            var org_id = $routeParams["org_id"];
+            User.query({org_id:org_id}).$promise.then(function(data){
                 $scope.users = data;
+            })
+}])
+.controller('OrganisationCtrl', ['$scope', 'Organisation', 
+        function($scope, Organisation ) {
+            Organisation.query({}).$promise.then(function(data){
+                $scope.orgs = data;
             })
 }])
 ;
