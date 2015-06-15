@@ -1,9 +1,12 @@
 <div>
 
-<div class="survey-tree secondary">
+<div class="header">
+<div class="container">
     <h2>
         <i class="fa fa-fw fa-university"></i>
-        {{org.name}}
+        <a href="#/users">Organisation</a> &raquo;
+        <span ng-show="org.name">{{org.name}}</span>
+        <span ng-show="!org.name">New organisation</span>
         <button class="btn btn-round" title="Edit"
                 ng-click="edit.edit()"
                 ng-if="!edit.model">
@@ -19,10 +22,11 @@
             <i class="fa fa-times"></i></button>
     </h2>
 </div>
-
-<editor-error class="measure" edit="edit"></editor-error>
+</div>
 
 <div class="measure" ng-if="edit.model">
+<div class="container">
+    <editor-error class="measure" edit="edit"></editor-error>
     <form novalidate name="form" id="editor" ng-submit="edit.save()">
         <div class="form-group" show-errors>
             <label for="org_name">Name</label>
@@ -48,11 +52,13 @@
         </div>
     </form>
 </div>
+</div>
 
 <div class="measure" ng-if="!edit.model">
+<div class="container">
     <dl>
-        <dt>Region</dt>
-        <dd>{{org.region}}</dd>
+        <dt>Name</dt>
+        <dd>{{org.name}}</dd>
     </dl>
     <dl>
         <dt>Web site</dt>
@@ -62,6 +68,11 @@
         <dt>Number of customers</dt>
         <dd>{{org.numberOfCustomers}}</dd>
     </dl>
+    <dl>
+        <dt>Region</dt>
+        <dd>{{org.region}}</dd>
+    </dl>
+</div>
 </div>
 
 </div>

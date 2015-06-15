@@ -157,16 +157,18 @@ angular.module('wsaa.aquamark',
             })
             .when('/org/new', {
                 templateUrl : 'organisation.html',
-                controller : 'EmptyCtrl'
+                controller : 'OrganisationCtrl',
+                resolve: {routeData: chain({
+                })}
             })
             .when('/org/:id', {
                 templateUrl : 'organisation.html',
                 controller : 'OrganisationCtrl',
-                resolve: {
+                resolve: {routeData: chain({
                     org: ['Organisation', '$route', function(Organisation, $route) {
                         return Organisation.get($route.current.params).$promise;
                     }]
-                }
+                })}
             })
             .when('/legal', {
                 templateUrl : 'legal.html',
