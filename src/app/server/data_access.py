@@ -103,6 +103,57 @@ class OrgHandler(handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
+    def post(self, org_id):
+        if org_id != '':
+            raise handlers.MethodError("Can't use POST for existing organisation.")
+        '''
+        Create a new organisation.
+        '''
+        son = json_decode(self.request.body)
+        try:
+            with model.session_scope() as session:
+                org = model.Organisation()
+                self._update(org, son)
+                session.add(org)
+                session.flush()
+                session.expunge(org)
+        except sqlalchemy.exc.IntegrityError:
+            raise handlers.ModelError("Arguments are invalid")
+        self.get(org.id)
+
+    def put(self, org_id):
+        '''
+        Update an existing organisation.
+        '''
+        if org_id == '':
+            raise handlers.MethodError("Can't use PUT for new organisations (no ID).")
+        son = json_decode(self.request.body)
+        try:
+            with model.session_scope() as session:
+                org = session.query(model.Organisation).get(org_id)
+                if org is None:
+                    raise ValueError("No such object")
+                self._update(org, son)
+                session.add(org)
+        except (sqlalchemy.exc.StatementError, ValueError):
+            raise handlers.MissingDocError("No such organisation")
+        except sqlalchemy.exc.IntegrityError:
+            raise handlers.ModelError("Arguments are invalid")
+        self.get(org_id)
+
+    def _update(self, org, son):
+        '''
+        Apply organisation-provided data to the saved model.
+        '''
+        if son.get('name', '') != '':
+            org.name = son['name']
+        if son.get('url', '') != '':
+            org.url = son['url']
+        if son.get('numberOfCustomers', '') != '':
+            org.number_of_customers = son['numberOfCustomers']
+        if son.get('region', '') != '':
+            org.region = son['region']
+
 
 class UserHandler(handlers.BaseHandler):
     @tornado.web.authenticated

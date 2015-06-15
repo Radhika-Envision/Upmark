@@ -27,7 +27,7 @@
 <div class="measure" ng-if="edit.model">
 <div class="container">
     <editor-error class="measure" edit="edit"></editor-error>
-    <form novalidate name="form" id="editor" ng-submit="edit.save()">
+    <form novalidate name="form" id="editor">
         <div class="form-group" show-errors>
             <label for="user_name">Name</label>
             <span class="help-label" ng-if="form.user_name.$error.required">

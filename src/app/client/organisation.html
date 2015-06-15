@@ -4,7 +4,7 @@
 <div class="container">
     <h2>
         <i class="fa fa-fw fa-university"></i>
-        <a href="#/users">Organisation</a> &raquo;
+        <a href="#/orgs">Organisation</a> &raquo;
         <span ng-show="org.name">{{org.name}}</span>
         <span ng-show="!org.name">New organisation</span>
         <button class="btn btn-round" title="Edit"
@@ -27,7 +27,7 @@
 <div class="measure" ng-if="edit.model">
 <div class="container">
     <editor-error class="measure" edit="edit"></editor-error>
-    <form novalidate name="form" id="editor" ng-submit="edit.save()">
+    <form novalidate name="form" id="editor">
         <div class="form-group" show-errors>
             <label for="org_name">Name</label>
             <span class="help-label" ng-if="form.org_name.$error.required">
