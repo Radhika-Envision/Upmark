@@ -82,7 +82,7 @@ class OrgHandler(handlers.BaseHandler):
         with model.session_scope() as session:
             obs = session.query(model.Organisation).all()
             for ob in obs:
-                son = to_dict(ob, include={'id', 'name'})
+                son = to_dict(ob, include={'id', 'name', 'url', 'region', 'number_of_customers'})
                 son = simplify(son)
                 son = normalise(son)
                 sons.append(son)
@@ -111,12 +111,13 @@ class UserHandler(handlers.BaseHandler):
         Get a single user.
         '''
         if user_id == "":
-            self.query()
+            org_id = self.get_argument("org_id", None)
+            self.query(org_id)
             return
 
         with model.session_scope() as session:
             try:
-                user = session.query(model.AppUser).get(user_id)
+                user = session.query(model.AppUser).options(joinedload('organisation')).get(user_id)
                 if user is None:
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError, ValueError):
@@ -131,13 +132,18 @@ class UserHandler(handlers.BaseHandler):
         self.write(json_encode(son))
         self.finish()
 
-    def query(self):
+    def query(self, org_id):
         '''
         Get a list of users.
         '''
         sons = []
         with model.session_scope() as session:
-            obs = session.query(model.AppUser).options(joinedload('organisation')).all()
+            obs = None
+            if org_id is None or org_id == "":
+                obs = session.query(model.AppUser).options(joinedload('organisation')).all()
+            else:
+                obs = session.query(model.AppUser).options(joinedload('organisation')).filter(model.AppUser.organisation_id==org_id).all()
+            
             for ob in obs:
                 org = to_dict(ob.organisation, include={'id', 'name'})
                 org = simplify(org)

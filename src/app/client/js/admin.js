@@ -133,6 +133,7 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
         var role = $scope.roles[i];
         $scope.roleDict[role.id] = role;
     }
+    $scope.users = routeData.users;
 
     $scope.searchOrg = function(term) {
         Organisation.query({term: term}).$promise.then(function(orgs) {
@@ -142,11 +143,11 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
 }])
 
 
-.controller('OrganisationCtrl', ['$scope', 'Organisation', 'org', 'Editor', 'log',
-        function($scope, Organisation, org, Editor, log) {
-
-    $scope.org = org;
+.controller('OrganisationCtrl', ['$scope', 'Organisation', 'Editor', 'routeData', 'log',
+        function($scope, Organisation, Editor, routeData, log) {
+            
     $scope.edit = Editor(Organisation, 'org', $scope);
+    $scope.orgs = routeData.orgs;
 }])
 
 ;

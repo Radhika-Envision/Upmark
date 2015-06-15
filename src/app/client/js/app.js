@@ -112,7 +112,13 @@ angular.module('wsaa.aquamark',
             })
             .when('/users', {
                 templateUrl : 'user_list.html',
-                controller : 'AdminCtrl'
+                controller : 'UserCtrl',
+                resolve: {routeData: chain({
+                    users: ['User', '$routeParams', function(User, $routeParams) {
+                        var org_id = $routeParams["org_id"];
+                        return User.query({org_id:org_id}).$promise;
+                    }]
+                })}
             })
             .when('/user/new', {
                 templateUrl : 'user.html',
@@ -142,7 +148,12 @@ angular.module('wsaa.aquamark',
             })
             .when('/orgs', {
                 templateUrl : 'organisation_list.html',
-                controller : 'OrganisationCtrl'
+                controller : 'OrganisationCtrl',
+                resolve: {routeData: chain({
+                    orgs: ['Organisation', function(Organisation) {
+                        return Organisation.query({}).$promise;
+                    }]
+                })}
             })
             .when('/org/new', {
                 templateUrl : 'organisation.html',
@@ -242,17 +253,5 @@ angular.module('wsaa.aquamark',
 .controller('LoginCtrl', ['$scope',
         function($scope) {
 }])
-.controller('AdminCtrl', ['$scope', '$routeParams', 'User',
-        function($scope, $routeParams, User) {
-            var org_id = $routeParams["org_id"];
-            User.query({org_id:org_id}).$promise.then(function(data){
-                $scope.users = data;
-            })
-}])
-.controller('OrganisationCtrl', ['$scope', 'Organisation', 
-        function($scope, Organisation ) {
-            Organisation.query({}).$promise.then(function(data){
-                $scope.orgs = data;
-            })
-}])
+
 ;
