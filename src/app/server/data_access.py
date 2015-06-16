@@ -103,6 +103,7 @@ class OrgHandler(handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
+    @handlers.authz('admin')
     def post(self, org_id):
         if org_id != '':
             raise handlers.MethodError("Can't use POST for existing organisation.")
@@ -121,12 +122,20 @@ class OrgHandler(handlers.BaseHandler):
             raise handlers.ModelError("Arguments are invalid")
         self.get(org.id)
 
+    @handlers.authz('admin', 'org_admin')
     def put(self, org_id):
         '''
         Update an existing organisation.
         '''
         if org_id == '':
             raise handlers.MethodError("Can't use PUT for new organisations (no ID).")
+        
+        '''
+        Check org_admin's organisation.id and org_id
+        '''
+        if self.current_user.role == 'org_admin' and str(self.organistaion_id) != org_id:
+            raise handlers.MethodError("You(org_admin) cannot modify other organisation's information.")
+
         son = json_decode(self.request.body)
         try:
             with model.session_scope() as session:
@@ -220,7 +229,17 @@ class UserHandler(handlers.BaseHandler):
         '''
         if user_id != '':
             raise handlers.MethodError("Can't use POST for existing users.")
+
         son = json_decode(self.request.body)
+        '''
+        Check new user's organisation.id should be same as org_admin's organisation.id
+        '''
+        if self.current_user.role == 'org_admin':
+            if self.current_user.organistaion_id != son['organisation']['id']:
+                raise handlers.MethodError("You(org_admin) cannot create other organisation's user.")
+            if son['role'] not in ['org_admin', 'clerk']:
+                raise handlers.MethodError("You(org_admin) cannot create this(" + son['role'] + ") role user.")                
+
         try:
             with model.session_scope() as session:
                 user = model.AppUser()
@@ -233,6 +252,7 @@ class UserHandler(handlers.BaseHandler):
             raise handlers.ModelError("Arguments are invalid")
         self.get(user.id)
 
+    @handlers.authz('admin', 'org_admin')
     def put(self, user_id):
         '''
         Update an existing user.
@@ -240,6 +260,19 @@ class UserHandler(handlers.BaseHandler):
         if user_id == '':
             raise handlers.MethodError("Can't use PUT for new users (no ID).")
         son = json_decode(self.request.body)
+        '''
+        Check new user's organisation.id should be same as org_admin's organisation.id
+        '''
+        if self.current_user.role == 'org_admin':
+            if str(self.organisation.id) != son['organisation']['id']:
+                print("org", self.organisation.id)
+                raise handlers.MethodError("You(org_admin) cannot create other organisation's user.")
+            if son['role'] not in ['org_admin', 'clerk']:
+                raise handlers.MethodError("You(org_admin) cannot create this(" + son['role'] + ") role user.")                
+
+        if str(self.organisation.id) != son['organisation']['id'] and self.current_user.role != 'admin':
+            raise handlers.MethodError("Only admin can change your organisation. Please contact your admin.")                
+
         try:
             with model.session_scope() as session:
                 user = session.query(model.AppUser).get(user_id)
