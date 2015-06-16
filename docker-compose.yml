@@ -1,0 +1,11 @@
+web:
+  build: ./src/app/
+  ports:
+   - "8000:8000"
+  environment:
+   - DEV_MODE:True
+   - XSRF_PROTECTION:False
+  volumes:
+   - ./src/app:/usr/share/aquamark/app
+  external_links:
+   - postgres
