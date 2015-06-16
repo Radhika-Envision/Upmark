@@ -115,7 +115,7 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
         function($scope, User, routeData, Editor, Organisation, log) {
 
     $scope.users = routeData.users;
-
+    $scope.current_user = routeData.current_user;
     $scope.edit = Editor(User, 'user', $scope);
     if (routeData.user) {
         // Editing old user
@@ -140,6 +140,21 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
             $scope.organisations = orgs;
         });
     };
+
+    $scope.check_role = function(function_name) {
+        if ($scope.current_user.role == "admin")
+            return true;
+        switch(function_name) {
+            case 'user_add':
+                return false;
+                break;
+            case 'change_oranisation':
+                if ($scope.current_user.role == "org_admin")
+                    return true;
+                return false;
+                break;
+        }
+    }
 }])
 
 

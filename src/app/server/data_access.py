@@ -80,7 +80,12 @@ class OrgHandler(handlers.BaseHandler):
 
         sons = []
         with model.session_scope() as session:
-            obs = session.query(model.Organisation).all()
+            obs = None
+            if self.current_user.role == "admin":
+                obs = session.query(model.Organisation).all()
+            else:
+                obs = session.query(model.Organisation).filter(model.Organisation.id == self.organisation.id)
+
             for ob in obs:
                 son = to_dict(ob, include={'id', 'name', 'url', 'region', 'number_of_customers'})
                 son = simplify(son)
@@ -93,7 +98,12 @@ class OrgHandler(handlers.BaseHandler):
     def search(self, term):
         sons = []
         with model.session_scope() as session:
-            obs = session.query(model.Organisation).filter(model.Organisation.name.ilike('%'+term+'%')).all()
+            obs = None
+            if self.current_user.role == "admin":
+                obs = session.query(model.Organisation).filter(model.Organisation.name.ilike('%'+term+'%')).all()
+            else:
+                obs = session.query(model.Organisation).filter(model.Organisation.id == self.organisation.id).all()
+
             for ob in obs:
                 son = to_dict(ob, include={'id', 'name'})
                 son = simplify(son)
@@ -133,7 +143,7 @@ class OrgHandler(handlers.BaseHandler):
         '''
         Check org_admin's organisation.id and org_id
         '''
-        if self.current_user.role == 'org_admin' and str(self.organistaion_id) != org_id:
+        if self.current_user.role == 'org_admin' and str(self.organisation.id) != org_id:
             raise handlers.MethodError("You(org_admin) cannot modify other organisation's information.")
 
         son = json_decode(self.request.body)
@@ -197,6 +207,7 @@ class UserHandler(handlers.BaseHandler):
         self.write(json_encode(son))
         self.finish()
 
+    @handlers.authz('admin', 'org_admin')
     def query(self, org_id):
         '''
         Get a list of users.
@@ -204,10 +215,13 @@ class UserHandler(handlers.BaseHandler):
         sons = []
         with model.session_scope() as session:
             obs = None
-            if org_id is None or org_id == "":
-                obs = session.query(model.AppUser).options(joinedload('organisation')).all()
+            if self.current_user.role == 'admin':
+                if (org_id is None or org_id == ""): 
+                    obs = session.query(model.AppUser).options(joinedload('organisation')).all()
+                else:
+                    obs = session.query(model.AppUser).options(joinedload('organisation')).filter(model.AppUser.organisation_id==org_id).all()
             else:
-                obs = session.query(model.AppUser).options(joinedload('organisation')).filter(model.AppUser.organisation_id==org_id).all()
+                obs = session.query(model.AppUser).options(joinedload('organisation')).filter(model.AppUser.organisation_id==self.organisation.id).all()
             
             for ob in obs:
                 org = to_dict(ob.organisation, include={'id', 'name'})

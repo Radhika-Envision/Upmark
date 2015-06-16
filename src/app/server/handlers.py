@@ -15,7 +15,10 @@ import tornado.web
 import sqlalchemy
 
 import model
+import data_access 
+
 from utils import falsy, truthy
+from tornado.escape import json_decode, json_encode
 
 
 log = logging.getLogger('app.handlers')
@@ -294,6 +297,20 @@ class AuthLogoutHandler(BaseHandler):
         self.clear_cookie("user")
         self.redirect(self.get_argument("next", "/"))
 
+
+class AuthHandler(BaseHandler):
+    @tornado.web.authenticated
+    def get(self):
+        org = data_access.to_dict(self.organisation, include={'id', 'name'})
+        org = data_access.simplify(org)
+        org = data_access.normalise(org)
+        son = data_access.to_dict(self.current_user, include={'id', 'name', 'email'})
+        son = data_access.simplify(son)
+        son = data_access.normalise(son)
+        son["organisation"] = org
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(son))
+        self.finish()
 
 class RamCacheHandler(tornado.web.RequestHandler):
 

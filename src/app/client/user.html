@@ -51,7 +51,7 @@
                 ng-model="edit.model.email" required />
         </div>
         <div class="form-group">
-            <label for="user_org">Utility</label>
+            <label for="user_org">Oranisation</label>
             <ui-select ng-model="edit.model.organisation"
                 ng-disabled="disabled"
                 reset-search-input="false">
@@ -90,7 +90,7 @@
         <dd>{{user.email}}</dd>
     </dl>
     <dl>
-        <dt>Utility</dt>
+        <dt>Oragnisation</dt>
         <dd><a ng-href="#/org/{{user.organisation.id}}">{{user.organisation.name}}</a></dd>
     </dl>
 </div>

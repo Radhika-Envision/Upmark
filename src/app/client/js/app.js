@@ -117,6 +117,9 @@ angular.module('wsaa.aquamark',
                     users: ['User', '$location', function(User, $location) {
                         var org_id = $location.search()["org_id"];
                         return User.query({org_id:org_id}).$promise;
+                    }],
+                    current_user : ['User', function(User) {
+                        return User.get({id:"current"}).$promise;
                     }]
                 })}
             })
@@ -126,6 +129,9 @@ angular.module('wsaa.aquamark',
                 resolve: {routeData: chain({
                     roles: ['Roles', function(Roles) {
                         return Roles.get().$promise;
+                    }],
+                    current_user : ['User', function(User) {
+                        return User.get({id:"current"}).$promise;
                     }]
                 })}
             })
@@ -138,6 +144,9 @@ angular.module('wsaa.aquamark',
                     }],
                     user: ['User', '$route', function(User, $route) {
                         return User.get($route.current.params).$promise;
+                    }],
+                    current_user : ['User', function(User) {
+                        return User.get({id:"current"}).$promise;
                     }]
                 })}
             })
@@ -147,6 +156,9 @@ angular.module('wsaa.aquamark',
                 resolve: {routeData: chain({
                     orgs: ['Organisation', function(Organisation) {
                         return Organisation.query({}).$promise;
+                    }],
+                    current_user : ['User', function(User) {
+                        return User.get({id:"current"}).$promise;
                     }]
                 })}
             })
@@ -154,6 +166,9 @@ angular.module('wsaa.aquamark',
                 templateUrl : 'organisation.html',
                 controller : 'OrganisationCtrl',
                 resolve: {routeData: chain({
+                    current_user : ['User', function(User) {
+                        return User.get({id:"current"}).$promise;
+                    }]
                 })}
             })
             .when('/org/:id', {
@@ -162,6 +177,9 @@ angular.module('wsaa.aquamark',
                 resolve: {routeData: chain({
                     org: ['Organisation', '$route', function(Organisation, $route) {
                         return Organisation.get($route.current.params).$promise;
+                    }],
+                    current_user : ['User', function(User) {
+                        return User.get({id:"current"}).$promise;
                     }]
                 })}
             })
