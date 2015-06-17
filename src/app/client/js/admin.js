@@ -14,9 +14,42 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
 
 
 .factory('Roles', ['$resource', function($resource) {
-    return $resource('/roles.json', {}, {
+    var Roles = $resource('/roles.json', {}, {
         get: { method: 'GET', isArray: true }
     });
+
+    Roles.hierarchy = {
+        'admin': ['author', 'authority', 'consultant', 'org_admin', 'clerk'],
+        'author': [],
+        'authority': ['consultant'],
+        'consultant': [],
+        'org_admin': ['clerk'],
+        'clerk': []
+    };
+
+    Roles.hasPermission = function(currentRole, targetRole) {
+        if (targetRole == currentRole)
+            return true;
+        if (Roles.hierarchy[currentRole].indexOf(targetRole) >= 0)
+            return true;
+        return false;
+    };
+
+    Roles.checkRole = function(role, functionName) {
+        if (role == "admin")
+            return true;
+        switch(functionName) {
+            case 'user_add':
+                return Roles.hasPermission(role, 'org_admin');
+                break;
+            case 'change_oranisation':
+                return Roles.hasPermission(role, 'admin');
+                break;
+        }
+        return false;
+    };
+
+    return Roles;
 }])
 
 
@@ -28,6 +61,7 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
         create: { method: 'POST', url: '/organisation.json' }
     });
 }])
+
 
 /**
  * Manages state for a modal editing session.
@@ -111,8 +145,26 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
 }])
 
 
-.controller('UserCtrl', ['$scope', 'User', 'routeData', 'Editor', 'Organisation', 'log',
-        function($scope, User, routeData, Editor, Organisation, log) {
+.factory('userAuthz', ['Roles', function(Roles) {
+    return function(user, functionName) {
+        if (user.role == "admin")
+            return true;
+        switch(functionName) {
+            case 'user_add':
+                return Roles.hasPermission(user.role, 'org_admin');
+                break;
+            case 'change_org':
+                return false;
+                break;
+        }
+        return false;
+    };
+}])
+
+
+.controller('UserCtrl', [
+        '$scope', 'User', 'routeData', 'Editor', 'Organisation', 'userAuthz',
+        function($scope, User, routeData, Editor, Organisation, userAuthz) {
 
     $scope.users = routeData.users;
     $scope.currentUser = routeData.currentUser;
@@ -142,18 +194,17 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
         });
     };
 
-    $scope.checkRole = function(function_name) {
-        if ($scope.currentUser.role == "admin")
-            return true;
-        switch(function_name) {
-            case 'user_add':
-                return $scope.currentUser.role == 'org_admin';
-                break;
-            case 'change_org':
-                return false;
-                break;
-        }
-    }
+    $scope.checkRole = userAuthz;
+}])
+
+
+.controller('UserListCtrl', ['$scope', 'routeData', 'userAuthz',
+        function($scope, routeData, userAuthz) {
+
+    $scope.users = routeData.users;
+    $scope.currentUser = routeData.currentUser;
+
+    $scope.checkRole = userAuthz;
 }])
 
 
