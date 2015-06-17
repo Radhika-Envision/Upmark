@@ -149,9 +149,7 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
             case 'user_add':
                 return $scope.currentUser.role == 'org_admin';
                 break;
-            case 'change_oranisation':
-                if ($scope.currentUser.role == "org_admin")
-                    return true;
+            case 'change_org':
                 return false;
                 break;
         }
@@ -162,6 +160,7 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
 .controller('OrganisationCtrl', ['$scope', 'Organisation', 'routeData', 'Editor', 'log',
         function($scope, Organisation, routeData, Editor, log) {
 
+    $scope.currentUser = routeData.currentUser;
     if (routeData.orgs) {   
         $scope.orgs = routeData.orgs;
     }
@@ -177,6 +176,21 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
         };
         $scope.edit.edit();
     }
+
+    $scope.checkRole = function(function_name) {
+        if ($scope.currentUser.role == "admin")
+            return true;
+        switch(function_name) {
+            case 'org_add':
+                return $scope.currentUser.role == 'org_admin';
+                break;
+            case 'org_modify':
+                return $scope.currentUser.role == 'org_admin';
+                break;
+        }
+    }
+
+
 }])
 
 ;
