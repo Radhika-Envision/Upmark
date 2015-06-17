@@ -146,12 +146,12 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
 
 
 .factory('userAuthz', ['Roles', function(Roles) {
-    return function(user, functionName) {
-        if (user.role == "admin")
+    return function(currentUser, functionName) {
+        if (currentUser.role == "admin")
             return true;
         switch(functionName) {
             case 'user_add':
-                return Roles.hasPermission(user.role, 'org_admin');
+                return Roles.hasPermission(currentUser.role, 'org_admin');
                 break;
             case 'change_org':
                 return false;
@@ -209,15 +209,18 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
 
 
 .factory('orgAuthz', ['Roles', function(Roles) {
-    return function(user, functionName) {
-        if (user.role == "admin")
+    return function(currentUser, org, functionName) {
+        console.log(currentUser, org, functionName)
+        if (currentUser.role == "admin")
             return true;
         switch(functionName) {
             case 'org_add':
-                return Roles.hasPermission(user.role, 'org_admin');
+                return false;
                 break;
             case 'org_modify':
-                return Roles.hasPermission(user.role, 'org_admin');
+                if (currentUser.organisation.id != org.id)
+                    return false;
+                return Roles.hasPermission(currentUser.role, 'org_admin');
                 break;
         }
         return false;
