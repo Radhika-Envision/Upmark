@@ -70,7 +70,7 @@ def modify_org(args):
     try:
         with session_scope() as session:
             try:
-                usorger = session.query(AppOrganisationUser).filter_by(name=args.name).one()
+                org = session.query(Organisation).filter_by(name=args.name).one()
                 is_new = True
             except sqlalchemy.orm.exc.NoResultFound:
                 is_new = False

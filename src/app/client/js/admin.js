@@ -115,15 +115,16 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
         function($scope, User, routeData, Editor, Organisation, log) {
 
     $scope.users = routeData.users;
-    $scope.current_user = routeData.current_user;
+    $scope.currentUser = routeData.currentUser;
     $scope.edit = Editor(User, 'user', $scope);
     if (routeData.user) {
-        // Editing old user
+        // Editing old
         $scope.user = routeData.user;
     } else {
-        // Creating new user
+        // Creating new
         $scope.user = {
-            role: 'clerk'
+            role: 'clerk',
+            organisation: $scope.currentUser.organisation
         };
         $scope.edit.edit();
     }
@@ -141,15 +142,15 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
         });
     };
 
-    $scope.check_role = function(function_name) {
-        if ($scope.current_user.role == "admin")
+    $scope.checkRole = function(function_name) {
+        if ($scope.currentUser.role == "admin")
             return true;
         switch(function_name) {
             case 'user_add':
-                return false;
+                return $scope.currentUser.role == 'org_admin';
                 break;
             case 'change_oranisation':
-                if ($scope.current_user.role == "org_admin")
+                if ($scope.currentUser.role == "org_admin")
                     return true;
                 return false;
                 break;
@@ -167,11 +168,11 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
 
     $scope.edit = Editor(Organisation, 'org', $scope);
     if (routeData.org) {
-        // Editing old user
+        // Editing old
         $scope.org = routeData.org;
         console.log($scope.org);
     } else {
-        // Creating new user
+        // Creating new
         $scope.org = {
         };
         $scope.edit.edit();

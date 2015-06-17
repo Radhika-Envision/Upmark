@@ -101,20 +101,20 @@ class AppUser(Versioned, Base):
 
 
 ROLE_HIERARCHY = {
-    'admin': ['author', 'authority', 'consultant', 'org_admin', 'clerk'],
-    'author': [],
-    'authority': ['consultant'],
-    'consultant': [],
-    'org_admin': ['clerk'],
-    'clerk': []
+    'admin': {'author', 'authority', 'consultant', 'org_admin', 'clerk'},
+    'author': set(),
+    'authority': {'consultant'},
+    'consultant': set(),
+    'org_admin': {'clerk'},
+    'clerk': set()
 }
 
 
 def has_privillege(current_role, target_role):
     '''
     Checks whether one role has the privilleges of another role. For example,
-        has_privillege('org_admin', 'org_clerk') -> True
-        has_privillege('org_clerk', 'org_admin') -> False
+        has_privillege('org_admin', 'clerk') -> True
+        has_privillege('clerk', 'org_admin') -> False
     '''
     if target_role == current_role:
         return True

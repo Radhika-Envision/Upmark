@@ -4,7 +4,7 @@
             <i class="fa fa-fw fa-users"></i>
             Users
             <a class="btn btn-default btn-round" title="Add new"
-                    href="#/user/new" ng-if="check_role('user_add')">
+                    href="#/user/new" ng-if="checkRole('user_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
         </h2>
     </div>
@@ -14,15 +14,13 @@
     <thead>
       <tr>
         <th>name</th>
-        <th>email</th>
         <th>organisation</th>
       </tr>
     </thead>
     <tbody>
       <tr ng-repeat="user in users">
         <td><a ng-href="#/user/{{user.id}}">{{user.name}}</a></td>
-        <td>{{user.email}}</td>
-        <td>{{user.organisation.name}}</td>
+        <td><a ng-href="#/org/{{user.organisation.id}}">{{user.organisation.name}}</a></td>
       </tr>
     </tbody>
   </table>

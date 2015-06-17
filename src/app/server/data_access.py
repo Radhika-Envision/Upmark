@@ -80,13 +80,7 @@ class OrgHandler(handlers.BaseHandler):
 
         sons = []
         with model.session_scope() as session:
-            obs = None
-            if self.current_user.role == "admin":
-                obs = session.query(model.Organisation).all()
-            else:
-                obs = session.query(model.Organisation).filter(model.Organisation.id == self.organisation.id)
-
-            for ob in obs:
+            for ob in session.query(model.Organisation).all():
                 son = to_dict(ob, include={'id', 'name', 'url', 'region', 'number_of_customers'})
                 son = simplify(son)
                 son = normalise(son)
@@ -98,12 +92,7 @@ class OrgHandler(handlers.BaseHandler):
     def search(self, term):
         sons = []
         with model.session_scope() as session:
-            obs = None
-            if self.current_user.role == "admin":
-                obs = session.query(model.Organisation).filter(model.Organisation.name.ilike('%'+term+'%')).all()
-            else:
-                obs = session.query(model.Organisation).filter(model.Organisation.id == self.organisation.id).all()
-
+            obs = session.query(model.Organisation).filter(model.Organisation.name.ilike('%'+term+'%')).all()
             for ob in obs:
                 son = to_dict(ob, include={'id', 'name'})
                 son = simplify(son)
@@ -139,12 +128,12 @@ class OrgHandler(handlers.BaseHandler):
         '''
         if org_id == '':
             raise handlers.MethodError("Can't use PUT for new organisations (no ID).")
-        
+
         '''
         Check org_admin's organisation.id and org_id
         '''
         if self.current_user.role == 'org_admin' and str(self.organisation.id) != org_id:
-            raise handlers.MethodError("You(org_admin) cannot modify other organisation's information.")
+            raise handlers.MethodError("You cannot modify other organisation's information.")
 
         son = json_decode(self.request.body)
         try:
@@ -185,6 +174,9 @@ class UserHandler(handlers.BaseHandler):
             self.query(org_id)
             return
 
+        if user_id == 'current':
+            user_id = str(self.current_user.id)
+
         with model.session_scope() as session:
             try:
                 user = session.query(model.AppUser).options(joinedload('organisation')).get(user_id)
@@ -207,7 +199,6 @@ class UserHandler(handlers.BaseHandler):
         self.write(json_encode(son))
         self.finish()
 
-    @handlers.authz('admin', 'org_admin')
     def query(self, org_id):
         '''
         Get a list of users.
@@ -222,12 +213,12 @@ class UserHandler(handlers.BaseHandler):
                     obs = session.query(model.AppUser).options(joinedload('organisation')).filter(model.AppUser.organisation_id==org_id).all()
             else:
                 obs = session.query(model.AppUser).options(joinedload('organisation')).filter(model.AppUser.organisation_id==self.organisation.id).all()
-            
+
             for ob in obs:
                 org = to_dict(ob.organisation, include={'id', 'name'})
                 org = simplify(org)
                 org = normalise(org)
-                son = to_dict(ob, include={'id', 'name', 'email'})
+                son = to_dict(ob, include={'id', 'name'})
                 son = simplify(son)
                 son = normalise(son)
                 son["organisation"] = org
@@ -236,7 +227,6 @@ class UserHandler(handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
-    @handlers.authz('admin', 'org_admin')
     def post(self, user_id):
         '''
         Create a new user.
@@ -245,14 +235,8 @@ class UserHandler(handlers.BaseHandler):
             raise handlers.MethodError("Can't use POST for existing users.")
 
         son = json_decode(self.request.body)
-        '''
-        Check new user's organisation.id should be same as org_admin's organisation.id
-        '''
-        if self.current_user.role == 'org_admin':
-            if self.current_user.organistaion_id != son['organisation']['id']:
-                raise handlers.MethodError("You(org_admin) cannot create other organisation's user.")
-            if son['role'] not in ['org_admin', 'clerk']:
-                raise handlers.MethodError("You(org_admin) cannot create this(" + son['role'] + ") role user.")                
+        self._check_create(son)
+        self._check_update(son, user_id)
 
         try:
             with model.session_scope() as session:
@@ -266,7 +250,6 @@ class UserHandler(handlers.BaseHandler):
             raise handlers.ModelError("Arguments are invalid")
         self.get(user.id)
 
-    @handlers.authz('admin', 'org_admin')
     def put(self, user_id):
         '''
         Update an existing user.
@@ -274,18 +257,7 @@ class UserHandler(handlers.BaseHandler):
         if user_id == '':
             raise handlers.MethodError("Can't use PUT for new users (no ID).")
         son = json_decode(self.request.body)
-        '''
-        Check new user's organisation.id should be same as org_admin's organisation.id
-        '''
-        if self.current_user.role == 'org_admin':
-            if str(self.organisation.id) != son['organisation']['id']:
-                print("org", self.organisation.id)
-                raise handlers.MethodError("You(org_admin) cannot create other organisation's user.")
-            if son['role'] not in ['org_admin', 'clerk']:
-                raise handlers.MethodError("You(org_admin) cannot create this(" + son['role'] + ") role user.")                
-
-        if str(self.organisation.id) != son['organisation']['id'] and self.current_user.role != 'admin':
-            raise handlers.MethodError("Only admin can change your organisation. Please contact your admin.")                
+        self._check_update(son, user_id)
 
         try:
             with model.session_scope() as session:
@@ -299,6 +271,26 @@ class UserHandler(handlers.BaseHandler):
         except sqlalchemy.exc.IntegrityError:
             raise handlers.ModelError("Arguments are invalid")
         self.get(user_id)
+
+    def _check_create(self, son):
+        if not model.has_privillege(self.current_user.role, 'org_admin'):
+            raise handlers.MethodError("You cannot create a new user.")
+
+    def _check_update(self, son, user_id):
+        if model.has_privillege(self.current_user.role, 'admin'):
+            pass
+        elif model.has_privillege(self.current_user.role, 'org_admin'):
+            if str(self.organisation.id) != son['organisation']['id']:
+                raise handlers.MethodError("You cannot create/modify other organisation's user.")
+            if son['role'] not in {'org_admin', 'clerk'}:
+                raise handlers.MethodError("You cannot set this role (%s)." % son['role'])
+        else:
+            if str(self.current_user.id) != user_id:
+                raise handlers.MethodError("You cannot modify another user.")
+            if str(self.organisation.id) != son['organisation']['id']:
+                raise handlers.MethodError("You cannot change your organisation.")
+            if son['role'] != self.current_user.role:
+                raise handlers.MethodError("You cannot change your role.")
 
     def _update(self, user, son):
         '''
