@@ -208,40 +208,50 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
 }])
 
 
-.controller('OrganisationCtrl', ['$scope', 'Organisation', 'routeData', 'Editor', 'log',
-        function($scope, Organisation, routeData, Editor, log) {
+.factory('orgAuthz', ['Roles', function(Roles) {
+    return function(user, functionName) {
+        if (user.role == "admin")
+            return true;
+        switch(functionName) {
+            case 'org_add':
+                return Roles.hasPermission(user.role, 'org_admin');
+                break;
+            case 'org_modify':
+                return Roles.hasPermission(user.role, 'org_admin');
+                break;
+        }
+        return false;
+    };
+}])
+
+
+.controller('OrganisationCtrl', [
+        '$scope', 'Organisation', 'routeData', 'Editor', 'orgAuthz',
+        function($scope, Organisation, routeData, Editor, orgAuthz) {
 
     $scope.currentUser = routeData.currentUser;
-    if (routeData.orgs) {   
-        $scope.orgs = routeData.orgs;
-    }
 
     $scope.edit = Editor(Organisation, 'org', $scope);
     if (routeData.org) {
         // Editing old
         $scope.org = routeData.org;
-        console.log($scope.org);
     } else {
         // Creating new
-        $scope.org = {
-        };
+        $scope.org = {};
         $scope.edit.edit();
     }
 
-    $scope.checkRole = function(function_name) {
-        if ($scope.currentUser.role == "admin")
-            return true;
-        switch(function_name) {
-            case 'org_add':
-                return $scope.currentUser.role == 'org_admin';
-                break;
-            case 'org_modify':
-                return $scope.currentUser.role == 'org_admin';
-                break;
-        }
-    }
+    $scope.checkRole = orgAuthz;
+}])
 
 
+.controller('OrganisationListCtrl', ['$scope', 'routeData', 'orgAuthz',
+        function($scope, routeData, orgAuthz) {
+
+    $scope.currentUser = routeData.currentUser;
+    $scope.orgs = routeData.orgs;
+
+    $scope.checkRole = orgAuthz;
 }])
 
 ;

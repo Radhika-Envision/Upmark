@@ -151,7 +151,7 @@ angular.module('wsaa.aquamark',
             })
             .when('/orgs', {
                 templateUrl : 'organisation_list.html',
-                controller : 'OrganisationCtrl',
+                controller : 'OrganisationListCtrl',
                 resolve: {routeData: chain({
                     orgs: ['Organisation', function(Organisation) {
                         return Organisation.query({}).$promise;
