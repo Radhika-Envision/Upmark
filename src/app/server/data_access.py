@@ -13,6 +13,7 @@ import logging
 
 log = logging.getLogger('app.data_access')
 
+
 def to_dict(ob, include=None, exclude=None):
     '''
     Convert the public fields of an object into a dictionary.
@@ -29,6 +30,9 @@ def to_dict(ob, include=None, exclude=None):
 
 
 def simplify(ob_dict):
+    '''
+    Convert the values in a dictionary to primitive types.
+    '''
     new_dict = {}
     for name, value in ob_dict.items():
         if isinstance(value, datetime.date):
@@ -40,6 +44,9 @@ def simplify(ob_dict):
 
 
 def normalise(ob_dict):
+    '''
+    Convert the keys of a dictionary to JSON form.
+    '''
     new_dict = {}
     for name, value in ob_dict.items():
         components = name.split('_')
@@ -170,8 +177,7 @@ class UserHandler(handlers.BaseHandler):
         Get a single user.
         '''
         if user_id == "":
-            org_id = self.get_argument("org_id", None)
-            self.query(org_id)
+            self.query()
             return
 
         if user_id == 'current':
@@ -199,20 +205,21 @@ class UserHandler(handlers.BaseHandler):
         self.write(json_encode(son))
         self.finish()
 
-    def query(self, org_id):
+    def query(self):
         '''
         Get a list of users.
         '''
+        org_id = self.get_argument("org_id", None)
+        if org_id is None:
+            filters = {}
+        else:
+            filters = { 'organisation_id': org_id }
+
         sons = []
         with model.session_scope() as session:
-            obs = None
-            if self.current_user.role == 'admin':
-                if (org_id is None or org_id == ""): 
-                    obs = session.query(model.AppUser).options(joinedload('organisation')).all()
-                else:
-                    obs = session.query(model.AppUser).options(joinedload('organisation')).filter(model.AppUser.organisation_id==org_id).all()
-            else:
-                obs = session.query(model.AppUser).options(joinedload('organisation')).filter(model.AppUser.organisation_id==self.organisation.id).all()
+            obs = session.query(model.AppUser)\
+                .options(joinedload('organisation'))\
+                .filter_by(**filters).all()
 
             for ob in obs:
                 org = to_dict(ob.organisation, include={'id', 'name'})
@@ -223,6 +230,7 @@ class UserHandler(handlers.BaseHandler):
                 son = normalise(son)
                 son["organisation"] = org
                 sons.append(son)
+
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
         self.finish()
