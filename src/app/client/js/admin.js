@@ -210,7 +210,6 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
 
 .factory('orgAuthz', ['Roles', function(Roles) {
     return function(currentUser, org, functionName) {
-        console.log(currentUser, org, functionName)
         if (currentUser.role == "admin")
             return true;
         switch(functionName) {
@@ -243,6 +242,7 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
         $scope.org = {};
         $scope.edit.edit();
     }
+    $scope.users = routeData.users;
 
     $scope.checkRole = orgAuthz;
 }])

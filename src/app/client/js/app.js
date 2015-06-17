@@ -179,6 +179,9 @@ angular.module('wsaa.aquamark',
                     }],
                     currentUser : ['User', function(User) {
                         return User.get({id: "current"}).$promise;
+                    }],
+                    users: ['User', 'org', function(User, org) {
+                        return User.query({org_id: org.id}).$promise;
                     }]
                 })}
             })
