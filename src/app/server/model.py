@@ -110,16 +110,18 @@ ROLE_HIERARCHY = {
 }
 
 
-def has_privillege(current_role, target_role):
+def has_privillege(current_role, *target_roles):
     '''
     Checks whether one role has the privilleges of another role. For example,
         has_privillege('org_admin', 'clerk') -> True
         has_privillege('clerk', 'org_admin') -> False
+        has_privillege('clerk', 'consultant', 'clerk') -> True
     '''
-    if target_role == current_role:
-        return True
-    if target_role in ROLE_HIERARCHY[current_role]:
-        return True
+    for target_role in target_roles:
+        if target_role == current_role:
+            return True
+        if target_role in ROLE_HIERARCHY[current_role]:
+            return True
     return False
 
 
