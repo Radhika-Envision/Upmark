@@ -38,7 +38,7 @@
         <div class="form-group" show-errors>
             <label for="user_role">Role</label>
             <select type="text" class="form-control" id="user_role" name="user_role"
-                ng-options="role.id as role.name for role in roles"
+                ng-options="role.id as (role.name + ' - ' + role.description) for role in roles"
                 ng-model="edit.model.role"></select>
         </div>
         <div class="form-group" show-errors>
@@ -86,7 +86,9 @@
 <div class="container">
     <dl>
         <dt>Role</dt>
-        <dd>{{roleDict[user.role].name}}</dd>
+        <dd>{{roleDict[user.role].name}}
+            <span class="text-muted">- {{roleDict[user.role].description}}</span>
+        </dd>
     </dl>
     <dl ng-if="user.email">
         <dt>Email</dt>

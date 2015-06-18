@@ -1,11 +1,11 @@
 [{
     "id": "admin",
     "name": "Administrator",
-    "description": "Can do almost anything"
+    "description": "Can do anything"
 }, {
     "id": "author",
     "name": "Author",
-    "description": "Create new surveys and edits questions"
+    "description": "Creates new surveys and edits questions"
 }, {
     "id": "authority",
     "name": "Authority",
@@ -16,8 +16,8 @@
     "description": "Gives initial approval to assessments"
 }, {
     "id": "org_admin",
-    "name": "Utility Administrator",
-    "description": "Manages a utility, and responds to surveys"
+    "name": "Organisation Administrator",
+    "description": "Manages an organisation, and responds to surveys"
 }, {
     "id": "clerk",
     "name": "Utility Clerk",
