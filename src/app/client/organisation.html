@@ -18,7 +18,7 @@
             <i class="fa fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
-                ng-if="edit.model">
+                ng-if="edit.model && edit.model.id">
             <i class="fa fa-times"></i></button>
     </h2>
 </div>
@@ -31,24 +31,30 @@
         <div class="form-group" show-errors>
             <label for="org_name">Name</label>
             <span class="help-label" ng-if="form.org_name.$error.required">
-                Please provide a name</span>
+                *</span>
             <input type="text" class="form-control" id="org_name" name="org_name"
                 ng-model="edit.model.name" required />
         </div>
         <div class="form-group" show-errors>
             <label for="org_url">Web site</label>
+            <span class="help-label" ng-if="form.org_url.$error.required">
+                *</span>
             <input type="text" class="form-control" id="org_url" name="org_url"
-                ng-model="edit.model.url" />
+                ng-model="edit.model.url" required />
         </div>
         <div class="form-group" show-errors>
             <label for="org_customers">Number of customers</label>
+            <span class="help-label" ng-if="form.org_customers.$error.required">
+                *</span>
             <input type="number" class="form-control" id="org_customers" name="org_customers"
-                ng-model="edit.model.numberOfCustomers" />
+                ng-model="edit.model.numberOfCustomers" required />
         </div>
         <div class="form-group" show-errors>
             <label for="org_region">Region</label>
+            <span class="help-label" ng-if="form.org_region.$error.required">
+                *</span>
             <input type="text" class="form-control" id="org_region" name="org_region"
-                ng-model="edit.model.region" />
+                ng-model="edit.model.region" required />
         </div>
     </form>
 </div>
