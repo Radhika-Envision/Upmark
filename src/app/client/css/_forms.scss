@@ -120,7 +120,7 @@ button, .btn, a, textarea, input, select {
 .messages {
     position: fixed;
     left: 0;
-    top: 0;
+    bottom: 0;
     right: 0;
     z-index: 5000;
     padding-top: 4px;
@@ -128,6 +128,11 @@ button, .btn, a, textarea, input, select {
     ul {
         list-style: none;
         padding: 0;
+        margin: 0;
+    }
+    li {
+        padding-top: 4px;
+        padding-bottom: 4px;
     }
     .btn-default {
         background: transparent;

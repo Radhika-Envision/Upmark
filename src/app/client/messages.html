@@ -1,18 +1,17 @@
 <div class="messages">
-    <div class="container">
-        <ul>
-            <li ng-repeat="message in notifications.messages"
-                    class="panel"
-                    ng-class="'panel-' + message.css">
-                <div class="panel-body"
-                        ng-class="['bg-' + message.css, 'text-' + message.css]">
-                    <span class="label" ng-class="'label-' + message.css">{{message.type}}</span>
-                    {{message.body}}
-                    <button class="btn btn-default btn-round"
-                            ng-click="notifications.remove(message)">
-                        <i class="fa fa-times"></i></button>
-                </div>
-            </li>
-        </ul>
-    </div>
+    <ul>
+        <li ng-repeat="message in notifications.messages"
+                class="ng-animate-enabled"
+                ng-class="['bg-' + message.css, 'text-' + message.css]">
+            <div class="container">
+                <i class="fa fa-warning" ng-if="message.type == 'error'"></i>
+                <i class="fa fa-warning" ng-if="message.type == 'warning'"></i>
+                <i class="fa fa-info-circle" ng-if="message.type == 'info'"></i>
+                {{message.body}}
+                <button class="btn btn-default btn-round"
+                        ng-click="notifications.remove(message)">
+                    <i class="fa fa-times"></i></button>
+            </div>
+        </li>
+    </ul>
 </div>
