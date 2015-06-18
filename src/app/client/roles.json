@@ -20,6 +20,6 @@
     "description": "Manages an organisation, and responds to surveys"
 }, {
     "id": "clerk",
-    "name": "Utility Clerk",
+    "name": "Clerk",
     "description": "Responds to surveys"
 }]

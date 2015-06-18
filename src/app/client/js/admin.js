@@ -162,6 +162,8 @@ angular.module('wsaa.admin', [
                 case 'user_edit':
                     if (current.user.id == user.id)
                         return true;
+                    if (current.user.organisation.id != user.organisation.id)
+                        return false;
                     return Roles.hasPermission(current.user.role, 'org_admin');
                     break;
                 case 'user_impersonate':
