@@ -1,6 +1,7 @@
 'use strict';
 
-angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
+angular.module('wsaa.admin', [
+    'ngResource', 'ngSanitize', 'ui.select', 'ngCookies'])
 
 
 .factory('User', ['$resource', function($resource) {
@@ -8,15 +9,17 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
         get: { method: 'GET' },
         save: { method: 'PUT' },
         query: { method: 'GET', url: '/user.json', isArray: true },
-        create: { method: 'POST', url: '/user.json' }
+        create: { method: 'POST', url: '/user.json' },
+        impersonate: { method: 'PUT', url: '/login/:id' }
     });
 }])
 
 
-.factory('Current', ['User', '$q', function(User, $q) {
+.factory('Current', ['User', '$q', '$cookies', function(User, $q, $cookies) {
     var deferred = $q.defer();
     var Current = {
         user: User.get({id: 'current'}),
+        superuser: $cookies.get('superuser') != null,
         $promise: null
     };
     Current.$promise = $q.all([Current.user.$promise]).then(
@@ -50,20 +53,6 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
             return true;
         if (Roles.hierarchy[currentRole].indexOf(targetRole) >= 0)
             return true;
-        return false;
-    };
-
-    Roles.checkRole = function(role, functionName) {
-        if (role == "admin")
-            return true;
-        switch(functionName) {
-            case 'user_add':
-                return Roles.hasPermission(role, 'org_admin');
-                break;
-            case 'change_oranisation':
-                return Roles.hasPermission(role, 'admin');
-                break;
-        }
         return false;
     };
 
@@ -166,14 +155,22 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
 .factory('userAuthz', ['Roles', function(Roles) {
     return function(current, user) {
         return function(functionName) {
-            if (current.user.role == "admin")
-                return true;
             switch(functionName) {
                 case 'user_add':
                     return Roles.hasPermission(current.user.role, 'org_admin');
                     break;
-                case 'change_org':
-                    return false;
+                case 'user_edit':
+                    if (current.user.id == user.id)
+                        return true;
+                    return Roles.hasPermission(current.user.role, 'org_admin');
+                    break;
+                case 'user_impersonate':
+                    if (current.user.id == user.id)
+                        return false;
+                    return current.superuser;
+                    break;
+                case 'user_change_org':
+                    return Roles.hasPermission(current.user.role, 'admin');
                     break;
             }
             return false;
@@ -184,7 +181,9 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
 
 .controller('UserCtrl', [
         '$scope', 'User', 'routeData', 'Editor', 'Organisation', 'userAuthz',
-        function($scope, User, routeData, Editor, Organisation, userAuthz) {
+        '$window',
+        function($scope, User, routeData, Editor, Organisation, userAuthz,
+                 $window) {
 
     $scope.users = routeData.users;
     $scope.current = routeData.current;
@@ -215,6 +214,17 @@ angular.module('wsaa.admin', ['ngResource', 'ngSanitize', 'ui.select'])
     };
 
     $scope.checkRole = userAuthz($scope.current, $scope.user);
+
+    $scope.impersonate = function() {
+        User.impersonate({id: $scope.user.id}).$promise.then(
+            function success() {
+                console.log('reloading');
+                $window.location.reload();
+            },
+            function error(reason) {
+            }
+        );
+    };
 }])
 
 

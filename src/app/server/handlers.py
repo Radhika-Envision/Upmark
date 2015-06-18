@@ -35,6 +35,12 @@ def deploy_id():
         return DEPLOY_ID
 
 
+class AuthzError(tornado.web.HTTPError):
+    def __init__(self, reason="Not authorised", log_message=None, *args, **kwargs):
+        tornado.web.HTTPError.__init__(
+            self, 403, reason=reason, log_message=log_message, *args, **kwargs)
+
+
 class ModelError(tornado.web.HTTPError):
     def __init__(self, reason="Arguments are invalid", log_message=None, *args, **kwargs):
         tornado.web.HTTPError.__init__(
@@ -105,19 +111,23 @@ SCRIPTS = [
         'href': '/.bower_components/jquery/dist/jquery.js'
     },
     {
-        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular.min.js', # @IgnorePep8
+        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular.min.js', # @IgnorePep8
         'href': '/.bower_components/angular/angular.js'
     },
     {
-        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-route.min.js', # @IgnorePep8
+        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular-cookies.min.js', # @IgnorePep8
+        'href': '/.bower_components/angular-cookies/angular-cookies.js'
+    },
+    {
+        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular-route.min.js', # @IgnorePep8
         'href': '/.bower_components/angular-route/angular-route.js'
     },
     {
-        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-resource.min.js', # @IgnorePep8
+        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular-resource.min.js', # @IgnorePep8
         'href': '/.bower_components/angular-resource/angular-resource.js'
     },
     {
-        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-animate.min.js', # @IgnorePep8
+        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular-animate.min.js', # @IgnorePep8
         'href': '/.bower_components/angular-animate/angular-animate.js'
     },
     {
@@ -191,8 +201,7 @@ def authz(*roles):
         def wrapper(self, *args, **kwargs):
             if not any(model.has_privillege(
                     self.current_user.role, role) for role in roles):
-                raise tornado.web.HTTPError(
-                    403, reason="Not authorised")
+                raise AuthzError()
             return fn(self, *args, **kwargs)
         return wrapper
     return decorator
@@ -263,7 +272,7 @@ class MainHandler(BaseHandler):
 
 
 class AuthLoginHandler(MainHandler):
-    def get(self):
+    def get(self, user_id):
         try:
             errormessage = self.get_argument("error")
         except:
@@ -275,7 +284,7 @@ class AuthLoginHandler(MainHandler):
             analytics_id=tornado.options.options.analytics_id,
             error=errormessage)
 
-    def post(self):
+    def post(self, user_id):
         email = self.get_argument("email", "")
         password = self.get_argument("password", "")
         try:
@@ -286,16 +295,39 @@ class AuthLoginHandler(MainHandler):
                 session.expunge(user)
         except (sqlalchemy.orm.exc.NoResultFound, ValueError):
             self.clear_cookie("user")
+            self.clear_cookie("superuser")
             error_msg = "?error=" + tornado.escape.url_escape("Login incorrect")
             self.redirect("/login/" + error_msg)
 
         self.set_secure_cookie("user", str(user.id).encode('utf8'))
+        if model.has_privillege(user.role, 'admin'):
+            self.set_secure_cookie("superuser", str(user.id).encode('utf8'))
         self.redirect(self.get_argument("next", "/"))
+
+    @tornado.web.authenticated
+    def put(self, user_id):
+        '''
+        Allows an admin to impersonate any other user without needing to know
+        their password.
+        '''
+        if not self.get_secure_cookie('superuser'):
+            raise AuthzError("Not authorised: you are not a superuser")
+        print('Impersonating')
+        with model.session_scope() as session:
+            user = session.query(model.AppUser).get(user_id)
+            if user is None:
+                raise handlers.MissingDocError("No such user")
+            name = user.name
+            self.set_secure_cookie("user", str(user.id).encode('utf8'))
+        self.set_header("Content-Type", "text/plain")
+        self.write("Impersonating %s" % name)
+        self.finish()
 
 
 class AuthLogoutHandler(BaseHandler):
     def get(self):
         self.clear_cookie("user")
+        self.clear_cookie("superuser")
         self.redirect(self.get_argument("next", "/"))
 
 

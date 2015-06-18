@@ -9,7 +9,7 @@
         <span ng-show="!user.name">New user</span>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
-                ng-if="!edit.model">
+                ng-if="!edit.model && checkRole('user_edit')">
             <i class="fa fa-pencil"></i></button>
         <button class="btn btn-default btn-round" title="Save"
                 ng-click="edit.save()"
@@ -20,6 +20,10 @@
                 ng-click="edit.cancel()"
                 ng-if="edit.model && edit.model.id">
             <i class="fa fa-times"></i></button>
+        <button class="btn btn-default btn-round" title="Impersonate"
+                ng-click="impersonate()"
+                ng-if="checkRole('user_impersonate')">
+            <i class="fa fa-paw"></i></button>
     </h2>
 </div>
 </div>
