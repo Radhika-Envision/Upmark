@@ -291,7 +291,7 @@ class UserHandler(handlers.BaseHandler):
             if str(self.organisation.id) != son['organisation']['id']:
                 raise handlers.MethodError("You cannot create/modify other organisation's user.")
             if son['role'] not in {'org_admin', 'clerk'}:
-                raise handlers.MethodError("You cannot set this role (%s)." % son['role'])
+                raise handlers.MethodError("You cannot set this role.")
         else:
             if str(self.current_user.id) != user_id:
                 raise handlers.MethodError("You cannot modify another user.")

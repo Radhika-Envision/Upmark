@@ -36,27 +36,27 @@ def deploy_id():
 
 
 class ModelError(tornado.web.HTTPError):
-    def __init__(self, log_message=None, *args, **kwargs):
+    def __init__(self, reason="Arguments are invalid", log_message=None, *args, **kwargs):
         tornado.web.HTTPError.__init__(
-            self, 403, log_message=log_message, *args, **kwargs)
+            self, 403, reason=reason, log_message=log_message, *args, **kwargs)
 
 
 class MissingDocError(tornado.web.HTTPError):
-    def __init__(self, log_message=None, *args, **kwargs):
+    def __init__(self, reason="Document not found", log_message=None, *args, **kwargs):
         tornado.web.HTTPError.__init__(
-            self, 404, log_message=log_message, *args, **kwargs)
+            self, 404, reason=reason, log_message=log_message, *args, **kwargs)
 
 
 class MethodError(tornado.web.HTTPError):
-    def __init__(self, log_message="Method not allowed", *args, **kwargs):
+    def __init__(self, reason="Method not allowed", log_message=None, *args, **kwargs):
         tornado.web.HTTPError.__init__(
-            self, 405, log_message=log_message, *args, **kwargs)
+            self, 405, reason=reason, log_message=log_message, *args, **kwargs)
 
 
 class InternalModelError(tornado.web.HTTPError):
-    def __init__(self, log_message=None, *args, **kwargs):
+    def __init__(self, reason="Bug in data model", log_message=None, *args, **kwargs):
         tornado.web.HTTPError.__init__(
-            self, 500, log_message=log_message, *args, **kwargs)
+            self, 500, reason=reason, log_message=log_message, *args, **kwargs)
 
 
 # Resources that have a CDN mirror have a local 'href' and a remote 'cdn'.
@@ -191,7 +191,8 @@ def authz(*roles):
         def wrapper(self, *args, **kwargs):
             if not any(model.has_privillege(
                     self.current_user.role, role) for role in roles):
-                raise tornado.web.HTTPError(403, log_message="Not authorised")
+                raise tornado.web.HTTPError(
+                    403, reason="Not authorised")
             return fn(self, *args, **kwargs)
         return wrapper
     return decorator

@@ -76,7 +76,8 @@ def get_settings():
     return {
         "cookie_secret": get_cookie_secret(),
         "xsrf_cookies": truthy(tornado.options.options.xsrf),
-        "debug": True,
+        "debug": truthy(tornado.options.options.debug),
+        "serve_traceback": truthy(tornado.options.options.dev),
         "gzip": True,
         "template_path": os.path.join(package_dir, "..", "client"),
         "login_url": "/login/",
