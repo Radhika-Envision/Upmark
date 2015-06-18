@@ -61,4 +61,45 @@ angular.module('vpac.widgets', [])
         }
     };
 }])
+
+
+.factory('Notifications', ['log', function(log) {
+    function Notifications() {
+        this.messages = [];
+    };
+    Notifications.prototype.add = function(type, body) {
+        var newMessage = {
+            type: type,
+            css: type == 'error' ? 'danger' : type,
+            body: body
+        };
+        this.messages = this.messages.concat(newMessage);
+        return newMessage;
+    };
+    Notifications.prototype.remove = function(message) {
+        var i = this.messages.indexOf(message);
+        if (i < 0) {
+            log.debug("Failed to remove message: not in array");
+            return;
+        }
+        var messages = angular.copy(this.messages);
+        messages.splice(i, 1);
+        return this.messages = messages;
+    };
+    return new Notifications();
+}])
+
+
+.directive('messages', [function() {
+    return {
+        restrict: 'E',
+        templateUrl: 'messages.html',
+        replace: true,
+        scope: {},
+        controller: ['$scope', 'Notifications', function($scope, Notifications) {
+            $scope.notifications = Notifications;
+        }]
+    };
+}])
+
 ;

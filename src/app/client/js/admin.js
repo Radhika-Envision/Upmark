@@ -73,13 +73,15 @@ angular.module('wsaa.admin', [
 /**
  * Manages state for a modal editing session.
  */
-.factory('Editor', ['$parse', 'log', '$filter', function($parse, log, $filter) {
+.factory('Editor', [
+        '$parse', 'log', '$filter', 'Notifications',
+         function($parse, log, $filter, Notifications) {
     function Editor(dao, targetPath, scope) {
         this.dao = dao;
         this.model = null;
         this.scope = scope;
         this.getter = $parse(targetPath);
-        this.error = null;
+        this.message = null;
         this.saving = false;
     };
 
@@ -90,7 +92,8 @@ angular.module('wsaa.admin', [
 
     Editor.prototype.cancel = function() {
         this.model = null;
-        this.error = null;
+        Notifications.remove(this.message);
+        this.message = null;
     };
 
     Editor.prototype.save = function() {
@@ -103,6 +106,7 @@ angular.module('wsaa.admin', [
             new_model = this.dao.save(this.model);
         }
         this.saving = true;
+        Notifications.remove(this.message);
 
         var that = this;
         new_model.$promise.then(
@@ -114,8 +118,9 @@ angular.module('wsaa.admin', [
                 that = null;
             },
             function error(details) {
-                log.error("Could not save object");
-                that.error = "Could not save object: " + details.statusText;
+                var errorText = "Could not save object: " + details.statusText;
+                log.error(errorText);
+                that.message = Notifications.add('error', errorText);
                 that.saving = false;
                 that = null;
             }
@@ -136,18 +141,6 @@ angular.module('wsaa.admin', [
             editor.destroy();
         });
         return editor;
-    };
-}])
-
-
-.directive('editorError', [function() {
-    return {
-        restrict: 'E',
-        template: '<div ng-if="edit.error"><div class="panel panel-warning"><div class="panel-body bg-warning text-warning">{{edit.error}}</div></div></div>',
-        scope: {
-            edit: '='
-        },
-        replace: true
     };
 }])
 
