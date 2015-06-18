@@ -16,20 +16,6 @@ body {
     }
 }
 
-.messages {
-    position: fixed;
-    left: 0;
-    top: 0;
-    right: 0;
-    z-index: 5000;
-    padding-top: 4px;
-
-    ul {
-        list-style: none;
-        padding: 0;
-    }
-}
-
 @import '_navigation.scss';
 @import '_forms.scss';
 @import '_survey.scss';

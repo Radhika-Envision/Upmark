@@ -15,7 +15,9 @@ angular.module('wsaa.admin', [
 }])
 
 
-.factory('Current', ['User', '$q', '$cookies', function(User, $q, $cookies) {
+.factory('Current', [
+        'User', '$q', '$cookies', 'Notifications',
+         function(User, $q, $cookies, Notifications) {
     var deferred = $q.defer();
     var Current = {
         user: User.get({id: 'current'}),
@@ -26,8 +28,14 @@ angular.module('wsaa.admin', [
         function success(values) {
             return Current;
         },
-        function error(reason) {
-            return reason;
+        function error(details) {
+            var message;
+            if (details.statusText)
+                message = "Failed to get current user: " + details.statusText;
+            else
+                message = "Failed to get current user";
+            Notifications.add('Current', 'error', message)
+            return details;
         }
     );
     return Current;
@@ -81,7 +89,6 @@ angular.module('wsaa.admin', [
         this.model = null;
         this.scope = scope;
         this.getter = $parse(targetPath);
-        this.message = null;
         this.saving = false;
     };
 
@@ -92,8 +99,7 @@ angular.module('wsaa.admin', [
 
     Editor.prototype.cancel = function() {
         this.model = null;
-        Notifications.remove(this.message);
-        this.message = null;
+        Notifications.remove('edit');
     };
 
     Editor.prototype.save = function() {
@@ -106,7 +112,6 @@ angular.module('wsaa.admin', [
             new_model = this.dao.save(this.model);
         }
         this.saving = true;
-        Notifications.remove(this.message);
 
         var that = this;
         new_model.$promise.then(
@@ -114,13 +119,14 @@ angular.module('wsaa.admin', [
                 log.debug("Success");
                 that.getter.assign(that.scope, new_model);
                 that.model = null;
+                Notifications.remove('edit');
                 that.saving = false;
                 that = null;
             },
             function error(details) {
                 var errorText = "Could not save object: " + details.statusText;
                 log.error(errorText);
-                that.message = Notifications.add('error', errorText);
+                Notifications.add('edit', 'error', errorText);
                 that.saving = false;
                 that = null;
             }

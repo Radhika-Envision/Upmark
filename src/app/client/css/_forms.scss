@@ -116,3 +116,24 @@ button, .btn, a, textarea, input, select {
 .help-label {
     color: #888;
 }
+
+.messages {
+    position: fixed;
+    left: 0;
+    top: 0;
+    right: 0;
+    z-index: 5000;
+    padding-top: 4px;
+
+    ul {
+        list-style: none;
+        padding: 0;
+    }
+    .btn-default {
+        background: transparent;
+    }
+    .btn-round {
+        margin-top: -3px;
+        margin-bottom: -3px;
+    }
+}

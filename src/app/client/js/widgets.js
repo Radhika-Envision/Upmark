@@ -67,24 +67,35 @@ angular.module('vpac.widgets', [])
     function Notifications() {
         this.messages = [];
     };
-    Notifications.prototype.add = function(type, body) {
+    Notifications.prototype.add = function(id, type, body) {
         var newMessage = {
+            id: id,
             type: type,
             css: type == 'error' ? 'danger' : type,
             body: body
         };
+        for (var i = 0; i < this.messages.length; i++) {
+            if (angular.equals(this.messages[i], newMessage))
+                return;
+        }
         this.messages = this.messages.concat(newMessage);
         return newMessage;
     };
-    Notifications.prototype.remove = function(message) {
-        var i = this.messages.indexOf(message);
-        if (i < 0) {
-            log.debug("Failed to remove message: not in array");
-            return;
+    /**
+     * Remove all messages that match the given ID or object.
+     */
+    Notifications.prototype.remove = function(messageOrId) {
+        var filterFn = null;
+        if (angular.isString(messageOrId)) {
+            filterFn = function(element) {
+                return element.id != this;
+            };
+        } else {
+            filterFn = function(element) {
+                return element != this;
+            };
         }
-        var messages = angular.copy(this.messages);
-        messages.splice(i, 1);
-        return this.messages = messages;
+        return this.messages = this.messages.filter(filterFn, messageOrId);
     };
     return new Notifications();
 }])
