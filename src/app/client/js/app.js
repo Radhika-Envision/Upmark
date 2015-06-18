@@ -193,7 +193,7 @@ angular.module('wsaa.aquamark',
                 redirectTo : '/'
             });
 
-        $animateProvider.classNameFilter(/ng-animate-enabled/);
+        $animateProvider.classNameFilter(/animate/);
 
         logProvider.setLevel('info');
 

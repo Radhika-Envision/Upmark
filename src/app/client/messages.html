@@ -1,12 +1,13 @@
 <div class="messages">
     <ul>
         <li ng-repeat="message in notifications.messages"
-                class="ng-animate-enabled"
+                class="animate"
                 ng-class="['bg-' + message.css, 'text-' + message.css]">
             <div class="container">
                 <i class="fa fa-warning" ng-if="message.type == 'error'"></i>
                 <i class="fa fa-warning" ng-if="message.type == 'warning'"></i>
                 <i class="fa fa-info-circle" ng-if="message.type == 'info'"></i>
+                <i class="fa fa-check" ng-if="message.type == 'success'"></i>
                 {{message.body}}
                 <button class="btn btn-default btn-round"
                         ng-click="notifications.remove(message)">

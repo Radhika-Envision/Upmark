@@ -134,6 +134,18 @@ button, .btn, a, textarea, input, select {
         padding-top: 4px;
         padding-bottom: 4px;
     }
+    li.animate {
+        opacity: 1;
+        @include transition-property(opacity);
+        @include transition-duration($anim-time);
+
+        &.ng-enter {
+            opacity: 0;
+        }
+        &.ng-leave.ng-leave-active {
+            opacity: 0;
+        }
+    }
     .btn-default {
         background: transparent;
     }

@@ -120,6 +120,7 @@ angular.module('wsaa.admin', [
                 that.getter.assign(that.scope, new_model);
                 that.model = null;
                 Notifications.remove('edit');
+                Notifications.add('edit', 'success', "Saved", 5000);
                 that.saving = false;
                 that = null;
             },

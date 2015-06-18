@@ -63,11 +63,11 @@ angular.module('vpac.widgets', [])
 }])
 
 
-.factory('Notifications', ['log', function(log) {
+.factory('Notifications', ['log', '$timeout', function(log, $timeout) {
     function Notifications() {
         this.messages = [];
     };
-    Notifications.prototype.add = function(id, type, body) {
+    Notifications.prototype.add = function(id, type, body, duration) {
         var newMessage = {
             id: id,
             type: type,
@@ -78,7 +78,14 @@ angular.module('vpac.widgets', [])
             if (angular.equals(this.messages[i], newMessage))
                 return;
         }
-        this.messages = this.messages.concat(newMessage);
+        this.messages = [newMessage].concat(this.messages);
+
+        if (duration) {
+            $timeout(function(that, message) {
+                that.remove(message);
+            }, duration, true, this, newMessage);
+        }
+
         return newMessage;
     };
     /**
