@@ -3,3 +3,4 @@ slimit
 libsass
 SQLAlchemy
 passlib
+alembic
