@@ -12,11 +12,16 @@ import tornado.web
 import data_access
 import handlers
 import model
+
+from alembic.config import Config
+from alembic import command
 from utils import truthy
 
 
 log = logging.getLogger('app')
 tornado.options.options.logging = 'none'
+
+POSTGRES_DEFAULT_URL = 'postgresql://postgres:postgres@postgres/postgres'
 
 
 def get_package_dir():
@@ -84,10 +89,22 @@ def get_settings():
     }
 
 
+def database_upgrade():
+    log.info(os.getcwd())
+    alembic_cfg = Config("./app/alembic.ini")
+    alembic_cfg.set_main_option("url", os.environ.get('POSTGRES_DEFAULT_URL', POSTGRES_DEFAULT_URL))
+    #command.init(alembic_cfg, "app/test")
+    try:
+        command.upgrade(alembic_cfg, "head")
+    except:
+        command.stamp(alembic_cfg, "head")
+
+
 def start_web_server():
 
     package_dir = get_package_dir()
     settings = get_settings()
+    database_upgrade()
 
     application = tornado.web.Application(
         [
