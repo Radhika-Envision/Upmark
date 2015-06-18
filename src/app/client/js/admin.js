@@ -199,6 +199,9 @@ angular.module('wsaa.admin', [
         };
         $scope.edit.edit();
     }
+    $scope.$on('$destroy', function() {
+        $scope.edit.cancel();
+    });
 
     $scope.roles = routeData.roles;
     $scope.roleDict = {};
@@ -280,6 +283,9 @@ angular.module('wsaa.admin', [
         $scope.edit.edit();
     }
     $scope.users = routeData.users;
+    $scope.$on('$destroy', function() {
+        $scope.edit.cancel();
+    });
 
     $scope.checkRole = orgAuthz($scope.current, $scope.org);
 }])
