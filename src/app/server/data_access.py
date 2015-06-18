@@ -124,7 +124,7 @@ class OrgHandler(handlers.BaseHandler):
             raise handlers.MethodError("Can't use PUT for new organisations (no ID).")
 
         if self.current_user.role == 'org_admin' and str(self.organisation.id) != org_id:
-            raise handlers.MethodError("You cannot modify other organisation's information.")
+            raise handlers.MethodError("You can't modify another organisation's information.")
 
         son = json_decode(self.request.body)
         try:
@@ -266,23 +266,23 @@ class UserHandler(handlers.BaseHandler):
 
     def _check_create(self, son):
         if not model.has_privillege(self.current_user.role, 'org_admin'):
-            raise handlers.MethodError("You cannot create a new user.")
+            raise handlers.MethodError("You can't create a new user.")
 
     def _check_update(self, son, user_id):
         if model.has_privillege(self.current_user.role, 'admin'):
             pass
         elif model.has_privillege(self.current_user.role, 'org_admin'):
             if str(self.organisation.id) != son['organisation']['id']:
-                raise handlers.MethodError("You cannot create/modify other organisation's user.")
+                raise handlers.MethodError("You can't create/modify another organisation's user.")
             if son['role'] not in {'org_admin', 'clerk'}:
-                raise handlers.MethodError("You cannot set this role.")
+                raise handlers.MethodError("You can't set this role.")
         else:
             if str(self.current_user.id) != user_id:
-                raise handlers.MethodError("You cannot modify another user.")
+                raise handlers.MethodError("You can't modify another user.")
             if str(self.organisation.id) != son['organisation']['id']:
-                raise handlers.MethodError("You cannot change your organisation.")
+                raise handlers.MethodError("You can't change your organisation.")
             if son['role'] != self.current_user.role:
-                raise handlers.MethodError("You cannot change your role.")
+                raise handlers.MethodError("You can't change your role.")
 
     def _update(self, user, son):
         '''

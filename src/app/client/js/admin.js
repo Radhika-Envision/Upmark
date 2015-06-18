@@ -160,6 +160,8 @@ angular.module('wsaa.admin', [
                     return Roles.hasPermission(current.user.role, 'org_admin');
                     break;
                 case 'user_edit':
+                    if (Roles.hasPermission(current.user.role, 'admin'))
+                        return true;
                     if (current.user.id == user.id)
                         return true;
                     if (current.user.organisation.id != user.organisation.id)
