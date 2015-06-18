@@ -80,28 +80,14 @@ class OrgHandler(handlers.BaseHandler):
         self.finish()
 
     def query(self):
-        term = self.get_argument('term', None)
-        if term:
-            self.search(term)
-            return
-
         sons = []
         with model.session_scope() as session:
-            for ob in session.query(model.Organisation).all():
-                son = to_dict(ob, include={'id', 'name', 'url', 'region', 'number_of_customers'})
-                son = simplify(son)
-                son = normalise(son)
-                sons.append(son)
-        self.set_header("Content-Type", "application/json")
-        self.write(json_encode(sons))
-        self.finish()
-
-    def search(self, term):
-        sons = []
-        with model.session_scope() as session:
-            obs = session.query(model.Organisation).filter(model.Organisation.name.ilike('%'+term+'%')).all()
-            for ob in obs:
-                son = to_dict(ob, include={'id', 'name'})
+            query = session.query(model.Organisation)
+            term = self.get_argument('term', None)
+            if term is not None:
+                query = query.filter(model.Organisation.name.ilike(r'%{}%'.format(term)))
+            for ob in query.all():
+                son = to_dict(ob, include={'id', 'name', 'region', 'number_of_customers'})
                 son = simplify(son)
                 son = normalise(son)
                 sons.append(son)
@@ -111,11 +97,12 @@ class OrgHandler(handlers.BaseHandler):
 
     @handlers.authz('admin')
     def post(self, org_id):
-        if org_id != '':
-            raise handlers.MethodError("Can't use POST for existing organisation.")
         '''
         Create a new organisation.
         '''
+        if org_id != '':
+            raise handlers.MethodError("Can't use POST for existing organisation.")
+
         son = json_decode(self.request.body)
         try:
             with model.session_scope() as session:
@@ -136,9 +123,6 @@ class OrgHandler(handlers.BaseHandler):
         if org_id == '':
             raise handlers.MethodError("Can't use PUT for new organisations (no ID).")
 
-        '''
-        Check org_admin's organisation.id and org_id
-        '''
         if self.current_user.role == 'org_admin' and str(self.organisation.id) != org_id:
             raise handlers.MethodError("You cannot modify other organisation's information.")
 

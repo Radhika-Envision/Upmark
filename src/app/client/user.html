@@ -57,7 +57,7 @@
         <div class="form-group">
             <label for="user_org">Oranisation</label>
             <ui-select ng-model="edit.model.organisation"
-                    ng-disabled="!checkRole('change_org')"
+                    ng-disabled="!checkRole('user_change_org')"
                     reset-search-input="false">
                 <ui-select-match placeholder="Type to select organisation">{{edit.model.organisation.name}}</ui-select-match>
                 <ui-select-choices
