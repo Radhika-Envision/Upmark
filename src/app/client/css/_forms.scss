@@ -52,7 +52,27 @@ button, .btn, a, textarea, input, select {
     }
 }
 
-.btn-default {
+.input-group-addon {
+    border-color: transparent;
+}
+
+.form-control {
+    border-color: transparent;
+    background: $button-bg;
+    box-shadow: none;
+    border-bottom-width: $button-border-width;
+    padding-bottom: 6px - $button-border-width;
+    height: auto;
+}
+.form-control:focus {
+    box-shadow: none;
+}
+
+.input-group {
+    margin-bottom: 10px;
+}
+
+.btn-default, .form-control.btn-default {
     &:not([disabled]) {
         color: lighten($button-fg, 30%);
     }

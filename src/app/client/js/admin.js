@@ -295,13 +295,21 @@ angular.module('wsaa.admin', [
 }])
 
 
-.controller('OrganisationListCtrl', ['$scope', 'routeData', 'orgAuthz',
-        function($scope, routeData, orgAuthz) {
+.controller('OrganisationListCtrl', [
+            '$scope', 'routeData', 'orgAuthz', 'Organisation', 'Notifications',
+        function($scope, routeData, orgAuthz, Organisation, Notifications) {
 
     $scope.current = routeData.current;
     $scope.orgs = routeData.orgs;
 
     $scope.checkRole = orgAuthz($scope.current, null);
+
+    $scope.terms = "";
+    $scope.$watch('terms', function(terms) {
+        Organisation.query({term: terms}).$promise.then(function(orgs) {
+            $scope.orgs = orgs;
+        });
+    });
 }])
 
 ;

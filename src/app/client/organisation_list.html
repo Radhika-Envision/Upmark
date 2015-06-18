@@ -10,12 +10,27 @@
     </div>
 </div>
 <div class="container">
+    <div class="input-group">
+        <label class="input-group-addon" for="searchBox" title="Search">
+            <i class="fa fa-search"></i>
+            <span class="sr-only">Search</span>
+        </label>
+        <input type="text" class="form-control btn-default search-box"
+                id="searchBox"
+                ng-model="terms" placeholder="Search..."
+                ng-model-options="{ debounce: { 'default': 300, 'blur': 0 }}">
+        <span class="input-group-btn">
+            <button class="btn btn-default" type="button" title="Previous page"><i class="fa fa-caret-left"></i></button>
+            <button class="btn btn-default" type="button" title="Next page"><i class="fa fa-caret-right"></i></button>
+        </span>
+    </div>
+
   <table class="table table-hover">
     <thead>
       <tr>
-        <th>name</th>
-        <th>region</th>
-        <th># of customers</th>
+        <th>Name</th>
+        <th>Region</th>
+        <th>Customers</th>
       </tr>
     </thead>
     <tbody>
