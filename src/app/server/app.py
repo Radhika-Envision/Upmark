@@ -7,6 +7,7 @@ import os
 
 from alembic.config import Config
 from alembic import command
+from sqlalchemy import func
 import sqlalchemy.orm
 import tornado.options
 import tornado.web
@@ -100,11 +101,21 @@ def database_upgrade():
         command.stamp(alembic_cfg, "head")
         log.info("stamp")
 
+
+def add_default_user():
+    with model.session_scope() as session:
+        count = session.query(func.count(model.AppUser.id)).scalar()
+        if count == 0:
+            user = model.AppUser(email="admin@vpac-innovations.com.au", name="Administrator",  role="admin")
+            user.set_password("admin")
+            session.add(user)
+
 def start_web_server():
 
     package_dir = get_package_dir()
     settings = get_settings()
     database_upgrade()
+    add_default_user()
 
     application = tornado.web.Application(
         [
