@@ -16,11 +16,6 @@ from guid import GUID
 from history_meta import Versioned, versioned_session
 
 
-SCHEMA_VERSION = '0.0.1'
-DATABASE_URL  = 'postgresql://postgres:postgres@postgres/aquamark'
-POSTGRES_DEFAULT_URL = 'postgresql://postgres:postgres@postgres/postgres'
-
-
 metadata = MetaData()
 Base = declarative_base(metadata=metadata)
 
@@ -186,17 +181,6 @@ class MeasureSetMeasureLink(Base):
     version = Column(Integer, nullable=True, default=None)
 
 
-# TODO: I don't think this script should create the database. It should be done
-# by an admin.
-def create_database(database_name):
-    db_url = os.environ.get('POSTGRES_DEFAULT_URL', POSTGRES_DEFAULT_URL)
-    engine = create_engine(db_url)
-    conn = engine.connect()
-    conn.execute("commit")
-    conn.execute("CREATE DATABASE " + database_name)
-    conn.close()
-
-
 Session = None
 
 
@@ -225,30 +209,6 @@ def connect_db(url):
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
     versioned_session(Session)
-    update_model()
-
-
-def update_model():
-    with session_scope() as session:
-        try:
-            q = session.query(SystemConfig)
-            conf = q.filter_by(name='schema_version').one()
-        except sqlalchemy.exc.SQLAlchemyError:
-            conf = SystemConfig(name='schema_version', value=SCHEMA_VERSION)
-            session.add(conf)
-
-        current_version = conf.value.split('.')
-        target_version = SCHEMA_VERSION.split('.')
-        if current_version == target_version:
-            return
-        elif current_version > target_version:
-            raise ModelError('Database schema version is not supported.')
-
-        conf.value = SCHEMA_VERSION
-
-        # When the schema changes, add migration code here. E.g.
-        #if current_version < [0, 1, 0]:
-        #    do_something()
 
 
 # TODO: Separate these tests out into a different module. Use PyUnit.

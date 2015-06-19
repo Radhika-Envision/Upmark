@@ -5,6 +5,8 @@ import inspect
 import logging.config
 import os
 
+from alembic.config import Config
+from alembic import command
 import sqlalchemy.orm
 import tornado.options
 import tornado.web
@@ -12,9 +14,6 @@ import tornado.web
 import data_access
 import handlers
 import model
-
-from alembic.config import Config
-from alembic import command
 from utils import truthy
 
 
@@ -90,10 +89,10 @@ def get_settings():
 
 
 def database_upgrade():
-    log.info(os.getcwd())
-    alembic_cfg = Config("./app/alembic.ini")
+    package_dir = get_package_dir()
+    alembic_cfg = Config(os.path.join(package_dir, "..", "alembic.ini"))
+    alembic_cfg.set_main_option("script_location", os.path.join(package_dir, "..", "alembic"))
     alembic_cfg.set_main_option("url", os.environ.get('POSTGRES_DEFAULT_URL', POSTGRES_DEFAULT_URL))
-    #command.init(alembic_cfg, "app/test")
     try:
         command.upgrade(alembic_cfg, "head")
     except:
