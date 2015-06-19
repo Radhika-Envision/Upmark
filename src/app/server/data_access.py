@@ -114,7 +114,8 @@ class OrgHandler(Paginate, handlers.BaseHandler):
             query = session.query(model.Organisation)
             term = self.get_argument('term', None)
             if term is not None:
-                query = query.filter(model.Organisation.name.ilike(r'%{}%'.format(term)))
+                query = query.filter(
+                    model.Organisation.name.ilike(r'%{}%'.format(term)))
             query = query.order_by(model.Organisation.name)
             query = self.paginate(query)
             for ob in query.all():
@@ -185,7 +186,7 @@ class OrgHandler(Paginate, handlers.BaseHandler):
             org.region = son['region']
 
 
-class UserHandler(handlers.BaseHandler):
+class UserHandler(Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
     def get(self, user_id):
         '''
@@ -224,18 +225,23 @@ class UserHandler(handlers.BaseHandler):
         '''
         Get a list of users.
         '''
-        org_id = self.get_argument("org_id", None)
-        if org_id is None:
-            filters = {}
-        else:
-            filters = { 'organisation_id': org_id }
 
         sons = []
         with model.session_scope() as session:
             query = session.query(model.AppUser)\
-                .options(joinedload('organisation'))\
-                .filter_by(**filters)
+                .options(joinedload('organisation'))
+
+            org_id = self.get_argument("org_id", None)
+            if org_id is not None:
+                query = query.filter_by(organisation_id=org_id)
+
+            term = self.get_argument('term', None)
+            if term is not None:
+                query = query.filter(
+                    model.AppUser.name.ilike(r'%{}%'.format(term)))
+
             query = query.order_by(model.AppUser.name)
+            query = self.paginate(query)
 
             for ob in query.all():
                 org = to_dict(ob.organisation, include={'id', 'name'})

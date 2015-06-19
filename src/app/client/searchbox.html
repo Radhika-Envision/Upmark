@@ -7,13 +7,18 @@
             id="searchBox"
             ng-model="model.term" placeholder="Search..."
             ng-model-options="{ debounce: { 'default': 300, 'blur': 0 }}">
+    <span class="input-group-addon text-muted">
+        {{(model.page * model.pageSize) + 1}} -
+        {{(model.page * model.pageSize) + result.length}}
+    </span>
     <span class="input-group-btn">
         <button class="btn btn-default" type="button" title="Previous page"
                 ng-click="model.page = model.page - 1"
                 ng-disabled="model.page <= 0">
             <i class="fa fa-caret-left"></i></button>
         <button class="btn btn-default" type="button" title="Next page"
-                ng-click="model.page = model.page + 1">
+                ng-click="model.page = model.page + 1"
+                ng-disabled="result.length < model.pageSize">
             <i class="fa fa-caret-right"></i></button>
     </span>
 </div>

@@ -37,6 +37,9 @@ $anim-time: 0.3s;
 
 .input-group-addon {
     border-color: transparent;
+    &.text-muted {
+        color: #888;
+    }
 }
 
 .form-control {

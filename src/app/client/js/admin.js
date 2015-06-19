@@ -235,13 +235,22 @@ angular.module('wsaa.admin', [
 }])
 
 
-.controller('UserListCtrl', ['$scope', 'routeData', 'userAuthz',
-        function($scope, routeData, userAuthz) {
+.controller('UserListCtrl', ['$scope', 'routeData', 'userAuthz', 'User',
+        function($scope, routeData, userAuthz, User) {
 
     $scope.users = routeData.users;
     $scope.current = routeData.current;
 
     $scope.checkRole = userAuthz($scope.current, null);
+
+    $scope.search = {
+        term: ""
+    };
+    $scope.$watch('search', function(search) {
+        User.query(search).$promise.then(function(users) {
+            $scope.users = users;
+        });
+    }, true);
 }])
 
 
@@ -272,8 +281,8 @@ angular.module('wsaa.admin', [
 
 
 .controller('OrganisationCtrl', [
-        '$scope', 'Organisation', 'routeData', 'Editor', 'orgAuthz',
-        function($scope, Organisation, routeData, Editor, orgAuthz) {
+        '$scope', 'Organisation', 'routeData', 'Editor', 'orgAuthz', 'User',
+        function($scope, Organisation, routeData, Editor, orgAuthz, User) {
 
     $scope.current = routeData.current;
 
@@ -289,6 +298,16 @@ angular.module('wsaa.admin', [
     $scope.users = routeData.users;
 
     $scope.checkRole = orgAuthz($scope.current, $scope.org);
+
+    $scope.search = {
+        term: ""
+    };
+    $scope.$watch('search', function(search) {
+        var params = angular.extend({org_id: $scope.org.id}, search);
+        User.query(params).$promise.then(function(users) {
+            $scope.users = users;
+        });
+    }, true);
 }])
 
 
@@ -302,9 +321,7 @@ angular.module('wsaa.admin', [
     $scope.checkRole = orgAuthz($scope.current, null);
 
     $scope.search = {
-        term: "",
-        page: 0,
-        pageSize: 2
+        term: ""
     };
     $scope.$watch('search', function(search) {
         Organisation.query(search).$promise.then(function(orgs) {
