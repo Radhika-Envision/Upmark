@@ -103,6 +103,8 @@ angular.module('wsaa.admin', [
     };
 
     Editor.prototype.save = function() {
+        this.scope.$broadcast('show-errors-check-validity');
+
         var new_model;
         if (!this.model.id) {
             log.info("Saving as new entry");
@@ -135,8 +137,8 @@ angular.module('wsaa.admin', [
     };
 
     Editor.prototype.destroy = function() {
+        this.cancel();
         this.scope = null;
-        this.model = null;
         this.getter = null;
         this.dao = null;
     };
@@ -146,6 +148,7 @@ angular.module('wsaa.admin', [
         var editor = new Editor(dao, targetPath, scope);
         scope.$on('$destroy', function() {
             editor.destroy();
+            editor = null;
         });
         return editor;
     };
@@ -203,9 +206,6 @@ angular.module('wsaa.admin', [
         };
         $scope.edit.edit();
     }
-    $scope.$on('$destroy', function() {
-        $scope.edit.cancel();
-    });
 
     $scope.roles = routeData.roles;
     $scope.roleDict = {};
@@ -287,9 +287,6 @@ angular.module('wsaa.admin', [
         $scope.edit.edit();
     }
     $scope.users = routeData.users;
-    $scope.$on('$destroy', function() {
-        $scope.edit.cancel();
-    });
 
     $scope.checkRole = orgAuthz($scope.current, $scope.org);
 }])
