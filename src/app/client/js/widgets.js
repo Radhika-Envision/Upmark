@@ -120,4 +120,21 @@ angular.module('vpac.widgets', [])
     };
 }])
 
+
+.directive('searchBox', [function() {
+    return {
+        restrict: 'E',
+        templateUrl: 'searchbox.html',
+        replace: true,
+        scope: {
+            model: '='
+        },
+        controller: ['$scope', function($scope) {
+            $scope.$watch('model.term', function(term) {
+                $scope.model.page = 0;
+            });
+        }]
+    };
+}])
+
 ;

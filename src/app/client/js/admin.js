@@ -301,12 +301,16 @@ angular.module('wsaa.admin', [
 
     $scope.checkRole = orgAuthz($scope.current, null);
 
-    $scope.terms = "";
-    $scope.$watch('terms', function(terms) {
-        Organisation.query({term: terms}).$promise.then(function(orgs) {
+    $scope.search = {
+        term: "",
+        page: 0,
+        pageSize: 2
+    };
+    $scope.$watch('search', function(search) {
+        Organisation.query(search).$promise.then(function(orgs) {
             $scope.orgs = orgs;
         });
-    });
+    }, true);
 }])
 
 ;

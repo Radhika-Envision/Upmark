@@ -1,0 +1,19 @@
+<div class="input-group">
+    <label class="input-group-addon" for="searchBox" title="Search">
+        <i class="fa fa-search"></i>
+        <span class="sr-only">Search</span>
+    </label>
+    <input type="text" class="form-control btn-default search-box"
+            id="searchBox"
+            ng-model="model.term" placeholder="Search..."
+            ng-model-options="{ debounce: { 'default': 300, 'blur': 0 }}">
+    <span class="input-group-btn">
+        <button class="btn btn-default" type="button" title="Previous page"
+                ng-click="model.page = model.page - 1"
+                ng-disabled="model.page <= 0">
+            <i class="fa fa-caret-left"></i></button>
+        <button class="btn btn-default" type="button" title="Next page"
+                ng-click="model.page = model.page + 1">
+            <i class="fa fa-caret-right"></i></button>
+    </span>
+</div>

@@ -58,7 +58,36 @@ def normalise(ob_dict):
     return new_dict
 
 
-class OrgHandler(handlers.BaseHandler):
+class Paginate:
+    '''
+    Mixin to support pagination.
+    '''
+    MAX_PAGE_SIZE = 100
+
+    def paginate(self, query):
+        page_size = self.get_argument("pageSize", str(Paginate.MAX_PAGE_SIZE))
+        try:
+            page_size = int(page_size)
+        except ValueError:
+            raise handlers.ModelError("Invalid page size")
+        if page_size > Paginate.MAX_PAGE_SIZE:
+            raise handlers.ModelError(
+                "Page size is too large (max %d)" % Paginate.MAX_PAGE_SIZE)
+
+        page = self.get_argument("page", "0")
+        try:
+            page = int(page)
+        except ValueError:
+            raise handlers.ModelError("Invalid page")
+        if page < 0:
+            raise handlers.ModelError("Page must be non-negative")
+
+        query = query.limit(page_size)
+        query = query.offset(page * page_size)
+        return query
+
+
+class OrgHandler(Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
     def get(self, org_id):
         if org_id == "":
@@ -86,6 +115,8 @@ class OrgHandler(handlers.BaseHandler):
             term = self.get_argument('term', None)
             if term is not None:
                 query = query.filter(model.Organisation.name.ilike(r'%{}%'.format(term)))
+            query = query.order_by(model.Organisation.name)
+            query = self.paginate(query)
             for ob in query.all():
                 son = to_dict(ob, include={'id', 'name', 'region', 'number_of_customers'})
                 son = simplify(son)
@@ -201,11 +232,12 @@ class UserHandler(handlers.BaseHandler):
 
         sons = []
         with model.session_scope() as session:
-            obs = session.query(model.AppUser)\
+            query = session.query(model.AppUser)\
                 .options(joinedload('organisation'))\
-                .filter_by(**filters).all()
+                .filter_by(**filters)
+            query = query.order_by(model.AppUser.name)
 
-            for ob in obs:
+            for ob in query.all():
                 org = to_dict(ob.organisation, include={'id', 'name'})
                 org = simplify(org)
                 org = normalise(org)

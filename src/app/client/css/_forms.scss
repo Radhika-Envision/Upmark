@@ -19,15 +19,7 @@ $anim-time: 0.3s;
 
     &.disabled, &[disabled] {
         opacity: 1;
-        background: white;
         color: #aaa;
-        border-color: rgba(0,0,0, 0.05);
-        &:not(:first-child) {
-            border-left-color: transparent;
-        }
-        &:not(:last-child) {
-            border-right-color: transparent;
-        }
     }
 
     /* N/A button etc. */
@@ -65,27 +57,35 @@ $anim-time: 0.3s;
     margin-bottom: 10px;
 }
 
-.btn-default, .btn-default.active,
+.btn-default, .btn-default.active, .btn-default[disabled],
 .form-control, .form-control.active {
-    &:not([disabled]) {
-        color: lighten($button-fg, 30%);
-    }
+    color: lighten($button-fg, 30%);
     background-color: $button-bg;
     border-color: transparent;
+
+    &[disabled] {
+        color: lighten($button-fg, 60%);
+        background-color: $button-bg;
+        border-color: transparent;
+    }
 
     &:hover, &:active, &.active:focus, &:focus, &:active.focus, &:active:focus {
         outline: none;
         border-color: transparent;
     }
     &:hover, &.active:focus, &:focus {
-        background-color: lighten($button-bg, 3%);
-        color: $button-fg;
-        border-bottom-color: rgba($primary-col, 0.5);
+        &:not([disabled]) {
+            background-color: lighten($button-bg, 3%);
+            color: $button-fg;
+            border-bottom-color: rgba($primary-col, 0.5);
+        }
     }
     &:active, &.active, &.active:focus, &:active.focus, &:active:focus {
-        box-shadow: none;
-        border-bottom-color: $primary-col;
-        color: $button-fg;
+        &:not([disabled]) {
+            box-shadow: none;
+            border-bottom-color: $primary-col;
+            color: $button-fg;
+        }
     }
 }
 
