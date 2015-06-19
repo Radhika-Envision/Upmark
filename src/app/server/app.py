@@ -95,9 +95,10 @@ def database_upgrade():
     alembic_cfg.set_main_option("url", os.environ.get('POSTGRES_DEFAULT_URL', POSTGRES_DEFAULT_URL))
     try:
         command.upgrade(alembic_cfg, "head")
+        log.info("upgrade")
     except:
         command.stamp(alembic_cfg, "head")
-
+        log.info("stamp")
 
 def start_web_server():
 
