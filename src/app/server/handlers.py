@@ -310,15 +310,23 @@ class AuthLoginHandler(MainHandler):
         Allows an admin to impersonate any other user without needing to know
         their password.
         '''
-        if not self.get_secure_cookie('superuser'):
+        superuser_id = self.get_secure_cookie('superuser')
+        if superuser_id is None:
             raise AuthzError("Not authorised: you are not a superuser")
-        print('Impersonating')
+        superuser_id = superuser_id.decode('utf8')
         with model.session_scope() as session:
+            superuser = session.query(model.AppUser).get(superuser_id)
+            if superuser is None or not model.has_privillege(superuser.role, 'admin'):
+                raise handlers.MissingDocError("Not authorised: you are not a superuser")
+
             user = session.query(model.AppUser).get(user_id)
             if user is None:
                 raise handlers.MissingDocError("No such user")
+
             name = user.name
+            log.warn('User %s is impersonating %s', superuser.email, user.email)
             self.set_secure_cookie("user", str(user.id).encode('utf8'))
+
         self.set_header("Content-Type", "text/plain")
         self.write("Impersonating %s" % name)
         self.finish()
@@ -340,7 +348,7 @@ class RamCacheHandler(tornado.web.RequestHandler):
         if qpath in RamCacheHandler.CACHE and falsy(tornado.options.options.dev):
             self.write_from_cache(qpath)
         else:
-            log.info('Generating %s', path)
+            log.debug('Generating %s', path)
             mimetype, text = self.generate(path)
             self.add_to_cache(qpath, mimetype, text)
             self.write_from_cache(qpath)
@@ -486,7 +494,7 @@ class CssHandler(RamCacheHandler):
 
     def generate(self, path):
         path = self.resolve_path(path)
-        log.info("Compiling CSS for %s", path)
+        log.debug("Compiling CSS for %s", path)
         if path.startswith('/'):
             path = os.path.join(self.root, path[1:])
         else:
