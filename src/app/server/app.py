@@ -87,7 +87,7 @@ def get_settings():
     }
 
 
-def database_upgrade():
+def connect_db():
     package_dir = get_package_dir()
     alembic_cfg = Config(os.path.join(package_dir, "..", "alembic.ini"))
     alembic_cfg.set_main_option(
@@ -97,12 +97,14 @@ def database_upgrade():
 
     try:
         command.upgrade(alembic_cfg, "head")
+        model.connect_db(os.environ.get('DATABASE_URL'))
         log.info("Database version brought up to date")
     except sqlalchemy.exc.IntegrityError as e:
         log.error("Failed to upgrade database")
         raise
     except Exception as e:
         raise
+        model.connect_db(os.environ.get('DATABASE_URL'))
         command.stamp(alembic_cfg, "head")
         log.info("Database versioning initialised")
 
@@ -176,8 +178,7 @@ def start_web_server():
 if __name__ == "__main__":
     try:
         parse_options()
-        database_upgrade()
-        model.connect_db(os.environ.get('DATABASE_URL'))
+        connect_db()
         start_web_server()
     except KeyboardInterrupt:
         log.info("Shutting down due to user request (e.g. Ctrl-C)")
