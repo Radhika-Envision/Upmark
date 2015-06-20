@@ -106,7 +106,15 @@ def add_default_user():
     with model.session_scope() as session:
         count = session.query(func.count(model.AppUser.id)).scalar()
         if count == 0:
-            user = model.AppUser(email="admin@vpac-innovations.com.au", name="Administrator",  role="admin")
+            log.info("First start. Creating default user %s", 'admin')
+            org = model.Organisation(
+                name="DEFAULT ORGANISATION", number_of_customers=0,
+                region="NOWHERE")
+            session.add(org)
+            session.flush()
+            user = model.AppUser(
+                email="admin", name="DEFAULT USER", role="admin",
+                organisation=org)
             user.set_password("admin")
             session.add(user)
 

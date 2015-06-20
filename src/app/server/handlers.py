@@ -273,6 +273,9 @@ class MainHandler(BaseHandler):
 
 class AuthLoginHandler(MainHandler):
     def get(self, user_id):
+        '''
+        Log in page (form).
+        '''
         try:
             errormessage = self.get_argument("error")
         except:
@@ -285,6 +288,9 @@ class AuthLoginHandler(MainHandler):
             error=errormessage)
 
     def post(self, user_id):
+        '''
+        Method for user to provide credentials and log in.
+        '''
         email = self.get_argument("email", "")
         password = self.get_argument("password", "")
         try:
