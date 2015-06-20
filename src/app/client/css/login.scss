@@ -37,7 +37,7 @@
   }
 
   input[type="text"] {
-      margin-bottom: -1px;
+      margin-bottom: 1px;
       border-bottom-right-radius: 0;
       border-bottom-left-radius: 0;
   }
@@ -50,5 +50,6 @@
 
   input:-webkit-autofill {
       -webkit-box-shadow: 0 0 0px 1000px white inset;
+      border: transparent;
   }
 }
