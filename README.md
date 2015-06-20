@@ -21,7 +21,43 @@ sudo docker run -d --name aquamark \
     vpac/aquamark
 ```
 
-The first time you start the server, you will need to create a super user.
+Where `ANALYTICS_ID` is a [Google Analytics][ga] ID. Omit that option to disable
+analytics.
+
+The first time the server is started, a default user is created:
+
+ * Email: admin@vpac-innovations.com.au
+ * Password: testpassword
+
+The first thing you should do is log in as that user and change the password.
+
+[ga]: http://www.google.com.au/analytics/
+
+
+## Development
+
+The easiest way to run during development is to start a Docker container as
+shown above, but mount your code as a volume. Changes you make to the code will
+automatically apply to the running container. This way you don't need to worry
+about creating a database. Also, expose the web server's port - then you can
+just connect to http://localhost:8000 for testing.
+
+```bash
+sudo docker run -d --name postgres_aq postgres:9
+sudo docker run --rm --name aq \
+    --link postgres_aq:postgres \
+    -v "$PWD/src/app:/usr/share/aquamark/app" \
+    -p 8000:8000 \
+    -e DEV_MODE=True \
+    -e DEBUG_MODE=True \
+    vpac/aquamark
+```
+
+
+## Admin Tool
+
+Some tasks can be performed from the command line using `admin.py`. For example,
+to create a new user:
 
 ```bash
 sudo docker run -it --rm --link postgres_aq:postgres vpac/aquamark \
@@ -45,25 +81,7 @@ sudo docker run -it --rm --link postgres_aq:postgres vpac/aquamark \
         --org='ACME Water'
 ```
 
-
-## Development
-
-The easiest way to run during development is to start a Docker container as
-shown above, but mount your code as a volume. Changes you make to the code will
-automatically apply to the running container. This way you don't need to worry
-about creating a database. Also, expose the web server's port - then you can
-just connect to http://localhost:8000 for testing.
-
-```bash
-sudo docker run -d --name postgres_aq postgres:9
-sudo docker run --rm --name aq \
-    --link postgres_aq:postgres \
-    -v "$PWD/src/app:/usr/share/aquamark/app" \
-    -p 8000:8000 \
-    -e DEV_MODE=True \
-    -e DEBUG_MODE=True \
-    vpac/aquamark
-```
+Run `admin.py -h` for more options.
 
 
 ## Dependencies
