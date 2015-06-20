@@ -134,7 +134,6 @@ angular.module('vpac.widgets', [])
             if (!$scope.model.pageSize)
                 $scope.model.pageSize = 10;
             $scope.$watch('model.term', function(term) {
-                console.log(term)
                 $scope.model.page = 0;
             });
         }]

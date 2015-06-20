@@ -4,7 +4,7 @@
             <i class="fa fa-fw fa-users"></i>
             Users
             <a class="btn btn-default btn-round" title="Add new"
-                    ng-href="#/user/new{{org.id ? '?org=' + org.id : ''}}" ng-if="checkRole('user_add')">
+                    ng-href="#/user/new{{org.id ? '?orgId=' + org.id + '&orgName=' + org.name : ''}}" ng-if="checkRole('user_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
         </h2>
     </div>

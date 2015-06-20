@@ -188,9 +188,9 @@ angular.module('wsaa.admin', [
 
 .controller('UserCtrl', [
         '$scope', 'User', 'routeData', 'Editor', 'Organisation', 'userAuthz',
-        '$window',
+        '$window', '$location',
         function($scope, User, routeData, Editor, Organisation, userAuthz,
-                 $window) {
+                 $window, $location) {
 
     $scope.users = routeData.users;
     $scope.current = routeData.current;
@@ -200,9 +200,18 @@ angular.module('wsaa.admin', [
         $scope.user = routeData.user;
     } else {
         // Creating new
+        var org;
+        if ($location.search().orgId) {
+            org = {
+                id: $location.search().orgId,
+                name: $location.search().orgName
+            };
+        } else {
+            org = $scope.current.user.organisation;
+        }
         $scope.user = {
             role: 'clerk',
-            organisation: $scope.current.user.organisation
+            organisation: org
         };
         $scope.edit.edit();
     }

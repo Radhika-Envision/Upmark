@@ -5,7 +5,7 @@
     </label>
     <input type="text" class="form-control btn-default search-box"
             id="searchBox"
-            ng-model="model.term" placeholder="Search..."
+            ng-model="model.term"
             ng-model-options="{ debounce: { 'default': 300, 'blur': 0 }}">
     <span class="input-group-addon text-muted">
         {{(model.page * model.pageSize) + 1}} -
