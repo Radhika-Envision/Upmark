@@ -21,8 +21,6 @@ from utils import truthy
 log = logging.getLogger('app')
 tornado.options.options.logging = 'none'
 
-POSTGRES_DEFAULT_URL = 'postgresql://postgres:postgres@postgres/postgres'
-
 
 def get_package_dir():
     frameinfo = inspect.getframeinfo(inspect.currentframe())
@@ -92,12 +90,19 @@ def get_settings():
 def database_upgrade():
     package_dir = get_package_dir()
     alembic_cfg = Config(os.path.join(package_dir, "..", "alembic.ini"))
-    alembic_cfg.set_main_option("script_location", os.path.join(package_dir, "..", "alembic"))
-    alembic_cfg.set_main_option("url", os.environ.get('POSTGRES_DEFAULT_URL', POSTGRES_DEFAULT_URL))
+    alembic_cfg.set_main_option(
+        "script_location", os.path.join(package_dir, "..", "alembic"))
+    if os.environ.get('DATABASE_URL') is not None:
+        alembic_cfg.set_main_option("url", os.environ.get('DATABASE_URL'))
+
     try:
         command.upgrade(alembic_cfg, "head")
         log.info("Database version brought up to date")
-    except:
+    except sqlalchemy.exc.IntegrityError as e:
+        log.error("Failed to upgrade database")
+        raise
+    except Exception as e:
+        raise
         command.stamp(alembic_cfg, "head")
         log.info("Database versioning initialised")
 
@@ -122,7 +127,6 @@ def start_web_server():
 
     package_dir = get_package_dir()
     settings = get_settings()
-    database_upgrade()
     add_default_user()
 
     application = tornado.web.Application(
@@ -172,6 +176,7 @@ def start_web_server():
 if __name__ == "__main__":
     try:
         parse_options()
+        database_upgrade()
         model.connect_db(os.environ.get('DATABASE_URL'))
         start_web_server()
     except KeyboardInterrupt:

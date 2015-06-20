@@ -33,32 +33,6 @@ class SystemConfig(Base):
         return "SystemConfig(name={}, value={})".format(self.name, self.value)
 
 
-class Response(Versioned, Base):
-    __tablename__ = 'response'
-    # Here we define columns for the table response
-    # Notice that each column is also a normal Python instance attribute.
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    user_id = Column(GUID, ForeignKey('appuser.id'))
-    assessment_id = Column(GUID, ForeignKey('assessment.id'))
-    measure_id = Column(GUID, ForeignKey('measure.id'))
-    comment = Column(Text, nullable=False)
-    not_relevant = Column(Boolean, nullable=False)
-    response_parts = Column(Text, nullable=False)
-    audit_reason = Column(Text, nullable=True)
-    # TODO: Test modified field from history table.
-
-
-class Assessment(Versioned, Base):
-    __tablename__ = 'assessment'
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    organisation_id = Column(GUID, ForeignKey('organisation.id'))
-    survey_id = Column(GUID, ForeignKey('survey.id'))
-    measureset_id = Column(GUID, ForeignKey('measureset.id'))
-    # TODO: Make this field an enum
-    approval = Column(Text, nullable=False)
-    created = Column(Date, nullable=False)
-
-
 class Organisation(Versioned, Base):
     __tablename__ = 'organisation'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
@@ -69,13 +43,6 @@ class Organisation(Versioned, Base):
     created = Column(Date, default=func.now(), nullable=False)
 
 
-class Survey(Versioned, Base):
-    __tablename__ = 'survey'
-    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
-    created = Column(Date, nullable=False)
-    title = Column(Text, nullable=False)
-
-
 class AppUser(Versioned, Base):
     __tablename__ = 'appuser'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
@@ -83,7 +50,8 @@ class AppUser(Versioned, Base):
     name = Column(Text, nullable=False)
     password = Column(Text, nullable=False)
     role = Column(Text, nullable=False)
-    organisation_id = Column(GUID, ForeignKey("organisation.id"))
+    organisation_id = Column(
+        GUID, ForeignKey("organisation.id"), nullable=False)
     created = Column(Date, default=func.now(), nullable=False)
 
     organisation = relationship(Organisation)
@@ -118,6 +86,13 @@ def has_privillege(current_role, *target_roles):
         if target_role in ROLE_HIERARCHY[current_role]:
             return True
     return False
+
+
+class Survey(Versioned, Base):
+    __tablename__ = 'survey'
+    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
+    created = Column(Date, nullable=False)
+    title = Column(Text, nullable=False)
 
 
 class Function(Versioned, Base):
@@ -161,7 +136,6 @@ class Measure(Versioned, Base):
     #response = relationship("Response", uselist=False, backref="measure")
 
 
-# TODO: Change this to MethodSet, and add many-to-many mapping to methods.
 class MeasureSet(Base):
     __tablename__ = 'measureset'
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
@@ -179,6 +153,32 @@ class MeasureSetMeasureLink(Base):
     measureset_id = Column(GUID, ForeignKey('measureset.id'))
     measure_id = Column(GUID, ForeignKey('measure.id'))
     version = Column(Integer, nullable=True, default=None)
+
+
+class Response(Versioned, Base):
+    __tablename__ = 'response'
+    # Here we define columns for the table response
+    # Notice that each column is also a normal Python instance attribute.
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    user_id = Column(GUID, ForeignKey('appuser.id'))
+    assessment_id = Column(GUID, ForeignKey('assessment.id'))
+    measure_id = Column(GUID, ForeignKey('measure.id'))
+    comment = Column(Text, nullable=False)
+    not_relevant = Column(Boolean, nullable=False)
+    response_parts = Column(Text, nullable=False)
+    audit_reason = Column(Text, nullable=True)
+    # TODO: Test modified field from history table.
+
+
+class Assessment(Versioned, Base):
+    __tablename__ = 'assessment'
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    organisation_id = Column(GUID, ForeignKey('organisation.id'))
+    survey_id = Column(GUID, ForeignKey('survey.id'))
+    measureset_id = Column(GUID, ForeignKey('measureset.id'))
+    # TODO: Make this field an enum
+    approval = Column(Text, nullable=False)
+    created = Column(Date, nullable=False)
 
 
 Session = None
