@@ -61,6 +61,7 @@ sudo docker run --rm --name aq \
     -v "$PWD/src/app:/usr/share/aquamark/app" \
     -p 8000:8000 \
     -e DEV_MODE=True \
+    -e DEBUG_MODE=True \
     vpac/aquamark
 ```
 

@@ -96,10 +96,10 @@ def database_upgrade():
     alembic_cfg.set_main_option("url", os.environ.get('POSTGRES_DEFAULT_URL', POSTGRES_DEFAULT_URL))
     try:
         command.upgrade(alembic_cfg, "head")
-        log.info("upgrade")
+        log.info("Database version brought up to date")
     except:
         command.stamp(alembic_cfg, "head")
-        log.info("stamp")
+        log.info("Database versioning initialised")
 
 
 def add_default_user():
