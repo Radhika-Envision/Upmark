@@ -26,10 +26,12 @@ analytics.
 
 The first time the server is started, a default user is created:
 
- * Email: admin@vpac-innovations.com.au
- * Password: testpassword
+ * Email: admin
+ * Password: admin
 
 The first thing you should do is log in as that user and change the password.
+You might also want to change other details about the default user and
+organisation.
 
 [ga]: http://www.google.com.au/analytics/
 
@@ -57,16 +59,7 @@ sudo docker run --rm --name aq \
 ## Admin Tool
 
 Some tasks can be performed from the command line using `admin.py`. For example,
-to create a new user:
-
-```bash
-sudo docker run -it --rm --link postgres_aq:postgres vpac/aquamark \
-    app/server/admin.py user joe@bloggs.com \
-        --name='Joe Bloggs' \
-        --role=admin
-```
-
-You can also create organisations, and assign users to them:
+to create a new organisation:
 
 ```bash
 sudo docker run -it --rm --link postgres_aq:postgres vpac/aquamark \
@@ -74,6 +67,11 @@ sudo docker run -it --rm --link postgres_aq:postgres vpac/aquamark \
         --region=Melbourne \
         --url='http://acme-water.com.au' \
         --customers=2000
+```
+
+To create a new user:
+
+```bash
 sudo docker run -it --rm --link postgres_aq:postgres vpac/aquamark \
     app/server/admin.py user sue@acme-water.com.au \
         --name='Sue Green' \
