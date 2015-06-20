@@ -55,22 +55,36 @@ class AppUser(Versioned, Base):
     created = Column(Date, default=func.now(), nullable=False)
 
 
+OrganisationHistory = Organisation.__history_mapper__.class_
 AppUserHistory = AppUser.__history_mapper__.class_
 
 
 def upgrade():
     session = Session(bind=op.get_bind())
+
     count = session.query(func.count(AppUser.id)).\
             filter_by(organisation_id=None).scalar()
-    count_hist = session.query(func.count(AppUserHistory.id)).\
-            filter_by(organisation_id=None).scalar()
-    if count > 0 or count_hist > 0:
+    if count > 0:
         default_org = Organisation(
             name="DEFAULT", region="NOWHERE", number_of_customers=0)
         session.add(default_org)
         session.flush()
         session.query(AppUser).filter_by(organisation_id=None).\
                 update({"organisation_id": default_org.id})
+        session.flush()
+    else:
+        default_org = None
+
+    count_hist = session.query(func.count(AppUserHistory.id)).\
+            filter_by(organisation_id=None).scalar()
+    if count_hist > 0:
+        if default_org is None:
+            default_org = OrganisationHistory(
+                id=uuid.uuid4(),
+                name="DEFAULT", region="NOWHERE", number_of_customers=0,
+                created=func.now(), version=1)
+            session.add(default_org)
+            session.flush()
         session.query(AppUserHistory).filter_by(organisation_id=None).\
                 update({"organisation_id": default_org.id})
         session.flush()
