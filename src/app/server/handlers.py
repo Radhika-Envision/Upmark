@@ -46,6 +46,17 @@ class ModelError(tornado.web.HTTPError):
         tornado.web.HTTPError.__init__(
             self, 403, reason=reason, log_message=log_message, *args, **kwargs)
 
+    POSTGRES_PATTERN = re.compile(r'\([^)]+\) (.*)')
+
+    @classmethod
+    def from_sa(cls, sa_error):
+        log.error('%s', str(sa_error))
+        match = cls.POSTGRES_PATTERN.search(str(sa_error))
+        if match is not None:
+            return cls(reason="Arguments are invalid: %s" % match.group(1))
+        else:
+            return cls()
+
 
 class MissingDocError(tornado.web.HTTPError):
     def __init__(self, reason="Document not found", log_message=None, *args, **kwargs):

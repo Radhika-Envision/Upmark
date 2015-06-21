@@ -145,8 +145,8 @@ class OrgHandler(Paginate, handlers.BaseHandler):
                 session.add(org)
                 session.flush()
                 session.expunge(org)
-        except sqlalchemy.exc.IntegrityError:
-            raise handlers.ModelError("Arguments are invalid")
+        except sqlalchemy.exc.IntegrityError as e:
+            raise handlers.ModelError.from_sa(e)
         self.get(org.id)
 
     @handlers.authz('admin', 'org_admin')
@@ -173,8 +173,8 @@ class OrgHandler(Paginate, handlers.BaseHandler):
                 session.add(org)
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such organisation")
-        except sqlalchemy.exc.IntegrityError:
-            raise handlers.ModelError("Arguments are invalid")
+        except sqlalchemy.exc.IntegrityError as e:
+            raise handlers.ModelError.from_sa(e)
         self.get(org_id)
 
     def _update(self, org, son):
@@ -281,8 +281,8 @@ class UserHandler(Paginate, handlers.BaseHandler):
                 session.add(user)
                 session.flush()
                 session.expunge(user)
-        except sqlalchemy.exc.IntegrityError:
-            raise handlers.ModelError("Arguments are invalid")
+        except sqlalchemy.exc.IntegrityError as e:
+            raise handlers.ModelError.from_sa(e)
         self.get(user.id)
 
     def put(self, user_id):
@@ -303,8 +303,8 @@ class UserHandler(Paginate, handlers.BaseHandler):
                 session.add(user)
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such user")
-        except sqlalchemy.exc.IntegrityError:
-            raise handlers.ModelError("Arguments are invalid")
+        except sqlalchemy.exc.IntegrityError as e:
+            raise handlers.ModelError.from_sa(e)
         self.get(user_id)
 
     def _check_create(self, son):
