@@ -3,12 +3,12 @@
 angular.module('wsaa.admin', [
     'ngResource', 'ngSanitize', 'ui.select', 'ngCookies'])
 
-
 .factory('User', ['$resource', function($resource) {
     return $resource('/user/:id.json', {id: '@id'}, {
         get: { method: 'GET' },
         save: { method: 'PUT' },
-        query: { method: 'GET', url: '/user.json', isArray: true },
+        query: { method: 'GET', url: '/user.json', isArray: true,
+            cache: false },
         create: { method: 'POST', url: '/user.json' },
         impersonate: { method: 'PUT', url: '/login/:id' }
     });
@@ -72,7 +72,8 @@ angular.module('wsaa.admin', [
     return $resource('/organisation/:id.json', {id: '@id'}, {
         get: { method: 'GET' },
         save: { method: 'PUT' },
-        query: { method: 'GET', url: '/organisation.json', isArray: true },
+        query: { method: 'GET', url: '/organisation.json', isArray: true,
+            cache: false },
         create: { method: 'POST', url: '/organisation.json' }
     });
 }])
@@ -84,6 +85,7 @@ angular.module('wsaa.admin', [
 .factory('Editor', [
         '$parse', 'log', '$filter', 'Notifications',
          function($parse, log, $filter, Notifications) {
+
     function Editor(dao, targetPath, scope) {
         this.dao = dao;
         this.model = null;
@@ -105,35 +107,38 @@ angular.module('wsaa.admin', [
     Editor.prototype.save = function() {
         this.scope.$broadcast('show-errors-check-validity');
 
-        var new_model;
-        if (!this.model.id) {
-            log.info("Saving as new entry");
-            new_model = this.dao.create(this.model);
-        } else {
-            log.info("Saving over old entry");
-            new_model = this.dao.save(this.model);
-        }
-        this.saving = true;
-
         var that = this;
-        new_model.$promise.then(
-            function success(new_model) {
+        var success = function(model, getResponseHeaders) {
+            try {
                 log.debug("Success");
-                that.getter.assign(that.scope, new_model);
+                that.getter.assign(that.scope, model);
                 that.model = null;
                 Notifications.remove('edit');
                 Notifications.add('edit', 'success', "Saved", 5000);
-                that.saving = false;
-                that = null;
-            },
-            function error(details) {
-                var errorText = "Could not save object: " + details.statusText;
-                log.error(errorText);
-                Notifications.add('edit', 'error', errorText);
+            } finally {
                 that.saving = false;
                 that = null;
             }
-        );
+        };
+        var failure = function(details) {
+            try {
+                var errorText = "Could not save object: " + details.statusText;
+                log.error(errorText);
+                Notifications.add('edit', 'error', errorText);
+            } finally {
+                that.saving = false;
+                that = null;
+            }
+        };
+
+        if (!this.model.id) {
+            log.info("Saving as new entry");
+            this.model.$create(success, failure);
+        } else {
+            log.info("Saving over old entry");
+            this.model.$save(success, failure);
+        }
+        this.saving = true;
     };
 
     Editor.prototype.destroy = function() {
@@ -192,7 +197,6 @@ angular.module('wsaa.admin', [
         function($scope, User, routeData, Editor, Organisation, userAuthz,
                  $window, $location) {
 
-    $scope.users = routeData.users;
     $scope.current = routeData.current;
     $scope.edit = Editor(User, 'user', $scope);
     if (routeData.user) {
@@ -209,10 +213,10 @@ angular.module('wsaa.admin', [
         } else {
             org = $scope.current.user.organisation;
         }
-        $scope.user = {
+        $scope.user = new User({
             role: 'clerk',
             organisation: org
-        };
+        });
         $scope.edit.edit();
     }
 
@@ -301,7 +305,7 @@ angular.module('wsaa.admin', [
         $scope.org = routeData.org;
     } else {
         // Creating new
-        $scope.org = {};
+        $scope.org = new Organisation({});
         $scope.edit.edit();
     }
     $scope.users = routeData.users;
