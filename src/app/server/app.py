@@ -12,7 +12,7 @@ import sqlalchemy.orm
 import tornado.options
 import tornado.web
 
-import data_access
+import data_access, user_handlers, org_handlers
 import handlers
 import model
 from utils import truthy
@@ -125,6 +125,7 @@ def add_default_user():
             user.set_password("admin")
             session.add(user)
 
+
 def start_web_server():
 
     package_dir = get_package_dir()
@@ -148,8 +149,8 @@ def start_web_server():
             (r"/(.*\.css)", handlers.CssHandler, {
                 'root': os.path.join(package_dir, "..", "client")}),
 
-            (r"/organisation/?(.*).json", data_access.OrgHandler, {}),
-            (r"/user/?(.*).json", data_access.UserHandler, {}),
+            (r"/organisation/?(.*).json", org_handlers.OrgHandler, {}),
+            (r"/user/?(.*).json", user_handlers.UserHandler, {}),
 
             (r"/(.*)", tornado.web.StaticFileHandler, {
                 'path': os.path.join(package_dir, "..", "client")}),

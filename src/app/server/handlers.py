@@ -14,8 +14,7 @@ import tornado.options
 import tornado.web
 import sqlalchemy
 
-import model
-import data_access 
+import model 
 
 from utils import falsy, truthy
 from tornado.escape import json_decode, json_encode
@@ -528,3 +527,33 @@ class CssHandler(RamCacheHandler):
                 404, "No such file %s." % path)
 
         return 'text/css', sass.compile(filename=path)
+
+
+class Paginate:
+    '''
+    Mixin to support pagination.
+    '''
+    MAX_PAGE_SIZE = 100
+
+    def paginate(self, query):
+        page_size = self.get_argument("pageSize", str(Paginate.MAX_PAGE_SIZE))
+        try:
+            page_size = int(page_size)
+        except ValueError:
+            raise handlers.ModelError("Invalid page size")
+        if page_size > Paginate.MAX_PAGE_SIZE:
+            raise handlers.ModelError(
+                "Page size is too large (max %d)" % Paginate.MAX_PAGE_SIZE)
+
+        page = self.get_argument("page", "0")
+        try:
+            page = int(page)
+        except ValueError:
+            raise handlers.ModelError("Invalid page")
+        if page < 0:
+            raise handlers.ModelError("Page must be non-negative")
+
+        query = query.limit(page_size)
+        query = query.offset(page * page_size)
+        return query
+
