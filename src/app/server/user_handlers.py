@@ -37,7 +37,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
             org = simplify(org)
             org = normalise(org)
 
-            if user.id != self.current_user.id:
+            if not self._can_see_email(user):
                 son = to_dict(user, exclude={'email', 'password'})
             else:
                 son = to_dict(user, exclude={'password'})
@@ -47,6 +47,16 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
+
+    def _can_see_email(self, user):
+        if model.has_privillege(self.current_user.role, 'admin'):
+            return True
+        elif user.id == self.current_user.id:
+            return True
+        elif model.has_privillege(self.current_user.role, 'org_admin'):
+            return self.current_user.organisation_id == user.organisation_id
+        else:
+            return False
 
     def query(self):
         '''
