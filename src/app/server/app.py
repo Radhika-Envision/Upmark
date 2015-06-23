@@ -96,17 +96,20 @@ def connect_db():
         alembic_cfg.set_main_option("url", os.environ.get('DATABASE_URL'))
 
     try:
+        log.info("Checking database version")
         command.upgrade(alembic_cfg, "head")
         model.connect_db(os.environ.get('DATABASE_URL'))
-        log.info("Database version brought up to date")
-    except sqlalchemy.exc.IntegrityError as e:
+    except sqlalchemy.exc.IntegrityError:
         log.error("Failed to upgrade database")
         raise
-    except Exception as e:
-        raise
-        model.connect_db(os.environ.get('DATABASE_URL'))
-        command.stamp(alembic_cfg, "head")
-        log.info("Database versioning initialised")
+    except sqlalchemy.exc.ProgrammingError as e:
+        if 'appuser" does not exist' in str(e):
+            log.info("Initialising database")
+            model.connect_db(os.environ.get('DATABASE_URL'))
+            command.stamp(alembic_cfg, "head")
+        else:
+            log.error("Failed to upgrade database schema: %s", e)
+            raise
 
 
 def add_default_user():
