@@ -12,7 +12,7 @@ import sqlalchemy.orm
 import tornado.options
 import tornado.web
 
-import data_access, user_handlers, org_handlers
+import data_access, user_handlers, org_handlers, survey_handlers, measure_handlers
 import handlers
 import model
 from utils import truthy
