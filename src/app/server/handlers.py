@@ -13,6 +13,7 @@ import tornado.httputil
 import tornado.options
 import tornado.web
 import sqlalchemy
+from sqlalchemy.sql import func
 
 import model 
 
@@ -305,7 +306,9 @@ class AuthLoginHandler(MainHandler):
         password = self.get_argument("password", "")
         try:
             with model.session_scope() as session:
-                user = session.query(model.AppUser).filter_by(email=email).one()
+                user = session.query(model.AppUser).\
+                    filter(func.lower(model.AppUser.email) == func.lower(email)).\
+                    one()
                 if not user.enabled:
                     raise ValueError("User account disabled")
                 if not user.check_password(password):
