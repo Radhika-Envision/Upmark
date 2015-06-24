@@ -130,12 +130,19 @@ angular.module('vpac.widgets', [])
             model: '=',
             result: '='
         },
+        transclude: true,
         controller: ['$scope', function($scope) {
             if (!$scope.model.pageSize)
                 $scope.model.pageSize = 10;
-            $scope.$watch('model.term', function(term) {
+            $scope.$watch('model', function(model, oldModel) {
+                if (model.page === undefined)
+                    model.page = 0;
+                var tempModel = angular.copy(model);
+                tempModel.page = oldModel.page;
+                if (angular.equals(oldModel, tempModel))
+                    return;
                 $scope.model.page = 0;
-            });
+            }, true);
         }]
     };
 }])

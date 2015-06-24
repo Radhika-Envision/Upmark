@@ -11,7 +11,7 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, simplify, normalise
+from utils import to_dict, simplify, normalise, truthy
 
 class UserHandler(handlers.Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
@@ -76,6 +76,11 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
             if term is not None:
                 query = query.filter(
                     model.AppUser.name.ilike(r'%{}%'.format(term)))
+
+            enabled = self.get_argument('enabled', None)
+            if enabled is not None:
+                enable = truthy(enabled)
+                query = query.filter(model.AppUser.enabled == enabled)
 
             query = query.order_by(model.AppUser.name)
             query = self.paginate(query)

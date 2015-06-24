@@ -273,7 +273,8 @@ angular.module('wsaa.admin', [
     $scope.checkRole = userAuthz($scope.current, null);
 
     $scope.search = {
-        term: ""
+        term: "",
+        enabled: true
     };
     $scope.$watch('search', function(search) {
         User.query(search).$promise.then(function(users) {
