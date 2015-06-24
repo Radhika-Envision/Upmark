@@ -32,7 +32,8 @@
 </div>
 </div>
 
-<div class="subheader bg-warning text-warning" ng-if="!user.enabled">
+<div class="subheader bg-warning text-warning"
+        ng-if="user.id && !user.enabled">
     <div class="container">
         <i class="fa fa-times"></i>
         This user is inactive.

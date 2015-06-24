@@ -86,8 +86,7 @@ angular.module('wsaa.admin', [
         '$parse', 'log', '$filter', 'Notifications',
          function($parse, log, $filter, Notifications) {
 
-    function Editor(dao, targetPath, scope) {
-        this.dao = dao;
+    function Editor(targetPath, scope) {
         this.model = null;
         this.scope = scope;
         this.getter = $parse(targetPath);
@@ -113,6 +112,7 @@ angular.module('wsaa.admin', [
                 log.debug("Success");
                 that.getter.assign(that.scope, model);
                 that.model = null;
+                that.scope.$emit('EditSaved', model);
                 Notifications.remove('edit');
                 Notifications.add('edit', 'success', "Saved", 5000);
             } finally {
@@ -124,6 +124,7 @@ angular.module('wsaa.admin', [
             try {
                 var errorText = "Could not save object: " + details.statusText;
                 log.error(errorText);
+                that.scope.$emit('EditError');
                 Notifications.add('edit', 'error', errorText);
             } finally {
                 that.saving = false;
@@ -139,18 +140,18 @@ angular.module('wsaa.admin', [
             this.model.$save(success, failure);
         }
         this.saving = true;
+        Notifications.add('edit', 'info', "Saving");
     };
 
     Editor.prototype.destroy = function() {
         this.cancel();
         this.scope = null;
         this.getter = null;
-        this.dao = null;
     };
 
-    return function(dao, targetPath, scope) {
+    return function(targetPath, scope) {
         log.debug('Creating editor');
-        var editor = new Editor(dao, targetPath, scope);
+        var editor = new Editor(targetPath, scope);
         scope.$on('$destroy', function() {
             editor.destroy();
             editor = null;
@@ -202,7 +203,7 @@ angular.module('wsaa.admin', [
                  $window, $location, log, Notifications) {
 
     $scope.current = routeData.current;
-    $scope.edit = Editor(User, 'user', $scope);
+    $scope.edit = Editor('user', $scope);
     if (routeData.user) {
         // Editing old
         $scope.user = routeData.user;
@@ -223,6 +224,10 @@ angular.module('wsaa.admin', [
         });
         $scope.edit.edit();
     }
+
+    $scope.$on('EditSaved', function(event, model) {
+        $location.url('/user/' + model.id);
+    });
 
     $scope.roles = routeData.roles;
     $scope.roleDict = {};
@@ -253,7 +258,9 @@ angular.module('wsaa.admin', [
     $scope.toggleEnabled = function() {
         $scope.user.enabled = !$scope.user.enabled;
         $scope.user.$save(
-            function success() {},
+            function success() {
+                Notifications.add('edit', 'success', 'Saved', 5000);
+            },
             function failure(details) {
                 var errorText = "Could not save object: " + details.statusText;
                 log.error(errorText);
@@ -312,11 +319,13 @@ angular.module('wsaa.admin', [
 
 .controller('OrganisationCtrl', [
         '$scope', 'Organisation', 'routeData', 'Editor', 'orgAuthz', 'User',
-        function($scope, Organisation, routeData, Editor, orgAuthz, User) {
+        '$location',
+        function($scope, Organisation, routeData, Editor, orgAuthz, User,
+            $location) {
 
     $scope.current = routeData.current;
 
-    $scope.edit = Editor(Organisation, 'org', $scope);
+    $scope.edit = Editor('org', $scope);
     if (routeData.org) {
         // Editing old
         $scope.org = routeData.org;
@@ -326,6 +335,10 @@ angular.module('wsaa.admin', [
         $scope.edit.edit();
     }
     $scope.users = routeData.users;
+
+    $scope.$on('EditSaved', function(event, model) {
+        $location.url('/org/' + model.id);
+    });
 
     $scope.checkRole = orgAuthz($scope.current, $scope.org);
 
