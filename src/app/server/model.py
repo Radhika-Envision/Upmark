@@ -91,7 +91,7 @@ def has_privillege(current_role, *target_roles):
 
 class Survey(Versioned, Base):
     __tablename__ = 'survey'
-    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
     created = Column(Date, nullable=False)
     title = Column(Text, nullable=False)
 
@@ -124,7 +124,7 @@ class Subprocess(Versioned, Base):
 
 class Measure(Versioned, Base):
     __tablename__ = 'measure'
-    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
     subprocess_id = Column(GUID, ForeignKey('subprocess.id'), nullable=True)
     seq = Column(Integer, nullable=False)
     title = Column(Text, nullable=False)
@@ -139,7 +139,7 @@ class Measure(Versioned, Base):
 
 class MeasureSet(Base):
     __tablename__ = 'measureset'
-    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(GUID, ForeignKey('survey.id'))
     title = Column(Text, nullable=False)
     measures = relationship(
