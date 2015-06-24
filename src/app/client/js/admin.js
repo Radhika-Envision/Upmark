@@ -5,12 +5,12 @@ angular.module('wsaa.admin', [
 
 .factory('User', ['$resource', function($resource) {
     return $resource('/user/:id.json', {id: '@id'}, {
-        get: { method: 'GET' },
-        save: { method: 'PUT' },
+        get: { method: 'GET', cache: false },
+        save: { method: 'PUT', cache: false },
         query: { method: 'GET', url: '/user.json', isArray: true,
             cache: false },
-        create: { method: 'POST', url: '/user.json' },
-        impersonate: { method: 'PUT', url: '/login/:id' }
+        create: { method: 'POST', url: '/user.json', cache: false },
+        impersonate: { method: 'PUT', url: '/login/:id', cache: false }
     });
 }])
 
@@ -44,7 +44,7 @@ angular.module('wsaa.admin', [
 
 .factory('Roles', ['$resource', function($resource) {
     var Roles = $resource('/roles.json', {}, {
-        get: { method: 'GET', isArray: true }
+        get: { method: 'GET', isArray: true, cache: false }
     });
 
     Roles.hierarchy = {
@@ -70,11 +70,11 @@ angular.module('wsaa.admin', [
 
 .factory('Organisation', ['$resource', function($resource) {
     return $resource('/organisation/:id.json', {id: '@id'}, {
-        get: { method: 'GET' },
-        save: { method: 'PUT' },
+        get: { method: 'GET', cache: false },
+        save: { method: 'PUT', cache: false },
         query: { method: 'GET', url: '/organisation.json', isArray: true,
             cache: false },
-        create: { method: 'POST', url: '/organisation.json' }
+        create: { method: 'POST', url: '/organisation.json', cache: false }
     });
 }])
 
