@@ -8,6 +8,7 @@ import os
 from alembic.config import Config
 from alembic import command
 from sqlalchemy import func
+import sqlalchemy.engine.reflection
 import sqlalchemy.orm
 import tornado.options
 import tornado.web
@@ -95,21 +96,16 @@ def connect_db():
     if os.environ.get('DATABASE_URL') is not None:
         alembic_cfg.set_main_option("url", os.environ.get('DATABASE_URL'))
 
-    try:
-        log.info("Checking database version")
+    engine = model.connect_db(os.environ.get('DATABASE_URL'))
+    inspector = sqlalchemy.engine.reflection.Inspector.from_engine(engine)
+
+    if 'alembic_version' not in inspector.get_table_names():
+        log.info("Initialising database")
+        model.initialise_schema(engine)
+        command.stamp(alembic_cfg, "head")
+    else:
+        log.info("Upgrading database (if required)")
         command.upgrade(alembic_cfg, "head")
-        model.connect_db(os.environ.get('DATABASE_URL'))
-    except sqlalchemy.exc.IntegrityError:
-        log.error("Failed to upgrade database")
-        raise
-    except sqlalchemy.exc.ProgrammingError as e:
-        if 'appuser" does not exist' in str(e):
-            log.info("Initialising database")
-            model.connect_db(os.environ.get('DATABASE_URL'))
-            command.stamp(alembic_cfg, "head")
-        else:
-            log.error("Failed to upgrade database schema: %s", e)
-            raise
 
 
 def add_default_user():

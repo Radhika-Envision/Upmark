@@ -206,10 +206,14 @@ def connect_db(url):
     conn = engine.connect()
     # Never drop the schema here.
     # - For short-term testing, use psql.
-    # - For breaking changes, add migration code to update_model below.
-    Base.metadata.create_all(engine)
+    # - For breaking changes, add migration code to the alembic scripts.
     Session = sessionmaker(bind=engine)
     versioned_session(Session)
+    return engine
+
+
+def initialise_schema(engine):
+    Base.metadata.create_all(engine)
 
 
 # TODO: Separate these tests out into a different module. Use PyUnit.
