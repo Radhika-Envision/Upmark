@@ -1,61 +1,24 @@
 @import '_utils.scss';
 @import '_defines.scss';
 
-$nav-height: 64px;
-$std-padding: 4px;
-
 body {
     background-color: white;
     overflow-y: scroll;
-}
-
-.navbar-brand {
-    padding: $std-padding 15px;
-    height: $nav-height - $std-padding;
-}
-header {
-    position: relative;
-    &:before {
-        content: '';
-        position: absolute;
-        display: block;
-        left: 0;
-        bottom: 0;
-        right: 0;
-        height: 5px;
-        box-shadow: 0 1px 10px rgba(0, 0, 0, 0.3);
-        border-radius: 50%;
-        z-index: 1;
-    }
-}
-nav.navbar.navbar-static-top {
-    height: $nav-height;
-    margin-bottom: 0;
-    position: relative;
-    background: white;
-}
-
-/* Logo is included inline as raw SVG, so we can do some funky styling. */
-.navbar-brand svg {
-    @include transform(scale(0.3));
-    @include transform-origin(0 0);
-}
-g#logo-text-subtitle {
-    display: none;
-}
-
-.navbar-right p {
-    margin: 10px 15px;
-    text-align: right;
 }
 
 .jumbotron {
     text-align: center;
     background: $primary-colour;
     color: mix(black, $primary-colour, 70%);
+
+    .text-muted {
+        color: mix(black, $primary-colour, 50%);
+    }
 }
 
+@import '_navigation.scss';
 @import '_forms.scss';
+@import '_tables.scss';
 @import '_survey.scss';
 @import '_legal.scss';
 @import 'login.scss';

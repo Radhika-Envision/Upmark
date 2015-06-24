@@ -1,56 +1,139 @@
 @import '_utils.scss';
+@import '_defines.scss';
 
 $button-bg: #f0f0f0;
 $button-fg: black;
 $button-border-width: 3px;
+$round-button-width: 26px;
 
 $primary-col: #177fb5;
 $danger-col: #d43f3a;
 
 $anim-time: 0.3s;
 
-button, .btn, a, textarea, input, select {
-    outline: 5px none rgba($primary-col, 0);
-
-    &.active:focus, &:focus, &:active.focus, &:active:focus {
-        outline: 5px solid rgba($primary-col, 0.1);
-        outline-offset: 0px;
-    }
-}
-
 .btn {
-    background-color: $button-bg;
-    border-bottom: $button-border-width solid transparent;
+    border-bottom-width: $button-border-width;
     padding: 6px 12px (6px - $button-border-width);
-    color: lighten($button-fg, 30%);
     @include transition-property(color, background-color, border-bottom-color);
     @include transition-duration($anim-time);
 
+    &.disabled, &[disabled] {
+        opacity: 1;
+        color: #aaa;
+    }
+
+    /* N/A button etc. */
+    &.btn-round {
+        border-radius: 100%;
+        width: $round-button-width;
+        height: $round-button-width;
+        padding: 0;
+        line-height: $round-button-width - 1px;
+        font-size: $round-button-width - 8px;
+        float: right;
+        margin-left: $round-button-width / 3;
+    }
+}
+
+.input-group-addon {
+    border-color: transparent;
+    &.text-muted {
+        color: #888;
+    }
+}
+
+.form-control {
+    border-color: transparent;
+    background: $button-bg;
+    box-shadow: none;
+    border-bottom-width: $button-border-width;
+    padding-bottom: 6px - $button-border-width;
+    height: auto;
+    @include transition-property(color, background-color, border-bottom-color);
+    @include transition-duration($anim-time);
+}
+.form-control:focus {
+    box-shadow: none;
+}
+
+.input-group {
+    margin-bottom: 10px;
+}
+
+.btn-default, .btn-default.active, .btn-default[disabled],
+.form-control, .form-control.active {
+    color: lighten($button-fg, 30%);
+    background-color: $button-bg;
+    border-color: transparent;
+
+    &[disabled] {
+        color: lighten($button-fg, 60%);
+        background-color: $button-bg;
+        border-color: transparent;
+    }
+
+    &:hover, &:active, &.active:focus, &:focus, &:active.focus, &:active:focus {
+        outline: none;
+        border-color: transparent;
+    }
+    &:hover, &.active:focus, &:focus {
+        &:not([disabled]) {
+            background-color: lighten($button-bg, 3%);
+            color: $button-fg;
+            border-bottom-color: rgba($primary-col, 0.5);
+        }
+    }
+    &:active, &.active, &.active:focus, &:active.focus, &:active:focus {
+        &:not([disabled]) {
+            box-shadow: none;
+            border-bottom-color: $primary-col;
+            color: $button-fg;
+        }
+    }
+}
+
+.ui-select-match.btn-default-focus {
+    outline: none;
+    box-shadow: none;
+    border-color: transparent;
+    background-color: transparent;
+}
+
+.has-error {
+    .form-control {
+        box-shadow: none;
+        background: #FFE3E3;
+        border-color: transparent;
+
+        &:hover, &:active, &.active:focus, &:focus, &:active.focus, &:active:focus {
+            border-color: transparent;
+            border-bottom-color: #FF9595;
+            background: #FFf0f0;
+            box-shadow: none;
+        }
+    }
+}
+
+:not(ng-include)>.header .btn-default {
+    &:not([disabled]) {
+        color: lighten($button-fg, 30%);
+    }
+    background-color: white;
+    border-color: transparent;
+
+    &:hover, &:active, &.active:focus, &:focus, &:active.focus, &:active:focus {
+        outline: none;
+        border-color: transparent;
+    }
     &:hover, &.active:focus, &:focus {
         background-color: lighten($button-bg, 3%);
         color: $button-fg;
         border-bottom-color: rgba($primary-col, 0.5);
     }
-    &.active:focus, &:focus, &:active.focus, &:active:focus {
-        outline: none;
-    }
     &:active, &.active, &.active:focus, &:active.focus, &:active:focus {
         box-shadow: none;
         border-bottom-color: $primary-col;
         color: $button-fg;
-    }
-
-    &.disabled, &[disabled] {
-        opacity: 1;
-        background: white;
-        color: #aaa;
-        border-color: rgba(0,0,0, 0.05);
-        &:not(:first-child) {
-            border-left-color: transparent;
-        }
-        &:not(:last-child) {
-            border-right-color: transparent;
-        }
     }
 }
 
@@ -67,4 +150,46 @@ button, .btn, a, textarea, input, select {
 
 .secondary .btn {
     background-color: white;
+}
+
+.help-label {
+    color: #888;
+}
+
+.messages {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    z-index: 5000;
+    padding-top: 4px;
+
+    ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    li {
+        padding-top: 4px;
+        padding-bottom: 4px;
+    }
+    li.animate {
+        opacity: 1;
+        @include transition-property(opacity);
+        @include transition-duration($anim-time);
+
+        &.ng-enter {
+            opacity: 0;
+        }
+        &.ng-leave.ng-leave-active {
+            opacity: 0;
+        }
+    }
+    .btn-default {
+        background: transparent;
+    }
+    .btn-round {
+        margin-top: -3px;
+        margin-bottom: -3px;
+    }
 }

@@ -1,0 +1,17 @@
+[
+    {
+        "id": "foo",
+        "name": "Andrew Axolotl",
+        "organisation": "ACME Water"
+    },
+    {
+        "id": "bar",
+        "name": "Barry Brown",
+        "organisation": "ACME Water"
+    },
+    {
+        "id": "baz",
+        "name": "Clarence Cooper",
+        "organisation": null
+    }
+]

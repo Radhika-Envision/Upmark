@@ -8,7 +8,7 @@
         <label ng-click="response.active = $index">{{resp.name}}</label>
         <div class="btn-group">
             <button ng-repeat="c in resp.choices"
-                    class="btn"
+                    class="btn btn-default"
                     ng-class="{active: response.responses[respi] == $index}"
                     ng-click="respond(resp, c)"
                     ng-disabled="disabled(respi, $index)">

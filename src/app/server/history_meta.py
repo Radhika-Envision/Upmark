@@ -1,3 +1,9 @@
+'''
+This source came from SqlAlchemy official website.
+source : 
+http://docs.sqlalchemy.org/en/rel_1_0/_modules/examples/versioned_history/history_meta.html
+It's license is MIT on their web site mentioned.
+'''
 """Versioned mixin class and other utilities."""
 
 from sqlalchemy.ext.declarative import declared_attr

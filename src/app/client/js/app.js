@@ -2,25 +2,188 @@
 
 angular.module('wsaa.aquamark',
                ['ngRoute', 'ngAnimate', 'ui.bootstrap', 'cfp.hotkeys',
-                'wsaa.survey', 'vpac.utils', 'vpac.widgets'])
+                'ui.bootstrap.showErrors', 'validation.match', 'settings',
+                'wsaa.survey', 'wsaa.admin', 'vpac.utils', 'vpac.widgets'])
+
+
+/**
+ * Automatically resolves interdependencies between injected arguments.
+ * Returns a function that can be used with $routeProvier.when's resolve
+ * parameter.
+ */
+.provider('chain', function resolveChain() {
+
+    function CyclicException(deps) {
+        this.message = "Detected cyclic dependency: " + deps.join(" -> ");
+        this.name = 'CyclicException';
+    };
+
+    var updateDepth = function(visited, decl, decls, depth) {
+        if (decl.depth === undefined || decl.depth < depth)
+            decl.depth = depth;
+        for (var i = 0; i < decl.length - 1; i ++) {
+            var dependency = decl[i];
+            if (visited.indexOf(dependency) >= 0)
+                throw new CyclicException(visited.concat(dependency));
+            if (decls[dependency]) {
+                updateDepth(visited.concat(dependency), decls[dependency],
+                    decls, depth + 1);
+            }
+        }
+        return null;
+    };
+
+    /*
+     * Compile a resolution declaration to resolve interdependencies.
+     */
+    var _chain = function($q, $injector, log, deps) {
+        deps = angular.copy(deps);
+
+        var orderedDeps = [];
+        for (var name in deps) {
+            var dep = deps[name];
+            updateDepth([name], dep, deps, 0);
+            orderedDeps.push({name: name, dep: dep})
+        }
+        orderedDeps.sort(function(a, b) {
+            return b.dep.depth - a.dep.depth;
+        });
+
+        var resolvedDeps = {};
+        angular.forEach(orderedDeps, function(value) {
+            var name = value.name;
+            var dep = value.dep;
+            if (angular.isString(dep)) {
+                resolvedDeps[name] = $injector.get(dep);
+                return;
+            }
+
+            var locals = {};
+            for (var j = 0; j < dep.length - 1; j++) {
+                var dependency = dep[j];
+                if (resolvedDeps[dependency])
+                    locals[dependency] = $q.when(resolvedDeps[dependency]);
+            }
+
+            resolvedDeps[name] = $q.all(locals).then(function(locals) {
+                log.debug("Resolving {} with locals {}", name, locals);
+                return $injector.invoke(dep, null, locals, name);
+            });
+        });
+        var ret = $q.all(resolvedDeps);
+        resolvedDeps = null;
+        return ret;
+    };
+
+    var chain = function(deps) {
+        // Services can't be injected at configure time, so defer injection
+        // until run time.
+        return ['$q', '$injector', 'log', function($q, $injector, log) {
+            return _chain($q, $injector, log, deps);
+        }];
+    };
+    chain.$get = chain;
+
+    return chain;
+})
+
 
 .config(['$routeProvider', '$httpProvider', '$parseProvider', '$animateProvider',
-         'logProvider',
+         'logProvider', 'chainProvider',
         function($routeProvider, $httpProvider, $parseProvider, $animateProvider,
-                logProvider) {
+                logProvider, chain) {
 
         $routeProvider
             .when('/survey/:survey/:fn/:proc/:subProc/:measure', {
                 templateUrl : 'survey-measure.html',
-                controller : 'SurveyCtrl'
+                controller : 'SurveyCtrl',
+                resolve: {routeData: chain({
+                    measure: ['Measure', '$route', function(Measure, $route) {
+                        return Measure.get($route.current.params).$promise;
+                    }],
+                    schema: ['measure', 'Schema', function(measure, Schema) {
+                        return Schema.get({name: measure.responseType}).$promise;
+                    }]
+                })}
             })
             .when('/', {
                 templateUrl : 'start.html',
                 controller : 'EmptyCtrl'
             })
-            .when('/login', {
-                templateUrl : 'login.html',
-                controller : 'LoginCtrl'
+            .when('/users', {
+                templateUrl : 'user_list.html',
+                controller : 'UserListCtrl',
+                resolve: {routeData: chain({
+                    users: ['User', function(User) {
+                        return User.query().$promise;
+                    }],
+                    current: ['Current', function(Current) {
+                        return Current.$promise;
+                    }]
+                })}
+            })
+            .when('/user/new', {
+                templateUrl : 'user.html',
+                controller : 'UserCtrl',
+                resolve: {routeData: chain({
+                    roles: ['Roles', function(Roles) {
+                        return Roles.get().$promise;
+                    }],
+                    current: ['Current', function(Current) {
+                        return Current.$promise;
+                    }]
+                })}
+            })
+            .when('/user/:id', {
+                templateUrl : 'user.html',
+                controller : 'UserCtrl',
+                resolve: {routeData: chain({
+                    roles: ['Roles', function(Roles) {
+                        return Roles.get().$promise;
+                    }],
+                    user: ['User', '$route', function(User, $route) {
+                        return User.get($route.current.params).$promise;
+                    }],
+                    current: ['Current', function(Current) {
+                        return Current.$promise;
+                    }]
+                })}
+            })
+            .when('/orgs', {
+                templateUrl : 'organisation_list.html',
+                controller : 'OrganisationListCtrl',
+                resolve: {routeData: chain({
+                    orgs: ['Organisation', function(Organisation) {
+                        return Organisation.query({}).$promise;
+                    }],
+                    current: ['Current', function(Current) {
+                        return Current.$promise;
+                    }]
+                })}
+            })
+            .when('/org/new', {
+                templateUrl : 'organisation.html',
+                controller : 'OrganisationCtrl',
+                resolve: {routeData: chain({
+                    current: ['Current', function(Current) {
+                        return Current.$promise;
+                    }]
+                })}
+            })
+            .when('/org/:id', {
+                templateUrl : 'organisation.html',
+                controller : 'OrganisationCtrl',
+                resolve: {routeData: chain({
+                    org: ['Organisation', '$route', function(Organisation, $route) {
+                        return Organisation.get($route.current.params).$promise;
+                    }],
+                    current: ['Current', function(Current) {
+                        return Current.$promise;
+                    }],
+                    users: ['User', 'org', function(User, org) {
+                        return User.query({org_id: org.id}).$promise;
+                    }]
+                })}
             })
             .when('/legal', {
                 templateUrl : 'legal.html',
@@ -30,7 +193,7 @@ angular.module('wsaa.aquamark',
                 redirectTo : '/'
             });
 
-        $animateProvider.classNameFilter(/ng-animate-enabled/);
+        $animateProvider.classNameFilter(/animate/);
 
         logProvider.setLevel('info');
 
@@ -57,20 +220,55 @@ angular.module('wsaa.aquamark',
 }])
 
 
+/*
+ * Install an HTTP interceptor to add version numbers to the URLs of certain
+ * resources. This is to improve the effectiveness of the browser cache, and to
+ * give control over when the cache should be invalidated.
+ */
+.config(['$httpProvider', 'versionedResources', 'deployId',
+    function($httpProvider, versionedResources, deployId) {
+        var includes = versionedResources.include.map(function(r) {
+            return new RegExp(r);
+        });
+        var excludes = versionedResources.exclude.map(function(r) {
+            return new RegExp(r);
+        });
+
+        $httpProvider.interceptors.push([function() {
+            return {
+                request: function(config) {
+                    var test = function(r) {
+                        return r.test(config.url);
+                    };
+                    if (includes.some(test) && !excludes.some(test)) {
+                        var query;
+                        if (config.url.indexOf('?') == -1)
+                            query = '?v=' + deployId;
+                        else
+                            query = '&v=' + deployId;
+                        config.url += query;
+                    }
+                    return config;
+                }
+            }
+        }]);
+    }
+])
+
+
 .run(['$cacheFactory', '$http', function($cacheFactory, $http) {
-    $http.defaults.cache = $cacheFactory('lruCache', {capacity: 20});
+    $http.defaults.cache = $cacheFactory('lruCache', {capacity: 100});
 }])
 
 
 .controller('RootCtrl', ['$scope',
         function($scope) {
 }])
-
-
 .controller('EmptyCtrl', ['$scope',
         function($scope) {
 }])
 .controller('LoginCtrl', ['$scope',
         function($scope) {
 }])
+
 ;

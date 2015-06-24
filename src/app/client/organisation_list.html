@@ -1,0 +1,31 @@
+<div class="header">
+    <div class="container">
+        <h2>
+            <i class="fa fa-fw fa-university"></i>
+            Organisations
+            <a class="btn btn-default btn-round" title="Add new"
+                    href="#/org/new" ng-if="checkRole('org_add')">
+                <i class="fa fa-fw fa-plus"></i></a>
+        </h2>
+    </div>
+</div>
+<div class="container">
+    <search-box model="search" result="orgs"></search-box>
+
+  <table class="table table-hover">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Region</th>
+        <th>Customers</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr ng-repeat="org in orgs">
+        <td><a ng-href="#/org/{{org.id}}">{{org.name}}</a></td>
+        <td>{{org.region}}</td>
+        <td>{{org.numberOfCustomers}}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

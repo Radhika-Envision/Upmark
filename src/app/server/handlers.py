@@ -1,8 +1,10 @@
 # Handlers
 
+import functools
 import logging
 import os
 import re
+import time
 
 import sass
 import tornado.gen
@@ -10,29 +12,67 @@ import tornado.httpclient
 import tornado.httputil
 import tornado.options
 import tornado.web
-import model
+import sqlalchemy
+
+import model 
+
 from utils import falsy, truthy
+from tornado.escape import json_decode, json_encode
 
 
 log = logging.getLogger('app.handlers')
 
+# A string to break through caches. This changes each time Landblade is
+# deployed.
+DEPLOY_ID = str(time.time())
+
+
+def deploy_id():
+    if tornado.options.options.dev:
+        return str(time.time())
+    else:
+        return DEPLOY_ID
+
+
+class AuthzError(tornado.web.HTTPError):
+    def __init__(self, reason="Not authorised", log_message=None, *args, **kwargs):
+        tornado.web.HTTPError.__init__(
+            self, 403, reason=reason, log_message=log_message, *args, **kwargs)
+
 
 class ModelError(tornado.web.HTTPError):
-    def __init__(self, log_message=None, *args, **kwargs):
+    def __init__(self, reason="Arguments are invalid", log_message=None, *args, **kwargs):
         tornado.web.HTTPError.__init__(
-            self, 403, log_message=log_message, *args, **kwargs)
+            self, 403, reason=reason, log_message=log_message, *args, **kwargs)
+
+    POSTGRES_PATTERN = re.compile(r'\([^)]+\) (.*)')
+
+    @classmethod
+    def from_sa(cls, sa_error):
+        log.error('%s', str(sa_error))
+        match = cls.POSTGRES_PATTERN.search(str(sa_error))
+        if match is not None:
+            return cls(reason="Arguments are invalid: %s" % match.group(1))
+        else:
+            return cls()
 
 
 class MissingDocError(tornado.web.HTTPError):
-    def __init__(self, log_message=None, *args, **kwargs):
+    def __init__(self, reason="Document not found", log_message=None, *args, **kwargs):
         tornado.web.HTTPError.__init__(
-            self, 404, log_message=log_message, *args, **kwargs)
+            self, 404, reason=reason, log_message=log_message, *args, **kwargs)
+
+
+class MethodError(tornado.web.HTTPError):
+    def __init__(self, reason="Method not allowed", log_message=None, *args, **kwargs):
+        tornado.web.HTTPError.__init__(
+            self, 405, reason=reason, log_message=log_message, *args, **kwargs)
 
 
 class InternalModelError(tornado.web.HTTPError):
-    def __init__(self, log_message=None, *args, **kwargs):
+    def __init__(self, reason="Bug in data model", log_message=None, *args, **kwargs):
         tornado.web.HTTPError.__init__(
-            self, 500, log_message=log_message, *args, **kwargs)
+            self, 500, reason=reason, log_message=log_message, *args, **kwargs)
 
 
 # Resources that have a CDN mirror have a local 'href' and a remote 'cdn'.
@@ -61,12 +101,16 @@ STYLESHEETS = [
     },
     {
         'min-href': '/minify/app-min.css',
-        'href': '/css/app.css'
+        'hrefs': [
+            '/css/app.css',
+            '/css/clock.css'
+        ]
     },
     {
         'min-href': '/minify/3rd-party-min.css',
         'hrefs': [
             '/.bower_components/angular-hotkeys/build/hotkeys.css',
+            '/.bower_components/angular-ui-select/dist/select.css'
         ]
     },
 ]
@@ -77,32 +121,45 @@ SCRIPTS = [
         'href': '/.bower_components/jquery/dist/jquery.js'
     },
     {
-        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular.min.js', # @IgnorePep8
+        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular.min.js', # @IgnorePep8
         'href': '/.bower_components/angular/angular.js'
     },
     {
-        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-route.min.js', # @IgnorePep8
+        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular-cookies.min.js', # @IgnorePep8
+        'href': '/.bower_components/angular-cookies/angular-cookies.js'
+    },
+    {
+        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular-route.min.js', # @IgnorePep8
         'href': '/.bower_components/angular-route/angular-route.js'
     },
     {
-        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-resource.min.js', # @IgnorePep8
+        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular-resource.min.js', # @IgnorePep8
         'href': '/.bower_components/angular-resource/angular-resource.js'
     },
     {
-        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-animate.min.js', # @IgnorePep8
+        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular-animate.min.js', # @IgnorePep8
         'href': '/.bower_components/angular-animate/angular-animate.js'
+    },
+    {
+        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular-sanitize.min.js', # @IgnorePep8
+        'href': '/.bower_components/angular-sanitize/angular-sanitize.js'
     },
     {
         'min-href': '/minify/3rd-party-min.js',
         'hrefs': [
+            '/.bower_components/bootstrap/dist/js/bootstrap.js',
             '/.bower_components/angular-bootstrap/ui-bootstrap-tpls.js',
-            '/.bower_components/angular-hotkeys/build/hotkeys.js'
+            '/.bower_components/angular-hotkeys/build/hotkeys.js',
+            '/.bower_components/angular-bootstrap-show-errors/src/showErrors.js',
+            '/.bower_components/angular-validation-match/dist/angular-input-match.js',
+            '/.bower_components/angular-ui-select/dist/select.js'
         ]
     },
     {
         'min-href': '/minify/app-min.js',
         'hrefs': [
             '/js/app.js',
+            '/js/admin.js',
             '/js/survey.js',
             '/js/utils.js',
             '/js/widgets.js',
@@ -110,94 +167,54 @@ SCRIPTS = [
     }
 ]
 
+
 class BaseHandler(tornado.web.RequestHandler):
     def get_current_user(self):
-        return self.get_secure_cookie("user")
-
-    def prepare_resources(self, declarations):
-        '''
-        Resolve a list of resources. Different URLs will be used for the
-        resources depending on whether the application is running in
-        development or release mode.
-        '''
-        resources = []
-        if truthy(tornado.options.options.dev):
-            for sdef in declarations:
-                if 'href' in sdef:
-                    resources.append(sdef['href'])
-                elif 'hrefs' in sdef:
-                    resources.extend(sdef['hrefs'])
-                elif 'min-href' in sdef:
-                    print('Warning: using minified resource in dev mode')
-                    resources.append(sdef['min-href'])
-                elif 'cdn' in sdef:
-                    print('Warning: using remote resource in dev mode')
-                    resources.append(sdef['cdn'])
-                else:
-                    print('Warning: unrecognised resource')
-        else:
-            for sdef in declarations:
-                if 'cdn' in sdef:
-                    resources.append(sdef['cdn'])
-                elif 'min-href' in sdef:
-                    resources.append(sdef['min-href'])
-                elif 'href' in sdef:
-                    print('Warning: using unminified resource in relese mode')
-                    resources.append(sdef['href'])
-                elif 'hrefs' in sdef:
-                    print('Warning: using unminified resource in relese mode')
-                    resources.extend(sdef['hrefs'])
-                else:
-                    print('Warning: unrecognised resource')
-        return resources
-
-
-class AuthLoginHandler(BaseHandler):
-    def get(self):
-        try:
-            errormessage = self.get_argument("error")
-        except:
-            errormessage = ""
-
-        self.render(
-            "../client/login.html", scripts=self.scripts, stylesheets=self.stylesheets,
-            analytics_id=tornado.options.options.analytics_id)
- 
-    def check_permission(self, user_id, password):
+        # Cached value is available in current_user property.
+        # http://tornado.readthedocs.org/en/latest/web.html#tornado.web.RequestHandler.current_user
+        uid = self.get_secure_cookie('user')
+        if uid is None:
+            return None
+        uid = uid.decode('utf8')
         with model.session_scope() as session:
-            user = session.query(model.AppUser).filter_by(user_id =user_id).first()
-            if user:
-                return user.check_password(password), user.user_id, "utility 1"
-        return False, None, None
- 
-    def post(self):
-        username = self.get_argument("username", "")
-        password = self.get_argument("password", "")
-        auth, user_id, utility = self.check_permission(username, password)
-        if auth:
-            self.set_current_user({"user_id" : user_id, "utility" : utility})
-            self.redirect(self.get_argument("next", u"/"))
-        else:
-            error_msg = u"?error=" + tornado.escape.url_escape("Login incorrect")
-            self.redirect(u"/login/" + error_msg)
- 
-    def set_current_user(self, user):
-        if user:
-            self.set_secure_cookie("user", tornado.escape.json_encode(user))
-        else:
-            self.clear_cookie("user")
+            try:
+                user = session.query(model.AppUser).get(uid)
+            except sqlalchemy.exc.StatementError:
+                return None
+            if user is not None:
+                session.expunge(user)
+            return user
 
-    def initialize(self, path):
-        print ("path", path)
-        self.path = path
-        self.scripts = self.prepare_resources(SCRIPTS)
-        self.stylesheets = self.prepare_resources(STYLESHEETS)
+    @property
+    def organisation(self):
+        if self.current_user is None or self.current_user.organisation_id is None:
+            return None
+        with model.session_scope() as session:
+            organisation = session.query(model.Organisation).\
+                get(self.current_user.organisation_id)
+            session.expunge(organisation)
+            return organisation
 
 
-class AuthLogoutHandler(BaseHandler):
-    def get(self):
-        self.clear_cookie("user")
-        self.redirect(self.get_argument("next", "/"))
+def authz(*roles):
+    '''
+    Decorator to check whether a user is authorised. This only checks whether
+    the user has the privilleges of a certain role. If not, a 403 error will be
+    generated. Attach to a request handler method like this:
+
+    @authz('org_admin', 'consultant')
+    def get(self, path):
+        ...
+    '''
+    def decorator(fn):
+        @functools.wraps(fn)
+        def wrapper(self, *args, **kwargs):
+            if not any(model.has_privillege(
+                    self.current_user.role, role) for role in roles):
+                raise AuthzError()
+            return fn(self, *args, **kwargs)
+        return wrapper
+    return decorator
 
 
 class MainHandler(BaseHandler):
@@ -208,8 +225,47 @@ class MainHandler(BaseHandler):
     def initialize(self, path):
         self.path = path
 
+        self.deploy_id = deploy_id()
         self.scripts = self.prepare_resources(SCRIPTS)
         self.stylesheets = self.prepare_resources(STYLESHEETS)
+
+    def prepare_resources(self, declarations):
+        '''
+        Resolve a list of resources. Different URLs will be used for the
+        resources depending on whether the application is running in
+        development or release mode.
+        '''
+        resources = []
+        dev_mode = truthy(tornado.options.options.dev)
+
+        link_order = ['cdn', 'min-href', 'href', 'hrefs']
+        if dev_mode:
+            link_order.reverse()
+
+        for sdef in declarations:
+            # Convert dictionary to ordered list of tuples (based on precedence)
+            rs = ((k, sdef[k]) for k in link_order if k in sdef)
+            try:
+                k, hrefs = next(rs)
+            except KeyError:
+                print('Warning: unrecognised resource')
+                continue
+            if isinstance(hrefs, str):
+                hrefs = [hrefs]
+
+            # Add a resource deployment version number to bust the cache, except
+            # for CDN links.
+            if k != 'cdn':
+                hrefs = ['%s?v=%s' % (href, self.deploy_id) for href in hrefs]
+
+            if dev_mode and k in {'cdn', 'min-href'}:
+                print('Warning: using release resouce in dev mode')
+            elif not dev_mode and k in {'href', 'hrefs'}:
+                print('Warning: using dev resouce in release')
+
+            resources.extend(hrefs)
+
+        return resources
 
     @tornado.web.authenticated
     def get(self, path):
@@ -219,8 +275,87 @@ class MainHandler(BaseHandler):
             template = self.path
 
         self.render(
-            template, user=tornado.escape.json_decode(self.get_current_user()), scripts=self.scripts, stylesheets=self.stylesheets,
-            analytics_id=tornado.options.options.analytics_id)
+            template, user=self.current_user, organisation=self.organisation,
+            scripts=self.scripts, stylesheets=self.stylesheets,
+            analytics_id=tornado.options.options.analytics_id,
+            deploy_id=self.deploy_id)
+
+
+class AuthLoginHandler(MainHandler):
+    def get(self, user_id):
+        '''
+        Log in page (form).
+        '''
+        try:
+            errormessage = self.get_argument("error")
+        except:
+            errormessage = ""
+
+        self.render(
+            "../client/login.html", scripts=self.scripts,
+            stylesheets=self.stylesheets,
+            analytics_id=tornado.options.options.analytics_id,
+            error=errormessage)
+
+    def post(self, user_id):
+        '''
+        Method for user to provide credentials and log in.
+        '''
+        email = self.get_argument("email", "")
+        password = self.get_argument("password", "")
+        try:
+            with model.session_scope() as session:
+                user = session.query(model.AppUser).filter_by(email=email).one()
+                if not user.enabled:
+                    raise ValueError("User account disabled")
+                if not user.check_password(password):
+                    raise ValueError("Login incorrect")
+                session.expunge(user)
+        except (sqlalchemy.orm.exc.NoResultFound, ValueError):
+            self.clear_cookie("user")
+            self.clear_cookie("superuser")
+            error_msg = "?error=" + tornado.escape.url_escape("Login incorrect")
+            self.redirect("/login/" + error_msg)
+            return
+
+        self.set_secure_cookie("user", str(user.id).encode('utf8'))
+        if model.has_privillege(user.role, 'admin'):
+            self.set_secure_cookie("superuser", str(user.id).encode('utf8'))
+        self.redirect(self.get_argument("next", "/"))
+
+    @tornado.web.authenticated
+    def put(self, user_id):
+        '''
+        Allows an admin to impersonate any other user without needing to know
+        their password.
+        '''
+        superuser_id = self.get_secure_cookie('superuser')
+        if superuser_id is None:
+            raise AuthzError("Not authorised: you are not a superuser")
+        superuser_id = superuser_id.decode('utf8')
+        with model.session_scope() as session:
+            superuser = session.query(model.AppUser).get(superuser_id)
+            if superuser is None or not model.has_privillege(superuser.role, 'admin'):
+                raise handlers.MissingDocError("Not authorised: you are not a superuser")
+
+            user = session.query(model.AppUser).get(user_id)
+            if user is None:
+                raise handlers.MissingDocError("No such user")
+
+            name = user.name
+            log.warn('User %s is impersonating %s', superuser.email, user.email)
+            self.set_secure_cookie("user", str(user.id).encode('utf8'))
+
+        self.set_header("Content-Type", "text/plain")
+        self.write("Impersonating %s" % name)
+        self.finish()
+
+
+class AuthLogoutHandler(BaseHandler):
+    def get(self):
+        self.clear_cookie("user")
+        self.clear_cookie("superuser")
+        self.redirect(self.get_argument("next", "/"))
 
 
 class RamCacheHandler(tornado.web.RequestHandler):
@@ -232,7 +367,7 @@ class RamCacheHandler(tornado.web.RequestHandler):
         if qpath in RamCacheHandler.CACHE and falsy(tornado.options.options.dev):
             self.write_from_cache(qpath)
         else:
-            log.info('Generating %s', path)
+            log.debug('Generating %s', path)
             mimetype, text = self.generate(path)
             self.add_to_cache(qpath, mimetype, text)
             self.write_from_cache(qpath)
@@ -378,7 +513,7 @@ class CssHandler(RamCacheHandler):
 
     def generate(self, path):
         path = self.resolve_path(path)
-        log.info("Compiling CSS for %s", path)
+        log.debug("Compiling CSS for %s", path)
         if path.startswith('/'):
             path = os.path.join(self.root, path[1:])
         else:
@@ -395,3 +530,33 @@ class CssHandler(RamCacheHandler):
                 404, "No such file %s." % path)
 
         return 'text/css', sass.compile(filename=path)
+
+
+class Paginate:
+    '''
+    Mixin to support pagination.
+    '''
+    MAX_PAGE_SIZE = 100
+
+    def paginate(self, query):
+        page_size = self.get_argument("pageSize", str(Paginate.MAX_PAGE_SIZE))
+        try:
+            page_size = int(page_size)
+        except ValueError:
+            raise handlers.ModelError("Invalid page size")
+        if page_size > Paginate.MAX_PAGE_SIZE:
+            raise handlers.ModelError(
+                "Page size is too large (max %d)" % Paginate.MAX_PAGE_SIZE)
+
+        page = self.get_argument("page", "0")
+        try:
+            page = int(page)
+        except ValueError:
+            raise handlers.ModelError("Invalid page")
+        if page < 0:
+            raise handlers.ModelError("Page must be non-negative")
+
+        query = query.limit(page_size)
+        query = query.offset(page * page_size)
+        return query
+

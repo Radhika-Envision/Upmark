@@ -1,0 +1,8 @@
+.table {
+     > thead > tr > th {
+        border-bottom: 1px solid #ddd;
+    }
+     > tbody > tr > td {
+        border-top: none;
+    }
+}

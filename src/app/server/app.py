@@ -5,10 +5,14 @@ import inspect
 import logging.config
 import os
 
+from alembic.config import Config
+from alembic import command
+from sqlalchemy import func
 import sqlalchemy.orm
 import tornado.options
 import tornado.web
 
+import data_access, user_handlers, org_handlers
 import handlers
 import model
 from utils import truthy
@@ -75,31 +79,82 @@ def get_settings():
     return {
         "cookie_secret": get_cookie_secret(),
         "xsrf_cookies": truthy(tornado.options.options.xsrf),
-        "debug": True,
+        "debug": truthy(tornado.options.options.debug),
+        "serve_traceback": truthy(tornado.options.options.dev),
         "gzip": True,
         "template_path": os.path.join(package_dir, "..", "client"),
         "login_url": "/login/",
     }
 
 
+def connect_db():
+    package_dir = get_package_dir()
+    alembic_cfg = Config(os.path.join(package_dir, "..", "alembic.ini"))
+    alembic_cfg.set_main_option(
+        "script_location", os.path.join(package_dir, "..", "alembic"))
+    if os.environ.get('DATABASE_URL') is not None:
+        alembic_cfg.set_main_option("url", os.environ.get('DATABASE_URL'))
+
+    try:
+        log.info("Checking database version")
+        command.upgrade(alembic_cfg, "head")
+        model.connect_db(os.environ.get('DATABASE_URL'))
+    except sqlalchemy.exc.IntegrityError:
+        log.error("Failed to upgrade database")
+        raise
+    except sqlalchemy.exc.ProgrammingError as e:
+        if 'appuser" does not exist' in str(e):
+            log.info("Initialising database")
+            model.connect_db(os.environ.get('DATABASE_URL'))
+            command.stamp(alembic_cfg, "head")
+        else:
+            log.error("Failed to upgrade database schema: %s", e)
+            raise
+
+
+def add_default_user():
+    with model.session_scope() as session:
+        count = session.query(func.count(model.AppUser.id)).scalar()
+        if count == 0:
+            log.info("First start. Creating default user %s", 'admin')
+            org = model.Organisation(
+                name="DEFAULT ORGANISATION", number_of_customers=0,
+                region="NOWHERE")
+            session.add(org)
+            session.flush()
+            user = model.AppUser(
+                email="admin", name="DEFAULT USER", role="admin",
+                organisation=org)
+            user.set_password("admin")
+            session.add(user)
+
+
 def start_web_server():
 
     package_dir = get_package_dir()
     settings = get_settings()
+    add_default_user()
 
     application = tornado.web.Application(
         [
-            (r"/login/", handlers.AuthLoginHandler, {
+            (r"/login/?(.*)", handlers.AuthLoginHandler, {
                 'path': os.path.join(package_dir, "..", "client")}),
-            (r"/logout/", handlers.AuthLogoutHandler),
+            (r"/logout/?", handlers.AuthLogoutHandler),
             (r"/()", handlers.MainHandler, {
                 'path': '../client/index.html'}),
+
             (r"/bower_components/(.*)", tornado.web.StaticFileHandler, {
-                'path': os.path.join(package_dir, "..", "client", ".bower_components")}),
+                'path': os.path.join(
+                    package_dir, "..", "client", ".bower_components")}),
             (r"/minify/(.*)", handlers.MinifyHandler, {
-                'path': '/minify/', 'root': os.path.join(package_dir, "..", "client")}),
+                'path': '/minify/',
+                'root': os.path.join(package_dir, "..", "client")}),
             (r"/(.*\.css)", handlers.CssHandler, {
                 'root': os.path.join(package_dir, "..", "client")}),
+
+            (r"/organisation/?(.*).json", org_handlers.OrgHandler, {}),
+            (r"/user/?(.*).json", user_handlers.UserHandler, {}),
+
             (r"/(.*)", tornado.web.StaticFileHandler, {
                 'path': os.path.join(package_dir, "..", "client")}),
         ], **settings
@@ -127,7 +182,7 @@ def start_web_server():
 if __name__ == "__main__":
     try:
         parse_options()
-        model.connect_db(os.environ.get('DATABASE_URL'))
+        connect_db()
         start_web_server()
     except KeyboardInterrupt:
         log.info("Shutting down due to user request (e.g. Ctrl-C)")

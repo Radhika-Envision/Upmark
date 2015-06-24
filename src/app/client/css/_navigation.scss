@@ -1,0 +1,69 @@
+@import '_defines.scss';
+
+$nav-height: 60px;
+$nav-item-padding: 15px;
+$std-padding: 4px;
+
+.navbar-brand {
+    padding: $std-padding $nav-item-padding;
+    height: $nav-height;
+}
+header {
+    position: relative;
+    &:before {
+        content: '';
+        position: absolute;
+        display: block;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        height: 5px;
+        box-shadow: 0 1px 10px rgba(0, 0, 0, 0.3);
+        border-radius: 50%;
+        z-index: 1;
+    }
+}
+nav.navbar.navbar-static-top {
+    margin-bottom: 0;
+    position: relative;
+}
+.navbar-nav {
+    >li > a {
+        line-height: $nav-height - (2 * $nav-item-padding);
+        padding-top: $nav-item-padding;
+        padding-bottom: $nav-item-padding;
+    }
+}
+.navbar-toggle {
+    margin-top: ($nav-height - 34px) / 2;
+    margin-bottom: ($nav-height - 34px) / 2;
+}
+@media (min-width: 768px) {
+    .navbar-collapse .when-collapsed {
+        display: none;
+    }
+}
+@media (max-width: 768px) {
+    .navbar-collapse .when-collapsed {
+        display: initial;
+    }
+}
+
+.navbar-default {
+    background: white;
+
+    .navbar-nav > li > a:hover,
+    .navbar-nav > li > a:focus {
+        background: #f8f8f8;
+    }
+}
+
+/* Logo is included inline as raw SVG, so we can do some funky styling. */
+.navbar-brand svg {
+    $height: $nav-height - (2 * $std-padding);
+    height: $height;
+    width: (619px / 183px) * $height;
+}
+g#logo-text-subtitle {
+    display: none;
+}

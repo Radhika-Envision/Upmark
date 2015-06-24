@@ -7,28 +7,39 @@
     <link rel="stylesheet" type="text/css" href="{{s}}">
     {% end %}
 
-    {% for s in scripts %}
-    <script src="{{s}}"></script>
-    {% end %}
-
-    {% include analytics.html %}
-
 </head>
 
 <body ng-controller="RootCtrl">
 
 <header>
-    <nav class="navbar navbar-static-top" role="navigation">
+    <nav class="navbar navbar-default navbar-static-top" role="navigation">
         <div class="container-fluid">
             <!-- Logo -->
-            <div class="col-md-3 nav navbar-nav">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target=".navbar-collapse">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
                 <a href="#/" class="navbar-brand">
                     {% include images/logo.svg %}
                 </a>
             </div>
-            <div class="nav navbar-nav navbar-right">
-                <p><b>{{user["user_id"]}}</b><br>
-                <b>{{user["utility"]}}</b></p>
+            <div class="collapse navbar-collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a ng-href="#/user/{{user.id}}">
+                            {{user.name}}
+                        </a>
+                    </li>
+                    <li>
+                        <a ng-href="/logout">
+                            <i class="fa fa-sign-out"></i>
+                            <span class="when-collapsed">Sign out</span>
+                        </a>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
@@ -37,6 +48,16 @@
 <div id="page-content">
     <div ng-view autoscroll="true"></div>
 </div>
+
+<messages></messages>
+
+{% for s in scripts %}
+<script src="{{s}}"></script>
+{% end %}
+
+{% include settings.html %}
+
+{% include analytics.html %}
 
 </body>
 </html>

@@ -21,12 +21,19 @@ sudo docker run -d --name aquamark \
     vpac/aquamark
 ```
 
-The first time you start the server, you will need to create a super user.
+Where `ANALYTICS_ID` is a [Google Analytics][ga] ID. Omit that option to disable
+analytics.
 
-```bash
-sudo docker run -it --rm --link postgres_aq:postgres vpac/aquamark \
-    app/server/admin.py adduser joe@bloggs.com 'Joe Bloggs' super
-```
+The first time the server is started, a default user is created:
+
+ * Email: admin
+ * Password: admin
+
+The first thing you should do is log in as that user and change the password.
+You might also want to change other details about the default user and
+organisation.
+
+[ga]: http://www.google.com.au/analytics/
 
 
 ## Development
@@ -39,14 +46,40 @@ just connect to http://localhost:8000 for testing.
 
 ```bash
 sudo docker run -d --name postgres_aq postgres:9
-sudo docker run --rm \
+sudo docker run --rm --name aq \
     --link postgres_aq:postgres \
-    -v "$YOUR_GIT_ROOT/src/app:/usr/share/aquamark/app" \
+    -v "$PWD/src/app:/usr/share/aquamark/app" \
     -p 8000:8000 \
     -e DEV_MODE=True \
-    -e XSRF_PROTECTION=False \
+    -e DEBUG_MODE=True \
     vpac/aquamark
 ```
+
+
+## Admin Tool
+
+Some tasks can be performed from the command line using `admin.py`. For example,
+to create a new organisation:
+
+```bash
+sudo docker run -it --rm --link postgres_aq:postgres vpac/aquamark \
+    app/server/admin.py org 'ACME Water' \
+        --region=Melbourne \
+        --url='http://acme-water.com.au' \
+        --customers=2000
+```
+
+To create a new user:
+
+```bash
+sudo docker run -it --rm --link postgres_aq:postgres vpac/aquamark \
+    app/server/admin.py user sue@acme-water.com.au \
+        --name='Sue Green' \
+        --role=clerk \
+        --org='ACME Water'
+```
+
+Run `admin.py -h` for more options.
 
 
 ## Dependencies

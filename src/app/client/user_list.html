@@ -1,0 +1,38 @@
+<div class="header">
+    <div class="container">
+        <h2>
+            <i class="fa fa-fw fa-users"></i>
+            Users
+            <a class="btn btn-default btn-round" title="Add new"
+                    ng-href="#/user/new{{org.id ? '?orgId=' + org.id + '&orgName=' + org.name : ''}}" ng-if="checkRole('user_add')">
+                <i class="fa fa-fw fa-plus"></i></a>
+        </h2>
+    </div>
+</div>
+<div class="container">
+    <search-box model="search" result="users">
+        <button class="btn btn-default" type="button" title="Include inactive users"
+                ng-click="search.enabled = null"
+                ng-if="search.enabled">
+            <i class="fa fa-fw fa-eye"></i></button>
+        <button class="btn btn-default" type="button" title="Only show active users"
+                ng-click="search.enabled = true"
+                ng-if="search.enabled == null">
+            <i class="fa fa-fw fa-eye-slash"></i></button>
+    </search-box>
+
+  <table class="table table-hover">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Organisation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr ng-repeat="user in users">
+        <td><a ng-href="#/user/{{user.id}}">{{user.name}}</a></td>
+        <td><a ng-href="#/org/{{user.organisation.id}}">{{user.organisation.name}}</a></td>
+      </tr>
+    </tbody>
+  </table>
+</div>

@@ -1,21 +1,21 @@
 @import '_utils.scss';
 @import '_defines.scss';
 
-$gutter: 200px;
 $anim-time: 0.5s;
-$round-button-width: 26px;
 
-.survey-tree {
+.header {
     background: $primary-colour;
-    margin: 0;
-    padding: 10px 0;
     position: relative;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
 
     h2, h3, h4 {
-        margin: 0 $gutter;
         color: mix(black, $primary-colour, 70%);
         line-height: 1.6;
         position: relative;
+        margin-top: 4px;
+        margin-bottom: 4px;
         .clock-progress {
             position: absolute;
             top: 0.2em;
@@ -37,35 +37,45 @@ $round-button-width: 26px;
         position: absolute;
         right: 10px;
     }
+
+    a {
+        color: inherit;
+    }
+}
+
+.subheader {
+    margin-bottom: 20px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+.header+.subheader {
+    margin-top: -20px;
+}
+.jumbotron+.subheader {
+    margin-top: -30px;
+}
+
+/* Nested pages should have less prominent headers */
+ng-include>.header {
+    background: transparent;
+    margin-bottom: 0;
+    padding-bottom: 0;
+
+    h2 {
+        font-size: 16px;
+    }
 }
 
 .measure {
     h5 {
-        margin: 30px $gutter 10px;
         color: mix(black, white, 70%);
         line-height: 1.6;
         font-size: 19px;
-
-        /* N/A button etc. */
-        .btn {
-            border-radius: 100%;
-            width: $round-button-width;
-            height: $round-button-width;
-            padding: 0;
-            line-height: $round-button-width - 2px;
-            font-size: $round-button-width - 8px;
-            float: right;
-        }
-    }
-
-    >p {
-        margin: 20px $gutter;
     }
 
     $response-spacing: 10px;
 
     ol.responses {
-        margin: (30px - $response-spacing) $gutter;
         padding: 0;
         display: table;
         border-spacing: 0 $response-spacing;
@@ -136,7 +146,6 @@ $round-button-width: 26px;
         $default-height: 150px;
 
         border-top: 1px solid #cecece;
-        margin: (30px - $response-spacing) $gutter;
         position: relative;
 
         textarea {

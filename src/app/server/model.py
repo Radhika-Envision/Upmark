@@ -16,11 +16,6 @@ from guid import GUID
 from history_meta import Versioned, versioned_session
 
 
-SCHEMA_VERSION = '0.0.1'
-DATABASE_URL  = 'postgresql://postgres:postgres@postgres/aquamark'
-POSTGRES_DEFAULT_URL = 'postgresql://postgres:postgres@postgres/postgres'
-
-
 metadata = MetaData()
 Base = declarative_base(metadata=metadata)
 
@@ -38,40 +33,60 @@ class SystemConfig(Base):
         return "SystemConfig(name={}, value={})".format(self.name, self.value)
 
 
-class Response(Versioned, Base):
-    __tablename__ = 'response'
-    # Here we define columns for the table response
-    # Notice that each column is also a normal Python instance attribute.
-    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
-    user_id = Column(GUID, ForeignKey('appuser.id'))
-    assessment_id = Column(GUID, ForeignKey('assessment.id'))
-    measure_id = Column(GUID, ForeignKey('measure.id'))
-    comment = Column(Text, nullable=False)
-    not_relevant = Column(Boolean, nullable=False)
-    response_parts = Column(Text, nullable=False)
-    audit_reason = Column(Text, nullable=True)
-    # TODO: Test modified field from history table.
-
-
-class Assessment(Versioned, Base):
-    __tablename__ = 'assessment'
-    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
-    utility_id = Column(GUID, ForeignKey('utility.id'))
-    survey_id = Column(GUID, ForeignKey('survey.id'))
-    measureset_id = Column(GUID, ForeignKey('measureset.id'))
-    # TODO: Make this field an enum
-    approval = Column(Text, nullable=False)
-    created = Column(Date, nullable=False)
-
-
-class Utility(Versioned, Base):
-    __tablename__ = 'utility'
-    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
+class Organisation(Versioned, Base):
+    __tablename__ = 'organisation'
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
     name = Column(Text, nullable=False, unique=True)
     url = Column(Text, nullable=True)
     region = Column(Text, nullable=False)
     number_of_customers = Column(Integer, nullable=False)
-    created = Column(Date, nullable=False)
+    created = Column(Date, default=func.now(), nullable=False)
+
+
+class AppUser(Versioned, Base):
+    __tablename__ = 'appuser'
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    email = Column(Text, nullable=False, unique=True)
+    name = Column(Text, nullable=False)
+    password = Column(Text, nullable=False)
+    role = Column(Text, nullable=False)
+    organisation_id = Column(
+        GUID, ForeignKey("organisation.id"), nullable=False)
+    created = Column(Date, default=func.now(), nullable=False)
+    enabled = Column(Boolean, nullable=False, default=True)
+
+    organisation = relationship(Organisation)
+
+    def set_password(self, plaintext):
+        self.password = sha256_crypt.encrypt(plaintext)
+
+    def check_password(self, plaintext):
+        return sha256_crypt.verify(plaintext, self.password)
+
+
+ROLE_HIERARCHY = {
+    'admin': {'author', 'authority', 'consultant', 'org_admin', 'clerk'},
+    'author': set(),
+    'authority': {'consultant'},
+    'consultant': set(),
+    'org_admin': {'clerk'},
+    'clerk': set()
+}
+
+
+def has_privillege(current_role, *target_roles):
+    '''
+    Checks whether one role has the privilleges of another role. For example,
+        has_privillege('org_admin', 'clerk') -> True
+        has_privillege('clerk', 'org_admin') -> False
+        has_privillege('clerk', 'consultant', 'clerk') -> True
+    '''
+    for target_role in target_roles:
+        if target_role == current_role:
+            return True
+        if target_role in ROLE_HIERARCHY[current_role]:
+            return True
+    return False
 
 
 class Survey(Versioned, Base):
@@ -81,26 +96,9 @@ class Survey(Versioned, Base):
     title = Column(Text, nullable=False)
 
 
-class AppUser(Versioned, Base):
-    __tablename__ = 'appuser'
-    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
-    name = Column(Text, nullable=False)
-    user_id = Column(Text, nullable=False, unique=True)
-    password = Column(Text, nullable=False)
-    role = Column(Text, nullable=False)
-    utility_id = Column(GUID, ForeignKey('utility.id'))
-    created = Column(Date, default=func.now(), nullable=False)
-
-    def set_password(self, plaintext):
-        self.password = sha256_crypt.encrypt(plaintext)
-
-    def check_password(self, plaintext):
-        return sha256_crypt.verify(plaintext, self.password)
-
-
 class Function(Versioned, Base):
     __tablename__ = 'function'
-    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
     seq = Column(Integer, nullable=False)
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
@@ -108,7 +106,7 @@ class Function(Versioned, Base):
 
 class Process(Versioned, Base):
     __tablename__ = 'process'
-    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
     function_id = Column(GUID, ForeignKey('function.id'))
     seq = Column(Integer, nullable=False)
     title = Column(Text, nullable=False)
@@ -117,7 +115,7 @@ class Process(Versioned, Base):
 
 class Subprocess(Versioned, Base):
     __tablename__ = 'subprocess'
-    id = Column(GUID, default=uuid.uuid4(), primary_key=True)
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
     process_id = Column(GUID, ForeignKey('process.id'))
     seq = Column(Integer, nullable=False)
     title = Column(Text, nullable=False)
@@ -139,7 +137,6 @@ class Measure(Versioned, Base):
     #response = relationship("Response", uselist=False, backref="measure")
 
 
-# TODO: Change this to MethodSet, and add many-to-many mapping to methods.
 class MeasureSet(Base):
     __tablename__ = 'measureset'
     id = Column(GUID, default=uuid.uuid4(), primary_key=True)
@@ -159,15 +156,30 @@ class MeasureSetMeasureLink(Base):
     version = Column(Integer, nullable=True, default=None)
 
 
-# TODO: I don't think this script should create the database. It should be done
-# by an admin.
-def create_database(database_name):
-    db_url = os.environ.get('POSTGRES_DEFAULT_URL', POSTGRES_DEFAULT_URL)
-    engine = create_engine(db_url)
-    conn = engine.connect()
-    conn.execute("commit")
-    conn.execute("CREATE DATABASE " + database_name)
-    conn.close()
+class Response(Versioned, Base):
+    __tablename__ = 'response'
+    # Here we define columns for the table response
+    # Notice that each column is also a normal Python instance attribute.
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    user_id = Column(GUID, ForeignKey('appuser.id'))
+    assessment_id = Column(GUID, ForeignKey('assessment.id'))
+    measure_id = Column(GUID, ForeignKey('measure.id'))
+    comment = Column(Text, nullable=False)
+    not_relevant = Column(Boolean, nullable=False)
+    response_parts = Column(Text, nullable=False)
+    audit_reason = Column(Text, nullable=True)
+    # TODO: Test modified field from history table.
+
+
+class Assessment(Versioned, Base):
+    __tablename__ = 'assessment'
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    organisation_id = Column(GUID, ForeignKey('organisation.id'))
+    survey_id = Column(GUID, ForeignKey('survey.id'))
+    measureset_id = Column(GUID, ForeignKey('measureset.id'))
+    # TODO: Make this field an enum
+    approval = Column(Text, nullable=False)
+    created = Column(Date, nullable=False)
 
 
 Session = None
@@ -192,34 +204,12 @@ def connect_db(url):
     global Session
     engine = create_engine(url)
     conn = engine.connect()
-    #Base.metadata.drop_all(engine)
+    # Never drop the schema here.
+    # - For short-term testing, use psql.
+    # - For breaking changes, add migration code to update_model below.
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
     versioned_session(Session)
-    update_model()
-
-
-def update_model():
-    with session_scope() as session:
-        try:
-            q = session.query(SystemConfig)
-            conf = q.filter_by(name='schema_version').one()
-        except sqlalchemy.exc.SQLAlchemyError:
-            conf = SystemConfig(name='schema_version', value=SCHEMA_VERSION)
-            session.add(conf)
-
-        current_version = conf.value.split('.')
-        target_version = SCHEMA_VERSION.split('.')
-        if current_version == target_version:
-            return
-        elif current_version > target_version:
-            raise ModelError('Database schema version is not supported.')
-
-        conf.value = SCHEMA_VERSION
-
-        # When the schema changes, add migration code here. E.g.
-        #if current_version < [0, 1, 0]:
-        #    do_something()
 
 
 # TODO: Separate these tests out into a different module. Use PyUnit.
@@ -232,10 +222,21 @@ def update_model():
 def testing():
     connect_db(os.environ.get('DATABASE_URL'))
     with session_scope() as session:
-        testUser = AppUser(user_id="forjin", name="Jin", privileges="admin")
+        testOrganisation = Organisation(name="Jin Company", url="http://test.com", region="Melbourne", number_of_customers=4000)
+        session.add(testOrganisation)
+        session.flush()
+        testOrganisation = Organisation(name="Test", url="http://test.com", region="Melbourne", number_of_customers=4000)
+        session.add(testOrganisation)
+        session.flush()
+        testOrganisation = Organisation(name="Acme", url="http://test.com", region="Melbourne", number_of_customers=4000)
+        session.add(testOrganisation)
+        session.flush()
+        print("testOrganisation.id", testOrganisation.id)
+        testUser = AppUser(email="forjin@vpac-innovations.com.au", name="Jin Park", organisation_id=testOrganisation.id, role="admin")
         testUser.set_password("test")
         session.add(testUser)
-        assert testUser.check_password("Test")
+        #assert testUser.organisation.name, "Acme"
+        assert testUser.check_password("test")
     '''
     testFunction = Function(seq=1, title="Function 1", description="Test Description")
     session.add(testFunction)

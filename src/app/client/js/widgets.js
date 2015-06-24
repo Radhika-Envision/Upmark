@@ -39,23 +39,20 @@ angular.module('vpac.widgets', [])
 
     return {
         restrict: 'E',
-        template: '<object data="images/clock.svg" class="clock-progress" type="image/svg+xml"></object>',
+        templateUrl: 'images/clock.svg',
+        templateNamespace: 'svg',
         replace: true,
         scope: {
             fraction: '='
         },
         link: function(scope, elem, attrs) {
             var update = function(fraction) {
-                var svg = elem[0].getSVGDocument();
                 var path = drawSemicircle(fraction);
-                var fillElem = $(svg).find("#clock-fill");
+                var fillElem = elem.find(".clock-fill");
                 fillElem.attr('d', path);
             };
-            var init = function() {
-                update(scope.fraction);
-                scope.$watch('fraction', update);
-            };
-            elem.one('load', init);
+            update(scope.fraction);
+            scope.$watch('fraction', update);
             scope.$on('$destroy', function() {
                 scope = null;
                 elem = null;
@@ -64,4 +61,90 @@ angular.module('vpac.widgets', [])
         }
     };
 }])
+
+
+.factory('Notifications', ['log', '$timeout', function(log, $timeout) {
+    function Notifications() {
+        this.messages = [];
+    };
+    Notifications.prototype.add = function(id, type, body, duration) {
+        var newMessage = {
+            id: id,
+            type: type,
+            css: type == 'error' ? 'danger' : type,
+            body: body
+        };
+        for (var i = 0; i < this.messages.length; i++) {
+            if (angular.equals(this.messages[i], newMessage))
+                return;
+        }
+        this.messages = [newMessage].concat(this.messages);
+
+        if (duration) {
+            $timeout(function(that, message) {
+                that.remove(message);
+            }, duration, true, this, newMessage);
+        }
+
+        return newMessage;
+    };
+    /**
+     * Remove all messages that match the given ID or object.
+     */
+    Notifications.prototype.remove = function(messageOrId) {
+        var filterFn = null;
+        if (angular.isString(messageOrId)) {
+            filterFn = function(element) {
+                return element.id != this;
+            };
+        } else {
+            filterFn = function(element) {
+                return element != this;
+            };
+        }
+        return this.messages = this.messages.filter(filterFn, messageOrId);
+    };
+    return new Notifications();
+}])
+
+
+.directive('messages', [function() {
+    return {
+        restrict: 'E',
+        templateUrl: 'messages.html',
+        replace: true,
+        scope: {},
+        controller: ['$scope', 'Notifications', function($scope, Notifications) {
+            $scope.notifications = Notifications;
+        }]
+    };
+}])
+
+
+.directive('searchBox', [function() {
+    return {
+        restrict: 'E',
+        templateUrl: 'searchbox.html',
+        replace: true,
+        scope: {
+            model: '=',
+            result: '='
+        },
+        transclude: true,
+        controller: ['$scope', function($scope) {
+            if (!$scope.model.pageSize)
+                $scope.model.pageSize = 10;
+            $scope.$watch('model', function(model, oldModel) {
+                if (model.page === undefined)
+                    model.page = 0;
+                var tempModel = angular.copy(model);
+                tempModel.page = oldModel.page;
+                if (angular.equals(oldModel, tempModel))
+                    return;
+                $scope.model.page = 0;
+            }, true);
+        }]
+    };
+}])
+
 ;

@@ -1,0 +1,25 @@
+[{
+    "id": "admin",
+    "name": "Administrator",
+    "description": "Can do anything"
+}, {
+    "id": "author",
+    "name": "Author",
+    "description": "Creates new surveys and edits questions"
+}, {
+    "id": "authority",
+    "name": "Authority",
+    "description": "Gives final approval to assessments"
+}, {
+    "id": "consultant",
+    "name": "Consultant",
+    "description": "Gives initial approval to assessments"
+}, {
+    "id": "org_admin",
+    "name": "Organisation Administrator",
+    "description": "Manages an organisation, and responds to surveys"
+}, {
+    "id": "clerk",
+    "name": "Clerk",
+    "description": "Responds to surveys"
+}]
