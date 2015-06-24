@@ -13,29 +13,29 @@ import logging
 
 from utils import to_dict, simplify, normalise
 
-class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
+class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
-    def get(self, measure_id):
+    def get(self, survey_id):
         '''
-        Get a single measure.
+        Get a single survey.
         '''
-        if measure_id == "":
+        if survey_id == "":
             self.query()
             return
 
         with model.session_scope() as session:
             try:
-                measure = session.query(model.Measure).get(measure_id)
-                if measure is None:
+                survey = session.query(model.Survey).get(survey_id)
+                if survey is None:
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError, ValueError):
-                raise handlers.MissingDocError("No such measure")
+                raise handlers.MissingDocError("No such survey")
 
             '''
-            if measure.id != self.current_measure.id:
-                son = to_dict(measure, exclude={'email', 'password'})
+            if survey.id != self.current_survey.id:
+                son = to_dict(survey, exclude={'email', 'password'})
             else:
-                son = to_dict(measure, exclude={'password'})
+                son = to_dict(survey, exclude={'password'})
             son = simplify(son)
             son = normalise(son)
             son["organisation"] = org
@@ -47,12 +47,12 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
 
     def query(self):
         '''
-        Get a list of measures.
+        Get a list of surveys.
         '''
 
         sons = []
         with model.session_scope() as session:
-            query = session.query(model.Measure)
+            query = session.query(model.Survey)
 
             # org_id = self.get_argument("org_id", None)
             # if org_id is not None:
@@ -61,9 +61,9 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
             term = self.get_argument('term', None)
             if term is not None:
                 query = query.filter(
-                    model.Measure.name.ilike(r'%{}%'.format(term)))
+                    model.Survey.name.ilike(r'%{}%'.format(term)))
 
-            query = query.order_by(model.Measure.name)
+            query = query.order_by(model.Survey.name)
             query = self.paginate(query)
 
             for ob in query.all():
@@ -80,89 +80,89 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
-    def post(self, measure_id):
+    def post(self, survey_id):
         '''
-        Create a new measure.
+        Create a new survey.
         '''
-        if measure_id != '':
-            raise handlers.MethodError("Can't use POST for existing measure.")
+        if survey_id != '':
+            raise handlers.MethodError("Can't use POST for existing survey.")
 
         son = json_decode(self.request.body)
         self._check_create(son)
 
         try:
             with model.session_scope() as session:
-                measure = model.Measure()
+                survey = model.Survey()
                 self._check_update(son, None)
-                self._update(measure, son)
-                session.add(measure)
+                self._update(survey, son)
+                session.add(survey)
                 session.flush()
-                session.expunge(measure)
+                session.expunge(survey)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.get(measure.id)
+        self.get(survey.id)
 
-    def put(self, measure_id):
+    def put(self, survey_id):
         '''
-        Update an existing measure.
+        Update an existing survey.
         '''
-        if measure_id == '':
-            raise handlers.MethodError("Can't use PUT for new measures (no ID).")
+        if survey_id == '':
+            raise handlers.MethodError("Can't use PUT for new surveys (no ID).")
         son = json_decode(self.request.body)
 
         try:
             with model.session_scope() as session:
-                measure = session.query(model.Measure).get(measure_id)
-                if measure is None:
+                survey = session.query(model.Survey).get(survey_id)
+                if survey is None:
                     raise ValueError("No such object")
-                self._check_update(son, measure)
-                self._update(measure, son)
-                session.add(measure)
+                self._check_update(son, survey)
+                self._update(survey, son)
+                session.add(survey)
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such measure")
+            raise handlers.MissingDocError("No such survey")
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.get(measure_id)
+        self.get(survey_id)
 
     def _check_create(self, son):
-        if not model.has_privillege(self.current_measure.role, 'org_admin'):
-            raise handlers.MethodError("You can't create a new measure.")
+        if not model.has_privillege(self.current_survey.role, 'org_admin'):
+            raise handlers.MethodError("You can't create a new survey.")
 
-    def _check_update(self, son, measure):
-        if model.has_privillege(self.current_measure.role, 'admin'):
+    def _check_update(self, son, survey):
+        if model.has_privillege(self.current_survey.role, 'admin'):
             pass
-        elif model.has_privillege(self.current_measure.role, 'org_admin'):
+        elif model.has_privillege(self.current_survey.role, 'org_admin'):
             if str(self.organisation.id) != son['organisation']['id']:
                 raise handlers.MethodError(
-                    "You can't create/modify another organisation's measure.")
+                    "You can't create/modify another organisation's survey.")
             if son['role'] not in {'org_admin', 'clerk'}:
                 raise handlers.MethodError(
                     "You can't set this role.")
-            if measure and measure.role == 'admin':
+            if survey and survey.role == 'admin':
                 raise handlers.MethodError(
-                    "You can't modify a measure with that role.")
+                    "You can't modify a survey with that role.")
         else:
-            if str(self.current_measure.id) != measure.id:
+            if str(self.current_survey.id) != survey.id:
                 raise handlers.MethodError(
-                    "You can't modify another measure.")
+                    "You can't modify another survey.")
             if str(self.organisation.id) != son['organisation']['id']:
                 raise handlers.MethodError(
                     "You can't change your organisation.")
-            if son['role'] != self.current_measure.role:
+            if son['role'] != self.current_survey.role:
                 raise handlers.MethodError(
                     "You can't change your role.")
 
-    def _update(self, measure, son):
+    def _update(self, survey, son):
         '''
-        Apply measure-provided data to the saved model.
+        Apply survey-provided data to the saved model.
         '''
         if son.get('email', '') != '':
-            measure.email = son['email']
+            survey.email = son['email']
         if son.get('name', '') != '':
-            measure.name = son['name']
+            survey.name = son['name']
         if son.get('role', '') != '':
-            measure.role = son['role']
+            survey.role = son['role']
         if son.get('organisation', '') != '':
-            measure.organisation_id = son['organisation']['id']
+            survey.organisation_id = son['organisation']['id']
         if son.get('password', '') != '':
-            measure.set_password(son['password'])
+            survey.set_password(son['password'])

@@ -150,6 +150,8 @@ def start_web_server():
 
             (r"/organisation/?(.*).json", org_handlers.OrgHandler, {}),
             (r"/user/?(.*).json", user_handlers.UserHandler, {}),
+            (r"/measure/?(.*).json", measure_handlers.MeasureHandler, {}),
+            (r"/survey/?(.*).json", survey_handlers.SurveyHandler, {}),
 
             (r"/(.*)", tornado.web.StaticFileHandler, {
                 'path': os.path.join(package_dir, "..", "client")}),
