@@ -133,10 +133,10 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 self._check_update(son, user)
                 self._update(user, son)
                 session.add(user)
-        except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such user")
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
+        except (sqlalchemy.exc.StatementError, ValueError):
+            raise handlers.MissingDocError("No such user")
         self.get(user_id)
 
     def _check_create(self, son):
@@ -167,6 +167,11 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 raise handlers.MethodError(
                     "You can't change your role.")
 
+        if 'enabled' in son and son['enabled'] != user.enabled:
+            if str(self.current_user.id) == user.id:
+                raise handlers.MethodError(
+                    "You can't enable or disable yourself.")
+
     def _update(self, user, son):
         '''
         Apply user-provided data to the saved model.
@@ -181,3 +186,5 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
             user.organisation_id = son['organisation']['id']
         if son.get('password', '') != '':
             user.set_password(son['password'])
+        if son.get('enabled', '') != '':
+            user.enabled = son['enabled']

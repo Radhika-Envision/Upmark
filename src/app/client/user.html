@@ -20,6 +20,10 @@
                 ng-click="edit.cancel()"
                 ng-if="edit.model && edit.model.id">
             <i class="fa fa-times"></i></button>
+        <button class="btn btn-default btn-round" title="Enable or disable"
+                ng-click="toggleEnabled()"
+                ng-if="!edit.model && checkRole('user_enable')">
+            <i class="fa fa-times"></i></button>
         <button class="btn btn-default btn-round" title="Impersonate"
                 ng-click="impersonate()"
                 ng-if="checkRole('user_impersonate')">
@@ -27,6 +31,15 @@
     </h2>
 </div>
 </div>
+
+<div class="subheader bg-warning text-warning" ng-if="!user.enabled">
+    <div class="container">
+        <i class="fa fa-times"></i>
+        This user account has been disabled. The user may not log in.
+    </div>
+</div>
+</div>
+
 
 <div class="measure" ng-if="edit.model">
 <div class="container">

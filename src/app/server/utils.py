@@ -7,16 +7,18 @@ def truthy(value):
     '''
     @return True if the value is a string like 'True' (etc), or the boolean True
     '''
-    if isinstance(value, str):
+    if isinstance(value, bool):
+        return value
+    elif isinstance(value, str):
         try:
             value = int(value)
             return value != 0
         except ValueError:
             return value.lower() in {'true', 't', 'yes', 'y'}
     elif isinstance(value, int):
-        value != 0
+        return value != 0
     else:
-        return value == True
+        raise ValueError("Can't convert value to boolean")
 
 
 def falsy(value):

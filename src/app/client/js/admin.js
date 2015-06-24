@@ -167,6 +167,10 @@ angular.module('wsaa.admin', [
                 case 'user_add':
                     return Roles.hasPermission(current.user.role, 'org_admin');
                     break;
+                case 'user_enable':
+                    if (current.user.id == user.id)
+                        return false;
+                    // fall-through
                 case 'user_edit':
                     if (Roles.hasPermission(current.user.role, 'admin'))
                         return true;
@@ -193,9 +197,9 @@ angular.module('wsaa.admin', [
 
 .controller('UserCtrl', [
         '$scope', 'User', 'routeData', 'Editor', 'Organisation', 'userAuthz',
-        '$window', '$location',
+        '$window', '$location', 'log', 'Notifications',
         function($scope, User, routeData, Editor, Organisation, userAuthz,
-                 $window, $location) {
+                 $window, $location, log, Notifications) {
 
     $scope.current = routeData.current;
     $scope.edit = Editor(User, 'user', $scope);
@@ -242,6 +246,18 @@ angular.module('wsaa.admin', [
                 $window.location.reload();
             },
             function error(reason) {
+            }
+        );
+    };
+
+    $scope.toggleEnabled = function() {
+        $scope.user.enabled = !$scope.user.enabled;
+        $scope.user.$save(
+            function success() {},
+            function failure(details) {
+                var errorText = "Could not save object: " + details.statusText;
+                log.error(errorText);
+                Notifications.add('edit', 'error', errorText);
             }
         );
     };

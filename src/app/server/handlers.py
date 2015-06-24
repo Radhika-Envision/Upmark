@@ -306,6 +306,8 @@ class AuthLoginHandler(MainHandler):
         try:
             with model.session_scope() as session:
                 user = session.query(model.AppUser).filter_by(email=email).one()
+                if not user.enabled:
+                    raise ValueError("User account disabled")
                 if not user.check_password(password):
                     raise ValueError("Login incorrect")
                 session.expunge(user)
@@ -314,6 +316,7 @@ class AuthLoginHandler(MainHandler):
             self.clear_cookie("superuser")
             error_msg = "?error=" + tornado.escape.url_escape("Login incorrect")
             self.redirect("/login/" + error_msg)
+            return
 
         self.set_secure_cookie("user", str(user.id).encode('utf8'))
         if model.has_privillege(user.role, 'admin'):

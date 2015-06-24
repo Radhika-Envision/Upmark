@@ -43,6 +43,18 @@ $anim-time: 0.5s;
     }
 }
 
+.subheader {
+    margin-bottom: 20px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+.header+.subheader {
+    margin-top: -20px;
+}
+.jumbotron+.subheader {
+    margin-top: -30px;
+}
+
 /* Nested pages should have less prominent headers */
 ng-include>.header {
     background: transparent;

@@ -97,10 +97,10 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                     raise ValueError("No such object")
                 self._update(org, son)
                 session.add(org)
-        except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such organisation")
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
+        except (sqlalchemy.exc.StatementError, ValueError):
+            raise handlers.MissingDocError("No such organisation")
         self.get(org_id)
 
     def _update(self, org, son):

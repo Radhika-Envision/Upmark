@@ -53,6 +53,7 @@ class AppUser(Versioned, Base):
     organisation_id = Column(
         GUID, ForeignKey("organisation.id"), nullable=False)
     created = Column(Date, default=func.now(), nullable=False)
+    enabled = Column(Boolean, nullable=False, default=True)
 
     organisation = relationship(Organisation)
 
