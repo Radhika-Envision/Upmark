@@ -1,0 +1,19 @@
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Chrome/Android mobile web app settings -->
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#bbe2f6">
+<link rel="icon" sizes="192x192" href="images/logo-monogram-192.png">
+
+<!-- Safari/iOS mobile web app settings -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#bbe2f6">
+<link rel="apple-touch-icon" sizes="128x128" href="images/logo-monogram-128.png">
+<link rel="apple-touch-icon-precomposed" sizes="128x128" href="images/logo-monogram-128.png">
+
+<link rel="shortcut icon" href="images/logo-monogram-64.png">
+
+{% for s in stylesheets %}
+    <link rel="stylesheet" type="text/css" href="{{s}}">
+{% end %}
