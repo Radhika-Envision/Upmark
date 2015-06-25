@@ -92,7 +92,8 @@ def has_privillege(current_role, *target_roles):
 class Survey(Versioned, Base):
     __tablename__ = 'survey'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    created = Column(Date, nullable=False)
+    #created = Column(Date, nullable=False)
+    created = Column(Date, default=func.now(), nullable=False)
     title = Column(Text, nullable=False)
 
 

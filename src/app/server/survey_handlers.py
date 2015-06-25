@@ -107,6 +107,10 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.get(survey.id)
 
+    # test using curl
+    # curl --cookie "_xsrf=2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
+    # -X PUT -H "X-Xsrftoken:2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
+    # --data '{"title":"test2"}' http://192.168.59.103:8000/survey/2f37de01-1833-41b6-9840-c5ed49d01772.json
     # @handlers.authz('author')
     def put(self, survey_id):
         '''
@@ -136,4 +140,3 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         if son.get('title', '') != '':
             survey.title = son['title']
-        survey.created = datetime.datetime.now()
