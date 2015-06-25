@@ -2,11 +2,11 @@
 
 <div class="header">
 <div class="container">
-    <h2>
+    <h2 page-title>
         <i class="fa fa-fw fa-university"></i>
         <a href="#/orgs">Organisations</a> &raquo;
-        <span ng-show="org.name">{{org.name}}</span>
-        <span ng-show="!org.name">New organisation</span>
+        <span ng-if="org.name">{{org.name}}</span>
+        <span ng-if="!org.name">New organisation</span>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
                 ng-if="!edit.model && checkRole('org_modify')">

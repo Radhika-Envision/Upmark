@@ -2,11 +2,11 @@
 
 <div class="header">
 <div class="container">
-    <h2>
+    <h2 page-title>
         <i class="fa fa-fw fa-user"></i>
         <a href="#/users">Users</a> &raquo;
-        <span ng-show="user.name">{{user.name}}</span>
-        <span ng-show="!user.name">New user</span>
+        <span ng-if="user.name">{{user.name}}</span>
+        <span ng-if="!user.name">New user</span>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
                 ng-if="!edit.model && checkRole('user_edit')">
