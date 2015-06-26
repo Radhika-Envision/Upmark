@@ -95,6 +95,7 @@ class Survey(Versioned, Base):
     #created = Column(Date, nullable=False)
     created = Column(Date, default=func.now(), nullable=False)
     title = Column(Text, nullable=False)
+    branch = Column(GUID, default=uuid.uuid4)
 
 
 class Function(Versioned, Base):
@@ -103,6 +104,7 @@ class Function(Versioned, Base):
     seq = Column(Integer, nullable=False)
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
+    branch = Column(GUID, default="HEAD", nullable=False)
 
 
 class Process(Versioned, Base):
@@ -112,6 +114,7 @@ class Process(Versioned, Base):
     seq = Column(Integer, nullable=False)
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
+    branch = Column(GUID, default="HEAD", nullable=False)
 
 
 class Subprocess(Versioned, Base):
@@ -121,6 +124,7 @@ class Subprocess(Versioned, Base):
     seq = Column(Integer, nullable=False)
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
+    branch = Column(GUID, default="HEAD", nullable=False)
 
 
 class Measure(Versioned, Base):
@@ -135,6 +139,7 @@ class Measure(Versioned, Base):
     scenario = Column(Text, nullable=False)
     questions = Column(Text, nullable=False)
     response_type = Column(Text, nullable=False)
+    branch = Column(GUID, default="HEAD", nullable=False)
     #response = relationship("Response", uselist=False, backref="measure")
 
 
@@ -143,6 +148,7 @@ class MeasureSet(Base):
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(GUID, ForeignKey('survey.id'))
     title = Column(Text, nullable=False)
+    branch = Column(GUID, default="HEAD", nullable=False)
     measures = relationship(
         Measure,
         secondary='measureset_measure_link'
@@ -154,7 +160,7 @@ class MeasureSetMeasureLink(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     measureset_id = Column(GUID, ForeignKey('measureset.id'))
     measure_id = Column(GUID, ForeignKey('measure.id'))
-    version = Column(Integer, nullable=True, default=None)
+    branch = Column(GUID, default="HEAD", nullable=False)
 
 
 class Response(Versioned, Base):
@@ -169,6 +175,7 @@ class Response(Versioned, Base):
     not_relevant = Column(Boolean, nullable=False)
     response_parts = Column(Text, nullable=False)
     audit_reason = Column(Text, nullable=True)
+    branch = Column(GUID, default="HEAD", nullable=False)
     # TODO: Test modified field from history table.
 
 
@@ -181,6 +188,7 @@ class Assessment(Versioned, Base):
     # TODO: Make this field an enum
     approval = Column(Text, nullable=False)
     created = Column(Date, nullable=False)
+    branch = Column(GUID, default="HEAD", nullable=False)
 
 
 Session = None

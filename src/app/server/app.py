@@ -13,7 +13,7 @@ import sqlalchemy.orm
 import tornado.options
 import tornado.web
 
-import data_access, user_handlers, org_handlers, survey_handlers, measure_handlers
+import data_access, user_handlers, org_handlers, survey_handlers, measure_handlers, category_handlers
 import handlers
 import model
 from utils import truthy
@@ -152,6 +152,9 @@ def start_web_server():
             (r"/user/?(.*).json", user_handlers.UserHandler, {}),
             (r"/measure/?(.*).json", measure_handlers.MeasureHandler, {}),
             (r"/survey/?(.*).json", survey_handlers.SurveyHandler, {}),
+            (r"/function/?(.*).json", category_handlers.FunctionHandler, {}),
+            (r"/process/?(.*).json", category_handlers.ProcessHandler, {}),
+            (r"/subprocess/?(.*).json", category_handlers.SubProcessHandler, {}),
 
             (r"/(.*)", tornado.web.StaticFileHandler, {
                 'path': os.path.join(package_dir, "..", "client")}),
