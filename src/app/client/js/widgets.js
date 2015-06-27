@@ -67,18 +67,19 @@ angular.module('vpac.widgets', [])
     function Notifications() {
         this.messages = [];
     };
-    Notifications.prototype.add = function(id, type, body, duration) {
+    Notifications.prototype.set = function(id, type, body, duration) {
         var newMessage = {
             id: id,
             type: type,
             css: type == 'error' ? 'danger' : type,
             body: body
         };
-        for (var i = 0; i < this.messages.length; i++) {
-            if (angular.equals(this.messages[i], newMessage))
-                return;
-        }
+        this.remove(id);
         this.messages = [newMessage].concat(this.messages);
+        if (type == 'error')
+            log.error(body);
+        else
+            log.info(body)
 
         if (duration) {
             $timeout(function(that, message) {

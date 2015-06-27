@@ -165,7 +165,8 @@ $anim-time: 0.3s;
     bottom: 0;
     right: 0;
     z-index: 5000;
-    padding-top: 4px;
+    padding-top: 6px;
+    font-size: 150%;
 
     ul {
         list-style: none;
@@ -173,8 +174,8 @@ $anim-time: 0.3s;
         margin: 0;
     }
     li {
-        padding-top: 4px;
-        padding-bottom: 4px;
+        padding-top: 6px;
+        padding-bottom: 6px;
     }
     li.animate {
         opacity: 1;
@@ -192,7 +193,7 @@ $anim-time: 0.3s;
         background: transparent;
     }
     .btn-round {
-        margin-top: -3px;
+        margin-top: 2px;
         margin-bottom: -3px;
     }
 }

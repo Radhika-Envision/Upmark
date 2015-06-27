@@ -228,6 +228,24 @@ angular.module('wsaa.aquamark',
 }])
 
 
+.run(['$rootScope', '$window', '$location', 'Notifications',
+        function($rootScope, $window, $location, Notifications) {
+    $rootScope.$on('$routeChangeError', function(event, current, previous, rejection) {
+        var error;
+        if (rejection && rejection.statusText)
+            error = rejection.statusText;
+        else
+            error = "Object not found";
+        Notifications.set('route', 'error', error, 10000);
+        if (previous) {
+            $window.history.back();
+        } else {
+            $location.path("/");
+        }
+    });
+}])
+
+
 .controller('RootCtrl', ['$scope',
         function($scope) {
 }])

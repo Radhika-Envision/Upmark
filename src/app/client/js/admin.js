@@ -31,13 +31,9 @@ angular.module('wsaa.admin', [
             return Current;
         },
         function error(details) {
-            var message;
-            if (details.statusText)
-                message = "Failed to get current user: " + details.statusText;
-            else
-                message = "Failed to get current user";
-            Notifications.add('Current', 'error', message)
-            return details;
+            Notifications.set('Current', 'error',
+                "Failed to get current user: " + details.statusText)
+            return $q.reject(details);
         }
     );
     return Current;
@@ -87,8 +83,8 @@ angular.module('wsaa.admin', [
  * Manages state for a modal editing session.
  */
 .factory('Editor', [
-        '$parse', 'log', '$filter', 'Notifications',
-         function($parse, log, $filter, Notifications) {
+        '$parse', 'log', '$filter', 'Notifications', '$q',
+         function($parse, log, $filter, Notifications, $q) {
 
     function Editor(targetPath, scope) {
         this.model = null;
@@ -117,8 +113,7 @@ angular.module('wsaa.admin', [
                 that.getter.assign(that.scope, model);
                 that.model = null;
                 that.scope.$emit('EditSaved', model);
-                Notifications.remove('edit');
-                Notifications.add('edit', 'success', "Saved", 5000);
+                Notifications.set('edit', 'success', "Saved", 5000);
             } finally {
                 that.saving = false;
                 that = null;
@@ -126,13 +121,13 @@ angular.module('wsaa.admin', [
         };
         var failure = function(details) {
             try {
-                var errorText = "Could not save object: " + details.statusText;
-                log.error(errorText);
                 that.scope.$emit('EditError');
-                Notifications.add('edit', 'error', errorText);
+                Notifications.set('edit', 'error',
+                    "Could not save object: " + details.statusText);
             } finally {
                 that.saving = false;
                 that = null;
+                return $q.reject(details);
             }
         };
 
@@ -144,7 +139,7 @@ angular.module('wsaa.admin', [
             this.model.$save(success, failure);
         }
         this.saving = true;
-        Notifications.add('edit', 'info', "Saving");
+        Notifications.set('edit', 'info', "Saving");
     };
 
     Editor.prototype.destroy = function() {
@@ -210,9 +205,9 @@ angular.module('wsaa.admin', [
 
 .controller('UserCtrl', [
         '$scope', 'User', 'routeData', 'Editor', 'Organisation', 'userAuthz',
-        '$window', '$location', 'log', 'Notifications', 'Current',
+        '$window', '$location', 'log', 'Notifications', 'Current', '$q',
         function($scope, User, routeData, Editor, Organisation, userAuthz,
-                 $window, $location, log, Notifications, Current) {
+                 $window, $location, log, Notifications, Current, $q) {
 
     $scope.edit = Editor('user', $scope);
     if (routeData.user) {
@@ -273,9 +268,9 @@ angular.module('wsaa.admin', [
                 Notifications.add('edit', 'success', 'Saved', 5000);
             },
             function failure(details) {
-                var errorText = "Could not save object: " + details.statusText;
-                log.error(errorText);
-                Notifications.add('edit', 'error', errorText);
+                Notifications.set('edit', 'error',
+                    "Could not save object: " + details.statusText);
+                return $q.reject(details);
             }
         );
     };
@@ -283,7 +278,8 @@ angular.module('wsaa.admin', [
 
 
 .controller('UserListCtrl', ['$scope', 'userAuthz', 'User', 'Current',
-        function($scope, userAuthz, User, Current) {
+            'Notifications', '$q',
+        function($scope, userAuthz, User, Current, Notifications, $q) {
 
     $scope.users = null;
     $scope.checkRole = userAuthz(Current, null, $scope.org);
@@ -296,9 +292,17 @@ angular.module('wsaa.admin', [
         pageSize: 10
     };
     $scope.$watch('search', function(search) {
-        User.query(search).$promise.then(function(users) {
-            $scope.users = users;
-        });
+        User.query(search).$promise.then(
+            function success(users) {
+                $scope.users = users;
+            },
+            function failure(details) {
+                console.log(details)
+                Notifications.set('get', 'error',
+                    "Could not get list: " + details.statusText, 10000);
+                return $q.reject(details);
+            }
+        );
     }, true);
 
     $scope.cycleEnabled = function() {
@@ -376,7 +380,8 @@ angular.module('wsaa.admin', [
 
 .controller('OrganisationListCtrl', [
             '$scope', 'orgAuthz', 'Organisation', 'Notifications', 'Current',
-        function($scope, orgAuthz, Organisation, Notifications, Current) {
+            '$q',
+        function($scope, orgAuthz, Organisation, Notifications, Current, $q) {
 
     $scope.orgs = null;
     $scope.checkRole = orgAuthz(Current, null);
@@ -387,9 +392,16 @@ angular.module('wsaa.admin', [
         pageSize: 10
     };
     $scope.$watch('search', function(search) {
-        Organisation.query(search).$promise.then(function(orgs) {
-            $scope.orgs = orgs;
-        });
+        Organisation.query(search).$promise.then(
+            function success(orgs) {
+                $scope.orgs = orgs;
+            },
+            function failure(details) {
+                Notifications.set('get', 'error',
+                    "Could not get list: " + details.statusText, 10000);
+                return $q.reject(details);
+            }
+        );
     }, true);
 }])
 
