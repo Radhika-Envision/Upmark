@@ -38,27 +38,16 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
             org = to_dict(user.organisation, include={'id', 'name'})
             org = simplify(org)
             org = normalise(org)
-
-            if not self._can_see_email(user):
-                son = to_dict(user, exclude={'email', 'password'})
-            else:
-                son = to_dict(user, exclude={'password'})
+            # Exclude password from response. If this web service is ever opened
+            # up to unauthenticated users, further thought should be given to
+            # privacy (e.g. hide email addresses).
+            son = to_dict(user, exclude={'password'})
             son = simplify(son)
             son = normalise(son)
             son["organisation"] = org
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
-
-    def _can_see_email(self, user):
-        if model.has_privillege(self.current_user.role, 'admin'):
-            return True
-        elif user.id == self.current_user.id:
-            return True
-        elif model.has_privillege(self.current_user.role, 'org_admin'):
-            return self.current_user.organisation_id == user.organisation_id
-        else:
-            return False
 
     def query(self):
         '''
