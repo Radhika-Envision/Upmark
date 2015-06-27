@@ -180,6 +180,10 @@ class BaseHandler(tornado.web.RequestHandler):
         with model.session_scope() as session:
             try:
                 user = session.query(model.AppUser).get(uid)
+                if not user.enabled:
+                    superuser = self.get_secure_cookie('superuser')
+                    if superuser is None:
+                        return None
             except sqlalchemy.exc.StatementError:
                 return None
             if user is not None:
@@ -309,8 +313,6 @@ class AuthLoginHandler(MainHandler):
                 user = session.query(model.AppUser).\
                     filter(func.lower(model.AppUser.email) == func.lower(email)).\
                     one()
-                if not user.enabled:
-                    raise ValueError("User account disabled")
                 if not user.check_password(password):
                     raise ValueError("Login incorrect")
                 session.expunge(user)
@@ -318,6 +320,14 @@ class AuthLoginHandler(MainHandler):
             self.clear_cookie("user")
             self.clear_cookie("superuser")
             error_msg = "?error=" + tornado.escape.url_escape("Login incorrect")
+            self.redirect("/login/" + error_msg)
+            return
+
+        if not user.enabled:
+            self.clear_cookie("user")
+            self.clear_cookie("superuser")
+            error_msg = "?error=" + tornado.escape.url_escape(
+                "Your account is inactive. Please contact an administrator")
             self.redirect("/login/" + error_msg)
             return
 
