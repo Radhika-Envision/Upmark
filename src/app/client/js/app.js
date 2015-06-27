@@ -157,7 +157,9 @@ angular.module('wsaa.aquamark',
                 controller : 'EmptyCtrl'
             })
             .otherwise({
-                redirectTo : '/'
+                resolve: {error: ['$q', function($q) {
+                    return $q.reject({statusText: "That page does not exist"});
+                }]}
             });
 
         $animateProvider.classNameFilter(/animate/);

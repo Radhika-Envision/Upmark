@@ -79,7 +79,7 @@ angular.module('vpac.widgets', [])
         if (type == 'error')
             log.error(body);
         else
-            log.info(body)
+            log.info(body);
 
         if (duration) {
             $timeout(function(that, message) {
