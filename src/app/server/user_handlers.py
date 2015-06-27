@@ -13,6 +13,7 @@ import logging
 
 from utils import to_dict, simplify, normalise, truthy
 
+
 class UserHandler(handlers.Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
     def get(self, user_id):
@@ -28,7 +29,8 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
 
         with model.session_scope() as session:
             try:
-                user = session.query(model.AppUser).options(joinedload('organisation')).get(user_id)
+                user = session.query(model.AppUser).\
+                    options(joinedload('organisation')).get(user_id)
                 if user is None:
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError, ValueError):
@@ -89,7 +91,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 org = to_dict(ob.organisation, include={'id', 'name'})
                 org = simplify(org)
                 org = normalise(org)
-                son = to_dict(ob, include={'id', 'name'})
+                son = to_dict(ob, include={'id', 'name', 'enabled'})
                 son = simplify(son)
                 son = normalise(son)
                 son["organisation"] = org

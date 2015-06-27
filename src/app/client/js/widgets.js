@@ -134,6 +134,8 @@ angular.module('vpac.widgets', [])
         controller: ['$scope', function($scope) {
             if (!$scope.model.pageSize)
                 $scope.model.pageSize = 10;
+            if (!$scope.model.page)
+                $scope.model.page = 0;
             $scope.$watch('model', function(model, oldModel) {
                 if (model.page === undefined)
                     model.page = 0;
@@ -144,6 +146,23 @@ angular.module('vpac.widgets', [])
                 $scope.model.page = 0;
             }, true);
         }]
+    };
+}])
+
+
+.directive('anyHref', ['$location', function($location) {
+    return {
+        restrict: 'A',
+        link: function(scope, elem, attrs) {
+            elem.on('click.anyHref', function() {
+                scope.$apply(function() {
+                    $location.path(attrs.anyHref);
+                });
+            });
+            scope.$on('$destroy', function() {
+                elem.off('.anyHref');
+            });
+        }
     };
 }])
 

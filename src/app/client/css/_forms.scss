@@ -117,7 +117,7 @@ $anim-time: 0.3s;
     }
 }
 
-:not(ng-include)>.header .btn-default {
+:not(ng-include):not(.nested)>.header .btn-default {
     &:not([disabled]) {
         color: lighten($button-fg, 30%);
     }
