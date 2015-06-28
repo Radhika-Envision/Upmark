@@ -141,16 +141,21 @@ angular.module('wsaa.aquamark',
             })
             .when('/org/new', {
                 templateUrl : 'organisation.html',
-                controller : 'OrganisationCtrl'
+                controller : 'OrganisationCtrl',
+                resolve: {
+                    org: function() {
+                        return null;
+                    }
+                }
             })
             .when('/org/:id', {
                 templateUrl : 'organisation.html',
                 controller : 'OrganisationCtrl',
-                resolve: {routeData: chain({
+                resolve: {
                     org: ['Organisation', '$route', function(Organisation, $route) {
                         return Organisation.get($route.current.params).$promise;
                     }]
-                })}
+                }
             })
             .when('/legal', {
                 templateUrl : 'legal.html',

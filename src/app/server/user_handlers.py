@@ -153,7 +153,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 raise handlers.MethodError(
                     "You can't modify a user with that role.")
         else:
-            if str(self.current_user.id) != user.id:
+            if str(self.current_user.id) != str(user.id):
                 raise handlers.MethodError(
                     "You can't modify another user.")
             if str(self.organisation.id) != son['organisation']['id']:
@@ -164,7 +164,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                     "You can't change your role.")
 
         if 'enabled' in son and son['enabled'] != user.enabled:
-            if str(self.current_user.id) == user.id:
+            if str(self.current_user.id) == str(user.id):
                 raise handlers.MethodError(
                     "You can't enable or disable yourself.")
 

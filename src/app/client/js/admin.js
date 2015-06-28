@@ -343,6 +343,8 @@ angular.module('wsaa.admin', [
                     return Roles.hasPermission(current.user.role, 'admin');
                     break;
                 case 'org_modify':
+                    if (Roles.hasPermission(current.user.role, 'admin'))
+                        return true;
                     if (current.user.organisation.id != org.id)
                         return false;
                     return Roles.hasPermission(current.user.role, 'org_admin');
@@ -355,15 +357,15 @@ angular.module('wsaa.admin', [
 
 
 .controller('OrganisationCtrl', [
-        '$scope', 'Organisation', 'routeData', 'Editor', 'orgAuthz', 'User',
+        '$scope', 'Organisation', 'org', 'Editor', 'orgAuthz', 'User',
         '$location', 'Current',
-        function($scope, Organisation, routeData, Editor, orgAuthz, User,
+        function($scope, Organisation, org, Editor, orgAuthz, User,
             $location, Current) {
 
     $scope.edit = Editor('org', $scope);
-    if (routeData.org) {
+    if (org) {
         // Editing old
-        $scope.org = routeData.org;
+        $scope.org = org;
     } else {
         // Creating new
         $scope.org = new Organisation({});
