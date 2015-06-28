@@ -1,11 +1,16 @@
 ## Web Service Unit Tests
 
 These are unit tests for the web services. To run them, first **create a
-separate database**. That is very important, because the tests will destroy the
-contents of the database.
+separate database**. This is very important, because the tests will destroy the
+contents of the database. The database should be created to use a RAM disk for
+storage to speed up the tests and minimise hard drive wear.
 
 ```bash
-sudo docker run -d --name postgres_aq_test postgres:9
+TMPDIR=$(mktemp -d)
+sudo mount -t tmpfs -o size=512M tmpfs $TMPDIR
+sudo docker run -d --name postgres_aq_test \
+    -v "$TMPDIR:/var/lib/postgresql/data" \
+    postgres:9
 ```
 
 Then run the test suite:
