@@ -75,17 +75,26 @@ def get_cookie_secret():
         return conf.value
 
 
-def get_settings():
+def get_minimal_settings():
     package_dir = get_package_dir()
     return {
+        "template_path": os.path.join(package_dir, "..", "client"),
+        "login_url": "/login/",
+        "cookie_secret": 'dummy'
+    }
+
+
+def get_settings():
+    package_dir = get_package_dir()
+    settings = get_minimal_settings()
+    settings.update({
         "cookie_secret": get_cookie_secret(),
         "xsrf_cookies": truthy(tornado.options.options.xsrf),
         "debug": truthy(tornado.options.options.debug),
         "serve_traceback": truthy(tornado.options.options.dev),
-        "gzip": True,
-        "template_path": os.path.join(package_dir, "..", "client"),
-        "login_url": "/login/",
-    }
+        "gzip": True
+    })
+    return settings
 
 
 def connect_db():
@@ -125,36 +134,39 @@ def add_default_user():
             session.add(user)
 
 
+def get_mappings():
+    package_dir = get_package_dir()
+    return [
+        (r"/login/?(.*)", handlers.AuthLoginHandler, {
+            'path': os.path.join(package_dir, "..", "client")}),
+        (r"/logout/?", handlers.AuthLogoutHandler),
+        (r"/()", handlers.MainHandler, {
+            'path': '../client/index.html'}),
+
+        (r"/bower_components/(.*)", tornado.web.StaticFileHandler, {
+            'path': os.path.join(
+                package_dir, "..", "client", ".bower_components")}),
+        (r"/minify/(.*)", handlers.MinifyHandler, {
+            'path': '/minify/',
+            'root': os.path.join(package_dir, "..", "client")}),
+        (r"/(.*\.css)", handlers.CssHandler, {
+            'root': os.path.join(package_dir, "..", "client")}),
+
+        (r"/organisation/?(.*).json", org_handlers.OrgHandler, {}),
+        (r"/user/?(.*).json", user_handlers.UserHandler, {}),
+
+        (r"/(.*)", tornado.web.StaticFileHandler, {
+            'path': os.path.join(package_dir, "..", "client")}),
+    ]
+
+
 def start_web_server():
 
     package_dir = get_package_dir()
     settings = get_settings()
     add_default_user()
 
-    application = tornado.web.Application(
-        [
-            (r"/login/?(.*)", handlers.AuthLoginHandler, {
-                'path': os.path.join(package_dir, "..", "client")}),
-            (r"/logout/?", handlers.AuthLogoutHandler),
-            (r"/()", handlers.MainHandler, {
-                'path': '../client/index.html'}),
-
-            (r"/bower_components/(.*)", tornado.web.StaticFileHandler, {
-                'path': os.path.join(
-                    package_dir, "..", "client", ".bower_components")}),
-            (r"/minify/(.*)", handlers.MinifyHandler, {
-                'path': '/minify/',
-                'root': os.path.join(package_dir, "..", "client")}),
-            (r"/(.*\.css)", handlers.CssHandler, {
-                'root': os.path.join(package_dir, "..", "client")}),
-
-            (r"/organisation/?(.*).json", org_handlers.OrgHandler, {}),
-            (r"/user/?(.*).json", user_handlers.UserHandler, {}),
-
-            (r"/(.*)", tornado.web.StaticFileHandler, {
-                'path': os.path.join(package_dir, "..", "client")}),
-        ], **settings
-    )
+    application = tornado.web.Application(get_mappings(), **settings)
 
     try:
         # If port is a string, *some* GNU/Linux systems try to look up the port
