@@ -10,6 +10,7 @@ import sqlalchemy.exc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.schema import Index, MetaData
+from sqlalchemy.sql.expression import select
 from passlib.hash import sha256_crypt
 
 from guid import GUID
@@ -175,7 +176,6 @@ class Response(Versioned, Base):
     not_relevant = Column(Boolean, nullable=False)
     response_parts = Column(Text, nullable=False)
     audit_reason = Column(Text, nullable=True)
-    branch = Column(GUID, default="HEAD", nullable=False)
     # TODO: Test modified field from history table.
 
 

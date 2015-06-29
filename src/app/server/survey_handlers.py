@@ -19,16 +19,13 @@ log = logging.getLogger('app.data_access')
 class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
 
     # test using curl
-    # curl --cookie "_xsrf=2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
-    # -H "X-Xsrftoken:2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
-    # http://192.168.59.103:8000/survey.json or
-    # http://192.168.59.103:8000/survey/67f5e799-b32e-492f-86dc-3dc29cb127fe.json
+    # curl http://192.168.59.103:8000/survey.json or
+    # http://192.168.59.103:8000/survey/f9e79f7d-aad7-4986-b8f7-5915f850f466.json
     # @handlers.authz('author')
     def get(self, survey_id):
         '''
         Get a single survey.
         '''
-        log.info(survey_id)
         if survey_id == "":
             self.query()
             return
@@ -42,7 +39,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
             except (sqlalchemy.exc.StatementError, ValueError):
                 raise handlers.MissingDocError("No such survey")
 
-            son = to_dict(survey, include={'id', 'title'})
+            son = to_dict(survey, include={'id', 'title', 'branch'})
             son = simplify(son)
             son = normalise(son)
         self.set_header("Content-Type", "application/json")
@@ -59,10 +56,6 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         with model.session_scope() as session:
             query = session.query(model.Survey)
 
-            # org_id = self.get_argument("org_id", None)
-            # if org_id is not None:
-            #     query = query.filter_by(organisation_id=org_id)
-
             term = self.get_argument('term', None)
             if term is not None:
                 query = query.filter(
@@ -72,7 +65,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
             query = self.paginate(query)
 
             for ob in query.all():
-                son = to_dict(ob, include={'id', 'title'})
+                son = to_dict(ob, include={'id', 'title', 'branch'})
                 son = simplify(son)
                 son = normalise(son)
                 sons.append(son)
@@ -82,11 +75,9 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         self.finish()
 
     # test using curl
-    # curl --cookie "_xsrf=2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
-    # -H "X-Xsrftoken:2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
-    # --data '{"title":"test1"}' http://192.168.59.103:8000/survey.json
+    # curl --data '{"title":"test1"}' http://192.168.59.103:8000/survey.json
     # @handlers.authz('author')
-    def post(self, survey_id):
+    def post(self):
         '''
         Create a new survey.
         '''
@@ -108,9 +99,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         self.get(survey.id)
 
     # test using curl
-    # curl --cookie "_xsrf=2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
-    # -X PUT -H "X-Xsrftoken:2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
-    # --data '{"title":"test2"}' http://192.168.59.103:8000/survey/2f37de01-1833-41b6-9840-c5ed49d01772.json
+    # curl -X PUT --data '{"title":"test2"}' http://192.168.59.103:8000/survey/f9e79f7d-aad7-4986-b8f7-5915f850f466.json
     # @handlers.authz('author')
     def put(self, survey_id):
         '''

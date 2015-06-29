@@ -16,12 +16,10 @@ from utils import to_dict, simplify, normalise
 log = logging.getLogger('app.data_access')
 
 
-class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
+class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
 
     # test using curl
-    # curl --cookie "_xsrf=2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
-    # -H "X-Xsrftoken:2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
-    # http://192.168.59.103:8000/function.json or
+    # curl http://192.168.59.103:8000/function.json or
     # http://192.168.59.103:8000/function/67f5e799-b32e-492f-86dc-3dc29cb127fe.json
     # @handlers.authz('author')
     def get(self, function_id):
@@ -82,9 +80,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         self.finish()
 
     # test using curl
-    # curl --cookie "_xsrf=2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
-    # -H "X-Xsrftoken:2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
-    # --data '{"title":"test1"}' http://192.168.59.103:8000/function.json
+    # curl --data '{"title":"test1"}' http://192.168.59.103:8000/function.json
     # @handlers.authz('author')
     def post(self, function_id):
         '''
@@ -144,68 +140,3 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             function.seq = son['seq']
         if son.get('description', '') != '':
             function.description = son['description']
-
-class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
-    # test using curl
-    # curl --cookie "_xsrf=2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
-    # -H "X-Xsrftoken:2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
-    # http://192.168.59.103:8000/category.json or
-    # http://192.168.59.103:8000/function/67f5e799-b32e-492f-86dc-3dc29cb127fe.json
-    # @handlers.authz('author')
-    def get(self, function_id, process_id):
-        '''
-        Get a single function.
-        '''
-        log.info(process_id)
-        if process_id == "":
-            self.query()
-            return
-
-        with model.session_scope() as session:
-            try:
-                proess = session.query(model.Process).get(process_id)
-                log.info(proess)
-                if proess is None:
-                    raise ValueError("No such object")
-            except (sqlalchemy.exc.StatementError, ValueError):
-                raise handlers.MissingDocError("No such proess")
-
-            son = to_dict(proess, include={'id', 'title', 'seq', 'description'})
-            son = simplify(son)
-            son = normalise(son)
-        self.set_header("Content-Type", "application/json")
-        self.write(json_encode(son))
-        self.finish()
-
-class SubProcessHandler(handlers.Paginate, handlers.BaseHandler):
-
-    # test using curl
-    # curl --cookie "_xsrf=2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
-    # -H "X-Xsrftoken:2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
-    # http://192.168.59.103:8000/category.json or
-    # http://192.168.59.103:8000/function/67f5e799-b32e-492f-86dc-3dc29cb127fe.json
-    # @handlers.authz('author')
-    def get(self, function_id, process_id, sub_process_id):
-        '''
-        Get a single function.
-        '''
-        log.info(process_id)
-        if process_id == "":
-            self.query()
-            return
-
-        with model.session_scope() as session:
-            try:
-                function = session.query(model.SubProcess).get(sub_process_id)
-                log.info(function)
-                if function is None:
-                    raise ValueError("No such object")
-            except (sqlalchemy.exc.StatementError, ValueError):
-                raise handlers.MissingDocError("No such function")
-
-            son = to_dict(function, include={'id', 'title', 'seq', 'description'})
-            son = simplify(son)
-            son = normalise(son)
-        self.set_header("Content-Type", "application/json")
-        self.write(json_encode(son))
-        self.finish()
