@@ -4,8 +4,29 @@ web:
    - "8000:8000"
   environment:
    - DEV_MODE:True
-   - XSRF_PROTECTION:False
+   - DEBUG_MODE:True
+   - AQ_XSRF:True
   volumes:
    - ./src/app:/usr/share/aquamark/app
-  external_links:
-   - postgres
+  links:
+   - postgres:postgres
+
+test:
+  build: ./src/app/
+  environment:
+   - DEV_MODE:True
+   - DEBUG_MODE:True
+   - AQ_XSRF:True
+  volumes:
+   - ./src/app:/usr/share/aquamark/app
+  links:
+   - postgresTest:postgres
+  command: app/test-server/run_tests.sh
+
+postgres:
+  image: postgres:9
+
+postgresTest:
+  image: postgres:9
+  volumes:
+   - .testdb:/var/lib/postgresql/data

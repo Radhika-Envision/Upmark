@@ -4,6 +4,7 @@ import base64
 import inspect
 import logging.config
 import os
+import signal
 
 from alembic.config import Config
 from alembic import command
@@ -187,10 +188,20 @@ def start_web_server():
     tornado.ioloop.IOLoop.instance().start()
 
 
+def signal_handler(signum, frame):
+    tornado.ioloop.IOLoop.instance().add_callback_from_signal(stop_web_server)
+
+
+def stop_web_server():
+    log.warn("Server shutdown due to signal")
+    tornado.ioloop.IOLoop.instance().stop()
+
+
 if __name__ == "__main__":
     try:
         parse_options()
         connect_db()
+        signal.signal(signal.SIGTERM, signal_handler)
         start_web_server()
     except KeyboardInterrupt:
         log.info("Shutting down due to user request (e.g. Ctrl-C)")
