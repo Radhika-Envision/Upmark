@@ -209,3 +209,20 @@ class UserAuthzTest(OrgStructureTestCase):
                     body=json_encode(post_data))
                 self.assertIn(reason, response.reason, msg=user_email)
                 self.assertEqual(code, response.code)
+
+        users = [
+            ('clerk', 403, "can't enable or disable yourself"),
+            ('org_admin', 200, 'OK'),
+        ]
+
+        for user_email, code, reason in users:
+            post_data = user_son.copy()
+            post_data['organisation'] = post_data['organisation'].copy()
+            post_data['enabled'] = False
+            with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
+                    get_secure_cookie(user_email=user_email)):
+                response = self.fetch(
+                    "/user/%s.json" % user_son['id'], method='PUT',
+                    body=json_encode(post_data))
+                self.assertIn(reason, response.reason, msg=user_email)
+                self.assertEqual(code, response.code)

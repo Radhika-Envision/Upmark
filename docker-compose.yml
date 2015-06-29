@@ -3,9 +3,9 @@ web:
   ports:
    - "8000:8000"
   environment:
-   - DEV_MODE:True
-   - DEBUG_MODE:True
-   - AQ_XSRF:True
+    DEV_MODE: True
+    DEBUG_MODE: True
+    AQ_XSRF: True
   volumes:
    - ./src/app:/usr/share/aquamark/app
   links:
@@ -13,10 +13,6 @@ web:
 
 test:
   build: ./src/app/
-  environment:
-   - DEV_MODE:True
-   - DEBUG_MODE:True
-   - AQ_XSRF:True
   volumes:
    - ./src/app:/usr/share/aquamark/app
   links:
