@@ -112,15 +112,7 @@ angular.module('wsaa.aquamark',
             })
             .when('/users', {
                 templateUrl : 'user_list.html',
-                controller : 'UserListCtrl',
-                resolve: {routeData: chain({
-                    users: ['User', function(User) {
-                        return User.query().$promise;
-                    }],
-                    current: ['Current', function(Current) {
-                        return Current.$promise;
-                    }]
-                })}
+                controller : 'UserListCtrl'
             })
             .when('/user/new', {
                 templateUrl : 'user.html',
@@ -128,9 +120,6 @@ angular.module('wsaa.aquamark',
                 resolve: {routeData: chain({
                     roles: ['Roles', function(Roles) {
                         return Roles.get().$promise;
-                    }],
-                    current: ['Current', function(Current) {
-                        return Current.$promise;
                     }]
                 })}
             })
@@ -143,54 +132,39 @@ angular.module('wsaa.aquamark',
                     }],
                     user: ['User', '$route', function(User, $route) {
                         return User.get($route.current.params).$promise;
-                    }],
-                    current: ['Current', function(Current) {
-                        return Current.$promise;
                     }]
                 })}
             })
             .when('/orgs', {
                 templateUrl : 'organisation_list.html',
-                controller : 'OrganisationListCtrl',
-                resolve: {routeData: chain({
-                    orgs: ['Organisation', function(Organisation) {
-                        return Organisation.query({}).$promise;
-                    }],
-                    current: ['Current', function(Current) {
-                        return Current.$promise;
-                    }]
-                })}
+                controller : 'OrganisationListCtrl'
             })
             .when('/org/new', {
                 templateUrl : 'organisation.html',
                 controller : 'OrganisationCtrl',
-                resolve: {routeData: chain({
-                    current: ['Current', function(Current) {
-                        return Current.$promise;
-                    }]
-                })}
+                resolve: {
+                    org: function() {
+                        return null;
+                    }
+                }
             })
             .when('/org/:id', {
                 templateUrl : 'organisation.html',
                 controller : 'OrganisationCtrl',
-                resolve: {routeData: chain({
+                resolve: {
                     org: ['Organisation', '$route', function(Organisation, $route) {
                         return Organisation.get($route.current.params).$promise;
-                    }],
-                    current: ['Current', function(Current) {
-                        return Current.$promise;
-                    }],
-                    users: ['User', 'org', function(User, org) {
-                        return User.query({org_id: org.id}).$promise;
                     }]
-                })}
+                }
             })
             .when('/legal', {
                 templateUrl : 'legal.html',
                 controller : 'EmptyCtrl'
             })
             .otherwise({
-                redirectTo : '/'
+                resolve: {error: ['$q', function($q) {
+                    return $q.reject({statusText: "That page does not exist"});
+                }]}
             });
 
         $animateProvider.classNameFilter(/animate/);
@@ -258,6 +232,24 @@ angular.module('wsaa.aquamark',
 
 .run(['$cacheFactory', '$http', function($cacheFactory, $http) {
     $http.defaults.cache = $cacheFactory('lruCache', {capacity: 100});
+}])
+
+
+.run(['$rootScope', '$window', '$location', 'Notifications',
+        function($rootScope, $window, $location, Notifications) {
+    $rootScope.$on('$routeChangeError', function(event, current, previous, rejection) {
+        var error;
+        if (rejection && rejection.statusText)
+            error = rejection.statusText;
+        else
+            error = "Object not found";
+        Notifications.set('route', 'error', error, 10000);
+        if (previous) {
+            $window.history.back();
+        } else {
+            $location.path("/");
+        }
+    });
 }])
 
 

@@ -110,7 +110,7 @@
     </dl>
     <dl ng-if="user.email">
         <dt>Email</dt>
-        <dd>{{user.email}}</dd>
+        <dd><a ng-href="mailto:{{user.email}}" target="_blank">{{user.email}}</a></dd>
     </dl>
     <dl>
         <dt>Oragnisation</dt>

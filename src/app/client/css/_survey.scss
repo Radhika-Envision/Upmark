@@ -56,9 +56,9 @@ $anim-time: 0.5s;
 }
 
 /* Nested pages should have less prominent headers */
-ng-include>.header {
+ng-include>.header, .nested>.header {
     background: transparent;
-    margin-bottom: 0;
+    margin-bottom: 10px;
     padding-bottom: 0;
 
     h2 {

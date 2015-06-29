@@ -21,8 +21,8 @@
       </tr>
     </thead>
     <tbody>
-      <tr ng-repeat="org in orgs">
-        <td><a ng-href="#/org/{{org.id}}">{{org.name}}</a></td>
+      <tr ng-repeat="org in orgs" any-href="/org/{{org.id}}">
+        <td>{{org.name}}</td>
         <td>{{org.region}}</td>
         <td>{{org.numberOfCustomers}}</td>
       </tr>

@@ -22,20 +22,18 @@ angular.module('wsaa.admin', [
     var Current = {
         user: User.get({id: 'current'}),
         superuser: $cookies.get('superuser') != null,
-        $promise: null
+        $promise: null,
+        $resolved: false
     };
     Current.$promise = $q.all([Current.user.$promise]).then(
         function success(values) {
+            Current.$resolved = true;
             return Current;
         },
         function error(details) {
-            var message;
-            if (details.statusText)
-                message = "Failed to get current user: " + details.statusText;
-            else
-                message = "Failed to get current user";
-            Notifications.add('Current', 'error', message)
-            return details;
+            Notifications.set('Current', 'error',
+                "Failed to get current user: " + details.statusText)
+            return $q.reject(details);
         }
     );
     return Current;
@@ -57,6 +55,8 @@ angular.module('wsaa.admin', [
     };
 
     Roles.hasPermission = function(currentRole, targetRole) {
+        if (!currentRole)
+            return false;
         if (targetRole == currentRole)
             return true;
         if (Roles.hierarchy[currentRole].indexOf(targetRole) >= 0)
@@ -83,8 +83,8 @@ angular.module('wsaa.admin', [
  * Manages state for a modal editing session.
  */
 .factory('Editor', [
-        '$parse', 'log', '$filter', 'Notifications',
-         function($parse, log, $filter, Notifications) {
+        '$parse', 'log', '$filter', 'Notifications', '$q',
+         function($parse, log, $filter, Notifications, $q) {
 
     function Editor(targetPath, scope) {
         this.model = null;
@@ -113,8 +113,7 @@ angular.module('wsaa.admin', [
                 that.getter.assign(that.scope, model);
                 that.model = null;
                 that.scope.$emit('EditSaved', model);
-                Notifications.remove('edit');
-                Notifications.add('edit', 'success', "Saved", 5000);
+                Notifications.set('edit', 'success', "Saved", 5000);
             } finally {
                 that.saving = false;
                 that = null;
@@ -122,13 +121,13 @@ angular.module('wsaa.admin', [
         };
         var failure = function(details) {
             try {
-                var errorText = "Could not save object: " + details.statusText;
-                log.error(errorText);
                 that.scope.$emit('EditError');
-                Notifications.add('edit', 'error', errorText);
+                Notifications.set('edit', 'error',
+                    "Could not save object: " + details.statusText);
             } finally {
                 that.saving = false;
                 that = null;
+                return $q.reject(details);
             }
         };
 
@@ -140,7 +139,7 @@ angular.module('wsaa.admin', [
             this.model.$save(success, failure);
         }
         this.saving = true;
-        Notifications.add('edit', 'info', "Saving");
+        Notifications.set('edit', 'info', "Saving");
     };
 
     Editor.prototype.destroy = function() {
@@ -162,11 +161,17 @@ angular.module('wsaa.admin', [
 
 
 .factory('userAuthz', ['Roles', function(Roles) {
-    return function(current, user) {
+    return function(current, user, org) {
         return function(functionName) {
+            if (!current.$resolved)
+                return false;
             switch(functionName) {
                 case 'user_add':
-                    return Roles.hasPermission(current.user.role, 'org_admin');
+                    if (Roles.hasPermission(current.user.role, 'admin'))
+                        return true;
+                    if (!Roles.hasPermission(current.user.role, 'org_admin'))
+                        return false;
+                    return !org || org.id == current.user.organisation.id;
                     break;
                 case 'user_enable':
                     if (current.user.id == user.id)
@@ -182,6 +187,8 @@ angular.module('wsaa.admin', [
                     return Roles.hasPermission(current.user.role, 'org_admin');
                     break;
                 case 'user_impersonate':
+                    if (!user.id)
+                        return false;
                     if (current.user.id == user.id)
                         return false;
                     return current.superuser;
@@ -198,11 +205,10 @@ angular.module('wsaa.admin', [
 
 .controller('UserCtrl', [
         '$scope', 'User', 'routeData', 'Editor', 'Organisation', 'userAuthz',
-        '$window', '$location', 'log', 'Notifications',
+        '$window', '$location', 'log', 'Notifications', 'Current', '$q',
         function($scope, User, routeData, Editor, Organisation, userAuthz,
-                 $window, $location, log, Notifications) {
+                 $window, $location, log, Notifications, Current, $q) {
 
-    $scope.current = routeData.current;
     $scope.edit = Editor('user', $scope);
     if (routeData.user) {
         // Editing old
@@ -216,7 +222,7 @@ angular.module('wsaa.admin', [
                 name: $location.search().orgName
             };
         } else {
-            org = $scope.current.user.organisation;
+            org = Current.user.organisation;
         }
         $scope.user = new User({
             role: 'clerk',
@@ -242,7 +248,7 @@ angular.module('wsaa.admin', [
         });
     };
 
-    $scope.checkRole = userAuthz($scope.current, $scope.user);
+    $scope.checkRole = userAuthz(Current, $scope.user);
 
     $scope.impersonate = function() {
         User.impersonate({id: $scope.user.id}).$promise.then(
@@ -262,50 +268,83 @@ angular.module('wsaa.admin', [
                 Notifications.add('edit', 'success', 'Saved', 5000);
             },
             function failure(details) {
-                var errorText = "Could not save object: " + details.statusText;
-                log.error(errorText);
-                Notifications.add('edit', 'error', errorText);
+                Notifications.set('edit', 'error',
+                    "Could not save object: " + details.statusText);
+                return $q.reject(details);
             }
         );
     };
 }])
 
 
-.controller('UserListCtrl', ['$scope', 'routeData', 'userAuthz', 'User',
-        function($scope, routeData, userAuthz, User) {
+.controller('UserListCtrl', ['$scope', 'userAuthz', 'User', 'Current',
+            'Notifications', '$q',
+        function($scope, userAuthz, User, Current, Notifications, $q) {
 
-    $scope.users = routeData.users;
-    $scope.current = routeData.current;
-
-    $scope.checkRole = userAuthz($scope.current, null);
+    $scope.users = null;
+    $scope.checkRole = userAuthz(Current, null, $scope.org);
 
     $scope.search = {
         term: "",
-        enabled: true
+        org_id: $scope.org && $scope.org.id,
+        enabled: true,
+        page: 0,
+        pageSize: 10
     };
     $scope.$watch('search', function(search) {
-        User.query(search).$promise.then(function(users) {
-            $scope.users = users;
-        });
+        User.query(search).$promise.then(
+            function success(users) {
+                $scope.users = users;
+            },
+            function failure(details) {
+                console.log(details)
+                Notifications.set('get', 'error',
+                    "Could not get list: " + details.statusText, 10000);
+                return $q.reject(details);
+            }
+        );
     }, true);
+
+    $scope.cycleEnabled = function() {
+        switch ($scope.search.enabled) {
+            case true:
+                $scope.search.enabled = null;
+                break;
+            case null:
+                $scope.search.enabled = false;
+                break;
+            case false:
+                $scope.search.enabled = true;
+                break;
+        }
+    };
+}])
+
+
+.directive('userList', [function() {
+    return {
+        restrict: 'E',
+        templateUrl: 'user_list.html',
+        scope: {
+            org: '='
+        },
+        controller: 'UserListCtrl'
+    }
 }])
 
 
 .factory('orgAuthz', ['Roles', function(Roles) {
     return function(current, org) {
         return function(functionName) {
-            if (current.user.role == "admin")
-                return true;
+            if (!current.$resolved)
+                return false;
             switch(functionName) {
                 case 'org_add':
-                    return false;
+                    return Roles.hasPermission(current.user.role, 'admin');
                     break;
                 case 'org_modify':
-                    if (current.user.organisation.id != org.id)
-                        return false;
-                    return Roles.hasPermission(current.user.role, 'org_admin');
-                    break;
-                case 'user_add':
+                    if (Roles.hasPermission(current.user.role, 'admin'))
+                        return true;
                     if (current.user.organisation.id != org.id)
                         return false;
                     return Roles.hasPermission(current.user.role, 'org_admin');
@@ -318,58 +357,53 @@ angular.module('wsaa.admin', [
 
 
 .controller('OrganisationCtrl', [
-        '$scope', 'Organisation', 'routeData', 'Editor', 'orgAuthz', 'User',
-        '$location',
-        function($scope, Organisation, routeData, Editor, orgAuthz, User,
-            $location) {
-
-    $scope.current = routeData.current;
+        '$scope', 'Organisation', 'org', 'Editor', 'orgAuthz', 'User',
+        '$location', 'Current',
+        function($scope, Organisation, org, Editor, orgAuthz, User,
+            $location, Current) {
 
     $scope.edit = Editor('org', $scope);
-    if (routeData.org) {
+    if (org) {
         // Editing old
-        $scope.org = routeData.org;
+        $scope.org = org;
     } else {
         // Creating new
         $scope.org = new Organisation({});
         $scope.edit.edit();
     }
-    $scope.users = routeData.users;
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url('/org/' + model.id);
     });
 
-    $scope.checkRole = orgAuthz($scope.current, $scope.org);
-
-    $scope.search = {
-        term: ""
-    };
-    $scope.$watch('search', function(search) {
-        var params = angular.extend({org_id: $scope.org.id}, search);
-        User.query(params).$promise.then(function(users) {
-            $scope.users = users;
-        });
-    }, true);
+    $scope.checkRole = orgAuthz(Current, $scope.org);
 }])
 
 
 .controller('OrganisationListCtrl', [
-            '$scope', 'routeData', 'orgAuthz', 'Organisation', 'Notifications',
-        function($scope, routeData, orgAuthz, Organisation, Notifications) {
+            '$scope', 'orgAuthz', 'Organisation', 'Notifications', 'Current',
+            '$q',
+        function($scope, orgAuthz, Organisation, Notifications, Current, $q) {
 
-    $scope.current = routeData.current;
-    $scope.orgs = routeData.orgs;
-
-    $scope.checkRole = orgAuthz($scope.current, null);
+    $scope.orgs = null;
+    $scope.checkRole = orgAuthz(Current, null);
 
     $scope.search = {
-        term: ""
+        term: "",
+        page: 0,
+        pageSize: 10
     };
     $scope.$watch('search', function(search) {
-        Organisation.query(search).$promise.then(function(orgs) {
-            $scope.orgs = orgs;
-        });
+        Organisation.query(search).$promise.then(
+            function success(orgs) {
+                $scope.orgs = orgs;
+            },
+            function failure(details) {
+                Notifications.set('get', 'error',
+                    "Could not get list: " + details.statusText, 10000);
+                return $q.reject(details);
+            }
+        );
     }, true);
 }])
 

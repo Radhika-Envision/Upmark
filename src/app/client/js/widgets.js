@@ -67,18 +67,19 @@ angular.module('vpac.widgets', [])
     function Notifications() {
         this.messages = [];
     };
-    Notifications.prototype.add = function(id, type, body, duration) {
+    Notifications.prototype.set = function(id, type, body, duration) {
         var newMessage = {
             id: id,
             type: type,
             css: type == 'error' ? 'danger' : type,
             body: body
         };
-        for (var i = 0; i < this.messages.length; i++) {
-            if (angular.equals(this.messages[i], newMessage))
-                return;
-        }
+        this.remove(id);
         this.messages = [newMessage].concat(this.messages);
+        if (type == 'error')
+            log.error(body);
+        else
+            log.info(body);
 
         if (duration) {
             $timeout(function(that, message) {
@@ -134,6 +135,8 @@ angular.module('vpac.widgets', [])
         controller: ['$scope', function($scope) {
             if (!$scope.model.pageSize)
                 $scope.model.pageSize = 10;
+            if (!$scope.model.page)
+                $scope.model.page = 0;
             $scope.$watch('model', function(model, oldModel) {
                 if (model.page === undefined)
                     model.page = 0;
@@ -144,6 +147,23 @@ angular.module('vpac.widgets', [])
                 $scope.model.page = 0;
             }, true);
         }]
+    };
+}])
+
+
+.directive('anyHref', ['$location', function($location) {
+    return {
+        restrict: 'A',
+        link: function(scope, elem, attrs) {
+            elem.on('click.anyHref', function() {
+                scope.$apply(function() {
+                    $location.path(attrs.anyHref);
+                });
+            });
+            scope.$on('$destroy', function() {
+                elem.off('.anyHref');
+            });
+        }
     };
 }])
 
