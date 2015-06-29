@@ -86,7 +86,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
 
         if self.current_user.role == 'org_admin' \
                 and str(self.organisation.id) != org_id:
-            raise handlers.MethodError(
+            raise handlers.AuthzError(
                 "You can't modify another organisation's information.")
 
         son = json_decode(self.request.body)

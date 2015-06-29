@@ -4,4 +4,3 @@ trap 'umount .testdb' EXIT
 
 mount -t tmpfs -o size=512M tmpfs .testdb
 docker-compose up test
-umount .testdb

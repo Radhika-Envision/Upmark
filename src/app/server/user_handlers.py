@@ -137,35 +137,35 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
 
     def _check_create(self, son):
         if not model.has_privillege(self.current_user.role, 'org_admin'):
-            raise handlers.MethodError("You can't create a new user.")
+            raise handlers.AuthzError("You can't create a new user.")
 
     def _check_update(self, son, user):
         if model.has_privillege(self.current_user.role, 'admin'):
             pass
         elif model.has_privillege(self.current_user.role, 'org_admin'):
             if str(self.organisation.id) != son['organisation']['id']:
-                raise handlers.MethodError(
+                raise handlers.AuthzError(
                     "You can't create/modify another organisation's user.")
             if son['role'] not in {'org_admin', 'clerk'}:
-                raise handlers.MethodError(
+                raise handlers.AuthzError(
                     "You can't set this role.")
             if user and user.role == 'admin':
-                raise handlers.MethodError(
+                raise handlers.AuthzError(
                     "You can't modify a user with that role.")
         else:
             if str(self.current_user.id) != str(user.id):
-                raise handlers.MethodError(
+                raise handlers.AuthzError(
                     "You can't modify another user.")
             if str(self.organisation.id) != son['organisation']['id']:
-                raise handlers.MethodError(
+                raise handlers.AuthzError(
                     "You can't change your organisation.")
             if son['role'] != self.current_user.role:
-                raise handlers.MethodError(
+                raise handlers.AuthzError(
                     "You can't change your role.")
 
         if 'enabled' in son and son['enabled'] != user.enabled:
             if str(self.current_user.id) == str(user.id):
-                raise handlers.MethodError(
+                raise handlers.AuthzError(
                     "You can't enable or disable yourself.")
 
     def _update(self, user, son):
