@@ -12,6 +12,7 @@ import handlers
 import model
 import user_handlers
 from utils import to_dict, simplify, normalise, truthy
+import unittest
 
 
 # TODO: Do this once when the unit tests start up (not in this file?).
@@ -165,6 +166,71 @@ class OrgAuthzTest(OrgStructureTestCase):
                     body=json_encode(post_data))
                 self.assertEqual(reason, response.reason)
                 self.assertEqual(code, response.code)
+
+    def test_modify_org(self):
+        users = [
+            ('clerk', 403, 'Not authorised'),
+            ('org_admin', 200, 'OK'),
+            ('consultant', 403, 'Not authorised'),
+            ('authority', 403, 'Not authorised'),
+            ('author', 403, 'Not authorised'),
+            ('admin', 200, 'OK')
+        ]
+
+        for i, (user, code, reason) in enumerate(users):
+            self.modify_own_org(user, code, reason)
+
+
+    def modify_own_org(self, user, code, reason):
+        with model.session_scope() as session:
+            app_user = session.query(model.AppUser).\
+                filter(func.lower(model.AppUser.email) ==
+                       func.lower(user)).one()
+
+            org_son = to_dict(app_user.organisation, include={'id'})
+            org_son = simplify(org_son)
+            org_son = normalise(org_son)
+
+            with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
+                    get_secure_cookie(user_email=user)):
+
+                    post_data = org_son.copy()
+                    response = self.fetch(
+                        "/organisation/%s.json" % org_son['id'], method='PUT',
+                        body=json_encode(post_data))
+                    self.assertEqual(reason, response.reason)
+                    self.assertEqual(code, response.code)
+
+            responses = {
+            'clerk': (403, 'Not authorised'),
+            'org_admin': (403, "You can't modify another organisation's information."),
+            'consultant': (403, 'Not authorised'),
+            'authority': (403, 'Not authorised'),
+            'author': (403, 'Not authorised'),
+            'admin': (200, 'OK')}
+
+            for re in responses:
+                self.modify_another_org(user, org_son['id'], responses[user][0], responses[user][1])
+
+
+    def modify_another_org(self, user, org_id, code, reason):
+        with model.session_scope() as session:
+            org = session.query(model.Organisation).\
+                filter(model.Organisation.id != org_id).one()
+
+            org_son = to_dict(org, include={'id'})
+            org_son = simplify(org_son)
+            org_son = normalise(org_son)
+
+            with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
+                    get_secure_cookie(user_email=user)):
+
+                    post_data = org_son.copy()
+                    response = self.fetch(
+                        "/organisation/%s.json" % org_son['id'], method='PUT',
+                        body=json_encode(post_data))
+                    self.assertEqual(reason, response.reason)
+                    self.assertEqual(code, response.code)
 
 
 class UserAuthzTest(OrgStructureTestCase):
