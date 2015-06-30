@@ -168,69 +168,49 @@ class OrgAuthzTest(OrgStructureTestCase):
                 self.assertEqual(code, response.code)
 
     def test_modify_org(self):
-        users = [
-            ('clerk', 403, 'Not authorised'),
-            ('org_admin', 200, 'OK'),
-            ('consultant', 403, 'Not authorised'),
-            ('authority', 403, 'Not authorised'),
-            ('author', 403, 'Not authorised'),
-            ('admin', 200, 'OK')
+        users_own = [
+            ('clerk', 'Utility', 403, 'Not authorised'),
+            ('org_admin', 'Utility', 200, 'OK'),
+            ('consultant', 'Primary', 403, 'Not authorised'),
+            ('authority', 'Primary', 403, 'Not authorised'),
+            ('author', 'Primary', 403, 'Not authorised'),
+            ('admin', 'Primary', 200, 'OK')
         ]
+        for user, org_name, code, reason in users_own:
+            self.modify_org(user, org_name, code, reason)
 
-        for i, (user, code, reason) in enumerate(users):
-            self.modify_own_org(user, code, reason)
-
-
-    def modify_own_org(self, user, code, reason):
-        with model.session_scope() as session:
-            app_user = session.query(model.AppUser).\
-                filter(func.lower(model.AppUser.email) ==
-                       func.lower(user)).one()
-
-            org_son = to_dict(app_user.organisation, include={'id'})
-            org_son = simplify(org_son)
-            org_son = normalise(org_son)
-
-            with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
-                    get_secure_cookie(user_email=user)):
-
-                    post_data = org_son.copy()
-                    response = self.fetch(
-                        "/organisation/%s.json" % org_son['id'], method='PUT',
-                        body=json_encode(post_data))
-                    self.assertEqual(reason, response.reason)
-                    self.assertEqual(code, response.code)
-
-            responses = {
-            'clerk': (403, 'Not authorised'),
-            'org_admin': (403, "You can't modify another organisation's information."),
-            'consultant': (403, 'Not authorised'),
-            'authority': (403, 'Not authorised'),
-            'author': (403, 'Not authorised'),
-            'admin': (200, 'OK')}
-
-            for re in responses:
-                self.modify_another_org(user, org_son['id'], responses[user][0], responses[user][1])
+        users_other = [
+            ('clerk', 'Primary', 403, 'Not authorised'),
+            ('org_admin', 'Primary', 403, "can't modify another organisation"),
+            ('consultant', 'Utility', 403, 'Not authorised'),
+            ('authority', 'Utility', 403, 'Not authorised'),
+            ('author', 'Utility', 403, 'Not authorised'),
+            ('admin', 'Utility', 200, 'OK')
+        ]
+        for user, org_name, code, reason in users_other:
+            self.modify_org(user, org_name, code, reason)
 
 
-    def modify_another_org(self, user, org_id, code, reason):
+    def modify_org(self, user_email, org_name, code, reason):
         with model.session_scope() as session:
             org = session.query(model.Organisation).\
-                filter(model.Organisation.id != org_id).one()
+                filter(func.lower(model.Organisation.name) ==
+                       func.lower(org_name)).one()
+            session.expunge(org)
 
-            org_son = to_dict(org, include={'id'})
-            org_son = simplify(org_son)
-            org_son = normalise(org_son)
+        org_son = to_dict(org, include={'id', 'name'})
+        org_son = simplify(org_son)
+        org_son = normalise(org_son)
 
-            with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
-                    get_secure_cookie(user_email=user)):
+        with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
+                get_secure_cookie(user_email=user_email)):
 
-                    post_data = org_son.copy()
-                    response = self.fetch(
-                        "/organisation/%s.json" % org_son['id'], method='PUT',
-                        body=json_encode(post_data))
-                    self.assertEqual(reason, response.reason)
-                    self.assertEqual(code, response.code)
+            post_data = org_son.copy()
+            response = self.fetch(
+                "/organisation/%s.json" % org.id, method='PUT',
+                body=json_encode(post_data))
+        self.assertIn(reason, response.reason)
+        self.assertEqual(code, response.code)
 
 
 class UserAuthzTest(OrgStructureTestCase):
