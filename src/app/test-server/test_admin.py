@@ -345,3 +345,43 @@ class UserAuthzTest(OrgStructureTestCase):
                     body=json_encode(post_data))
                 self.assertIn(reason, response.reason, msg=user_email)
                 self.assertEqual(code, response.code)
+
+    def test_modify_org_in_user(self):
+        users = [
+            ('clerk', 'Utility', 'Primary', 403, "You can't change your organisation."),
+            ('org_admin', 'Utility', 'Primary', 403, "You can't create/modify another organisation's user."),
+            ('consultant', 'Primary', 'Utility', 403, "You can't change your organisation."),
+            ('authority', 'Primary', 'Utility', 403, "You can't change your organisation."),
+            ('author', 'Primary', 'Utility', 403, "You can't change your organisation."),
+            ('admin', 'Primary', 'Utility', 200, 'OK')
+        ]
+
+        for user_email, current_org_name, new_org_name, code, reason in users:
+            self.modify_org_in_user(user_email, current_org_name, new_org_name, code, reason)
+
+    def modify_org_in_user(self, user_email, old_org_name, new_org_name, code, reason):
+        with model.session_scope() as session:
+            org = session.query(model.Organisation).\
+                filter(func.lower(model.Organisation.name) ==
+                       func.lower(new_org_name)).one()
+            org_son = to_dict(org, include={'id', 'name'})
+            org_son = simplify(org_son)
+            org_son = normalise(org_son)
+
+            user = session.query(model.AppUser).\
+                    filter(func.lower(model.AppUser.email) ==
+                           func.lower(user_email)).one()
+            user_son = to_dict(user, exclude={'password'})
+            user_son = simplify(user_son)
+            user_son = normalise(user_son)
+            user_son['organisation'] = org_son
+            post_data = user_son.copy()
+
+            with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
+                    get_secure_cookie(user_email=user_email)):
+                response = self.fetch(
+                    "/user/%s.json" % user_son['id'], method='PUT',
+                    body=json_encode(post_data))
+                self.assertIn(reason, response.reason, msg=user_email)
+                self.assertEqual(code, response.code)
+
