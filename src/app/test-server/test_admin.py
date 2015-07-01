@@ -215,6 +215,54 @@ class OrgAuthzTest(OrgStructureTestCase):
 
 class UserAuthzTest(OrgStructureTestCase):
 
+    def test_create_user(self):
+        users_own = [
+            ('clerk', 'Utility', 403, "You can't create a new user."),
+            ('org_admin', 'Utility', 200, 'OK'),
+            ('consultant', 'Primary', 403, "You can't create a new user."),
+            ('authority', 'Primary', 403, "You can't create a new user."),
+            ('author', 'Primary', 403, "You can't create a new user."),
+            ('admin', 'Primary', 200, 'OK')
+        ]
+
+        for i, (user_email, org_name, code, reason) in enumerate(users_own):
+            self.create_clerk_user(i, 'own', user_email, org_name, code, reason)
+
+        users_other = [
+            ('clerk', 'Primary', 403, "You can't create a new user."),
+            ('org_admin', 'Primary', 403, "You can't create/modify another organisation's user."),
+            ('consultant', 'Utility', 403, "You can't create a new user."),
+            ('authority', 'Utility', 403, "You can't create a new user."),
+            ('author', 'Utility', 403, "You can't create a new user."),
+            ('admin', 'Utility', 200, 'OK')
+        ]
+
+        for i, (user_email, org_name, code, reason) in enumerate(users_other):
+            self.create_clerk_user(i, 'other', user_email, org_name, code, reason)
+
+    def create_clerk_user(self, prefix, i, user_email, org_name, code, reason):
+        with model.session_scope() as session:
+            org = session.query(model.Organisation).\
+                filter(func.lower(model.Organisation.name) ==
+                       func.lower(org_name)).one()
+            session.expunge(org)
+
+        post_data = {
+            'email': 'clerk%s%s' % (prefix, i),
+            'name': 'foo',
+            'password': 'bar',
+            'role': 'clerk',
+            'organisation': {'id': str(org.id)}
+        }
+
+        with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
+                get_secure_cookie(user_email=user_email)):
+            response = self.fetch(
+                "/user.json", method='POST',
+                body=json_encode(post_data))
+            self.assertIn(reason, response.reason, msg=user_email)
+            self.assertEqual(code, response.code)
+
     def test_modify_user(self):
         with model.session_scope() as session:
             # TODO: Refactor this to make it reusable.
@@ -272,18 +320,3 @@ class UserAuthzTest(OrgStructureTestCase):
                     body=json_encode(post_data))
                 self.assertIn(reason, response.reason, msg=user_email)
                 self.assertEqual(code, response.code)
-
-
-class SurveyTest(OrgStructureTestCase):
-
-    def test_create_survey(self):
-        with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
-                    get_secure_cookie(user_email='admin')):
-                post_data = {
-                    'title': 'test'
-                }
-                response = self.fetch(
-                    "/survey.json", method='POST',
-                    body=json_encode(post_data))
-                self.assertEqual("OK", response.reason)
-                self.assertEqual(200, response.code)
