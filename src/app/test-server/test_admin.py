@@ -272,3 +272,18 @@ class UserAuthzTest(OrgStructureTestCase):
                     body=json_encode(post_data))
                 self.assertIn(reason, response.reason, msg=user_email)
                 self.assertEqual(code, response.code)
+
+
+class SurveyTest(OrgStructureTestCase):
+
+    def test_create_survey(self):
+        with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
+                    get_secure_cookie(user_email='admin')):
+                post_data = {
+                    'title': 'test'
+                }
+                response = self.fetch(
+                    "/survey.json", method='POST',
+                    body=json_encode(post_data))
+                self.assertEqual("OK", response.reason)
+                self.assertEqual(200, response.code)
