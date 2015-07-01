@@ -10,14 +10,14 @@ angular.module('wsaa.survey', ['ngResource'])
 }])
 
 
-.factory('Measure', ['$resource', function($resource) {
+.factory('MeasureOld', ['$resource', function($resource) {
     return $resource('/survey/:survey/function/:fn/process/:proc/sub-process/:subProc/measure/:measure.json', {}, {
         get: { method: 'GET' }
     });
 }])
 
 
-.controller('SurveyCtrl', ['$scope', '$routeParams', 'routeData', 'format', 'hotkeys', '$location', '$timeout',
+.controller('MeasureCtrl', ['$scope', '$routeParams', 'routeData', 'format', 'hotkeys', '$location', '$timeout',
         function($scope, $routeParams, routeData, format, hotkeys, $location, $timeout) {
 
     $scope.route = {

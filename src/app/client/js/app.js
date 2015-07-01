@@ -3,7 +3,8 @@
 angular.module('wsaa.aquamark',
                ['ngRoute', 'ngAnimate', 'ui.bootstrap', 'cfp.hotkeys',
                 'ui.bootstrap.showErrors', 'validation.match', 'settings',
-                'wsaa.survey', 'wsaa.admin', 'vpac.utils', 'vpac.widgets'])
+                'wsaa.survey', 'wsaa.admin', 'wsaa.surveyQuestions',
+                'vpac.utils', 'vpac.widgets'])
 
 
 /**
@@ -94,22 +95,12 @@ angular.module('wsaa.aquamark',
                 logProvider, chain) {
 
         $routeProvider
-            .when('/survey/:survey/:fn/:proc/:subProc/:measure', {
-                templateUrl : 'survey-measure.html',
-                controller : 'SurveyCtrl',
-                resolve: {routeData: chain({
-                    measure: ['Measure', '$route', function(Measure, $route) {
-                        return Measure.get($route.current.params).$promise;
-                    }],
-                    schema: ['measure', 'Schema', function(measure, Schema) {
-                        return Schema.get({name: measure.responseType}).$promise;
-                    }]
-                })}
-            })
+
             .when('/', {
                 templateUrl : 'start.html',
                 controller : 'EmptyCtrl'
             })
+
             .when('/users', {
                 templateUrl : 'user_list.html',
                 controller : 'UserListCtrl',
@@ -149,6 +140,7 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
+
             .when('/orgs', {
                 templateUrl : 'organisation_list.html',
                 controller : 'OrganisationListCtrl',
@@ -185,10 +177,56 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
+
+            .when('/survey', {
+                templateUrl : 'organisation_list.html',
+                controller : 'OrganisationListCtrl',
+                resolve: {routeData: chain({
+                    orgs: ['Organisation', function(Organisation) {
+                        return Organisation.query({}).$promise;
+                    }],
+                    current: ['Current', function(Current) {
+                        return Current.$promise;
+                    }]
+                })}
+            })
+            .when('/surveys', {
+                templateUrl : 'survey_list.html',
+                controller : 'SurveyListCtrl'
+            })
+            .when('/survey/new', {
+                templateUrl : 'survey.html',
+                controller : 'SurveyCtrl',
+                resolve: {routeData: chain({})}
+            })
+            .when('/survey/:survey', {
+                templateUrl : 'survey.html',
+                controller : 'SurveyCtrl',
+                resolve: {routeData: chain({
+                    survey: ['Survey', '$route', function(Survey, $route) {
+                        return Survey.get($route.current.params).$promise;
+                    }]
+                })}
+            })
+
+            .when('/survey/:survey/:fn/:proc/:subProc/:measure', {
+                templateUrl : 'survey-measure.html',
+                controller : 'MeasureCtrl',
+                resolve: {routeData: chain({
+                    measure: ['MeasureOld', '$route', function(MeasureOld, $route) {
+                        return MeasureOld.get($route.current.params).$promise;
+                    }],
+                    schema: ['measure', 'Schema', function(measure, Schema) {
+                        return Schema.get({name: measure.responseType}).$promise;
+                    }]
+                })}
+            })
+
             .when('/legal', {
                 templateUrl : 'legal.html',
                 controller : 'EmptyCtrl'
             })
+
             .otherwise({
                 redirectTo : '/'
             });

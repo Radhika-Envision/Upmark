@@ -1,0 +1,47 @@
+<div>
+
+<div class="header">
+<div class="container">
+    <h2>
+        <i class="fa fa-fw fa-user"></i>
+        <a href="#/surveys">Surveys</a> &raquo;
+        <span ng-show="survey.title">{{survey.title}}</span>
+        <span ng-show="!survey.title">New survey</span>
+        <button class="btn btn-default btn-round" title="Edit"
+                ng-click="edit.edit()"
+                ng-if="!edit.model && checkRole('survey_edit')">
+            <i class="fa fa-pencil"></i></button>
+        <button class="btn btn-default btn-round" title="Save"
+                ng-click="edit.save()"
+                ng-if="edit.model"
+                form="editor">
+            <i class="fa fa-check"></i></button>
+        <button class="btn btn-default btn-round" title="Cancel"
+                ng-click="edit.cancel()"
+                ng-if="edit.model && edit.model.id">
+            <i class="fa fa-times"></i></button>
+    </h2>
+</div>
+</div>
+
+<div class="measure" ng-if="edit.model">
+<div class="container">
+    <editor-error class="measure" edit="edit"></editor-error>
+    <form novalidate name="form" id="editor">
+        <div class="form-group" show-errors>
+            <label for="title">Name</label>
+            <span class="help-label" ng-if="form.title.$error.required">
+                Please provide a title.</span>
+            <input type="text" class="form-control" id="title" name="title"
+                ng-model="edit.model.title" required />
+        </div>
+    </form>
+</div>
+</div>
+
+<div class="measure" ng-if="!edit.model">
+<div class="container">
+</div>
+</div>
+
+</div>
