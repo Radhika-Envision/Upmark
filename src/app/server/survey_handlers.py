@@ -77,7 +77,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
     # test using curl
     # curl --data '{"title":"test1"}' http://192.168.59.103:8000/survey.json
     @handlers.authz('author')
-    def post(self):
+    def post(self, survey_id):
         '''
         Create a new survey.
         '''

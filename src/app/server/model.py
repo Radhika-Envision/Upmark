@@ -96,7 +96,7 @@ class Survey(Versioned, Base):
     #created = Column(Date, nullable=False)
     created = Column(Date, default=func.now(), nullable=False)
     title = Column(Text, nullable=False)
-    branch = Column(GUID, default=uuid.uuid4)
+    branch = Column(Text, default=uuid.uuid4)
 
 
 class Function(Versioned, Base):
@@ -105,7 +105,7 @@ class Function(Versioned, Base):
     seq = Column(Integer, nullable=False)
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
-    branch = Column(GUID, default="HEAD", nullable=False)
+    branch = Column(Text, nullable=False)
 
 
 class Process(Versioned, Base):
@@ -115,7 +115,7 @@ class Process(Versioned, Base):
     seq = Column(Integer, nullable=False)
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
-    branch = Column(GUID, default="HEAD", nullable=False)
+    branch = Column(Text, nullable=False)
 
 
 class Subprocess(Versioned, Base):
@@ -125,7 +125,7 @@ class Subprocess(Versioned, Base):
     seq = Column(Integer, nullable=False)
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
-    branch = Column(GUID, default="HEAD", nullable=False)
+    branch = Column(Text, nullable=False)
 
 
 class Measure(Versioned, Base):
@@ -140,7 +140,7 @@ class Measure(Versioned, Base):
     scenario = Column(Text, nullable=False)
     questions = Column(Text, nullable=False)
     response_type = Column(Text, nullable=False)
-    branch = Column(GUID, default="HEAD", nullable=False)
+    branch = Column(Text, nullable=False)
     #response = relationship("Response", uselist=False, backref="measure")
 
 
@@ -149,7 +149,7 @@ class MeasureSet(Base):
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(GUID, ForeignKey('survey.id'))
     title = Column(Text, nullable=False)
-    branch = Column(GUID, default="HEAD", nullable=False)
+    branch = Column(Text, nullable=False)
     measures = relationship(
         Measure,
         secondary='measureset_measure_link'
@@ -161,7 +161,7 @@ class MeasureSetMeasureLink(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     measureset_id = Column(GUID, ForeignKey('measureset.id'))
     measure_id = Column(GUID, ForeignKey('measure.id'))
-    branch = Column(GUID, default="HEAD", nullable=False)
+    branch = Column(Text, nullable=False)
 
 
 class Response(Versioned, Base):
