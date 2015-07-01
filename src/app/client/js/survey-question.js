@@ -94,11 +94,21 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
-.controller('SurveyListCtrl', ['$scope', 'routeData', 'questionAuthz',
-        function($scope, routeData, authz) {
+.controller('SurveyListCtrl', ['$scope', 'questionAuthz', 'Survey', 'Current',
+        function($scope, authz, Survey, current) {
 
-    $scope.surveys = routeData.users;
-    $scope.checkRole = authz(routeData.current, null);
+    $scope.checkRole = authz(current, null);
+
+    $scope.search = {
+        term: "",
+        page: 0,
+        pageSize: 10
+    };
+    $scope.$watch('search', function(search) {
+        Survey.query(search).$promise.then(function(surveys) {
+            $scope.surveys = surveys;
+        });
+    }, true);
 }])
 
 ;

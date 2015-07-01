@@ -204,7 +204,8 @@ angular.module('wsaa.aquamark',
                 controller : 'SurveyCtrl',
                 resolve: {routeData: chain({
                     survey: ['Survey', '$route', function(Survey, $route) {
-                        return Survey.get($route.current.params).$promise;
+                        return Survey.get({id: $route.current.params.survey})
+                            .$promise;
                     }]
                 })}
             })

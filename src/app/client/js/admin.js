@@ -57,6 +57,8 @@ angular.module('wsaa.admin', [
     };
 
     Roles.hasPermission = function(currentRole, targetRole) {
+        if (!currentRole)
+            return false;
         if (targetRole == currentRole)
             return true;
         if (Roles.hierarchy[currentRole].indexOf(targetRole) >= 0)

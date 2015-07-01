@@ -1,0 +1,26 @@
+<div class="header">
+    <div class="container">
+        <h2>
+            Surveys
+            <a class="btn btn-default btn-round" title="Add new"
+                    ng-href="#/survey/new" ng-if="checkRole('survey_add')">
+                <i class="fa fa-fw fa-plus"></i></a>
+        </h2>
+    </div>
+</div>
+<div class="container">
+    <search-box model="search" result="surveys"></search-box>
+
+  <table class="table table-hover">
+    <thead>
+      <tr>
+        <th>Title</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr ng-repeat="survey in surveys">
+        <td><a ng-href="#/survey/{{survey.id}}">{{survey.title}}</a></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
