@@ -21,7 +21,7 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
     # test using curl
     # curl http://192.168.59.103:8000/function.json or
     # http://192.168.59.103:8000/function/67f5e799-b32e-492f-86dc-3dc29cb127fe.json
-    # @handlers.authz('author')
+    @tornado.web.authenticated
     def get(self, function_id):
         '''
         Get a single function.
@@ -47,7 +47,7 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(json_encode(son))
         self.finish()
 
-    # @handlers.authz('author')
+    @tornado.web.authenticated
     def query(self):
         '''
         Get a list of functions.
@@ -81,7 +81,7 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
 
     # test using curl
     # curl --data '{"title":"test1"}' http://192.168.59.103:8000/function.json
-    # @handlers.authz('author')
+    @handlers.authz('author')
     def post(self, function_id):
         '''
         Create a new function.
@@ -107,7 +107,7 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
     # curl --cookie "_xsrf=2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
     # -X PUT -H "X-Xsrftoken:2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
     # --data '{"title":"test2"}' http://192.168.59.103:8000/function/2f37de01-1833-41b6-9840-c5ed49d01772.json
-    # @handlers.authz('author')
+    @handlers.authz('author')
     def put(self, function_id):
         '''
         Update an existing function.

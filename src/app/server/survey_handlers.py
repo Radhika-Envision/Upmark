@@ -21,7 +21,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
     # test using curl
     # curl http://192.168.59.103:8000/survey.json or
     # http://192.168.59.103:8000/survey/f9e79f7d-aad7-4986-b8f7-5915f850f466.json
-    # @handlers.authz('author')
+    @tornado.web.authenticated
     def get(self, survey_id):
         '''
         Get a single survey.
@@ -46,7 +46,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(json_encode(son))
         self.finish()
 
-    # @handlers.authz('author')
+    @tornado.web.authenticated
     def query(self):
         '''
         Get a list of surveys.
@@ -76,7 +76,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
 
     # test using curl
     # curl --data '{"title":"test1"}' http://192.168.59.103:8000/survey.json
-    # @handlers.authz('author')
+    @handlers.authz('author')
     def post(self):
         '''
         Create a new survey.
@@ -100,7 +100,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
 
     # test using curl
     # curl -X PUT --data '{"title":"test2"}' http://192.168.59.103:8000/survey/f9e79f7d-aad7-4986-b8f7-5915f850f466.json
-    # @handlers.authz('author')
+    @handlers.authz('author')
     def put(self, survey_id):
         '''
         Update an existing survey.
