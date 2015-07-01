@@ -226,7 +226,7 @@ class UserAuthzTest(OrgStructureTestCase):
         ]
 
         for i, (user_email, org_name, code, reason) in enumerate(users_own):
-            self.create_clerk_user(i, 'own', user_email, org_name, code, reason)
+            self.create_user(i, 'own', user_email, org_name, 'clerk', code, reason)
 
         users_other = [
             ('clerk', 'Primary', 403, "You can't create a new user."),
@@ -237,10 +237,35 @@ class UserAuthzTest(OrgStructureTestCase):
             ('admin', 'Utility', 200, 'OK')
         ]
 
-        for i, (user_email, org_name, code, reason) in enumerate(users_other):
-            self.create_clerk_user(i, 'other', user_email, org_name, code, reason)
+        for i, (user_email, org_name, code, reason) in enumerate(users_own):
+            self.create_user(i, 'other', user_email, org_name, 'clerk', code, reason)
 
-    def create_clerk_user(self, prefix, i, user_email, org_name, code, reason):
+    def test_create_user_role(self):
+        admin_role = [
+            ('admin', 'clerk', 'Primary', 200, 'OK'),
+            ('admin', 'org_admin', 'Primary', 200, 'OK'),
+            ('admin', 'consultant', 'Primary', 200, 'OK'),
+            ('admin', 'authority', 'Primary', 200, 'OK'),
+            ('admin', 'author', 'Primary', 200, 'OK'),
+            ('admin', 'admin', 'Primary', 200, 'OK')
+        ]
+
+        for i, (user_email, role, org_name, code, reason) in enumerate(admin_role):
+            self.create_user(i, 'admin', user_email, org_name, role, code, reason)
+
+        org_admin_role = [
+            ('org_admin', 'clerk', 'Utility', 200, 'OK'),
+            ('org_admin', 'org_admin', 'Utility', 200, 'OK'),
+            ('org_admin', 'consultant', 'Utility', 403, "You can't set this role."),
+            ('org_admin', 'authority', 'Utility', 403, "You can't set this role."),
+            ('org_admin', 'author', 'Utility', 403, "You can't set this role."),
+            ('org_admin', 'admin', 'Utility', 403, "You can't set this role.")
+        ]
+
+        for i, (user_email, role, org_name, code, reason) in enumerate(org_admin_role):
+            self.create_user(i, 'org_admin', user_email, org_name, role, code, reason)
+
+    def create_user(self, prefix, i, user_email, org_name, role, code, reason):
         with model.session_scope() as session:
             org = session.query(model.Organisation).\
                 filter(func.lower(model.Organisation.name) ==
@@ -251,7 +276,7 @@ class UserAuthzTest(OrgStructureTestCase):
             'email': 'clerk%s%s' % (prefix, i),
             'name': 'foo',
             'password': 'bar',
-            'role': 'clerk',
+            'role': role,
             'organisation': {'id': str(org.id)}
         }
 
