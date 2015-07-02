@@ -45,7 +45,6 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(json_encode(son))
         self.finish()
 
-    @tornado.web.authenticated
     def query(self):
         '''
         Get a list of users.
@@ -68,7 +67,6 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
-    @handlers.authz('author')
     def post(self, measure_id):
         '''
         Create a new user.
@@ -91,7 +89,6 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.get(measure.id)
 
-    @handlers.authz('author')
     def put(self, measure_id):
         '''
         Update an existing user.
