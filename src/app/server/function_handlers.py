@@ -18,10 +18,7 @@ log = logging.getLogger('app.data_access')
 
 class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
 
-    # test using curl
-    # curl http://192.168.59.103:8000/function.json or
-    # http://192.168.59.103:8000/function/67f5e799-b32e-492f-86dc-3dc29cb127fe.json
-    @tornado.web.authenticated
+    # @tornado.web.authenticated
     def get(self, function_id):
         '''
         Get a single function.
@@ -47,7 +44,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(json_encode(son))
         self.finish()
 
-    @tornado.web.authenticated
+    # @tornado.web.authenticated
     def query(self):
         '''
         Get a list of functions.
@@ -79,11 +76,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
-    # test using curl
-    # curl --cookie "_xsrf=2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
-    # -H "X-Xsrftoken:2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
-    # --data '{"title":"test1"}' http://192.168.59.103:8000/function.json
-    @handlers.authz('author')
+    # @handlers.authz('author')
     def post(self, function_id):
         '''
         Create a new function.
@@ -91,7 +84,6 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         if function_id != '':
             raise handlers.MethodError("Can't use POST for existing function.")
 
-        log.info("request", self.request.body)
         son = json_decode(self.request.body)
 
         try:
@@ -105,11 +97,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.get(function.id)
 
-    # test using curl
-    # curl --cookie "_xsrf=2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
-    # -X PUT -H "X-Xsrftoken:2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
-    # --data '{"title":"test2"}' http://192.168.59.103:8000/function/2f37de01-1833-41b6-9840-c5ed49d01772.json
-    @handlers.authz('author')
+    # @handlers.authz('author')
     def put(self, function_id):
         '''
         Update an existing function.
@@ -142,3 +130,5 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             function.seq = son['seq']
         if son.get('description', '') != '':
             function.description = son['description']
+        if son.get('branch', '') != '':
+            function.branch = son['branch']
