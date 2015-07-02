@@ -31,16 +31,9 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
             except (sqlalchemy.exc.StatementError, ValueError):
                 raise handlers.MissingDocError("No such measure")
 
-            '''
-            if user.id != self.current_user.id:
-                son = to_dict(user, exclude={'email', 'password'})
-            else:
-                son = to_dict(user, exclude={'password'})
+            son = to_dict(measure, include={'id', 'title', 'intent', 'inputs', 'scenario', 'questions'})
             son = simplify(son)
             son = normalise(son)
-            son["organisation"] = org
-            '''
-            son = {}
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
@@ -74,14 +67,18 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
         if measure_id != '':
             raise handlers.MethodError("Can't use POST for existing measure.")
 
+        subprocess_id = self.get_argument('process_id', None)
+        if subprocess_id == None:
+            raise handlers.MethodError("Can't use POST measure without subprocess_id.")
+
         son = json_decode(self.request.body)
         self._check_create(son)
 
         try:
             with model.session_scope() as session:
                 measure = model.Measure()
-                self._check_update(son, None)
                 self._update(user, son)
+                measure.subprocess_id = subprocess_id
                 session.add(measure)
                 session.flush()
                 session.expunge(measure)
@@ -102,54 +99,31 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
                 measure = session.query(model.Measure).get(measure_id)
                 if measure is None:
                     raise ValueError("No such object")
-                self._check_update(son, measure)
                 self._update(measure, son)
                 session.add(measure)
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such user")
+            raise handlers.MissingDocError("No such measure")
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(measure_id)
 
-    def _check_create(self, son):
-        if not model.has_privillege(self.current_user.role, 'org_admin'):
-            raise handlers.MethodError("You can't create a new user.")
-
-    def _check_update(self, son, user):
-        if model.has_privillege(self.current_user.role, 'admin'):
-            pass
-        elif model.has_privillege(self.current_user.role, 'org_admin'):
-            if str(self.organisation.id) != son['organisation']['id']:
-                raise handlers.MethodError(
-                    "You can't create/modify another organisation's user.")
-            if son['role'] not in {'org_admin', 'clerk'}:
-                raise handlers.MethodError(
-                    "You can't set this role.")
-            if user and user.role == 'admin':
-                raise handlers.MethodError(
-                    "You can't modify a user with that role.")
-        else:
-            if str(self.current_user.id) != user.id:
-                raise handlers.MethodError(
-                    "You can't modify another user.")
-            if str(self.organisation.id) != son['organisation']['id']:
-                raise handlers.MethodError(
-                    "You can't change your organisation.")
-            if son['role'] != self.current_user.role:
-                raise handlers.MethodError(
-                    "You can't change your role.")
-
-    def _update(self, user, son):
+    def _update(self, measure, son):
         '''
         Apply user-provided data to the saved model.
         '''
-        if son.get('email', '') != '':
-            user.email = son['email']
-        if son.get('name', '') != '':
-            user.name = son['name']
-        if son.get('role', '') != '':
-            user.role = son['role']
-        if son.get('organisation', '') != '':
-            user.organisation_id = son['organisation']['id']
-        if son.get('password', '') != '':
-            user.set_password(son['password'])
+        if son.get('seq', '') != '':
+            measure.seq = son['seq']
+        if son.get('title', '') != '':
+            measure.title = son['title']
+        if son.get('weight', '') != '':
+            measure.weight = son['weight']
+        if son.get('intent', '') != '':
+            measure.intent = son['intent']
+        if son.get('scenario', '') != '':
+            measure.scenario = son['scenario']
+        if son.get('questions', '') != '':
+            measure.questions = son['questions']
+        if son.get('response_type', '') != '':
+            measure.response_type = son['response_type']
+        if son.get('branch', '') != '':
+            measure.branch = son['branch']        
