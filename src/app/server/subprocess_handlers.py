@@ -18,29 +18,30 @@ log = logging.getLogger('app.data_access')
 
 class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
 
-    # test using curl
-    # curl http://192.168.59.103:8000/function.json or
-    # http://192.168.59.103:8000/function/67f5e799-b32e-492f-86dc-3dc29cb127fe.json
     # @handlers.authz('author')
-    def get(self, function_id):
+    def get(self, subprocess_id):
         '''
-        Get a single function.
+        Get a single subprocess.
         '''
-        log.info(function_id)
-        if function_id == "":
-            self.query()
+        log.info(subprocess_id)
+        if subprocess_id == "":
+            process_id = self.get_argument('process_id', None)
+            if process_id == None:
+                raise handlers.MethodError("Can't GET subprocess without process_id.")
+
+            self.query(process_id)
             return
+
 
         with model.session_scope() as session:
             try:
-                function = session.query(model.Function).get(function_id)
-                log.info(function)
-                if function is None:
+                subprocess = session.query(model.Subprocess).get(subprocess_id)
+                if subprocess is None:
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError, ValueError):
-                raise handlers.MissingDocError("No such function")
+                raise handlers.MissingDocError("No such subprocess")
 
-            son = to_dict(function, include={'id', 'title', 'seq', 'description'})
+            son = to_dict(subprocess, include={'id', 'title', 'seq', 'description'})
             son = simplify(son)
             son = normalise(son)
         self.set_header("Content-Type", "application/json")
@@ -48,14 +49,14 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         self.finish()
 
     # @handlers.authz('author')
-    def query(self):
+    def query(self, process_id):
         '''
-        Get a list of functions.
+        Get a list of subprocesss.
         '''
 
         sons = []
         with model.session_scope() as session:
-            query = session.query(model.Function)
+            query = session.query(model.Subprocess).filter(model.Subprocess.process_id == process_id)
 
             # org_id = self.get_argument("org_id", None)
             # if org_id is not None:
@@ -64,9 +65,9 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
             term = self.get_argument('term', None)
             if term is not None:
                 query = query.filter(
-                    model.Function.title.ilike(r'%{}%'.format(term)))
+                    model.Subprocess.title.ilike(r'%{}%'.format(term)))
 
-            query = query.order_by(model.Function.title)
+            query = query.order_by(model.Subprocess.title)
             query = self.paginate(query)
 
             for ob in query.all():
@@ -79,64 +80,66 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
-    # test using curl
-    # curl --data '{"title":"test1"}' http://192.168.59.103:8000/function.json
     # @handlers.authz('author')
-    def post(self, function_id):
+    def post(self, subprocess_id):
         '''
-        Create a new function.
+        Create a new subprocess.
         '''
-        if function_id != '':
-            raise handlers.MethodError("Can't use POST for existing function.")
+        if subprocess_id != '':
+            raise handlers.MethodError("Can't use POST for existing subprocess.")
 
-        log.info("request", self.request.body)
+        process_id = self.get_argument('process_id', None)
+        if process_id == None:
+            raise handlers.MethodError("Can't use POST subprocess without process_id.")
+
         son = json_decode(self.request.body)
 
         try:
             with model.session_scope() as session:
-                function = model.Function()
-                self._update(function, son)
-                session.add(function)
+                subprocess = model.Subprocess()
+                self._update(subprocess, son)
+                subprocess.process_id = process_id
+                session.add(subprocess)
                 session.flush()
-                session.expunge(function)
+                session.expunge(subprocess)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.get(function.id)
+        self.finish(str(subprocess.id))
 
-    # test using curl
-    # curl --cookie "_xsrf=2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
-    # -X PUT -H "X-Xsrftoken:2|d8b3038c|399eda1c903e9de19748e529c10603d3|1434072137" \
-    # --data '{"title":"test2"}' http://192.168.59.103:8000/function/2f37de01-1833-41b6-9840-c5ed49d01772.json
     # @handlers.authz('author')
-    def put(self, function_id):
+    def put(self, subprocess_id):
         '''
-        Update an existing function.
+        Update an existing subprocess.
         '''
-        if function_id == '':
+        if subprocess_id == '':
             raise handlers.MethodError(
-                "Can't use PUT for new function (no ID).")
+                "Can't use PUT for new subprocess (no ID).")
         son = json_decode(self.request.body)
 
         try:
             with model.session_scope() as session:
-                function = session.query(model.Function).get(function_id)
-                if function is None:
+                subprocess = session.query(model.Subprocess).get(subprocess_id)
+                if subprocess is None:
                     raise ValueError("No such object")
-                self._update(function, son)
-                session.add(function)
+                self._update(subprocess, son)
+                session.add(subprocess)
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such function")
+            raise handlers.MissingDocError("No such subprocess")
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.get(function_id)
+        self.get(subprocess_id)
 
-    def _update(self, function, son):
+    def _update(self, subprocess, son):
         '''
-        Apply function-provided data to the saved model.
+        Apply subprocess-provided data to the saved model.
         '''
         if son.get('title', '') != '':
-            function.title = son['title']
+            subprocess.title = son['title']
         if son.get('seq', '') != '':
-            function.seq = son['seq']
+            subprocess.seq = son['seq']
         if son.get('description', '') != '':
-            function.description = son['description']
+            subprocess.description = son['description']
+        if son.get('branch', '') != '':
+            subprocess.branch = son['branch']
+        if son.get('process_id', '') != '':
+            subprocess.process_id = son['process_id']
