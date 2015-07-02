@@ -93,7 +93,6 @@ def has_privillege(current_role, *target_roles):
 class Survey(Versioned, Base):
     __tablename__ = 'survey'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    #created = Column(Date, nullable=False)
     created = Column(Date, default=func.now(), nullable=False)
     title = Column(Text, nullable=False)
     branch = Column(Text, default=uuid.uuid4)
@@ -187,7 +186,7 @@ class Assessment(Versioned, Base):
     measureset_id = Column(GUID, ForeignKey('measureset.id'))
     # TODO: Make this field an enum
     approval = Column(Text, nullable=False)
-    created = Column(Date, nullable=False)
+    created = Column(Date, default=func.now(), nullable=False)
     branch = Column(GUID, default="HEAD", nullable=False)
 
 
@@ -223,56 +222,6 @@ def connect_db(url):
 
 def initialise_schema(engine):
     Base.metadata.create_all(engine)
-
-
-# TODO: Separate these tests out into a different module. Use PyUnit.
-# TODO: Add test that shows how to pull data out of the database.
-# TODO: Add test that shows a failed transaction, with exception handling.
-# TODO: Always use exception handling to ensure the session is closed:
-#       http://docs.sqlalchemy.org/en/latest/orm/session_transaction.html#managing-transactions
-#       Or use a context manager (preferred):
-#       http://stackoverflow.com/a/29805305/320036
-def testing():
-    connect_db(os.environ.get('DATABASE_URL'))
-    with session_scope() as session:
-        testOrganisation = Organisation(name="Jin Company", url="http://test.com", region="Melbourne", number_of_customers=4000)
-        session.add(testOrganisation)
-        session.flush()
-        testOrganisation = Organisation(name="Test", url="http://test.com", region="Melbourne", number_of_customers=4000)
-        session.add(testOrganisation)
-        session.flush()
-        testOrganisation = Organisation(name="Acme", url="http://test.com", region="Melbourne", number_of_customers=4000)
-        session.add(testOrganisation)
-        session.flush()
-        print("testOrganisation.id", testOrganisation.id)
-        testUser = AppUser(email="forjin@vpac-innovations.com.au", name="Jin Park", organisation_id=testOrganisation.id, role="admin")
-        testUser.set_password("test")
-        session.add(testUser)
-        #assert testUser.organisation.name, "Acme"
-        assert testUser.check_password("test")
-    '''
-    testFunction = Function(seq=1, title="Function 1", description="Test Description")
-    session.add(testFunction)
-    session.commit()
-    testFunction.title="F1"
-    session.commit()
-    testProcess = Process(seq=1, title="Process 1", function_id=testFunction.id, description="Test Description")
-    session.add(testProcess)
-    session.commit()
-    testSubprocess = Subprocess(seq=1, title="Subprocess 1", process_id=testProcess.id, description="Test Description")
-    session.add(testSubprocess)
-    session.commit()
-    testMeasure = Measure(seq=1, title="How are you?", subprocess_id=testSubprocess.id, weight=1, intent="intent", inputs="inputs", scenario="scenario", questions="questions", response_type="1")
-    session.add(testMeasure)
-    testMeasure.name = "How old are you?"
-    session.commit()
-    testUser = AppUser(name="Jin Park", id="forjin", password="guesswhat")
-    session.add(testUser)
-    session.commit()
-    testResponse = Response(name="Answer 1", measure_id=testMeasure.id, user_id=testUser.id)
-    session.add(testResponse)
-    '''
-    session.commit()
 
 
 if __name__ == '__main__':

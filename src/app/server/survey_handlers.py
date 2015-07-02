@@ -18,9 +18,6 @@ log = logging.getLogger('app.data_access')
 
 class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
 
-    # test using curl
-    # curl http://192.168.59.103:8000/survey.json or
-    # http://192.168.59.103:8000/survey/f9e79f7d-aad7-4986-b8f7-5915f850f466.json
     # @handlers.authz('author')
     def get(self, survey_id):
         '''
