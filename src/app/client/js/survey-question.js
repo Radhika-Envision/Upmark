@@ -79,9 +79,11 @@ angular.module('wsaa.surveyQuestions', [
     if (routeData.survey) {
         // Editing old
         $scope.survey = routeData.survey;
+        $scope.funcs = routeData.funcs;
     } else {
         // Creating new
         $scope.survey = new Survey({});
+        $scope.funcs = null;
         $scope.edit.edit();
     }
 
@@ -110,6 +112,34 @@ angular.module('wsaa.surveyQuestions', [
             $scope.surveys = surveys;
         });
     }, true);
+}])
+
+
+.controller('FuncCtrl', [
+        '$scope', 'Func', 'routeData', 'Editor', 'questionAuthz',
+        '$location', 'Notifications', 'Current',
+        function($scope, Func, routeData, Editor, authz,
+                 $location, Notifications, current) {
+
+    $scope.edit = Editor('func', $scope);
+    if (routeData.survey) {
+        // Editing old
+        $scope.survey = routeData.survey;
+        $scope.func = routeData.func;
+        $scope.procs = routeData.procs;
+    } else {
+        // Creating new
+        $scope.survey = routeData.survey;
+        $scope.func = new Func({branch: $location.search().branch});
+        $scope.procs = null;
+        $scope.edit.edit();
+    }
+
+    $scope.$on('EditSaved', function(event, model) {
+        $location.url('/survey/' + model.id);
+    });
+
+    $scope.checkRole = authz(current, $scope.survey);
 }])
 
 ;

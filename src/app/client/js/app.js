@@ -171,6 +171,32 @@ angular.module('wsaa.aquamark',
                     survey: ['Survey', '$route', function(Survey, $route) {
                         return Survey.get({id: $route.current.params.survey})
                             .$promise;
+                    }],
+                    funcs: ['Func', 'survey', function(Func, survey) {
+                        return Func.query({branch: survey.branch})
+                            .$promise;
+                    }]
+                })}
+            })
+
+            .when('/function/new', {
+                templateUrl : 'function.html',
+                controller : 'FuncCtrl',
+                resolve: {routeData: chain({})}
+            })
+            .when('/function/:func', {
+                templateUrl : 'survey.html',
+                controller : 'FuncCtrl',
+                resolve: {routeData: chain({
+                    func: ['Func', '$route', function(Func, $route) {
+                        return Func.get({id: $route.current.params.survey})
+                            .$promise;
+                    }],
+                    survey: ['Survey', 'func', function(Survey, func) {
+                        return Survey.get({id: func.branch}).$promise;
+                    }],
+                    procs: ['Process', 'func', function(Process, func) {
+                        return Process.query({branch: func.branch}).$promise;
                     }]
                 })}
             })

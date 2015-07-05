@@ -54,9 +54,9 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         with model.session_scope() as session:
             query = session.query(model.Function)
 
-            # org_id = self.get_argument("org_id", None)
-            # if org_id is not None:
-            #     query = query.filter_by(organisation_id=org_id)
+            branch = self.get_argument("branch", None)
+            if branch is not None:
+                query = query.filter_by(branch=branch)
 
             term = self.get_argument('term', None)
             if term is not None:
@@ -67,7 +67,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             query = self.paginate(query)
 
             for ob in query.all():
-                son = to_dict(ob, include={'id', 'title', 'seq', 'description'})
+                son = to_dict(ob, include={'id', 'title', 'seq'})
                 son = simplify(son)
                 son = normalise(son)
                 sons.append(son)
