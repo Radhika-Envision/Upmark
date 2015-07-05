@@ -200,7 +200,6 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-
             .when('/survey/:survey/:fn/:proc/:subProc/:measure', {
                 templateUrl : 'survey-measure.html',
                 controller : 'MeasureCtrl',
@@ -212,6 +211,21 @@ angular.module('wsaa.aquamark',
                         return Schema.get({name: measure.responseType}).$promise;
                     }]
                 })}
+            })
+
+            .when('/category', {
+                templateUrl : 'category.html',
+                controller : 'CategoryCtrl',
+                resolve: {routeData: chain({
+                    functions: ['Func', '$route', function(Func, $route) {
+                        return Func.query({}).$promise;
+                    }]
+                })}
+            })
+            .when('/category/new', {
+                templateUrl : 'category.html',
+                controller : 'CategoryCtrl',
+                resolve: {routeData: chain({})}
             })
 
             .when('/legal', {

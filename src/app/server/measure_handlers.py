@@ -67,24 +67,23 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
         if measure_id != '':
             raise handlers.MethodError("Can't use POST for existing measure.")
 
-        subprocess_id = self.get_argument('process_id', None)
+        subprocess_id = self.get_argument('subprocess_id', None)
         if subprocess_id == None:
             raise handlers.MethodError("Can't use POST measure without subprocess_id.")
 
         son = json_decode(self.request.body)
-        self._check_create(son)
 
         try:
             with model.session_scope() as session:
                 measure = model.Measure()
-                self._update(user, son)
+                self._update(measure, son)
                 measure.subprocess_id = subprocess_id
                 session.add(measure)
                 session.flush()
                 session.expunge(measure)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.get(measure.id)
+        self.finish(str(measure.id))
 
     def put(self, measure_id):
         '''
@@ -119,6 +118,8 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
             measure.weight = son['weight']
         if son.get('intent', '') != '':
             measure.intent = son['intent']
+        if son.get('inputs', '') != '':
+            measure.inputs = son['inputs']
         if son.get('scenario', '') != '':
             measure.scenario = son['scenario']
         if son.get('questions', '') != '':

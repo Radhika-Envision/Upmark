@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('wsaa.surveyQuestions', [
-    'ngResource', 'ngSanitize', 'ui.select', 'wsaa.admin'])
+    'ngResource', 'ngSanitize', 'ui.select', 'ui.tree', 'wsaa.admin'])
 
 
 .factory('Survey', ['$resource', function($resource) {
@@ -141,5 +141,14 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.checkRole = authz(current, $scope.survey);
 }])
+
+
+.controller('CategoryCtrl', ['$scope', '$routeParams', 'routeData', 'format', 'hotkeys', '$location', '$timeout',
+        function($scope, $routeParams, routeData, format, hotkeys, $location, $timeout) {
+
+    $scope.functions = routeData.functions;
+
+}])
+
 
 ;

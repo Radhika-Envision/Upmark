@@ -25,7 +25,8 @@
     "angular-bootstrap-show-errors": "~2.3.0",
     "angular-sanitize": "~1.4.1",
     "angular-ui-select": "~0.12.0",
-    "angular-cookies": "~1.4.1"
+    "angular-cookies": "~1.4.1",
+    "angular-ui-tree": "~2.5.0"
   },
   "resolutions": {
     "angular": "~1.4.1"

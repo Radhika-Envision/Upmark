@@ -111,7 +111,8 @@ STYLESHEETS = [
         'min-href': '/minify/3rd-party-min.css',
         'hrefs': [
             '/.bower_components/angular-hotkeys/build/hotkeys.css',
-            '/.bower_components/angular-ui-select/dist/select.css'
+            '/.bower_components/angular-ui-select/dist/select.css',
+            '/.bower_components/angular-ui-tree/dist/angular-ui-tree.min.css'
         ]
     },
 ]
@@ -153,7 +154,8 @@ SCRIPTS = [
             '/.bower_components/angular-hotkeys/build/hotkeys.js',
             '/.bower_components/angular-bootstrap-show-errors/src/showErrors.js',
             '/.bower_components/angular-validation-match/dist/angular-validation-match.js',
-            '/.bower_components/angular-ui-select/dist/select.js'
+            '/.bower_components/angular-ui-select/dist/select.js',
+            '/.bower_components/angular-ui-tree/dist/angular-ui-tree.js'
         ]
     },
     {
