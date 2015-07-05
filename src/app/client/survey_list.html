@@ -8,7 +8,15 @@
         </h2>
     </div>
 </div>
+
 <div class="container">
+
+    <p>
+    The current survey is
+    <a ng-href="#/survey/{{currentSurvey.id}}">{{currentSurvey.title}}</a>.
+    You can search for other surveys below.
+    </p>
+
     <search-box model="search" result="surveys"></search-box>
 
   <table class="table table-hover">
@@ -18,8 +26,9 @@
       </tr>
     </thead>
     <tbody>
-      <tr ng-repeat="survey in surveys">
-        <td><a ng-href="#/survey/{{survey.id}}">{{survey.title}}</a></td>
+      <tr ng-repeat="survey in surveys"
+            any-href='/survey/{{survey.id}}'">
+        <td>{{survey.title}}</td>
       </tr>
     </tbody>
   </table>

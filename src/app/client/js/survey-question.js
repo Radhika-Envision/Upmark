@@ -75,7 +75,6 @@ angular.module('wsaa.surveyQuestions', [
         function($scope, Survey, routeData, Editor, authz,
                  $location, Notifications, current) {
 
-    $scope.current = routeData.current;
     $scope.edit = Editor('survey', $scope);
     if (routeData.survey) {
         // Editing old
@@ -95,9 +94,11 @@ angular.module('wsaa.surveyQuestions', [
 
 
 .controller('SurveyListCtrl', ['$scope', 'questionAuthz', 'Survey', 'Current',
-        function($scope, authz, Survey, current) {
+            'currentSurvey',
+        function($scope, authz, Survey, current, currentSurvey) {
 
     $scope.checkRole = authz(current, null);
+    $scope.currentSurvey = currentSurvey;
 
     $scope.search = {
         term: "",

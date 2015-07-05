@@ -5,6 +5,7 @@ import uuid
 from tornado.escape import json_decode, json_encode
 import tornado.web
 import sqlalchemy
+from sqlalchemy.sql import func
 from sqlalchemy.orm import joinedload
 
 import handlers
@@ -29,7 +30,11 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
 
         with model.session_scope() as session:
             try:
-                survey = session.query(model.Survey).get(survey_id)
+                query = session.query(model.Survey)
+                if survey_id == 'current':
+                    survey = query.order_by(model.Survey.created.desc()).first()
+                else:
+                    survey = query.get(survey_id)
                 log.info(survey)
                 if survey is None:
                     raise ValueError("No such object")

@@ -150,21 +150,14 @@ angular.module('wsaa.aquamark',
                 }
             })
 
-            .when('/survey', {
-                templateUrl : 'organisation_list.html',
-                controller : 'OrganisationListCtrl',
-                resolve: {routeData: chain({
-                    orgs: ['Organisation', function(Organisation) {
-                        return Organisation.query({}).$promise;
-                    }],
-                    current: ['Current', function(Current) {
-                        return Current.$promise;
-                    }]
-                })}
-            })
             .when('/surveys', {
                 templateUrl : 'survey_list.html',
-                controller : 'SurveyListCtrl'
+                controller : 'SurveyListCtrl',
+                resolve: {
+                    currentSurvey: ['Survey', function(Survey, $route) {
+                        return Survey.get({id: 'current'}).$promise;
+                    }]
+                }
             })
             .when('/survey/new', {
                 templateUrl : 'survey.html',
