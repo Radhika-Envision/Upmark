@@ -76,7 +76,7 @@ angular.module('wsaa.surveyQuestions', [
                  $location, Notifications, current) {
 
     $scope.current = routeData.current;
-    $scope.edit = Editor(Survey, 'survey', $scope);
+    $scope.edit = Editor('survey', $scope);
     if (routeData.survey) {
         // Editing old
         $scope.survey = routeData.survey;

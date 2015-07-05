@@ -3,14 +3,14 @@ import os
 import sys
 import uuid
 
-from sqlalchemy import create_engine, Column, ForeignKey, Integer, String, Float, Date, Text, Boolean
+from sqlalchemy import Boolean, create_engine, Column, Date, Float, ForeignKey,\
+    Index, Integer, String, Text
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID
 import sqlalchemy.exc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.schema import Index, MetaData
-from sqlalchemy.sql.expression import select
 from passlib.hash import sha256_crypt
 
 from guid import GUID
@@ -37,17 +37,21 @@ class SystemConfig(Base):
 class Organisation(Versioned, Base):
     __tablename__ = 'organisation'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    name = Column(Text, nullable=False, unique=True)
+    name = Column(Text, nullable=False)
     url = Column(Text, nullable=True)
     region = Column(Text, nullable=False)
     number_of_customers = Column(Integer, nullable=False)
     created = Column(Date, default=func.now(), nullable=False)
 
+    __table_args__ = (
+        Index('organisation_name_key', func.lower(name), unique=True),
+    )
+
 
 class AppUser(Versioned, Base):
     __tablename__ = 'appuser'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    email = Column(Text, nullable=False, unique=True)
+    email = Column(Text, nullable=False)
     name = Column(Text, nullable=False)
     password = Column(Text, nullable=False)
     role = Column(Text, nullable=False)
@@ -63,6 +67,10 @@ class AppUser(Versioned, Base):
 
     def check_password(self, plaintext):
         return sha256_crypt.verify(plaintext, self.password)
+
+    __table_args__ = (
+        Index('appuser_email_key', func.lower(email), unique=True),
+    )
 
 
 ROLE_HIERARCHY = {

@@ -6,3 +6,33 @@
         border-top: none;
     }
 }
+
+tr.strike {
+    td {
+        position: relative;
+
+        &:before {
+            content: " ";
+            position: absolute;
+            top: 50%;
+            left: 0;
+            border-bottom: 2px solid red;
+            width: 100%;
+            opacity: 0.5;
+        }
+    }
+}
+
+/* Font Awesome badge that can be nested inside another <i> tag */
+.fa-badge {
+    position: relative;
+    width: 0;
+    font-size: 0.6em;
+    left: -0.2em;
+    top: -0.2em;
+    float: right;
+}
+
+[any-href] {
+    cursor: pointer;
+}

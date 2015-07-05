@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html lang="en" ng-app="wsaa.aquamark">
-    <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        {% for s in stylesheets %}
-            <link rel="stylesheet" type="text/css" href="{{s}}">
-        {% end %}
-    </head>
-    <body ng-controller="RootCtrl">
+<head>
+<title>Aquamark - Log In</title>
+{% include page-style.html %}
+</head>
+<body ng-controller="RootCtrl">
 
 <div class="measure">
 
@@ -45,5 +43,5 @@
 
 </div>
 
-    </body>
+</body>
 </html>

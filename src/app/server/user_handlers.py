@@ -13,6 +13,7 @@ import logging
 
 from utils import to_dict, simplify, normalise, truthy
 
+
 class UserHandler(handlers.Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
     def get(self, user_id):
@@ -28,7 +29,8 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
 
         with model.session_scope() as session:
             try:
-                user = session.query(model.AppUser).options(joinedload('organisation')).get(user_id)
+                user = session.query(model.AppUser).\
+                    options(joinedload('organisation')).get(user_id)
                 if user is None:
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError, ValueError):
@@ -36,27 +38,16 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
             org = to_dict(user.organisation, include={'id', 'name'})
             org = simplify(org)
             org = normalise(org)
-
-            if not self._can_see_email(user):
-                son = to_dict(user, exclude={'email', 'password'})
-            else:
-                son = to_dict(user, exclude={'password'})
+            # Exclude password from response. If this web service is ever opened
+            # up to unauthenticated users, further thought should be given to
+            # privacy (e.g. hide email addresses).
+            son = to_dict(user, exclude={'password'})
             son = simplify(son)
             son = normalise(son)
             son["organisation"] = org
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
-
-    def _can_see_email(self, user):
-        if model.has_privillege(self.current_user.role, 'admin'):
-            return True
-        elif user.id == self.current_user.id:
-            return True
-        elif model.has_privillege(self.current_user.role, 'org_admin'):
-            return self.current_user.organisation_id == user.organisation_id
-        else:
-            return False
 
     def query(self):
         '''
@@ -89,7 +80,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 org = to_dict(ob.organisation, include={'id', 'name'})
                 org = simplify(org)
                 org = normalise(org)
-                son = to_dict(ob, include={'id', 'name'})
+                son = to_dict(ob, include={'id', 'name', 'enabled'})
                 son = simplify(son)
                 son = normalise(son)
                 son["organisation"] = org
@@ -146,35 +137,35 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
 
     def _check_create(self, son):
         if not model.has_privillege(self.current_user.role, 'org_admin'):
-            raise handlers.MethodError("You can't create a new user.")
+            raise handlers.AuthzError("You can't create a new user.")
 
     def _check_update(self, son, user):
         if model.has_privillege(self.current_user.role, 'admin'):
             pass
         elif model.has_privillege(self.current_user.role, 'org_admin'):
             if str(self.organisation.id) != son['organisation']['id']:
-                raise handlers.MethodError(
+                raise handlers.AuthzError(
                     "You can't create/modify another organisation's user.")
             if son['role'] not in {'org_admin', 'clerk'}:
-                raise handlers.MethodError(
+                raise handlers.AuthzError(
                     "You can't set this role.")
             if user and user.role == 'admin':
-                raise handlers.MethodError(
+                raise handlers.AuthzError(
                     "You can't modify a user with that role.")
         else:
-            if str(self.current_user.id) != user.id:
-                raise handlers.MethodError(
+            if str(self.current_user.id) != str(user.id):
+                raise handlers.AuthzError(
                     "You can't modify another user.")
             if str(self.organisation.id) != son['organisation']['id']:
-                raise handlers.MethodError(
+                raise handlers.AuthzError(
                     "You can't change your organisation.")
             if son['role'] != self.current_user.role:
-                raise handlers.MethodError(
+                raise handlers.AuthzError(
                     "You can't change your role.")
 
         if 'enabled' in son and son['enabled'] != user.enabled:
-            if str(self.current_user.id) == user.id:
-                raise handlers.MethodError(
+            if str(self.current_user.id) == str(user.id):
+                raise handlers.AuthzError(
                     "You can't enable or disable yourself.")
 
     def _update(self, user, son):

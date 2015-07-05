@@ -67,18 +67,19 @@ angular.module('vpac.widgets', [])
     function Notifications() {
         this.messages = [];
     };
-    Notifications.prototype.add = function(id, type, body, duration) {
+    Notifications.prototype.set = function(id, type, body, duration) {
         var newMessage = {
             id: id,
             type: type,
             css: type == 'error' ? 'danger' : type,
             body: body
         };
-        for (var i = 0; i < this.messages.length; i++) {
-            if (angular.equals(this.messages[i], newMessage))
-                return;
-        }
+        this.remove(id);
         this.messages = [newMessage].concat(this.messages);
+        if (type == 'error')
+            log.error(body);
+        else
+            log.info(body);
 
         if (duration) {
             $timeout(function(that, message) {
@@ -134,6 +135,8 @@ angular.module('vpac.widgets', [])
         controller: ['$scope', function($scope) {
             if (!$scope.model.pageSize)
                 $scope.model.pageSize = 10;
+            if (!$scope.model.page)
+                $scope.model.page = 0;
             $scope.$watch('model', function(model, oldModel) {
                 if (model.page === undefined)
                     model.page = 0;
@@ -152,11 +155,10 @@ angular.module('vpac.widgets', [])
  * Manages state for a modal editing session.
  */
 .factory('Editor', [
-        '$parse', 'log', '$filter', 'Notifications',
-         function($parse, log, $filter, Notifications) {
+        '$parse', 'log', '$filter', 'Notifications', '$q',
+         function($parse, log, $filter, Notifications, $q) {
 
-    function Editor(dao, targetPath, scope) {
-        this.dao = dao;
+    function Editor(targetPath, scope) {
         this.model = null;
         this.scope = scope;
         this.getter = $parse(targetPath);
@@ -182,8 +184,8 @@ angular.module('vpac.widgets', [])
                 log.debug("Success");
                 that.getter.assign(that.scope, model);
                 that.model = null;
-                Notifications.remove('edit');
-                Notifications.add('edit', 'success', "Saved", 5000);
+                that.scope.$emit('EditSaved', model);
+                Notifications.set('edit', 'success', "Saved", 5000);
             } finally {
                 that.saving = false;
                 that = null;
@@ -191,12 +193,13 @@ angular.module('vpac.widgets', [])
         };
         var failure = function(details) {
             try {
-                var errorText = "Could not save object: " + details.statusText;
-                log.error(errorText);
-                Notifications.add('edit', 'error', errorText);
+                that.scope.$emit('EditError');
+                Notifications.set('edit', 'error',
+                    "Could not save object: " + details.statusText);
             } finally {
                 that.saving = false;
                 that = null;
+                return $q.reject(details);
             }
         };
 
@@ -208,23 +211,77 @@ angular.module('vpac.widgets', [])
             this.model.$save(success, failure);
         }
         this.saving = true;
+        Notifications.set('edit', 'info', "Saving");
     };
 
     Editor.prototype.destroy = function() {
         this.cancel();
         this.scope = null;
         this.getter = null;
-        this.dao = null;
     };
 
-    return function(dao, targetPath, scope) {
+    return function(targetPath, scope) {
         log.debug('Creating editor');
-        var editor = new Editor(dao, targetPath, scope);
+        var editor = new Editor(targetPath, scope);
         scope.$on('$destroy', function() {
             editor.destroy();
             editor = null;
         });
         return editor;
+    };
+}])
+
+
+.directive('anyHref', ['$location', function($location) {
+    return {
+        restrict: 'A',
+        link: function(scope, elem, attrs) {
+            elem.on('click.anyHref', function() {
+                scope.$apply(function() {
+                    $location.path(attrs.anyHref);
+                });
+            });
+            scope.$on('$destroy', function() {
+                elem.off('.anyHref');
+            });
+        }
+    };
+}])
+
+
+.directive('pageTitle', ['$document', '$injector', function($document, $injector) {
+    var numTitles = 0;
+    var defaultTitle = $document[0].title;
+    return {
+        restrict: 'EA',
+        link: function(scope, elem, attrs) {
+            if (numTitles > 0) {
+                // Don't install if there is already a title active (for nested
+                // pages)
+                return;
+            }
+
+            var prefix = '', suffix = '';
+            if ($injector.has('pageTitlePrefix'))
+                prefix = $injector.get('pageTitlePrefix');
+            if ($injector.has('pageTitleSuffix'))
+                suffix = $injector.get('pageTitleSuffix');
+
+            scope.$watch(
+                function() {
+                    return elem.text();
+                },
+                function(title) {
+                    $document[0].title = prefix + title + suffix;
+                }
+            );
+            numTitles++;
+
+            scope.$on('$destroy', function() {
+                numTitles--;
+                $document[0].title = defaultTitle;
+            });
+        }
     };
 }])
 

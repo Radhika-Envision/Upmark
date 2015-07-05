@@ -2,11 +2,11 @@
 
 <div class="header">
 <div class="container">
-    <h2>
+    <h2 page-title>
         <i class="fa fa-fw fa-user"></i>
         <a href="#/users">Users</a> &raquo;
-        <span ng-show="user.name">{{user.name}}</span>
-        <span ng-show="!user.name">New user</span>
+        <span ng-if="user.name">{{user.name}}</span>
+        <span ng-if="!user.name">New user</span>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
                 ng-if="!edit.model && checkRole('user_edit')">
@@ -32,7 +32,8 @@
 </div>
 </div>
 
-<div class="subheader bg-warning text-warning" ng-if="!user.enabled">
+<div class="subheader bg-warning text-warning"
+        ng-if="user.id && !user.enabled">
     <div class="container">
         <i class="fa fa-times"></i>
         This user is inactive.
@@ -109,7 +110,7 @@
     </dl>
     <dl ng-if="user.email">
         <dt>Email</dt>
-        <dd>{{user.email}}</dd>
+        <dd><a ng-href="mailto:{{user.email}}" target="_blank">{{user.email}}</a></dd>
     </dl>
     <dl>
         <dt>Oragnisation</dt>
