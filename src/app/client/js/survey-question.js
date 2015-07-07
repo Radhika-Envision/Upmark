@@ -143,10 +143,48 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
-.controller('CategoryCtrl', ['$scope', '$routeParams', 'routeData', 'format', 'hotkeys', '$location', '$timeout',
-        function($scope, $routeParams, routeData, format, hotkeys, $location, $timeout) {
+.controller('CategoryCtrl', ['$scope', '$routeParams', 'routeData', 'format', 'hotkeys', 'Func', '$location', '$timeout',
+        function($scope, $routeParams, routeData, format, hotkeys, Func, $location, $timeout) {
 
     $scope.functions = routeData.functions;
+    
+    $scope.addFunction = function() {
+      var functionTitle = document.getElementById("funcTitle").value;
+      if (functionTitle.length > 0) {
+        Func.create({
+          title: functionTitle,
+          description: functionTitle,
+          seq: 1
+        });
+        document.getElementById("funcTitle").value = '';
+      }
+    };
+
+    $scope.editFunction = function(func) {
+      func.editing = true;
+    };
+
+    $scope.cancelEditingFunction = function(func) {
+      func.editing = false;
+    };
+
+    $scope.saveFunction = function(func) {
+      func.save();
+    };
+
+    $scope.removeFunction = function(func) {
+      if (window.confirm('Are you sure to remove this function?')) {
+        func.destroy();
+      }
+    };
+
+    $scope.saveGroups = function() {
+      for (var i = $scope.groups.length - 1; i >= 0; i--) {
+        var group = $scope.groups[i];
+        group.sortOrder = i + 1;
+        group.save();
+      }
+    };
 
 }])
 

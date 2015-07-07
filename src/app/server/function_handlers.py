@@ -90,6 +90,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             with model.session_scope() as session:
                 function = model.Function()
                 self._update(function, son)
+                function.branch = self.get_current_branch()
                 session.add(function)
                 session.flush()
                 session.expunge(function)
@@ -132,3 +133,9 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             function.description = son['description']
         if son.get('branch', '') != '':
             function.branch = son['branch']
+
+    # TODO : we can save branch code somewhere global area 
+    def get_current_branch(self):
+        with model.session_scope() as session:
+            survey = session.query(model.Survey).order_by(sqlalchemy.desc(model.Survey.created))[0]
+            return survey.branch

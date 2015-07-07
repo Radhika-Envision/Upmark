@@ -77,6 +77,8 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
             with model.session_scope() as session:
                 measure = model.Measure()
                 self._update(measure, son)
+                branch = self.get_current_branch()
+                measure.branch = branch
                 measure.subprocess_id = subprocess_id
                 session.add(measure)
                 session.flush()
@@ -127,4 +129,10 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
         if son.get('response_type', '') != '':
             measure.response_type = son['response_type']
         if son.get('branch', '') != '':
-            measure.branch = son['branch']        
+            measure.branch = son['branch']
+
+    # TODO : we can save branch code somewhere global area 
+    def get_current_branch(self):
+        with model.session_scope() as session:
+            survey = session.query(model.Survey).order_by(sqlalchemy.desc(model.Survey.created)).one()
+            return survey.branch

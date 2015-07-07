@@ -1,39 +1,68 @@
 <!-- Nested node template -->
-<script type="text/ng-template" id="nodes_renderer.html">
-  <div ui-tree-handle class="tree-node tree-node-content">
-    <a class="pull-left btn btn-danger btn-xs" data-nodrag ng-click="remove(this)"><span
-        class="glyphicon glyphicon-plus"></span></a>
-    <a class="btn btn-success btn-xs" ng-if="node.functions && node.functions.length > 0" data-nodrag ng-click="toggle(this)"><span
-        class="glyphicon"
-        ng-class="{
-          'glyphicon-chevron-right': collapsed,
-          'glyphicon-chevron-down': !collapsed
-        }"></span></a>
-    {{node.title}}
-    <!--
-    <a class="pull-right btn btn-danger btn-xs" data-nodrag ng-click="remove(this)"><span
-        class="glyphicon glyphicon-remove"></span></a>
-    <a class="pull-right btn btn-primary btn-xs" data-nodrag ng-click="newSubItem(this)" style="margin-right: 8px;"><span
-        class="glyphicon glyphicon-plus"></span></a> -->
-  </div>
-  <ol ui-tree-nodes="" ng-model="node.functions" ng-class="{hidden: collapsed}">
-    <li ng-repeat="node in node.functions" ui-tree-node ng-include="'nodes_renderer.html'">
-    </li>
-  </ol>
-</script>
-
 <div class="row">
-  <div class="col-sm-12">
-    <h3>Categories</h3>
-  </div>
-</div>
-
-<div class="row">
-  <div class="col-sm-6">
-    <div ui-tree id="tree-root">
-      <ol ui-tree-nodes ng-model="functions">
-        <li ng-repeat="node in functions" ui-tree-node ng-include="'nodes_renderer.html'" data-max-depth="3" data-nodrag></li>
+  <div class="category">
+    <div class="col-lg-6" ui-tree="options">
+      <h3>Categories</h3>
+      <ol ui-tree-nodes ng-model="functions" data-type="group">
+        <li ng-repeat="func in functions" ui-tree-node>
+          <div class="group-title angular-ui-tree-handle" ng-show="!func.editing">
+            <a href="" class="btn btn-danger btn-xs pull-right" data-nodrag ng-click="removeFunction(func)"><i class="glyphicon glyphicon-remove"></i></a>
+            <a href="" class="btn btn-primary btn-xs pull-right" data-nodrag ng-click="editFunction(func)"><i class="glyphicon glyphicon-pencil"></i></a>
+            <div>&nbsp;{{func.title}}</div>
+          </div>
+          <div class="group-title angular-ui-tree-handle" data-nodrag ng-show="func.editing">
+            <form class="form-inline" role="form">
+              <div class="form-group">
+                <label class="sr-only" for="functionName">Function name</label>
+                <input type="text" class="form-control" placeholder="Function name" ng-model="func.title">
+              </div>
+              <button type="submit" class="btn btn-default" ng-click="saveFunction(func)">Save</button>
+              <button type="submit" class="btn btn-default" ng-click="cancelEditingFunction(func)">Cancel</button>
+            </form>
+          </div>
+          <ol ui-tree-nodes ng-model="func.categories" data-type="category">
+            <li ng-repeat="category in func.categories" ui-tree-node>
+              <div class="category-title angular-ui-tree-handle">
+                <a href="" class="btn btn-danger btn-xs pull-right" data-nodrag ng-click="removeCategory(func, category)"><i class="glyphicon glyphicon-remove"></i></a>
+                <div>
+                  &nbsp;{{category.name}}
+                </div>
+              </div>
+            </li>
+          </ol>
+          <ol class="angular-ui-tree-nodes" data-nodrag>
+            <li class="angular-ui-tree-node">
+              <div class="category-title angular-ui-tree-handle">
+                <form class="form-inline" role="form">
+                  <div class="form-group">
+                    <label class="sr-only" for="categoryName">Category name</label>
+                    <input type="text" class="form-control" ng-model="func.newCategoryName" placeholder="Category name">
+                  </div>
+                  <button type="submit" class="btn btn-default" ng-click="addCategory(func)">Add Category</button>
+                </form>
+              </div>
+            </li>
+          </ol>
+        </li>
       </ol>
+      <ol class="angular-ui-tree-nodes">
+        <li class="angular-ui-tree-node">
+          <div class="group-title angular-ui-tree-handle">
+            <form class="form-inline" role="form">
+              <div class="form-group">
+                <label class="sr-only" for="functionName">Function name</label>
+                <input type="text" class="form-control" id="funcTitle" placeholder="Function title">
+              </div>
+              <button type="submit" class="btn btn-default" ng-click="addFunction()">Add Function</button>
+            </form>
+          </div>
+        </li>
+      </ol>
+    </div>
+    <div class="col-lg-6">
+      <h3>Measures</h3>
+      <div class="info ng-binding">
+      </div>
     </div>
   </div>
 </div>
