@@ -2,24 +2,26 @@
 
 <div class="header">
 <div class="container">
-    <h2 page-title>
-        <i class="fa fa-fw fa-university"></i>
-        <a href="#/orgs">Organisations</a> &raquo;
-        <span ng-if="org.name">{{org.name}}</span>
-        <span ng-if="!org.name">New organisation</span>
-        <button class="btn btn-default btn-round" title="Edit"
-                ng-click="edit.edit()"
-                ng-if="!edit.model && checkRole('org_modify')">
-            <i class="fa fa-pencil"></i></button>
+    <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Cancel"
+                ng-click="edit.cancel()"
+                ng-if="edit.model && edit.model.id">
+            <i class="fa fa-times"></i></button>
         <button class="btn btn-default btn-round" title="Save"
                 ng-click="edit.save()"
                 ng-if="edit.model"
                 form="editor">
             <i class="fa fa-check"></i></button>
-        <button class="btn btn-default btn-round" title="Cancel"
-                ng-click="edit.cancel()"
-                ng-if="edit.model && edit.model.id">
-            <i class="fa fa-times"></i></button>
+        <button class="btn btn-default btn-round" title="Edit"
+                ng-click="edit.edit()"
+                ng-if="!edit.model && checkRole('org_modify')">
+            <i class="fa fa-pencil"></i></button>
+    </div>
+    <h2 page-title>
+        <i class="fa fa-fw fa-university"></i>
+        <a href="#/orgs">Organisations</a> &raquo;
+        <span ng-if="org.name">{{org.name}}</span>
+        <span ng-if="!org.name">New organisation</span>
     </h2>
 </div>
 </div>

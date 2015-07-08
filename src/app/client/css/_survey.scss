@@ -33,9 +33,11 @@ $anim-time: 0.5s;
         font-size: 16px;
     }
 
-    .btn-group {
-        position: absolute;
-        right: 10px;
+    .toolbar {
+        float: right;
+        position: relative;
+        z-index: 1;
+        margin-top: 4px;
     }
 
     a {

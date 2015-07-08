@@ -2,32 +2,34 @@
 
 <div class="header">
 <div class="container">
-    <h2 page-title>
-        <i class="fa fa-fw fa-user"></i>
-        <a href="#/users">Users</a> &raquo;
-        <span ng-if="user.name">{{user.name}}</span>
-        <span ng-if="!user.name">New user</span>
-        <button class="btn btn-default btn-round" title="Edit"
-                ng-click="edit.edit()"
-                ng-if="!edit.model && checkRole('user_edit')">
-            <i class="fa fa-pencil"></i></button>
+    <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Impersonate"
+                ng-click="impersonate()"
+                ng-if="checkRole('user_impersonate')">
+            <i class="fa fa-paw"></i></button>
+        <button class="btn btn-default btn-round" title="Enable or disable"
+                ng-click="toggleEnabled()"
+                ng-if="!edit.model && checkRole('user_enable')">
+            <i class="fa fa-times"></i></button>
+        <button class="btn btn-default btn-round" title="Cancel"
+                ng-click="edit.cancel()"
+                ng-if="edit.model && edit.model.id">
+            <i class="fa fa-times"></i></button>
         <button class="btn btn-default btn-round" title="Save"
                 ng-click="edit.save()"
                 ng-if="edit.model"
                 form="editor">
             <i class="fa fa-check"></i></button>
-        <button class="btn btn-default btn-round" title="Cancel"
-                ng-click="edit.cancel()"
-                ng-if="edit.model && edit.model.id">
-            <i class="fa fa-times"></i></button>
-        <button class="btn btn-default btn-round" title="Enable or disable"
-                ng-click="toggleEnabled()"
-                ng-if="!edit.model && checkRole('user_enable')">
-            <i class="fa fa-times"></i></button>
-        <button class="btn btn-default btn-round" title="Impersonate"
-                ng-click="impersonate()"
-                ng-if="checkRole('user_impersonate')">
-            <i class="fa fa-paw"></i></button>
+        <button class="btn btn-default btn-round" title="Edit"
+                ng-click="edit.edit()"
+                ng-if="!edit.model && checkRole('user_edit')">
+            <i class="fa fa-pencil"></i></button>
+    </div>
+    <h2 page-title>
+        <i class="fa fa-fw fa-user"></i>
+        <a href="#/users">Users</a> &raquo;
+        <span ng-if="user.name">{{user.name}}</span>
+        <span ng-if="!user.name">New user</span>
     </h2>
 </div>
 </div>

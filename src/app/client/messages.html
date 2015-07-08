@@ -9,7 +9,7 @@
                 <i class="fa fa-fw fa-info-circle" ng-if="message.type == 'info'"></i>
                 <i class="fa fa-fw fa-check" ng-if="message.type == 'success'"></i>
                 {{message.body}}
-                <button class="btn btn-default btn-round"
+                <button class="btn btn-default btn-round pull-right"
                         ng-click="notifications.remove(message)">
                     <i class="fa fa-times"></i></button>
             </div>
