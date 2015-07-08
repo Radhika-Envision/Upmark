@@ -18,7 +18,7 @@ log = logging.getLogger('app.data_access')
 
 class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
 
-    # @handlers.authz('author')
+    @tornado.web.authenticated
     def get(self, subprocess_id):
         '''
         Get a single subprocess.
@@ -48,7 +48,7 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(json_encode(son))
         self.finish()
 
-    # @handlers.authz('author')
+    @tornado.web.authenticated
     def query(self, process_id):
         '''
         Get a list of subprocesss.
@@ -80,7 +80,7 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
-    # @handlers.authz('author')
+    @handlers.authz('author')
     def post(self, subprocess_id):
         '''
         Create a new subprocess.
@@ -106,7 +106,7 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.finish(str(subprocess.id))
 
-    # @handlers.authz('author')
+    @handlers.authz('author')
     def put(self, subprocess_id):
         '''
         Update an existing subprocess.

@@ -18,10 +18,7 @@ log = logging.getLogger('app.data_access')
 
 class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
 
-    # test using curl
-    # curl http://192.168.59.103:8000/process.json or
-    # http://192.168.59.103:8000/process/67f5e799-b32e-492f-86dc-3dc29cb127fe.json
-    # @handlers.authz('author')
+    @tornado.web.authenticated
     def get(self, process_id):
         '''
         Get a single process.
@@ -51,7 +48,7 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(json_encode(son))
         self.finish()
 
-    # @handlers.authz('author')
+    @tornado.web.authenticated
     def query(self, function_id):
         '''
         Get a list of processs.
@@ -83,7 +80,7 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
-    # @handlers.authz('author')
+    @handlers.authz('author')
     def post(self, process_id):
         '''
         Create a new process.
@@ -109,7 +106,7 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.finish(str(process.id))
 
-    # @handlers.authz('author')
+    @handlers.authz('author')
     def put(self, process_id):
         '''
         Update an existing process.

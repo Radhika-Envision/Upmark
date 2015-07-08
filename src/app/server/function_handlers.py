@@ -18,7 +18,7 @@ log = logging.getLogger('app.data_access')
 
 class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
 
-    # @tornado.web.authenticated
+    @tornado.web.authenticated
     def get(self, function_id):
         '''
         Get a single function.
@@ -44,7 +44,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(json_encode(son))
         self.finish()
 
-    # @tornado.web.authenticated
+    @tornado.web.authenticated
     def query(self):
         '''
         Get a list of functions.
@@ -76,7 +76,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
-    # @handlers.authz('author')
+    @handlers.authz('author')
     def post(self, function_id):
         '''
         Create a new function.
@@ -98,7 +98,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.get(function.id)
 
-    # @handlers.authz('author')
+    @handlers.authz('author')
     def put(self, function_id):
         '''
         Update an existing function.

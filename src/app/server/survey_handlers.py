@@ -19,7 +19,7 @@ log = logging.getLogger('app.data_access')
 
 class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
 
-    # @handlers.authz('author')
+    @tornado.web.authenticated
     def get(self, survey_id):
         '''
         Get a single survey.
@@ -48,7 +48,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(json_encode(son))
         self.finish()
 
-    # @handlers.authz('author')
+    @tornado.web.authenticated
     def query(self):
         '''
         Get a list of surveys.
@@ -75,8 +75,8 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
         self.finish()
-    
-    # @handlers.authz('author')
+
+    @handlers.authz('author')
     def post(self, survey_id):
         '''
         Create a new survey.
@@ -96,7 +96,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.get(survey.id)
 
-    # @handlers.authz('author')
+    @handlers.authz('author')
     def put(self, survey_id):
         '''
         Update an existing survey.
