@@ -109,7 +109,7 @@ class Survey(Versioned, Base):
 class Function(Versioned, Base):
     __tablename__ = 'function'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    seq = Column(Integer, nullable=False)
+    seq = Column(Integer)
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
     survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
@@ -124,7 +124,7 @@ class Process(Versioned, Base):
     __tablename__ = 'process'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     function_id = Column(GUID, ForeignKey('function.id'))
-    seq = Column(Integer, nullable=False)
+    seq = Column(Integer)
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
     survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
@@ -134,7 +134,7 @@ class Subprocess(Versioned, Base):
     __tablename__ = 'subprocess'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     process_id = Column(GUID, ForeignKey('process.id'))
-    seq = Column(Integer, nullable=False)
+    seq = Column(Integer)
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
     survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
@@ -144,7 +144,7 @@ class Measure(Versioned, Base):
     __tablename__ = 'measure'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     subprocess_id = Column(GUID, ForeignKey('subprocess.id'), nullable=True)
-    seq = Column(Integer, nullable=False)
+    seq = Column(Integer)
     title = Column(Text, nullable=False)
     weight = Column(Float, nullable=False)
     intent = Column(Text, nullable=False)
