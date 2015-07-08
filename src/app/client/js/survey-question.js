@@ -8,9 +8,8 @@ angular.module('wsaa.surveyQuestions', [
     return $resource('/survey/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         save: { method: 'PUT' },
-        query: { method: 'GET', url: '/survey.json', isArray: true,
-            cache: false },
-        create: { method: 'POST', url: '/survey.json' }
+        query: { method: 'GET', isArray: true, cache: false },
+        create: { method: 'POST' }
     });
 }])
 
@@ -20,9 +19,8 @@ angular.module('wsaa.surveyQuestions', [
     return $resource('/function/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         save: { method: 'PUT' },
-        query: { method: 'GET', url: '/function.json', isArray: true,
-            cache: false },
-        create: { method: 'POST', url: '/function.json' }
+        query: { method: 'GET', isArray: true, cache: false },
+        create: { method: 'POST' }
     });
 }])
 
@@ -31,9 +29,8 @@ angular.module('wsaa.surveyQuestions', [
     return $resource('/process/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         save: { method: 'PUT' },
-        query: { method: 'GET', url: '/process.json', isArray: true,
-            cache: false },
-        create: { method: 'POST', url: '/process.json' }
+        query: { method: 'GET', isArray: true, cache: false },
+        create: { method: 'POST' }
     });
 }])
 
@@ -42,9 +39,8 @@ angular.module('wsaa.surveyQuestions', [
     return $resource('/subprocess/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         save: { method: 'PUT' },
-        query: { method: 'GET', url: '/subprocess.json', isArray: true,
-            cache: false },
-        create: { method: 'POST', url: '/subprocess.json' }
+        query: { method: 'GET', isArray: true, cache: false },
+        create: { method: 'POST' }
     });
 }])
 
@@ -53,9 +49,8 @@ angular.module('wsaa.surveyQuestions', [
     return $resource('/measure/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         save: { method: 'PUT' },
-        query: { method: 'GET', url: '/measure.json', isArray: true,
-            cache: false },
-        create: { method: 'POST', url: '/measure.json' }
+        query: { method: 'GET', isArray: true, cache: false },
+        create: { method: 'POST' }
     });
 }])
 
@@ -77,7 +72,7 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.edit = Editor('survey', $scope);
     if (routeData.survey) {
-        // Editing old
+        // Viewing old
         $scope.survey = routeData.survey;
         $scope.funcs = routeData.funcs;
     } else {

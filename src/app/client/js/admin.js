@@ -7,9 +7,8 @@ angular.module('wsaa.admin', [
     return $resource('/user/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         save: { method: 'PUT', cache: false },
-        query: { method: 'GET', url: '/user.json', isArray: true,
-            cache: false },
-        create: { method: 'POST', url: '/user.json', cache: false },
+        query: { method: 'GET', isArray: true, cache: false },
+        create: { method: 'POST', cache: false },
         impersonate: { method: 'PUT', url: '/login/:id', cache: false }
     });
 }])
@@ -72,9 +71,8 @@ angular.module('wsaa.admin', [
     return $resource('/organisation/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         save: { method: 'PUT', cache: false },
-        query: { method: 'GET', url: '/organisation.json', isArray: true,
-            cache: false },
-        create: { method: 'POST', url: '/organisation.json', cache: false }
+        query: { method: 'GET', isArray: true, cache: false },
+        create: { method: 'POST', cache: false }
     });
 }])
 
