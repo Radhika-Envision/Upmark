@@ -168,16 +168,14 @@ angular.module('wsaa.surveyQuestions', [
                  $location, Notifications, current, Survey) {
 
     $scope.edit = Editor('func', $scope);
-    if (routeData.survey) {
+    if (routeData.func) {
         // Editing old
-        $scope.survey = routeData.survey;
         $scope.func = routeData.func;
         $scope.procs = routeData.procs;
     } else {
         // Creating new
-        $scope.survey = routeData.survey;
         $scope.func = new Func({
-            survey: Survey.get({id: $location.search().survey})
+            survey: routeData.survey
         });
         $scope.procs = null;
         $scope.edit.edit();

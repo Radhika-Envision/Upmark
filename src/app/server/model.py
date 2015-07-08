@@ -9,6 +9,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID
 import sqlalchemy.exc
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.schema import Index, MetaData
 from passlib.hash import sha256_crypt
@@ -112,6 +113,11 @@ class Function(Versioned, Base):
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
     survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
+
+
+Survey.functions = relationship(
+        'Function', order_by='Function.seq',
+        collection_class=ordering_list('seq'))
 
 
 class Process(Versioned, Base):

@@ -5,6 +5,7 @@ import uuid
 from tornado.escape import json_decode, json_encode
 import tornado.web
 import sqlalchemy
+from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 import handlers
@@ -27,7 +28,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             self.query()
             return
 
-        survey_id = self.check_survey_id()
+        survey_id = self.get_survey_id()
         is_current = False
         if survey_id == str(get_current_survey()):
             is_current = True
@@ -73,7 +74,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         Get a list of functions.
         '''
 
-        survey_id = self.check_survey_id()
+        survey_id = self.get_survey_id()
 
         sons = []
         with model.session_scope() as session:
@@ -110,7 +111,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         if function_id != '':
             raise handlers.MethodError("Can't use POST for existing function.")
 
-        survey_id = self.check_survey_id()
+        survey_id = self.get_survey_id()
         if survey_id != str(get_current_survey()):
             raise handlers.MethodError("This surveyId is not current one.")
 
@@ -118,10 +119,12 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
 
         try:
             with model.session_scope() as session:
+                survey = session.query(model.Survey).get(survey_id)
                 function = model.Function()
                 self._update(function, son)
                 function.survey_id = survey_id
                 session.add(function)
+                survey.functions.append(function)
                 session.flush()
                 session.expunge(function)
         except sqlalchemy.exc.IntegrityError as e:
@@ -137,7 +140,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.MethodError(
                 "Can't use PUT for new function (no ID).")
 
-        survey_id = self.check_survey_id()
+        survey_id = self.get_survey_id()
         if survey_id != str(get_current_survey()):
             raise handlers.MethodError("This surveyId is not current one.")
 
@@ -156,16 +159,19 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.get(function_id)
 
-    def check_survey_id(self):
-        son = json_decode(self.request.body)
-        survey = son.get('survey', '')
-        if survey == '':
-            raise handlers.MethodError("Can't GET function without survey id.")
-        else:
-            survey_id = survey.get('id', '')
-            if survey_id == '':
-                raise handlers.MethodError("Can't GET function without survey id.")
-            return survey_id
+    def get_survey_id(self):
+        survey_id = self.get_argument("surveyId", "")
+        if survey_id == '':
+            try:
+                son = json_decode(self.request.body)
+                survey = son.get('survey')
+                if survey is not None:
+                    survey_id = survey.get('id', '')
+            except ValueError:
+                pass
+
+        if survey_id == '':
+            raise handlers.MethodError("Can't get function without survey id.")
 
         return survey_id
 
@@ -175,7 +181,5 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         if son.get('title', '') != '':
             function.title = son['title']
-        if son.get('seq', '') != '':
-            function.seq = son['seq']
         if son.get('description', '') != '':
             function.description = son['description']

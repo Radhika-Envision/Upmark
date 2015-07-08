@@ -238,7 +238,7 @@ angular.module('vpac.widgets', [])
         link: function(scope, elem, attrs) {
             elem.on('click.anyHref', function() {
                 scope.$apply(function() {
-                    $location.path(attrs.anyHref);
+                    $location.url(attrs.anyHref);
                 });
             });
             scope.$on('$destroy', function() {

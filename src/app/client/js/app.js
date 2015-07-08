@@ -164,12 +164,14 @@ angular.module('wsaa.aquamark',
                 controller : 'SurveyCtrl',
                 resolve: {routeData: chain({
                     survey: ['Survey', '$route', function(Survey, $route) {
-                        return Survey.get({id: $route.current.params.survey})
-                            .$promise;
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
                     }],
                     funcs: ['Func', 'survey', function(Func, survey) {
-                        return Func.query({branch: survey.branch})
-                            .$promise;
+                        return Func.query({
+                            surveyId: survey.id
+                        }).$promise;
                     }]
                 })}
             })
@@ -177,24 +179,35 @@ angular.module('wsaa.aquamark',
             .when('/function/new', {
                 templateUrl : 'function.html',
                 controller : 'FuncCtrl',
-                resolve: {routeData: chain({})}
+                resolve: {routeData: chain({
+                    survey: ['Survey', '$route', function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
+                    }],
+                })}
             })
             .when('/function/:func', {
-                templateUrl : 'survey.html',
+                templateUrl : 'function.html',
                 controller : 'FuncCtrl',
                 resolve: {routeData: chain({
                     func: ['Func', '$route', function(Func, $route) {
-                        return Func.get({id: $route.current.params.survey})
-                            .$promise;
-                    }],
-                    survey: ['Survey', 'func', function(Survey, func) {
-                        return Survey.get({id: func.branch}).$promise;
+                        console.log('Getting function')
+                        return Func.get({
+                            id: $route.current.params.func,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
                     }],
                     procs: ['Process', 'func', function(Process, func) {
-                        return Process.query({branch: func.branch}).$promise;
+                        console.log('Getting processes')
+                        return Process.query({
+                            functionId: func.id,
+                            surveyId: func.survey.id
+                        }).$promise;
                     }]
                 })}
             })
+
             .when('/survey/:survey/:fn/:proc/:subProc/:measure', {
                 templateUrl : 'survey-measure.html',
                 controller : 'MeasureCtrl',

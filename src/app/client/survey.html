@@ -42,17 +42,19 @@
 
 <div class="measure" ng-if="!edit.model">
 <div class="container">
-    <h2>
-        Functions
+    <div class="toolbar">
         <a class="btn btn-default btn-round" title="Add new"
                 ng-href="#/function/new?survey={{survey.id}}"
                 ng-if="checkRole('func_add')">
             <i class="fa fa-fw fa-plus"></i></a>
+    </div>
+    <h2>
+        Functions
     </h2>
     <table class="table table-hover">
         <tbody>
             <tr ng-repeat="func in funcs"
-                    any-href="/func/{{func.id}}?survey={{survey.id}}">
+                    any-href="/function/{{func.id}}?survey={{survey.id}}">
                 <td>{{func.seq + 1}}</td>
                 <td>{{func.title}}</td>
             </tr>
