@@ -125,6 +125,11 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         if function_id == '':
             raise handlers.MethodError(
                 "Can't use PUT for new function (no ID).")
+
+        survey_id = self.check_survey_id()
+        if survey_id != str(get_current_survey()):
+            raise handlers.MethodError("This surveyId is not current one.")
+
         son = json_decode(self.request.body)
 
         try:
