@@ -2,10 +2,9 @@
 
 <div class="header">
 <div class="container">
+    <question-header entity="func"></question-header>
     <h2>
-        <a ng-href="#/survey/{{survey.id}}">{{survey.title}}</a> &raquo;
-        <span ng-show="func.title">{{func.title}}</span>
-        <span ng-show="!func.title">New function</span>
+        <i ng-show="!func.title">New function</i>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
                 ng-if="!edit.model && checkRole('func_edit')">

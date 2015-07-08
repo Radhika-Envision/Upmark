@@ -114,11 +114,63 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
+.directive('questionHeader', [function() {
+    return {
+        restrict: 'E',
+        scope: {
+            entity: '='
+        },
+        replace: true,
+        templateUrl: 'question_header.html',
+        controller: ['$scope', function($scope) {
+            $scope.$watchGroup([
+                    'entity.survey', 'entity.function',
+                    'entity.process', 'entity.subProcess'],
+                function(vars) {
+                    var type;
+                    if (vars[3]) {
+                        type = 'measure';
+                    } else if (vars[2]) {
+                        type = 'subProcess';
+                    } else if (vars[1]) {
+                        type = 'process';
+                    } else if (vars[0]) {
+                        type = 'func';
+                    } else {
+                        type = 'survey';
+                    }
+
+                    var hierarchy = {};
+                    var entity = $scope.entity;
+                    switch (type) {
+                    case 'measure':
+                        hierarchy.measure = entity;
+                        entity = entity.subProcess;
+                    case 'subProcess':
+                        hierarchy.subProcess = entity;
+                        entity = entity.process;
+                    case 'process':
+                        hierarchy.process = entity;
+                        entity = entity['function'];
+                    case 'func':
+                        hierarchy.func = entity;
+                        entity = entity.survey;
+                    case 'survey':
+                        hierarchy.survey = entity;
+                    }
+                    console.log(hierarchy)
+                    $scope.hierarchy = hierarchy;
+            });
+        }]
+    }
+}])
+
+
 .controller('FuncCtrl', [
         '$scope', 'Func', 'routeData', 'Editor', 'questionAuthz',
-        '$location', 'Notifications', 'Current',
+        '$location', 'Notifications', 'Current', 'Survey',
         function($scope, Func, routeData, Editor, authz,
-                 $location, Notifications, current) {
+                 $location, Notifications, current, Survey) {
 
     $scope.edit = Editor('func', $scope);
     if (routeData.survey) {
@@ -129,7 +181,9 @@ angular.module('wsaa.surveyQuestions', [
     } else {
         // Creating new
         $scope.survey = routeData.survey;
-        $scope.func = new Func({branch: $location.search().branch});
+        $scope.func = new Func({
+            survey: Survey.get({id: $location.search().survey})
+        });
         $scope.procs = null;
         $scope.edit.edit();
     }
