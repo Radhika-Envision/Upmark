@@ -27,7 +27,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             self.query()
             return
 
-        survey_id = self.checkSurveyId()
+        survey_id = self.check_survey_id()
 
         with model.session_scope() as session:
             try:
@@ -55,7 +55,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         Get a list of functions.
         '''
 
-        survey_id = self.checkSurveyId()
+        survey_id = self.check_survey_id()
 
         sons = []
         with model.session_scope() as session:
@@ -92,7 +92,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         if function_id != '':
             raise handlers.MethodError("Can't use POST for existing function.")
 
-        survey_id = self.checkSurveyId()
+        survey_id = self.check_survey_id()
         if survey_id != str(get_current_survey()):
             raise handlers.MethodError("This surveyId is not current one.")
 
@@ -133,7 +133,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.get(function_id)
 
-    def checkSurveyId(self):
+    def check_survey_id(self):
         survey_id = self.get_argument('surveyId', None)
         if survey_id == None:
             raise handlers.MethodError("Can't GET function without survey id.")
@@ -149,5 +149,3 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             function.seq = son['seq']
         if son.get('description', '') != '':
             function.description = son['description']
-        if son.get('branch', '') != '':
-            function.branch = son['branch']

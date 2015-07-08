@@ -11,7 +11,7 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, simplify, normalise
+from utils import to_dict, simplify, normalise, get_current_survey
 
 log = logging.getLogger('app.data_access')
 
@@ -23,19 +23,26 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         Get a single process.
         '''
-        log.info(process_id)
         if process_id == "":
-            function_id = self.get_argument('function_id', None)
+            function_id = self.get_argument('functionId', None)
+            survey_id = self.check_survey_id()
+
             if function_id == None:
-                raise handlers.MethodError("Can't GET process without function_id.")
+                raise handlers.MethodError("Can't GET process without function id.")
 
             self.query(function_id)
             return
 
-
+        survey_id = self.check_survey_id()
+        
         with model.session_scope() as session:
             try:
-                process = session.query().get(process_id)
+                if survey_id == str(get_current_survey()):
+                    process = session.query(model.Process).filter_by(id = process_id, survey_id = survey_id).one()
+                else:
+                    ProcessHistory = model.Process.__history_mapper__.class_
+                    process = session.query(ProcessHistory).filter_by(id = process_id, survey_id = survey_id).one()
+
                 if process is None:
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError, ValueError):
@@ -53,21 +60,21 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         Get a list of processs.
         '''
+        survey_id = self.check_survey_id()
 
         sons = []
         with model.session_scope() as session:
-            query = session.query(model.Process).filter(model.Process.function_id == function_id)
-
-            # org_id = self.get_argument("org_id", None)
-            # if org_id is not None:
-            #     query = query.filter_by(organisation_id=org_id)
+            if survey_id == str(get_current_survey()):
+                query = session.query(model.Process).filter_by(function_id = function_id, survey_id = survey_id).order_by(model.Process.seq)
+            else:
+                ProcessHistory = model.Process.__history_mapper__.class_
+                query = session.query(ProcessHistory).filter_by(function_id = function_id, survey_id = survey_id).order_by(ProcessHistory.seq)
 
             term = self.get_argument('term', None)
             if term is not None:
                 query = query.filter(
                     model.Process.title.ilike(r'%{}%'.format(term)))
 
-            query = query.order_by(model.Process.title)
             query = self.paginate(query)
 
             for ob in query.all():
@@ -88,9 +95,11 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
         if process_id != '':
             raise handlers.MethodError("Can't use POST for existing process.")
 
-        function_id = self.get_argument('function_id', None)
+        survey_id = self.check_survey_id()
+
+        function_id = self.get_argument('functionId', None)
         if function_id == None:
-            raise handlers.MethodError("Can't use POST process without function_id.")
+            raise handlers.MethodError("Can't use POST process without function id.")
 
         son = json_decode(self.request.body)
 
@@ -99,6 +108,7 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
                 process = model.Process()
                 self._update(process, son)
                 process.function_id = function_id
+                process.survey_id = survey_id
                 session.add(process)
                 session.flush()
                 session.expunge(process)
@@ -129,6 +139,12 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.get(process_id)
 
+    def check_survey_id(self):
+        survey_id = self.get_argument('surveyId', None)
+        if survey_id == None:
+            raise handlers.MethodError("Can't GET function without survey id.")
+        return survey_id
+
     def _update(self, process, son):
         '''
         Apply process-provided data to the saved model.
@@ -139,7 +155,5 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
             process.seq = son['seq']
         if son.get('description', '') != '':
             process.description = son['description']
-        if son.get('branch', '') != '':
-            process.branch = son['branch']
         if son.get('function_id', '') != '':
             process.function_id = son['function_id']
