@@ -28,21 +28,32 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             return
 
         survey_id = self.check_survey_id()
+        is_current = False
+        if survey_id == str(get_current_survey()):
+            is_current = True
 
         with model.session_scope() as session:
             try:
-                if survey_id == str(get_current_survey()):
-                    function = session.query(model.Function).filter_by(survey_id = survey_id, id = function_id).one()
+                if is_current:
+                    baseModel = model.Function
                 else:
-                    FunctionHistory = model.Function.__history_mapper__.class_
-                    function = session.query(FunctionHistory).filter_by(id = function_id, survey_id = survey_id).one()
+                    baseModel = model.Function.__history_mapper__.class_
+                
+                function = session.query(baseModel).filter_by(survey_id = survey_id, id = function_id).one()
 
                 if function is None:
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError, ValueError):
                 raise handlers.MissingDocError("No such function")
 
-            survey = session.query(model.Survey).get(survey_id)
+            if is_current:
+                surveyModel = model.Survey
+            else:
+                surveyModel = model.Survey.__history_mapper__.class_
+            
+            log.info("survey id", function.survey_id)
+            log.info("is_current", is_current)
+            survey = session.query(surveyModel).filter_by(id = function.survey_id).one()
             
             survey_json = to_dict(survey, include={'id', 'title'})
             survey_json = simplify(survey_json)
