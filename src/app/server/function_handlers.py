@@ -30,14 +30,17 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         survey_id = self.checkSurveyId()
 
         with model.session_scope() as session:
-            if survey_id == str(get_current_survey()):
-                function = session.query(model.Function).filter_by(survey_id = survey_id, id = function_id).one()
-            else:
-                FunctionHistory = model.Function.__history_mapper__.class_
-                function = session.query(FunctionHistory).filter_by(id = function_id, survey_id = survey_id).one()
+            try:
+                if survey_id == str(get_current_survey()):
+                    function = session.query(model.Function).filter_by(survey_id = survey_id, id = function_id).one()
+                else:
+                    FunctionHistory = model.Function.__history_mapper__.class_
+                    function = session.query(FunctionHistory).filter_by(id = function_id, survey_id = survey_id).one()
 
-            if function is None:
-                raise ValueError("No such object")
+                if function is None:
+                    raise ValueError("No such object")
+            except (sqlalchemy.exc.StatementError, ValueError):
+                raise handlers.MissingDocError("No such function")
 
             son = to_dict(function, include={'id', 'title', 'seq', 'description'})
             son = simplify(son)
