@@ -103,7 +103,6 @@ class Survey(Versioned, Base):
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     created = Column(DateTime, default=func.now(), nullable=False)
     title = Column(Text, nullable=False)
-    branch = Column(Text, default=uuid.uuid4)
 
 
 class Function(Versioned, Base):
@@ -112,7 +111,7 @@ class Function(Versioned, Base):
     seq = Column(Integer, nullable=False)
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
-    branch = Column(Text, nullable=False)
+    survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
 
 
 class Process(Versioned, Base):
@@ -122,7 +121,7 @@ class Process(Versioned, Base):
     seq = Column(Integer, nullable=False)
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
-    branch = Column(Text, nullable=False)
+    survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
 
 
 class Subprocess(Versioned, Base):
@@ -132,7 +131,7 @@ class Subprocess(Versioned, Base):
     seq = Column(Integer, nullable=False)
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
-    branch = Column(Text, nullable=False)
+    survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
 
 
 class Measure(Versioned, Base):
@@ -147,16 +146,15 @@ class Measure(Versioned, Base):
     scenario = Column(Text, nullable=False)
     questions = Column(Text, nullable=False)
     response_type = Column(Text, nullable=False)
-    branch = Column(Text, nullable=False)
+    survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
     #response = relationship("Response", uselist=False, backref="measure")
 
 
 class MeasureSet(Base):
     __tablename__ = 'measureset'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    survey_id = Column(GUID, ForeignKey('survey.id'))
+    survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
     title = Column(Text, nullable=False)
-    branch = Column(Text, nullable=False)
     measures = relationship(
         Measure,
         secondary='measureset_measure_link'
@@ -166,9 +164,9 @@ class MeasureSet(Base):
 class MeasureSetMeasureLink(Base):
     __tablename__ = 'measureset_measure_link'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    measureset_id = Column(GUID, ForeignKey('measureset.id'))
-    measure_id = Column(GUID, ForeignKey('measure.id'))
-    branch = Column(Text, nullable=False)
+    measureset_id = Column(GUID, ForeignKey('measureset.id'), nullable=False)
+    measure_id = Column(GUID, ForeignKey('measure.id'), nullable=False)
+    survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
 
 
 class Response(Versioned, Base):
@@ -176,9 +174,9 @@ class Response(Versioned, Base):
     # Here we define columns for the table response
     # Notice that each column is also a normal Python instance attribute.
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    user_id = Column(GUID, ForeignKey('appuser.id'))
-    assessment_id = Column(GUID, ForeignKey('assessment.id'))
-    measure_id = Column(GUID, ForeignKey('measure.id'))
+    user_id = Column(GUID, ForeignKey('appuser.id'), nullable=False)
+    assessment_id = Column(GUID, ForeignKey('assessment.id'), nullable=False)
+    measure_id = Column(GUID, ForeignKey('measure.id'), nullable=False)
     comment = Column(Text, nullable=False)
     not_relevant = Column(Boolean, nullable=False)
     response_parts = Column(Text, nullable=False)
@@ -189,13 +187,12 @@ class Response(Versioned, Base):
 class Assessment(Versioned, Base):
     __tablename__ = 'assessment'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    organisation_id = Column(GUID, ForeignKey('organisation.id'))
-    survey_id = Column(GUID, ForeignKey('survey.id'))
-    measureset_id = Column(GUID, ForeignKey('measureset.id'))
+    organisation_id = Column(GUID, ForeignKey('organisation.id'), nullable=False)
+    survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
+    measureset_id = Column(GUID, ForeignKey('measureset.id'), nullable=False)
     # TODO: Make this field an enum
     approval = Column(Text, nullable=False)
     created = Column(DateTime, default=func.now(), nullable=False)
-    branch = Column(GUID, default="HEAD", nullable=False)
 
 
 Session = None
