@@ -152,12 +152,7 @@ angular.module('wsaa.aquamark',
 
             .when('/surveys', {
                 templateUrl : 'survey_list.html',
-                controller : 'SurveyListCtrl',
-                resolve: {
-                    currentSurvey: ['Survey', function(Survey, $route) {
-                        return Survey.get({id: 'current'}).$promise;
-                    }]
-                }
+                controller : 'SurveyListCtrl'
             })
             .when('/survey/new', {
                 templateUrl : 'survey.html',

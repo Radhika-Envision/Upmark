@@ -96,11 +96,10 @@ angular.module('wsaa.surveyQuestions', [
 
 
 .controller('SurveyListCtrl', ['$scope', 'questionAuthz', 'Survey', 'Current',
-            'currentSurvey',
-        function($scope, authz, Survey, current, currentSurvey) {
+        function($scope, authz, Survey, current) {
 
     $scope.checkRole = authz(current, null);
-    $scope.currentSurvey = currentSurvey;
+    $scope.currentSurvey = Survey.get({id: 'current'});
 
     $scope.search = {
         term: "",

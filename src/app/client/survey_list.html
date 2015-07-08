@@ -9,12 +9,21 @@
     </div>
 </div>
 
-<div class="container">
-
+<div class="container" ng-if="!currentSurvey.id">
     <p>
-    The current survey is
-    <a ng-href="#/survey/{{currentSurvey.id}}">{{currentSurvey.title}}</a>.
-    You can search for other surveys below.
+        No survey has been created yet.
+        <span ng-if="checkRole('survey_add')">
+            Add one using the <i class="fa fa-fw fa-plus"></i> button above.
+        </span>
+    </p>
+</div>
+
+
+<div class="container" ng-if="currentSurvey.id">
+    <p>
+        The current survey is
+        <a ng-href="#/survey/{{currentSurvey.id}}">{{currentSurvey.title}}</a>.
+        You can search for other surveys below.
     </p>
 
     <search-box model="search" result="surveys"></search-box>
@@ -32,4 +41,5 @@
       </tr>
     </tbody>
   </table>
+
 </div>
