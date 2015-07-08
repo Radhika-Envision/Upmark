@@ -42,9 +42,16 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             except (sqlalchemy.exc.StatementError, ValueError):
                 raise handlers.MissingDocError("No such function")
 
+            survey = session.query(model.Survey).get(survey_id)
+            
+            survey_json = to_dict(survey, include={'id', 'title'})
+            survey_json = simplify(survey_json)
+            survey_json = normalise(survey_json)
+
             son = to_dict(function, include={'id', 'title', 'seq', 'description'})
             son = simplify(son)
             son = normalise(son)
+            son['survey'] = survey_json
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
@@ -134,9 +141,16 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         self.get(function_id)
 
     def check_survey_id(self):
-        survey_id = self.get_argument('surveyId', None)
-        if survey_id == None:
+        son = json_decode(self.request.body)
+        survey = son.get('survey', '')
+        if survey == '':
             raise handlers.MethodError("Can't GET function without survey id.")
+        else:
+            survey_id = survey.get('id', '')
+            if survey_id == '':
+                raise handlers.MethodError("Can't GET function without survey id.")
+            return survey_id
+
         return survey_id
 
     def _update(self, function, son):
