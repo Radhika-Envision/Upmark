@@ -11,7 +11,7 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, simplify, normalise
+from utils import to_dict, simplify, normalise, get_current_survey
 
 log = logging.getLogger('app.data_access')
 
@@ -23,19 +23,24 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         Get a single subprocess.
         '''
-        log.info(subprocess_id)
         if subprocess_id == "":
-            process_id = self.get_argument('process_id', None)
+            process_id = self.get_argument('processId', None)
             if process_id == None:
-                raise handlers.MethodError("Can't GET subprocess without process_id.")
+                raise handlers.MethodError("Can't GET subprocess without process id.")
 
             self.query(process_id)
             return
 
+        survey_id = self.check_survey_id()
 
         with model.session_scope() as session:
             try:
-                subprocess = session.query(model.Subprocess).get(subprocess_id)
+                if survey_id == str(get_current_survey()):
+                    subprocess = session.query(model.Subprocess).filter_by(id = subprocess_id, survey_id = survey_id).one()
+                else:
+                    SubprocessHistory = model.Subprocess.__history_mapper__.class_
+                    subprocess = session.query(SubprocessHistory).filter_by(id = subprocess_id, survey_id = survey_id).one()
+
                 if subprocess is None:
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError, ValueError):
@@ -53,21 +58,21 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         Get a list of subprocesss.
         '''
+        survey_id = self.check_survey_id()
 
         sons = []
         with model.session_scope() as session:
-            query = session.query(model.Subprocess).filter(model.Subprocess.process_id == process_id)
-
-            # org_id = self.get_argument("org_id", None)
-            # if org_id is not None:
-            #     query = query.filter_by(organisation_id=org_id)
+            if survey_id == str(get_current_survey()):
+                query = session.query(model.Subprocess).filter_by(function_id = function_id, survey_id = survey_id).order_by(model.Process.seq)
+            else:
+                SubprocessHistory = model.Subprocess.__history_mapper__.class_
+                query = session.query(SubprocessHistory).filter_by(function_id = function_id, survey_id = survey_id).order_by(SubprocessHistory.seq)
 
             term = self.get_argument('term', None)
             if term is not None:
                 query = query.filter(
                     model.Subprocess.title.ilike(r'%{}%'.format(term)))
 
-            query = query.order_by(model.Subprocess.title)
             query = self.paginate(query)
 
             for ob in query.all():
@@ -88,9 +93,11 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         if subprocess_id != '':
             raise handlers.MethodError("Can't use POST for existing subprocess.")
 
-        process_id = self.get_argument('process_id', None)
+        survey_id = self.check_survey_id()
+
+        process_id = self.get_argument('processId', None)
         if process_id == None:
-            raise handlers.MethodError("Can't use POST subprocess without process_id.")
+            raise handlers.MethodError("Can't use POST subprocess without process id.")
 
         son = json_decode(self.request.body)
 
@@ -99,6 +106,7 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
                 subprocess = model.Subprocess()
                 self._update(subprocess, son)
                 subprocess.process_id = process_id
+                subprocess.survey_id = survey_id
                 session.add(subprocess)
                 session.flush()
                 session.expunge(subprocess)
@@ -129,6 +137,12 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.get(subprocess_id)
 
+    def check_survey_id(self):
+        survey_id = self.get_argument('surveyId', None)
+        if survey_id == None:
+            raise handlers.MethodError("Can't GET function without survey id.")
+        return survey_id
+
     def _update(self, subprocess, son):
         '''
         Apply subprocess-provided data to the saved model.
@@ -139,7 +153,5 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
             subprocess.seq = son['seq']
         if son.get('description', '') != '':
             subprocess.description = son['description']
-        if son.get('branch', '') != '':
-            subprocess.branch = son['branch']
         if son.get('process_id', '') != '':
             subprocess.process_id = son['process_id']

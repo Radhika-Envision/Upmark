@@ -25,8 +25,6 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         if process_id == "":
             function_id = self.get_argument('functionId', None)
-            survey_id = self.check_survey_id()
-
             if function_id == None:
                 raise handlers.MethodError("Can't GET process without function id.")
 
