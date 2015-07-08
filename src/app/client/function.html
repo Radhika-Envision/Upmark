@@ -38,8 +38,8 @@
             <label for="desc">Description</label>
             <span class="help-label" ng-if="form.desc.$error.required">
                 Please provide a description.</span>
-            <input type="text" class="form-control" id="desc" name="desc"
-                ng-model="edit.model.description" required />
+            <textarea id="desc" name="desc" class="form-control"
+                ng-model="edit.model.description" required></textarea>
         </div>
     </form>
 </div>
