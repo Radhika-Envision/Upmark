@@ -3,8 +3,8 @@ import os
 import sys
 import uuid
 
-from sqlalchemy import Boolean, create_engine, Column, Date, Float, ForeignKey,\
-    Index, Integer, String, Text
+from sqlalchemy import Boolean, create_engine, Column, DateTime, Float, \
+    ForeignKey, Index, Integer, String, Text
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID
 import sqlalchemy.exc
@@ -41,7 +41,7 @@ class Organisation(Versioned, Base):
     url = Column(Text, nullable=True)
     region = Column(Text, nullable=False)
     number_of_customers = Column(Integer, nullable=False)
-    created = Column(Date, default=func.now(), nullable=False)
+    created = Column(DateTime, default=func.now(), nullable=False)
 
     __table_args__ = (
         Index('organisation_name_key', func.lower(name), unique=True),
@@ -57,7 +57,7 @@ class AppUser(Versioned, Base):
     role = Column(Text, nullable=False)
     organisation_id = Column(
         GUID, ForeignKey("organisation.id"), nullable=False)
-    created = Column(Date, default=func.now(), nullable=False)
+    created = Column(DateTime, default=func.now(), nullable=False)
     enabled = Column(Boolean, nullable=False, default=True)
 
     organisation = relationship(Organisation)
@@ -101,7 +101,7 @@ def has_privillege(current_role, *target_roles):
 class Survey(Versioned, Base):
     __tablename__ = 'survey'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    created = Column(Date, default=func.now(), nullable=False)
+    created = Column(DateTime, default=func.now(), nullable=False)
     title = Column(Text, nullable=False)
     branch = Column(Text, default=uuid.uuid4)
 
@@ -194,7 +194,7 @@ class Assessment(Versioned, Base):
     measureset_id = Column(GUID, ForeignKey('measureset.id'))
     # TODO: Make this field an enum
     approval = Column(Text, nullable=False)
-    created = Column(Date, default=func.now(), nullable=False)
+    created = Column(DateTime, default=func.now(), nullable=False)
     branch = Column(GUID, default="HEAD", nullable=False)
 
 

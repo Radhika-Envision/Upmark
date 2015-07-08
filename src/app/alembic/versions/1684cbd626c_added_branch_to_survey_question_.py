@@ -17,7 +17,7 @@ import sqlalchemy as sa
 
 
 table_names = [
-    'survey', 'function', 'process', 'subprocess'
+    'survey', 'function', 'process', 'subprocess', 'measure',
 ]
 for table_name in table_names[:]:
     table_names.append(table_name + '_history')
