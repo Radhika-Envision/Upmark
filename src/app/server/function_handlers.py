@@ -11,7 +11,7 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, simplify, normalise
+from utils import to_dict, simplify, normalise, get_current_survey
 
 log = logging.getLogger('app.data_access')
 
@@ -23,19 +23,21 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         Get a single function.
         '''
-        log.info(function_id)
         if function_id == "":
             self.query()
             return
 
+        survey_id = self.checkSurveyId()
+
         with model.session_scope() as session:
-            try:
-                function = session.query(model.Function).get(function_id)
-                log.info(function)
-                if function is None:
-                    raise ValueError("No such object")
-            except (sqlalchemy.exc.StatementError, ValueError):
-                raise handlers.MissingDocError("No such function")
+            if survey_id == str(get_current_survey()):
+                function = session.query(model.Function).filter_by(survey_id = survey_id, id = function_id).one()
+            else:
+                FunctionHistory = model.Function.__history_mapper__.class_
+                function = session.query(FunctionHistory).filter_by(id = function_id, survey_id = survey_id).one()
+
+            if function is None:
+                raise ValueError("No such object")
 
             son = to_dict(function, include={'id', 'title', 'seq', 'description'})
             son = simplify(son)
@@ -50,20 +52,23 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         Get a list of functions.
         '''
 
+        survey_id = self.checkSurveyId()
+
         sons = []
         with model.session_scope() as session:
-            query = session.query(model.Function)
-
-            branch = self.get_argument("branch", None)
-            if branch is not None:
-                query = query.filter_by(branch=branch)
+            query = None
+            if survey_id == str(get_current_survey()):
+                query = session.query(model.Function).order_by(model.Function.seq)
+            else:
+                FunctionHistory = model.Function.__history_mapper__.class_
+                query = session.query(FunctionHistory).order_by(FunctionHistory.seq)
+                query = query.filter_by(survey_id=survey_id)
 
             term = self.get_argument('term', None)
             if term is not None:
                 query = query.filter(
                     model.Function.title.ilike(r'%{}%'.format(term)))
 
-            query = query.order_by(model.Function.title)
             query = self.paginate(query)
 
             for ob in query.all():
@@ -84,13 +89,17 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         if function_id != '':
             raise handlers.MethodError("Can't use POST for existing function.")
 
+        survey_id = self.checkSurveyId()
+        if survey_id != str(get_current_survey()):
+            raise handlers.MethodError("This surveyId is not current one.")
+
         son = json_decode(self.request.body)
 
         try:
             with model.session_scope() as session:
                 function = model.Function()
                 self._update(function, son)
-                function.branch = self.get_current_branch()
+                function.survey_id = survey_id
                 session.add(function)
                 session.flush()
                 session.expunge(function)
@@ -121,6 +130,12 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.get(function_id)
 
+    def checkSurveyId(self):
+        survey_id = self.get_argument('surveyId', None)
+        if survey_id == None:
+            raise handlers.MethodError("Can't GET function without survey id.")
+        return survey_id
+
     def _update(self, function, son):
         '''
         Apply function-provided data to the saved model.
@@ -133,9 +148,3 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             function.description = son['description']
         if son.get('branch', '') != '':
             function.branch = son['branch']
-
-    # TODO : we can save branch code somewhere global area 
-    def get_current_branch(self):
-        with model.session_scope() as session:
-            survey = session.query(model.Survey).order_by(sqlalchemy.desc(model.Survey.created))[0]
-            return survey.branch

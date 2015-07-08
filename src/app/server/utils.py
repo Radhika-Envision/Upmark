@@ -2,6 +2,11 @@ import datetime
 import time
 import uuid
 
+import model
+
+import sqlalchemy
+from sqlalchemy.orm import joinedload
+
 
 def truthy(value):
     '''
@@ -71,3 +76,9 @@ def normalise(ob_dict):
         name = ''.join(components)
         new_dict[name] = value
     return new_dict
+
+
+def get_current_survey():
+    with model.session_scope() as session:
+        survey = session.query(model.Survey).order_by(sqlalchemy.desc(model.Survey.created))[0]
+        return survey.id
