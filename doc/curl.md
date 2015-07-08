@@ -4,20 +4,20 @@ First, set some variables for the Aquamark server. These will be reused in all c
 
 ```bash
 AQ_HOST=http://localhost:8000
-AQ_OPTS="-b .cookies.txt --cookie _xsrf=foo -H X-Xsrftoken:foo"
+AQ_OPTS=(-b .cookies.txt --cookie _xsrf=foo -H X-Xsrftoken:foo)
 ```
 
 Then authenticate. The second line shows the status of the login (should be `/`):
 
 ```bash
-curl $AQ_OPTS -c .cookies.txt -F email=admin -F password=admin "$AQ_HOST/login" \
+curl ${AQ_OPTS[@]} -c .cookies.txt -F email=admin -F password=admin "$AQ_HOST/login" \
     -v 2>&1 | grep Location:
 ```
 
-Now other services can be accessed, as long as `$AQ_OPTS` is included in the `curl` command. For example, to get a list of users:
+Now other services can be accessed, as long as `${AQ_OPTS[@]}` is included in the `curl` command. For example, to get a list of users:
 
 ```bash
-curl $AQ_OPTS $AQ_HOST/user.json
+curl ${AQ_OPTS[@]} $AQ_HOST/user.json
 ```
 
 ## Using a Non-Public Docker Container
