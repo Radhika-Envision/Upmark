@@ -63,10 +63,10 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         sons = []
         with model.session_scope() as session:
             if survey_id == str(get_current_survey()):
-                query = session.query(model.Subprocess).filter_by(function_id = function_id, survey_id = survey_id).order_by(model.Process.seq)
+                query = session.query(model.Subprocess).filter_by(process_id = process_id, survey_id = survey_id).order_by(model.Subprocess.seq)
             else:
                 SubprocessHistory = model.Subprocess.__history_mapper__.class_
-                query = session.query(SubprocessHistory).filter_by(function_id = function_id, survey_id = survey_id).order_by(SubprocessHistory.seq)
+                query = session.query(SubprocessHistory).filter_by(process_id = process_id, survey_id = survey_id).order_by(SubprocessHistory.seq)
 
             term = self.get_argument('term', None)
             if term is not None:
