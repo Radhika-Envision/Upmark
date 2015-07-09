@@ -13,7 +13,7 @@ import model
 import logging
 
 from utils import to_dict, simplify, normalise, get_current_survey,\
-        is_current_survey, get_model
+        is_current_survey, get_model, reorder
 
 log = logging.getLogger('app.data_access')
 
@@ -164,26 +164,10 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         son = json_decode(self.request.body)
         try:
             with model.session_scope() as session:
-                functions = session.query(model.Function)\
-                    .filter_by(survey_id=survey_id).all()
-                functionset = {str(f.id) for f in functions}
-                request_order_list = [f["id"] for f in son]
+                survey = session.query(model.Survey)\
+                    .filter_by(id=survey_id).one()
+                reorder(survey.functions, son)
 
-                if functionset != set(request_order_list):
-                    raise handlers.MethodError(
-                        "List of functions are not matching on server")
-                
-                request_body_set = dict([ (f["id"], f["seq"]) for f in son ])
-                for function in functions:
-                    if function.seq != request_body_set[str(function.id)]:
-                        raise handlers.MethodError(
-                            "Current order is not matching")
-                    function.seq = request_order_list.index(str(function.id))
-                    session.add(function)
-                session.flush()
-
-        except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such function")
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
 

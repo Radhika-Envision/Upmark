@@ -111,3 +111,20 @@ def get_model(is_current, model):
         return model
     else:
         return model.__history_mapper__.class_
+
+
+def reorder(collection, son):
+    '''
+    Update the order of items in an `ordering_list` according to a serialised
+    list.
+    '''
+    current = {str(m.id): m.seq for m in collection}
+    proposed = {m['id']: m['seq'] for m in son}
+    if current != proposed:
+        raise handlers.MethodError(
+            "The proposed changes are not compatible with the " +
+            "current sequence.")
+
+    order = {m['id']: i for i, m in enumerate(son)}
+    collection.sort(key=lambda m: order[str(m.id)])
+    collection.reorder()

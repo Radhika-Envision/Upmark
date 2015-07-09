@@ -12,7 +12,8 @@ import model
 import logging
 
 from utils import to_dict, simplify, normalise, denormalise,\
-        is_current_survey, get_model
+        is_current_survey, get_model, reorder
+
 
 class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
@@ -187,32 +188,13 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
         if subprocess_id == None:
             raise handlers.MethodError("Subprocess ID is required.")
 
-
-
         son = json_decode(self.request.body)
         try:
             with model.session_scope() as session:
-                measures = session.query(model.Measure)\
-                    .filter_by(survey_id=survey_id, subprocess_id=subprocess_id)\
-                    .all()
-                measureset = {str(f.id) for f in measures}
-                request_order_list = [f["id"] for f in son]
+                subprocess = session.query(model.Subprocess)\
+                    .filter_by(id=subprocess_id, survey_id=survey_id).one()
+                reorder(subprocess.measures, son)
 
-                if measureset != set(request_order_list):
-                    raise handlers.MethodError(
-                        "List of functions are not matching on server")
-
-                request_body_set = dict([(f["id"], f["seq"]) for f in son])
-                for measure in measures:
-                    if measure.seq != request_body_set[str(measure.id)]:
-                        raise handlers.MethodError(
-                            "Current order is not matching")
-                    measure.seq = request_order_list.index(str(measure.id))
-                    session.add(measure)
-                session.flush()
-
-        except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such function")
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
 

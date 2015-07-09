@@ -12,7 +12,7 @@ import model
 import logging
 
 from utils import to_dict, simplify, normalise, get_current_survey,\
-        is_current_survey, get_model
+        is_current_survey, get_model, reorder
 
 log = logging.getLogger('app.data_access')
 
@@ -186,31 +186,13 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         if process_id == None:
             raise handlers.MethodError("Process ID is required.")
 
-
-
         son = json_decode(self.request.body)
         try:
             with model.session_scope() as session:
-                subprocesses = session.query(model.Subprocess)\
-                    .filter_by(survey_id=survey_id, process_id=process_id).all()
-                subprocessset = {str(f.id) for f in subprocesses}
-                request_order_list = [f["id"] for f in son]
+                process = session.query(model.Process)\
+                    .filter_by(id=process_id, survey_id=survey_id).one()
+                reorder(process.subprocesses, son)
 
-                if subprocessset != set(request_order_list):
-                    raise handlers.MethodError(
-                        "List of functions are not matching on server")
-                
-                request_body_set = dict([(f["id"], f["seq"]) for f in son])
-                for subprocess in subprocesses:
-                    if subprocess.seq != request_body_set[str(subprocess.id)]:
-                        raise handlers.MethodError(
-                            "Current order is not matching")
-                    subprocess.seq = request_order_list.index(str(subprocess.id))
-                    session.add(subprocess)
-                session.flush()
-
-        except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such function")
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
 

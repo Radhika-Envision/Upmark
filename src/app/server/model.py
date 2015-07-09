@@ -150,6 +150,9 @@ class Measure(Versioned, Base):
     survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
     #response = relationship("Response", uselist=False, backref="measure")
 
+    def __repr__(self):
+        return "Measure(%s - %s)" % (self.id, self.title)
+
 
 class MeasureSet(Base):
     __tablename__ = 'measureset'
