@@ -113,11 +113,13 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         if subprocess_id != '':
             raise handlers.MethodError("Can't use POST for existing subprocess.")
 
-        survey_id = self.check_survey_id()
+        survey_id = self.get_survey_id()
 
         process_id = self.get_argument("processId", "")
         if process_id == None:
             raise handlers.MethodError("Can't use POST subprocess without process id.")
+
+        son = json_decode(self.request.body)
 
         try:
             with model.session_scope() as session:
@@ -130,7 +132,7 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
                 session.expunge(subprocess)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.finish(str(subprocess.id))
+        self.get(subprocess.id)
 
     @handlers.authz('author')
     def put(self, subprocess_id):
@@ -138,8 +140,9 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         Update an existing subprocess.
         '''
         if subprocess_id == '':
-            raise handlers.MethodError(
-                "Can't use PUT for new subprocess (no ID).")
+            self.ordering()
+            return
+
         son = json_decode(self.request.body)
 
         try:
@@ -154,6 +157,45 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(subprocess_id)
+
+    def ordering(self):
+        '''
+        Update an existing function.
+        '''
+        survey_id = self.get_survey_id()
+        if not is_current_survey(survey_id):
+            raise handlers.MethodError("This surveyId is not current one.")
+
+        process_id = self.get_argument("processId", "")
+        if process_id == None:
+            raise handlers.MethodError("Can't GET process without process id.")
+
+
+
+        son = json_decode(self.request.body)
+        try:
+            with model.session_scope() as session:
+                subprocesses = session.query(model.Subprocess).filter_by(survey_id=survey_id, process_id=process_id).all()
+                subprocessset = {str(f.id) for f in subprocesses}
+                request_order_list = [f["id"] for f in son]
+
+                if subprocessset != set(request_order_list):
+                    raise handlers.MethodError("List of functions are not matching on server")
+                
+                request_body_set = dict([ (f["id"], f["seq"]) for f in son ])
+                for subprocess in subprocesses:
+                    if subprocess.seq != request_body_set[str(subprocess.id)]:
+                        raise handlers.MethodError("Current order is not matching")
+                    subprocess.seq = request_order_list.index(str(subprocess.id))
+                    session.add(subprocess)
+                session.flush()
+
+        except (sqlalchemy.exc.StatementError, ValueError):
+            raise handlers.MissingDocError("No such function")
+        except sqlalchemy.exc.IntegrityError as e:
+            raise handlers.ModelError.from_sa(e)
+
+        self.query(process_id)
 
     def get_survey_id(self):
         survey_id = self.get_argument("surveyId", "")

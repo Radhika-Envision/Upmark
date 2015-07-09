@@ -133,8 +133,9 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
         Update an existing process.
         '''
         if process_id == '':
-            raise handlers.MethodError(
-                "Can't use PUT for new process (no ID).")
+            self.ordering()
+            return
+
         son = json_decode(self.request.body)
 
         try:
@@ -149,6 +150,45 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(process_id)
+
+    def ordering(self):
+        '''
+        Update an existing function.
+        '''
+        survey_id = self.get_survey_id()
+        if not is_current_survey(survey_id):
+            raise handlers.MethodError("This surveyId is not current one.")
+
+        function_id = self.get_argument("functionId", "")
+        if function_id == None:
+            raise handlers.MethodError("Can't GET process without function id.")
+
+
+
+        son = json_decode(self.request.body)
+        try:
+            with model.session_scope() as session:
+                processes = session.query(model.Process).filter_by(survey_id=survey_id, function_id=function_id).all()
+                processset = {str(f.id) for f in processes}
+                request_order_list = [f["id"] for f in son]
+
+                if processset != set(request_order_list):
+                    raise handlers.MethodError("List of functions are not matching on server")
+                
+                request_body_set = dict([ (f["id"], f["seq"]) for f in son ])
+                for process in processes:
+                    if process.seq != request_body_set[str(process.id)]:
+                        raise handlers.MethodError("Current order is not matching")
+                    process.seq = request_order_list.index(str(process.id))
+                    session.add(process)
+                session.flush()
+
+        except (sqlalchemy.exc.StatementError, ValueError):
+            raise handlers.MissingDocError("No such function")
+        except sqlalchemy.exc.IntegrityError as e:
+            raise handlers.ModelError.from_sa(e)
+
+        self.query(function_id)
 
     def get_survey_id(self):
         survey_id = self.get_argument("surveyId", "")

@@ -94,7 +94,8 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         Create a new function.
         '''
         if function_id != '':
-            raise handlers.MethodError("Can't use POST for existing function.")
+            raise handlers.MethodError(
+                "Can't use PUT for new function (no ID).")
 
         survey_id = self.get_survey_id()
         if survey_id != str(get_current_survey()):
@@ -122,11 +123,11 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         Update an existing function.
         '''
         if function_id == '':
-            raise handlers.MethodError(
-                "Can't use PUT for new function (no ID).")
+            self.ordering()
+            return
 
         survey_id = self.get_survey_id()
-        if survey_id != str(get_current_survey()):
+        if not is_current_survey(survey_id):
             raise handlers.MethodError("This surveyId is not current one.")
 
         son = json_decode(self.request.body)
@@ -142,7 +143,41 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.MissingDocError("No such function")
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.get(function_id)
+        self.query()
+
+    def ordering(self):
+        '''
+        Update an existing function.
+        '''
+        survey_id = self.get_survey_id()
+        if survey_id != str(get_current_survey()):
+            raise handlers.MethodError("This surveyId is not current one.")
+
+        son = json_decode(self.request.body)
+        try:
+            with model.session_scope() as session:
+                functions = session.query(model.Function).filter_by(survey_id=survey_id).all()
+                functionset = {str(f.id) for f in functions}
+                request_order_list = [f["id"] for f in son]
+
+                if functionset != set(request_order_list):
+                    raise handlers.MethodError("List of functions are not matching on server")
+                
+                request_body_set = dict([ (f["id"], f["seq"]) for f in son ])
+                for function in functions:
+                    if function.seq != request_body_set[str(function.id)]:
+                        raise handlers.MethodError("Current order is not matching")
+                    function.seq = request_order_list.index(str(function.id))
+                    session.add(function)
+                session.flush()
+
+        except (sqlalchemy.exc.StatementError, ValueError):
+            raise handlers.MissingDocError("No such function")
+        except sqlalchemy.exc.IntegrityError as e:
+            raise handlers.ModelError.from_sa(e)
+
+        self.query()
+
 
     def get_survey_id(self):
         survey_id = self.get_argument("surveyId", "")
