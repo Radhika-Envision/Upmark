@@ -21,7 +21,7 @@ h2 {
         left: -40px;
         background-color: white;
         border-radius: 50%;
-        top: 3px;
+        top: 2px;
         font-size: 10px;
         width: 25px;
         height: 25px;
@@ -125,7 +125,6 @@ h2 {
 
 .grab-handle {
     cursor: move;
-    color: #aaa;
 }
 
 /* Nested pages should have less prominent headers */
@@ -136,6 +135,15 @@ ng-include>.header, .nested>.header {
 
     h2 {
         font-size: 16px;
+    }
+}
+
+.section {
+    margin-top: 20px;
+    margin-bottom: 12px;
+
+    .toolbar {
+        margin-top: -3px;
     }
 }
 
