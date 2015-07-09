@@ -47,16 +47,17 @@
 <div class="container">
     <p>{{process.description}}</p>
 
+    <div>
     <div class="toolbar">
         <a class="btn btn-default btn-round" title="Add new"
                 ng-href="#/subprocess/new?process={{process.id}}&survey={{survey.id}}"
                 ng-if="checkRole('proc_add')">
             <i class="fa fa-fw fa-plus"></i></a>
     </div>
-    <h2>
-        Processes
-    </h2>
-    <table class="table table-hover">
+    <h2>Sub-Processes</h2>
+    </div>
+
+    <table ng-if="subprocs.length" class="table table-hover">
         <tbody>
             <tr ng-repeat="subproc in subprocs"
                     any-href="/subprocess/{{subproc.id}}?survey={{survey.id}}">
@@ -65,6 +66,9 @@
             </tr>
         </tbody>
     </table>
+    <p ng-if="!subprocs.length" class="text-muted">
+        This process has no sub-processes.
+    </p>
 </div>
 </div>
 

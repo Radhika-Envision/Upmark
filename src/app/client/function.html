@@ -47,16 +47,17 @@
 <div class="container">
     <p>{{func.description}}</p>
 
+    <div>
     <div class="toolbar">
         <a class="btn btn-default btn-round" title="Add new"
                 ng-href="#/process/new?func={{func.id}}&survey={{survey.id}}"
                 ng-if="checkRole('proc_add')">
             <i class="fa fa-fw fa-plus"></i></a>
     </div>
-    <h2>
-        Processes
-    </h2>
-    <table class="table table-hover">
+    <h2>Processes</h2>
+    </div>
+
+    <table ng-if="procs.length" class="table table-hover">
         <tbody>
             <tr ng-repeat="proc in procs"
                     any-href="/process/{{proc.id}}?survey={{survey.id}}">
@@ -65,6 +66,9 @@
             </tr>
         </tbody>
     </table>
+    <p ng-if="!procs.length" class="text-muted">
+        This function has no processes
+    </p>
 </div>
 </div>
 
