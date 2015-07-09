@@ -115,11 +115,6 @@ class Function(Versioned, Base):
     survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
 
 
-Survey.functions = relationship(
-        'Function', order_by='Function.seq',
-        collection_class=ordering_list('seq'))
-
-
 class Process(Versioned, Base):
     __tablename__ = 'process'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
@@ -173,6 +168,20 @@ class MeasureSetMeasureLink(Base):
     measureset_id = Column(GUID, ForeignKey('measureset.id'), nullable=False)
     measure_id = Column(GUID, ForeignKey('measure.id'), nullable=False)
     survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
+
+
+Survey.functions = relationship(
+        'Function', order_by='Function.seq',
+        collection_class=ordering_list('seq'))
+Function.processes = relationship(
+        'Process', order_by='Process.seq',
+        collection_class=ordering_list('seq'))
+Process.subprocesses = relationship(
+        'Subprocess', order_by='Subprocess.seq',
+        collection_class=ordering_list('seq'))
+Subprocess.measures = relationship(
+        'Measure', order_by='Measure.seq',
+        collection_class=ordering_list('seq'))
 
 
 class Response(Versioned, Base):
