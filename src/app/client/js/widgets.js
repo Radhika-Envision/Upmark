@@ -158,9 +158,10 @@ angular.module('vpac.widgets', [])
         '$parse', 'log', '$filter', 'Notifications', '$q',
          function($parse, log, $filter, Notifications, $q) {
 
-    function Editor(targetPath, scope) {
+    function Editor(targetPath, scope, params) {
         this.model = null;
         this.scope = scope;
+        this.params = params;
         this.getter = $parse(targetPath);
         this.saving = false;
     };
@@ -205,10 +206,10 @@ angular.module('vpac.widgets', [])
 
         if (!this.model.id) {
             log.info("Saving as new entry");
-            this.model.$create(success, failure);
+            this.model.$create(this.params, success, failure);
         } else {
             log.info("Saving over old entry");
-            this.model.$save(success, failure);
+            this.model.$save(this.params, success, failure);
         }
         this.saving = true;
         Notifications.set('edit', 'info', "Saving");
@@ -220,9 +221,9 @@ angular.module('vpac.widgets', [])
         this.getter = null;
     };
 
-    return function(targetPath, scope) {
+    return function(targetPath, scope, params) {
         log.debug('Creating editor');
-        var editor = new Editor(targetPath, scope);
+        var editor = new Editor(targetPath, scope, params);
         scope.$on('$destroy', function() {
             editor.destroy();
             editor = null;

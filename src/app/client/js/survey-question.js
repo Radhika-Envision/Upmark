@@ -163,11 +163,11 @@ angular.module('wsaa.surveyQuestions', [
 
 .controller('FuncCtrl', [
         '$scope', 'Func', 'routeData', 'Editor', 'questionAuthz',
-        '$location', 'Notifications', 'Current', 'Survey',
+        '$location', 'Notifications', 'Current', 'Survey', 'format',
         function($scope, Func, routeData, Editor, authz,
-                 $location, Notifications, current, Survey) {
+                 $location, Notifications, current, Survey, format) {
 
-    $scope.edit = Editor('func', $scope);
+    $scope.edit = Editor('func', $scope, {surveyId: routeData.survey.id});
     if (routeData.func) {
         // Editing old
         $scope.func = routeData.func;
@@ -182,7 +182,8 @@ angular.module('wsaa.surveyQuestions', [
     }
 
     $scope.$on('EditSaved', function(event, model) {
-        $location.url('/survey/' + model.id);
+        $location.url(format(
+            '/function/{}?survey={}', model.id, routeData.survey.id));
     });
 
     $scope.checkRole = authz(current, $scope.survey);
