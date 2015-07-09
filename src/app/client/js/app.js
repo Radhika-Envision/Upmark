@@ -324,6 +324,9 @@ angular.module('wsaa.aquamark',
  */
 .config(['$httpProvider', 'versionedResources', 'deployId',
     function($httpProvider, versionedResources, deployId) {
+        if (!deployId)
+            return;
+
         var includes = versionedResources.include.map(function(r) {
             return new RegExp(r);
         });

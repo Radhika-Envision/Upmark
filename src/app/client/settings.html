@@ -2,7 +2,11 @@
 'use strict';
 angular.module('settings', [])
 
+{% if deploy_id is not None %}
 .constant('deployId', '{{deploy_id}}')
+{% else %}
+.constant('deployId', null)
+{% end %}
 
 .constant('versionedResources', {
     exclude: [

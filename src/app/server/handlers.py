@@ -30,7 +30,7 @@ DEPLOY_ID = str(time.time())
 
 def deploy_id():
     if tornado.options.options.dev:
-        return str(time.time())
+        return None
     else:
         return DEPLOY_ID
 
@@ -263,7 +263,7 @@ class MainHandler(BaseHandler):
 
             # Add a resource deployment version number to bust the cache, except
             # for CDN links.
-            if k != 'cdn':
+            if self.deploy_id and k != 'cdn':
                 hrefs = ['%s?v=%s' % (href, self.deploy_id) for href in hrefs]
 
             if dev_mode and k in {'cdn', 'min-href'}:
