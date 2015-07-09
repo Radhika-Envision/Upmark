@@ -56,7 +56,7 @@ angular.module('wsaa.surveyQuestions', [
 
 
 .factory('questionAuthz', ['Roles', function(Roles) {
-    return function(current, user) {
+    return function(current, survey) {
         return function(functionName) {
             return Roles.hasPermission(current.user.role, 'author');
         };
@@ -116,6 +116,7 @@ angular.module('wsaa.surveyQuestions', [
             entity: '='
         },
         replace: true,
+        transclude: true,
         templateUrl: 'question_header.html',
         controller: ['$scope', function($scope) {
             $scope.$watchGroup([
@@ -153,7 +154,6 @@ angular.module('wsaa.surveyQuestions', [
                     case 'survey':
                         hierarchy.survey = entity;
                     }
-                    console.log(hierarchy)
                     $scope.hierarchy = hierarchy;
             });
         }]
@@ -167,7 +167,8 @@ angular.module('wsaa.surveyQuestions', [
         function($scope, Func, routeData, Editor, authz,
                  $location, Notifications, current, Survey, format) {
 
-    $scope.edit = Editor('func', $scope, {surveyId: routeData.survey.id});
+    $scope.survey = routeData.survey;
+    $scope.edit = Editor('func', $scope, {surveyId: $scope.survey.id});
     if (routeData.func) {
         // Editing old
         $scope.func = routeData.func;
@@ -175,7 +176,7 @@ angular.module('wsaa.surveyQuestions', [
     } else {
         // Creating new
         $scope.func = new Func({
-            survey: routeData.survey
+            survey: $scope.survey
         });
         $scope.procs = null;
         $scope.edit.edit();
@@ -183,7 +184,38 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
-            '/function/{}?survey={}', model.id, routeData.survey.id));
+            '/function/{}?survey={}', model.id, $scope.survey.id));
+    });
+
+    $scope.checkRole = authz(current, $scope.survey);
+}])
+
+
+.controller('ProcessCtrl', [
+        '$scope', 'Process', 'routeData', 'Editor', 'questionAuthz',
+        '$location', 'Notifications', 'Current', 'Survey', 'format',
+        function($scope, Process, routeData, Editor, authz,
+                 $location, Notifications, current, Survey, format) {
+
+    $scope.survey = routeData.survey;
+    $scope.func = routeData.func;
+    $scope.edit = Editor('process', $scope, {surveyId: $scope.survey.id});
+    if (routeData.process) {
+        // Editing old
+        $scope.process = routeData.process;
+        $scope.subprocs = routeData.subprocs;
+    } else {
+        // Creating new
+        $scope.process = new Process({
+            'function': $scope.func
+        });
+        $scope.subprocs = null;
+        $scope.edit.edit();
+    }
+
+    $scope.$on('EditSaved', function(event, model) {
+        $location.url(format(
+            '/process/{}?survey={}', model.id, $scope.survey.id));
     });
 
     $scope.checkRole = authz(current, $scope.survey);

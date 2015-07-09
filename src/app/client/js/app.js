@@ -184,7 +184,7 @@ angular.module('wsaa.aquamark',
                         return Survey.get({
                             id: $route.current.params.survey
                         }).$promise;
-                    }],
+                    }]
                 })}
             })
             .when('/function/:func', {
@@ -192,7 +192,6 @@ angular.module('wsaa.aquamark',
                 controller : 'FuncCtrl',
                 resolve: {routeData: chain({
                     func: ['Func', '$route', function(Func, $route) {
-                        console.log('Getting function')
                         return Func.get({
                             id: $route.current.params.func,
                             surveyId: $route.current.params.survey
@@ -201,11 +200,52 @@ angular.module('wsaa.aquamark',
                     survey: ['func', function(func) {
                         return func.survey;
                     }],
-                    procs: ['Process', 'func', function(Process, func) {
-                        console.log('Getting processes')
+                    procs: ['Process', 'func', 'survey',
+                            function(Process, func, survey) {
                         return Process.query({
                             functionId: func.id,
-                            surveyId: func.survey.id
+                            surveyId: survey.id
+                        }).$promise;
+                    }]
+                })}
+            })
+
+            .when('/process/new', {
+                templateUrl : 'process.html',
+                controller : 'ProcessCtrl',
+                resolve: {routeData: chain({
+                    func: ['Func', '$route', function(Func, $route) {
+                        return Func.get({
+                            id: $route.current.params.func,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    survey: ['func', function(func) {
+                        return func.survey;
+                    }]
+                })}
+            })
+            .when('/process/:process', {
+                templateUrl : 'process.html',
+                controller : 'ProcessCtrl',
+                resolve: {routeData: chain({
+                    process: ['Process', '$route', function(Process, $route) {
+                        return Process.get({
+                            id: $route.current.params.process,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    func: ['process', function(process) {
+                        return process['function'];
+                    }],
+                    survey: ['process', function(process) {
+                        return process['function'].survey;
+                    }],
+                    subprocs: ['SubProcess', 'process', 'survey',
+                            function(Process, process, survey) {
+                        return Process.query({
+                            processId: process.id,
+                            surveyId: survey.id
                         }).$promise;
                     }]
                 })}
