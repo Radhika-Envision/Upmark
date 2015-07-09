@@ -52,6 +52,6 @@
 <reorderable href="/process/{}?survey={{survey.id}}&func={{func.id}}"
         model="procs" title="Processes" check-role="checkRole"
         params="{surveyId: survey.id, functionId: func.id}"
-        resource="Process"></reorderable>
+        resource="Process" ng-if="!edit.model"></reorderable>
 
 </div>

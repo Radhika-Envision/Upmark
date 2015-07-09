@@ -17,7 +17,7 @@
                 ng-if="!edit.model && checkRole('proc_edit')">
             <i class="fa fa-pencil"></i></button>
     </div>
-    <question-header entity="process"></question-header>
+    <question-header entity="measure"></question-header>
 </div>
 </div>
 
@@ -33,11 +33,24 @@
                 ng-model="edit.model.title" required />
         </div>
         <div class="form-group" show-errors>
-            <label for="desc">Description</label>
-            <span class="help-label" ng-if="form.desc.$error.required">
-                Please provide a description.</span>
-            <textarea id="desc" name="desc" class="form-control"
-                ng-model="edit.model.description" required></textarea>
+            <label for="intent">Intent</label>
+            <textarea id="intent" name="intent" class="form-control"
+                ng-model="edit.model.intent"></textarea>
+        </div>
+        <div class="form-group" show-errors>
+            <label for="inputs">Inputs</label>
+            <textarea id="inputs" name="inputs" class="form-control"
+                ng-model="edit.model.inputs"></textarea>
+        </div>
+        <div class="form-group" show-errors>
+            <label for="scenario">Scenario</label>
+            <textarea id="scenario" name="scenario" class="form-control"
+                ng-model="edit.model.scenario"></textarea>
+        </div>
+        <div class="form-group" show-errors>
+            <label for="questions">Questions</label>
+            <textarea id="questions" name="questions" class="form-control"
+                ng-model="edit.model.questions"></textarea>
         </div>
     </form>
 </div>
@@ -45,13 +58,19 @@
 
 <div class="measure" ng-if="!edit.model">
 <div class="container">
-    <p>{{process.description}}</p>
+    <p ng-if="measure.intent">
+        <span class="text-muted">Intent</span>
+        {{measure.intent}}</p>
+    <p ng-if="measure.intent">
+        <span class="text-muted">Inputs</span>
+        {{measure.inputs}}</p>
+    <p ng-if="measure.intent">
+        <span class="text-muted">Scenario</span>
+        {{measure.scenario}}</p>
+    <p ng-if="measure.question">
+        <span class="text-muted">Questions</span>
+        {{measure.questions}}</p>
 </div>
 </div>
-
-<reorderable href="/subprocess/{}?survey={{survey.id}}&process={{process.id}}"
-        model="procs" title="Sub-Processes" check-role="checkRole"
-        params="{surveyId: survey.id, processId: process.id}"
-        resource="SubProcess" ng-if="!edit.model"></reorderable>
 
 </div>

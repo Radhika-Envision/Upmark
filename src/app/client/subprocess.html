@@ -17,7 +17,7 @@
                 ng-if="!edit.model && checkRole('proc_edit')">
             <i class="fa fa-pencil"></i></button>
     </div>
-    <question-header entity="process"></question-header>
+    <question-header entity="subprocess"></question-header>
 </div>
 </div>
 
@@ -45,13 +45,13 @@
 
 <div class="measure" ng-if="!edit.model">
 <div class="container">
-    <p>{{process.description}}</p>
+    <p>{{subprocess.description}}</p>
 </div>
 </div>
 
-<reorderable href="/subprocess/{}?survey={{survey.id}}&process={{process.id}}"
-        model="procs" title="Sub-Processes" check-role="checkRole"
-        params="{surveyId: survey.id, processId: process.id}"
-        resource="SubProcess" ng-if="!edit.model"></reorderable>
+<reorderable href="/measure/{}?survey={{survey.id}}&subprocess={{subprocess.id}}"
+        model="procs" title="Measures" check-role="checkRole"
+        params="{surveyId: survey.id, subprocessId: subprocess.id}"
+        resource="Measure" ng-if="!edit.model"></reorderable>
 
 </div>

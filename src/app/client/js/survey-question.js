@@ -222,8 +222,10 @@ angular.module('wsaa.surveyQuestions', [
 .controller('ProcessCtrl', [
         '$scope', 'Process', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'Survey', 'format',
+        'SubProcess',
         function($scope, Process, routeData, Editor, authz,
-                 $location, Notifications, current, Survey, format) {
+                 $location, Notifications, current, Survey, format,
+                 SubProcess) {
 
     $scope.survey = routeData.survey;
     $scope.func = routeData.func;
@@ -247,6 +249,74 @@ angular.module('wsaa.surveyQuestions', [
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
             '/process/{}?survey={}', model.id, $scope.survey.id));
+    });
+
+    $scope.checkRole = authz(current, $scope.survey);
+    $scope.SubProcess = SubProcess;
+}])
+
+
+.controller('SubProcessCtrl', [
+        '$scope', 'SubProcess', 'routeData', 'Editor', 'questionAuthz',
+        '$location', 'Notifications', 'Current', 'Survey', 'format', 'Measure',
+        function($scope, SubProcess, routeData, Editor, authz,
+                 $location, Notifications, current, Survey, format, Measure) {
+
+    $scope.survey = routeData.survey;
+    $scope.process = routeData.process;
+    $scope.edit = Editor('subprocess', $scope, {
+        processId: $scope.process.id,
+        surveyId: $scope.survey.id
+    });
+    if (routeData.subprocess) {
+        // Editing old
+        $scope.subprocess = routeData.subprocess;
+        $scope.measures = routeData.measures;
+    } else {
+        // Creating new
+        $scope.subprocess = new SubProcess({
+            'process': $scope.process
+        });
+        $scope.measures = null;
+        $scope.edit.edit();
+    }
+
+    $scope.$on('EditSaved', function(event, model) {
+        $location.url(format(
+            '/subprocess/{}?survey={}', model.id, $scope.survey.id));
+    });
+
+    $scope.checkRole = authz(current, $scope.survey);
+    $scope.Measure = Measure;
+}])
+
+
+.controller('MeasureCtrl', [
+        '$scope', 'Measure', 'routeData', 'Editor', 'questionAuthz',
+        '$location', 'Notifications', 'Current', 'Survey', 'format',
+        function($scope, Measure, routeData, Editor, authz,
+                 $location, Notifications, current, Survey, format) {
+
+    $scope.survey = routeData.survey;
+    $scope.subprocess = routeData.subprocess;
+    $scope.edit = Editor('measure', $scope, {
+        subprocessId: $scope.subprocess.id,
+        surveyId: $scope.survey.id
+    });
+    if (routeData.measure) {
+        // Editing old
+        $scope.measure = routeData.measure;
+    } else {
+        // Creating new
+        $scope.measure = new Measure({
+            'subprocess': $scope.subprocess
+        });
+        $scope.edit.edit();
+    }
+
+    $scope.$on('EditSaved', function(event, model) {
+        $location.url(format(
+            '/measure/{}?survey={}', model.id, $scope.survey.id));
     });
 
     $scope.checkRole = authz(current, $scope.survey);

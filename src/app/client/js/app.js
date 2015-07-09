@@ -242,11 +242,88 @@ angular.module('wsaa.aquamark',
                         return process['function'].survey;
                     }],
                     subprocs: ['SubProcess', 'process', 'survey',
-                            function(Process, process, survey) {
-                        return Process.query({
+                            function(SubProcess, process, survey) {
+                        return SubProcess.query({
                             processId: process.id,
                             surveyId: survey.id
                         }).$promise;
+                    }]
+                })}
+            })
+
+            .when('/subprocess/new', {
+                templateUrl : 'subprocess.html',
+                controller : 'SubProcessCtrl',
+                resolve: {routeData: chain({
+                    process: ['Process', '$route', function(Process, $route) {
+                        return Process.get({
+                            id: $route.current.params.process,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    survey: ['process', function(process) {
+                        return process['function'].survey;
+                    }]
+                })}
+            })
+            .when('/subprocess/:subprocess', {
+                templateUrl : 'subprocess.html',
+                controller : 'SubProcessCtrl',
+                resolve: {routeData: chain({
+                    subprocess: ['SubProcess', '$route',
+                            function(SubProcess, $route) {
+                        return SubProcess.get({
+                            id: $route.current.params.subprocess,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    process: ['subprocess', function(subprocess) {
+                        return subprocess.process;
+                    }],
+                    survey: ['process', function(process) {
+                        return process['function'].survey;
+                    }],
+                    measures: ['Measure', 'subprocess', 'survey',
+                            function(Measure, subprocess, survey) {
+                        return Measure.query({
+                            subprocessId: subprocess.id,
+                            surveyId: survey.id
+                        }).$promise;
+                    }]
+                })}
+            })
+
+            .when('/measure/new', {
+                templateUrl : 'measure.html',
+                controller : 'MeasureCtrl',
+                resolve: {routeData: chain({
+                    subprocess: ['SubProcess', '$route',
+                            function(SubProcess, $route) {
+                        return SubProcess.get({
+                            id: $route.current.params.subprocess,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    survey: ['subprocess', function(subprocess) {
+                        return subprocess.process['function'].survey;
+                    }]
+                })}
+            })
+            .when('/measure/:measure', {
+                templateUrl : 'measure.html',
+                controller : 'MeasureCtrl',
+                resolve: {routeData: chain({
+                    measure: ['Measure', '$route', function(Measure, $route) {
+                        return Measure.get({
+                            id: $route.current.params.measure,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    subprocess: ['measure', function(measure) {
+                        return measure.subprocess;
+                    }],
+                    survey: ['subprocess', function(subprocess) {
+                        return subprocess.process['function'].survey;
                     }]
                 })}
             })
