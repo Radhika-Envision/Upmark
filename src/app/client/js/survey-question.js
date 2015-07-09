@@ -8,9 +8,9 @@ angular.module('wsaa.surveyQuestions', [
 .factory('Survey', ['$resource', function($resource) {
     return $resource('/survey/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
+        create: { method: 'POST' },
         save: { method: 'PUT' },
-        query: { method: 'GET', isArray: true, cache: false },
-        create: { method: 'POST' }
+        query: { method: 'GET', isArray: true, cache: false }
     });
 }])
 
@@ -19,9 +19,10 @@ angular.module('wsaa.surveyQuestions', [
 .factory('Func', ['$resource', function($resource) {
     return $resource('/function/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
+        create: { method: 'POST' },
         save: { method: 'PUT' },
         query: { method: 'GET', isArray: true, cache: false },
-        create: { method: 'POST' }
+        reorder: { method: 'PUT', isArray: true }
     });
 }])
 
@@ -29,9 +30,10 @@ angular.module('wsaa.surveyQuestions', [
 .factory('Process', ['$resource', function($resource) {
     return $resource('/process/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
+        create: { method: 'POST' },
         save: { method: 'PUT' },
         query: { method: 'GET', isArray: true, cache: false },
-        create: { method: 'POST' }
+        reorder: { method: 'PUT', isArray: true }
     });
 }])
 
@@ -39,9 +41,10 @@ angular.module('wsaa.surveyQuestions', [
 .factory('SubProcess', ['$resource', function($resource) {
     return $resource('/subprocess/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
+        create: { method: 'POST' },
         save: { method: 'PUT' },
         query: { method: 'GET', isArray: true, cache: false },
-        create: { method: 'POST' }
+        reorder: { method: 'PUT', isArray: true }
     });
 }])
 
@@ -49,9 +52,10 @@ angular.module('wsaa.surveyQuestions', [
 .factory('Measure', ['$resource', function($resource) {
     return $resource('/measure/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
+        create: { method: 'POST' },
         save: { method: 'PUT' },
         query: { method: 'GET', isArray: true, cache: false },
-        create: { method: 'POST' }
+        reorder: { method: 'PUT', isArray: true }
     });
 }])
 
@@ -67,9 +71,9 @@ angular.module('wsaa.surveyQuestions', [
 
 .controller('SurveyCtrl', [
         '$scope', 'Survey', 'routeData', 'Editor', 'questionAuthz',
-        '$location', 'Notifications', 'Current',
+        '$location', 'Notifications', 'Current', 'Func',
         function($scope, Survey, routeData, Editor, authz,
-                 $location, Notifications, current) {
+                 $location, Notifications, current, Func) {
 
     $scope.edit = Editor('survey', $scope);
     if (routeData.survey) {
@@ -88,11 +92,7 @@ angular.module('wsaa.surveyQuestions', [
     });
 
     $scope.checkRole = authz(current, $scope.survey);
-
-    $scope.dragOpts = {
-        axis: 'y',
-        handle: '.grab-handle'
-    };
+    $scope.Func = Func;
 }])
 
 

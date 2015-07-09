@@ -143,7 +143,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.MissingDocError("No such function")
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.query()
+        self.get(function_id)
 
     def ordering(self):
         '''

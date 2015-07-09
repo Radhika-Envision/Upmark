@@ -155,13 +155,14 @@ angular.module('vpac.widgets', [])
  * Manages state for a modal editing session.
  */
 .factory('Editor', [
-        '$parse', 'log', '$filter', 'Notifications', '$q',
-         function($parse, log, $filter, Notifications, $q) {
+        '$parse', 'log', 'Notifications', '$q',
+         function($parse, log, Notifications, $q) {
 
-    function Editor(targetPath, scope, params) {
+    function Editor(targetPath, scope, params, resource) {
         this.model = null;
         this.scope = scope;
         this.params = params;
+        this.resource = resource;
         this.getter = $parse(targetPath);
         this.saving = false;
     };
@@ -204,7 +205,10 @@ angular.module('vpac.widgets', [])
             }
         };
 
-        if (!this.model.id) {
+        if (angular.isArray(this.model)) {
+            log.info("Reordering list");
+            this.resource.reorder(this.params, this.model, success, failure);
+        } else if (!this.model.id) {
             log.info("Saving as new entry");
             this.model.$create(this.params, success, failure);
         } else {
@@ -221,14 +225,47 @@ angular.module('vpac.widgets', [])
         this.getter = null;
     };
 
-    return function(targetPath, scope, params) {
+    return function(targetPath, scope, params, resource) {
         log.debug('Creating editor');
-        var editor = new Editor(targetPath, scope, params);
+        var editor = new Editor(targetPath, scope, params, resource);
         scope.$on('$destroy', function() {
             editor.destroy();
             editor = null;
         });
         return editor;
+    };
+}])
+
+
+.directive('reorderable', [function() {
+    return {
+        restrict: 'E',
+        scope: {
+            model: '=',
+            title: '@',
+            checkRole: '=',
+            params: '=',
+            resource: '='
+        },
+        templateUrl: 'reorder.html',
+        replace: true,
+        controller: ['$scope', 'format', 'Editor',
+                function($scope, format, Editor) {
+            $scope.edit = Editor('model', $scope, $scope.params, $scope.resource);
+            $scope.href = function(id) {
+                return format($scope.hrefSpec, id);
+            };
+            $scope.dragOpts = {
+                axis: 'y',
+                handle: '.grab-handle'
+            };
+            $scope.$on('EditSaved', function(event, model) {
+                event.stopPropagation();
+            });
+        }],
+        link: function(scope, elem, attrs) {
+            scope.hrefSpec = attrs.href;
+        }
     };
 }])
 

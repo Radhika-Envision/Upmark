@@ -36,34 +36,8 @@
 </div>
 </div>
 
-<div class="measure" ng-if="!edit.model">
-<div class="container">
-    <div>
-    <div class="toolbar">
-        <a class="btn btn-default btn-round" title="Add new"
-                ng-href="#/function/new?survey={{survey.id}}"
-                ng-if="checkRole('func_add')">
-            <i class="fa fa-fw fa-plus"></i></a>
-    </div>
-    <h2>Functions</h2>
-    </div>
-
-    <table ng-if="funcs.length" class="table table-hover">
-        <tbody ui-sortable="dragOpts" ng-model="funcs">
-            <tr ng-repeat="func in funcs"
-                    any-href="/function/{{func.id}}?survey={{survey.id}}">
-                <td class="shrink grab-handle" ng-if="checkRole('survey_edit')">
-                    <i class="fa fa-fw fa-reorder"></i></td>
-                <td class="shrink">{{func.seq + 1}}</td>
-                <td>{{func.title}}</td>
-            </tr>
-        </tbody>
-    </table>
-    <p ng-if="!funcs.length" class="text-muted">
-        This survey has no functions.
-    </p>
-</div>
-</div>
-</div>
+<reorderable href="/function/{}?survey={{survey.id}}"
+        model="funcs" title="Functions" check-role="checkRole"
+        params="{surveyId: survey.id}" resource="Func"></reorderable>
 
 </div>
