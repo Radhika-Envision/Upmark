@@ -11,7 +11,7 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, simplify, normalise, get_current_survey
+from utils import to_dict, simplify, normalise, get_current_survey, is_current_survey, get_model
 
 log = logging.getLogger('app.data_access')
 
@@ -24,26 +24,19 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         Get a single subprocess.
         '''
         if subprocess_id == "":
-            son = json_decode(self.request.body)
-            process_id = son['process']['id']
+            process_id = self.get_argument("processId", "")
             if process_id == None:
                 raise handlers.MethodError("Can't GET subprocess without process id.")
 
             self.query(process_id)
             return
 
-        survey_id = self.check_survey_id()
-        is_current = False
-        if survey_id == str(get_current_survey()):
-            is_current = True
+        survey_id = self.get_survey_id()
+        is_current = is_current_survey(survey_id)
 
         with model.session_scope() as session:
             try:
-                if is_current:
-                    subprocessModel = model.Subprocess
-                else:
-                    subprocessModel = model.Subprocess.__history_mapper__.class_
-                
+                subprocessModel = get_model(is_current, model.Subprocess)
                 subprocess = session.query(subprocessModel).filter_by(id = subprocess_id, survey_id = survey_id).one()
 
                 if subprocess is None:
@@ -51,21 +44,9 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
             except (sqlalchemy.exc.StatementError, ValueError):
                 raise handlers.MissingDocError("No such subprocess")
 
-
-            if is_current:
-                processModel = model.Process
-            else:
-                processModel = model.Process.__history_mapper__.class_
-
-            if is_current:
-                functionModel = model.Function
-            else:
-                functionModel = model.Function.__history_mapper__.class_
-
-            if is_current:
-                surveyModel = model.Survey
-            else:
-                surveyModel = model.Survey.__history_mapper__.class_
+            processModel = get_model(is_current, model.Process)
+            functionModel = get_model(is_current, model.Function)
+            surveyModel = get_model(is_current, model.Survey)
 
             process = session.query(processModel).filter_by(id = subprocess.process_id, survey_id = survey_id).one()
             function = session.query(functionModel).filter_by(id = process.function_id, survey_id = survey_id).one()
@@ -99,20 +80,18 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         Get a list of subprocesss.
         '''
-        survey_id = self.check_survey_id()
+        survey_id = self.get_survey_id()
+        is_current = is_current_survey(survey_id)
 
         sons = []
         with model.session_scope() as session:
-            if survey_id == str(get_current_survey()):
-                query = session.query(model.Subprocess).filter_by(process_id = process_id, survey_id = survey_id).order_by(model.Subprocess.seq)
-            else:
-                SubprocessHistory = model.Subprocess.__history_mapper__.class_
-                query = session.query(SubprocessHistory).filter_by(process_id = process_id, survey_id = survey_id).order_by(SubprocessHistory.seq)
+            subprocessModel = get_model(is_current, model.Subprocess)
+            query = session.query(subprocessModel).filter_by(process_id = process_id, survey_id = survey_id).order_by(subprocessModel.seq)
 
             term = self.get_argument('term', None)
             if term is not None:
                 query = query.filter(
-                    model.Subprocess.title.ilike(r'%{}%'.format(term)))
+                    subprocessModel.title.ilike(r'%{}%'.format(term)))
 
             query = self.paginate(query)
 
@@ -136,12 +115,9 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
 
         survey_id = self.check_survey_id()
 
-        son = json_decode(self.request.body)
-        process_id = son['process']['id']
+        process_id = self.get_argument("processId", "")
         if process_id == None:
             raise handlers.MethodError("Can't use POST subprocess without process id.")
-
-        
 
         try:
             with model.session_scope() as session:
@@ -179,11 +155,11 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.get(subprocess_id)
 
-    def check_survey_id(self):
-        son = json_decode(self.request.body)
-        survey_id = son['process']['function']['survey']['id']
+    def get_survey_id(self):
+        survey_id = self.get_argument("surveyId", "")
         if survey_id == '':
-            raise handlers.MethodError("Can't GET function without survey id.")
+            raise handlers.MethodError("Can't get function without survey id.")
+
         return survey_id
 
     def _update(self, subprocess, son):
@@ -192,9 +168,5 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         if son.get('title', '') != '':
             subprocess.title = son['title']
-        if son.get('seq', '') != '':
-            subprocess.seq = son['seq']
         if son.get('description', '') != '':
             subprocess.description = son['description']
-        if son.get('process_id', '') != '':
-            subprocess.process_id = son['process_id']

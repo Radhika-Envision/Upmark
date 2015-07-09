@@ -12,7 +12,7 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, simplify, normalise, get_current_survey
+from utils import to_dict, simplify, normalise, get_current_survey, is_current_survey, get_model
 
 log = logging.getLogger('app.data_access')
 
@@ -29,31 +29,19 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             return
 
         survey_id = self.get_survey_id()
-        is_current = False
-        if survey_id == str(get_current_survey()):
-            is_current = True
+        is_current = is_current_survey(survey_id)
 
         with model.session_scope() as session:
             try:
-                if is_current:
-                    baseModel = model.Function
-                else:
-                    baseModel = model.Function.__history_mapper__.class_
-                
-                function = session.query(baseModel).filter_by(survey_id = survey_id, id = function_id).one()
+                functionModel = get_model(is_current, model.Function)
+                function = session.query(functionModel).filter_by(survey_id = survey_id, id = function_id).one()
 
                 if function is None:
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError, ValueError):
                 raise handlers.MissingDocError("No such function")
 
-            if is_current:
-                surveyModel = model.Survey
-            else:
-                surveyModel = model.Survey.__history_mapper__.class_
-            
-            log.info("survey id", function.survey_id)
-            log.info("is_current", is_current)
+            surveyModel = get_model(is_current, model.Survey)
             survey = session.query(surveyModel).filter_by(id = function.survey_id).one()
             
             survey_json = to_dict(survey, include={'id', 'title'})
@@ -75,21 +63,18 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         '''
 
         survey_id = self.get_survey_id()
+        is_current = is_current_survey(survey_id)
 
         sons = []
         with model.session_scope() as session:
             query = None
-            if survey_id == str(get_current_survey()):
-                query = session.query(model.Function).order_by(model.Function.seq)
-            else:
-                FunctionHistory = model.Function.__history_mapper__.class_
-                query = session.query(FunctionHistory).order_by(FunctionHistory.seq)
-                query = query.filter_by(survey_id=survey_id)
+            functionModel = get_model(is_current, model.Function)
+            query = session.query(functionModel).filter_by(survey_id=survey_id).order_by(functionModel.seq)
 
             term = self.get_argument('term', None)
             if term is not None:
                 query = query.filter(
-                    model.Function.title.ilike(r'%{}%'.format(term)))
+                    functionModel.title.ilike(r'%{}%'.format(term)))
 
             query = self.paginate(query)
 
@@ -161,15 +146,6 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
 
     def get_survey_id(self):
         survey_id = self.get_argument("surveyId", "")
-        if survey_id == '':
-            try:
-                son = json_decode(self.request.body)
-                survey = son.get('survey')
-                if survey is not None:
-                    survey_id = survey.get('id', '')
-            except ValueError:
-                pass
-
         if survey_id == '':
             raise handlers.MethodError("Can't get function without survey id.")
 

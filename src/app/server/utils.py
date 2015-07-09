@@ -82,3 +82,14 @@ def get_current_survey():
     with model.session_scope() as session:
         survey = session.query(model.Survey).order_by(sqlalchemy.desc(model.Survey.created))[0]
         return survey.id
+
+
+def is_current_survey(survey_id):
+    return survey_id == str(get_current_survey())
+
+
+def get_model(is_current, model):
+    if is_current:
+        return model
+    else:
+        return model.__history_mapper__.class_
