@@ -17,8 +17,9 @@
                 ng-if="!edit.model && checkRole('func_edit')">
             <i class="fa fa-pencil"></i></button>
     </div>
-    <question-header entity="func"></question-header>
-    <h2 ng-show="!func.title">New function</h2>
+    <question-header entity="func">
+        <h2 ng-show="!func.title" label="F" class="survey-function">New function</h2>
+    </question-header>
 </div>
 </div>
 

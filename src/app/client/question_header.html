@@ -1,21 +1,21 @@
 <div class="stacked-header">
-<h2>
+<h2 label="S" class="survey-survey">
     <a href="#/surveys">Surveys</a> &raquo;
     <a ng-href="#/survey/{{hierarchy.survey.id}}">{{hierarchy.survey.title}}</a>
 </h2>
-<h2 ng-if="hierarchy.func.id">
+<h2 ng-if="hierarchy.func.id" label="F" class="survey-function">
     <a ng-href="#/function/{{hierarchy.func.id}}?survey={{hierarchy.survey.id}}">
         {{hierarchy.func.seq + 1}}. {{hierarchy.func.title}}</a>
 </h2>
-<h2 ng-if="hierarchy.process.id">
+<h2 ng-if="hierarchy.process.id" label="P" class="survey-process">
     <a ng-href="#/process/{{hierarchy.process.id}}?survey={{hierarchy.survey.id}}">
         {{hierarchy.process.seq + 1}}. {{hierarchy.process.title}}</a>
 </h2>
-<h2 ng-if="hierarchy.subProcess.id">
-    <a ng-href="#/subProcess/{{hierarchy.subProcess.id}}?survey={{hierarchy.survey.id}}">
+<h2 ng-if="hierarchy.subProcess.id" label="Sp" class="survey-subprocess">
+    <a ng-href="#/subprocess/{{hierarchy.subProcess.id}}?survey={{hierarchy.survey.id}}">
         {{hierarchy.subProcess.seq + 1}}. {{hierarchy.subProcess.title}}</a>
 </h2>
-<h2 ng-if="hierarchy.measure.id">
+<h2 ng-if="hierarchy.measure.id" label="M" class="survey-measure">
     <a ng-href="#/measure/{{hierarchy.measure.id}}?survey={{hierarchy.survey.id}}">
         {{hierarchy.measure.seq + 1}}. {{hierarchy.measure.title}}</a>
 </h2>
