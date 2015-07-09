@@ -220,7 +220,10 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.survey = routeData.survey;
     $scope.func = routeData.func;
-    $scope.edit = Editor('process', $scope, {surveyId: $scope.survey.id});
+    $scope.edit = Editor('process', $scope, {
+        functionId: $scope.func.id,
+        surveyId: $scope.survey.id
+    });
     if (routeData.process) {
         // Editing old
         $scope.process = routeData.process;
