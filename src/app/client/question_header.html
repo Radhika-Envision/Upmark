@@ -1,11 +1,13 @@
-<div class="stacked-header">
-<h2 ng-repeat="item in hstack" label="{{item.label}}" class="survey-{{item.type}}">
-    <a ng-if="item.entity.title && $index < hstack.length - 1"
+<div class="stacked-header"
+        ng-class="layout.expandHeader ? 'header-expanded' : 'header-collapsed'">
+<h2 ng-repeat="item in hstack" label="{{item.label}}"
+        class="survey-{{item.type}}">
+    <a ng-if="item.entity.title && !$last"
             ng-href="#/{{item.type}}/{{item.entity.id}}?survey={{survey.id}}">
         <span ng-if="item.entity.seq != null">{{item.entity.seq + 1}}.</span>
-        {{item.entity.title}}
+        <span ng-class="!$first ? 'when-expanded' : ''">{{item.entity.title}}</span>
     </a>
-    <span ng-if="item.entity.title && $index == hstack.length - 1">
+    <span ng-if="item.entity.title && $last">
         <span ng-if="item.entity.seq != null">{{item.entity.seq + 1}}.</span>
         {{item.entity.title}}
     </span>

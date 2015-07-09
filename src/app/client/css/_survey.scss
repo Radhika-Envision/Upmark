@@ -59,16 +59,27 @@ h2 {
 }
 .stacked-header {
     >h2:not(:last-child) {
-        font-size: 16px;
+        opacity: 0.8;
+    }
+}
 
+.header-collapsed {
+    h2 {
+        display: inline;
         &[label]:before {
-            top: 0px;
+            display: none;
         }
-        &[label]:not(:hover):before {
-            box-shadow: 0 0 3px rgba(0, 0, 0, 0.0), 2px 2px 10px rgba(0, 0, 0, 0.0);
-            background: transparent;
-            opacity: 0.5;
-        }
+    }
+    .when-expanded {
+        display: none;
+    }
+}
+.header-expanded {
+    h2 {
+        display: block;
+    }
+    .when-collapsed {
+        display: none;
     }
 }
 

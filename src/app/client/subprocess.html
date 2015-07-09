@@ -3,6 +3,11 @@
 <div class="header">
 <div class="container">
     <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Collapse"
+                ng-click="layout.expandHeader = !layout.expandHeader">
+            <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
+            <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
+        </button>
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
                 ng-if="edit.model && edit.model.id">

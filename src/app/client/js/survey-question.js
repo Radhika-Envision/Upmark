@@ -71,10 +71,11 @@ angular.module('wsaa.surveyQuestions', [
 
 .controller('SurveyCtrl', [
         '$scope', 'Survey', 'routeData', 'Editor', 'questionAuthz',
-        '$location', 'Notifications', 'Current', 'Func',
+        '$location', 'Notifications', 'Current', 'Func', 'layout',
         function($scope, Survey, routeData, Editor, authz,
-                 $location, Notifications, current, Func) {
+                 $location, Notifications, current, Func, layout) {
 
+    $scope.layout = layout;
     $scope.edit = Editor('survey', $scope);
     if (routeData.survey) {
         // Viewing old
@@ -97,8 +98,10 @@ angular.module('wsaa.surveyQuestions', [
 
 
 .controller('SurveyListCtrl', ['$scope', 'questionAuthz', 'Survey', 'Current',
-        function($scope, authz, Survey, current) {
+        'layout',
+        function($scope, authz, Survey, current, layout) {
 
+    $scope.layout = layout;
     $scope.checkRole = authz(current, null);
     $scope.currentSurvey = Survey.get({id: 'current'});
 
@@ -123,7 +126,9 @@ angular.module('wsaa.surveyQuestions', [
         },
         replace: true,
         templateUrl: 'question_header.html',
-        controller: ['$scope', function($scope) {
+        controller: ['$scope', 'layout', function($scope, layout) {
+            $scope.layout = layout;
+
             $scope.$watchGroup([
                     'entity.survey', 'entity.function',
                     'entity.process', 'entity.subprocess'],
@@ -189,11 +194,12 @@ angular.module('wsaa.surveyQuestions', [
 
 
 .controller('FuncCtrl', [
-        '$scope', 'Func', 'routeData', 'Editor', 'questionAuthz',
+        '$scope', 'Func', 'routeData', 'Editor', 'questionAuthz', 'layout',
         '$location', 'Notifications', 'Current', 'Survey', 'format', 'Process',
-        function($scope, Func, routeData, Editor, authz,
+        function($scope, Func, routeData, Editor, authz, layout,
                  $location, Notifications, current, Survey, format, Process) {
 
+    $scope.layout = layout;
     $scope.survey = routeData.survey;
     $scope.edit = Editor('func', $scope, {surveyId: $scope.survey.id});
     if (routeData.func) {
@@ -222,11 +228,12 @@ angular.module('wsaa.surveyQuestions', [
 .controller('ProcessCtrl', [
         '$scope', 'Process', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'Survey', 'format',
-        'SubProcess',
+        'SubProcess', 'layout',
         function($scope, Process, routeData, Editor, authz,
                  $location, Notifications, current, Survey, format,
-                 SubProcess) {
+                 SubProcess, layout) {
 
+    $scope.layout = layout;
     $scope.survey = routeData.survey;
     $scope.func = routeData.func;
     $scope.edit = Editor('process', $scope, {
@@ -259,9 +266,12 @@ angular.module('wsaa.surveyQuestions', [
 .controller('SubProcessCtrl', [
         '$scope', 'SubProcess', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'Survey', 'format', 'Measure',
+        'layout',
         function($scope, SubProcess, routeData, Editor, authz,
-                 $location, Notifications, current, Survey, format, Measure) {
+                 $location, Notifications, current, Survey, format, Measure,
+                 layout) {
 
+    $scope.layout = layout;
     $scope.survey = routeData.survey;
     $scope.process = routeData.process;
     $scope.edit = Editor('subprocess', $scope, {
@@ -293,10 +303,11 @@ angular.module('wsaa.surveyQuestions', [
 
 .controller('MeasureCtrl', [
         '$scope', 'Measure', 'routeData', 'Editor', 'questionAuthz',
-        '$location', 'Notifications', 'Current', 'Survey', 'format',
+        '$location', 'Notifications', 'Current', 'Survey', 'format', 'layout',
         function($scope, Measure, routeData, Editor, authz,
-                 $location, Notifications, current, Survey, format) {
+                 $location, Notifications, current, Survey, format, layout) {
 
+    $scope.layout = layout;
     $scope.survey = routeData.survey;
     $scope.subprocess = routeData.subprocess;
     $scope.edit = Editor('measure', $scope, {

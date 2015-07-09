@@ -287,6 +287,13 @@ angular.module('vpac.widgets', [])
 }])
 
 
+.factory('layout', function() {
+    return {
+        expandHeader: true
+    };
+})
+
+
 .directive('pageTitle', ['$document', '$injector', function($document, $injector) {
     var numTitles = 0;
     var defaultTitle = $document[0].title;
