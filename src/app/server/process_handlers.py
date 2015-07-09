@@ -26,7 +26,8 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
         if process_id == "":
             function_id = self.get_argument("functionId", "")
             if function_id == None:
-                raise handlers.MethodError("Can't GET process without function id.")
+                raise handlers.MethodError(
+                    "Function ID is required.")
 
             self.query(function_id)
             return
@@ -37,28 +38,34 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
         with model.session_scope() as session:
             try:
                 processModel = get_model(is_current, model.Process)
-                process = session.query(processModel).filter_by(id = process_id, survey_id = survey_id).one()
+                process = session.query(processModel)\
+                    .filter_by(id = process_id, survey_id = survey_id).one()
 
                 if process is None:
                     raise ValueError("No such object")
-            except (sqlalchemy.exc.StatementError, ValueError):
+            except (sqlalchemy.exc.StatementError,
+                    sqlalchemy.orm.exc.NoResultFound,
+                    ValueError):
                 raise handlers.MissingDocError("No such process")
 
             functionModel = get_model(is_current, model.Function)
             surveyModel = get_model(is_current, model.Survey)
-            function = session.query(functionModel).filter_by(id = process.function_id, survey_id = survey_id).one()
+            function = session.query(functionModel)\
+                .filter_by(id = process.function_id, survey_id = survey_id)\
+                .one()
             survey = session.query(surveyModel).filter_by(id = survey_id).one()
             
             survey_json = to_dict(survey, include={'id', 'title'})
             survey_json = simplify(survey_json)
             survey_json = normalise(survey_json)
 
-            function_json = to_dict(function, include={'id', 'title', 'seq', 'description'})
+            function_json = to_dict(function, include={'id', 'title', 'seq'})
             function_json = simplify(function_json)
             function_json = normalise(function_json)
             function_json['survey'] = survey_json
 
-            son = to_dict(process, include={'id', 'title', 'seq', 'description'})
+            son = to_dict(process, include={
+                'id', 'title', 'seq', 'description'})
             son = simplify(son)
             son = normalise(son)
             son['function'] = function_json
@@ -77,7 +84,9 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
         sons = []
         with model.session_scope() as session:
             processModel = get_model(is_current, model.Process)
-            query = session.query(processModel).filter_by(function_id = function_id, survey_id = survey_id).order_by(processModel.seq)
+            query = session.query(processModel)\
+                .filter_by(function_id=function_id, survey_id=survey_id)\
+                .order_by(processModel.seq)
 
             term = self.get_argument('term', None)
             if term is not None:
@@ -168,17 +177,21 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
         son = json_decode(self.request.body)
         try:
             with model.session_scope() as session:
-                processes = session.query(model.Process).filter_by(survey_id=survey_id, function_id=function_id).all()
+                processes = session.query(model.Process)\
+                    .filter_by(survey_id=survey_id, function_id=function_id)\
+                    .all()
                 processset = {str(f.id) for f in processes}
                 request_order_list = [f["id"] for f in son]
 
                 if processset != set(request_order_list):
-                    raise handlers.MethodError("List of functions are not matching on server")
+                    raise handlers.MethodError(
+                        "List of functions are not matching on server")
                 
                 request_body_set = dict([ (f["id"], f["seq"]) for f in son ])
                 for process in processes:
                     if process.seq != request_body_set[str(process.id)]:
-                        raise handlers.MethodError("Current order is not matching")
+                        raise handlers.MethodError(
+                            "Current order is not matching")
                     process.seq = request_order_list.index(str(process.id))
                     session.add(process)
                 session.flush()
@@ -193,7 +206,7 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
     def get_survey_id(self):
         survey_id = self.get_argument("surveyId", "")
         if survey_id == '':
-            raise handlers.MethodError("Can't get function without survey id.")
+            raise handlers.MethodError("Survey ID is required.")
 
         return survey_id
 

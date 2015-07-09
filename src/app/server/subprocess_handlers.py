@@ -11,7 +11,8 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, simplify, normalise, get_current_survey, is_current_survey, get_model
+from utils import to_dict, simplify, normalise, get_current_survey,\
+        is_current_survey, get_model
 
 log = logging.getLogger('app.data_access')
 
@@ -26,7 +27,8 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         if subprocess_id == "":
             process_id = self.get_argument("processId", "")
             if process_id == None:
-                raise handlers.MethodError("Can't GET subprocess without process id.")
+                raise handlers.MethodError(
+                    "Can't GET subprocess without process id.")
 
             self.query(process_id)
             return
@@ -37,36 +39,44 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         with model.session_scope() as session:
             try:
                 subprocessModel = get_model(is_current, model.Subprocess)
-                subprocess = session.query(subprocessModel).filter_by(id = subprocess_id, survey_id = survey_id).one()
+                subprocess = session.query(subprocessModel)\
+                    .filter_by(id = subprocess_id, survey_id=survey_id).one()
 
                 if subprocess is None:
                     raise ValueError("No such object")
-            except (sqlalchemy.exc.StatementError, ValueError):
+            except (sqlalchemy.exc.StatementError,
+                    sqlalchemy.orm.exc.NoResultFound,
+                    ValueError):
                 raise handlers.MissingDocError("No such subprocess")
 
             processModel = get_model(is_current, model.Process)
             functionModel = get_model(is_current, model.Function)
             surveyModel = get_model(is_current, model.Survey)
 
-            process = session.query(processModel).filter_by(id = subprocess.process_id, survey_id = survey_id).one()
-            function = session.query(functionModel).filter_by(id = process.function_id, survey_id = survey_id).one()
-            survey = session.query(surveyModel).filter_by(id = survey_id).one()
+            process = session.query(processModel)\
+                .filter_by(id=subprocess.process_id, survey_id=survey_id)\
+                .one()
+            function = session.query(functionModel)\
+                .filter_by(id=process.function_id, survey_id=survey_id)\
+                .one()
+            survey = session.query(surveyModel).filter_by(id=survey_id).one()
             
             survey_json = to_dict(survey, include={'id', 'title'})
             survey_json = simplify(survey_json)
             survey_json = normalise(survey_json)
 
-            function_json = to_dict(function, include={'id', 'title', 'seq', 'description'})
+            function_json = to_dict(function, include={'id', 'title', 'seq'})
             function_json = simplify(function_json)
             function_json = normalise(function_json)
             function_json['survey'] = survey_json
 
-            process_json = to_dict(process, include={'id', 'title', 'seq', 'description'})
+            process_json = to_dict(process, include={'id', 'title', 'seq'})
             process_json = simplify(process_json)
             process_json = normalise(process_json)
             process_json['function'] = function_json
 
-            son = to_dict(subprocess, include={'id', 'title', 'seq', 'description'})
+            son = to_dict(subprocess, include={
+                'id', 'title', 'seq', 'description'})
             son = simplify(son)
             son = normalise(son)
             son['process'] = process_json
@@ -86,7 +96,9 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         sons = []
         with model.session_scope() as session:
             subprocessModel = get_model(is_current, model.Subprocess)
-            query = session.query(subprocessModel).filter_by(process_id = process_id, survey_id = survey_id).order_by(subprocessModel.seq)
+            query = session.query(subprocessModel)\
+                .filter_by(process_id=process_id, survey_id=survey_id)\
+                .order_by(subprocessModel.seq)
 
             term = self.get_argument('term', None)
             if term is not None:
@@ -96,7 +108,7 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
             query = self.paginate(query)
 
             for ob in query.all():
-                son = to_dict(ob, include={'id', 'title', 'seq', 'description'})
+                son = to_dict(ob, include={'id', 'title', 'seq'})
                 son = simplify(son)
                 son = normalise(son)
                 sons.append(son)
@@ -111,22 +123,26 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         Create a new subprocess.
         '''
         if subprocess_id != '':
-            raise handlers.MethodError("Can't use POST for existing subprocess.")
+            raise handlers.MethodError(
+                "Can't use POST for existing subprocess.")
 
         survey_id = self.get_survey_id()
 
         process_id = self.get_argument("processId", "")
         if process_id == None:
-            raise handlers.MethodError("Can't use POST subprocess without process id.")
+            raise handlers.MethodError("Process ID is required.")
 
         son = json_decode(self.request.body)
 
         try:
             with model.session_scope() as session:
+                # This is OK because POST is always for the current survey
+                process = session.query(model.Process).get(process_id)
                 subprocess = model.Subprocess()
                 self._update(subprocess, son)
                 subprocess.process_id = process_id
                 subprocess.survey_id = survey_id
+                process.subprocesses.append(subprocess)
                 session.add(subprocess)
                 session.flush()
                 session.expunge(subprocess)
@@ -175,17 +191,20 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         son = json_decode(self.request.body)
         try:
             with model.session_scope() as session:
-                subprocesses = session.query(model.Subprocess).filter_by(survey_id=survey_id, process_id=process_id).all()
+                subprocesses = session.query(model.Subprocess)\
+                    .filter_by(survey_id=survey_id, process_id=process_id).all()
                 subprocessset = {str(f.id) for f in subprocesses}
                 request_order_list = [f["id"] for f in son]
 
                 if subprocessset != set(request_order_list):
-                    raise handlers.MethodError("List of functions are not matching on server")
+                    raise handlers.MethodError(
+                        "List of functions are not matching on server")
                 
-                request_body_set = dict([ (f["id"], f["seq"]) for f in son ])
+                request_body_set = dict([(f["id"], f["seq"]) for f in son])
                 for subprocess in subprocesses:
                     if subprocess.seq != request_body_set[str(subprocess.id)]:
-                        raise handlers.MethodError("Current order is not matching")
+                        raise handlers.MethodError(
+                            "Current order is not matching")
                     subprocess.seq = request_order_list.index(str(subprocess.id))
                     session.add(subprocess)
                 session.flush()
@@ -200,7 +219,7 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
     def get_survey_id(self):
         survey_id = self.get_argument("surveyId", "")
         if survey_id == '':
-            raise handlers.MethodError("Can't get function without survey id.")
+            raise handlers.MethodError("Survey ID is required.")
 
         return survey_id
 

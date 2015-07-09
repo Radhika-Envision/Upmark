@@ -12,7 +12,8 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, simplify, normalise, get_current_survey, is_current_survey, get_model
+from utils import to_dict, simplify, normalise, get_current_survey,\
+        is_current_survey, get_model
 
 log = logging.getLogger('app.data_access')
 
@@ -34,21 +35,26 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         with model.session_scope() as session:
             try:
                 functionModel = get_model(is_current, model.Function)
-                function = session.query(functionModel).filter_by(survey_id = survey_id, id = function_id).one()
+                function = session.query(functionModel)\
+                    .filter_by(survey_id = survey_id, id = function_id).one()
 
                 if function is None:
                     raise ValueError("No such object")
-            except (sqlalchemy.exc.StatementError, ValueError):
+            except (sqlalchemy.exc.StatementError,
+                    sqlalchemy.orm.exc.NoResultFound,
+                    ValueError):
                 raise handlers.MissingDocError("No such function")
 
             surveyModel = get_model(is_current, model.Survey)
-            survey = session.query(surveyModel).filter_by(id = function.survey_id).one()
+            survey = session.query(surveyModel)\
+                .filter_by(id = function.survey_id).one()
             
             survey_json = to_dict(survey, include={'id', 'title'})
             survey_json = simplify(survey_json)
             survey_json = normalise(survey_json)
 
-            son = to_dict(function, include={'id', 'title', 'seq', 'description'})
+            son = to_dict(function, include={
+                'id', 'title', 'seq', 'description'})
             son = simplify(son)
             son = normalise(son)
             son['survey'] = survey_json
@@ -69,7 +75,8 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         with model.session_scope() as session:
             query = None
             functionModel = get_model(is_current, model.Function)
-            query = session.query(functionModel).filter_by(survey_id=survey_id).order_by(functionModel.seq)
+            query = session.query(functionModel)\
+                .filter_by(survey_id=survey_id).order_by(functionModel.seq)
 
             term = self.get_argument('term', None)
             if term is not None:
@@ -151,22 +158,26 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         survey_id = self.get_survey_id()
         if survey_id != str(get_current_survey()):
-            raise handlers.MethodError("This surveyId is not current one.")
+            raise handlers.MethodError(
+                "This surveyId is not current one.")
 
         son = json_decode(self.request.body)
         try:
             with model.session_scope() as session:
-                functions = session.query(model.Function).filter_by(survey_id=survey_id).all()
+                functions = session.query(model.Function)\
+                    .filter_by(survey_id=survey_id).all()
                 functionset = {str(f.id) for f in functions}
                 request_order_list = [f["id"] for f in son]
 
                 if functionset != set(request_order_list):
-                    raise handlers.MethodError("List of functions are not matching on server")
+                    raise handlers.MethodError(
+                        "List of functions are not matching on server")
                 
                 request_body_set = dict([ (f["id"], f["seq"]) for f in son ])
                 for function in functions:
                     if function.seq != request_body_set[str(function.id)]:
-                        raise handlers.MethodError("Current order is not matching")
+                        raise handlers.MethodError(
+                            "Current order is not matching")
                     function.seq = request_order_list.index(str(function.id))
                     session.add(function)
                 session.flush()
@@ -182,7 +193,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
     def get_survey_id(self):
         survey_id = self.get_argument("surveyId", "")
         if survey_id == '':
-            raise handlers.MethodError("Can't get function without survey id.")
+            raise handlers.MethodError("Survey ID is required.")
 
         return survey_id
 

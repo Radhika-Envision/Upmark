@@ -38,7 +38,9 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 log.info(survey)
                 if survey is None:
                     raise ValueError("No such object")
-            except (sqlalchemy.exc.StatementError, ValueError):
+            except (sqlalchemy.exc.StatementError,
+                    sqlalchemy.orm.exc.NoResultFound,
+                    ValueError):
                 raise handlers.MissingDocError("No such survey")
 
             son = to_dict(survey, include={'id', 'title', 'branch'})

@@ -33,6 +33,15 @@
                 ng-model="edit.model.title" required />
         </div>
         <div class="form-group" show-errors>
+            <label for="title">Weight</label>
+            <span class="help-label" ng-if="form.weight.$error.required">
+                Please provide a weight.</span>
+            <span class="help-label" ng-if="form.weight.$error.min">
+                Negative numbers are not allowed</span>
+            <input type="number" class="form-control" id="weight" name="weight"
+                ng-model="edit.model.weight" min="0" required />
+        </div>
+        <div class="form-group" show-errors>
             <label for="intent">Intent</label>
             <textarea id="intent" name="intent" class="form-control"
                 ng-model="edit.model.intent"></textarea>
@@ -61,13 +70,13 @@
     <p ng-if="measure.intent">
         <span class="text-muted">Intent</span>
         {{measure.intent}}</p>
-    <p ng-if="measure.intent">
+    <p ng-if="measure.inputs">
         <span class="text-muted">Inputs</span>
         {{measure.inputs}}</p>
-    <p ng-if="measure.intent">
+    <p ng-if="measure.scenario">
         <span class="text-muted">Scenario</span>
         {{measure.scenario}}</p>
-    <p ng-if="measure.question">
+    <p ng-if="measure.questions">
         <span class="text-muted">Questions</span>
         {{measure.questions}}</p>
 </div>

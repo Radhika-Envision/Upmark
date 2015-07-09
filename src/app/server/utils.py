@@ -78,6 +78,24 @@ def normalise(ob_dict):
     return new_dict
 
 
+def denormalise(ob_dict):
+    '''
+    Convert the keys of a dictionary to Python form.
+    '''
+    new_dict = {}
+    for name, value in ob_dict.items():
+        new_name = ""
+        for i, char in enumerate(name):
+            if char.isupper():
+                if i > 0:
+                    new_name += '_'
+                new_name += char.lower()
+            else:
+                new_name += char
+        new_dict[new_name] = value
+    return new_dict
+
+
 def get_current_survey():
     with model.session_scope() as session:
         survey = session.query(model.Survey).order_by(sqlalchemy.desc(model.Survey.created))[0]

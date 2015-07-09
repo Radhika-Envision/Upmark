@@ -126,7 +126,7 @@ angular.module('wsaa.surveyQuestions', [
         controller: ['$scope', function($scope) {
             $scope.$watchGroup([
                     'entity.survey', 'entity.function',
-                    'entity.process', 'entity.subProcess'],
+                    'entity.process', 'entity.subprocess'],
                 function(vars) {
                     var type;
                     if (vars[3]) {
@@ -150,7 +150,7 @@ angular.module('wsaa.surveyQuestions', [
                             label: 'M',
                             entity: entity
                         });
-                        entity = entity.subProcess;
+                        entity = entity.subprocess;
                     case 'subProcess':
                         hstack.push({
                             type: 'subprocess',
@@ -275,7 +275,7 @@ angular.module('wsaa.surveyQuestions', [
     } else {
         // Creating new
         $scope.subprocess = new SubProcess({
-            'process': $scope.process
+            process: $scope.process
         });
         $scope.measures = null;
         $scope.edit.edit();
@@ -309,7 +309,9 @@ angular.module('wsaa.surveyQuestions', [
     } else {
         // Creating new
         $scope.measure = new Measure({
-            'subprocess': $scope.subprocess
+            subprocess: $scope.subprocess,
+            weight: 100,
+            responseType: 'standard_1'
         });
         $scope.edit.edit();
     }
