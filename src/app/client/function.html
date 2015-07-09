@@ -46,12 +46,16 @@
 
 <div class="measure" ng-if="!edit.model">
 <div class="container">
-    <h2>
-        Processes
+    <p>{{func.description}}</p>
+
+    <div class="toolbar">
         <a class="btn btn-default btn-round" title="Add new"
                 ng-href="#/process/new?branch={{func.branch}}"
                 ng-if="checkRole('proc_add')">
             <i class="fa fa-fw fa-plus"></i></a>
+    </div>
+    <h2>
+        Processes
     </h2>
     <table class="table table-hover">
         <tbody>

@@ -198,6 +198,9 @@ angular.module('wsaa.aquamark',
                             surveyId: $route.current.params.survey
                         }).$promise;
                     }],
+                    survey: ['func', function(func) {
+                        return func.survey;
+                    }],
                     procs: ['Process', 'func', function(Process, func) {
                         console.log('Getting processes')
                         return Process.query({
