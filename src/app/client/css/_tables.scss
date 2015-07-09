@@ -1,9 +1,19 @@
 .table {
      > thead > tr > th {
         border-bottom: 1px solid #ddd;
+        width: auto;
+
+        &.shrink {
+            width: 1%;
+        }
     }
      > tbody > tr > td {
         border-top: none;
+        width: auto;
+
+        &.shrink {
+            width: 1%;
+        }
     }
 }
 

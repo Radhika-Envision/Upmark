@@ -3,12 +3,30 @@
 
 $anim-time: 0.5s;
 
+h2, h3, h4 {
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+h2 {
+    font-size: 19px;
+}
+h3, h4 {
+    font-size: 16px;
+}
+
 .header {
     background: $primary-colour;
     position: relative;
     padding-top: 10px;
     padding-bottom: 10px;
     margin-bottom: 20px;
+
+    h2 {
+        .clock-progress {
+            @include transform(scale(19/16));
+            @include transform-origin(9px 1px);
+        }
+    }
 
     h2, h3, h4 {
         color: mix(black, $primary-colour, 70%);
@@ -21,16 +39,6 @@ $anim-time: 0.5s;
             top: 0.2em;
             right: 0;
         }
-    }
-    h2 {
-        font-size: 19px;
-        .clock-progress {
-            @include transform(scale(19/16));
-            @include transform-origin(9px 1px);
-        }
-    }
-    h3, h4 {
-        font-size: 16px;
     }
 
     a {
