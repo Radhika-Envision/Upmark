@@ -316,6 +316,19 @@ angular.module('wsaa.surveyQuestions', [
         $scope.edit.edit();
     }
 
+    $scope.responseTypes = [
+        {
+            id: 'standard_1',
+            name: "Standard",
+            description: "Guided four-part response"
+        },
+        {
+            id: 'yesno_1',
+            name: "Yes/No",
+            description: "Simple \"yes\" or \"no\" response"
+        }
+    ];
+
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
             '/measure/{}?survey={}', model.id, $scope.survey.id));
