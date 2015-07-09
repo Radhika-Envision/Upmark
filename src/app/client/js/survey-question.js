@@ -190,9 +190,9 @@ angular.module('wsaa.surveyQuestions', [
 
 .controller('FuncCtrl', [
         '$scope', 'Func', 'routeData', 'Editor', 'questionAuthz',
-        '$location', 'Notifications', 'Current', 'Survey', 'format',
+        '$location', 'Notifications', 'Current', 'Survey', 'format', 'Process',
         function($scope, Func, routeData, Editor, authz,
-                 $location, Notifications, current, Survey, format) {
+                 $location, Notifications, current, Survey, format, Process) {
 
     $scope.survey = routeData.survey;
     $scope.edit = Editor('func', $scope, {surveyId: $scope.survey.id});
@@ -215,6 +215,7 @@ angular.module('wsaa.surveyQuestions', [
     });
 
     $scope.checkRole = authz(current, $scope.survey);
+    $scope.Process = Process;
 }])
 
 

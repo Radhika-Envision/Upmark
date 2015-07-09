@@ -46,30 +46,12 @@
 <div class="measure" ng-if="!edit.model">
 <div class="container">
     <p>{{func.description}}</p>
-
-    <div class="section">
-    <div class="toolbar">
-        <a class="btn btn-default btn-round" title="Add new"
-                ng-href="#/process/new?func={{func.id}}&survey={{survey.id}}"
-                ng-if="checkRole('proc_add')">
-            <i class="fa fa-fw fa-plus"></i></a>
-    </div>
-    <h2>Processes</h2>
-    </div>
-
-    <table ng-if="procs.length" class="table table-hover">
-        <tbody>
-            <tr ng-repeat="proc in procs"
-                    any-href="/process/{{proc.id}}?survey={{survey.id}}">
-                <td class="shrink">{{proc.seq + 1}}</td>
-                <td>{{proc.title}}</td>
-            </tr>
-        </tbody>
-    </table>
-    <p ng-if="!procs.length" class="text-muted">
-        This function has no processes
-    </p>
 </div>
 </div>
+
+<reorderable href="/process/{}?survey={{survey.id}}&func={{func.id}}"
+        model="procs" title="Processes" check-role="checkRole"
+        params="{surveyId: survey.id, functionId: func.id}"
+        resource="Process"></reorderable>
 
 </div>
