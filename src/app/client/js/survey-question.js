@@ -116,7 +116,6 @@ angular.module('wsaa.surveyQuestions', [
             entity: '='
         },
         replace: true,
-        transclude: true,
         templateUrl: 'question_header.html',
         controller: ['$scope', function($scope) {
             $scope.$watchGroup([
@@ -136,25 +135,47 @@ angular.module('wsaa.surveyQuestions', [
                         type = 'survey';
                     }
 
-                    var hierarchy = {};
+                    var hstack = [];
                     var entity = $scope.entity;
                     switch (type) {
                     case 'measure':
-                        hierarchy.measure = entity;
+                        hstack.push({
+                            type: 'measure',
+                            label: 'M',
+                            entity: entity
+                        });
                         entity = entity.subProcess;
                     case 'subProcess':
-                        hierarchy.subProcess = entity;
+                        hstack.push({
+                            type: 'subprocess',
+                            label: 'Sp',
+                            entity: entity
+                        });
                         entity = entity.process;
                     case 'process':
-                        hierarchy.process = entity;
+                        hstack.push({
+                            type: 'process',
+                            label: 'P',
+                            entity: entity
+                        });
                         entity = entity['function'];
                     case 'func':
-                        hierarchy.func = entity;
+                        hstack.push({
+                            type: 'function',
+                            label: 'F',
+                            entity: entity
+                        });
                         entity = entity.survey;
                     case 'survey':
-                        hierarchy.survey = entity;
+                        hstack.push({
+                            type: 'survey',
+                            label: 'S',
+                            entity: entity
+                        });
+                        $scope.survey = entity;
                     }
-                    $scope.hierarchy = hierarchy;
+                    hstack.reverse();
+                    $scope.hstack = hstack;
             });
         }]
     }

@@ -17,11 +17,7 @@
                 ng-if="!edit.model && checkRole('survey_edit')">
             <i class="fa fa-pencil"></i></button>
     </div>
-    <h2>
-        <a href="#/surveys">Surveys</a> &raquo;
-        <span ng-show="survey.title">{{survey.title}}</span>
-        <span ng-show="!survey.title">New survey</span>
-    </h2>
+    <question-header entity="survey"></question-header>
 </div>
 </div>
 
