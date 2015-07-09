@@ -156,7 +156,9 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
         Update existing.
         '''
         if measure_id == '':
-            raise handlers.MethodError("Can't use PUT for new measure (no ID).")
+            self.ordering()
+            return
+
         son = json_decode(self.request.body)
         son = denormalise(son)
 
@@ -172,6 +174,49 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(measure_id)
+
+    def ordering(self):
+        '''
+        Change the order that would be returned by a query.
+        '''
+        survey_id = self.get_survey_id()
+        if not is_current_survey(survey_id):
+            raise handlers.MethodError("This surveyId is not current one.")
+
+        subprocess_id = self.get_argument("subprocessId", "")
+        if subprocess_id == None:
+            raise handlers.MethodError("Subprocess ID is required.")
+
+
+
+        son = json_decode(self.request.body)
+        try:
+            with model.session_scope() as session:
+                measures = session.query(model.Measure)\
+                    .filter_by(survey_id=survey_id, subprocess_id=subprocess_id)\
+                    .all()
+                measureset = {str(f.id) for f in measures}
+                request_order_list = [f["id"] for f in son]
+
+                if measureset != set(request_order_list):
+                    raise handlers.MethodError(
+                        "List of functions are not matching on server")
+
+                request_body_set = dict([(f["id"], f["seq"]) for f in son])
+                for measure in measures:
+                    if measure.seq != request_body_set[str(measure.id)]:
+                        raise handlers.MethodError(
+                            "Current order is not matching")
+                    measure.seq = request_order_list.index(str(measure.id))
+                    session.add(measure)
+                session.flush()
+
+        except (sqlalchemy.exc.StatementError, ValueError):
+            raise handlers.MissingDocError("No such function")
+        except sqlalchemy.exc.IntegrityError as e:
+            raise handlers.ModelError.from_sa(e)
+
+        self.query()
 
     def _update(self, measure, son):
         '''

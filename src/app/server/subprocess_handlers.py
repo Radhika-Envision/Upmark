@@ -184,7 +184,7 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
 
         process_id = self.get_argument("processId", "")
         if process_id == None:
-            raise handlers.MethodError("Can't GET process without process id.")
+            raise handlers.MethodError("Process ID is required.")
 
 
 

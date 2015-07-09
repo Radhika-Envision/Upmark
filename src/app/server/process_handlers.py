@@ -170,7 +170,7 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
 
         function_id = self.get_argument("functionId", "")
         if function_id == None:
-            raise handlers.MethodError("Can't GET process without function id.")
+            raise handlers.MethodError("Function ID is required.")
 
 
 
