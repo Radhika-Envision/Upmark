@@ -63,7 +63,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 query = query.filter(
                     model.Survey.title.ilike(r'%{}%'.format(term)))
 
-            query = query.order_by(model.Survey.title)
+            query = query.order_by(model.Survey.created)
             query = self.paginate(query)
 
             for ob in query.all():
