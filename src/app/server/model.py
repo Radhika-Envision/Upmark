@@ -211,13 +211,17 @@ class Assessment(Versioned, Base):
 
 
 Session = None
+VersionedSession = None
 
 
 @contextmanager
-def session_scope():
+def session_scope(version=False):
     # http://docs.sqlalchemy.org/en/latest/orm/session_basics.html#when-do-i-construct-a-session-when-do-i-commit-it-and-when-do-i-close-it
     """Provide a transactional scope around a series of operations."""
-    session = Session()
+    if version:
+        session = VersionedSession()
+    else:
+        session = Session()
     try:
         yield session
         session.commit()
@@ -236,7 +240,8 @@ def connect_db(url):
     # - For short-term testing, use psql.
     # - For breaking changes, add migration code to the alembic scripts.
     Session = sessionmaker(bind=engine)
-    versioned_session(Session)
+    VersionedSession = sessionmaker(bind=engine)
+    versioned_session(VersionedSession)
     return engine
 
 
