@@ -147,6 +147,10 @@ SCRIPTS = [
         'href': '/.bower_components/angular-sanitize/angular-sanitize.js'
     },
     {
+        'cdn': '//code.jquery.com/ui/1.11.4/jquery-ui.min.js',
+        'href': '/.bower_components/jquery-ui/jquery-ui.js'
+    },
+    {
         'min-href': '/minify/3rd-party-min.js',
         'hrefs': [
             '/.bower_components/bootstrap/dist/js/bootstrap.js',
@@ -155,7 +159,9 @@ SCRIPTS = [
             '/.bower_components/angular-bootstrap-show-errors/src/showErrors.js',
             '/.bower_components/angular-validation-match/dist/angular-validation-match.js',
             '/.bower_components/angular-ui-select/dist/select.js',
-            '/.bower_components/angular-ui-tree/dist/angular-ui-tree.js'
+            '/.bower_components/angular-ui-tree/dist/angular-ui-tree.js',
+            '/.bower_components/angular-ui-sortable/sortable.js',
+            '/.bower_components/jqueryui-touch-punch/jquery.ui.touch-punch.js'
         ]
     },
     {

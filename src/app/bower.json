@@ -25,8 +25,10 @@
     "angular-bootstrap-show-errors": "~2.3.0",
     "angular-sanitize": "~1.4.1",
     "angular-ui-select": "~0.12.0",
+    "angular-ui-sortable": "~0.13.4",
     "angular-cookies": "~1.4.1",
-    "angular-ui-tree": "~2.5.0"
+    "angular-ui-tree": "~2.5.0",
+    "jqueryui-touch-punch": "#4bc009145202d9c7483ba85f3a236a8f3470354d"
   },
   "resolutions": {
     "angular": "~1.4.1"

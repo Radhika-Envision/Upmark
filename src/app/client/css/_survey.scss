@@ -123,6 +123,11 @@ h2 {
     margin-top: 4px;
 }
 
+.grab-handle {
+    cursor: move;
+    color: #aaa;
+}
+
 /* Nested pages should have less prominent headers */
 ng-include>.header, .nested>.header {
     background: transparent;

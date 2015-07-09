@@ -1,7 +1,8 @@
 'use strict';
 
 angular.module('wsaa.surveyQuestions', [
-    'ngResource', 'ngSanitize', 'ui.select', 'ui.tree', 'wsaa.admin'])
+    'ngResource', 'ngSanitize', 'ui.select', 'ui.tree', 'ui.sortable',
+    'wsaa.admin'])
 
 
 .factory('Survey', ['$resource', function($resource) {
@@ -87,6 +88,11 @@ angular.module('wsaa.surveyQuestions', [
     });
 
     $scope.checkRole = authz(current, $scope.survey);
+
+    $scope.dragOpts = {
+        axis: 'y',
+        handle: '.grab-handle'
+    };
 }])
 
 
