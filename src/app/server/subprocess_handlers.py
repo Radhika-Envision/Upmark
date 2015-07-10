@@ -130,6 +130,27 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         self.get(subprocess.id)
 
     @handlers.authz('author')
+    def delete(self, subprocess_id):
+        '''
+        Delete an existing subprocess.
+        '''
+        if subprocess_id == '':
+            raise handlers.MethodError(
+                "Can't delete subprocess without id")
+        try:
+            with model.session_scope() as session:
+                subprocess = session.query(model.Subprocess).get(subprocess_id)
+                if subprocess is None:
+                    raise ValueError("No such object")
+                session.delete(subprocess)
+        except (sqlalchemy.exc.StatementError, ValueError):
+            raise handlers.MissingDocError("No such subprocess")
+        except sqlalchemy.exc.IntegrityError as e:
+            raise handlers.ModelError.from_sa(e)
+
+        self.finish()
+
+    @handlers.authz('author')
     def put(self, subprocess_id):
         '''
         Update an existing subprocess.

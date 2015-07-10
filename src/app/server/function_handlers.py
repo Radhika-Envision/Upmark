@@ -112,6 +112,27 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         self.get(function.id)
 
     @handlers.authz('author')
+    def delete(self, function_id):
+        '''
+        Delete an existing function.
+        '''
+        if function_id == '':
+            raise handlers.MethodError(
+                "Can't delete subprocess without id")
+        try:
+            with model.session_scope() as session:
+                function = session.query(model.Function).get(function_id)
+                if function is None:
+                    raise ValueError("No such object")
+                session.delete(function)
+        except (sqlalchemy.exc.StatementError, ValueError):
+            raise handlers.MissingDocError("No such function")
+        except sqlalchemy.exc.IntegrityError as e:
+            raise handlers.ModelError.from_sa(e)
+
+        self.finish()
+
+    @handlers.authz('author')
     def put(self, function_id):
         '''
         Update an existing function.

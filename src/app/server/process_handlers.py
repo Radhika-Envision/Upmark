@@ -122,6 +122,27 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
         self.get(process.id)
 
     @handlers.authz('author')
+    def delete(self, process_id):
+        '''
+        Delete an existing process.
+        '''
+        if process_id == '':
+            raise handlers.MethodError(
+                "Can't delete process without id")
+        try:
+            with model.session_scope() as session:
+                process = session.query(model.Process).get(process_id)
+                if process is None:
+                    raise ValueError("No such object")
+                session.delete(process)
+        except (sqlalchemy.exc.StatementError, ValueError):
+            raise handlers.MissingDocError("No such process")
+        except sqlalchemy.exc.IntegrityError as e:
+            raise handlers.ModelError.from_sa(e)
+
+        self.finish()
+
+    @handlers.authz('author')
     def put(self, process_id):
         '''
         Update an existing process.
