@@ -103,6 +103,10 @@ class Survey(Base):
     __tablename__ = 'survey'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     created = Column(DateTime, default=func.now(), nullable=False)
+    # Survey is not editable after being finalised.
+    finalised_date = Column(DateTime)
+    # Survey is not open for responses until after the open_date.
+    open_date = Column(DateTime)
     title = Column(Text, nullable=False)
 
 
