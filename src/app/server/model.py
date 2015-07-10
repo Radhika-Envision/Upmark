@@ -184,16 +184,16 @@ class MeasureSetMeasureLink(Base):
 
 Survey.functions = relationship(
         'Function', order_by='Function.seq', backref="survey",
-        collection_class=ordering_list('seq'))
+        collection_class=ordering_list('seq'), passive_deletes=True)
 Function.processes = relationship(
         'Process', order_by='Process.seq', backref="function",
-        collection_class=ordering_list('seq'))
+        collection_class=ordering_list('seq'), passive_deletes=True)
 Process.subprocesses = relationship(
         'Subprocess', order_by='Subprocess.seq', backref="process",
-        collection_class=ordering_list('seq'))
+        collection_class=ordering_list('seq'), passive_deletes=True)
 Subprocess.measures = relationship(
         'Measure', order_by='Measure.seq', backref="subprocess",
-        collection_class=ordering_list('seq'))
+        collection_class=ordering_list('seq'), passive_deletes=True)
 
 
 class Response(Versioned, Base):
