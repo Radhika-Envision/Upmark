@@ -12,8 +12,7 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, simplify, normalise, get_current_survey,\
-        is_current_survey, get_model, reorder
+from utils import to_dict, get_current_survey, is_current_survey, reorder
 
 log = logging.getLogger('app.data_access')
 
@@ -34,9 +33,8 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
 
         with model.session_scope() as session:
             try:
-                functionModel = get_model(is_current, model.Function)
-                function = session.query(functionModel)\
-                    .filter_by(survey_id = survey_id, id = function_id).one()
+                function = session.query(model.Function)\
+                    .filter_by(survey_id=survey_id, id=function_id).one()
 
                 if function is None:
                     raise ValueError("No such object")
@@ -45,18 +43,10 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
                     ValueError):
                 raise handlers.MissingDocError("No such function")
 
-            surveyModel = get_model(is_current, model.Survey)
-            survey = session.query(surveyModel)\
-                .filter_by(id = function.survey_id).one()
-            
-            survey_json = to_dict(survey, include={'id', 'title'})
-            survey_json = simplify(survey_json)
-            survey_json = normalise(survey_json)
+            survey_json = to_dict(function.survey, include={'id', 'title'})
 
             son = to_dict(function, include={
                 'id', 'title', 'seq', 'description'})
-            son = simplify(son)
-            son = normalise(son)
             son['survey'] = survey_json
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -74,21 +64,18 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         sons = []
         with model.session_scope() as session:
             query = None
-            functionModel = get_model(is_current, model.Function)
-            query = session.query(functionModel)\
-                .filter_by(survey_id=survey_id).order_by(functionModel.seq)
+            query = session.query(model.Function)\
+                .filter_by(survey_id=survey_id).order_by(model.Function.seq)
 
             term = self.get_argument('term', None)
             if term is not None:
                 query = query.filter(
-                    functionModel.title.ilike(r'%{}%'.format(term)))
+                    model.Function.title.ilike(r'%{}%'.format(term)))
 
             query = self.paginate(query)
 
             for ob in query.all():
                 son = to_dict(ob, include={'id', 'title', 'seq'})
-                son = simplify(son)
-                son = normalise(son)
                 sons.append(son)
 
         self.set_header("Content-Type", "application/json")

@@ -11,8 +11,7 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, simplify, normalise, denormalise,\
-        is_current_survey, get_model, reorder
+from utils import to_dict, denormalise, is_current_survey, reorder
 
 
 class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
@@ -30,8 +29,7 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
 
         with model.session_scope() as session:
             try:
-                measureModel = get_model(is_current, model.Measure)
-                measure = session.query(measureModel)\
+                measure = session.query(model.Measure)\
                     .filter_by(id=measure_id, survey_id=survey_id).one()
                 if measure is None:
                     raise ValueError("No such object")
@@ -40,47 +38,26 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
                     ValueError):
                 raise handlers.MissingDocError("No such measure")
 
-            subprocessModel = get_model(is_current, model.Subprocess)
-            processModel = get_model(is_current, model.Process)
-            functionModel = get_model(is_current, model.Function)
-            surveyModel = get_model(is_current, model.Survey)
-
-            subprocess = session.query(subprocessModel)\
-                .filter_by(id=measure.subprocess_id, survey_id=survey_id)\
-                .one()
-            process = session.query(processModel)\
-                .filter_by(id=subprocess.process_id, survey_id=survey_id)\
-                .one()
-            function = session.query(functionModel)\
-                .filter_by(id=process.function_id, survey_id=survey_id)\
-                .one()
-            survey = session.query(surveyModel).filter_by(id=survey_id).one()
+            subprocess = measure.subprocess
+            process = subprocess.process
+            function = process.function
+            survey = function.survey
 
             survey_json = to_dict(survey, include={'id', 'title'})
-            survey_json = simplify(survey_json)
-            survey_json = normalise(survey_json)
 
             function_json = to_dict(function, include={'id', 'title', 'seq'})
-            function_json = simplify(function_json)
-            function_json = normalise(function_json)
             function_json['survey'] = survey_json
 
             process_json = to_dict(process, include={'id', 'title', 'seq'})
-            process_json = simplify(process_json)
-            process_json = normalise(process_json)
             process_json['function'] = function_json
 
             subprocess_json = to_dict(subprocess, include={'id', 'title', 'seq'})
-            subprocess_json = simplify(subprocess_json)
-            subprocess_json = normalise(subprocess_json)
             subprocess_json['process'] = process_json
 
             son = to_dict(measure, include={
                 'id', 'title', 'seq',
                 'intent', 'inputs', 'scenario', 'questions',
                 'weight', 'response_type'})
-            son = simplify(son)
-            son = normalise(son)
             son['subprocess'] = subprocess_json
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -101,17 +78,13 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
 
         sons = []
         with model.session_scope() as session:
-            measureModel = get_model(is_current, model.Measure)
-            query = session.query(measureModel)\
+            query = session.query(model.Measure)\
                 .filter_by(subprocess_id=subprocess_id, survey_id=survey_id)\
-                .order_by(measureModel.seq)
+                .order_by(model.Measure.seq)
             query = self.paginate(query)
 
             for ob in query.all():
                 son = to_dict(ob, include={'id', 'title', 'seq'})
-                son = simplify(son)
-                son = normalise(son)
-                # son["category"] = org
                 sons.append(son)
 
         self.set_header("Content-Type", "application/json")

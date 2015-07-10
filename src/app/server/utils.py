@@ -34,7 +34,7 @@ def falsy(value):
 
 
 
-def to_dict(ob, include=None, exclude=None):
+def to_dict(ob, include=None, exclude=None, autonormalise=True):
     '''
     Convert the public fields of an object into a dictionary.
     '''
@@ -45,8 +45,14 @@ def to_dict(ob, include=None, exclude=None):
         names = [name for name in names if name in include]
     elif exclude is not None:
         names = [name for name in names if name not in exclude]
-    return {name: getattr(ob, name) for name in names
+    son = {name: getattr(ob, name) for name in names
         if not hasattr(getattr(ob, name), '__call__') }
+
+    if autonormalise:
+        son = normalise(son)
+        son = simplify(son)
+
+    return son
 
 
 def simplify(ob_dict):
@@ -104,13 +110,6 @@ def get_current_survey():
 
 def is_current_survey(survey_id):
     return survey_id == str(get_current_survey())
-
-
-def get_model(is_current, model):
-    if is_current:
-        return model
-    else:
-        return model.__history_mapper__.class_
 
 
 def reorder(collection, son):

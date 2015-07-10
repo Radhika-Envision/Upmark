@@ -99,14 +99,14 @@ def has_privillege(current_role, *target_roles):
     return False
 
 
-class Survey(Versioned, Base):
+class Survey(Base):
     __tablename__ = 'survey'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     created = Column(DateTime, default=func.now(), nullable=False)
     title = Column(Text, nullable=False)
 
 
-class Function(Versioned, Base):
+class Function(Base):
     __tablename__ = 'function'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     seq = Column(Integer)
@@ -115,7 +115,7 @@ class Function(Versioned, Base):
     survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
 
 
-class Process(Versioned, Base):
+class Process(Base):
     __tablename__ = 'process'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     function_id = Column(GUID, ForeignKey('function.id'))
@@ -124,8 +124,10 @@ class Process(Versioned, Base):
     description = Column(Text, nullable=False)
     survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
 
+    survey = relationship("Survey", uselist=False)
 
-class Subprocess(Versioned, Base):
+
+class Subprocess(Base):
     __tablename__ = 'subprocess'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     process_id = Column(GUID, ForeignKey('process.id'))
@@ -134,8 +136,10 @@ class Subprocess(Versioned, Base):
     description = Column(Text, nullable=False)
     survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
 
+    survey = relationship("Survey", uselist=False)
 
-class Measure(Versioned, Base):
+
+class Measure(Base):
     __tablename__ = 'measure'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     subprocess_id = Column(GUID, ForeignKey('subprocess.id'), nullable=True)
@@ -148,7 +152,8 @@ class Measure(Versioned, Base):
     questions = Column(Text, nullable=True)
     response_type = Column(Text, nullable=False)
     survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
-    #response = relationship("Response", uselist=False, backref="measure")
+
+    survey = relationship("Survey", uselist=False)
 
     def __repr__(self):
         return "Measure(%s - %s)" % (self.id, self.title)
@@ -174,16 +179,16 @@ class MeasureSetMeasureLink(Base):
 
 
 Survey.functions = relationship(
-        'Function', order_by='Function.seq',
+        'Function', order_by='Function.seq', backref="survey",
         collection_class=ordering_list('seq'))
 Function.processes = relationship(
-        'Process', order_by='Process.seq',
+        'Process', order_by='Process.seq', backref="function",
         collection_class=ordering_list('seq'))
 Process.subprocesses = relationship(
-        'Subprocess', order_by='Subprocess.seq',
+        'Subprocess', order_by='Subprocess.seq', backref="process",
         collection_class=ordering_list('seq'))
 Subprocess.measures = relationship(
-        'Measure', order_by='Measure.seq',
+        'Measure', order_by='Measure.seq', backref="subprocess",
         collection_class=ordering_list('seq'))
 
 
@@ -202,7 +207,7 @@ class Response(Versioned, Base):
     # TODO: Test modified field from history table.
 
 
-class Assessment(Versioned, Base):
+class Assessment(Base):
     __tablename__ = 'assessment'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     organisation_id = Column(GUID, ForeignKey('organisation.id'), nullable=False)
