@@ -4,14 +4,14 @@ import sys
 import uuid
 
 from sqlalchemy import Boolean, create_engine, Column, DateTime, Float, \
-    ForeignKey, Index, Integer, String, Text
+    ForeignKey, Index, Integer, String, Text, Table
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID
 import sqlalchemy.exc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import relationship, sessionmaker
-from sqlalchemy.schema import Index, MetaData
+from sqlalchemy.schema import ForeignKeyConstraint, Index, MetaData
 from passlib.hash import sha256_crypt
 
 from guid import GUID
@@ -113,40 +113,52 @@ class Survey(Base):
 class Function(Base):
     __tablename__ = 'function'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    survey_id = Column(
+        GUID, ForeignKey('survey.id'), nullable=False, primary_key=True)
     seq = Column(Integer)
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
-    survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
 
 
 class Process(Base):
     __tablename__ = 'process'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    function_id = Column(GUID, ForeignKey('function.id'))
+    survey_id = Column(GUID, nullable=False, primary_key=True)
+    function_id = Column(GUID)
     seq = Column(Integer)
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
-    survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
 
-    survey = relationship("Survey", uselist=False)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['function_id', 'survey_id'],
+            ['function.id', 'function.survey_id']
+        ),
+    )
 
 
 class Subprocess(Base):
     __tablename__ = 'subprocess'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    process_id = Column(GUID, ForeignKey('process.id'))
+    survey_id = Column(GUID, nullable=False, primary_key=True)
+    process_id = Column(GUID)
     seq = Column(Integer)
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
-    survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
 
-    survey = relationship("Survey", uselist=False)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['process_id', 'survey_id'],
+            ['process.id', 'process.survey_id']
+        ),
+    )
 
 
 class Measure(Base):
     __tablename__ = 'measure'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    subprocess_id = Column(GUID, ForeignKey('subprocess.id'), nullable=True)
+    survey_id = Column(GUID, nullable=False, primary_key=True)
+    subprocess_id = Column(GUID, nullable=True)
     seq = Column(Integer)
     title = Column(Text, nullable=False)
     weight = Column(Float, nullable=False)
@@ -155,9 +167,13 @@ class Measure(Base):
     scenario = Column(Text, nullable=True)
     questions = Column(Text, nullable=True)
     response_type = Column(Text, nullable=False)
-    survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
 
-    survey = relationship("Survey", uselist=False)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['subprocess_id', 'survey_id'],
+            ['subprocess.id', 'subprocess.survey_id']
+        ),
+    )
 
     def __repr__(self):
         return "Measure(%s - %s)" % (self.id, self.title)
@@ -166,20 +182,36 @@ class Measure(Base):
 class MeasureSet(Base):
     __tablename__ = 'measureset'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
+    survey_id = Column(
+        GUID, ForeignKey('survey.id'), nullable=False, primary_key=True)
     title = Column(Text, nullable=False)
+    # Need to give explicit join rules due to use of foreign key in composite
+    # primary keys: MeasureSet.survey_id and Measure.survey_id.
+    # http://docs.sqlalchemy.org/en/rel_1_0/orm/join_conditions.html#overlapping-foreign-keys
     measures = relationship(
         Measure,
+        primaryjoin="and_(measureset_measure_link.c.measureset_id == MeasureSet.id,"
+                    "measureset_measure_link.c.survey_id == foreign(MeasureSet.survey_id))",
+        secondaryjoin="and_(measureset_measure_link.c.measure_id == Measure.id,"
+                    "measureset_measure_link.c.survey_id == foreign(Measure.survey_id))",
         secondary='measureset_measure_link'
     )
 
 
-class MeasureSetMeasureLink(Base):
-    __tablename__ = 'measureset_measure_link'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    measureset_id = Column(GUID, ForeignKey('measureset.id'), nullable=False)
-    measure_id = Column(GUID, ForeignKey('measure.id'), nullable=False)
-    survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
+measureset_measure_link = Table('measureset_measure_link', Base.metadata,
+    Column('survey_id', GUID, nullable=False),
+    Column('measureset_id', GUID, nullable=False),
+    Column('measure_id', GUID, nullable=False),
+
+    ForeignKeyConstraint(
+        ['measureset_id', 'survey_id'],
+        ['measureset.id', 'measureset.survey_id']
+    ),
+    ForeignKeyConstraint(
+        ['measure_id', 'survey_id'],
+        ['measure.id', 'measure.survey_id']
+    )
+)
 
 
 Survey.functions = relationship(
@@ -201,25 +233,39 @@ class Response(Versioned, Base):
     # Here we define columns for the table response
     # Notice that each column is also a normal Python instance attribute.
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
     user_id = Column(GUID, ForeignKey('appuser.id'), nullable=False)
     assessment_id = Column(GUID, ForeignKey('assessment.id'), nullable=False)
-    measure_id = Column(GUID, ForeignKey('measure.id'), nullable=False)
+    measure_id = Column(GUID, nullable=False)
     comment = Column(Text, nullable=False)
     not_relevant = Column(Boolean, nullable=False)
     response_parts = Column(Text, nullable=False)
     audit_reason = Column(Text, nullable=True)
-    # TODO: Test modified field from history table.
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['measure_id', 'survey_id'],
+            ['measure.id', 'measure.survey_id']
+        ),
+    )
 
 
 class Assessment(Base):
     __tablename__ = 'assessment'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    organisation_id = Column(GUID, ForeignKey('organisation.id'), nullable=False)
     survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
-    measureset_id = Column(GUID, ForeignKey('measureset.id'), nullable=False)
-    # TODO: Make this field an enum
+    organisation_id = Column(GUID, ForeignKey('organisation.id'), nullable=False)
+    measureset_id = Column(GUID, nullable=False)
+    # TODO: Make this field an enum?
     approval = Column(Text, nullable=False)
     created = Column(DateTime, default=func.now(), nullable=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['measureset_id', 'survey_id'],
+            ['measureset.id', 'measureset.survey_id']
+        ),
+    )
 
 
 Session = None

@@ -108,13 +108,13 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
         try:
             with model.session_scope() as session:
                 # This is OK because POST is always for the current survey
-                function = session.query(model.Function).get(function_id)
+                function = session.query(model.Function)\
+                    .get((function_id, survey_id))
                 process = model.Process()
                 self._update(process, son)
                 process.function_id = function_id
                 process.survey_id = survey_id
                 function.processes.append(process)
-                session.add(process)
                 session.flush()
                 session.expunge(process)
         except sqlalchemy.exc.IntegrityError as e:

@@ -116,13 +116,13 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         try:
             with model.session_scope() as session:
                 # This is OK because POST is always for the current survey
-                process = session.query(model.Process).get(process_id)
+                process = session.query(model.Process)\
+                    .get((process_id, survey_id))
                 subprocess = model.Subprocess()
                 self._update(subprocess, son)
                 subprocess.process_id = process_id
                 subprocess.survey_id = survey_id
                 process.subprocesses.append(subprocess)
-                session.add(subprocess)
                 session.flush()
                 session.expunge(subprocess)
         except sqlalchemy.exc.IntegrityError as e:

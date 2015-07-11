@@ -103,7 +103,6 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
                 function = model.Function()
                 self._update(function, son)
                 function.survey_id = survey_id
-                session.add(function)
                 survey.functions.append(function)
                 session.flush()
                 session.expunge(function)

@@ -111,13 +111,13 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
         try:
             with model.session_scope() as session:
                 # This is OK because POST is always for the current survey
-                subprocess = session.query(model.Subprocess).get(subprocess_id)
+                subprocess = session.query(model.Subprocess)\
+                    .get((subprocess_id, survey_id))
                 measure = model.Measure()
                 self._update(measure, son)
                 measure.subprocess_id = subprocess_id
                 measure.survey_id = survey_id
                 subprocess.measures.append(measure)
-                session.add(measure)
                 session.flush()
                 session.expunge(measure)
         except sqlalchemy.exc.IntegrityError as e:
