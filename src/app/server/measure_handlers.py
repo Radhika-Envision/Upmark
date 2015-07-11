@@ -118,6 +118,7 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
                 measure.subprocess_id = subprocess_id
                 measure.survey_id = survey_id
                 subprocess.measures.append(measure)
+                subprocess.measures.reorder()
                 session.flush()
                 session.expunge(measure)
         except sqlalchemy.exc.IntegrityError as e:
@@ -138,6 +139,7 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
                     .get((measure_id, survey_id))
                 if measure is None:
                     raise ValueError("No such object")
+                measure.subprocess.measures.remove(measure)
                 session.delete(measure)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Measure is in use")

@@ -104,6 +104,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
                 self._update(function, son)
                 function.survey_id = survey_id
                 survey.functions.append(function)
+                survey.functions.reorder()
                 session.flush()
                 session.expunge(function)
         except sqlalchemy.exc.IntegrityError as e:
@@ -124,6 +125,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
                     .get((function_id, survey_id))
                 if function is None:
                     raise ValueError("No such object")
+                function.survey.functions.remove(function)
                 session.delete(function)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Function is in use")

@@ -123,6 +123,7 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
                 subprocess.process_id = process_id
                 subprocess.survey_id = survey_id
                 process.subprocesses.append(subprocess)
+                process.subprocesses.reorder()
                 session.flush()
                 session.expunge(subprocess)
         except sqlalchemy.exc.IntegrityError as e:
@@ -143,6 +144,7 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
                     .get((subprocess_id, survey_id))
                 if subprocess is None:
                     raise ValueError("No such object")
+                subprocess.process.subprocesses.remove(subprocess)
                 session.delete(subprocess)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Subprocess is in use")

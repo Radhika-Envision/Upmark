@@ -115,6 +115,7 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
                 process.function_id = function_id
                 process.survey_id = survey_id
                 function.processes.append(process)
+                function.processes.reorder()
                 session.flush()
                 session.expunge(process)
         except sqlalchemy.exc.IntegrityError as e:
@@ -135,6 +136,7 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
                     .get((process_id, survey_id))
                 if process is None:
                     raise ValueError("No such object")
+                process.function.processes.remove(process)
                 session.delete(process)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Process is in use")
