@@ -135,11 +135,12 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         Delete an existing subprocess.
         '''
         if subprocess_id == '':
-            raise handlers.MethodError(
-                "Can't delete subprocess without id")
+            raise handlers.MethodError("Subprocess ID required")
+        survey_id = self.get_survey_id()
         try:
             with model.session_scope() as session:
-                subprocess = session.query(model.Subprocess).get(subprocess_id)
+                subprocess = session.query(model.Subprocess)\
+                    .get((subprocess_id, survey_id))
                 if subprocess is None:
                     raise ValueError("No such object")
                 session.delete(subprocess)
@@ -161,9 +162,11 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
 
         son = json_decode(self.request.body)
 
+        survey_id = self.get_survey_id()
         try:
             with model.session_scope() as session:
-                subprocess = session.query(model.Subprocess).get(subprocess_id)
+                subprocess = session.query(model.Subprocess)\
+                    .get((subprocess_id, survey_id))
                 if subprocess is None:
                     raise ValueError("No such object")
                 self._update(subprocess, son)
@@ -190,7 +193,7 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
         try:
             with model.session_scope() as session:
                 process = session.query(model.Process)\
-                    .filter_by(id=process_id, survey_id=survey_id).one()
+                    .get((process_id, survey_id))
                 reorder(process.subprocesses, son)
 
         except sqlalchemy.exc.IntegrityError as e:

@@ -34,7 +34,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         with model.session_scope() as session:
             try:
                 function = session.query(model.Function)\
-                    .filter_by(survey_id=survey_id, id=function_id).one()
+                    .get((function_id, survey_id))
 
                 if function is None:
                     raise ValueError("No such object")
@@ -116,11 +116,12 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         Delete an existing function.
         '''
         if function_id == '':
-            raise handlers.MethodError(
-                "Can't delete subprocess without id")
+            raise handlers.MethodError("Function ID required")
+        survey_id = self.get_survey_id()
         try:
             with model.session_scope() as session:
-                function = session.query(model.Function).get(function_id)
+                function = session.query(model.Function)\
+                    .get((function_id, survey_id))
                 if function is None:
                     raise ValueError("No such object")
                 session.delete(function)
@@ -148,7 +149,8 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
 
         try:
             with model.session_scope() as session:
-                function = session.query(model.Function).get(function_id)
+                function = session.query(model.Function)\
+                    .get((function_id, survey_id))
                 if function is None:
                     raise ValueError("No such object")
                 self._update(function, son)
@@ -171,15 +173,13 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
         son = json_decode(self.request.body)
         try:
             with model.session_scope() as session:
-                survey = session.query(model.Survey)\
-                    .filter_by(id=survey_id).one()
+                survey = session.query(model.Survey).get(survey_id)
                 reorder(survey.functions, son)
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
 
         self.query()
-
 
     def get_survey_id(self):
         survey_id = self.get_argument("surveyId", "")

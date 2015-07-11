@@ -127,11 +127,12 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
         Delete an existing process.
         '''
         if process_id == '':
-            raise handlers.MethodError(
-                "Can't delete process without id")
+            raise handlers.MethodError("Process ID required")
+        survey_id = self.get_survey_id()
         try:
             with model.session_scope() as session:
-                process = session.query(model.Process).get(process_id)
+                process = session.query(model.Process)\
+                    .get((process_id, survey_id))
                 if process is None:
                     raise ValueError("No such object")
                 session.delete(process)
@@ -153,9 +154,11 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
 
         son = json_decode(self.request.body)
 
+        survey_id = self.get_survey_id()
         try:
             with model.session_scope() as session:
-                process = session.query(model.Process).get(process_id)
+                process = session.query(model.Process)\
+                    .get((process_id, survey_id))
                 if process is None:
                     raise ValueError("No such object")
                 self._update(process, son)
@@ -182,7 +185,7 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
         try:
             with model.session_scope() as session:
                 function = session.query(model.Function)\
-                    .filter_by(id=function_id, survey_id=survey_id).one()
+                    .get((function_id, survey_id))
                 reorder(function.processes, son)
 
         except sqlalchemy.exc.IntegrityError as e:

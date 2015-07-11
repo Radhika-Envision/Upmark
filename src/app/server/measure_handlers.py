@@ -136,9 +136,11 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
         son = json_decode(self.request.body)
         son = denormalise(son)
 
+        survey_id = self.get_survey_id()
         try:
             with model.session_scope() as session:
-                measure = session.query(model.Measure).get(measure_id)
+                measure = session.query(model.Measure)\
+                    .get((measure_id, survey_id))
                 if measure is None:
                     raise ValueError("No such object")
                 self._update(measure, son)
@@ -165,7 +167,7 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
         try:
             with model.session_scope() as session:
                 subprocess = session.query(model.Subprocess)\
-                    .filter_by(id=subprocess_id, survey_id=survey_id).one()
+                    .get((subprocess_id, survey_id))
                 reorder(subprocess.measures, son)
 
         except sqlalchemy.exc.IntegrityError as e:
