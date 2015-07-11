@@ -91,6 +91,9 @@ angular.module('wsaa.surveyQuestions', [
     $scope.$on('EditSaved', function(event, model) {
         $location.url('/survey/' + model.id);
     });
+    $scope.$on('EditDeleted', function(event, model) {
+        $location.url('/surveys');
+    });
 
     $scope.checkRole = authz(current, $scope.survey);
     $scope.Func = Func;
@@ -219,6 +222,10 @@ angular.module('wsaa.surveyQuestions', [
         $location.url(format(
             '/function/{}?survey={}', model.id, $scope.survey.id));
     });
+    $scope.$on('EditDeleted', function(event, model) {
+        $location.url(format(
+            '/survey/{}', $scope.survey.id));
+    });
 
     $scope.checkRole = authz(current, $scope.survey);
     $scope.Process = Process;
@@ -257,6 +264,10 @@ angular.module('wsaa.surveyQuestions', [
         $location.url(format(
             '/process/{}?survey={}', model.id, $scope.survey.id));
     });
+    $scope.$on('EditDeleted', function(event, model) {
+        $location.url(format(
+            '/function/{}?survey={}', $scope.func.id, $scope.survey.id));
+    });
 
     $scope.checkRole = authz(current, $scope.survey);
     $scope.SubProcess = SubProcess;
@@ -294,6 +305,10 @@ angular.module('wsaa.surveyQuestions', [
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
             '/subprocess/{}?survey={}', model.id, $scope.survey.id));
+    });
+    $scope.$on('EditDeleted', function(event, model) {
+        $location.url(format(
+            '/process/{}?survey={}', $scope.process.id, $scope.survey.id));
     });
 
     $scope.checkRole = authz(current, $scope.survey);
@@ -343,6 +358,10 @@ angular.module('wsaa.surveyQuestions', [
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
             '/measure/{}?survey={}', model.id, $scope.survey.id));
+    });
+    $scope.$on('EditDeleted', function(event, model) {
+        $location.url(format(
+            '/subprocess/{}?survey={}', $scope.subprocess.id, $scope.survey.id));
     });
 
     $scope.checkRole = authz(current, $scope.survey);

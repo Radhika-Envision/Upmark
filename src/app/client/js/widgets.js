@@ -219,6 +219,39 @@ angular.module('vpac.widgets', [])
         Notifications.set('edit', 'info', "Saving");
     };
 
+    Editor.prototype.del = function() {
+        var that = this;
+        var success = function(model, getResponseHeaders) {
+            try {
+                log.debug("Success");
+                that.model = null;
+                that.scope.$emit('EditDeleted', model);
+                Notifications.set('edit', 'success', "Deleted", 5000);
+            } finally {
+                that.saving = false;
+                that = null;
+            }
+        };
+        var failure = function(details) {
+            try {
+                that.scope.$emit('EditError');
+                Notifications.set('edit', 'error',
+                    "Could not delete object: " + details.statusText);
+            } finally {
+                that.saving = false;
+                that = null;
+                return $q.reject(details);
+            }
+        };
+
+        log.info("Deleting");
+        var model = this.getter(this.scope);
+        model.$delete(this.params, success, failure);
+
+        this.saving = true;
+        Notifications.set('edit', 'info', "Deleting");
+    };
+
     Editor.prototype.destroy = function() {
         this.cancel();
         this.scope = null;

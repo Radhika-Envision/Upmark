@@ -144,10 +144,10 @@ class SubprocessHandler(handlers.Paginate, handlers.BaseHandler):
                 if subprocess is None:
                     raise ValueError("No such object")
                 session.delete(subprocess)
+        except sqlalchemy.exc.IntegrityError as e:
+            raise handlers.ModelError("Subprocess is in use")
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such subprocess")
-        except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
 
         self.finish()
 

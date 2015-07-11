@@ -125,10 +125,10 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
                 if function is None:
                     raise ValueError("No such object")
                 session.delete(function)
+        except sqlalchemy.exc.IntegrityError as e:
+            raise handlers.ModelError("Function is in use")
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such function")
-        except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
 
         self.finish()
 

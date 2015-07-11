@@ -136,10 +136,10 @@ class ProcessHandler(handlers.Paginate, handlers.BaseHandler):
                 if process is None:
                     raise ValueError("No such object")
                 session.delete(process)
+        except sqlalchemy.exc.IntegrityError as e:
+            raise handlers.ModelError("Process is in use")
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such process")
-        except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
 
         self.finish()
 

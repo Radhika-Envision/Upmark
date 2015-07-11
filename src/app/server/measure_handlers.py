@@ -125,6 +125,28 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
         self.get(measure.id)
 
     @handlers.authz('author')
+    def delete(self, measure_id):
+        '''
+        Delete an existing measure.
+        '''
+        if measure_id == '':
+            raise handlers.MethodError("Measure ID required")
+        survey_id = self.get_survey_id()
+        try:
+            with model.session_scope() as session:
+                measure = session.query(model.Measure)\
+                    .get((measure_id, survey_id))
+                if measure is None:
+                    raise ValueError("No such object")
+                session.delete(measure)
+        except sqlalchemy.exc.IntegrityError as e:
+            raise handlers.ModelError("Measure is in use")
+        except (sqlalchemy.exc.StatementError, ValueError):
+            raise handlers.MissingDocError("No such measure")
+
+        self.finish()
+
+    @handlers.authz('author')
     def put(self, measure_id):
         '''
         Update existing.

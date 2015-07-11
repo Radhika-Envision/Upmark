@@ -99,6 +99,27 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         self.get(survey.id)
 
     @handlers.authz('author')
+    def delete(self, survey_id):
+        '''
+        Delete an existing survey.
+        '''
+        if survey_id == '':
+            raise handlers.MethodError("Survey ID required")
+        try:
+            with model.session_scope() as session:
+                survey = session.query(model.Survey)\
+                    .get(survey_id)
+                if survey is None:
+                    raise ValueError("No such object")
+                session.delete(survey)
+        except sqlalchemy.exc.IntegrityError as e:
+            raise handlers.ModelError("Survey is in use")
+        except (sqlalchemy.exc.StatementError, ValueError):
+            raise handlers.MissingDocError("No such survey")
+
+        self.finish()
+
+    @handlers.authz('author')
     def put(self, survey_id):
         '''
         Update an existing survey.
