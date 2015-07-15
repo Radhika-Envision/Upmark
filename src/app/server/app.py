@@ -155,6 +155,7 @@ def get_mappings():
 
         (r"/organisation/?(.*).json", org_handlers.OrgHandler, {}),
         (r"/user/?(.*).json", user_handlers.UserHandler, {}),
+        (r"/password.json", user_handlers.PasswordHandler, {}),
 
         (r"/survey/?(.*).json", survey_handlers.SurveyHandler, {}),
         (r"/function/?(.*).json", function_handlers.FunctionHandler, {}),

@@ -385,3 +385,45 @@ class UserAuthzTest(OrgStructureTestCase):
                 self.assertIn(reason, response.reason, msg=user_email)
                 self.assertEqual(code, response.code)
 
+
+class PasswordTest(OrgStructureTestCase):
+
+    def test_password_strength(self):
+        response = self.fetch(
+            "/password.json", method='POST',
+            body=json_encode({'password': 'foo'}))
+        self.assertEqual(200, response.code)
+        print(response.body)
+        son = json_decode(response.body)
+        self.assertLess(son['strength'], 0.25)
+        self.assertIn('charmix', son['improvements'])
+        self.assertIn('length', son['improvements'])
+
+        response = self.fetch(
+            "/password.json", method='POST',
+            body=json_encode({'password': 'f0!'}))
+        self.assertEqual(200, response.code)
+        print(response.body)
+        son = json_decode(response.body)
+        self.assertNotIn('charmix', son['improvements'])
+        self.assertIn('length', son['improvements'])
+
+        response = self.fetch(
+            "/password.json", method='POST',
+            body=json_encode({'password': 'fooooooooooooooooooooooo'}))
+        self.assertEqual(200, response.code)
+        print(response.body)
+        son = json_decode(response.body)
+        self.assertIn('charmix', son['improvements'])
+        self.assertNotIn('length', son['improvements'])
+
+
+        response = self.fetch(
+            "/password.json", method='POST',
+            body=json_encode({'password': 'bdFiuo2807 g97834tq !'}))
+        self.assertEqual(200, response.code)
+        print(response.body)
+        son = json_decode(response.body)
+        self.assertGreater(son['strength'], 0.9)
+        self.assertNotIn('length', son['improvements'])
+        self.assertNotIn('charmix', son['improvements'])

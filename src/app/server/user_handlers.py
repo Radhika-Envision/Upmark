@@ -2,6 +2,7 @@ import datetime
 import time
 import uuid
 
+import passwordmeter
 from tornado.escape import json_decode, json_encode
 import tornado.web
 import sqlalchemy
@@ -12,6 +13,10 @@ import model
 import logging
 
 from utils import to_dict, simplify, normalise, truthy
+
+
+password_tester = passwordmeter.Meter(
+    settings={'pessimism': 5, 'threshold': 0.6})
 
 
 class UserHandler(handlers.Paginate, handlers.BaseHandler):
@@ -184,3 +189,25 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
             user.set_password(son['password'])
         if son.get('enabled', '') != '':
             user.enabled = son['enabled']
+
+
+class PasswordHandler(handlers.BaseHandler):
+
+    def post(self):
+        '''
+        Check the strength of a password.
+        '''
+        input_son = json_decode(self.request.body)
+        password = input_son.get('password', '')
+        if password == '':
+            raise handlers.AuthzError("Please specify a password")
+
+        strength, improvements = password_tester.test(password)
+        son = {
+            'strength': strength,
+            'improvements': improvements
+        }
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(son))
+        self.finish()
