@@ -281,12 +281,36 @@ class UserAuthzTest(OrgStructureTestCase):
         }
 
         with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
-                get_secure_cookie(user_email=user_email)):
+                        get_secure_cookie(user_email=user_email)), \
+                mock.patch('user_handlers.test_password', lambda x: True):
             response = self.fetch(
                 "/user.json", method='POST',
                 body=json_encode(post_data))
             self.assertIn(reason, response.reason, msg=user_email)
             self.assertEqual(code, response.code)
+
+    def test_set_password(self):
+        with model.session_scope() as session:
+            org = session.query(model.Organisation).\
+                filter(func.lower(model.Organisation.name) ==
+                       func.lower('utility')).one()
+            session.expunge(org)
+
+        post_data = {
+            'email': 'clerk',
+            'name': 'foo',
+            'password': 'bar',
+            'role': 'clerk',
+            'organisation': {'id': str(org.id)}
+        }
+
+        with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
+                        get_secure_cookie(user_email='admin')):
+            response = self.fetch(
+                "/user.json", method='POST',
+                body=json_encode(post_data))
+            self.assertIn('not strong enough', response.reason)
+            self.assertEqual(403, response.code)
 
     def test_modify_user(self):
         with model.session_scope() as session:
@@ -393,9 +417,8 @@ class PasswordTest(OrgStructureTestCase):
             "/password.json", method='POST',
             body=json_encode({'password': 'foo'}))
         self.assertEqual(200, response.code)
-        print(response.body)
         son = json_decode(response.body)
-        self.assertLess(son['strength'], 0.25)
+        self.assertLess(son['strength'], 0.5)
         self.assertIn('charmix', son['improvements'])
         self.assertIn('length', son['improvements'])
 
@@ -403,7 +426,6 @@ class PasswordTest(OrgStructureTestCase):
             "/password.json", method='POST',
             body=json_encode({'password': 'f0!'}))
         self.assertEqual(200, response.code)
-        print(response.body)
         son = json_decode(response.body)
         self.assertNotIn('charmix', son['improvements'])
         self.assertIn('length', son['improvements'])
@@ -412,17 +434,14 @@ class PasswordTest(OrgStructureTestCase):
             "/password.json", method='POST',
             body=json_encode({'password': 'fooooooooooooooooooooooo'}))
         self.assertEqual(200, response.code)
-        print(response.body)
         son = json_decode(response.body)
         self.assertIn('charmix', son['improvements'])
         self.assertNotIn('length', son['improvements'])
-
 
         response = self.fetch(
             "/password.json", method='POST',
             body=json_encode({'password': 'bdFiuo2807 g97834tq !'}))
         self.assertEqual(200, response.code)
-        print(response.body)
         son = json_decode(response.body)
         self.assertGreater(son['strength'], 0.9)
         self.assertNotIn('length', son['improvements'])

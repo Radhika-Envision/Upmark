@@ -89,14 +89,27 @@
             <label for="user_pwd">Password</label>
             <span class="help-label" ng-if="edit.model.id">
                 Optional</span>
+            <span class="help-label"
+                    ng-if="passwordCheck.strength < passwordCheck.threshold">
+                Password is not strong enough
+                ({{(passwordCheck.strength / passwordCheck.threshold) * 100 | number:0}}%)
+            </span>
             <input type="password" class="form-control" id="user_pwd" name="user_pwd"
-                ng-model="edit.model.password" />
+                ng-model="edit.model.password"
+                ng-model-options="{debounce: {default: 1000, blur: 0}}" />
         </div>
         <div class="form-group" show-errors>
             <label for="user_pwd2">Re-enter password</label>
             <span class="help-label" ng-if="form.user_pwd2.$error.match">Passwords don't match.</span>
             <input type="password" class="form-control" id="user_pwd2" name="user_pwd2"
                 ng-model="edit.model.password2" match="edit.model.password" />
+        </div>
+        <div class="form-group">
+            <ul>
+                <li ng-repeat="item in passwordCheck.improvements">
+                    {{item}}
+                </li>
+            </ul>
         </div>
     </form>
 </div>

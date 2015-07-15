@@ -273,9 +273,9 @@ class MainHandler(BaseHandler):
                 hrefs = ['%s?v=%s' % (href, self.deploy_id) for href in hrefs]
 
             if dev_mode and k in {'cdn', 'min-href'}:
-                print('Warning: using release resouce in dev mode')
+                print('Warning: using release resource in dev mode')
             elif not dev_mode and k in {'href', 'hrefs'}:
-                print('Warning: using dev resouce in release')
+                print('Warning: using dev resource in release')
 
             resources.extend(hrefs)
 

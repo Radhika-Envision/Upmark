@@ -15,8 +15,15 @@ import logging
 from utils import to_dict, simplify, normalise, truthy
 
 
-password_tester = passwordmeter.Meter(
-    settings={'pessimism': 5, 'threshold': 0.6})
+PASS_THRESHOLD = 0.95
+password_tester = passwordmeter.Meter(settings={
+        'pessimism': 2,
+        'factor.casemix.weight': 0.3})
+
+
+def test_password(text):
+    strength, _ = password_tester.test(text)
+    return strength >= PASS_THRESHOLD
 
 
 class UserHandler(handlers.Paginate, handlers.BaseHandler):
@@ -173,6 +180,10 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 raise handlers.AuthzError(
                     "You can't enable or disable yourself.")
 
+        if son.get('password', '') != '':
+            if not test_password(son['password']):
+                raise handlers.ModelError("Password is not strong enough")
+
     def _update(self, user, son):
         '''
         Apply user-provided data to the saved model.
@@ -204,6 +215,7 @@ class PasswordHandler(handlers.BaseHandler):
 
         strength, improvements = password_tester.test(password)
         son = {
+            'threshold': PASS_THRESHOLD,
             'strength': strength,
             'improvements': improvements
         }

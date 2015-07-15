@@ -14,6 +14,13 @@ angular.module('wsaa.admin', [
 }])
 
 
+.factory('Password', ['$resource', function($resource) {
+    return $resource('/password.json', {}, {
+        test: { method: 'POST', cache: true }
+    });
+}])
+
+
 .factory('Current', [
         'User', '$q', '$cookies', 'Notifications',
          function(User, $q, $cookies, Notifications) {
@@ -123,8 +130,10 @@ angular.module('wsaa.admin', [
 .controller('UserCtrl', [
         '$scope', 'User', 'routeData', 'Editor', 'Organisation', 'userAuthz',
         '$window', '$location', 'log', 'Notifications', 'Current', '$q',
+        'Password',
         function($scope, User, routeData, Editor, Organisation, userAuthz,
-                 $window, $location, log, Notifications, Current, $q) {
+                 $window, $location, log, Notifications, Current, $q,
+                 Password) {
 
     $scope.edit = Editor('user', $scope);
     if (routeData.user) {
@@ -170,10 +179,11 @@ angular.module('wsaa.admin', [
     $scope.impersonate = function() {
         User.impersonate({id: $scope.user.id}).$promise.then(
             function success() {
-                console.log('reloading');
                 $window.location.reload();
             },
-            function error(reason) {
+            function error(details) {
+                Notifications.set('user', 'error',
+                    "Could not impersonate: " + details.statusText);
             }
         );
     };
@@ -191,6 +201,23 @@ angular.module('wsaa.admin', [
             }
         );
     };
+
+    $scope.$watch('edit.model.password', function(password) {
+        if (!password) {
+            $scope.passwordCheck = null;
+            return;
+        }
+        Password.test({password: password}).$promise.then(
+            function success(body) {
+                $scope.passwordCheck = body;
+            },
+            function failure(details) {
+                $scope.passwordCheck = null;
+                Notifications.set('user', 'warning',
+                    "Could not check password: " + details.statusText);
+            }
+        );
+    });
 }])
 
 
