@@ -17,7 +17,9 @@ test:
    - ./src/app:/usr/share/aquamark/app
   links:
    - postgresTest:postgres
-  command: app/test-server/run_tests.sh
+  working_dir: /usr/share/aquamark/app/test-server
+  entrypoint: ['python3', '-m', 'unittest']
+  command: ['discover']
 
 postgres:
   image: postgres:9
