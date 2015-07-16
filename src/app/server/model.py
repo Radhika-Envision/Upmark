@@ -29,7 +29,10 @@ class ModelError(Exception):
 class SystemConfig(Base):
     __tablename__ = 'systemconfig'
     name = Column(String, primary_key=True, nullable=False)
-    value = Column(String, nullable=True)
+    human_name = Column(String, nullable=False)
+    user_defined = Column(Boolean, nullable=False)
+    value = Column(String)
+    description = Column(String)
 
     def __str__(self):
         return "SystemConfig(name={}, value={})".format(self.name, self.value)

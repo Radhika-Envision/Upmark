@@ -6,7 +6,6 @@ web:
     DEV_MODE: True
     DEBUG_MODE: True
     AQ_XSRF: True
-    AQ_PASS_THRESHOLD: 0.1
   volumes:
    - ./src/app:/usr/share/aquamark/app
   links:
@@ -14,8 +13,6 @@ web:
 
 test:
   build: ./src/app/
-  environment:
-    AQ_PASS_THRESHOLD: 0.5
   volumes:
    - ./src/app:/usr/share/aquamark/app
   links:

@@ -16,11 +16,15 @@ from utils import to_dict, simplify, normalise, truthy
 
 
 def test_password(text):
+    with model.session_scope() as session:
+        setting = session.query(model.SystemConfig).get('pass_threshold')
+        threshold = float(setting.value)
     password_tester = passwordmeter.Meter(settings={
-            'threshold': float(tornado.options.options.pass_threshold),
+            'threshold': threshold,
             'pessimism': 10,
             'factor.casemix.weight': 0.3})
-    return password_tester.test(text)
+    strength, improvements = password_tester.test(text)
+    return strength, threshold, improvements
 
 
 class UserHandler(handlers.Paginate, handlers.BaseHandler):
@@ -178,8 +182,8 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                     "You can't enable or disable yourself.")
 
         if son.get('password', '') != '':
-            strength, _ = test_password(son['password'])
-            if strength < float(tornado.options.options.pass_threshold):
+            strength, threshold, _ = test_password(son['password'])
+            if strength < threshold:
                 raise handlers.ModelError("Password is not strong enough")
 
     def _update(self, user, son):
@@ -211,9 +215,9 @@ class PasswordHandler(handlers.BaseHandler):
         if password == '':
             raise handlers.AuthzError("Please specify a password")
 
-        strength, improvements = test_password(password)
+        strength, threshold, improvements = test_password(password)
         son = {
-            'threshold': float(tornado.options.options.pass_threshold),
+            'threshold': threshold,
             'strength': strength,
             'improvements': improvements
         }

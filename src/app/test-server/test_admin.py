@@ -103,6 +103,7 @@ class OrgStructureTestCase(AsyncHTTPTestCase):
     def setUp(self):
         super().setUp()
         self.create_org_structure()
+        app.default_settings()
 
     def get_app(self):
         return Application(app.get_mappings(), **app.get_minimal_settings())
@@ -282,7 +283,7 @@ class UserAuthzTest(OrgStructureTestCase):
 
         with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
                         get_secure_cookie(user_email=user_email)), \
-                mock.patch('user_handlers.test_password', lambda x: (1.0, {})):
+                mock.patch('user_handlers.test_password', lambda x: (1.0, 0.1, {})):
             response = self.fetch(
                 "/user.json", method='POST',
                 body=json_encode(post_data))

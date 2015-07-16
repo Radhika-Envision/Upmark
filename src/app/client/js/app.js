@@ -100,6 +100,15 @@ angular.module('wsaa.aquamark',
                 templateUrl : 'start.html',
                 controller : 'EmptyCtrl'
             })
+            .when('/systemconfig', {
+                templateUrl : 'systemconfig.html',
+                controller : 'SystemConfigCtrl',
+                resolve: {
+                    systemConfig: ['SystemConfig', function(SystemConfig) {
+                        return SystemConfig.get().$promise;
+                    }]
+                }
+            })
 
             .when('/users', {
                 templateUrl : 'user_list.html',
@@ -458,6 +467,10 @@ angular.module('wsaa.aquamark',
 
 .controller('RootCtrl', ['$scope',
         function($scope) {
+}])
+.controller('HeaderCtrl', ['$scope', 'confAuthz', 'Current',
+        function($scope, confAuthz, Current) {
+        $scope.checkRole = confAuthz(Current);
 }])
 .controller('EmptyCtrl', ['$scope',
         function($scope) {

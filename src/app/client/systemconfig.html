@@ -1,0 +1,51 @@
+<div>
+
+<div class="header">
+<div class="container">
+    <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Cancel"
+                ng-click="edit.cancel()"
+                ng-if="edit.model && edit.model.id">
+            <i class="fa fa-times"></i></button>
+        <button class="btn btn-default btn-round" title="Save"
+                ng-click="edit.save()"
+                ng-if="edit.model"
+                form="editor">
+            <i class="fa fa-check"></i></button>
+        <button class="btn btn-default btn-round" title="Edit"
+                ng-click="edit.edit()"
+                ng-if="!edit.model && checkRole('config_edit')">
+            <i class="fa fa-pencil"></i></button>
+    </div>
+    <h2 page-title>
+        <i class="fa fa-fw fa-cog"></i>
+        System Config
+    </h2>
+</div>
+</div>
+
+<div class="measure" ng-if="edit.model">
+<div class="container">
+    <editor-error class="measure" edit="edit"></editor-error>
+    <form novalidate name="form" id="editor">
+        <div class="form-group" ng-repeat="item in edit.model.settings">
+            <label for="value{{$index}}">{{item.humanName}}</label>
+            <p ng-if="item.description">{{item.description}}</p>
+            <input type="text" class="form-control" id="value{{$index}}"
+                name="value{{$index}}"
+                ng-model="item.value" required />
+        </div>
+    </form>
+</div>
+</div>
+
+<div class="measure" ng-if="!edit.model">
+<div class="container">
+    <dl ng-repeat="item in systemConfig.settings">
+        <dt>{{item.humanName}}</dt>
+        <dd>{{item.value}}</dd>
+    </dl>
+</div>
+</div>
+
+</div>

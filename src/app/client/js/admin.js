@@ -84,6 +84,14 @@ angular.module('wsaa.admin', [
 }])
 
 
+.factory('SystemConfig', ['$resource', function($resource) {
+    return $resource('/systemconfig.json', {}, {
+        get: { method: 'GET', cache: false },
+        save: { method: 'PUT', cache: false },
+    });
+}])
+
+
 .factory('userAuthz', ['Roles', function(Roles) {
     return function(current, user, org) {
         return function(functionName) {
@@ -350,6 +358,28 @@ angular.module('wsaa.admin', [
             }
         );
     }, true);
+}])
+
+
+.factory('confAuthz', ['Roles', function(Roles) {
+    return function(current) {
+        return function(functionName) {
+            return Roles.hasPermission(current.user.role, 'admin');
+        };
+    };
+}])
+
+
+.controller('SystemConfigCtrl', [
+        '$scope', 'SystemConfig', 'Editor', 'confAuthz', 'Current',
+        'systemConfig',
+        function($scope, SystemConfig, Editor, confAuthz, Current,
+            systemConfig) {
+
+    $scope.edit = Editor('systemConfig', $scope);
+    $scope.systemConfig = systemConfig;
+
+    $scope.checkRole = confAuthz(Current);
 }])
 
 ;

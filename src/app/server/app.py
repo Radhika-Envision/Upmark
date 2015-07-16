@@ -14,7 +14,7 @@ import sqlalchemy.orm
 import tornado.options
 import tornado.web
 
-import data_access, user_handlers, org_handlers, survey_handlers, measure_handlers, function_handlers, process_handlers, subprocess_handlers
+import admin_handlers, data_access, user_handlers, org_handlers, survey_handlers, measure_handlers, function_handlers, process_handlers, subprocess_handlers
 import handlers
 import model
 from utils import truthy
@@ -55,10 +55,6 @@ def parse_options():
         help="Debug mode (default: True)")
 
     tornado.options.define(
-        "pass_threshold", default=os.environ.get('AQ_PASS_THRESHOLD', '0.85'),
-        help="Password strength threshold (default: 0.85)")
-
-    tornado.options.define(
         "analytics_id", default=os.environ.get('ANALYTICS_ID', ''),
         help="Google Analytics ID, leave blank to disable (default: '')")
 
@@ -76,6 +72,8 @@ def get_cookie_secret():
             log.info("Generating new cookie secret")
             secret = base64.b64encode(os.urandom(50)).decode('ascii')
             conf = model.SystemConfig(name='cookie_secret', value=secret)
+            conf.human_name = "Cookie Secret"
+            conf.user_defined = False
             session.add(conf)
         return conf.value
 
@@ -122,7 +120,7 @@ def connect_db():
         command.upgrade(alembic_cfg, "head")
 
 
-def add_default_user():
+def default_settings():
     with model.session_scope() as session:
         count = session.query(func.count(model.AppUser.id)).scalar()
         if count == 0:
@@ -137,6 +135,17 @@ def add_default_user():
                 organisation=org)
             user.set_password("admin")
             session.add(user)
+
+        setting = session.query(model.SystemConfig).get('pass_threshold')
+        if setting is None:
+            setting = model.SystemConfig(name='pass_threshold')
+            setting.human_name = "Password Strength Threshold"
+            setting.description = "The minimum strength for a password, " \
+                "between 0.0 and 1.0, where 0.0 allows very weak passwords " \
+                "and 1.0 requires strong passwords."
+            setting.user_defined = True
+            setting.value = 0.85
+            session.add(setting)
 
 
 def get_mappings():
@@ -157,6 +166,7 @@ def get_mappings():
         (r"/(.*\.css)", handlers.CssHandler, {
             'root': os.path.join(package_dir, "..", "client")}),
 
+        (r"/systemconfig.json", admin_handlers.SystemConfigHandler, {}),
         (r"/organisation/?(.*).json", org_handlers.OrgHandler, {}),
         (r"/user/?(.*).json", user_handlers.UserHandler, {}),
         (r"/password.json", user_handlers.PasswordHandler, {}),
@@ -176,7 +186,7 @@ def start_web_server():
 
     package_dir = get_package_dir()
     settings = get_settings()
-    add_default_user()
+    default_settings()
 
     application = tornado.web.Application(get_mappings(), **settings)
 

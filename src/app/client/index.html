@@ -7,7 +7,7 @@
 
 <body ng-controller="RootCtrl">
 
-<header>
+<header ng-controller="HeaderCtrl">
     <nav class="navbar navbar-default navbar-static-top" role="navigation"
             data-toggle="collapse" data-target=".navbar-collapse.in">
         <div class="container-fluid">
@@ -29,6 +29,12 @@
                     <li>
                         <a ng-href="#/surveys" title="Surveys">
                             <span>Surveys</span>
+                        </a>
+                    </li>
+                    <li ng-if="checkRole('conf_edit')">
+                        <a ng-href="#/systemconfig" title="Config">
+                            <i class="fa fa-fw fa-cog"></i>
+                            <span class="when-collapsed">Config</span>
                         </a>
                     </li>
                     <li>
