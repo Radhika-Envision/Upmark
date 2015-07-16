@@ -55,8 +55,8 @@ def parse_options():
         help="Debug mode (default: True)")
 
     tornado.options.define(
-        "pass_threshold", default=os.environ.get('AQ_PASS_THRESHOLD', '0.95'),
-        help="Password strength threshold (default: 0.95)")
+        "pass_threshold", default=os.environ.get('AQ_PASS_THRESHOLD', '0.85'),
+        help="Password strength threshold (default: 0.85)")
 
     tornado.options.define(
         "analytics_id", default=os.environ.get('ANALYTICS_ID', ''),
@@ -85,8 +85,7 @@ def get_minimal_settings():
     return {
         "template_path": os.path.join(package_dir, "..", "client"),
         "login_url": "/login/",
-        "cookie_secret": 'dummy',
-        "password_threshold": '0.95'
+        "cookie_secret": 'dummy'
     }
 
 
@@ -97,7 +96,6 @@ def get_settings():
         "cookie_secret": get_cookie_secret(),
         "xsrf_cookies": truthy(tornado.options.options.xsrf),
         "debug": truthy(tornado.options.options.debug),
-        "password_threshold": float(tornado.options.options.pass_threshold),
         "serve_traceback": truthy(tornado.options.options.dev),
         "gzip": True
     })

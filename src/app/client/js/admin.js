@@ -210,6 +210,7 @@ angular.module('wsaa.admin', [
         Password.test({password: password}).$promise.then(
             function success(body) {
                 $scope.passwordCheck = body;
+                Notifications.remove('user');
             },
             function failure(details) {
                 $scope.passwordCheck = null;

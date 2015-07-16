@@ -273,7 +273,7 @@ class UserAuthzTest(OrgStructureTestCase):
             session.expunge(org)
 
         post_data = {
-            'email': 'clerk%s%s' % (prefix, i),
+            'email': 'user%s%s' % (prefix, i),
             'name': 'foo',
             'password': 'bar',
             'role': role,
@@ -282,7 +282,7 @@ class UserAuthzTest(OrgStructureTestCase):
 
         with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
                         get_secure_cookie(user_email=user_email)), \
-                mock.patch('user_handlers.test_password', lambda x: True):
+                mock.patch('user_handlers.test_password', lambda x: (1.0, {})):
             response = self.fetch(
                 "/user.json", method='POST',
                 body=json_encode(post_data))
@@ -297,8 +297,8 @@ class UserAuthzTest(OrgStructureTestCase):
             session.expunge(org)
 
         post_data = {
-            'email': 'clerk',
-            'name': 'foo',
+            'email': 'passwordTest',
+            'name': 'ptest',
             'password': 'bar',
             'role': 'clerk',
             'organisation': {'id': str(org.id)}

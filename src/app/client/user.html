@@ -87,7 +87,8 @@
 
         <div class="form-group" show-errors>
             <label for="user_pwd">Password</label>
-            <span class="help-label" ng-if="edit.model.id">
+            <span class="help-label"
+                    ng-if="edit.model.id && !edit.model.password">
                 Optional</span>
             <span class="help-label"
                     ng-if="passwordCheck.strength < passwordCheck.threshold">
@@ -100,11 +101,15 @@
         </div>
         <div class="form-group" show-errors>
             <label for="user_pwd2">Re-enter password</label>
-            <span class="help-label" ng-if="form.user_pwd2.$error.match">Passwords don't match.</span>
+            <span class="help-label"
+                    ng-if="edit.model.password && form.user_pwd2.$error.match">
+                Passwords don't match.</span>
             <input type="password" class="form-control" id="user_pwd2" name="user_pwd2"
                 ng-model="edit.model.password2" match="edit.model.password" />
         </div>
-        <div class="form-group">
+        <div class="form-group"
+                ng-if="passwordCheck.strength < passwordCheck.threshold">
+            <p>Password suggestions:</p>
             <ul>
                 <li ng-repeat="item in passwordCheck.improvements">
                     {{item}}
