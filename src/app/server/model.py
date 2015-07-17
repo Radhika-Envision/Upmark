@@ -64,8 +64,6 @@ class AppUser(Versioned, Base):
     created = Column(DateTime, default=func.now(), nullable=False)
     enabled = Column(Boolean, nullable=False, default=True)
 
-    organisation = relationship(Organisation)
-
     def set_password(self, plaintext):
         self.password = sha256_crypt.encrypt(plaintext)
 
@@ -75,6 +73,10 @@ class AppUser(Versioned, Base):
     __table_args__ = (
         Index('appuser_email_key', func.lower(email), unique=True),
     )
+
+
+Organisation.users = relationship(
+    AppUser, backref="organisation", passive_deletes=True)
 
 
 ROLE_HIERARCHY = {

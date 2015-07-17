@@ -148,6 +148,24 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.MissingDocError("No such user")
         self.get(user_id)
 
+    def delete(self, user_id):
+        if user_id == '':
+            raise handlers.MethodError("User ID required")
+        try:
+            with model.session_scope() as session:
+                user = session.query(model.AppUser).get(user_id)
+                if user is None:
+                    raise ValueError("No such object")
+                user.organisation.users.remove(user)
+                session.delete(user)
+        except sqlalchemy.exc.IntegrityError as e:
+            raise handlers.ModelError(
+                "User owns content and can not be deleted")
+        except (sqlalchemy.exc.StatementError, ValueError):
+            raise handlers.MissingDocError("No such user")
+
+        self.finish()
+
     def _check_create(self, son):
         if not model.has_privillege(self.current_user.role, 'org_admin'):
             raise handlers.AuthzError("You can't create a new user.")

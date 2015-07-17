@@ -106,6 +106,7 @@ angular.module('wsaa.admin', [
                     return !org || org.id == current.user.organisation.id;
                     break;
                 case 'user_enable':
+                case 'user_del':
                     if (current.user.id == user.id)
                         return false;
                     // fall-through
@@ -138,10 +139,10 @@ angular.module('wsaa.admin', [
 .controller('UserCtrl', [
         '$scope', 'User', 'routeData', 'Editor', 'Organisation', 'userAuthz',
         '$window', '$location', 'log', 'Notifications', 'Current', '$q',
-        'Password',
+        'Password', 'format',
         function($scope, User, routeData, Editor, Organisation, userAuthz,
                  $window, $location, log, Notifications, Current, $q,
-                 Password) {
+                 Password, format) {
 
     $scope.edit = Editor('user', $scope);
     if (routeData.user) {
@@ -167,6 +168,10 @@ angular.module('wsaa.admin', [
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url('/user/' + model.id);
+    });
+    $scope.$on('EditDeleted', function(event, model) {
+        $location.url(format(
+            '/org/{}', model.organisation.id));
     });
 
     $scope.roles = routeData.roles;
@@ -292,6 +297,11 @@ angular.module('wsaa.admin', [
             if (!current.$resolved)
                 return false;
             switch(functionName) {
+                case 'org_del':
+                    if (current.user.organisation.id == org.id)
+                        return false;
+                    return Roles.hasPermission(current.user.role, 'admin');
+                    break;
                 case 'org_add':
                     return Roles.hasPermission(current.user.role, 'admin');
                     break;
@@ -327,6 +337,9 @@ angular.module('wsaa.admin', [
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url('/org/' + model.id);
+    });
+    $scope.$on('EditDeleted', function(event, model) {
+        $location.url('/orgs');
     });
 
     $scope.checkRole = orgAuthz(Current, $scope.org);

@@ -27,7 +27,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError, ValueError):
                 raise handlers.MissingDocError("No such organisation")
-            son = to_dict(org)
+            son = to_dict(org, exclude={'users'})
             son = simplify(son)
             son = normalise(son)
         self.set_header("Content-Type", "application/json")
@@ -102,6 +102,23 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such organisation")
         self.get(org_id)
+
+    def delete(self, org_id):
+        if org_id == '':
+            raise handlers.MethodError("Organisation ID required")
+        try:
+            with model.session_scope() as session:
+                org = session.query(model.Organisation).get(org_id)
+                if org is None:
+                    raise ValueError("No such object")
+                session.delete(org)
+        except sqlalchemy.exc.IntegrityError as e:
+            raise handlers.ModelError(
+                "Organisation owns content and can not be deleted")
+        except (sqlalchemy.exc.StatementError, ValueError):
+            raise handlers.MissingDocError("No such organisation")
+
+        self.finish()
 
     def _update(self, org, son):
         '''

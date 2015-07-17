@@ -3,6 +3,10 @@
 <div class="header">
 <div class="container">
     <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Delete"
+                ng-click="edit.del()"
+                ng-if="!edit.model && checkRole('user_del')">
+            <i class="fa fa-trash-o"></i></button>
         <button class="btn btn-default btn-round" title="Impersonate"
                 ng-click="impersonate()"
                 ng-if="checkRole('user_impersonate')">

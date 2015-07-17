@@ -3,6 +3,10 @@
 <div class="header">
 <div class="container">
     <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Delete"
+                ng-click="edit.del()"
+                ng-if="!edit.model && checkRole('org_del')">
+            <i class="fa fa-trash-o"></i></button>
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
                 ng-if="edit.model && edit.model.id">
