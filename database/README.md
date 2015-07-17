@@ -4,6 +4,9 @@ During the backup(manual or automatic), the instance of RDS can have a trouble o
 
 Our design said need to have a special instance of backup, this instance mostly standby and work in every week. So we decided this backup python script can be placed on the web instance as well.
 
+# System diagram
+![System Diagrm](database/Backup.png)
+
 So here are the steps of create job on web instance.
 ## Cron job backup.
 1. SSH to web instance - `ssh -i aquamark.pem ubuntu@<INSTANCE IP OR DNS>`
