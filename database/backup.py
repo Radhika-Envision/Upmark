@@ -1,6 +1,13 @@
 import boto3
 import datetime
 
+def create_weekly_backup():
+    client.create_db_snapshot(
+        DBSnapshotIdentifier='WeeklyBackup-{0}-{1}-{2}'.format(
+            now.day, now.month, now.year),
+        DBInstanceIdentifier='postgres',
+    )
+
 client = boto3.client('rds')
 
 response = client.describe_db_snapshots(
@@ -24,11 +31,3 @@ if response:
             create_weekly_backup()
 else:
     create_weekly_backup()
-
-
-def create_weekly_backup():
-    client.create_db_snapshot(
-        DBSnapshotIdentifier='WeeklyBackup-{0}-{1}-{2}'.format(
-            now.day, now.month, now.year),
-        DBInstanceIdentifier='postgres',
-    )
