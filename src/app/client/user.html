@@ -7,10 +7,12 @@
                 ng-click="impersonate()"
                 ng-if="checkRole('user_impersonate')">
             <i class="fa fa-paw"></i></button>
-        <button class="btn btn-default btn-round" title="Enable or disable"
+        <button class="btn btn-default btn-round"
+                title="{{user.enabled ? 'Deactivate' : 'Activate'}}"
                 ng-click="toggleEnabled()"
                 ng-if="!edit.model && checkRole('user_enable')">
-            <i class="fa fa-times"></i></button>
+            <i class="fa fa-lock"
+                ng-class="user.enabled ? 'fa-lock' : 'fa-unlock'"></i></button>
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
                 ng-if="edit.model && edit.model.id">
@@ -37,7 +39,7 @@
 <div class="subheader bg-warning text-warning"
         ng-if="user.id && !user.enabled">
     <div class="container">
-        <i class="fa fa-times"></i>
+        <i class="fa fa-lock"></i>
         This user is inactive.
     </div>
 </div>
@@ -71,7 +73,7 @@
                 ng-model="edit.model.email" required />
         </div>
         <div class="form-group">
-            <label for="user_org">Oranisation</label>
+            <label for="user_org">Organisation</label>
             <ui-select ng-model="edit.model.organisation"
                     ng-disabled="!checkRole('user_change_org')"
                     reset-search-input="false">
@@ -133,7 +135,7 @@
         <dd><a ng-href="mailto:{{user.email}}" target="_blank">{{user.email}}</a></dd>
     </dl>
     <dl>
-        <dt>Oragnisation</dt>
+        <dt>Organisation</dt>
         <dd><a ng-href="#/org/{{user.organisation.id}}">{{user.organisation.name}}</a></dd>
     </dl>
 </div>

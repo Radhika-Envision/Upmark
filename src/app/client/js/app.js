@@ -100,7 +100,7 @@ angular.module('wsaa.aquamark',
                 templateUrl : 'start.html',
                 controller : 'EmptyCtrl'
             })
-            .when('/systemconfig', {
+            .when('/admin', {
                 templateUrl : 'systemconfig.html',
                 controller : 'SystemConfigCtrl',
                 resolve: {

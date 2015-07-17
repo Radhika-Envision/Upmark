@@ -200,7 +200,7 @@ angular.module('wsaa.admin', [
         $scope.user.enabled = !$scope.user.enabled;
         $scope.user.$save(
             function success() {
-                Notifications.add('edit', 'success', 'Saved', 5000);
+                Notifications.set('edit', 'success', 'Saved', 5000);
             },
             function failure(details) {
                 Notifications.set('edit', 'error',
