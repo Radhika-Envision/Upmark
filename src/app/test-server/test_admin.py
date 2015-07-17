@@ -10,7 +10,6 @@ from tornado.web import Application
 import app
 import handlers
 import model
-import user_handlers
 from utils import to_dict, simplify, normalise, truthy
 import unittest
 
@@ -283,7 +282,7 @@ class UserAuthzTest(OrgStructureTestCase):
 
         with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
                         get_secure_cookie(user_email=user_email)), \
-                mock.patch('user_handlers.test_password', lambda x: (1.0, 0.1, {})):
+                mock.patch('crud.user.test_password', lambda x: (1.0, 0.1, {})):
             response = self.fetch(
                 "/user.json", method='POST',
                 body=json_encode(post_data))

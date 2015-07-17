@@ -14,7 +14,7 @@ import sqlalchemy.orm
 import tornado.options
 import tornado.web
 
-import admin_handlers, data_access, user_handlers, org_handlers, survey_handlers, measure_handlers, function_handlers, process_handlers, subprocess_handlers
+import crud
 import handlers
 import model
 from utils import truthy
@@ -166,16 +166,16 @@ def get_mappings():
         (r"/(.*\.css)", handlers.CssHandler, {
             'root': os.path.join(package_dir, "..", "client")}),
 
-        (r"/systemconfig.json", admin_handlers.SystemConfigHandler, {}),
-        (r"/organisation/?(.*).json", org_handlers.OrgHandler, {}),
-        (r"/user/?(.*).json", user_handlers.UserHandler, {}),
-        (r"/password.json", user_handlers.PasswordHandler, {}),
+        (r"/systemconfig.json", crud.config.SystemConfigHandler, {}),
+        (r"/organisation/?(.*).json", crud.org.OrgHandler, {}),
+        (r"/user/?(.*).json", crud.user.UserHandler, {}),
+        (r"/password.json", crud.user.PasswordHandler, {}),
 
-        (r"/survey/?(.*).json", survey_handlers.SurveyHandler, {}),
-        (r"/function/?(.*).json", function_handlers.FunctionHandler, {}),
-        (r"/process/?(.*).json", process_handlers.ProcessHandler, {}),
-        (r"/subprocess/?(.*).json", subprocess_handlers.SubprocessHandler, {}),
-        (r"/measure/?(.*).json", measure_handlers.MeasureHandler, {}),
+        (r"/survey/?(.*).json", crud.survey.SurveyHandler, {}),
+        (r"/function/?(.*).json", crud.function.FunctionHandler, {}),
+        (r"/process/?(.*).json", crud.process.ProcessHandler, {}),
+        (r"/subprocess/?(.*).json", crud.subprocess.SubprocessHandler, {}),
+        (r"/measure/?(.*).json", crud.measure.MeasureHandler, {}),
 
         (r"/(.*)", tornado.web.StaticFileHandler, {
             'path': os.path.join(package_dir, "..", "client")}),
