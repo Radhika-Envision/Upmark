@@ -4,7 +4,7 @@ import datetime
 def create_weekly_backup():
     client.create_db_snapshot(
         DBSnapshotIdentifier='WeeklyBackup-{0}-{1}-{2}'.format(
-            now.day, now.month, now.year),
+            now.year, str(now.month).zfill(2), now.day),
         DBInstanceIdentifier='postgres',
     )
 
