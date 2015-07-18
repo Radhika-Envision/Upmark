@@ -172,9 +172,8 @@ def get_mappings():
         (r"/password.json", crud.user.PasswordHandler, {}),
 
         (r"/survey/?(.*).json", crud.survey.SurveyHandler, {}),
-        (r"/function/?(.*).json", crud.function.FunctionHandler, {}),
-        (r"/process/?(.*).json", crud.process.ProcessHandler, {}),
-        (r"/subprocess/?(.*).json", crud.subprocess.SubprocessHandler, {}),
+        (r"/hierarchy/?(.*).json", crud.hierarchy.HierarchyHandler, {}),
+        (r"/qnode/?(.*).json", crud.qnode.QuestionNodeHandler, {}),
         (r"/measure/?(.*).json", crud.measure.MeasureHandler, {}),
 
         (r"/(.*)", tornado.web.StaticFileHandler, {

@@ -6,7 +6,7 @@ import uuid
 from sqlalchemy import Boolean, create_engine, Column, DateTime, Float, \
     ForeignKey, Index, Integer, String, Text, Table
 from sqlalchemy.sql import func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSON
 import sqlalchemy.exc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.orderinglist import ordering_list
@@ -113,48 +113,67 @@ class Survey(Base):
     # Survey is not open for responses until after the open_date.
     open_date = Column(DateTime)
     title = Column(Text, nullable=False)
+    description = Column(Text)
+
+    @property
+    def is_editable(self):
+        return self.finalised_date is None
+
+    @property
+    def is_open(self):
+        return self.open_date is not None
 
 
-class Function(Base):
-    __tablename__ = 'function'
+class Hierarchy(Base):
+    __tablename__ = 'hierarchy'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(
         GUID, ForeignKey('survey.id'), nullable=False, primary_key=True)
-    seq = Column(Integer)
     title = Column(Text, nullable=False)
-    description = Column(Text, nullable=False)
+    description = Column(Text)
+    structure = Column(JSON, nullable=False)
 
 
-class Process(Base):
-    __tablename__ = 'process'
+Survey.hierarchies = relationship(
+    Hierarchy, backref="survey", passive_deletes=True)
+
+
+class QuestionNode(Base):
+    __tablename__ = 'qnode'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(GUID, nullable=False, primary_key=True)
-    function_id = Column(GUID)
+    hierarchy_id = Column(GUID)
+    parent_id = Column(GUID)
     seq = Column(Integer)
-    title = Column(Text, nullable=False)
-    description = Column(Text, nullable=False)
+    title = Column(Text)
+    description = Column(Text)
 
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ['function_id', 'survey_id'],
-            ['function.id', 'function.survey_id']
-        ),
+    children = relationship(
+        QuestionNode, order_by='QuestionNode.seq', backref='parent',
+        collection_class=ordering_list('seq'), passive_deletes=True)
+
+    # Need to give explicit join rules due to use of foreign key in composite
+    # primary keys: QuestionNode.survey_id and Measure.survey_id.
+    # http://docs.sqlalchemy.org/en/rel_1_0/orm/join_conditions.html#overlapping-foreign-keys
+    measures = relationship(
+        Measure,
+        primaryjoin="and_(qnode_measure_link.c.qnode_id == QuestionNode.id,"
+                    "qnode_link.c.survey_id == foreign(QuestionNode.survey_id))",
+        secondaryjoin="and_(qnode_measure_link.c.measure_id == Measure.id,"
+                    "qnode_measure_link.c.survey_id == foreign(Measure.survey_id))",
+        secondary='qnode_measure_link',
+        order_by='qnode_measure_link.c.seq',
+        collection_class=ordering_list('seq')
     )
 
-
-class Subprocess(Base):
-    __tablename__ = 'subprocess'
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    survey_id = Column(GUID, nullable=False, primary_key=True)
-    process_id = Column(GUID)
-    seq = Column(Integer)
-    title = Column(Text, nullable=False)
-    description = Column(Text, nullable=False)
-
     __table_args__ = (
         ForeignKeyConstraint(
-            ['process_id', 'survey_id'],
-            ['process.id', 'process.survey_id']
+            ['parent_id', 'survey_id'],
+            ['qnode.id', 'qnode.survey_id']
+        ),
+        ForeignKeyConstraint(
+            ['hierarchy_id', 'survey_id'],
+            ['hierarchy.id', 'hierarchy.survey_id']
         ),
     )
 
@@ -162,8 +181,8 @@ class Subprocess(Base):
 class Measure(Base):
     __tablename__ = 'measure'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    survey_id = Column(GUID, nullable=False, primary_key=True)
-    subprocess_id = Column(GUID, nullable=True)
+    survey_id = Column(
+        GUID, ForeignKey("survey.id"), nullable=False, primary_key=True)
     seq = Column(Integer)
     title = Column(Text, nullable=False)
     weight = Column(Float, nullable=False)
@@ -173,64 +192,25 @@ class Measure(Base):
     questions = Column(Text, nullable=True)
     response_type = Column(Text, nullable=False)
 
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ['subprocess_id', 'survey_id'],
-            ['subprocess.id', 'subprocess.survey_id']
-        ),
-    )
-
     def __repr__(self):
         return "Measure(%s - %s)" % (self.id, self.title)
 
 
-class MeasureSet(Base):
-    __tablename__ = 'measureset'
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    survey_id = Column(
-        GUID, ForeignKey('survey.id'), nullable=False, primary_key=True)
-    title = Column(Text, nullable=False)
-    # Need to give explicit join rules due to use of foreign key in composite
-    # primary keys: MeasureSet.survey_id and Measure.survey_id.
-    # http://docs.sqlalchemy.org/en/rel_1_0/orm/join_conditions.html#overlapping-foreign-keys
-    measures = relationship(
-        Measure,
-        primaryjoin="and_(measureset_measure_link.c.measureset_id == MeasureSet.id,"
-                    "measureset_measure_link.c.survey_id == foreign(MeasureSet.survey_id))",
-        secondaryjoin="and_(measureset_measure_link.c.measure_id == Measure.id,"
-                    "measureset_measure_link.c.survey_id == foreign(Measure.survey_id))",
-        secondary='measureset_measure_link'
-    )
-
-
-measureset_measure_link = Table('measureset_measure_link', Base.metadata,
+qnode_measure_link = Table('qnode_measure_link', Base.metadata,
     Column('survey_id', GUID, nullable=False),
-    Column('measureset_id', GUID, nullable=False),
+    Column('qnode_id', GUID, nullable=False),
     Column('measure_id', GUID, nullable=False),
+    Column('seq', Integer),
 
     ForeignKeyConstraint(
-        ['measureset_id', 'survey_id'],
-        ['measureset.id', 'measureset.survey_id']
+        ['qnode_id', 'survey_id'],
+        ['qnode.id', 'qnode.survey_id']
     ),
     ForeignKeyConstraint(
         ['measure_id', 'survey_id'],
         ['measure.id', 'measure.survey_id']
     )
 )
-
-
-Survey.functions = relationship(
-        'Function', order_by='Function.seq', backref="survey",
-        collection_class=ordering_list('seq'), passive_deletes=True)
-Function.processes = relationship(
-        'Process', order_by='Process.seq', backref="function",
-        collection_class=ordering_list('seq'), passive_deletes=True)
-Process.subprocesses = relationship(
-        'Subprocess', order_by='Subprocess.seq', backref="process",
-        collection_class=ordering_list('seq'), passive_deletes=True)
-Subprocess.measures = relationship(
-        'Measure', order_by='Measure.seq', backref="subprocess",
-        collection_class=ordering_list('seq'), passive_deletes=True)
 
 
 class Response(Versioned, Base):
@@ -310,7 +290,3 @@ def connect_db(url):
 
 def initialise_schema(engine):
     Base.metadata.create_all(engine)
-
-
-if __name__ == '__main__':
-    testing()

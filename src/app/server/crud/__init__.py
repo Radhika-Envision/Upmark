@@ -3,7 +3,6 @@ from . import org
 from . import user
 
 from . import survey
-from . import function
-from . import process
-from . import subprocess
+from . import hierarchy
+from . import question
 from . import measure

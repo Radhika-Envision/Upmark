@@ -17,6 +17,39 @@ from utils import to_dict, simplify, normalise
 log = logging.getLogger('app.data_access')
 
 
+class SurveyCentric:
+    '''
+    Mixin for handlers that deal with models that have a survey ID as part of
+    a composite primary key.
+    '''
+    @property
+    def survey_id(self):
+        survey_id = self.get_argument("surveyId", "")
+        if survey_id == '':
+            raise handlers.MethodError("Survey ID is required")
+
+        return survey_id
+
+    @property
+    def survey(self):
+        if not hasattr(self, '_survey'):
+            with model.session_scope() as session:
+                survey = query.get(self.survey_id)
+                if survey is None:
+                    raise handlers.MissingDocError("No such survey")
+                session.expunge(survey)
+            self._survey = survey
+        return self._survey
+
+    def check_editable(self):
+        if not self.survey.is_editable:
+            raise handlers.MethodError("This survey is closed for editing")
+
+    def check_open(self):
+        if not self.survey.is_open:
+            raise handlers.MethodError("This survey is not open for responses")
+
+
 class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
 
     @tornado.web.authenticated
