@@ -47,6 +47,9 @@ class Organisation(Versioned, Base):
     number_of_customers = Column(Integer, nullable=False)
     created = Column(DateTime, default=func.now(), nullable=False)
 
+    users = relationship(
+        lambda: AppUser, backref="organisation", passive_deletes=True)
+
     __table_args__ = (
         Index('organisation_name_key', func.lower(name), unique=True),
     )
@@ -73,10 +76,6 @@ class AppUser(Versioned, Base):
     __table_args__ = (
         Index('appuser_email_key', func.lower(email), unique=True),
     )
-
-
-Organisation.users = relationship(
-    AppUser, backref="organisation", passive_deletes=True)
 
 
 ROLE_HIERARCHY = {
@@ -115,6 +114,9 @@ class Survey(Base):
     title = Column(Text, nullable=False)
     description = Column(Text)
 
+    hierarchies = relationship(
+        lambda: Hierarchy, backref="survey", passive_deletes=True)
+
     @property
     def is_editable(self):
         return self.finalised_date is None
@@ -133,9 +135,9 @@ class Hierarchy(Base):
     description = Column(Text)
     structure = Column(JSON, nullable=False)
 
-
-Survey.hierarchies = relationship(
-    Hierarchy, backref="survey", passive_deletes=True)
+    children = relationship(
+        lambda: QuestionNode, order_by='QuestionNode.seq', backref='hierarchy',
+        collection_class=ordering_list('seq'), passive_deletes=True)
 
 
 class QuestionNode(Base):
@@ -145,26 +147,17 @@ class QuestionNode(Base):
     hierarchy_id = Column(GUID)
     parent_id = Column(GUID)
     seq = Column(Integer)
+
+    # For branches only
     title = Column(Text)
     description = Column(Text)
-
     children = relationship(
         QuestionNode, order_by='QuestionNode.seq', backref='parent',
         collection_class=ordering_list('seq'), passive_deletes=True)
 
-    # Need to give explicit join rules due to use of foreign key in composite
-    # primary keys: QuestionNode.survey_id and Measure.survey_id.
-    # http://docs.sqlalchemy.org/en/rel_1_0/orm/join_conditions.html#overlapping-foreign-keys
-    measures = relationship(
-        Measure,
-        primaryjoin="and_(qnode_measure_link.c.qnode_id == QuestionNode.id,"
-                    "qnode_link.c.survey_id == foreign(QuestionNode.survey_id))",
-        secondaryjoin="and_(qnode_measure_link.c.measure_id == Measure.id,"
-                    "qnode_measure_link.c.survey_id == foreign(Measure.survey_id))",
-        secondary='qnode_measure_link',
-        order_by='qnode_measure_link.c.seq',
-        collection_class=ordering_list('seq')
-    )
+    # For leaves only
+    measure_id = Column(GUID)
+    measure = relationship(lambda: Measure)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -174,6 +167,20 @@ class QuestionNode(Base):
         ForeignKeyConstraint(
             ['hierarchy_id', 'survey_id'],
             ['hierarchy.id', 'hierarchy.survey_id']
+        ),
+        ForeignKeyConstraint(
+            ['measure_id', 'survey_id'],
+            ['measure.id', 'measure.survey_id']
+        ),
+        CheckConstraint(
+            '(measure_id IS NULL AND title IS NOT NULL) OR'
+            '(measure_id IS NOT NULL AND title IS NULL)',
+            name='qnode_type_check'
+        ),
+        CheckConstraint(
+            '(parent_id IS NULL AND hierarchy_id IS NOT NULL) OR '
+            '(parent_id IS NOT NULL AND hierarchy_id IS NULL)',
+            name='qnode_root_check'
         ),
     )
 
@@ -194,23 +201,6 @@ class Measure(Base):
 
     def __repr__(self):
         return "Measure(%s - %s)" % (self.id, self.title)
-
-
-qnode_measure_link = Table('qnode_measure_link', Base.metadata,
-    Column('survey_id', GUID, nullable=False),
-    Column('qnode_id', GUID, nullable=False),
-    Column('measure_id', GUID, nullable=False),
-    Column('seq', Integer),
-
-    ForeignKeyConstraint(
-        ['qnode_id', 'survey_id'],
-        ['qnode.id', 'qnode.survey_id']
-    ),
-    ForeignKeyConstraint(
-        ['measure_id', 'survey_id'],
-        ['measure.id', 'measure.survey_id']
-    )
-)
 
 
 class Response(Versioned, Base):

@@ -20,13 +20,35 @@ log = logging.getLogger('app.data_access')
 
 class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
 
-    def to_dict_ancestors(self, qnode):
-        son = to_dict(qnode, include={'id', 'title'})
+    def to_dict(self, qnode, focus)
+        # Qnodes that have a measure have no title, so use the measure's own
+        # title.
+        if qnode.measure is not None:
+            son = to_dict(qnode, include={'id', 'seq'})
+            son['title'] = qnode.measure.title
+            if focus:
+                son['measure'] = to_dict(qnode.measure, exclude={'title'})
+        else:
+            son = to_dict(qnode, include={'id', 'title', 'seq'}
+            if focus:
+                son['description'] = qnode.description
+
+        # Don't include children: the REST API is cleaner if children are
+        # fetched (and reordered) separately.
+        return son
+
+    def to_dict_ancestors(self, qnode, focus):
+        son = self.to_dict(qnode, focus)
+
+        # All qnodes have either a parent (depth > 1) or a hierarchy
+        # (depth = 0).
         if qnode.parent is not None:
-            son['parent'] = to_dict_ancestors(qnode.parent)
-        if qnode.hierarchy is not None:
+            son['parent'] = to_dict_ancestors(qnode.parent, focus=False)
+        else:
             son['hierarchy'] = to_dict(qnode.hierarchy, include={'id', 'title'})
-            son['hierarchy']['survey'] = 
+            son['hierarchy']['survey'] = to_dict(
+                qnode.hierarchy.survey, include={'id', 'title'})
+
         return son
 
     @tornado.web.authenticated
@@ -49,171 +71,175 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     ValueError):
                 raise handlers.MissingDocError("No such category")
 
-            current = qnode
-            
-            function = qnode.hierarchy
-            survey = function.survey
-
-            survey_json = to_dict(survey, include={'id', 'title'})
-            function_json = to_dict(function, include={'id', 'title', 'seq'})
-            function_json['survey'] = survey_json
-
-            son = to_dict(process, include={
-                'id', 'title', 'seq', 'description'})
-            son['function'] = function_json
+            son = self.to_dict_ancestors(qnode, focus=True)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
 
     @tornado.web.authenticated
     def query(self):
-        '''
-        Get a list of processs.
-        '''
+        '''Get list.'''
         hierarchy_id = self.get_argument('hierarchyId', '')
-        if hierarchy_id == '':
-            raise handlers.MethodError("Hierarchy ID is required.")
-
-        survey_id = self.get_survey_id()
-        is_current = is_current_survey(survey_id)
+        parent_id = self.get_argument('parentId', '')
+        if hierarchy_id != '' and parent_id != '':
+            raise handlers.ModelError(
+                "Can't specify both parent and hierarchy IDs")
 
         sons = []
         with model.session_scope() as session:
-            query = session.query(model.Process)\
-                .filter_by(function_id=function_id, survey_id=survey_id)\
-                .order_by(model.Process.seq)
+            query = session.query(model.QuestionNode)\
+                .filter_by(survey_id=self.survey_id)
 
-            term = self.get_argument('term', None)
-            if term is not None:
-                query = query.filter(
-                    model.Process.title.ilike(r'%{}%'.format(term)))
+            if hierarchy_id != '':
+                query.filter_by(hierarchy_id=hierarchy_id)
+            elif parent_id != '':
+                query.filter_by(parent_id=parent_id)
+            else:
+                raise handlers.ModelError(
+                    "Hierarchy or parent ID required")
 
-            query = self.paginate(query)
+            query.order_by(model.QuestionNode.seq)
 
             for ob in query.all():
-                son = to_dict(ob, include={'id', 'title', 'seq', 'description'})
-                sons.append(son)
+                sons.append(self.to_dict(ob, focus=False)
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
         self.finish()
 
     @handlers.authz('author')
-    def post(self, process_id):
-        '''
-        Create a new process.
-        '''
-        if process_id != '':
-            raise handlers.MethodError("Can't use POST for existing process.")
+    def post(self, qnode_id):
+        '''Create new.'''
+        self.check_editable()
 
-        survey_id = self.get_survey_id()
-        function_id = self.get_argument("functionId", "")
-        if function_id == None:
-            raise handlers.MethodError("Can't use POST process without function id.")
+        if qnode_id != '':
+            raise handlers.MethodError("Can't use POST for existing object")
+
+        hierarchy_id = self.get_argument('hierarchyId', '')
+        parent_id = self.get_argument('parentId', '')
+        if hierarchy_id != '' and parent_id != '':
+            raise handlers.ModelError(
+                "Can't specify both parent and hierarchy IDs")
 
         son = json_decode(self.request.body)
 
         try:
             with model.session_scope() as session:
-                # This is OK because POST is always for the current survey
-                function = session.query(model.Function)\
-                    .get((function_id, survey_id))
-                process = model.Process()
-                self._update(process, son)
-                process.function_id = function_id
-                process.survey_id = survey_id
-                function.processes.append(process)
-                function.processes.reorder()
+                qnode = model.QuestionNode()
+                self._update(qnode, son)
+                qnode.survey_id = survey_id
+
+                if hierarchy_id != '':
+                    hierarchy = session.query(model.Hierarchy)\
+                        .get((hierarchy_id, self.survey_id))
+                    if hierarchy is None:
+                        raise handlers.ModelError("No such hierarchy")
+                    hierarchy.children.append(qnode)
+                    hierarchy.children.reorder()
+                elif parent_id != '':
+                    parent = session.query(model.Hierarchy)\
+                        .get((hierarchy_id, self.survey_id))
+                    if parent is None:
+                        raise handlers.ModelError(
+                            "Parent category does not exist")
+                    parent.children.append(qnode)
+                    parent.children.reorder()
+                else:
+                    raise handlers.ModelError(
+                        "Hierarchy or parent ID required")
                 session.flush()
-                session.expunge(process)
+                qnode_id = str(qnode.id)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.get(process.id)
+        self.get(qnode_id)
 
     @handlers.authz('author')
-    def delete(self, process_id):
-        '''
-        Delete an existing process.
-        '''
-        if process_id == '':
-            raise handlers.MethodError("Process ID required")
-        survey_id = self.get_survey_id()
+    def delete(self, qnode_id):
+        '''Delete existing.'''
+        self.check_editable()
+
+        if qnode_id == '':
+            raise handlers.MethodError("Question node ID required")
+
         try:
             with model.session_scope() as session:
-                process = session.query(model.Process)\
-                    .get((process_id, survey_id))
-                if process is None:
+                qnode = session.query(model.QuestionNode)\
+                    .get((qnode_id, self.survey_id))
+                if qnode is None:
                     raise ValueError("No such object")
-                process.function.processes.remove(process)
-                session.delete(process)
+
+                if qnode.hierarchy is not None:
+                    qnode.hierarchy.children.remove(qnode)
+                if qnode.parent is not None:
+                    qnode.parent.children.remove(qnode)
+                session.delete(qnode)
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError("Process is in use")
+            raise handlers.ModelError("Question node is in use")
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such process")
+            raise handlers.MissingDocError("No such question node")
 
         self.finish()
 
     @handlers.authz('author')
-    def put(self, process_id):
-        '''
-        Update an existing process.
-        '''
-        if process_id == '':
+    def put(self, qnode_id):
+        '''Update existing.'''
+        self.check_editable()
+
+        if qnode_id == '':
             self.ordering()
             return
 
         son = json_decode(self.request.body)
 
-        survey_id = self.get_survey_id()
         try:
             with model.session_scope() as session:
-                process = session.query(model.Process)\
-                    .get((process_id, survey_id))
-                if process is None:
+                qnode = session.query(model.QuestionNode)\
+                    .get((qnode_id, self.survey_id))
+                if qnode is None:
                     raise ValueError("No such object")
-                self._update(process, son)
-                session.add(process)
+                self._update(qnode, son)
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such process")
+            raise handlers.MissingDocError("No such question node")
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.get(process_id)
+        self.get(qnode_id)
 
     def ordering(self):
-        '''
-        Update an existing function.
-        '''
-        survey_id = self.get_survey_id()
-        if not is_current_survey(survey_id):
-            raise handlers.MethodError("This surveyId is not current one.")
+        '''Change the order of all children in the parent's collection.'''
 
-        function_id = self.get_argument("functionId", "")
-        if function_id == None:
-            raise handlers.MethodError("Function ID is required.")
+        hierarchy_id = self.get_argument('hierarchyId', '')
+        parent_id = self.get_argument('parentId', '')
+        if hierarchy_id != '' and parent_id != '':
+            raise handlers.ModelError(
+                "Can't specify both parent and hierarchy IDs")
 
         son = json_decode(self.request.body)
         try:
             with model.session_scope() as session:
-                function = session.query(model.Function)\
-                    .get((function_id, survey_id))
-                reorder(function.processes, son)
+                if hierarchy_id != '':
+                    hierarchy = session.query(model.Hierarchy)\
+                        .get((hierarchy_id, survey_id))
+                    if hierarchy is None:
+                        raise handlers.MissingDocError("No such hierarchy")
+                    reorder(hierarchy.children, son)
+                elif parent_id != '':
+                    parent = session.query(model.QuestionNode)\
+                        .get((parent_id, survey_id))
+                    if parent is None:
+                        raise handlers.MissingDocError(
+                            "Parent question node does not exist")
+                    reorder(parent.children, son)
+                else:
+                    raise handlers.ModelError(
+                        "Hierarchy or parent ID required")
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
 
         self.query()
 
-    def get_survey_id(self):
-        survey_id = self.get_argument("surveyId", "")
-        if survey_id == '':
-            raise handlers.MethodError("Survey ID is required.")
-
-        return survey_id
-
-    def _update(self, process, son):
-        '''
-        Apply process-provided data to the saved model.
-        '''
+    def _update(self, qnode, son):
+        '''Apply user-provided data to the saved model.'''
         if son.get('title', '') != '':
             process.title = son['title']
         if son.get('description', '') != '':
