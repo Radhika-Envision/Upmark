@@ -12,7 +12,7 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, reorder
+from utils import to_dict, reorder, updater
 
 
 log = logging.getLogger('app.data_access')
@@ -121,13 +121,14 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             raise handlers.ModelError(
                 "Can't specify both parent and hierarchy IDs")
 
-        son = json_decode(self.request.body)
+        son = denormalise(json_decode(self.request.body))
+        if 'measure' in son:
+            son['measure'] = denormalise(son['measure'])
 
         try:
             with model.session_scope() as session:
-                qnode = model.QuestionNode()
-                self._update(qnode, son)
-                qnode.survey_id = survey_id
+                qnode = model.QuestionNode(survey_id=self.survey_id)
+                self._update(session, qnode, son)
 
                 if hierarchy_id != '':
                     hierarchy = session.query(model.Hierarchy)\
@@ -140,15 +141,16 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     parent = session.query(model.Hierarchy)\
                         .get((hierarchy_id, self.survey_id))
                     if parent is None:
-                        raise handlers.ModelError(
-                            "Parent category does not exist")
+                        raise handlers.ModelError("Parent does not exist")
                     parent.children.append(qnode)
                     parent.children.reorder()
                 else:
                     raise handlers.ModelError(
                         "Hierarchy or parent ID required")
+
                 session.flush()
                 qnode_id = str(qnode.id)
+
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(qnode_id)
@@ -189,7 +191,9 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             self.ordering()
             return
 
-        son = json_decode(self.request.body)
+        son = denormalise(json_decode(self.request.body))
+        if 'measure' in son:
+            son['measure'] = denormalise(son['measure'])
 
         try:
             with model.session_scope() as session:
@@ -197,7 +201,9 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     .get((qnode_id, self.survey_id))
                 if qnode is None:
                     raise ValueError("No such object")
-                self._update(qnode, son)
+
+                self._update(session, qnode, son)
+
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such question node")
         except sqlalchemy.exc.IntegrityError as e:
@@ -205,7 +211,7 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         self.get(qnode_id)
 
     def ordering(self):
-        '''Change the order of all children in the parent's collection.'''
+        '''Change the order of all children in a parent's collection.'''
 
         hierarchy_id = self.get_argument('hierarchyId', '')
         parent_id = self.get_argument('parentId', '')
@@ -238,9 +244,30 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
 
         self.query()
 
-    def _update(self, qnode, son):
+    def _update(self, session, qnode, son):
         '''Apply user-provided data to the saved model.'''
-        if son.get('title', '') != '':
-            process.title = son['title']
-        if son.get('description', '') != '':
-            process.description = son['description']
+        if 'measure' in son:
+            if son['measure'].get('id') is None:
+                # Create a new measure
+                measure = model.Measure(survey_id=self.survey_id)
+                session.add(measure)
+                crud.measure.update_measure(measure, son['measure'])
+                qnode.measure = measure
+            elif son['measure'].get('id') == str(qnode.measure_id):
+                # Update existing measure
+                crud.measure.update_measure(qnode.measure, son['measure'])
+            else:
+                # Link to different measure.
+                # TODO: Update measure contents? It's a bit weird doing
+                # both at once.
+                measure = session.query(model.Measure)\
+                    .get((son['measure']['id'], self.survey_id))
+                if measure is None:
+                    raise handlers.ModelError("No such measure")
+                qnode.measure = measure
+        else:
+            qnode.measure = None
+
+        update = updater(qnode)
+        update('title', son)
+        update('description', son)

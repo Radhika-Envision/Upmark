@@ -11,10 +11,23 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, denormalise, is_current_survey, reorder
+from utils import to_dict, denormalise, is_current_survey, reorder, updater
 
 
-class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
+def update_measure(measure, son):
+    '''
+    Apply user-provided data to the saved model.
+    '''
+    update = updater(measure)
+    update('title', son)
+    update('intent', son)
+    update('inputs', son)
+    update('scenario', son)
+    update('questions', son)
+    update('response_type', son)
+
+
+class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
     @tornado.web.authenticated
     def get(self, measure_id):
         '''
@@ -198,25 +211,6 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
 
         self.query()
-
-    def _update(self, measure, son):
-        '''
-        Apply user-provided data to the saved model.
-        '''
-        if son.get('title', '') != '':
-            measure.title = son['title']
-        if son.get('weight', '') != '':
-            measure.weight = son['weight']
-        if son.get('intent', '') != '':
-            measure.intent = son['intent']
-        if son.get('inputs', '') != '':
-            measure.inputs = son['inputs']
-        if son.get('scenario', '') != '':
-            measure.scenario = son['scenario']
-        if son.get('questions', '') != '':
-            measure.questions = son['questions']
-        if son.get('response_type', '') != '':
-            measure.response_type = son['response_type']
 
     def get_survey_id(self):
         survey_id = self.get_argument("surveyId", "")

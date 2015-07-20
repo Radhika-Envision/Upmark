@@ -102,6 +102,23 @@ def denormalise(ob_dict):
     return new_dict
 
 
+def updater(model):
+    '''
+    Sets fields of a mapped object to a value in a dictionary with the same
+    name - or resets it to the column's default value if it's not in the
+    dictionary.
+    '''
+    def update(name, son):
+        if name in son:
+            if getattr(self.model, name) != son['name']:
+                setattr(self.model, name, son[name])
+        else:
+            column = getattr(self.model.__class__, name)
+            if getattr(self.model, name) != column.default:
+                setattr(self.model, name, column.default)
+    return update
+
+
 def get_current_survey():
     with model.session_scope() as session:
         survey = session.query(model.Survey).order_by(sqlalchemy.desc(model.Survey.created))[0]
