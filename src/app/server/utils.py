@@ -1,4 +1,5 @@
 import datetime
+import re
 import time
 import uuid
 
@@ -19,7 +20,7 @@ def truthy(value):
             value = int(value)
             return value != 0
         except ValueError:
-            return value.lower() in {'true', 't', 'yes', 'y'}
+            return value.lower() in {'true', 't', 'yes', 'y', '1'}
     elif isinstance(value, int):
         return value != 0
     else:
@@ -28,13 +29,15 @@ def truthy(value):
 
 def falsy(value):
     '''
-    @return True if the value is a string like 'True' (etc), or if it is the boolean False
+    @return True if the value is a string like 'True' (etc), or if it is the
+    Boolean False
     '''
     return not truthy(value)
 
 
 
-def to_dict(ob, include=None, exclude=None, autonormalise=True):
+def to_dict(ob, include=None, exclude=None,
+            autonormalise=True, autosimplify=True):
     '''
     Convert the public fields of an object into a dictionary.
     '''
@@ -50,56 +53,72 @@ def to_dict(ob, include=None, exclude=None, autonormalise=True):
 
     if autonormalise:
         son = normalise(son)
+    if autosimplify:
         son = simplify(son)
 
     return son
 
 
-def simplify(ob_dict):
+def simplify(value):
     '''
     Convert the values in a dictionary to primitive types.
     '''
-    new_dict = {}
-    for name, value in ob_dict.items():
-        if isinstance(value, datetime.date):
-            value = time.mktime(value.timetuple())
-        elif isinstance(value, uuid.UUID):
-            value = str(value)
-        new_dict[name] = value
-    return new_dict
+    if isinstance(value, str):
+        return value
+    elif isinstance(value, datetime.date):
+        return time.mktime(value.timetuple())
+    elif isinstance(value, uuid.UUID):
+        return str(value)
+    elif hasattr(value, '__getitem__') and hasattr(value, 'items'):
+        return {k: simplify(v) for k, v in value.items()}
+    elif hasattr(value, '__getitem__') and hasattr(value, '__iter__'):
+        return [simplify(v) for v in value]
+    else:
+        return value
 
 
-def normalise(ob_dict):
-    '''
-    Convert the keys of a dictionary to JSON form.
-    '''
-    new_dict = {}
-    for name, value in ob_dict.items():
-        components = name.split('_')
-        if len(components) > 1 and components[-1] == 'id':
-            components = components[:-1]
-        components = [components[0]] + [c.title() for c in components[1:]]
-        name = ''.join(components)
-        new_dict[name] = value
-    return new_dict
+def to_camel_case(name):
+    components = name.split('_')
+    components = [components[0]] + [c.title() for c in components[1:]]
+    return ''.join(components)
 
 
-def denormalise(ob_dict):
+def normalise(value):
     '''
-    Convert the keys of a dictionary to Python form.
+    Convert the keys of a JSON-like object to JavaScript form (camel case).
     '''
-    new_dict = {}
-    for name, value in ob_dict.items():
-        new_name = ""
-        for i, char in enumerate(name):
-            if char.isupper():
-                if i > 0:
-                    new_name += '_'
-                new_name += char.lower()
-            else:
-                new_name += char
-        new_dict[new_name] = value
-    return new_dict
+    if isinstance(value, str):
+        return value
+    elif hasattr(value, '__getitem__') and hasattr(value, 'items'):
+        return {to_camel_case(k): normalise(v) for k, v in value.items()}
+    elif hasattr(value, '__getitem__') and hasattr(value, '__iter__'):
+        return [normalise(v) for v in value]
+    else:
+        return value
+
+
+CAMEL_PATTERN = re.compile(r'([^A-Z])([A-Z])')
+
+
+def to_snake_case(name):
+    return CAMEL_PATTERN.sub(r'\1_\2', name).lower()
+
+
+def denormalise(value):
+    '''
+    Convert the keys of a JSON-like object to Python form (snake case).
+    '''
+    pattern = re.compile(r'([^A-Z])([A-Z])')
+
+    if isinstance(value, str):
+        return value
+    elif hasattr(value, '__getitem__') and hasattr(value, 'items'):
+        return {pattern.sub(r'\1_\2', k).lower(): denormalise(v)
+                for k, v in value.items()}
+    elif hasattr(value, '__getitem__') and hasattr(value, '__iter__'):
+        return [denormalise(v) for v in value]
+    else:
+        return value
 
 
 def updater(model):
