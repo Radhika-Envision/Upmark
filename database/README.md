@@ -65,17 +65,27 @@ These are the steps of create job on web instance.
 The backups stored in RDS are not accessible for download. To get a copy of a
 backup, you need to:
 
-1. Restore a backup to a new RDS instance.
-1. Use [`pg_dump`] to pull all the data out of the new, temporary instance. You
-   will need to make it publicly accessible (but password-protected). [Use SSL]
-   to encrypt your connection.
+1. Restore a backup to a new RDS instance using the AWS console. You
+   will need to make it publicly accessible (but password-protected).
+1. Use [`pg_dump`] to pull all the data out of the new, temporary instance.
+   [Use SSL] to encrypt your connection.
 
-    ```
-    pg_dump -i -h AWS_HOST -p 5432 -U postgres -F c -b -v \
-        -f "10.70.0.61.backup" postgres
+    ```bash
+    # Get AWS root CA public key
+    wget https://s3.amazonaws.com/rds-downloads/rds-combined-ca-bundle.pem
+
+    # Construct connection string
+    PG_USER=postgres
+    PG_PASSWORD=postgres
+    PG_DATABASE=postgres
+    ENDPOINT=postgres.aiojafojipawefoij.ap-southeast-2.rds.amazonaws.com:5432
+    QUERY="sslmode=verify-full&sslrootcert=rds-combined-ca-bundle.pem"
+    CONN=postgres://$PG_USER:$PG_PASSWORD@$ENDPOINT/$PG_DATABASE?$QUERY
+
+    pg_dump --format custom --blobs --verbose ${CONN} --file aq_dump
     ```
 
-    You can get the AWS_HOST ("Endpoint") and password from the AWS console.
+    You can get the ENDPOINT and password from the AWS console.
 
 1. Delete the temporary RDS instance (because it's publicly accessible).
 
