@@ -43,22 +43,22 @@ These are the steps of create job on web instance.
     ./aquamark/database/setup-backup.sh
     ```
 
-    1. The script will ask you for your AWS credentials and the region. For an
-       Australian Aquamark deployment, use the `ap-southeast-2` region. For
-       example:
+    The script will ask you for your AWS credentials and the region. For an
+    Australian Aquamark deployment, use the `ap-southeast-2` region. For
+    example:
 
-        ```
-        AWS Access Key ID []: <your key id>
-        AWS Secret Access Key []: <your key secret>
-        Default region name [None]: ap-southeast-2
-        Default output format [None]:
-        ```
+    ```
+    AWS Access Key ID []: <your key id>
+    AWS Secret Access Key []: <your key secret>
+    Default region name [None]: ap-southeast-2
+    Default output format [None]:
+    ```
 
-        Details for creating an AWS API key are available in [AWS help]. If you
-        need to edit them, the files are `~/.aws/config` and
-        `~/.aws/credentials`.
+    Details for creating an AWS API key are available in [AWS help]. If you
+    need to edit them, the files are `~/.aws/config` and
+    `~/.aws/credentials`.
 
-1. Execute crontab - `crontab ~/aquamark/database/cron_backup`
+    The script will install the [cron job].
 
 ## Downloading Backups
 
@@ -84,3 +84,4 @@ backup, you need to:
 [AWS help]: https://console.aws.amazon.com/iam/home?nc2=h_m_sc#security_credential
 [`pg_dump`]: http://www.postgresql.org/docs/9.4/static/app-pgdump.html
 [Use SSL]: http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.SSL.html
+[cron job]: cron_backup
