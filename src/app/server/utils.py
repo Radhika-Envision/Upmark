@@ -35,6 +35,64 @@ def falsy(value):
     return not truthy(value)
 
 
+def _to_son(value, include, exclude, omit, path):
+    '''
+    Convert the public fields of a model or collection of models into JSON form
+    (dictionaries and lists).
+    '''
+    if isinstance(value, model.Base):
+        names = [name for name in dir(value)
+                 if not name.startswith('_')
+                 and not name == 'metadata']
+
+        son = {}
+        for name in names:
+            full_path = "%s/%s" % (path, name)
+            if include and not any(item.search(full_path) for item in include):
+                continue
+            if exclude and any(item.search(full_path) for item in exclude):
+                continue
+
+            v = getattr(value, name)
+            if omit and v is None:
+                continue
+            if hasattr(v, '__call__'):
+                continue
+            son[to_camel_case(name)] = _to_son(v, include, exclude, omit, full_path)
+
+    elif isinstance(value, str):
+        son = value
+    elif isinstance(value, datetime.date):
+        son = time.mktime(value.timetuple())
+    elif isinstance(value, uuid.UUID):
+        son = str(value)
+    elif hasattr(value, '__getitem__') and hasattr(value, 'items'):
+        son = {}
+        for k, v in value.items():
+            full_path = "%s/%s" % (path, k)
+            son[to_camel_case(k)] = _to_son(v, include, exclude, omit, full_path)
+    elif hasattr(value, '__getitem__') and hasattr(value, '__iter__'):
+        son = []
+        for i, v in enumerate(value):
+            full_path = "%s/%d" % (path, i)
+            son.append(_to_son(v, include, exclude, omit, full_path))
+    else:
+        son = value
+
+    return son
+
+
+def to_son(value, include=None, exclude=None, omit=False):
+    '''
+    Convert the public fields of a model or collection of models into JSON form
+    (dictionaries and lists).
+    '''
+    if include is not None:
+        include = [re.compile(x) for x in include]
+    if exclude is not None:
+        exclude = [re.compile(x) for x in exclude]
+    return _to_son(value, include, exclude, omit, '')
+
 
 def to_dict(ob, include=None, exclude=None,
             autonormalise=True, autosimplify=True):
