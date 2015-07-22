@@ -11,8 +11,8 @@ function error() {
 
 function install_deps() {
 
-    sudo apt-get update && apt-get install -y python3-pip
-    pip3 install -vU boto3 awscli
+    sudo apt-get update && sudo apt-get install -y python3-pip
+    sudo pip3 install -vU boto3 awscli
     if [ $? -ne 0 ]; then
         error "Failed to install Python dependencies."
         exit 1
