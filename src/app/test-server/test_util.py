@@ -1,6 +1,8 @@
 import datetime
+import time
 import unittest
 from unittest import mock
+import uuid
 
 from utils import to_dict, simplify, normalise, denormalise, truthy, falsy
 import unittest
@@ -43,7 +45,7 @@ class ConversionTest(unittest.TestCase):
                 'aNestedItem': "bar"
             }
         }
-        self.assertEquals(output, normalise(input))
+        self.assertEqual(output, normalise(input))
 
     def test_denormalise(self):
         input = {
@@ -62,23 +64,27 @@ class ConversionTest(unittest.TestCase):
                 'a_nested_item': "bar"
             }
         }
-        self.assertEquals(output, denormalise(input))
+        self.assertEqual(output, denormalise(input))
 
     def test_simplify(self):
+        date = datetime.date(2015, 1, 1)
+        id_ = uuid.uuid4()
         input = {
             'a_string': "foo",
-            'a_date': datetime.date(2015, 1, 1),
-            'aList': [1, 2, {'3': datetime.date(2015, 1, 1)}],
-            'aDict': {
-                'aNestedItem': "bar"
-            }
-        }
-        output = {
-            'a_string': "foo",
-            'a_date': "foo",
-            'a_list': [1, 2, {'3': 3}],
+            'a_date': date,
+            'a_uuid': id_,
+            'a_list': [1, id_, {'3': date}],
             'a_dict': {
                 'a_nested_item': "bar"
             }
         }
-        self.assertEquals(output, denormalise(input))
+        output = {
+            'a_string': "foo",
+            'a_date': time.mktime(date.timetuple()),
+            'a_uuid': str(id_),
+            'a_list': [1, str(id_), {'3': time.mktime(date.timetuple())}],
+            'a_dict': {
+                'a_nested_item': "bar"
+            }
+        }
+        self.assertEqual(output, simplify(input))
