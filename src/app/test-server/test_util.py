@@ -8,7 +8,8 @@ from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
 
 from guid import GUID
 import model
-from utils import to_dict, simplify, normalise, denormalise, truthy, falsy, to_son
+from utils import to_dict, simplify, normalise, denormalise, truthy, falsy, \
+    to_son, UtilException
 import unittest
 
 
@@ -193,3 +194,7 @@ class ConversionTest(unittest.TestCase):
             input, omit=True,
             include=[r'^/id_col', r'^/parent'],
             exclude=[r'string_col']))
+
+        input.parent.parent = input
+        with self.assertRaises(UtilException):
+            to_son(input)

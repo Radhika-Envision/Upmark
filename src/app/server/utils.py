@@ -35,11 +35,15 @@ def falsy(value):
     return not truthy(value)
 
 
-def _to_son(value, include, exclude, omit, path):
-    '''
-    Convert the public fields of a model or collection of models into JSON form
-    (dictionaries and lists).
-    '''
+class UtilException(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+
+
+def _to_son(value, include, exclude, omit, path, ancestors):
+    if value in ancestors:
+        raise UtilException("Serialisation failed: cycle detected")
+
     if isinstance(value, model.Base):
         names = [name for name in dir(value)
                  if not name.startswith('_')
@@ -58,7 +62,8 @@ def _to_son(value, include, exclude, omit, path):
                 continue
             if hasattr(v, '__call__'):
                 continue
-            son[to_camel_case(name)] = _to_son(v, include, exclude, omit, full_path)
+            son[to_camel_case(name)] = _to_son(
+                v, include, exclude, omit, full_path, ancestors + [value])
 
     elif isinstance(value, str):
         son = value
@@ -70,12 +75,14 @@ def _to_son(value, include, exclude, omit, path):
         son = {}
         for k, v in value.items():
             full_path = "%s/%s" % (path, k)
-            son[to_camel_case(k)] = _to_son(v, include, exclude, omit, full_path)
+            son[to_camel_case(k)] = _to_son(
+                v, include, exclude, omit, full_path, ancestors + [value])
     elif hasattr(value, '__getitem__') and hasattr(value, '__iter__'):
         son = []
         for i, v in enumerate(value):
             full_path = "%s/%d" % (path, i)
-            son.append(_to_son(v, include, exclude, omit, full_path))
+            son.append(_to_son(
+                v, include, exclude, omit, full_path, ancestors + [value]))
     else:
         son = value
 
@@ -91,7 +98,7 @@ def to_son(value, include=None, exclude=None, omit=False):
         include = [re.compile(x) for x in include]
     if exclude is not None:
         exclude = [re.compile(x) for x in exclude]
-    return _to_son(value, include, exclude, omit, '')
+    return _to_son(value, include, exclude, omit, '', [])
 
 
 def to_dict(ob, include=None, exclude=None,
