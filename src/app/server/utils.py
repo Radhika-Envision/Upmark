@@ -84,7 +84,7 @@ class ToSon:
                     continue
                 son[to_camel_case(name)] = self(v, "%s/%s" % (path, name))
 
-        elif hasattr(value, '__getitem__') and hasattr(value, '__iter__'):
+        elif hasattr(value, '__iter__'):
             # Lists
             son = []
             for i, v in enumerate(value):

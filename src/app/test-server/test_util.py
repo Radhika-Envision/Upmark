@@ -1,4 +1,5 @@
 import datetime
+import itertools
 import time
 import unittest
 from unittest import mock
@@ -32,6 +33,9 @@ class TestNode(model.Base):
     @parent.setter
     def parent(self, value):
         self._parent = value
+
+    def __str__(self):
+        return "TestNode(%d)" % self.int_col
 
 
 class ConversionTest(unittest.TestCase):
@@ -204,3 +208,46 @@ class ConversionTest(unittest.TestCase):
         to_son = ToSon()
         with self.assertRaises(UtilException):
             to_son(input)
+
+    def test_son_iter(self):
+
+        input = TestNode(
+            id_col=uuid.uuid4(),
+            int_col=1,
+            bool_col=True,
+            string_col="foo",
+            float_col=0.5,
+            date_col=datetime.date(2015, 1, 1)
+        )
+        input.parent = TestNode(int_col=2, string_col="bar")
+        input.parent.parent = TestNode(int_col=3, string_col="baz")
+
+        output = {
+            'intCol': 1,
+            'stringCol': "foo",
+            'parent': {
+                'intCol': 2,
+                'stringCol': "bar",
+                'parent': {
+                    'intCol': 3,
+                    'stringCol': "baz"
+                }
+            }
+        }
+        outputs = [item for item in itertools.repeat(output, 3)]
+
+        to_son = ToSon(omit=True, include=[
+            # Fields to match in any visisted object
+            r'/int_col$',
+            r'/string_col$',
+            # Descend into nested objects
+            r'/[0-9]+$',
+            r'/parent$'])
+
+        # List iteration
+        inputs = [item for item in itertools.repeat(input, 3)]
+        self.assertEqual(outputs, to_son(inputs))
+
+        # Generator iteration
+        inputs = (item for item in itertools.repeat(input, 3))
+        self.assertEqual(outputs, to_son(inputs))
