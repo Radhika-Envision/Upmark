@@ -19,7 +19,7 @@ def check_docker(args):
 
 def send_email(args):
 
-    with open("watchdog.yaml", 'r') as stream:
+    with open("watchdog.yml", 'r') as stream:
         config = yaml.load(stream)
 
     msg = MIMEText(config['MESSAGE_CONTENT'])
