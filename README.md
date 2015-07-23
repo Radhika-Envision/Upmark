@@ -15,6 +15,7 @@ Run with:
 
 ```bash
 sudo docker run -d --name postgres_aq postgres:9
+crontab src/util/watchdog
 sudo docker run -d --name aquamark \
     --link postgres_aq:postgres \
     -e ANALYTICS_ID=foo \
@@ -34,6 +35,37 @@ You might also want to change other details about the default user and
 organisation.
 
 [ga]: http://www.google.com.au/analytics/
+
+
+## Deployment on AWS
+
+Clone the repository and build the image.
+
+```bash
+cd /home/ubuntu
+
+git clone https://github.com/vpac-innovations/aquamark.git
+# Enter your username and password
+sudo docker build -t vpac/aquamark /home/ubuntu/aquamark/src/app
+```
+
+Edit the watchdog config file and add your email credentials. Then test that the
+email function works.
+
+```bash
+nano /home/ubuntu/aquamark/src/util/watchdog.config
+/home/ubuntu/aquamark/src/util/watchdog.py --test
+```
+
+Start the container, and the watchdog task.
+
+```bash
+sudo docker run -d --name aquamark \
+    -e ANALYTICS_ID=<your analytics ID> \
+    -e DATABASE_URL=<as specified by AWS RDS> \
+    vpac/aquamark
+crontab /home/ubuntu/aquamark/src/util/watchdog
+```
 
 
 ## Development
