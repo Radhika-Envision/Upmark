@@ -12,17 +12,51 @@ from dateutil.parser import parse
 def check_docker(args):
 
     c = Client(base_url='unix://var/run/docker.sock')
-    create_date = parse(c.inspect_container('aq')['Created'])
-    start_date = parse(c.inspect_container('aq')['State']['StartedAt'])
+    try:
+        info = c.inspect_container('aq')
+    except docker.errors.NotFound as e:
+        raise
 
-    if create_date + datetime.timedelta(minutes=1) < start_date:
-        print("send email")
-        send_email(None)
+    started_at = parse(info['State']['StartedAt'])
+    running = parse(info['State']['Running'])
+
+    try:
+        with open("watchdog-state.yaml", 'r') as f:
+            state = yaml.load(f)
+    except FileNotFoundError:
+        state = {}
+    if state is None:
+        state = {}
+
+    if state.get('emailed', None) is None:
+        state['emailed'] = False
+
+    if state.get('started_at', None) is None:
+        state['started_at'] = None
+    else:
+        state['started_at'] = parse(state['started_at'])
+
+    if not state['emailed']:
+        if started_at > state['started_at']:
+            send_email()
+            state['emailed'] = True
+            state['started_at'] = started_at
+    else:
+        if running and started_at - datetime.timedelta(minutes=1) > state['started_at']:
+            state['emailed'] = False
+            state['stated_at'] = started_at
+        #print("send email")
+        #send_email(None)
+
+    state['started_at'] = str(state['started_at'])
+
+    with open("watchdog-state.yaml", 'w') as f:
+        yaml.dump(state, f)
 
 
-def send_email(args):
+def send_email():
 
-    with open("watchdog.yml", 'r') as stream:
+    with open("watchdog.yaml", 'r') as stream:
         config = yaml.load(stream)
 
     msg = MIMEText(config['MESSAGE_CONTENT'])
