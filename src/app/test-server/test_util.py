@@ -9,8 +9,29 @@ from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
 from guid import GUID
 import model
 from utils import to_dict, simplify, normalise, denormalise, truthy, falsy, \
-    to_son, UtilException
+    UtilException, ToSon
 import unittest
+
+
+class TestNode(model.Base):
+    __tablename__ = 'testnode'
+    id_col = Column(GUID, primary_key=True)
+    int_col = Column(Integer)
+    bool_col = Column(Boolean)
+    string_col = Column(String)
+    float_col = Column(String)
+    date_col = Column(DateTime)
+
+    @property
+    def parent(self):
+        try:
+            return self._parent
+        except AttributeError:
+            return None
+
+    @parent.setter
+    def parent(self, value):
+        self._parent = value
 
 
 class ConversionTest(unittest.TestCase):
@@ -115,28 +136,10 @@ class ConversionTest(unittest.TestCase):
                 'aNestedItem': "bar"
             }
         }
+        to_son = ToSon()
         self.assertEqual(output, to_son(input))
 
     def test_son_node(self):
-        class TestNode(model.Base):
-            __tablename__ = 'testnode'
-            id_col = Column(GUID, primary_key=True)
-            int_col = Column(Integer)
-            bool_col = Column(Boolean)
-            string_col = Column(String)
-            float_col = Column(String)
-            date_col = Column(DateTime)
-
-            @property
-            def parent(self):
-                try:
-                    return self._parent
-                except AttributeError:
-                    return None
-
-            @parent.setter
-            def parent(self, value):
-                self._parent = value
 
         input = TestNode(
             id_col=uuid.uuid4(),
@@ -160,7 +163,8 @@ class ConversionTest(unittest.TestCase):
             },
             'dateCol': time.mktime(input.date_col.timetuple()),
         }
-        self.assertEqual(output, to_son(input, omit=True))
+        to_son = ToSon(omit=True)
+        self.assertEqual(output, to_son(input))
 
         output = {
             'idCol': str(input.id_col),
@@ -172,8 +176,8 @@ class ConversionTest(unittest.TestCase):
             },
             'dateCol': time.mktime(input.date_col.timetuple()),
         }
-        self.assertEqual(output, to_son(
-            input, exclude=[r'^/string_col', r'parent/int_col'], omit=True))
+        to_son = ToSon(exclude=[r'^/string_col', r'parent/int_col'], omit=True)
+        self.assertEqual(output, to_son(input))
 
         output = {
             'idCol': str(input.id_col),
@@ -181,8 +185,8 @@ class ConversionTest(unittest.TestCase):
                 'stringCol': "bar"
             }
         }
-        self.assertEqual(output, to_son(
-            input, include=[r'^/id_col', r'^/parent$', r'parent/string_col']))
+        to_son = ToSon(include=[r'^/id_col', r'^/parent$', r'parent/string_col'])
+        self.assertEqual(output, to_son(input))
 
         output = {
             'idCol': str(input.id_col),
@@ -190,11 +194,13 @@ class ConversionTest(unittest.TestCase):
                 'intCol': 2,
             }
         }
-        self.assertEqual(output, to_son(
-            input, omit=True,
+        to_son = ToSon(
             include=[r'^/id_col', r'^/parent'],
-            exclude=[r'string_col']))
+            exclude=[r'string_col'],
+            omit=True)
+        self.assertEqual(output, to_son(input))
 
         input.parent.parent = input
+        to_son = ToSon()
         with self.assertRaises(UtilException):
             to_son(input)

@@ -40,65 +40,80 @@ class UtilException(Exception):
         Exception.__init__(self, *args, **kwargs)
 
 
-def _to_son(value, include, exclude, omit, path, ancestors):
-    if value in ancestors:
-        raise UtilException("Serialisation failed: cycle detected")
+class ToSon:
+    def __init__(self, include=None, exclude=None, omit=False):
+        self.include = include and [re.compile(x) for x in include] or None
+        self.exclude = exclude and [re.compile(x) for x in exclude] or None
+        self.omit = omit
+        self.visited = []
 
-    if isinstance(value, model.Base):
-        names = [name for name in dir(value)
-                 if not name.startswith('_')
-                 and not name == 'metadata']
+    def __call__(self, value, path=""):
+        if value in self.visited:
+            raise UtilException(
+                "Serialisation failed: cycle detected: %s" % path)
+        self.visited.append(value)
 
-        son = {}
-        for name in names:
-            full_path = "%s/%s" % (path, name)
-            if include and not any(item.search(full_path) for item in include):
-                continue
-            if exclude and any(item.search(full_path) for item in exclude):
-                continue
+        if isinstance(value, model.Base):
+            names = dir(value)
 
-            v = getattr(value, name)
-            if omit and v is None:
-                continue
-            if hasattr(v, '__call__'):
-                continue
-            son[to_camel_case(name)] = _to_son(
-                v, include, exclude, omit, full_path, ancestors + [value])
+            son = {}
+            for name in names:
+                if not self.can_emit(name, path):
+                    continue
+                v = getattr(value, name)
+                if self.omit and v is None:
+                    continue
+                if hasattr(v, '__call__'):
+                    continue
+                son[to_camel_case(name)] = self(v, "%s/%s" % (path, name))
 
-    elif isinstance(value, str):
-        son = value
-    elif isinstance(value, datetime.date):
-        son = time.mktime(value.timetuple())
-    elif isinstance(value, uuid.UUID):
-        son = str(value)
-    elif hasattr(value, '__getitem__') and hasattr(value, 'items'):
-        son = {}
-        for k, v in value.items():
-            full_path = "%s/%s" % (path, k)
-            son[to_camel_case(k)] = _to_son(
-                v, include, exclude, omit, full_path, ancestors + [value])
-    elif hasattr(value, '__getitem__') and hasattr(value, '__iter__'):
-        son = []
-        for i, v in enumerate(value):
-            full_path = "%s/%d" % (path, i)
-            son.append(_to_son(
-                v, include, exclude, omit, full_path, ancestors + [value]))
-    else:
-        son = value
+        elif isinstance(value, str):
+            son = value
+        elif isinstance(value, datetime.date):
+            son = time.mktime(value.timetuple())
+        elif isinstance(value, uuid.UUID):
+            son = str(value)
+        elif hasattr(value, '__getitem__') and hasattr(value, 'keys'):
+            # Dictionaries
+            son = {}
+            for name in value.keys():
+                if not self.can_emit(name, path):
+                    continue
+                v = value[name]
+                if self.omit and v is None:
+                    continue
+                son[to_camel_case(name)] = self(v, "%s/%s" % (path, name))
 
-    return son
+        elif hasattr(value, '__getitem__') and hasattr(value, '__iter__'):
+            # Lists
+            son = []
+            for i, v in enumerate(value):
+                if not self.can_emit(i, path):
+                    continue
+                if self.omit and v is None:
+                    continue
+                son.append(self(v, "%s/%d" % (path, i)))
+        else:
+            son = value
 
+        self.visited.pop()
+        return son
 
-def to_son(value, include=None, exclude=None, omit=False):
-    '''
-    Convert the public fields of a model or collection of models into JSON form
-    (dictionaries and lists).
-    '''
-    if include is not None:
-        include = [re.compile(x) for x in include]
-    if exclude is not None:
-        exclude = [re.compile(x) for x in exclude]
-    return _to_son(value, include, exclude, omit, '', [])
+    def can_emit(self, name, basepath):
+        name = str(name)
+        if name.startswith('_'):
+            return False
+        if name == 'metadata':
+            return False
+
+        path = "%s/%s" % (basepath, name)
+        if self.include is not None:
+            if not any(item.search(path) for item in self.include):
+                return False
+        if self.exclude is not None:
+            if any(item.search(path) for item in self.exclude):
+                return False
+        return True
 
 
 def to_dict(ob, include=None, exclude=None,
