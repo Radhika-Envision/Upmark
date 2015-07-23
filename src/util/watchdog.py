@@ -3,17 +3,20 @@
 import argparse
 import smtplib
 import yaml
+import datetime
 
 from email.mime.text import MIMEText
 from docker import Client
+from dateutil.parser import parse
 
 def check_docker(args):
 
     c = Client(base_url='unix://var/run/docker.sock')
-    create_date = c.inspect_container('aq')['Created']
-    start_date = c.inspect_container('aq')['State']['FinishedAt']
+    create_date = parse(c.inspect_container('aq')['Created'])
+    start_date = parse(c.inspect_container('aq')['State']['StartedAt'])
 
-    if create_date > start_date:
+    if create_date + datetime.timedelta(minutes=1) < start_date:
+        print("send email")
         send_email(None)
 
 
