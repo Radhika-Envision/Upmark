@@ -27,7 +27,6 @@ def get_package_dir():
 
 
 def get_config_path():
-    log.info("get_config_path", get_package_dir())
     return os.path.join(get_package_dir(), "watchdog.yaml")
 
 
