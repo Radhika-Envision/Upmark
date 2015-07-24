@@ -12,44 +12,13 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, reorder, updater
+from utils import reorder, ToSon, updater
 
 
 log = logging.getLogger('app.data_access')
 
 
 class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
-
-    def to_dict(self, qnode, focus)
-        # Qnodes that have a measure have no title, so use the measure's own
-        # title.
-        if qnode.measure is not None:
-            son = to_dict(qnode, include={'id', 'seq'})
-            son['title'] = qnode.measure.title
-            if focus:
-                son['measure'] = to_dict(qnode.measure, exclude={'title'})
-        else:
-            son = to_dict(qnode, include={'id', 'title', 'seq'}
-            if focus:
-                son['description'] = qnode.description
-
-        # Don't include children: the REST API is cleaner if children are
-        # fetched (and reordered) separately.
-        return son
-
-    def to_dict_ancestors(self, qnode, focus):
-        son = self.to_dict(qnode, focus)
-
-        # All qnodes have either a parent (depth > 1) or a hierarchy
-        # (depth = 0).
-        if qnode.parent is not None:
-            son['parent'] = to_dict_ancestors(qnode.parent, focus=False)
-        else:
-            son['hierarchy'] = to_dict(qnode.hierarchy, include={'id', 'title'})
-            son['hierarchy']['survey'] = to_dict(
-                qnode.hierarchy.survey, include={'id', 'title'})
-
-        return son
 
     @tornado.web.authenticated
     def get(self, qnode_id):
@@ -71,7 +40,18 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     ValueError):
                 raise handlers.MissingDocError("No such category")
 
-            son = self.to_dict_ancestors(qnode, focus=True)
+            to_son = ToSon(include=[
+                # Fields to match from any visited object
+                r'/id$',
+                r'/title$',
+                r'/seq$',
+                # Fields to match from only the root object
+                r'^/description$',
+                # Descend into nested objects
+                r'^(/parent)+$',
+                r'^(/parent)+/hierarchy(/survey)?$'
+            ])
+            son = to_son(qnode)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
@@ -100,8 +80,15 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
 
             query.order_by(model.QuestionNode.seq)
 
-            for ob in query.all():
-                sons.append(self.to_dict(ob, focus=False)
+            to_son = ToSon(include=[
+                # Fields to match from any visited object
+                r'/id$',
+                r'/title$',
+                r'/seq$',
+                # Descend into nested objects
+                r'/[0-9]+$',
+            ])
+            son = to_son(query.all())
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))

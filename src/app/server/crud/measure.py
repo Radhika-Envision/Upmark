@@ -11,7 +11,8 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, denormalise, is_current_survey, reorder, updater
+import crud
+from utils import ToSon, denormalise, reorder, updater
 
 
 def update_measure(measure, son):
@@ -33,17 +34,10 @@ class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         '''
         Get a single measure.
         '''
-        if measure_id == "":
-            self.query()
-            return
-
-        survey_id = self.get_survey_id()
-        is_current = is_current_survey(survey_id)
-
         with model.session_scope() as session:
             try:
                 measure = session.query(model.Measure)\
-                    .filter_by(id=measure_id, survey_id=survey_id).one()
+                    .get((measure_id, self.survey_id))
                 if measure is None:
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError,
@@ -51,57 +45,27 @@ class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     ValueError):
                 raise handlers.MissingDocError("No such measure")
 
-            subprocess = measure.subprocess
-            process = subprocess.process
-            function = process.function
-            survey = function.survey
-
-            survey_json = to_dict(survey, include={'id', 'title'})
-
-            function_json = to_dict(function, include={'id', 'title', 'seq'})
-            function_json['survey'] = survey_json
-
-            process_json = to_dict(process, include={'id', 'title', 'seq'})
-            process_json['function'] = function_json
-
-            subprocess_json = to_dict(subprocess, include={'id', 'title', 'seq'})
-            subprocess_json['process'] = process_json
-
-            son = to_dict(measure, include={
-                'id', 'title', 'seq',
-                'intent', 'inputs', 'scenario', 'questions',
-                'weight', 'response_type'})
-            son['subprocess'] = subprocess_json
+            to_son = ToSon(include=[
+                # Fields to match from any visited object
+                r'/id$',
+                r'/title$',
+                r'/seq$',
+                # Fields to match from only the root object
+                r'^/intent$',
+                r'^/inputs$',
+                r'^/scenario$',
+                r'^/questions$',
+                r'^/weight$',
+                r'^/response_type$',
+                # Descend into nested objects
+                r'/parents$',
+                r'/parent$',
+                r'/hierarchy$',
+                r'/hierarchy/survey$'
+            ])
+            son = to_son(measure)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
-        self.finish()
-
-    @tornado.web.authenticated
-    def query(self):
-        '''
-        Get a list.
-        '''
-
-        survey_id = self.get_survey_id()
-        is_current = is_current_survey(survey_id)
-
-        subprocess_id = self.get_argument("subprocessId", "")
-        if subprocess_id == None:
-            raise handlers.MethodError("Subprocess ID is required.")
-
-        sons = []
-        with model.session_scope() as session:
-            query = session.query(model.Measure)\
-                .filter_by(subprocess_id=subprocess_id, survey_id=survey_id)\
-                .order_by(model.Measure.seq)
-            query = self.paginate(query)
-
-            for ob in query.all():
-                son = to_dict(ob, include={'id', 'title', 'seq'})
-                sons.append(son)
-
-        self.set_header("Content-Type", "application/json")
-        self.write(json_encode(sons))
         self.finish()
 
     @handlers.authz('author')
@@ -110,33 +74,29 @@ class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         Create new.
         '''
         if measure_id != '':
-            raise handlers.MethodError("Can't use POST for existing measure.")
-
-        survey_id = self.get_survey_id()
-
-        subprocess_id = self.get_argument('subprocessId', None)
-        if subprocess_id == None:
-            raise handlers.MethodError("subprocessId is required")
+            raise handlers.MethodError(
+                "Can't specify ID when creating a new measure.")
 
         son = json_decode(self.request.body)
         son = denormalise(son)
 
         try:
             with model.session_scope() as session:
-                # This is OK because POST is always for the current survey
-                subprocess = session.query(model.Subprocess)\
-                    .get((subprocess_id, survey_id))
-                measure = model.Measure()
+                measure = model.Measure(survey_id=self.survey_id)
                 self._update(measure, son)
-                measure.subprocess_id = subprocess_id
-                measure.survey_id = survey_id
-                subprocess.measures.append(measure)
-                subprocess.measures.reorder()
                 session.flush()
-                session.expunge(measure)
+
+                for qnode_son in son['parents']:
+                    qnode = session.query(model.QuestionNode)\
+                        .get((qnode_son['id'], self.survey_id))
+                    if qnode is None:
+                        raise handlers.ModelError("No such question node")
+                    qnode.measures.append(measure)
+                    qnode.measures.reorder()
+                measure_id = str(measure.id)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.get(measure.id)
+        self.get(measure_id)
 
     @handlers.authz('author')
     def delete(self, measure_id):
@@ -145,18 +105,17 @@ class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         '''
         if measure_id == '':
             raise handlers.MethodError("Measure ID required")
-        survey_id = self.get_survey_id()
+
         try:
             with model.session_scope() as session:
                 measure = session.query(model.Measure)\
-                    .get((measure_id, survey_id))
+                    .get((measure_id, self.survey_id))
                 if measure is None:
-                    raise ValueError("No such object")
-                measure.subprocess.measures.remove(measure)
+                    raise handlers.MissingDocError("No such measure")
                 session.delete(measure)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Measure is in use")
-        except (sqlalchemy.exc.StatementError, ValueError):
+        except sqlalchemy.exc.StatementError:
             raise handlers.MissingDocError("No such measure")
 
         self.finish()
@@ -166,10 +125,6 @@ class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         '''
         Update existing.
         '''
-        if measure_id == '':
-            self.ordering()
-            return
-
         son = json_decode(self.request.body)
         son = denormalise(son)
 
@@ -188,7 +143,51 @@ class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.get(measure_id)
 
-    def ordering(self):
+    def get_survey_id(self):
+        survey_id = self.get_argument("surveyId", "")
+        if survey_id == '':
+            raise handlers.MethodError("Survey ID is required.")
+
+        return survey_id
+
+
+class MeasureListHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
+
+    @tornado.web.authenticated
+    def get(self):
+        '''
+        Get a list.
+        '''
+        qnode_id = self.get_argument('qnodeId', '')
+
+        sons = []
+        with model.session_scope() as session:
+            if qnode_id != '':
+                qnode = session.query(model.QuestionNode)\
+                    .get((qnode_id, self.survey_id))
+                measures = qnode.measures
+            else:
+                query = session.query(model.Measure)\
+                    .filter_by(survey_id=self.survey_id)
+                measures = query.all()
+
+            to_son = ToSon(include=[
+                # Fields to match from any visited object
+                r'/id$',
+                r'/title$',
+                r'/seq$',
+                # Descend into nested objects
+                r'/[0-9]+$',
+                r'/survey$',
+            ])
+            son = to_son(measures)
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(sons))
+        self.finish()
+
+    @handlers.authz('author')
+    def put(self):
         '''
         Change the order that would be returned by a query.
         '''
@@ -210,11 +209,4 @@ class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
 
-        self.query()
-
-    def get_survey_id(self):
-        survey_id = self.get_argument("surveyId", "")
-        if survey_id == '':
-            raise handlers.MethodError("Survey ID is required.")
-
-        return survey_id
+        self.get()
