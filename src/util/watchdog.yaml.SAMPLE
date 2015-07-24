@@ -13,10 +13,16 @@ MESSAGE_SUBJECT_CRASHED: Aquamark has CRASHED
 MESSAGE_CONTENT_CRASHED: |
     Aquamark server ${server} has CRASHED.
 
+    Here are logs
+    ${logs}
+
 MESSAGE_SUBJECT_RECOVERED: Aquamark is RUNNING
 MESSAGE_CONTENT_RECOVERED: |
     Aquamark server ${server} has recovered.
 
+    Here are logs
+    ${logs}
+    
 MESSAGE_SUBJECT_TEST: Aquamark watchdog TEST
 MESSAGE_CONTENT_TEST: |
     This is a TEST email from Aquamark server ${server}.

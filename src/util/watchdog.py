@@ -50,11 +50,26 @@ def get_config():
         return yaml.load(stream)
 
 
-def get_container_info():
+def get_docker_container():
     config = get_config()
     log.debug("Checking container %s", config['CONTAINER_NAME'])
 
-    c = Client(base_url='unix://var/run/docker.sock')
+    return Client(base_url='unix://var/run/docker.sock')
+
+
+def get_container_log():
+    c = get_docker_container()
+    try:
+        logs = c.logs(config['CONTAINER_NAME'])
+    except docker.errors.NotFound as e:
+        raise
+
+    return logs
+
+
+
+def get_container_info():
+    c = get_docker_container()
     try:
         info = c.inspect_container(config['CONTAINER_NAME'])
     except docker.errors.NotFound as e:
@@ -103,7 +118,7 @@ def check_docker():
         if started_at > state['started_at']:
             # Start time is different, so the machine crashed.
             log.info("Transitioning to: crashed")
-            send_email('crashed')
+            send_email('crashed', get_container_log())
             state['status'] = 'crashed'
             state['started_at'] = started_at
 
@@ -114,19 +129,19 @@ def check_docker():
             # Instance has been running for a while. Consider it to be running
             # well again.
             log.info("Transitioning to: running")
-            send_email('recovered')
+            send_email('recovered', get_container_log())
             state['status'] = 'running'
             state['started_at'] = started_at
 
     save_state(state)
 
 
-def send_email(message_type):
+def send_email(message_type, logs):
     log.info("Sending email '%s'", message_type)
     config = get_config()
 
     template = Template(config['MESSAGE_CONTENT_%s' % message_type.upper()])
-    msg = MIMEText(template.substitute(server=socket.gethostname()))
+    msg = MIMEText(template.substitute(server=socket.gethostname(), logs=logs))
 
     msg['Subject'] = config['MESSAGE_SUBJECT_%s' % message_type.upper()]
     msg['From'] = config['MESSAGE_SEND_FROM']
@@ -162,7 +177,7 @@ def run(argv):
         sys.exit(1)
 
     if args.test_email:
-        send_email('test')
+        send_email('test', None)
     if args.reset:
         reset()
     else:

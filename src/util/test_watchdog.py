@@ -43,7 +43,7 @@ class WatchdogTest(unittest.TestCase):
 
         with mock.patch('watchdog._send', _send), \
                 mock.patch('watchdog.get_config', get_config):
-            watchdog.send_email('test')
+            watchdog.send_email('test', None)
 
     def test_initial(self):
         def get_container_info():
