@@ -140,6 +140,66 @@ class AuthNTest(OrgStructureTestCase):
         self.assertIn("Sign out", response.body.decode('utf8'))
 
 
+class OrgTest(OrgStructureTestCase):
+
+    def test_list_org(self):
+        with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
+                get_secure_cookie(user_email='admin')):
+            response = self.fetch(
+                "/organisation.json", method='GET',)
+
+        orgs_son = json_decode(response.body)
+        self.assertIsInstance(orgs_son, list)
+        self.assertEqual(len(orgs_son), 2)
+        del orgs_son[0]['id']
+        del orgs_son[1]['id']
+        expected = [
+            {
+                'numberOfCustomers': 10,
+                'name': 'Primary',
+                'region': 'Nowhere'
+            }, {
+                'numberOfCustomers': 1000,
+                'name': 'Utility',
+                'region': 'Somewhere'
+            }
+        ]
+        self.assertEqual(orgs_son, expected)
+
+
+class UserTest(OrgStructureTestCase):
+
+    def test_list_org(self):
+        with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
+                get_secure_cookie(user_email='admin')):
+            response = self.fetch(
+                "/user.json?pageSize=2&page=0", method='GET',)
+
+        orgs_son = json_decode(response.body)
+        self.assertIsInstance(orgs_son, list)
+        self.assertEqual(len(orgs_son), 2)
+        del orgs_son[0]['id']
+        del orgs_son[0]['organisation']['id']
+        del orgs_son[1]['id']
+        del orgs_son[1]['organisation']['id']
+        expected = [
+            {
+                'name': 'Admin',
+                'enabled': True,
+                'organisation': {
+                    'name': 'Primary'
+                }
+            }, {
+                'name': 'Author',
+                'enabled': True,
+                'organisation': {
+                    'name': 'Primary'
+                }
+            }
+        ]
+        self.assertEqual(orgs_son, expected)
+
+
 class OrgAuthzTest(OrgStructureTestCase):
 
     def test_create_org(self):

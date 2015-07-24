@@ -11,7 +11,7 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, simplify, normalise
+from utils import ToSon, denormalise
 
 class OrgHandler(handlers.Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
@@ -27,9 +27,15 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError, ValueError):
                 raise handlers.MissingDocError("No such organisation")
-            son = to_dict(org, exclude={'users'})
-            son = simplify(son)
-            son = normalise(son)
+
+            to_son = ToSon(include=[
+                r'/id$',
+                r'/name$',
+                r'/url$',
+                r'/region$',
+                r'/number_of_customers$'
+            ])
+            son = to_son(org)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
@@ -44,12 +50,16 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                     model.Organisation.name.ilike(r'%{}%'.format(term)))
             query = query.order_by(model.Organisation.name)
             query = self.paginate(query)
-            for ob in query.all():
-                son = to_dict(
-                    ob, include={'id', 'name', 'region', 'number_of_customers'})
-                son = simplify(son)
-                son = normalise(son)
-                sons.append(son)
+
+            to_son = ToSon(include=[
+                r'/id$',
+                r'/name$',
+                r'/region$',
+                r'/number_of_customers$',
+                # Descend into list
+                r'/[0-9]+$'
+            ])
+            sons = to_son(query.all())
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
         self.finish()
@@ -63,17 +73,17 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.MethodError(
                 "Can't use POST for existing organisation.")
 
-        son = json_decode(self.request.body)
+        son = denormalise(json_decode(self.request.body))
         try:
             with model.session_scope() as session:
                 org = model.Organisation()
                 self._update(org, son)
                 session.add(org)
                 session.flush()
-                session.expunge(org)
+                org_id = str(org.id)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.get(org.id)
+        self.get(org_id)
 
     @handlers.authz('admin', 'org_admin')
     def put(self, org_id):
@@ -89,7 +99,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.AuthzError(
                 "You can't modify another organisation's information.")
 
-        son = json_decode(self.request.body)
+        son = denormalise(json_decode(self.request.body))
         try:
             with model.session_scope() as session:
                 org = session.query(model.Organisation).get(org_id)
@@ -128,7 +138,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
             org.name = son['name']
         if son.get('url', '') != '':
             org.url = son['url']
-        if son.get('numberOfCustomers', '') != '':
-            org.number_of_customers = son['numberOfCustomers']
+        if son.get('number_of_customers', '') != '':
+            org.number_of_customers = son['number_of_customers']
         if son.get('region', '') != '':
             org.region = son['region']

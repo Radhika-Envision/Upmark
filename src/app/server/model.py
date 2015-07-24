@@ -51,6 +51,9 @@ class Organisation(Versioned, Base):
         Index('organisation_name_key', func.lower(name), unique=True),
     )
 
+    def __str__(self):
+        return "Organisation(name={})".format(self.name)
+
 
 class AppUser(Versioned, Base):
     __tablename__ = 'appuser'
@@ -73,6 +76,9 @@ class AppUser(Versioned, Base):
     __table_args__ = (
         Index('appuser_email_key', func.lower(email), unique=True),
     )
+
+    def __str__(self):
+        return "AppUser(email={})".format(self.email)
 
 
 Organisation.users = relationship(
@@ -123,6 +129,9 @@ class Survey(Base):
     def is_open(self):
         return self.open_date is not None
 
+    def __str__(self):
+        return "Survey(title={})".format(self.title)
+
 
 class Hierarchy(Base):
     __tablename__ = 'hierarchy'
@@ -136,6 +145,10 @@ class Hierarchy(Base):
     children = relationship(
         lambda: QuestionNode, order_by='QuestionNode.seq', backref='hierarchy',
         collection_class=ordering_list('seq'), passive_deletes=True)
+
+    def __str__(self):
+        return "Hierarchy(title={}, survey={})".format(
+            self.title, self.survey.title)
 
 
 Survey.hierarchies = relationship(
@@ -163,7 +176,17 @@ class QuestionNode(Base):
             ['hierarchy_id', 'survey_id'],
             ['hierarchy.id', 'hierarchy.survey_id']
         ),
+        ForeignKeyConstraint(
+            ['survey_id'],
+            ['survey.id']
+        ),
     )
+
+    survey = relationship(Survey)
+
+    def __repr__(self):
+        return "QuestionNode(title={}, survey={})".format(
+            self.title, self.survey.title)
 
 
 class Measure(Base):
@@ -180,31 +203,50 @@ class Measure(Base):
     questions = Column(Text, nullable=True)
     response_type = Column(Text, nullable=False)
 
+    survey = relationship(Survey)
+
     def __repr__(self):
-        return "Measure(%s - %s)" % (self.id, self.title)
+        return "Measure(title={}, survey={})".format(
+            self.title, self.survey.title)
 
 
-qnode_measure_link = Table('qnode_measure_link', Base.metadata,
-    Column('survey_id', GUID, nullable=False),
-    Column('qnode_id', GUID, nullable=False),
-    Column('measure_id', GUID, nullable=False),
-    Column('seq', Integer),
+class QnodeMeasure(Base):
+    # This is an association object for qnodes <-> measures. Normally this would
+    # be done with a raw table, but because we want access to the `seq` column,
+    # it needs to be a mapped class.
+    __tablename__ = 'qnode_measure_link'
+    survey_id = Column(GUID, nullable=False, primary_key=True)
+    qnode_id = Column(GUID, nullable=False, primary_key=True)
+    measure_id = Column(GUID, nullable=False, primary_key=True)
+    seq = Column(Integer)
 
-    ForeignKeyConstraint(
-        ['qnode_id', 'survey_id'],
-        ['qnode.id', 'qnode.survey_id']
-    ),
-    ForeignKeyConstraint(
-        ['measure_id', 'survey_id'],
-        ['measure.id', 'measure.survey_id']
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['qnode_id', 'survey_id'],
+            ['qnode.id', 'qnode.survey_id']
+        ),
+        ForeignKeyConstraint(
+            ['measure_id', 'survey_id'],
+            ['measure.id', 'measure.survey_id']
+        ),
+        ForeignKeyConstraint(
+            ['survey_id'],
+            ['survey.id']
+        ),
     )
-)
+
+    survey = relationship(Survey)
+
+    def __repr__(self):
+        return "QnodeMeasure(title={}, survey={})".format(
+            self.title, self.survey.title)
 
 
 QuestionNode.children = relationship(
     QuestionNode, order_by='QuestionNode.seq', backref='parent',
     collection_class=ordering_list('seq'), passive_deletes=True,
-    remote_side=QuestionNode.id)
+    remote_side=[QuestionNode.id])
+
 
 # Need to give explicit join rules due to use of foreign key in composite
 # primary keys: QuestionNode.survey_id and Measure.survey_id.
@@ -241,7 +283,19 @@ class Response(Versioned, Base):
             ['measure_id', 'survey_id'],
             ['measure.id', 'measure.survey_id']
         ),
+        ForeignKeyConstraint(
+            ['survey_id'],
+            ['survey.id']
+        ),
     )
+
+    survey = relationship(Survey)
+    measure = relationship(Survey)
+
+    def __repr__(self):
+        return "QnodeMeasure(measure={}, survey={}, org={})".format(
+            self.measure.title, self.survey.title,
+            self.assessment.Organisation.name)
 
 
 class Assessment(Base):
@@ -249,17 +303,33 @@ class Assessment(Base):
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
     organisation_id = Column(GUID, ForeignKey('organisation.id'), nullable=False)
-    measureset_id = Column(GUID, nullable=False)
+    hierarchy_id = Column(GUID, nullable=False)
     # TODO: Make this field an enum?
     approval = Column(Text, nullable=False)
     created = Column(DateTime, default=func.now(), nullable=False)
 
     __table_args__ = (
         ForeignKeyConstraint(
-            ['measureset_id', 'survey_id'],
-            ['measureset.id', 'measureset.survey_id']
+            ['hierarchy_id', 'survey_id'],
+            ['hierarchy.id', 'hierarchy.survey_id']
+        ),
+        ForeignKeyConstraint(
+            ['survey_id'],
+            ['survey.id']
         ),
     )
+
+    survey = relationship(Survey)
+    organisation = relationship(Organisation)
+
+    def __repr__(self):
+        return "Assessment(survey={}, org={})".format(
+            self.survey.title, self.assessment.Organisation.name)
+
+
+Assessment.responses = relationship(
+    Response, backref='assessment', passive_deletes=True,
+    remote_side=[Assessment.id])
 
 
 Session = None

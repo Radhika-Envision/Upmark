@@ -12,7 +12,7 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, simplify, normalise, truthy
+from utils import ToSon, truthy, denormalise
 
 
 def test_password(text):
@@ -48,16 +48,22 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError, ValueError):
                 raise handlers.MissingDocError("No such user")
-            org = to_dict(user.organisation, include={'id', 'name'})
-            org = simplify(org)
-            org = normalise(org)
-            # Exclude password from response. If this web service is ever opened
-            # up to unauthenticated users, further thought should be given to
-            # privacy (e.g. hide email addresses).
-            son = to_dict(user, exclude={'password'})
-            son = simplify(son)
-            son = normalise(son)
-            son["organisation"] = org
+
+            to_son = ToSon(include=[
+                r'/id$',
+                r'/name$',
+                r'/email$',
+                r'/role$',
+                r'/enabled$',
+                # Descend into nested objects
+                r'/organisation$',
+            ], exclude=[
+                # Exclude password from response. Not really necessary because
+                # 1. it's hashed and 2. it's not in the list above. But just to
+                # be safe.
+                r'password'
+            ])
+            son = to_son(user)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
@@ -89,15 +95,21 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
             query = query.order_by(model.AppUser.name)
             query = self.paginate(query)
 
-            for ob in query.all():
-                org = to_dict(ob.organisation, include={'id', 'name'})
-                org = simplify(org)
-                org = normalise(org)
-                son = to_dict(ob, include={'id', 'name', 'enabled'})
-                son = simplify(son)
-                son = normalise(son)
-                son["organisation"] = org
-                sons.append(son)
+            to_son = ToSon(include=[
+                r'/id$',
+                r'/name$',
+                r'/enabled$',
+                # Descend into nested objects
+                r'/[0-9]+$',
+                r'/organisation$',
+            ], exclude=[
+                # Exclude password from response. Not really necessary because
+                # 1. it's hashed and 2. it's not in the list above. But just to
+                # be safe.
+                r'password'
+            ])
+
+            sons = to_son(query.all())
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
@@ -110,7 +122,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
         if user_id != '':
             raise handlers.MethodError("Can't use POST for existing users.")
 
-        son = json_decode(self.request.body)
+        son = denormalise(json_decode(self.request.body))
         self._check_create(son)
 
         try:
@@ -132,7 +144,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         if user_id == '':
             raise handlers.MethodError("Can't use PUT for new users (no ID).")
-        son = json_decode(self.request.body)
+        son = denormalise(json_decode(self.request.body))
 
         try:
             with model.session_scope() as session:
@@ -228,7 +240,7 @@ class PasswordHandler(handlers.BaseHandler):
         '''
         Check the strength of a password.
         '''
-        input_son = json_decode(self.request.body)
+        input_son = denormalise(json_decode(self.request.body))
         password = input_son.get('password', '')
         if password == '':
             raise handlers.AuthzError("Please specify a password")
