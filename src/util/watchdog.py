@@ -27,6 +27,7 @@ def get_package_dir():
 
 
 def get_config_path():
+    log.info("get_config_path", get_package_dir())
     return os.path.join(get_package_dir(), "watchdog.yaml")
 
 
@@ -138,12 +139,9 @@ def send_email(message_type):
 def _send(message):
     log.info("Communicating with SMTP server")
     config = get_config()
-    smtp = smtplib.SMTP(config['SMTP_SERVER'])
-    try:
+    with smtplib.SMTP(config['SMTP_SERVER']) as smtp:
         smtp.login(config['SMTP_USERNAME'], config['SMTP_PASSWORD'])
-        smtp.sendmail(config['MESSAGE_SEND_FROM'], config['MESSAGE_SEND_TO'], msg.as_string())
-    finally:
-        smtp.quit()
+        smtp.sendmail(config['MESSAGE_SEND_FROM'], config['MESSAGE_SEND_TO'], message.as_string())
 
 
 def run(argv):
