@@ -41,7 +41,6 @@ def get_secure_cookie(user_email=None, super_email=None):
 class OrgStructureTestCase(AsyncHTTPTestCase):
 
     def create_org_structure(self):
-        global user_id
         engine = model.connect_db(os.environ.get('DATABASE_URL'))
         model.Base.metadata.drop_all(engine)
         model.initialise_schema(engine)

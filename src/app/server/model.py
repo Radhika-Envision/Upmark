@@ -142,7 +142,7 @@ class Hierarchy(Base):
     description = Column(Text)
     structure = Column(JSON, nullable=False)
 
-    children = relationship(
+    qnodes = relationship(
         lambda: QuestionNode, order_by='QuestionNode.seq', backref='hierarchy',
         collection_class=ordering_list('seq'), passive_deletes=True)
 
@@ -290,7 +290,7 @@ class Response(Versioned, Base):
     )
 
     survey = relationship(Survey)
-    measure = relationship(Survey)
+    measure = relationship(Measure)
 
     def __repr__(self):
         return "QnodeMeasure(measure={}, survey={}, org={})".format(
@@ -321,6 +321,7 @@ class Assessment(Base):
 
     survey = relationship(Survey)
     organisation = relationship(Organisation)
+    hierarchy = relationship(Hierarchy)
 
     def __repr__(self):
         return "Assessment(survey={}, org={})".format(
