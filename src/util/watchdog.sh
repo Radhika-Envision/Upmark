@@ -10,7 +10,7 @@ function error() {
 function install_deps() {
 
     sudo apt-get update && sudo apt-get install -y python3-pip 
-    sudo pip3 install -vU pyyaml docker-py
+    sudo pip3 install -vU pyyaml docker-py python-dateutil
     if [ $? -ne 0 ]; then
         error "Failed to install Python dependencies."
         exit 1
@@ -20,6 +20,7 @@ function install_deps() {
 
 function cron_job() {
 
+    echo "* * * * * python3 ${projdir}/watchdog.py" > ${projdir}/watchdog
     crontab ${projdir}/watchdog
 
 }
