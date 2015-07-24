@@ -50,17 +50,10 @@ def get_config():
         return yaml.load(stream)
 
 
-def get_docker_container():
-    config = get_config()
-    log.debug("Checking container %s", config['CONTAINER_NAME'])
-
-    return Client(base_url='unix://var/run/docker.sock')
-
-
 def get_container_log():
-    c = get_docker_container()
+    c = Client(base_url='unix://var/run/docker.sock')
     try:
-        logs = c.logs(config['CONTAINER_NAME'])
+        logs = c.logs(config['CONTAINER_NAME'], tail=100)
     except docker.errors.NotFound as e:
         raise
 
@@ -69,7 +62,7 @@ def get_container_log():
 
 
 def get_container_info():
-    c = get_docker_container()
+    c = Client(base_url='unix://var/run/docker.sock')
     try:
         info = c.inspect_container(config['CONTAINER_NAME'])
     except docker.errors.NotFound as e:
