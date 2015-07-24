@@ -51,6 +51,7 @@ def get_config():
 
 
 def get_container_log():
+    config = get_config()
     c = Client(base_url='unix://var/run/docker.sock')
     try:
         logs = c.logs(config['CONTAINER_NAME'], tail=100)
@@ -62,6 +63,7 @@ def get_container_log():
 
 
 def get_container_info():
+    config = get_config()
     c = Client(base_url='unix://var/run/docker.sock')
     try:
         info = c.inspect_container(config['CONTAINER_NAME'])
