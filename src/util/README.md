@@ -14,3 +14,5 @@ Installation:
 1. Run `./watchdog.py --test` to send a test email.
 1. Verify that you received the test email.
 1. Run `./watchdog.sh` to install the cron job.
+
+[main deployment docs]: ../../README.md
