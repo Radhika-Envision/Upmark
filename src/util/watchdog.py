@@ -58,8 +58,7 @@ def get_container_log():
     except docker.errors.NotFound as e:
         raise
 
-    return logs
-
+    return logs.decode("utf-8").replace("\\n", "<BR/>")
 
 
 def get_container_info():
@@ -136,7 +135,7 @@ def send_email(message_type, logs):
     config = get_config()
 
     template = Template(config['MESSAGE_CONTENT_%s' % message_type.upper()])
-    msg = MIMEText(template.substitute(server=socket.gethostname(), logs=logs))
+    msg = MIMEText(template.substitute(server=socket.gethostname(), logs=logs), 'html')
 
     msg['Subject'] = config['MESSAGE_SUBJECT_%s' % message_type.upper()]
     msg['From'] = config['MESSAGE_SEND_FROM']
@@ -172,7 +171,7 @@ def run(argv):
         sys.exit(1)
 
     if args.test_email:
-        send_email('test', None)
+        send_email('test', get_container_log())
     if args.reset:
         reset()
     else:
