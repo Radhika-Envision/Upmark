@@ -58,7 +58,7 @@ def get_container_log():
     except docker.errors.NotFound as e:
         raise
 
-    return logs.decode("utf-8").replace("\\n", "<BR/>")
+    return logs.decode("utf-8").replace("\n", "<BR/>")
 
 
 def get_container_info():
