@@ -25,7 +25,7 @@ MESSAGE_CONTENT_RECOVERED: |
 
 MESSAGE_SUBJECT_TEST: Aquamark watchdog TEST
 MESSAGE_CONTENT_TEST: |
-    This is a TEST email from Aquamark server ${server}.
+    This is a TEST email from Aquamark server ${server}.<BR/>
     <BR/>
     Here are logs.<BR/>
     ${logs}
