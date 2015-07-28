@@ -57,15 +57,19 @@ nano /home/ubuntu/aquamark/src/util/watchdog.config
 /home/ubuntu/aquamark/src/util/watchdog.py --test
 ```
 
-Start the container, and the watchdog task.
+Start the container with restart option, and the watchdog task.
 
 ```bash
 sudo docker run -d --name aquamark \
+    --restart=always \
     -e ANALYTICS_ID=<your analytics ID> \
     -e DATABASE_URL=<as specified by AWS RDS> \
     vpac/aquamark
 crontab /home/ubuntu/aquamark/src/util/watchdog
 ```
+
+### AWS Auto scaling group
+
 
 
 ## Development
