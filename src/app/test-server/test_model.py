@@ -123,7 +123,7 @@ class SurveyStructureIntegrationTest(unittest.TestCase):
                     measure = session.query(model.Measure)\
                         .get((mi, survey_id))
                     qnode.measures.append(measure)
-                    qnode.measures.reorder()
+                    qnode.qnode_measures.reorder()
             session.flush()
             return qnodes
 

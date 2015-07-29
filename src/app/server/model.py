@@ -8,6 +8,7 @@ from sqlalchemy import Boolean, create_engine, Column, DateTime, Float, \
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID, JSON
 import sqlalchemy.exc
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import backref, relationship, sessionmaker
@@ -223,9 +224,16 @@ class QnodeMeasure(Base):
 
     survey = relationship(Survey)
 
+    def __init__(self, measure=None, qnode=None, seq=None, **kwargs):
+        self.qnode = qnode
+        self.survey = qnode.survey
+        self.measure = measure
+        self.seq = seq
+        super().__init__(**kwargs)
+
     def __repr__(self):
-        return "QnodeMeasure(title={}, survey={})".format(
-            self.title, self.survey.title)
+        return "QnodeMeasure(qnode={}, measure={}, survey={})".format(
+            self.qnode.title, self.measure.title, self.survey.title)
 
 
 class Assessment(Base):
@@ -310,13 +318,6 @@ Survey.hierarchies = relationship(
     order_by='Hierarchy.title')
 
 
-QuestionNode.children = relationship(
-    QuestionNode, backref='parent', passive_deletes=True,
-    order_by='QuestionNode.seq', collection_class=ordering_list('seq'),
-    primaryjoin="and_(QuestionNode.parent_id == foreign(remote(QuestionNode.id)),"
-                "QuestionNode.survey_id == remote(QuestionNode.survey_id))")
-
-
 Hierarchy.qnodes = relationship(
     QuestionNode, backref=backref('hierarchy', passive_deletes=True),
     order_by='QuestionNode.seq', collection_class=ordering_list('seq'),
@@ -324,17 +325,28 @@ Hierarchy.qnodes = relationship(
                 "QuestionNode.survey_id == Hierarchy.survey_id)")
 
 
-QuestionNode.measures = relationship(
-    Measure,
-    primaryjoin="and_(qnode_measure_link.c.qnode_id == QuestionNode.id,"
-                "qnode_measure_link.c.survey_id == foreign(QuestionNode.survey_id))",
-    secondaryjoin="and_(qnode_measure_link.c.measure_id == Measure.id,"
-                "qnode_measure_link.c.survey_id == foreign(Measure.survey_id))",
-    secondary='qnode_measure_link',
-    order_by='qnode_measure_link.c.seq',
-    collection_class=ordering_list('seq'),
-    backref='parents'
-)
+QuestionNode.children = relationship(
+    QuestionNode, backref='parent', passive_deletes=True,
+    order_by='QuestionNode.seq', collection_class=ordering_list('seq'),
+    primaryjoin="and_(QuestionNode.parent_id == foreign(remote(QuestionNode.id)),"
+                "QuestionNode.survey_id == remote(QuestionNode.survey_id))")
+
+
+QuestionNode.qnode_measures = relationship(
+    QnodeMeasure, backref=backref('qnode', passive_deletes='all'),
+    order_by='QnodeMeasure.seq', collection_class=ordering_list('seq'),
+    primaryjoin="and_(QnodeMeasure.qnode_id == foreign(QuestionNode.id),"
+                "QnodeMeasure.survey_id == foreign(QuestionNode.survey_id))")
+
+
+Measure.qnode_measures = relationship(
+    QnodeMeasure, backref='measure',
+    primaryjoin="and_(QnodeMeasure.measure_id == foreign(Measure.id),"
+                "QnodeMeasure.survey_id == Measure.survey_id)")
+
+
+QuestionNode.measures = association_proxy('qnode_measures', 'measure')
+Measure.parents = association_proxy('qnode_measures', 'qnode')
 
 
 Assessment.hierarchy = relationship(
