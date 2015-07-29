@@ -10,7 +10,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSON
 import sqlalchemy.exc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.orderinglist import ordering_list
-from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm import backref, relationship, sessionmaker
 from sqlalchemy.schema import ForeignKeyConstraint, Index, MetaData
 from passlib.hash import sha256_crypt
 
@@ -81,10 +81,6 @@ class AppUser(Versioned, Base):
         return "AppUser(email={})".format(self.email)
 
 
-Organisation.users = relationship(
-    AppUser, backref="organisation", passive_deletes=True)
-
-
 ROLE_HIERARCHY = {
     'admin': {'author', 'authority', 'consultant', 'org_admin', 'clerk'},
     'author': set(),
@@ -142,17 +138,9 @@ class Hierarchy(Base):
     description = Column(Text)
     structure = Column(JSON, nullable=False)
 
-    qnodes = relationship(
-        lambda: QuestionNode, order_by='QuestionNode.seq', backref='hierarchy',
-        collection_class=ordering_list('seq'), passive_deletes=True)
-
     def __str__(self):
         return "Hierarchy(title={}, survey={})".format(
             self.title, self.survey.title)
-
-
-Survey.hierarchies = relationship(
-    Hierarchy, backref="survey", passive_deletes=True)
 
 
 class QuestionNode(Base):
@@ -181,8 +169,6 @@ class QuestionNode(Base):
             ['survey.id']
         ),
     )
-
-    survey = relationship(Survey)
 
     def __repr__(self):
         return "QuestionNode(title={}, survey={})".format(
@@ -242,26 +228,33 @@ class QnodeMeasure(Base):
             self.title, self.survey.title)
 
 
-QuestionNode.children = relationship(
-    QuestionNode, order_by='QuestionNode.seq', backref='parent',
-    collection_class=ordering_list('seq'), passive_deletes=True,
-    remote_side=[QuestionNode.id])
+class Assessment(Base):
+    __tablename__ = 'assessment'
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
+    organisation_id = Column(GUID, ForeignKey('organisation.id'), nullable=False)
+    hierarchy_id = Column(GUID, nullable=False)
+    # TODO: Make this field an enum?
+    approval = Column(Text, nullable=False)
+    created = Column(DateTime, default=func.now(), nullable=False)
 
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['hierarchy_id', 'survey_id'],
+            ['hierarchy.id', 'hierarchy.survey_id']
+        ),
+        ForeignKeyConstraint(
+            ['survey_id'],
+            ['survey.id']
+        ),
+    )
 
-# Need to give explicit join rules due to use of foreign key in composite
-# primary keys: QuestionNode.survey_id and Measure.survey_id.
-# http://docs.sqlalchemy.org/en/rel_1_0/orm/join_conditions.html#overlapping-foreign-keys
-QuestionNode.measures = relationship(
-    Measure,
-    primaryjoin="and_(qnode_measure_link.c.qnode_id == QuestionNode.id,"
-                "qnode_measure_link.c.survey_id == foreign(QuestionNode.survey_id))",
-    secondaryjoin="and_(qnode_measure_link.c.measure_id == Measure.id,"
-                "qnode_measure_link.c.survey_id == foreign(Measure.survey_id))",
-    secondary='qnode_measure_link',
-    order_by='qnode_measure_link.c.seq',
-    collection_class=ordering_list('seq'),
-    backref='parents'
-)
+    survey = relationship(Survey)
+    organisation = relationship(Organisation)
+
+    def __repr__(self):
+        return "Assessment(survey={}, org={})".format(
+            self.survey.title, self.assessment.Organisation.name)
 
 
 class Response(Versioned, Base):
@@ -290,7 +283,6 @@ class Response(Versioned, Base):
     )
 
     survey = relationship(Survey)
-    measure = relationship(Measure)
 
     def __repr__(self):
         return "QnodeMeasure(measure={}, survey={}, org={})".format(
@@ -298,39 +290,69 @@ class Response(Versioned, Base):
             self.assessment.Organisation.name)
 
 
-class Assessment(Base):
-    __tablename__ = 'assessment'
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
-    organisation_id = Column(GUID, ForeignKey('organisation.id'), nullable=False)
-    hierarchy_id = Column(GUID, nullable=False)
-    # TODO: Make this field an enum?
-    approval = Column(Text, nullable=False)
-    created = Column(DateTime, default=func.now(), nullable=False)
+# Lists and Complex Relationships
 
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ['hierarchy_id', 'survey_id'],
-            ['hierarchy.id', 'hierarchy.survey_id']
-        ),
-        ForeignKeyConstraint(
-            ['survey_id'],
-            ['survey.id']
-        ),
-    )
+# We need to give explicit join rules due to use of foreign key in composite
+# primary keys. In particular, the foreign() annotation is used to mark which
+# column is writable.
+# http://docs.sqlalchemy.org/en/rel_1_0/orm/join_conditions.html#overlapping-foreign-keys
+#
+# Addtitionally, self-referential relationships need the remote() annotation.
+# http://docs.sqlalchemy.org/en/rel_1_0/orm/self_referential.html#composite-adjacency-lists
 
-    survey = relationship(Survey)
-    organisation = relationship(Organisation)
-    hierarchy = relationship(Hierarchy)
 
-    def __repr__(self):
-        return "Assessment(survey={}, org={})".format(
-            self.survey.title, self.assessment.Organisation.name)
+Organisation.users = relationship(
+    AppUser, backref="organisation", passive_deletes=True)
+
+
+Survey.hierarchies = relationship(
+    Hierarchy, backref="survey", passive_deletes=True,
+    order_by='Hierarchy.title')
+
+
+QuestionNode.children = relationship(
+    QuestionNode, backref='parent', passive_deletes=True,
+    order_by='QuestionNode.seq', collection_class=ordering_list('seq'),
+    primaryjoin="and_(QuestionNode.parent_id == foreign(remote(QuestionNode.id)),"
+                "QuestionNode.survey_id == remote(QuestionNode.survey_id))")
+
+
+Hierarchy.qnodes = relationship(
+    QuestionNode, backref=backref('hierarchy', passive_deletes=True),
+    order_by='QuestionNode.seq', collection_class=ordering_list('seq'),
+    primaryjoin="and_(QuestionNode.hierarchy_id == foreign(Hierarchy.id),"
+                "QuestionNode.survey_id == Hierarchy.survey_id)")
+
+
+QuestionNode.measures = relationship(
+    Measure,
+    primaryjoin="and_(qnode_measure_link.c.qnode_id == QuestionNode.id,"
+                "qnode_measure_link.c.survey_id == foreign(QuestionNode.survey_id))",
+    secondaryjoin="and_(qnode_measure_link.c.measure_id == Measure.id,"
+                "qnode_measure_link.c.survey_id == foreign(Measure.survey_id))",
+    secondary='qnode_measure_link',
+    order_by='qnode_measure_link.c.seq',
+    collection_class=ordering_list('seq'),
+    backref='parents'
+)
+
+
+Assessment.hierarchy = relationship(
+    Hierarchy,
+    primaryjoin="and_(Assessment.hierarchy_id == foreign(Hierarchy.id),"
+                "Assessment.survey_id == Hierarchy.survey_id)")
 
 
 Assessment.responses = relationship(
-    Response, backref='assessment', passive_deletes=True,
-    remote_side=[Assessment.id])
+    Response, backref=backref('assessment', passive_deletes=True),
+    primaryjoin="and_(Response.assessment_id == foreign(Assessment.id),"
+                "Response.survey_id == Assessment.survey_id)")
+
+
+Response.measure = relationship(
+    Measure,
+    primaryjoin="and_(Response.measure_id == foreign(Measure.id),"
+                "Response.survey_id == Measure.survey_id)")
 
 
 Session = None

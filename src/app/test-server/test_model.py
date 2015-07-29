@@ -9,121 +9,134 @@ from utils import to_dict, simplify, normalise, truthy
 import unittest
 
 
-class SurveyStructureTestCase(unittest.TestCase):
+class SurveyStructureIntegrationTest(unittest.TestCase):
 
-    def create_survey_structure(self):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
         engine = model.connect_db(os.environ.get('DATABASE_URL'))
         model.Base.metadata.drop_all(engine)
         model.initialise_schema(engine)
 
+    def test_1_create_survey(self):
+        # Create survey
         with model.session_scope() as session:
-            survey1 = entity = model.Survey(
+            survey = entity = model.Survey(
                 title='Test Survey 1',
                 description="This is a test survey")
-            session.add(entity)
+            session.add(survey)
             session.flush()
+            survey_id = survey.id
 
-            h1 = entity = model.Hierarchy(
-                title='Test Hierarchy 1',
-                description="Test")
-            entity.survey = survey1
-            session.add(entity)
-            session.flush()
-
-            h2 = entity = model.Hierarchy(
-                title='Test Hierarchy 2',
-                description="Test")
-            entity.survey = survey1
-            session.add(entity)
-            session.flush()
-
-            qnode_h1_1 = entity = model.QuestionNode(
-                title='Function 1',
-                description="Test")
-            entity.survey = survey1
-            h1.qnodes.append(entity)
-            session.add(entity)
-            session.flush()
-
-            qnode_h1_2 = entity = model.QuestionNode(
-                title='Function 2',
-                description="Test")
-            entity.survey = survey1
-            h1.qnodes.append(entity)
-            session.add(entity)
-            session.flush()
-
-    def setUp(self):
-        super().setUp()
-        self.create_survey_structure()
-
-    def test_create_structure(self):
-        return
-
-        # TODO: automate survey construction so it's easier to read in this test.
-        measure_son = [
+        # Create measures
+        msons = [
             {
                 'title': "Foo Measure",
                 'intent': "Foo",
                 'weight': 100,
+                'response_type': 'A'
             },
             {
                 'title': "Bar Measure",
                 'intent': "Bar",
                 'weight': 200,
+                'response_type': 'A'
             },
             {
                 'title': "Baz Measure",
                 'intent': "Baz",
                 'weight': 300,
+                'response_type': 'A'
+            },
+        ]
+        measure_ids = []
+        with model.session_scope() as session:
+            for mson in msons:
+                measure = model.Measure(survey_id=survey_id, **mson)
+                session.add(measure)
+                session.flush()
+                measure_ids.append(measure.id)
+
+        # Create hierarchy, with qnodes and measures as descendants
+        hsons = [
+            {
+                'title': "Hierarchy 1",
+                'description': "Test",
+                'qnodes': [
+                    {
+                        'title': "Function 1",
+                        'description': "Test",
+                        'children': [
+                            {
+                                'title': "Process 1",
+                                'description': "Test",
+                                'measures': [0, 1],
+                            },
+                        ],
+                    },
+                    {
+                        'title': "Function 2",
+                        'description': "Test",
+                    },
+                ],
+            },
+            {
+                'title': "Hierarchy 2",
+                'description': "Test",
+                'qnodes': [
+                    {
+                        'title': "Section 1",
+                        'description': "Test",
+                        'children': [
+                            {
+                                'title': "SubSection 1",
+                                'description': "Test",
+                                'measures': [1, 2],
+                            },
+                        ],
+                    },
+                    {
+                        'title': "Section 2",
+                        'description': "Test",
+                    },
+                ],
             },
         ]
 
-        survey_son = {
-            'title': "Test survey 1",
-            'description': "Test",
-            'hierarchies': [
-                {
-                    'title': "Hierarchy 1",
-                    'description': "Test",
-                    'qnodes': [
-                        {
-                            'title': "Function 1",
-                            'description': "Test",
-                            'children': [
-                                {
-                                    'title': "Process 1",
-                                    'description': "Test",
-                                    'measures': measure_son[1:],
-                                },
-                            ],
-                        },
-                        {
-                            'title': "Function 2",
-                            'description': "Test",
-                        },
-                    ],
-                },
-                {
-                    'title': "Hierarchy 2",
-                    'description': "Test",
-                    'qnodes': [
-                        {
-                            'title': "Section 1",
-                            'description': "Test",
-                            'children': [
-                                {
-                                    'title': "SubSection 1",
-                                    'description': "Test",
-                                    'measures': measure_son[:-1],
-                                },
-                            ],
-                        },
-                        {
-                            'title': "Section 2",
-                            'description': "Test",
-                        },
-                    ],
-                },
-            ],
-        }
+        def create_qnodes(qsons, session):
+            qnodes = []
+            for qson in qsons:
+                qnode = model.QuestionNode(survey_id=survey_id)
+                qnode.title = qson['title']
+                qnode.description = qson['description']
+                qnodes.append(qnode)
+                session.add(qnode)
+                session.flush()
+
+                if 'children' in qson:
+                    qnode.children = create_qnodes(qson['children'], session)
+                    qnode.children.reorder()
+
+                for i in qson.get('measures', []):
+                    mi = measure_ids[i]
+                    measure = session.query(model.Measure)\
+                        .get((mi, survey_id))
+                    qnode.measures.append(measure)
+                    qnode.measures.reorder()
+            session.flush()
+            return qnodes
+
+        def create_hierarchies(hsons, session):
+            hierarchies = []
+            for hson in hsons:
+                hierarchy = model.Hierarchy(survey_id=survey_id)
+                hierarchy.title = hson['title']
+                hierarchy.description = hson['description']
+                session.add(hierarchy)
+                hierarchy.qnodes = create_qnodes(hson['qnodes'], session)
+                hierarchy.qnodes.reorder()
+            session.flush()
+            return hierarchies
+
+        with model.session_scope() as session:
+            create_hierarchies(hsons, session)
