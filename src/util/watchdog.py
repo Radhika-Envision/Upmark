@@ -119,7 +119,7 @@ def check_docker():
     elif running:
         log.debug("Current status is: crashed")
         delta = datetime.timedelta(milliseconds=config['MINIMUM_UPTIME_MS'])
-        if started_at - delta > state['started_at']:
+        if datetime.datetime.utcnow() - delta > state['started_at']:
             # Instance has been running for a while. Consider it to be running
             # well again.
             log.info("Transitioning to: running")
