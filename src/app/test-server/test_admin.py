@@ -42,7 +42,8 @@ class OrgStructureTestCase(AsyncHTTPTestCase):
 
     def create_org_structure(self):
         engine = model.connect_db(os.environ.get('DATABASE_URL'))
-        model.Base.metadata.drop_all(engine)
+        engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
+        engine.execute("CREATE SCHEMA public")
         model.initialise_schema(engine)
 
         with model.session_scope() as session:

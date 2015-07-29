@@ -15,7 +15,8 @@ class SurveyStructureIntegrationTest(unittest.TestCase):
     def setUpClass(cls):
         super().setUpClass()
         engine = model.connect_db(os.environ.get('DATABASE_URL'))
-        model.Base.metadata.drop_all(engine)
+        engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
+        engine.execute("CREATE SCHEMA public")
         model.initialise_schema(engine)
 
     def test_1_create_survey(self):
