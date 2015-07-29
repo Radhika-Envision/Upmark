@@ -76,25 +76,25 @@ will be automatically created instance with the image we created.
 
 Here are the steps of the creating auto-scaling group.
 1. Create AMI images for current running instance.
-  1. Right click on AWS console.
-  1. Click Image > Create Image button. 
-  1. Create image.
-  1. This process takes a bit while. You can check the process on IMAGES > AMIs menu.
+    1. Right click on AWS console.
+    1. Click Image > Create Image button. 
+    1. Create image.
+    1. This process takes a bit while. You can check the process on IMAGES > AMIs menu.
 1. Create Load Balacer
-  1. LOAD BALANCING > Load Balancers > Create
-  1. Process with default option and proper names
+    1. LOAD BALANCING > Load Balancers > Create
+    1. Process with default option and proper names
 1. Create Autoscaling
-  1. AUTO SCALING > Launch Configurations
-    1. Configure Auto Scaling group details
-      1. Put in how many instance you need to prepare for scaling, Select proper network
-      1. On advanced tab - check `Receive traffic from Elastic Load Balancer(s)` option and select load balancer which is previously created
-    1. Configure scaling policies - You can specify condition of scale up or scale down of the instacnes
-  1. AUTO SCALING > Auto Scaling Groups
-    1. Create Launch Configuration > My AMIs 
-    1. Select AMI which created before
-    1. Choose same instance type (default)
-    1. At `Configure details`, you need to expand `Advanced details` field and type in `docker restart aq` on User data
-    1. Choose same storage space with images
+    1. AUTO SCALING > Launch Configurations
+        1. Configure Auto Scaling group details
+            1. Put in how many instance you need to prepare for scaling, Select proper network
+            1. On advanced tab - check `Receive traffic from Elastic Load Balancer(s)` option and select load balancer which is previously created
+        1. Configure scaling policies - You can specify condition of scale up or scale down of the instacnes
+    1. AUTO SCALING > Auto Scaling Groups
+        1. Create Launch Configuration > My AMIs 
+        1. Select AMI which created before
+        1. Choose same instance type (default)
+        1. At `Configure details`, you need to expand `Advanced details` field and type in `docker restart aq` on User data
+        1. Choose same storage space with images
 
 
 ## Development
