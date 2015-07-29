@@ -75,6 +75,7 @@ only used for Scaling services but used for fault tollerance purpose. So AWS EC2
 will be automatically created instance with the image we created.
 
 Here are the steps of the creating auto-scaling group.
+
 1. Create AMI images for current running instance.
     1. Right click on AWS console.
     1. Click Image > Create Image button. 
