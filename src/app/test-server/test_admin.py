@@ -1,4 +1,5 @@
 import os
+import unittest
 from unittest import mock
 import urllib
 
@@ -10,8 +11,7 @@ from tornado.web import Application
 import app
 import handlers
 import model
-from utils import to_dict, simplify, normalise, truthy
-import unittest
+from utils import ToSon
 
 
 # TODO: Do this once when the unit tests start up (not in this file?).
@@ -258,9 +258,8 @@ class OrgAuthzTest(OrgStructureTestCase):
                        func.lower(org_name)).one()
             session.expunge(org)
 
-        org_son = to_dict(org, include={'id', 'name'})
-        org_son = simplify(org_son)
-        org_son = normalise(org_son)
+        to_son = ToSon(include=[r'/id$', r'/name$'])
+        org_son = to_son(org)
 
         with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
                 get_secure_cookie(user_email=user_email)):
@@ -378,13 +377,15 @@ class UserAuthzTest(OrgStructureTestCase):
             user = session.query(model.AppUser).\
                 filter(func.lower(model.AppUser.email) ==
                        func.lower('clerk')).one()
-            org_son = to_dict(user.organisation, include={'id'})
-            org_son = simplify(org_son)
-            org_son = normalise(org_son)
-            user_son = to_dict(user, exclude={'password'})
-            user_son = simplify(user_son)
-            user_son = normalise(user_son)
-            user_son["organisation"] = org_son
+
+            to_son = ToSon(include=[
+                r'/id$',
+                # Root-only: include everything
+                r'^/[^/]+$',
+            ], exclude=[
+                r'/password$'
+            ])
+            user_son = to_son(user)
 
             org = session.query(model.Organisation).\
                 filter_by(name='Primary').one()
@@ -448,24 +449,23 @@ class UserAuthzTest(OrgStructureTestCase):
             org = session.query(model.Organisation).\
                 filter(func.lower(model.Organisation.name) ==
                        func.lower(new_org_name)).one()
-            org_son = to_dict(org, include={'id', 'name'})
-            org_son = simplify(org_son)
-            org_son = normalise(org_son)
+
+            to_son = ToSon(include=[r'/id$', r'/name$'])
+            org_son = to_son(org)
 
             user = session.query(model.AppUser).\
                     filter(func.lower(model.AppUser.email) ==
                            func.lower(user_email)).one()
-            user_son = to_dict(user, exclude={'password'})
-            user_son = simplify(user_son)
-            user_son = normalise(user_son)
+
+            to_son = ToSon(exclude=[r'/password$', r'/organisation.*$'])
+            user_son = to_son(user)
             user_son['organisation'] = org_son
-            post_data = user_son.copy()
 
             with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
                     get_secure_cookie(user_email=user_email)):
                 response = self.fetch(
                     "/user/%s.json" % user_son['id'], method='PUT',
-                    body=json_encode(post_data))
+                    body=json_encode(user_son))
                 self.assertIn(reason, response.reason, msg=user_email)
                 self.assertEqual(code, response.code)
 

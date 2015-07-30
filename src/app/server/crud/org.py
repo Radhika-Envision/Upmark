@@ -11,7 +11,7 @@ import handlers
 import model
 import logging
 
-from utils import ToSon, denormalise
+from utils import denormalise, ToSon, updater
 
 class OrgHandler(handlers.Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
@@ -132,13 +132,10 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
 
     def _update(self, org, son):
         '''
-        Apply organisation-provided data to the saved model.
+        Apply user-provided data to the saved model.
         '''
-        if son.get('name', '') != '':
-            org.name = son['name']
-        if son.get('url', '') != '':
-            org.url = son['url']
-        if son.get('number_of_customers', '') != '':
-            org.number_of_customers = son['number_of_customers']
-        if son.get('region', '') != '':
-            org.region = son['region']
+        update = updater(org)
+        update('name', son)
+        update('url', son)
+        update('number_of_customers', son)
+        update('region', son)

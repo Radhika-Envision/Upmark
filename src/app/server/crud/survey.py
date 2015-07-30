@@ -12,7 +12,7 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, simplify, normalise
+from utils import denormalise, ToSon, updater
 
 log = logging.getLogger('app.data_access')
 
@@ -76,9 +76,15 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                     ValueError):
                 raise handlers.MissingDocError("No such survey")
 
-            son = to_dict(survey, include={'id', 'title', 'branch'})
-            son = simplify(son)
-            son = normalise(son)
+            to_son = ToSon(include=[
+                r'/id$',
+                r'/title$',
+                r'/description$',
+                r'/created$',
+                r'/finalised_date$',
+                r'/open_date$'
+            ])
+            son = to_son(survey)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
@@ -101,11 +107,11 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
             query = query.order_by(model.Survey.created)
             query = self.paginate(query)
 
-            for ob in query.all():
-                son = to_dict(ob, include={'id', 'title', 'branch'})
-                son = simplify(son)
-                son = normalise(son)
-                sons.append(son)
+            to_son = ToSon(include=[
+                r'/id$',
+                r'/title$'
+            ])
+            sons = to_son(query.all)
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
@@ -118,7 +124,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         if survey_id != '':
             raise handlers.MethodError("Can't use POST for existing survey.")
-        son = json_decode(self.request.body)
+        son = denormalise(json_decode(self.request.body))
 
         try:
             with model.session_scope() as session:
@@ -160,7 +166,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         if survey_id == '':
             raise handlers.MethodError(
                 "Can't use PUT for new survey (no ID).")
-        son = json_decode(self.request.body)
+        son = denormalise(json_decode(self.request.body))
 
         try:
             with model.session_scope() as session:
@@ -179,5 +185,6 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         Apply survey-provided data to the saved model.
         '''
-        if son.get('title', '') != '':
-            survey.title = son['title']
+        update = updater(survey)
+        update('title', son)
+        update('description', son)

@@ -9,9 +9,7 @@ from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
 
 from guid import GUID
 import model
-from utils import to_dict, simplify, normalise, denormalise, truthy, falsy, \
-    UtilException, ToSon
-import unittest
+from utils import denormalise, truthy, falsy, UtilException, ToSon
 
 
 class TestNode(model.Base):
@@ -58,25 +56,6 @@ class ConversionTest(unittest.TestCase):
         self.assertTrue(falsy('0'))
         self.assertFalse(falsy('True'))
 
-    def test_normalise(self):
-        input = {
-            'an_integer': 1,
-            'a_string': "foo",
-            'a_list': [1, 2, {'3': 3}],
-            'a_dict': {
-                'a_nested_item': "bar"
-            }
-        }
-        output = {
-            'anInteger': 1,
-            'aString': "foo",
-            'aList': [1, 2, {'3': 3}],
-            'aDict': {
-                'aNestedItem': "bar"
-            }
-        }
-        self.assertEqual(output, normalise(input))
-
     def test_denormalise(self):
         input = {
             'anInteger': 1,
@@ -95,29 +74,6 @@ class ConversionTest(unittest.TestCase):
             }
         }
         self.assertEqual(output, denormalise(input))
-
-    def test_simplify(self):
-        date = datetime.date(2015, 1, 1)
-        id_ = uuid.uuid4()
-        input = {
-            'a_string': "foo",
-            'a_date': date,
-            'a_uuid': id_,
-            'a_list': [1, id_, {'3': date}],
-            'a_dict': {
-                'a_nested_item': "bar"
-            }
-        }
-        output = {
-            'a_string': "foo",
-            'a_date': time.mktime(date.timetuple()),
-            'a_uuid': str(id_),
-            'a_list': [1, str(id_), {'3': time.mktime(date.timetuple())}],
-            'a_dict': {
-                'a_nested_item': "bar"
-            }
-        }
-        self.assertEqual(output, simplify(input))
 
     def test_son(self):
         date = datetime.date(2015, 1, 1)

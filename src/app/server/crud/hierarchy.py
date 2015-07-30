@@ -12,7 +12,7 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, reorder
+from utils import denormalise, reorder, ToSon, updater
 
 log = logging.getLogger('app.data_access')
 
@@ -37,10 +37,17 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     ValueError):
                 raise handlers.MissingDocError("No such hierarchy")
 
-            survey_son = to_dict(self.survey, include={'id', 'title'})
-            son = to_dict(hierarchy, include={
-                'id', 'title', 'seq', 'description'})
-            son['survey'] = survey_son
+            to_son = ToSon(include=[
+                # Any
+                r'/id$',
+                r'/title$',
+                r'/seq$',
+                # Root-only
+                r'^/description$',
+                # Nested
+                r'/survey$',
+            ])
+            son = to_son(hierarchy)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
@@ -54,9 +61,11 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 .filter_by(survey_id=self.survey_id)\
                 .order_by(model.Hierarchy.title)
 
-            for ob in query.all():
-                son = to_dict(ob, include={'id', 'title'})
-                sons.append(son)
+            to_son = ToSon(include=[
+                r'/id$',
+                r'/title$',
+            ])
+            sons = to_son(query.all())
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
@@ -70,7 +79,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
 
         self.check_editable()
 
-        son = json_decode(self.request.body)
+        son = denormalise(json_decode(self.request.body))
 
         try:
             with model.session_scope() as session:
@@ -89,7 +98,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         if hierarchy_id == '':
             raise handlers.MethodError("Hierarchy ID required")
 
-        son = json_decode(self.request.body)
+        son = denormalise(json_decode(self.request.body))
 
         try:
             with model.session_scope() as session:
@@ -123,10 +132,10 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         self.finish()
 
     def _update(self, hierarchy, son):
-        if son.get('title', '') != '':
-            hierarchy.title = son['title']
-        if son.get('description', '') != '':
-            hierarchy.description = son['description']
+        update = updater(hierarchy)
+        update('title', son)
+        update('description', son)
+
         if son.get('levels') != None:
             try:
                 levels = [{

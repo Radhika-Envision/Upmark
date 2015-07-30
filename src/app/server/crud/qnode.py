@@ -12,7 +12,7 @@ import handlers
 import model
 import logging
 
-from utils import reorder, ToSon, updater
+from utils import denormalise, reorder, ToSon, updater
 
 
 log = logging.getLogger('app.data_access')
@@ -25,8 +25,6 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         if qnode_id == '':
             self.query()
             return
-
-        self.check_editable()
 
         with model.session_scope() as session:
             try:
@@ -47,16 +45,16 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 r'/seq$',
                 # Fields to match from only the root object
                 r'^/description$',
-                # Descend into nested objects
-                r'^(/parent)+$',
-                r'^(/parent)+/hierarchy(/survey)?$'
+                # Ascend into nested parent objects
+                r'^/parent$',
+                r'^/hierarchy$',
+                r'^/hierarchy/survey$'
             ])
             son = to_son(qnode)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
 
-    @tornado.web.authenticated
     def query(self):
         '''Get list.'''
         hierarchy_id = self.get_argument('hierarchyId', '')
@@ -197,6 +195,34 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.get(qnode_id)
 
+    def _update(self, session, qnode, son):
+        '''Apply user-provided data to the saved model.'''
+        if 'measure' in son:
+            if son['measure'].get('id') is None:
+                # Create a new measure
+                measure = model.Measure(survey_id=self.survey_id)
+                session.add(measure)
+                crud.measure.update_measure(measure, son['measure'])
+                qnode.measure = measure
+            elif son['measure'].get('id') == str(qnode.measure_id):
+                # Update existing measure
+                crud.measure.update_measure(qnode.measure, son['measure'])
+            else:
+                # Link to different measure.
+                # TODO: Update measure contents? It's a bit weird doing
+                # both at once.
+                measure = session.query(model.Measure)\
+                    .get((son['measure']['id'], self.survey_id))
+                if measure is None:
+                    raise handlers.ModelError("No such measure")
+                qnode.measure = measure
+        else:
+            qnode.measure = None
+
+        update = updater(qnode)
+        update('title', son)
+        update('description', son)
+
     def ordering(self):
         '''Change the order of all children in a parent's collection.'''
 
@@ -230,31 +256,3 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
 
         self.query()
-
-    def _update(self, session, qnode, son):
-        '''Apply user-provided data to the saved model.'''
-        if 'measure' in son:
-            if son['measure'].get('id') is None:
-                # Create a new measure
-                measure = model.Measure(survey_id=self.survey_id)
-                session.add(measure)
-                crud.measure.update_measure(measure, son['measure'])
-                qnode.measure = measure
-            elif son['measure'].get('id') == str(qnode.measure_id):
-                # Update existing measure
-                crud.measure.update_measure(qnode.measure, son['measure'])
-            else:
-                # Link to different measure.
-                # TODO: Update measure contents? It's a bit weird doing
-                # both at once.
-                measure = session.query(model.Measure)\
-                    .get((son['measure']['id'], self.survey_id))
-                if measure is None:
-                    raise handlers.ModelError("No such measure")
-                qnode.measure = measure
-        else:
-            qnode.measure = None
-
-        update = updater(qnode)
-        update('title', son)
-        update('description', son)

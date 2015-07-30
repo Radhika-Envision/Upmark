@@ -116,65 +116,10 @@ class ToSon:
         return True
 
 
-def to_dict(ob, include=None, exclude=None,
-            autonormalise=True, autosimplify=True):
-    '''
-    Convert the public fields of an object into a dictionary.
-    '''
-    names = [name for name in dir(ob)
-        if not name.startswith('_')
-        and not name == 'metadata']
-    if include is not None:
-        names = [name for name in names if name in include]
-    elif exclude is not None:
-        names = [name for name in names if name not in exclude]
-    son = {name: getattr(ob, name) for name in names
-        if not hasattr(getattr(ob, name), '__call__') }
-
-    if autonormalise:
-        son = normalise(son)
-    if autosimplify:
-        son = simplify(son)
-
-    return son
-
-
-def simplify(value):
-    '''
-    Convert the values in a dictionary to primitive types.
-    '''
-    if isinstance(value, str):
-        return value
-    elif isinstance(value, datetime.date):
-        return time.mktime(value.timetuple())
-    elif isinstance(value, uuid.UUID):
-        return str(value)
-    elif hasattr(value, '__getitem__') and hasattr(value, 'items'):
-        return {k: simplify(v) for k, v in value.items()}
-    elif hasattr(value, '__getitem__') and hasattr(value, '__iter__'):
-        return [simplify(v) for v in value]
-    else:
-        return value
-
-
 def to_camel_case(name):
     components = name.split('_')
     components = [components[0]] + [c.title() for c in components[1:]]
     return ''.join(components)
-
-
-def normalise(value):
-    '''
-    Convert the keys of a JSON-like object to JavaScript form (camel case).
-    '''
-    if isinstance(value, str):
-        return value
-    elif hasattr(value, '__getitem__') and hasattr(value, 'items'):
-        return {to_camel_case(k): normalise(v) for k, v in value.items()}
-    elif hasattr(value, '__getitem__') and hasattr(value, '__iter__'):
-        return [normalise(v) for v in value]
-    else:
-        return value
 
 
 CAMEL_PATTERN = re.compile(r'([^A-Z])([A-Z])')
@@ -201,21 +146,36 @@ def denormalise(value):
         return value
 
 
-def updater(model):
+class updater:
     '''
     Sets fields of a mapped object to a value in a dictionary with the same
-    name - or resets it to the column's default value if it's not in the
-    dictionary.
+    name.
     '''
-    def update(name, son):
+
+    NULLIFY = 0
+    DEFAULT = 1
+    SKIP = 2
+
+    def __init__(self, model, on_absent=SKIP):
+        self.model = model
+        self.on_absent = on_absent
+
+    def __call__(self, name, son, on_absent=None):
+        if on_absent is None:
+            on_absent = self.on_absent
+
         if name in son:
-            if getattr(self.model, name) != son['name']:
-                setattr(self.model, name, son[name])
-        else:
+            value = son[name]
+        elif on_absent == updater.NULLIFY:
+            value = None
+        elif on_absent == updater.DEFAULT:
             column = getattr(self.model.__class__, name)
-            if getattr(self.model, name) != column.default:
-                setattr(self.model, name, column.default)
-    return update
+            value = column.default
+        else:
+            return
+
+        if getattr(self.model, name) != value:
+            setattr(self.model, name, value)
 
 
 def get_current_survey():

@@ -12,7 +12,7 @@ import handlers
 import model
 import logging
 
-from utils import ToSon, truthy, denormalise
+from utils import denormalise, ToSon, truthy, updater
 
 
 def test_password(text):
@@ -28,6 +28,7 @@ def test_password(text):
 
 
 class UserHandler(handlers.Paginate, handlers.BaseHandler):
+
     @tornado.web.authenticated
     def get(self, user_id):
         '''
@@ -220,18 +221,16 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         Apply user-provided data to the saved model.
         '''
-        if son.get('email', '') != '':
-            user.email = son['email']
-        if son.get('name', '') != '':
-            user.name = son['name']
-        if son.get('role', '') != '':
-            user.role = son['role']
+        update = updater(user)
+        update('email', son)
+        update('name', son)
+        update('role', son)
+        update('enabled', son)
+
         if son.get('organisation', '') != '':
             user.organisation_id = son['organisation']['id']
         if son.get('password', '') != '':
             user.set_password(son['password'])
-        if son.get('enabled', '') != '':
-            user.enabled = son['enabled']
 
 
 class PasswordHandler(handlers.BaseHandler):

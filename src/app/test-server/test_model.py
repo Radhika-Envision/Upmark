@@ -1,12 +1,11 @@
 import os
+import unittest
 from unittest import mock
 import urllib
 
 from sqlalchemy.sql import func
 
 import model
-from utils import to_dict, simplify, normalise, truthy
-import unittest
 
 
 class SurveyStructureIntegrationTest(unittest.TestCase):
