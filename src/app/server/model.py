@@ -182,7 +182,6 @@ class Measure(Base):
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(
         GUID, ForeignKey("survey.id"), nullable=False, primary_key=True)
-    seq = Column(Integer)
     title = Column(Text, nullable=False)
     weight = Column(Float, nullable=False)
     intent = Column(Text, nullable=True)
@@ -369,6 +368,7 @@ Measure.qnode_measures = relationship(
 
 
 QuestionNode.measures = association_proxy('qnode_measures', 'measure')
+QuestionNode.measure_seq = association_proxy('qnode_measures', 'seq')
 Measure.parents = association_proxy('qnode_measures', 'qnode')
 
 

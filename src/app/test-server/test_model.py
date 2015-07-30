@@ -1,4 +1,5 @@
 import os
+import pprint
 import unittest
 from unittest import mock
 import urllib
@@ -6,6 +7,7 @@ import urllib
 from sqlalchemy.sql import func
 
 import model
+from utils import ToSon
 
 
 class SurveyStructureIntegrationTest(unittest.TestCase):
@@ -140,3 +142,54 @@ class SurveyStructureIntegrationTest(unittest.TestCase):
 
         with model.session_scope() as session:
             create_hierarchies(hsons, session)
+
+        # Read from database
+        with model.session_scope() as session:
+            survey = session.query(model.Survey).first()
+            self.assertEqual(len(survey.hierarchies), 2)
+            h = survey.hierarchies[0]
+            self.assertEqual(h.title, "Hierarchy 1")
+            self.assertEqual(len(h.qnodes), 2)
+
+            self.assertEqual(h.qnodes[1].seq, 1)
+            q = h.qnodes[0]
+            self.assertEqual(q.title, "Function 1")
+            self.assertEqual(q.seq, 0)
+            self.assertEqual(len(q.children), 1)
+            self.assertEqual(len(q.measures), 0)
+
+            q = q.children[0]
+            self.assertEqual(q.title, "Process 1")
+            self.assertEqual(q.seq, 0)
+            self.assertEqual(len(q.children), 0)
+            self.assertEqual(len(q.measures), 2)
+
+            self.assertEqual(q.qnode_measures[0].seq, 0)
+            self.assertEqual(q.qnode_measures[1].seq, 1)
+            m = q.measures[0]
+            self.assertEqual(m.title, "Foo Measure")
+            self.assertIn(q, m.parents)
+
+#            to_son = ToSon(include=[
+#                r'/title$',
+#                r'/description$',
+#                r'/seq$',
+#                r'/intent$',
+#                r'/weight$',
+#                r'/response_type$',
+#                # Descend
+#                r'/hierarchies$',
+#                r'/qnodes$',
+#                r'/children$',
+#                r'/measures$',
+#                r'/measure_seq$',
+#                r'/[0-9]+$',
+#            ])
+#            pprint.pprint(to_son(survey), width=120)
+
+            # Alter sequence: remove first element, and confirm that sequence
+            # numbers update.
+            q.measures.remove(q.measures[0])
+            session.flush()
+            self.assertEqual(len(q.measures), 1)
+            self.assertEqual(q.qnode_measures[0].seq, 0)
