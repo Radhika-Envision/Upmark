@@ -5,7 +5,6 @@ import uuid
 
 from sqlalchemy import Boolean, create_engine, Column, DateTime, Float, \
     ForeignKey, Index, Integer, String, Text, Table
-from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID, JSON
 import sqlalchemy.exc
 from sqlalchemy.ext.associationproxy import association_proxy
@@ -13,6 +12,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import backref, relationship, sessionmaker
 from sqlalchemy.schema import ForeignKeyConstraint, Index, MetaData
+from sqlalchemy.sql import func
+from sqlalchemy.sql.expression import and_
 from passlib.hash import sha256_crypt
 
 from guid import GUID
@@ -224,11 +225,18 @@ class QnodeMeasure(Base):
 
     survey = relationship(Survey)
 
-    def __init__(self, measure=None, qnode=None, seq=None, **kwargs):
-        self.qnode = qnode
-        self.survey = qnode.survey
+    # This constructor is used by association_proxy when adding items to the
+    # colleciton.
+    def __init__(self, measure=None, qnode=None, seq=None, survey=None, **kwargs):
         self.measure = measure
+        self.qnode = qnode
         self.seq = seq
+        if survey is not None:
+            self.survey_id = survey.id
+        elif measure is not None:
+            self.survey_id = measure.survey_id
+        elif qnode is not None:
+            self.survey_id = qnode.survey_id
         super().__init__(**kwargs)
 
     def __repr__(self):
@@ -301,11 +309,15 @@ class Response(Versioned, Base):
 # Lists and Complex Relationships
 
 # We need to give explicit join rules due to use of foreign key in composite
-# primary keys. In particular, the foreign() annotation is used to mark which
-# column is writable.
+# primary keys. The foreign_keys argument is used to mark which columns are
+# writable. For example, where a class has a survey relationship that can write
+# to the survey_id column, the foreign_keys list for other relationships will
+# not include the survey_id column so that there is no ambiguity when both
+# relationships are written to.
 # http://docs.sqlalchemy.org/en/rel_1_0/orm/join_conditions.html#overlapping-foreign-keys
 #
-# Addtitionally, self-referential relationships need the remote() annotation.
+# Addtitionally, self-referential relationships (trees) need the remote_side
+# argument.
 # http://docs.sqlalchemy.org/en/rel_1_0/orm/self_referential.html#composite-adjacency-lists
 
 
@@ -319,30 +331,41 @@ Survey.hierarchies = relationship(
 
 
 Hierarchy.qnodes = relationship(
-    QuestionNode, backref=backref('hierarchy', passive_deletes=True),
-    order_by='QuestionNode.seq', collection_class=ordering_list('seq'),
-    primaryjoin="and_(QuestionNode.hierarchy_id == foreign(Hierarchy.id),"
-                "QuestionNode.survey_id == Hierarchy.survey_id)")
+    QuestionNode, backref='hierarchy', passive_deletes=True,
+    order_by=QuestionNode.seq, collection_class=ordering_list('seq'),
+    primaryjoin=and_(QuestionNode.hierarchy_id == Hierarchy.id,
+                     QuestionNode.survey_id == Hierarchy.survey_id),
+    foreign_keys=[QuestionNode.hierarchy_id])
 
 
-QuestionNode.children = relationship(
-    QuestionNode, backref='parent', passive_deletes=True,
-    order_by='QuestionNode.seq', collection_class=ordering_list('seq'),
-    primaryjoin="and_(QuestionNode.parent_id == foreign(remote(QuestionNode.id)),"
-                "QuestionNode.survey_id == remote(QuestionNode.survey_id))")
+# The remote_side argument needs to be set on the many-to-one side, so it's
+# easier to define this relationship from the perspective of the child, i.e.
+# as QuestionNode.parent instead of QuestionNode.children. The backref still
+# works. The collection arguments (passive_deletes, order_by, etc) need to be
+# placed on the one-to-many side, so they are nested in the backref argument.
+QuestionNode.parent = relationship(
+    QuestionNode, backref=backref(
+        'children', passive_deletes=True,
+        order_by=QuestionNode.seq, collection_class=ordering_list('seq')),
+    primaryjoin=and_(QuestionNode.parent_id == QuestionNode.id,
+                     QuestionNode.survey_id == QuestionNode.survey_id),
+    foreign_keys=[QuestionNode.parent_id],
+    remote_side=[QuestionNode.id, QuestionNode.survey_id])
 
 
 QuestionNode.qnode_measures = relationship(
-    QnodeMeasure, backref=backref('qnode', passive_deletes='all'),
-    order_by='QnodeMeasure.seq', collection_class=ordering_list('seq'),
-    primaryjoin="and_(QnodeMeasure.qnode_id == foreign(QuestionNode.id),"
-                "QnodeMeasure.survey_id == foreign(QuestionNode.survey_id))")
+    QnodeMeasure, backref='qnode', cascade='all, delete-orphan',
+    order_by=QnodeMeasure.seq, collection_class=ordering_list('seq'),
+    primaryjoin=and_(QnodeMeasure.qnode_id == QuestionNode.id,
+                     QnodeMeasure.survey_id == QuestionNode.survey_id),
+    foreign_keys=[QnodeMeasure.qnode_id])
 
 
 Measure.qnode_measures = relationship(
     QnodeMeasure, backref='measure',
-    primaryjoin="and_(QnodeMeasure.measure_id == foreign(Measure.id),"
-                "QnodeMeasure.survey_id == Measure.survey_id)")
+    primaryjoin=and_(QnodeMeasure.measure_id == Measure.id,
+                     QnodeMeasure.survey_id == Measure.survey_id),
+    foreign_keys=[QnodeMeasure.measure_id])
 
 
 QuestionNode.measures = association_proxy('qnode_measures', 'measure')
@@ -351,20 +374,23 @@ Measure.parents = association_proxy('qnode_measures', 'qnode')
 
 Assessment.hierarchy = relationship(
     Hierarchy,
-    primaryjoin="and_(Assessment.hierarchy_id == foreign(Hierarchy.id),"
-                "Assessment.survey_id == Hierarchy.survey_id)")
+    primaryjoin=and_(Assessment.hierarchy_id == Hierarchy.id,
+                     Assessment.survey_id == Hierarchy.survey_id),
+    foreign_keys=[Assessment.hierarchy_id])
 
 
 Assessment.responses = relationship(
-    Response, backref=backref('assessment', passive_deletes=True),
-    primaryjoin="and_(Response.assessment_id == foreign(Assessment.id),"
-                "Response.survey_id == Assessment.survey_id)")
+    Response, backref='assessment', passive_deletes=True,
+    primaryjoin=and_(Response.assessment_id == Assessment.id,
+                     Response.survey_id == Assessment.survey_id),
+    foreign_keys=[Response.assessment_id])
 
 
 Response.measure = relationship(
     Measure,
-    primaryjoin="and_(Response.measure_id == foreign(Measure.id),"
-                "Response.survey_id == Measure.survey_id)")
+    primaryjoin=and_(Response.measure_id == Measure.id,
+                     Response.survey_id == Measure.survey_id),
+    foreign_keys=[Response.measure_id])
 
 
 Session = None
