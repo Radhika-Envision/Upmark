@@ -17,7 +17,7 @@ from sqlalchemy.sql import func
 
 import model 
 
-from utils import falsy, truthy
+from utils import denormalise, falsy, truthy
 from tornado.escape import json_decode, json_encode
 
 
@@ -208,6 +208,14 @@ class BaseHandler(tornado.web.RequestHandler):
                 get(self.current_user.organisation_id)
             session.expunge(organisation)
             return organisation
+
+    @property
+    def request_son(self):
+        try:
+            return self._request_son
+        except AttributeError:
+            self._request_son = denormalise(json_decode(self.request.body))
+            return self._request_son
 
 
 def authz(*roles):

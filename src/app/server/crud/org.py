@@ -106,7 +106,6 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                 if org is None:
                     raise ValueError("No such object")
                 self._update(org, son)
-                session.add(org)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         except (sqlalchemy.exc.StatementError, ValueError):

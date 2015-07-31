@@ -107,8 +107,6 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 "Can't specify both parent and hierarchy IDs")
 
         son = denormalise(json_decode(self.request.body))
-        if 'measure' in son:
-            son['measure'] = denormalise(son['measure'])
 
         try:
             with model.session_scope() as session:

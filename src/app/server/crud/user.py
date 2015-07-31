@@ -154,7 +154,6 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                     raise ValueError("No such object")
                 self._check_update(son, user)
                 self._update(user, son)
-                session.add(user)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         except (sqlalchemy.exc.StatementError, ValueError):

@@ -12,7 +12,7 @@ import model
 import logging
 
 import crud
-from utils import denormalise, falsy, reorder, ToSon, updater
+from utils import falsy, reorder, ToSon, updater
 
 
 def update_measure(measure, son):
@@ -83,16 +83,19 @@ class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 qnode = session.query(model.QuestionNode)\
                     .get((qnode_id, self.survey_id))
                 measures = qnode.measures
+                measure_seq = qnode.measure_seq
             elif orphans:
                 measures = session.query(model.Measure)\
                     .outerjoin(model.QnodeMeasure)\
                     .filter(model.Measure.survey_id == survey.id)\
                     .filter(model.QnodeMeasure.qnode_id == None)\
                     .all()
+                measure_seq = None
             else:
                 measures = session.query(model.Measure)\
                     .filter_by(survey_id=self.survey_id)\
                     .all()
+                measure_seq = None
 
             to_son = ToSon(include=[
                 # Fields to match from any visited object
@@ -105,6 +108,13 @@ class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             ])
             son = to_son(measures)
 
+            if measure_seq is not None:
+                # Add seq field to measures, because it's not available on the
+                # measure objects themselves: the ordinal lives in a separate
+                # association table.
+                for mson, seq in zip(son, measure_seq):
+                    mson['seq'] = seq
+
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
         self.finish()
@@ -116,21 +126,21 @@ class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             raise handlers.MethodError(
                 "Can't specify ID when creating a new measure.")
 
-        son = denormalise(json_decode(self.request.body))
+        self.check_editable()
 
         try:
             with model.session_scope() as session:
                 measure = model.Measure(survey_id=self.survey_id)
-                self._update(measure, son)
+                self._update(measure, self.request_son)
                 session.flush()
 
-                for qnode_son in son['parents']:
+                for qnode_son in self.request_son['parents']:
                     qnode = session.query(model.QuestionNode)\
                         .get((qnode_son['id'], self.survey_id))
                     if qnode is None:
                         raise handlers.ModelError("No such question node")
                     qnode.measures.append(measure)
-                    qnode.measures.reorder()
+                    qnode.qnode_measures.reorder()
                 measure_id = str(measure.id)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
@@ -142,13 +152,27 @@ class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         if measure_id == '':
             raise handlers.MethodError("Measure ID required")
 
+        qnode_id = self.get_argument('qnodeId', '')
+
+        self.check_editable()
+
         try:
             with model.session_scope() as session:
                 measure = session.query(model.Measure)\
                     .get((measure_id, self.survey_id))
                 if measure is None:
                     raise handlers.MissingDocError("No such measure")
-                session.delete(measure)
+
+                if qnode_id != '':
+                    # Just unlink from qnode
+                    qnode = session.query(model.QuestionNode)\
+                        .get(qnode_id, self.survey_id)
+                    if qnode is None:
+                        raise handlers.MissingDocError("No such question node")
+                    qnode.measures.remove(measure)
+                    qnode.qnode_measures.reorder()
+                else:
+                    session.delete(measure)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Measure is in use")
         except sqlalchemy.exc.StatementError:
@@ -164,17 +188,15 @@ class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             self.ordering()
             return
 
-        son = denormalise(json_decode(self.request.body))
+        self.check_editable()
 
-        survey_id = self.get_survey_id()
         try:
             with model.session_scope() as session:
                 measure = session.query(model.Measure)\
-                    .get((measure_id, survey_id))
+                    .get((measure_id, self.survey_id))
                 if measure is None:
                     raise ValueError("No such object")
-                self._update(measure, son)
-                session.add(measure)
+                self._update(measure, self.request_son)
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such measure")
         except sqlalchemy.exc.IntegrityError as e:
@@ -183,20 +205,19 @@ class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
 
     def ordering(self):
         '''Change the order that would be returned by a query.'''
-        survey_id = self.get_survey_id()
-        if not is_current_survey(survey_id):
-            raise handlers.MethodError("This surveyId is not current one.")
 
-        subprocess_id = self.get_argument("subprocessId", "")
-        if subprocess_id == None:
-            raise handlers.MethodError("Subprocess ID is required.")
+        self.check_editable()
 
-        son = json_decode(self.request.body)
+        qnode_id = self.get_argument('qnodeId', '')
+        if qnode_id == None:
+            raise handlers.MethodError("Question node ID is required.")
+
+        list
         try:
             with model.session_scope() as session:
-                subprocess = session.query(model.Subprocess)\
-                    .get((subprocess_id, survey_id))
-                reorder(subprocess.measures, son)
+                qnode = session.query(model.QuestionNode)\
+                    .get((qnode_id, self.survey_id))
+                reorder(qnode.qnode_measures, self.request_son)
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)

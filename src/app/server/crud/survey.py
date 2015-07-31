@@ -174,7 +174,6 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 if survey is None:
                     raise ValueError("No such object")
                 self._update(survey, son)
-                session.add(survey)
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such survey")
         except sqlalchemy.exc.IntegrityError as e:
