@@ -16,6 +16,7 @@ import tornado.web
 
 import crud
 import handlers
+import import_handlers
 import model
 from utils import truthy
 
@@ -176,7 +177,8 @@ def get_mappings():
         (r"/process/?(.*).json", crud.process.ProcessHandler, {}),
         (r"/subprocess/?(.*).json", crud.subprocess.SubprocessHandler, {}),
         (r"/measure/?(.*).json", crud.measure.MeasureHandler, {}),
-
+        (r"/import/structure/?(.*).json", import_handlers.ImportStructureHandler, {}),
+        (r"/import/response", import_handlers.ImportResponseHandler, {}),
         (r"/(.*)", tornado.web.StaticFileHandler, {
             'path': os.path.join(package_dir, "..", "client")}),
     ]

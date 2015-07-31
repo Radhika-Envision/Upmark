@@ -6,3 +6,4 @@ passlib~=1.6.2
 alembic~=0.7.6
 passwordmeter~=0.1.1
 xlrd~=0.9.4
+parse~=1.6.6
