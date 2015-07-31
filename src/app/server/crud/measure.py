@@ -12,7 +12,7 @@ import model
 import logging
 
 import crud
-from utils import denormalise, reorder, ToSon, updater
+from utils import denormalise, falsy, reorder, ToSon, updater
 
 
 def update_measure(measure, son):
@@ -29,6 +29,7 @@ def update_measure(measure, son):
 
 
 class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
+
     @tornado.web.authenticated
     def get(self, measure_id):
         '''Get a single measure.'''
@@ -74,6 +75,7 @@ class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
     def query(self):
         '''Get a list.'''
         qnode_id = self.get_argument('qnodeId', '')
+        orphans = not falsy(self.get_argument('orphans', ''))
 
         sons = []
         with model.session_scope() as session:
@@ -81,10 +83,16 @@ class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 qnode = session.query(model.QuestionNode)\
                     .get((qnode_id, self.survey_id))
                 measures = qnode.measures
+            elif orphans:
+                measures = session.query(model.Measure)\
+                    .outerjoin(model.QnodeMeasure)\
+                    .filter(model.Measure.survey_id == survey.id)\
+                    .filter(model.QnodeMeasure.qnode_id == None)\
+                    .all()
             else:
-                query = session.query(model.Measure)\
-                    .filter_by(survey_id=self.survey_id)
-                measures = query.all()
+                measures = session.query(model.Measure)\
+                    .filter_by(survey_id=self.survey_id)\
+                    .all()
 
             to_son = ToSon(include=[
                 # Fields to match from any visited object

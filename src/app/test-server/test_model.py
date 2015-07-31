@@ -12,15 +12,15 @@ from utils import ToSon
 
 class SurveyStructureIntegrationTest(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
+    def setUp(self):
+        super().setUp()
         engine = model.connect_db(os.environ.get('DATABASE_URL'))
         engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
         engine.execute("CREATE SCHEMA public")
         model.initialise_schema(engine)
+        self.create_structure()
 
-    def test_1_create_survey(self):
+    def create_structure(self):
         # Create survey
         with model.session_scope() as session:
             survey = entity = model.Survey(
@@ -143,6 +143,7 @@ class SurveyStructureIntegrationTest(unittest.TestCase):
         with model.session_scope() as session:
             create_hierarchies(hsons, session)
 
+    def test_traverse_structure(self):
         # Read from database
         with model.session_scope() as session:
             survey = session.query(model.Survey).first()
@@ -164,11 +165,15 @@ class SurveyStructureIntegrationTest(unittest.TestCase):
             self.assertEqual(len(q.children), 0)
             self.assertEqual(len(q.measures), 2)
 
+            # Test association proxy from measure to qnode (via qnode_measure)
             self.assertEqual(q.qnode_measures[0].seq, 0)
             self.assertEqual(q.qnode_measures[1].seq, 1)
             m = q.measures[0]
             self.assertEqual(m.title, "Foo Measure")
             self.assertIn(q, m.parents)
+
+            # Test association proxy from qnode to measure (via qnode_measure)
+            self.assertEqual(m.parents[0], q)
 
 #            to_son = ToSon(include=[
 #                r'/title$',
@@ -187,9 +192,59 @@ class SurveyStructureIntegrationTest(unittest.TestCase):
 #            ])
 #            pprint.pprint(to_son(survey), width=120)
 
+    def test_list_measures(self):
+        with model.session_scope() as session:
+            survey = session.query(model.Survey).first()
+            measures = session.query(model.Measure)\
+                .filter(model.Measure.survey_id == survey.id)\
+                .all()
+            self.assertEqual(len(measures), 3)
+
+    def test_unlink_measure(self):
+        with model.session_scope() as session:
+            survey = session.query(model.Survey).first()
+            q = survey.hierarchies[0].qnodes[0].children[0]
+            self.assertEqual(len(q.measures), 2)
+            self.assertEqual(q.measures[0].title, "Foo Measure")
+            self.assertEqual(q.qnode_measures[0].seq, 0)
+            self.assertEqual(q.measures[1].title, "Bar Measure")
+            self.assertEqual(q.qnode_measures[1].seq, 1)
+            q.measures.remove(q.measures[0])
             # Alter sequence: remove first element, and confirm that sequence
             # numbers update.
-            q.measures.remove(q.measures[0])
             session.flush()
             self.assertEqual(len(q.measures), 1)
+            self.assertEqual(q.measures[0].title, "Bar Measure")
             self.assertEqual(q.qnode_measures[0].seq, 0)
+
+    def test_orphan_measure(self):
+        with model.session_scope() as session:
+            survey = session.query(model.Survey).first()
+            q = survey.hierarchies[0].qnodes[0].children[0]
+            q.measures.remove(q.measures[0])
+
+        # Find orphans using outer join
+        with model.session_scope() as session:
+            survey = session.query(model.Survey).first()
+            measures = session.query(model.Measure)\
+                .outerjoin(model.QnodeMeasure)\
+                .filter(model.Measure.survey_id == survey.id)\
+                .filter(model.QnodeMeasure.qnode_id == None)\
+                .all()
+            self.assertEqual(len(measures), 1)
+            m = measures[0]
+            self.assertEqual(m.title, "Foo Measure")
+
+        # Find non-orphans using inner join
+        with model.session_scope() as session:
+            survey = session.query(model.Survey).first()
+            measures = session.query(model.Measure)\
+                .join(model.QnodeMeasure)\
+                .filter(model.Measure.survey_id == survey.id)\
+                .order_by(model.Measure.title)\
+                .all()
+            self.assertEqual(len(measures), 2)
+            m = measures[0]
+            self.assertEqual(m.title, "Bar Measure")
+            m = measures[1]
+            self.assertEqual(m.title, "Baz Measure")

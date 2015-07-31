@@ -306,7 +306,7 @@ class Response(Versioned, Base):
 
 
 # Lists and Complex Relationships
-
+#
 # We need to give explicit join rules due to use of foreign key in composite
 # primary keys. The foreign_keys argument is used to mark which columns are
 # writable. For example, where a class has a survey relationship that can write
