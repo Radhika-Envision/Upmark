@@ -15,31 +15,18 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
-// 'Func' because 'function' is a reserved word
-.factory('Func', ['$resource', function($resource) {
-    return $resource('/function/:id.json', {id: '@id'}, {
+.factory('Hierarchy', ['$resource', function($resource) {
+    return $resource('/hierarchy/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         create: { method: 'POST' },
         save: { method: 'PUT' },
-        query: { method: 'GET', isArray: true, cache: false },
-        reorder: { method: 'PUT', isArray: true }
+        query: { method: 'GET', isArray: true, cache: false }
     });
 }])
 
 
-.factory('Process', ['$resource', function($resource) {
-    return $resource('/process/:id.json', {id: '@id'}, {
-        get: { method: 'GET', cache: false },
-        create: { method: 'POST' },
-        save: { method: 'PUT' },
-        query: { method: 'GET', isArray: true, cache: false },
-        reorder: { method: 'PUT', isArray: true }
-    });
-}])
-
-
-.factory('SubProcess', ['$resource', function($resource) {
-    return $resource('/subprocess/:id.json', {id: '@id'}, {
+.factory('QuestionNode', ['$resource', function($resource) {
+    return $resource('/qnode/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         create: { method: 'POST' },
         save: { method: 'PUT' },
@@ -71,20 +58,20 @@ angular.module('wsaa.surveyQuestions', [
 
 .controller('SurveyCtrl', [
         '$scope', 'Survey', 'routeData', 'Editor', 'questionAuthz',
-        '$location', 'Notifications', 'Current', 'Func', 'layout',
+        '$location', 'Notifications', 'Current', 'Hierarchy', 'layout',
         function($scope, Survey, routeData, Editor, authz,
-                 $location, Notifications, current, Func, layout) {
+                 $location, Notifications, current, Hierarchy, layout) {
 
     $scope.layout = layout;
     $scope.edit = Editor('survey', $scope);
     if (routeData.survey) {
         // Viewing old
         $scope.survey = routeData.survey;
-        $scope.funcs = routeData.funcs;
+        $scope.hierarchies = routeData.hierarchies;
     } else {
         // Creating new
         $scope.survey = new Survey({});
-        $scope.funcs = null;
+        $scope.hierarchies = null;
         $scope.edit.edit();
     }
 
@@ -96,7 +83,6 @@ angular.module('wsaa.surveyQuestions', [
     });
 
     $scope.checkRole = authz(current, $scope.survey);
-    $scope.Func = Func;
 }])
 
 
@@ -125,110 +111,113 @@ angular.module('wsaa.surveyQuestions', [
     return {
         restrict: 'E',
         scope: {
-            entity: '='
+            entity: '=',
+            type: '@'
         },
         replace: true,
         templateUrl: 'question_header.html',
         controller: ['$scope', 'layout', function($scope, layout) {
             $scope.layout = layout;
 
-            $scope.$watchGroup([
-                    'entity.survey', 'entity.function',
-                    'entity.process', 'entity.subprocess'],
-                function(vars) {
-                    var type;
-                    if (vars[3]) {
-                        type = 'measure';
-                    } else if (vars[2]) {
-                        type = 'subProcess';
-                    } else if (vars[1]) {
-                        type = 'process';
-                    } else if (vars[0]) {
-                        type = 'func';
-                    } else {
-                        type = 'survey';
-                    }
-
-                    var hstack = [];
-                    var entity = $scope.entity;
-                    switch (type) {
-                    case 'measure':
-                        hstack.push({
-                            type: 'measure',
-                            label: 'M',
-                            entity: entity
-                        });
-                        entity = entity.subprocess;
-                    case 'subProcess':
-                        hstack.push({
-                            type: 'subprocess',
-                            label: 'Sp',
-                            entity: entity
-                        });
-                        entity = entity.process;
-                    case 'process':
-                        hstack.push({
-                            type: 'process',
-                            label: 'P',
-                            entity: entity
-                        });
-                        entity = entity['function'];
-                    case 'func':
-                        hstack.push({
-                            type: 'function',
-                            label: 'F',
-                            entity: entity
-                        });
+            $scope.$watch('entity', function(entity) {
+                var stack = [];
+                while (entity) {
+                    stack.push(entity);
+                    if (entity.parent)
+                        entity = entity.parent;
+                    else if (entity.hierarchy)
+                        entity = entity.hierarchy;
+                    else if (entity.survey)
                         entity = entity.survey;
-                    case 'survey':
-                        hstack.push({
-                            type: 'survey',
-                            label: 'S',
-                            entity: entity
-                        });
-                        $scope.survey = entity;
-                    }
-                    hstack.reverse();
-                    $scope.hstack = hstack;
+                    else
+                        entity = null;
+                }
+                stack.reverse();
+
+                var hstack = []
+                // Survey
+                if (stack.length > 0) {
+                    hstack.push({
+                        type: 'survey',
+                        label: 'S',
+                        entity: stack[0]
+                    });
+                }
+                // Hierarchy
+                if (stack.length > 1) {
+                    hstack.push({
+                        type: 'question set',
+                        label: 'Qs',
+                        entity: stack[1]
+                    });
+                }
+                // Qnodes and measures
+                for (var i = 2; i < stack.length; i++) {
+                    hstack.push({
+                        type: 'qnode',
+                        label: stack[1].levels[i - 2].label,
+                        entity: stack[i]
+                    });
+                }
+                if (hstack.length > 2) {
+                    // Last node might be a qnode or a measure; for that node,
+                    // take the type specified by the caller.
+                    hstack[hstack.length - 1].type = $scope.type;
+                }
+                $scope.hstack = hstack;
             });
         }]
     }
 }])
 
 
-.controller('FuncCtrl', [
-        '$scope', 'Func', 'routeData', 'Editor', 'questionAuthz', 'layout',
-        '$location', 'Notifications', 'Current', 'Survey', 'format', 'Process',
-        function($scope, Func, routeData, Editor, authz, layout,
-                 $location, Notifications, current, Survey, format, Process) {
+.controller('HierarchyCtrl', [
+        '$scope', 'Hierarchy', 'routeData', 'Editor', 'questionAuthz', 'layout',
+        '$location', 'Current', 'format', 'QuestionNode',
+        function($scope, Hierarchy, routeData, Editor, authz, layout,
+                 $location, current, format, QuestionNode) {
 
     $scope.layout = layout;
     $scope.survey = routeData.survey;
-    $scope.edit = Editor('func', $scope, {surveyId: $scope.survey.id});
-    if (routeData.func) {
+    $scope.edit = Editor('hierarchy', $scope, {surveyId: $scope.survey.id});
+    if (routeData.hierarchy) {
         // Editing old
-        $scope.func = routeData.func;
-        $scope.procs = routeData.procs;
+        $scope.hierarchy = routeData.hierarchy;
+        $scope.qnodes = routeData.qnodes;
     } else {
         // Creating new
-        $scope.func = new Func({
-            survey: $scope.survey
+        $scope.hierarchy = new Hierarchy({
+            survey: $scope.survey,
+            structure: []
         });
-        $scope.procs = null;
+        $scope.qnodes = null;
         $scope.edit.edit();
     }
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
-            '/function/{}?survey={}', model.id, $scope.survey.id));
+            '/hierarchy/{}?survey={}', model.id, $scope.survey.id));
     });
     $scope.$on('EditDeleted', function(event, model) {
         $location.url(format(
             '/survey/{}', $scope.survey.id));
     });
 
+    $scope.addLevel = function(model) {
+        model.structure.push({
+            title: '',
+            label: '',
+            hasMeasures: false
+        });
+    };
+
+    $scope.removeLevel = function(model, level) {
+        var i = model.structure.indexOf(level);
+        model.structure.splice(i, 1);
+    };
+
     $scope.checkRole = authz(current, $scope.survey);
-    $scope.Process = Process;
+    $scope.QuestionNode = QuestionNode;
 }])
 
 
@@ -365,52 +354,6 @@ angular.module('wsaa.surveyQuestions', [
     });
 
     $scope.checkRole = authz(current, $scope.survey);
-}])
-
-
-.controller('CategoryCtrl', ['$scope', '$routeParams', 'routeData', 'format', 'hotkeys', 'Func', '$location', '$timeout',
-        function($scope, $routeParams, routeData, format, hotkeys, Func, $location, $timeout) {
-
-    $scope.functions = routeData.functions;
-    
-    $scope.addFunction = function() {
-      var functionTitle = document.getElementById("funcTitle").value;
-      if (functionTitle.length > 0) {
-        Func.create({
-          title: functionTitle,
-          description: functionTitle,
-          seq: 1
-        });
-        document.getElementById("funcTitle").value = '';
-      }
-    };
-
-    $scope.editFunction = function(func) {
-      func.editing = true;
-    };
-
-    $scope.cancelEditingFunction = function(func) {
-      func.editing = false;
-    };
-
-    $scope.saveFunction = function(func) {
-      func.save();
-    };
-
-    $scope.removeFunction = function(func) {
-      if (window.confirm('Are you sure to remove this function?')) {
-        func.destroy();
-      }
-    };
-
-    $scope.saveGroups = function() {
-      for (var i = $scope.groups.length - 1; i >= 0; i--) {
-        var group = $scope.groups[i];
-        group.sortOrder = i + 1;
-        group.save();
-      }
-    };
-
 }])
 
 

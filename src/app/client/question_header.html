@@ -4,11 +4,14 @@
         class="survey-{{item.type}}">
     <a ng-if="item.entity.title && !$last"
             ng-href="#/{{item.type}}/{{item.entity.id}}?survey={{survey.id}}">
-        <span ng-if="item.entity.seq != null">{{item.entity.seq + 1}}.</span>
-        <span ng-class="!$first ? 'when-expanded' : ''">{{item.entity.title}}</span>
+        <span ng-if="item.entity.seq != null">
+            {{item.entity.seq + 1}}.</span>
+        <span ng-class="!$first ? 'when-expanded' : ''">
+            {{item.entity.title}}</span>
     </a>
     <span ng-if="item.entity.title && $last">
-        <span ng-if="item.entity.seq != null">{{item.entity.seq + 1}}.</span>
+        <span ng-if="item.entity.seq != null">
+            {{item.entity.seq + 1}}.</span>
         {{item.entity.title}}
     </span>
     <span ng-if="!item.entity.title">

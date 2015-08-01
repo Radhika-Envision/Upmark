@@ -34,7 +34,7 @@ class SurveyCentric:
     def survey(self):
         if not hasattr(self, '_survey'):
             with model.session_scope() as session:
-                survey = query.get(self.survey_id)
+                survey = session.query(model.Survey).get(self.survey_id)
                 if survey is None:
                     raise handlers.MissingDocError("No such survey")
                 session.expunge(survey)
@@ -68,7 +68,6 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                     survey = query.order_by(model.Survey.created.desc()).first()
                 else:
                     survey = query.get(survey_id)
-                log.info(survey)
                 if survey is None:
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError,
@@ -99,8 +98,8 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         with model.session_scope() as session:
             query = session.query(model.Survey)
 
-            term = self.get_argument('term', None)
-            if term is not None:
+            term = self.get_argument('term', '')
+            if term != '':
                 query = query.filter(
                     model.Survey.title.ilike(r'%{}%'.format(term)))
 
@@ -109,9 +108,10 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
 
             to_son = ToSon(include=[
                 r'/id$',
-                r'/title$'
+                r'/title$',
+                r'/[0-9]+$'
             ])
-            sons = to_son(query.all)
+            sons = to_son(query.all())
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))

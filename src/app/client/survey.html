@@ -21,7 +21,7 @@
                 ng-if="!edit.model && checkRole('survey_edit')">
             <i class="fa fa-pencil"></i></button>
     </div>
-    <question-header entity="survey"></question-header>
+    <question-header entity="survey" type="survey"></question-header>
 </div>
 </div>
 
@@ -36,13 +36,48 @@
             <input type="text" class="form-control" id="title" name="title"
                 ng-model="edit.model.title" required />
         </div>
+        <div class="form-group">
+            <label for="title">Description</label>
+            <textarea type="text" class="form-control" id="desc" name="desc"
+                ng-model="edit.model.description"></textarea>
+        </div>
     </form>
 </div>
 </div>
 
-<reorderable href="/function/{}?survey={{survey.id}}"
-        model="funcs" title="Functions" check-role="checkRole"
-        params="{surveyId: survey.id}" resource="Func"
-        ng-if="survey.id"></reorderable>
+<div ng-if="!edit.model">
+<div class="measure">
+<div class="container">
+    <p>{{survey.description}}</p>
+</div>
+</div>
+
+<div class="container">
+    <div class="section">
+        <div class="toolbar">
+            <a class="btn btn-default btn-round" title="Add new"
+                    ng-href="#/hierarchy/new?survey={{survey.id}}"
+                    ng-if="checkRole('hierarchy_add')">
+                <i class="fa fa-fw fa-plus"></i></a>
+        </div>
+        <h2>
+            Question Sets
+        </h2>
+    </div>
+</div>
+<div class="container">
+    <p ng-if="!hierarchies.length">
+        There are no question sets yet.
+    </p>
+  <table class="table table-hover">
+    <tbody>
+      <tr ng-repeat="hierarchy in hierarchies"
+            any-href='/hierarchy/{{hierarchy.id}}?survey={{survey.id}}'">
+        <td>{{hierarchy.title}}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+</div>
 
 </div>

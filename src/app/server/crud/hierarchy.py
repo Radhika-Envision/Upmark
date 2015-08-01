@@ -12,7 +12,7 @@ import handlers
 import model
 import logging
 
-from utils import reorder, ToSon, updater
+from utils import reorder, ToSon, truthy, updater
 
 log = logging.getLogger('app.data_access')
 
@@ -44,10 +44,13 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 r'/seq$',
                 # Root-only
                 r'^/description$',
+                r'^/structure.*',
                 # Nested
                 r'/survey$',
             ])
             son = to_son(hierarchy)
+            if son['structure'] is None:
+                son['structure'] = []
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
@@ -64,6 +67,8 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             to_son = ToSon(include=[
                 r'/id$',
                 r'/title$',
+                # Descend
+                r'/[0-9]+$'
             ])
             sons = to_son(query.all())
 
@@ -132,13 +137,25 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         update('title', son)
         update('description', son)
 
-        if son.get('levels') != None:
-            try:
-                levels = [{
-                    'title': str(l['title']),
-                    'initial': str(l['initial'])[:2],
-                    'has_measures': truthy(l['has_measures'])
-                } for l in son['levels']]
-            except Exception:
-                raise handlers.ModelError("Could not parse levels", )
-            hierarchy.levels = son['levels']
+        if son.get('structure') != None:
+            structure = []
+            for l_son in son['structure']:
+                try:
+                    level = {
+                        'title': str(l_son['title']),
+                        'label': str(l_son['label']),
+                        'has_measures': truthy(l_son['has_measures'])
+                    }
+                except Exception:
+                    raise handlers.ModelError("Could not parse structure")
+                if len(level['title']) <= 0:
+                    raise handlers.ModelError(
+                        "Level title is too short.")
+                if len(level['label']) <= 0:
+                    raise handlers.ModelError(
+                        "Short label is too short.")
+                if len(level['label']) > 2:
+                    raise handlers.ModelError(
+                        "Short label is too long.")
+                structure.append(level)
+            hierarchy.structure = structure

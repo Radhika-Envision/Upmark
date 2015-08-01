@@ -284,7 +284,8 @@ angular.module('vpac.widgets', [])
         replace: true,
         controller: ['$scope', 'format', 'Editor',
                 function($scope, format, Editor) {
-            $scope.edit = Editor('model', $scope, $scope.params, $scope.resource);
+            $scope.edit = Editor(
+                'model', $scope, $scope.params, $scope.resource);
             $scope.href = function(id) {
                 return format($scope.hrefSpec, id);
             };
