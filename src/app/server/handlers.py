@@ -214,7 +214,11 @@ class BaseHandler(tornado.web.RequestHandler):
         try:
             return self._request_son
         except AttributeError:
-            self._request_son = denormalise(json_decode(self.request.body))
+            try:
+                self._request_son = denormalise(json_decode(self.request.body))
+            except (TypeError, UnicodeError, ValueError) as e:
+                raise ModelError(
+                    "Could not decode request body: %s" % str(e.message))
             return self._request_son
 
 

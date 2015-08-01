@@ -11,7 +11,7 @@ import handlers
 import model
 import logging
 
-from utils import denormalise, ToSon, updater
+from utils import ToSon, updater
 
 class OrgHandler(handlers.Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
@@ -73,11 +73,10 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.MethodError(
                 "Can't use POST for existing organisation.")
 
-        son = denormalise(json_decode(self.request.body))
         try:
             with model.session_scope() as session:
                 org = model.Organisation()
-                self._update(org, son)
+                self._update(org, self.request_son)
                 session.add(org)
                 session.flush()
                 org_id = str(org.id)
@@ -99,13 +98,12 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.AuthzError(
                 "You can't modify another organisation's information.")
 
-        son = denormalise(json_decode(self.request.body))
         try:
             with model.session_scope() as session:
                 org = session.query(model.Organisation).get(org_id)
                 if org is None:
                     raise ValueError("No such object")
-                self._update(org, son)
+                self._update(org, self.request_son)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         except (sqlalchemy.exc.StatementError, ValueError):

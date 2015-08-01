@@ -12,7 +12,7 @@ import handlers
 import model
 import logging
 
-from utils import denormalise, ToSon, updater
+from utils import ToSon, updater
 
 log = logging.getLogger('app.data_access')
 
@@ -124,12 +124,11 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         if survey_id != '':
             raise handlers.MethodError("Can't use POST for existing survey.")
-        son = denormalise(json_decode(self.request.body))
 
         try:
             with model.session_scope() as session:
                 survey = model.Survey()
-                self._update(survey, son)
+                self._update(survey, self.request_son)
                 session.add(survey)
                 session.flush()
                 session.expunge(survey)
@@ -166,14 +165,13 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         if survey_id == '':
             raise handlers.MethodError(
                 "Can't use PUT for new survey (no ID).")
-        son = denormalise(json_decode(self.request.body))
 
         try:
             with model.session_scope() as session:
                 survey = session.query(model.Survey).get(survey_id)
                 if survey is None:
                     raise ValueError("No such object")
-                self._update(survey, son)
+                self._update(survey, self.request_son)
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such survey")
         except sqlalchemy.exc.IntegrityError as e:

@@ -6,7 +6,7 @@ import handlers
 import model
 import logging
 
-from utils import denormalise, ToSon, truthy
+from utils import ToSon
 
 
 class SystemConfigHandler(handlers.BaseHandler):
@@ -31,11 +31,9 @@ class SystemConfigHandler(handlers.BaseHandler):
 
     @handlers.authz('admin')
     def put(self):
-        son = denormalise(json_decode(self.request.body))
-
         try:
             with model.session_scope() as session:
-                for s in son['settings']:
+                for s in self.request_son['settings']:
                     setting = session.query(model.SystemConfig).get(s['name'])
                     if setting is None:
                         raise handlers.MissingDocError(

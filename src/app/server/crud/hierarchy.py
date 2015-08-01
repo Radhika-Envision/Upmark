@@ -12,7 +12,7 @@ import handlers
 import model
 import logging
 
-from utils import denormalise, reorder, ToSon, updater
+from utils import reorder, ToSon, updater
 
 log = logging.getLogger('app.data_access')
 
@@ -79,12 +79,10 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
 
         self.check_editable()
 
-        son = denormalise(json_decode(self.request.body))
-
         try:
             with model.session_scope() as session:
                 hierarchy = model.Hierarchy(survey_id=self.survey_id)
-                self._update(hierarchy, son)
+                self._update(hierarchy, self.request_son)
                 session.add(hierarchy)
                 session.flush()
                 hierarchy_id = str(hierarchy.id)
@@ -98,15 +96,13 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         if hierarchy_id == '':
             raise handlers.MethodError("Hierarchy ID required")
 
-        son = denormalise(json_decode(self.request.body))
-
         try:
             with model.session_scope() as session:
                 hierarchy = session.query(model.Hierarchy)\
                     .get((hierarchy_id, self.survey_id))
                 if hierarchy is None:
                     raise ValueError("No such object")
-                self._update(hierarchy, son)
+                self._update(hierarchy, self.request_son)
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such hierarchy")
         except sqlalchemy.exc.IntegrityError as e:
@@ -140,8 +136,9 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             try:
                 levels = [{
                     'title': str(l['title']),
-                    'initial': str(l['initial'])[:2]
+                    'initial': str(l['initial'])[:2],
+                    'has_measures': truthy(l['has_measures'])
                 } for l in son['levels']]
             except Exception:
-                raise handlers.ModelError("Could not parse levels")
+                raise handlers.ModelError("Could not parse levels", )
             hierarchy.levels = son['levels']

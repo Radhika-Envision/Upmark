@@ -12,7 +12,7 @@ import handlers
 import model
 import logging
 
-from utils import denormalise, reorder, ToSon, updater
+from utils import reorder, ToSon, updater
 
 
 log = logging.getLogger('app.data_access')
@@ -106,12 +106,10 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             raise handlers.ModelError(
                 "Can't specify both parent and hierarchy IDs")
 
-        son = denormalise(json_decode(self.request.body))
-
         try:
             with model.session_scope() as session:
                 qnode = model.QuestionNode(survey_id=self.survey_id)
-                self._update(session, qnode, son)
+                self._update(session, qnode, self.request_son)
 
                 if hierarchy_id != '':
                     hierarchy = session.query(model.Hierarchy)\
@@ -174,10 +172,6 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             self.ordering()
             return
 
-        son = denormalise(json_decode(self.request.body))
-        if 'measure' in son:
-            son['measure'] = denormalise(son['measure'])
-
         try:
             with model.session_scope() as session:
                 qnode = session.query(model.QuestionNode)\
@@ -185,7 +179,7 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 if qnode is None:
                     raise ValueError("No such object")
 
-                self._update(session, qnode, son)
+                self._update(session, qnode, self.request_son)
 
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such question node")

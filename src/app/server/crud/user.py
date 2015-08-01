@@ -12,7 +12,7 @@ import handlers
 import model
 import logging
 
-from utils import denormalise, ToSon, truthy, updater
+from utils import ToSon, truthy, updater
 
 
 def test_password(text):
@@ -123,15 +123,14 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
         if user_id != '':
             raise handlers.MethodError("Can't use POST for existing users.")
 
-        son = denormalise(json_decode(self.request.body))
-        self._check_create(son)
+        self._check_create(self.request_son)
 
         try:
             with model.session_scope() as session:
                 user = model.AppUser()
-                user.organisation_id = son['organisation']['id'];
-                self._check_update(son, None)
-                self._update(user, son)
+                user.organisation_id = self.request_son['organisation']['id']
+                self._check_update(self.request_son, None)
+                self._update(user, self.request_son)
                 session.add(user)
                 session.flush()
                 session.expunge(user)
@@ -145,15 +144,14 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         if user_id == '':
             raise handlers.MethodError("Can't use PUT for new users (no ID).")
-        son = denormalise(json_decode(self.request.body))
 
         try:
             with model.session_scope() as session:
                 user = session.query(model.AppUser).get(user_id)
                 if user is None:
                     raise ValueError("No such object")
-                self._check_update(son, user)
-                self._update(user, son)
+                self._check_update(self.request_son, user)
+                self._update(user, self.request_son)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         except (sqlalchemy.exc.StatementError, ValueError):
@@ -238,12 +236,12 @@ class PasswordHandler(handlers.BaseHandler):
         '''
         Check the strength of a password.
         '''
-        input_son = denormalise(json_decode(self.request.body))
-        password = input_son.get('password', '')
-        if password == '':
-            raise handlers.AuthzError("Please specify a password")
 
-        strength, threshold, improvements = test_password(password)
+        if 'password' not in self.request_son:
+            raise handlers.ModelError("Please specify a password")
+
+        strength, threshold, improvements = test_password(
+            self.request_son['password'])
         son = {
             'threshold': threshold,
             'strength': strength,
