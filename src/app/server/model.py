@@ -11,7 +11,8 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import backref, relationship, sessionmaker
-from sqlalchemy.schema import ForeignKeyConstraint, Index, MetaData
+from sqlalchemy.schema import CheckConstraint, ForeignKeyConstraint, Index,\
+    MetaData
 from sqlalchemy.sql import func
 from sqlalchemy.sql.expression import and_
 from passlib.hash import sha256_crypt
@@ -153,8 +154,7 @@ class QuestionNode(Base):
     parent_id = Column(GUID)
     seq = Column(Integer)
 
-    # For branches only
-    title = Column(Text)
+    title = Column(Text, nullable=False)
     description = Column(Text)
 
     __table_args__ = (
@@ -169,6 +169,11 @@ class QuestionNode(Base):
         ForeignKeyConstraint(
             ['survey_id'],
             ['survey.id']
+        ),
+        CheckConstraint(
+            '(parent_id IS NULL AND hierarchy_id IS NOT NULL) OR '
+            '(parent_id IS NOT NULL AND hierarchy_id IS NULL)',
+            name='qnode_root_check'
         ),
     )
 

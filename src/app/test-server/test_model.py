@@ -105,10 +105,13 @@ class SurveyStructureIntegrationTest(unittest.TestCase):
             },
         ]
 
-        def create_qnodes(qsons, session):
+        def create_qnodes(qsons, session, hierarchy_id=None, parent_id=None):
             qnodes = []
             for qson in qsons:
-                qnode = model.QuestionNode(survey_id=survey_id)
+                qnode = model.QuestionNode(
+                    hierarchy_id=hierarchy_id,
+                    parent_id=parent_id,
+                    survey_id=survey_id)
                 qnode.title = qson['title']
                 qnode.description = qson['description']
                 qnodes.append(qnode)
@@ -116,7 +119,8 @@ class SurveyStructureIntegrationTest(unittest.TestCase):
                 session.flush()
 
                 if 'children' in qson:
-                    qnode.children = create_qnodes(qson['children'], session)
+                    qnode.children = create_qnodes(
+                        qson['children'], session, parent_id=qnode.id)
                     qnode.children.reorder()
 
                 for i in qson.get('measures', []):
@@ -135,7 +139,9 @@ class SurveyStructureIntegrationTest(unittest.TestCase):
                 hierarchy.title = hson['title']
                 hierarchy.description = hson['description']
                 session.add(hierarchy)
-                hierarchy.qnodes = create_qnodes(hson['qnodes'], session)
+                session.flush()
+                hierarchy.qnodes = create_qnodes(
+                    hson['qnodes'], session, hierarchy_id=hierarchy.id)
                 hierarchy.qnodes.reorder()
             session.flush()
             return hierarchies
