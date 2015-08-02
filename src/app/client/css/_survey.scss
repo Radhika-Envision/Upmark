@@ -36,23 +36,27 @@ h2 {
             opacity $anim-time ease
         );
     }
-    &.survey-survey[label]:before {
+    &.survey-s[label]:before {
         background-color: mix($survey-colour, white, 50%);
         color: mix($survey-colour, black, 50%);
     }
-    &.survey-function[label]:before {
+    &.survey-h[label]:before {
+        background-color: mix($hierarchy-colour, white, 50%);
+        color: mix($hierarchy-colour, black, 50%);
+    }
+    &.survey-0[label]:before {
         background-color: mix($function-colour, white, 50%);
         color: mix($function-colour, black, 50%);
     }
-    &.survey-process[label]:before {
+    &.survey-1[label]:before {
         background-color: mix($process-colour, white, 50%);
         color: mix($process-colour, black, 50%);
     }
-    &.survey-subprocess[label]:before {
+    &.survey-2[label]:before {
         background-color: mix($subprocess-colour, white, 50%);
         color: mix($subprocess-colour, black, 50%);
     }
-    &.survey-measure[label]:before {
+    &.survey-m[label]:before {
         background-color: mix($measure-colour, white, 50%);
         color: mix($measure-colour, black, 50%);
     }

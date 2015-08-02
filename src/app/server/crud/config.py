@@ -6,10 +6,11 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, simplify, normalise, truthy
+from utils import ToSon
 
 
 class SystemConfigHandler(handlers.BaseHandler):
+
     @handlers.authz('admin')
     def get(self):
         with model.session_scope() as session:
@@ -19,10 +20,10 @@ class SystemConfigHandler(handlers.BaseHandler):
                     .all()
             except sqlalchemy.exc.StatementError:
                 raise handlers.MissingDocError("No such user")
+            to_son = ToSon(exclude=[r'/user_defined$'])
             son = {
                 'id': 'settings',
-                'settings': [to_dict(setting, exclude={'user_defined'})
-                             for setting in settings]
+                'settings': to_son(settings)
             }
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -30,11 +31,9 @@ class SystemConfigHandler(handlers.BaseHandler):
 
     @handlers.authz('admin')
     def put(self):
-        son = json_decode(self.request.body)
-
         try:
             with model.session_scope() as session:
-                for s in son['settings']:
+                for s in self.request_son['settings']:
                     setting = session.query(model.SystemConfig).get(s['name'])
                     if setting is None:
                         raise handlers.MissingDocError(

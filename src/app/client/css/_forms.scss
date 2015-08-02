@@ -158,6 +158,28 @@ $anim-time: 0.3s;
     color: #888;
 }
 
+.tabular-form {
+    padding: 0;
+    display: table;
+    width: 100%;
+
+    > * {
+        list-style: none;
+        display: table-row;
+
+        > * {
+            display: table-cell;
+            padding: 8px;
+            margin: 0;
+
+            > input[type=text] {
+                margin-left: -12px;
+                margin-right: -12px;
+            }
+        }
+    }
+}
+
 .messages {
     position: fixed;
     left: 0;

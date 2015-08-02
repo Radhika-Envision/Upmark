@@ -12,7 +12,7 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, simplify, normalise, truthy
+from utils import ToSon, truthy, updater
 
 
 def test_password(text):
@@ -28,6 +28,7 @@ def test_password(text):
 
 
 class UserHandler(handlers.Paginate, handlers.BaseHandler):
+
     @tornado.web.authenticated
     def get(self, user_id):
         '''
@@ -48,16 +49,22 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError, ValueError):
                 raise handlers.MissingDocError("No such user")
-            org = to_dict(user.organisation, include={'id', 'name'})
-            org = simplify(org)
-            org = normalise(org)
-            # Exclude password from response. If this web service is ever opened
-            # up to unauthenticated users, further thought should be given to
-            # privacy (e.g. hide email addresses).
-            son = to_dict(user, exclude={'password'})
-            son = simplify(son)
-            son = normalise(son)
-            son["organisation"] = org
+
+            to_son = ToSon(include=[
+                r'/id$',
+                r'/name$',
+                r'/email$',
+                r'/role$',
+                r'/enabled$',
+                # Descend into nested objects
+                r'/organisation$',
+            ], exclude=[
+                # Exclude password from response. Not really necessary because
+                # 1. it's hashed and 2. it's not in the list above. But just to
+                # be safe.
+                r'password'
+            ])
+            son = to_son(user)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
@@ -89,15 +96,21 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
             query = query.order_by(model.AppUser.name)
             query = self.paginate(query)
 
-            for ob in query.all():
-                org = to_dict(ob.organisation, include={'id', 'name'})
-                org = simplify(org)
-                org = normalise(org)
-                son = to_dict(ob, include={'id', 'name', 'enabled'})
-                son = simplify(son)
-                son = normalise(son)
-                son["organisation"] = org
-                sons.append(son)
+            to_son = ToSon(include=[
+                r'/id$',
+                r'/name$',
+                r'/enabled$',
+                # Descend into nested objects
+                r'/[0-9]+$',
+                r'/organisation$',
+            ], exclude=[
+                # Exclude password from response. Not really necessary because
+                # 1. it's hashed and 2. it's not in the list above. But just to
+                # be safe.
+                r'password'
+            ])
+
+            sons = to_son(query.all())
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
@@ -110,15 +123,14 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
         if user_id != '':
             raise handlers.MethodError("Can't use POST for existing users.")
 
-        son = json_decode(self.request.body)
-        self._check_create(son)
+        self._check_create(self.request_son)
 
         try:
             with model.session_scope() as session:
                 user = model.AppUser()
-                user.organisation_id = son['organisation']['id'];
-                self._check_update(son, None)
-                self._update(user, son)
+                user.organisation_id = self.request_son['organisation']['id']
+                self._check_update(self.request_son, None)
+                self._update(user, self.request_son)
                 session.add(user)
                 session.flush()
                 session.expunge(user)
@@ -132,16 +144,14 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         if user_id == '':
             raise handlers.MethodError("Can't use PUT for new users (no ID).")
-        son = json_decode(self.request.body)
 
         try:
             with model.session_scope() as session:
                 user = session.query(model.AppUser).get(user_id)
                 if user is None:
                     raise ValueError("No such object")
-                self._check_update(son, user)
-                self._update(user, son)
-                session.add(user)
+                self._check_update(self.request_son, user)
+                self._update(user, self.request_son)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         except (sqlalchemy.exc.StatementError, ValueError):
@@ -208,18 +218,16 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         Apply user-provided data to the saved model.
         '''
-        if son.get('email', '') != '':
-            user.email = son['email']
-        if son.get('name', '') != '':
-            user.name = son['name']
-        if son.get('role', '') != '':
-            user.role = son['role']
+        update = updater(user)
+        update('email', son)
+        update('name', son)
+        update('role', son)
+        update('enabled', son)
+
         if son.get('organisation', '') != '':
             user.organisation_id = son['organisation']['id']
         if son.get('password', '') != '':
             user.set_password(son['password'])
-        if son.get('enabled', '') != '':
-            user.enabled = son['enabled']
 
 
 class PasswordHandler(handlers.BaseHandler):
@@ -228,12 +236,12 @@ class PasswordHandler(handlers.BaseHandler):
         '''
         Check the strength of a password.
         '''
-        input_son = json_decode(self.request.body)
-        password = input_son.get('password', '')
-        if password == '':
-            raise handlers.AuthzError("Please specify a password")
 
-        strength, threshold, improvements = test_password(password)
+        if 'password' not in self.request_son:
+            raise handlers.ModelError("Please specify a password")
+
+        strength, threshold, improvements = test_password(
+            self.request_son['password'])
         son = {
             'threshold': threshold,
             'strength': strength,

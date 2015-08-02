@@ -12,9 +12,42 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, simplify, normalise
+from utils import ToSon, updater
 
 log = logging.getLogger('app.data_access')
+
+
+class SurveyCentric:
+    '''
+    Mixin for handlers that deal with models that have a survey ID as part of
+    a composite primary key.
+    '''
+    @property
+    def survey_id(self):
+        survey_id = self.get_argument("surveyId", "")
+        if survey_id == '':
+            raise handlers.MethodError("Survey ID is required")
+
+        return survey_id
+
+    @property
+    def survey(self):
+        if not hasattr(self, '_survey'):
+            with model.session_scope() as session:
+                survey = session.query(model.Survey).get(self.survey_id)
+                if survey is None:
+                    raise handlers.MissingDocError("No such survey")
+                session.expunge(survey)
+            self._survey = survey
+        return self._survey
+
+    def check_editable(self):
+        if not self.survey.is_editable:
+            raise handlers.MethodError("This survey is closed for editing")
+
+    def check_open(self):
+        if not self.survey.is_open:
+            raise handlers.MethodError("This survey is not open for responses")
 
 
 class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
@@ -35,7 +68,6 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                     survey = query.order_by(model.Survey.created.desc()).first()
                 else:
                     survey = query.get(survey_id)
-                log.info(survey)
                 if survey is None:
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError,
@@ -43,9 +75,15 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                     ValueError):
                 raise handlers.MissingDocError("No such survey")
 
-            son = to_dict(survey, include={'id', 'title', 'branch'})
-            son = simplify(son)
-            son = normalise(son)
+            to_son = ToSon(include=[
+                r'/id$',
+                r'/title$',
+                r'/description$',
+                r'/created$',
+                r'/finalised_date$',
+                r'/open_date$'
+            ])
+            son = to_son(survey)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
@@ -60,19 +98,20 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         with model.session_scope() as session:
             query = session.query(model.Survey)
 
-            term = self.get_argument('term', None)
-            if term is not None:
+            term = self.get_argument('term', '')
+            if term != '':
                 query = query.filter(
                     model.Survey.title.ilike(r'%{}%'.format(term)))
 
             query = query.order_by(model.Survey.created)
             query = self.paginate(query)
 
-            for ob in query.all():
-                son = to_dict(ob, include={'id', 'title', 'branch'})
-                son = simplify(son)
-                son = normalise(son)
-                sons.append(son)
+            to_son = ToSon(include=[
+                r'/id$',
+                r'/title$',
+                r'/[0-9]+$'
+            ])
+            sons = to_son(query.all())
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
@@ -85,12 +124,11 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         if survey_id != '':
             raise handlers.MethodError("Can't use POST for existing survey.")
-        son = json_decode(self.request.body)
 
         try:
             with model.session_scope() as session:
                 survey = model.Survey()
-                self._update(survey, son)
+                self._update(survey, self.request_son)
                 session.add(survey)
                 session.flush()
                 session.expunge(survey)
@@ -127,15 +165,13 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         if survey_id == '':
             raise handlers.MethodError(
                 "Can't use PUT for new survey (no ID).")
-        son = json_decode(self.request.body)
 
         try:
             with model.session_scope() as session:
                 survey = session.query(model.Survey).get(survey_id)
                 if survey is None:
                     raise ValueError("No such object")
-                self._update(survey, son)
-                session.add(survey)
+                self._update(survey, self.request_son)
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such survey")
         except sqlalchemy.exc.IntegrityError as e:
@@ -146,5 +182,6 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         Apply survey-provided data to the saved model.
         '''
-        if son.get('title', '') != '':
-            survey.title = son['title']
+        update = updater(survey)
+        update('title', son)
+        update('description', son)

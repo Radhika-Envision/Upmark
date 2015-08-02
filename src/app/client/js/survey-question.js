@@ -15,31 +15,18 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
-// 'Func' because 'function' is a reserved word
-.factory('Func', ['$resource', function($resource) {
-    return $resource('/function/:id.json', {id: '@id'}, {
+.factory('Hierarchy', ['$resource', function($resource) {
+    return $resource('/hierarchy/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         create: { method: 'POST' },
         save: { method: 'PUT' },
-        query: { method: 'GET', isArray: true, cache: false },
-        reorder: { method: 'PUT', isArray: true }
+        query: { method: 'GET', isArray: true, cache: false }
     });
 }])
 
 
-.factory('Process', ['$resource', function($resource) {
-    return $resource('/process/:id.json', {id: '@id'}, {
-        get: { method: 'GET', cache: false },
-        create: { method: 'POST' },
-        save: { method: 'PUT' },
-        query: { method: 'GET', isArray: true, cache: false },
-        reorder: { method: 'PUT', isArray: true }
-    });
-}])
-
-
-.factory('SubProcess', ['$resource', function($resource) {
-    return $resource('/subprocess/:id.json', {id: '@id'}, {
+.factory('QuestionNode', ['$resource', function($resource) {
+    return $resource('/qnode/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         create: { method: 'POST' },
         save: { method: 'PUT' },
@@ -71,20 +58,20 @@ angular.module('wsaa.surveyQuestions', [
 
 .controller('SurveyCtrl', [
         '$scope', 'Survey', 'routeData', 'Editor', 'questionAuthz',
-        '$location', 'Notifications', 'Current', 'Func', 'layout',
+        '$location', 'Notifications', 'Current', 'Hierarchy', 'layout',
         function($scope, Survey, routeData, Editor, authz,
-                 $location, Notifications, current, Func, layout) {
+                 $location, Notifications, current, Hierarchy, layout) {
 
     $scope.layout = layout;
     $scope.edit = Editor('survey', $scope);
     if (routeData.survey) {
         // Viewing old
         $scope.survey = routeData.survey;
-        $scope.funcs = routeData.funcs;
+        $scope.hierarchies = routeData.hierarchies;
     } else {
         // Creating new
         $scope.survey = new Survey({});
-        $scope.funcs = null;
+        $scope.hierarchies = null;
         $scope.edit.edit();
     }
 
@@ -96,7 +83,6 @@ angular.module('wsaa.surveyQuestions', [
     });
 
     $scope.checkRole = authz(current, $scope.survey);
-    $scope.Func = Func;
 }])
 
 
@@ -121,6 +107,108 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
+.factory('Structure', function() {
+    return function(entity) {
+        var stack = [];
+        while (entity) {
+            stack.push(entity);
+            if (entity.parent)
+                entity = entity.parent;
+            else if (entity.hierarchy)
+                entity = entity.hierarchy;
+            else if (entity.survey)
+                entity = entity.survey;
+            else
+                entity = null;
+        }
+        stack.reverse();
+
+        var hstack = [];
+        var survey = null;
+        var hierarchy = null;
+        var measure = null;
+        // Survey
+        if (stack.length > 0) {
+            survey = stack[0];
+            hstack.push({
+                path: 'survey',
+                title: 'Surveys',
+                label: 'S',
+                entity: survey,
+                level: 's'
+            });
+        }
+        // Hierarchy, or orphaned measure
+        if (stack.length > 1) {
+            if (stack[1].responseType) {
+                measure = stack[1];
+                hstack.push({
+                    path: 'measure',
+                    title: 'Measures',
+                    label: 'M',
+                    entity: measure,
+                    level: 'm'
+                });
+            } else {
+                hierarchy = stack[1];
+                hstack.push({
+                    path: 'hierarchy',
+                    title: 'Question Sets',
+                    label: 'Qs',
+                    entity: hierarchy,
+                    level: 'h'
+                });
+            }
+        }
+
+        var qnodes = [];
+        if (stack.length > 2) {
+            var qnodeMaxIndex = stack.length - 1;
+            if (stack[stack.length - 1].responseType) {
+                measure = stack[stack.length - 1];
+                qnodeMaxIndex = stack.length - 2;
+            } else {
+                measure = null;
+                qnodeMaxIndex = stack.length - 1;
+            }
+
+            var structure = hierarchy.structure;
+            // Qnodes and measures
+            for (var i = 2; i <= qnodeMaxIndex; i++) {
+                entity = stack[i];
+                var level = structure.levels[i - 2];
+                hstack.push({
+                    path: 'qnode',
+                    title: level.title,
+                    label: level.label,
+                    entity: entity,
+                    level: i - 2
+                });
+                qnodes.push(entity);
+            }
+
+            if (measure) {
+                hstack.push({
+                    path: 'measure',
+                    title: structure.measure.title,
+                    label: structure.measure.label,
+                    entity: measure,
+                    level: 'm'
+                });
+            }
+        }
+
+        return {
+            survey: survey,
+            hierarchy: hierarchy,
+            qnodes: qnodes,
+            measure: measure,
+            hstack: hstack
+        };
+    };
+})
+
+
 .directive('questionHeader', [function() {
     return {
         restrict: 'E',
@@ -129,189 +217,146 @@ angular.module('wsaa.surveyQuestions', [
         },
         replace: true,
         templateUrl: 'question_header.html',
-        controller: ['$scope', 'layout', function($scope, layout) {
+        controller: ['$scope', 'layout', 'Structure',
+                function($scope, layout, Structure) {
             $scope.layout = layout;
-
-            $scope.$watchGroup([
-                    'entity.survey', 'entity.function',
-                    'entity.process', 'entity.subprocess'],
-                function(vars) {
-                    var type;
-                    if (vars[3]) {
-                        type = 'measure';
-                    } else if (vars[2]) {
-                        type = 'subProcess';
-                    } else if (vars[1]) {
-                        type = 'process';
-                    } else if (vars[0]) {
-                        type = 'func';
-                    } else {
-                        type = 'survey';
-                    }
-
-                    var hstack = [];
-                    var entity = $scope.entity;
-                    switch (type) {
-                    case 'measure':
-                        hstack.push({
-                            type: 'measure',
-                            label: 'M',
-                            entity: entity
-                        });
-                        entity = entity.subprocess;
-                    case 'subProcess':
-                        hstack.push({
-                            type: 'subprocess',
-                            label: 'Sp',
-                            entity: entity
-                        });
-                        entity = entity.process;
-                    case 'process':
-                        hstack.push({
-                            type: 'process',
-                            label: 'P',
-                            entity: entity
-                        });
-                        entity = entity['function'];
-                    case 'func':
-                        hstack.push({
-                            type: 'function',
-                            label: 'F',
-                            entity: entity
-                        });
-                        entity = entity.survey;
-                    case 'survey':
-                        hstack.push({
-                            type: 'survey',
-                            label: 'S',
-                            entity: entity
-                        });
-                        $scope.survey = entity;
-                    }
-                    hstack.reverse();
-                    $scope.hstack = hstack;
+            $scope.$watch('entity', function(entity) {
+                $scope.structure = Structure(entity);
             });
         }]
     }
 }])
 
 
-.controller('FuncCtrl', [
-        '$scope', 'Func', 'routeData', 'Editor', 'questionAuthz', 'layout',
-        '$location', 'Notifications', 'Current', 'Survey', 'format', 'Process',
-        function($scope, Func, routeData, Editor, authz, layout,
-                 $location, Notifications, current, Survey, format, Process) {
+.controller('HierarchyCtrl', [
+        '$scope', 'Hierarchy', 'routeData', 'Editor', 'questionAuthz', 'layout',
+        '$location', 'Current', 'format', 'QuestionNode',
+        function($scope, Hierarchy, routeData, Editor, authz, layout,
+                 $location, current, format, QuestionNode) {
 
     $scope.layout = layout;
     $scope.survey = routeData.survey;
-    $scope.edit = Editor('func', $scope, {surveyId: $scope.survey.id});
-    if (routeData.func) {
+    $scope.edit = Editor('hierarchy', $scope, {surveyId: $scope.survey.id});
+    if (routeData.hierarchy) {
         // Editing old
-        $scope.func = routeData.func;
-        $scope.procs = routeData.procs;
+        $scope.hierarchy = routeData.hierarchy;
+        $scope.qnodes = routeData.qnodes;
     } else {
         // Creating new
-        $scope.func = new Func({
-            survey: $scope.survey
+        $scope.hierarchy = new Hierarchy({
+            survey: $scope.survey,
+            structure: {
+                measure: {
+                    title: 'Measures',
+                    label: 'M'
+                },
+                levels: [{
+                    title: 'Categories',
+                    label: 'C',
+                    hasMeasures: true
+                }]
+            }
         });
-        $scope.procs = null;
+        $scope.qnodes = null;
         $scope.edit.edit();
     }
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
-            '/function/{}?survey={}', model.id, $scope.survey.id));
+            '/hierarchy/{}?survey={}', model.id, $scope.survey.id));
     });
     $scope.$on('EditDeleted', function(event, model) {
         $location.url(format(
             '/survey/{}', $scope.survey.id));
     });
 
-    $scope.checkRole = authz(current, $scope.survey);
-    $scope.Process = Process;
-}])
-
-
-.controller('ProcessCtrl', [
-        '$scope', 'Process', 'routeData', 'Editor', 'questionAuthz',
-        '$location', 'Notifications', 'Current', 'Survey', 'format',
-        'SubProcess', 'layout',
-        function($scope, Process, routeData, Editor, authz,
-                 $location, Notifications, current, Survey, format,
-                 SubProcess, layout) {
-
-    $scope.layout = layout;
-    $scope.survey = routeData.survey;
-    $scope.func = routeData.func;
-    $scope.edit = Editor('process', $scope, {
-        functionId: $scope.func.id,
-        surveyId: $scope.survey.id
-    });
-    if (routeData.process) {
-        // Editing old
-        $scope.process = routeData.process;
-        $scope.subprocs = routeData.subprocs;
-    } else {
-        // Creating new
-        $scope.process = new Process({
-            'function': $scope.func
+    $scope.addLevel = function(model) {
+        var last = model.structure.levels[model.structure.levels.length - 1];
+        if (last.hasMeasures) {
+            last.hasMeasures = false;
+        }
+        model.structure.levels.push({
+            title: '',
+            label: '',
+            hasMeasures: true
         });
-        $scope.subprocs = null;
-        $scope.edit.edit();
-    }
+    };
 
-    $scope.$on('EditSaved', function(event, model) {
-        $location.url(format(
-            '/process/{}?survey={}', model.id, $scope.survey.id));
-    });
-    $scope.$on('EditDeleted', function(event, model) {
-        $location.url(format(
-            '/function/{}?survey={}', $scope.func.id, $scope.survey.id));
-    });
+    $scope.removeLevel = function(model, level) {
+        if (model.structure.levels.length == 1)
+            return;
+        var i = model.structure.levels.indexOf(level);
+        model.structure.levels.splice(i, 1);
+        if (model.structure.levels.length == 1)
+            model.structure.levels[0].hasMeasures = true;
+    };
 
     $scope.checkRole = authz(current, $scope.survey);
-    $scope.SubProcess = SubProcess;
+    $scope.QuestionNode = QuestionNode;
 }])
 
 
-.controller('SubProcessCtrl', [
-        '$scope', 'SubProcess', 'routeData', 'Editor', 'questionAuthz',
-        '$location', 'Notifications', 'Current', 'Survey', 'format', 'Measure',
-        'layout',
-        function($scope, SubProcess, routeData, Editor, authz,
-                 $location, Notifications, current, Survey, format, Measure,
-                 layout) {
+.controller('QuestionNodeCtrl', [
+        '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
+        '$location', 'Notifications', 'Current', 'format', 'Structure',
+        'Measure', 'layout',
+        function($scope, QuestionNode, routeData, Editor, authz,
+                 $location, Notifications, current, format, Structure,
+                 Measure, layout) {
+
+    // routeData.parent and routeData.hierarchy will only be defined when
+    // creating a new qnode.
 
     $scope.layout = layout;
-    $scope.survey = routeData.survey;
-    $scope.process = routeData.process;
-    $scope.edit = Editor('subprocess', $scope, {
-        processId: $scope.process.id,
-        surveyId: $scope.survey.id
-    });
-    if (routeData.subprocess) {
+    if (routeData.qnode) {
         // Editing old
-        $scope.subprocess = routeData.subprocess;
+        $scope.qnode = routeData.qnode;
+        $scope.children = routeData.children;
         $scope.measures = routeData.measures;
     } else {
         // Creating new
-        $scope.subprocess = new SubProcess({
-            process: $scope.process
+        $scope.qnode = new QuestionNode({
+            'parent': routeData.parent,
+            'hierarchy': routeData.hierarchy
         });
+        $scope.children = null;
         $scope.measures = null;
-        $scope.edit.edit();
     }
+
+    $scope.$watch('qnode', function(qnode) {
+        $scope.structure = Structure(qnode);
+        $scope.survey = $scope.structure.survey;
+        $scope.edit = Editor('qnode', $scope, {
+            parentId: routeData.parent && routeData.parent.id,
+            hierarchyId: routeData.hierarchy && routeData.hierarchy.id,
+            surveyId: $scope.survey.id
+        });
+        if (!qnode.id)
+            $scope.edit.edit();
+
+        var levels = $scope.structure.hierarchy.structure.levels;
+        $scope.currentLevel = levels[$scope.structure.qnodes.length - 1];
+        $scope.nextLevel = levels[$scope.structure.qnodes.length];
+    });
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
-            '/subprocess/{}?survey={}', model.id, $scope.survey.id));
+            '/qnode/{}?survey={}', model.id, $scope.survey.id));
     });
     $scope.$on('EditDeleted', function(event, model) {
-        $location.url(format(
-            '/process/{}?survey={}', $scope.process.id, $scope.survey.id));
+        if (model.parent) {
+            $location.url(format(
+                '/qnode/{}?survey={}', model.parent.id,
+                $scope.survey.id));
+        } else {
+            $location.url(format(
+                '/hierarchy/{}?survey={}', model.hierarchy.id,
+                $scope.survey.id));
+        }
     });
 
     $scope.checkRole = authz(current, $scope.survey);
+    $scope.QuestionNode = QuestionNode;
     $scope.Measure = Measure;
 }])
 
@@ -319,28 +364,44 @@ angular.module('wsaa.surveyQuestions', [
 .controller('MeasureCtrl', [
         '$scope', 'Measure', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'Survey', 'format', 'layout',
+        'Structure',
         function($scope, Measure, routeData, Editor, authz,
-                 $location, Notifications, current, Survey, format, layout) {
+                 $location, Notifications, current, Survey, format, layout,
+                 Structure) {
 
     $scope.layout = layout;
-    $scope.survey = routeData.survey;
-    $scope.subprocess = routeData.subprocess;
-    $scope.edit = Editor('measure', $scope, {
-        subprocessId: $scope.subprocess.id,
-        surveyId: $scope.survey.id
-    });
+    $scope.parent = routeData.parent;
     if (routeData.measure) {
         // Editing old
         $scope.measure = routeData.measure;
     } else {
         // Creating new
         $scope.measure = new Measure({
-            subprocess: $scope.subprocess,
+            parent: routeData.parent,
+            survey: routeData.survey,
             weight: 100,
             responseType: 'standard_1'
         });
-        $scope.edit.edit();
     }
+
+    $scope.$watch('measure', function(measure) {
+        $scope.structure = Structure(measure);
+        $scope.survey = $scope.structure.survey;
+        $scope.edit = Editor('measure', $scope, {
+            parentId: $scope.parent && $scope.parent.id,
+            surveyId: $scope.survey.id
+        });
+        if (!measure.id)
+            $scope.edit.edit();
+
+        if (measure.parents) {
+            var parents = [];
+            for (var i = 0; i < measure.parents.length; i++) {
+                parents.push(Structure(measure.parents[i]));
+            }
+            $scope.parents = parents;
+        }
+    });
 
     $scope.responseTypes = [
         {
@@ -356,61 +417,63 @@ angular.module('wsaa.surveyQuestions', [
     ];
 
     $scope.$on('EditSaved', function(event, model) {
-        $location.url(format(
-            '/measure/{}?survey={}', model.id, $scope.survey.id));
+        if (model.parent) {
+            $location.url(format(
+                '/measure/{}?survey={}&parent={}', model.id, $scope.survey.id,
+                $scope.parent.id));
+        } else {
+            $location.url(format(
+                '/measure/{}?survey={}', model.id, $scope.survey.id));
+        }
     });
     $scope.$on('EditDeleted', function(event, model) {
-        $location.url(format(
-            '/subprocess/{}?survey={}', $scope.subprocess.id, $scope.survey.id));
+        if (model.parent) {
+            $location.url(format(
+                '/qnode/{}?survey={}', model.parent.id, $scope.survey.id));
+        } else {
+            $location.url(format(
+                '/measures?survey={}', $scope.survey.id));
+        }
     });
 
     $scope.checkRole = authz(current, $scope.survey);
 }])
 
 
-.controller('CategoryCtrl', ['$scope', '$routeParams', 'routeData', 'format', 'hotkeys', 'Func', '$location', '$timeout',
-        function($scope, $routeParams, routeData, format, hotkeys, Func, $location, $timeout) {
+.controller('MeasureListCtrl', ['$scope', 'questionAuthz', 'Measure', 'Current',
+        'layout', 'routeData',
+        function($scope, authz, Measure, current, layout, routeData) {
 
-    $scope.functions = routeData.functions;
-    
-    $scope.addFunction = function() {
-      var functionTitle = document.getElementById("funcTitle").value;
-      if (functionTitle.length > 0) {
-        Func.create({
-          title: functionTitle,
-          description: functionTitle,
-          seq: 1
+    $scope.layout = layout;
+    $scope.checkRole = authz(current, null);
+    $scope.survey = routeData.survey;
+
+    $scope.search = {
+        term: "",
+        surveyId: $scope.survey && $scope.survey.id,
+        orphan: null,
+        page: 0,
+        pageSize: 10
+    };
+    $scope.$watch('search', function(search) {
+        Measure.query(search).$promise.then(function(measures) {
+            $scope.measures = measures;
         });
-        document.getElementById("funcTitle").value = '';
-      }
-    };
+    }, true);
 
-    $scope.editFunction = function(func) {
-      func.editing = true;
+    $scope.cycleOrphan = function() {
+        switch ($scope.search.orphan) {
+            case true:
+                $scope.search.orphan = null;
+                break;
+            case null:
+                $scope.search.orphan = false;
+                break;
+            case false:
+                $scope.search.orphan = true;
+                break;
+        }
     };
-
-    $scope.cancelEditingFunction = function(func) {
-      func.editing = false;
-    };
-
-    $scope.saveFunction = function(func) {
-      func.save();
-    };
-
-    $scope.removeFunction = function(func) {
-      if (window.confirm('Are you sure to remove this function?')) {
-        func.destroy();
-      }
-    };
-
-    $scope.saveGroups = function() {
-      for (var i = $scope.groups.length - 1; i >= 0; i--) {
-        var group = $scope.groups[i];
-        group.sortOrder = i + 1;
-        group.save();
-      }
-    };
-
 }])
 
 

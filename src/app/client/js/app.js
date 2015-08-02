@@ -153,7 +153,8 @@ angular.module('wsaa.aquamark',
                 templateUrl : 'organisation.html',
                 controller : 'OrganisationCtrl',
                 resolve: {
-                    org: ['Organisation', '$route', function(Organisation, $route) {
+                    org: ['Organisation', '$route',
+                            function(Organisation, $route) {
                         return Organisation.get($route.current.params).$promise;
                     }]
                 }
@@ -177,17 +178,18 @@ angular.module('wsaa.aquamark',
                             id: $route.current.params.survey
                         }).$promise;
                     }],
-                    funcs: ['Func', 'survey', function(Func, survey) {
-                        return Func.query({
+                    hierarchies: ['Hierarchy', 'survey',
+                            function(Hierarchy, survey) {
+                        return Hierarchy.query({
                             surveyId: survey.id
                         }).$promise;
                     }]
                 })}
             })
 
-            .when('/function/new', {
-                templateUrl : 'function.html',
-                controller : 'FuncCtrl',
+            .when('/hierarchy/new', {
+                templateUrl : 'hierarchy.html',
+                controller : 'HierarchyCtrl',
                 resolve: {routeData: chain({
                     survey: ['Survey', '$route', function(Survey, $route) {
                         return Survey.get({
@@ -196,173 +198,137 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/function/:func', {
-                templateUrl : 'function.html',
-                controller : 'FuncCtrl',
+            .when('/hierarchy/:hierarchy', {
+                templateUrl : 'hierarchy.html',
+                controller : 'HierarchyCtrl',
                 resolve: {routeData: chain({
-                    func: ['Func', '$route', function(Func, $route) {
-                        return Func.get({
-                            id: $route.current.params.func,
+                    hierarchy: ['Hierarchy', '$route',
+                            function(Hierarchy, $route) {
+                        return Hierarchy.get({
+                            id: $route.current.params.hierarchy,
                             surveyId: $route.current.params.survey
                         }).$promise;
                     }],
-                    survey: ['func', function(func) {
-                        return func.survey;
+                    survey: ['hierarchy', function(hierarchy) {
+                        return hierarchy.survey;
                     }],
-                    procs: ['Process', 'func', 'survey',
-                            function(Process, func, survey) {
-                        return Process.query({
-                            functionId: func.id,
+                    qnodes: ['QuestionNode', 'hierarchy', 'survey',
+                            function(QuestionNode, hierarchy, survey) {
+                        return QuestionNode.query({
+                            hierarchyId: hierarchy.id,
                             surveyId: survey.id
                         }).$promise;
                     }]
                 })}
             })
 
-            .when('/process/new', {
-                templateUrl : 'process.html',
-                controller : 'ProcessCtrl',
+            .when('/qnode/new', {
+                templateUrl : 'question_node.html',
+                controller : 'QuestionNodeCtrl',
                 resolve: {routeData: chain({
-                    func: ['Func', '$route', function(Func, $route) {
-                        return Func.get({
-                            id: $route.current.params.func,
+                    hierarchy: ['Hierarchy', '$route',
+                            function(Hierarchy, $route) {
+                        var hierarchyId = $route.current.params.hierarchy;
+                        if (!hierarchyId)
+                            return null
+                        return Hierarchy.get({
+                            id: hierarchyId,
                             surveyId: $route.current.params.survey
                         }).$promise;
                     }],
-                    survey: ['func', function(func) {
-                        return func.survey;
-                    }]
-                })}
-            })
-            .when('/process/:process', {
-                templateUrl : 'process.html',
-                controller : 'ProcessCtrl',
-                resolve: {routeData: chain({
-                    process: ['Process', '$route', function(Process, $route) {
-                        return Process.get({
-                            id: $route.current.params.process,
+                    parent: ['QuestionNode', '$route',
+                            function(QuestionNode, $route) {
+                        var parentId = $route.current.params.parent;
+                        if (!parentId)
+                            return null;
+                        return QuestionNode.get({
+                            id: parentId,
                             surveyId: $route.current.params.survey
-                        }).$promise;
-                    }],
-                    func: ['process', function(process) {
-                        return process['function'];
-                    }],
-                    survey: ['process', function(process) {
-                        return process['function'].survey;
-                    }],
-                    subprocs: ['SubProcess', 'process', 'survey',
-                            function(SubProcess, process, survey) {
-                        return SubProcess.query({
-                            processId: process.id,
-                            surveyId: survey.id
                         }).$promise;
                     }]
                 })}
             })
-
-            .when('/subprocess/new', {
-                templateUrl : 'subprocess.html',
-                controller : 'SubProcessCtrl',
+            .when('/qnode/:qnode', {
+                templateUrl : 'question_node.html',
+                controller : 'QuestionNodeCtrl',
                 resolve: {routeData: chain({
-                    process: ['Process', '$route', function(Process, $route) {
-                        return Process.get({
-                            id: $route.current.params.process,
+                    qnode: ['QuestionNode', '$route',
+                            function(QuestionNode, $route) {
+                        return QuestionNode.get({
+                            id: $route.current.params.qnode,
                             surveyId: $route.current.params.survey
                         }).$promise;
                     }],
-                    survey: ['process', function(process) {
-                        return process['function'].survey;
-                    }]
-                })}
-            })
-            .when('/subprocess/:subprocess', {
-                templateUrl : 'subprocess.html',
-                controller : 'SubProcessCtrl',
-                resolve: {routeData: chain({
-                    subprocess: ['SubProcess', '$route',
-                            function(SubProcess, $route) {
-                        return SubProcess.get({
-                            id: $route.current.params.subprocess,
+                    children: ['QuestionNode', '$route',
+                            function(QuestionNode, $route) {
+                        return QuestionNode.query({
+                            parentId: $route.current.params.qnode,
                             surveyId: $route.current.params.survey
                         }).$promise;
                     }],
-                    process: ['subprocess', function(subprocess) {
-                        return subprocess.process;
-                    }],
-                    survey: ['process', function(process) {
-                        return process['function'].survey;
-                    }],
-                    measures: ['Measure', 'subprocess', 'survey',
-                            function(Measure, subprocess, survey) {
+                    measures: ['Measure', '$route',
+                            function(Measure, $route) {
                         return Measure.query({
-                            subprocessId: subprocess.id,
-                            surveyId: survey.id
+                            qnodeId: $route.current.params.qnode,
+                            surveyId: $route.current.params.survey
                         }).$promise;
                     }]
                 })}
             })
 
+            .when('/measures', {
+                templateUrl : 'measure_list.html',
+                controller : 'MeasureListCtrl',
+                resolve: {routeData: chain({
+                    survey: ['Survey', '$route', function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
+                    }],
+                })}
+            })
             .when('/measure/new', {
                 templateUrl : 'measure.html',
                 controller : 'MeasureCtrl',
                 resolve: {routeData: chain({
-                    subprocess: ['SubProcess', '$route',
-                            function(SubProcess, $route) {
-                        return SubProcess.get({
-                            id: $route.current.params.subprocess,
+                    parent: ['QuestionNode', '$route',
+                            function(QuestionNode, $route) {
+                        if (!$route.current.params.parent)
+                            return null;
+                        return QuestionNode.get({
+                            id: $route.current.params.parent,
                             surveyId: $route.current.params.survey
                         }).$promise;
                     }],
-                    survey: ['subprocess', function(subprocess) {
-                        return subprocess.process['function'].survey;
-                    }]
+                    survey: ['Survey', '$route', function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
+                    }],
                 })}
             })
             .when('/measure/:measure', {
                 templateUrl : 'measure.html',
                 controller : 'MeasureCtrl',
                 resolve: {routeData: chain({
-                    measure: ['Measure', '$route', function(Measure, $route) {
-                        return Measure.get({
-                            id: $route.current.params.measure,
+                    parent: ['QuestionNode', '$route',
+                            function(QuestionNode, $route) {
+                        if (!$route.current.params.parent)
+                            return null;
+                        return QuestionNode.get({
+                            id: $route.current.params.parent,
                             surveyId: $route.current.params.survey
                         }).$promise;
                     }],
-                    subprocess: ['measure', function(measure) {
-                        return measure.subprocess;
-                    }],
-                    survey: ['subprocess', function(subprocess) {
-                        return subprocess.process['function'].survey;
+                    measure: ['Measure', '$route', function(Measure, $route) {
+                        return Measure.get({
+                            id: $route.current.params.measure,
+                            surveyId: $route.current.params.survey,
+                            hierarchyId: $route.current.params.hierarchy,
+                            parentId: $route.current.params.parent
+                        }).$promise;
                     }]
                 })}
-            })
-
-            .when('/survey/:survey/:fn/:proc/:subProc/:measure', {
-                templateUrl : 'survey-measure.html',
-                controller : 'MeasureCtrl',
-                resolve: {routeData: chain({
-                    measure: ['MeasureOld', '$route', function(MeasureOld, $route) {
-                        return MeasureOld.get($route.current.params).$promise;
-                    }],
-                    schema: ['measure', 'Schema', function(measure, Schema) {
-                        return Schema.get({name: measure.responseType}).$promise;
-                    }]
-                })}
-            })
-
-            .when('/category', {
-                templateUrl : 'category.html',
-                controller : 'CategoryCtrl',
-                resolve: {routeData: chain({
-                    functions: ['Func', '$route', function(Func, $route) {
-                        return Func.query({}).$promise;
-                    }]
-                })}
-            })
-            .when('/category/new', {
-                templateUrl : 'category.html',
-                controller : 'CategoryCtrl',
-                resolve: {routeData: chain({})}
             })
 
             .when('/legal', {
@@ -447,14 +413,16 @@ angular.module('wsaa.aquamark',
 }])
 
 
-.run(['$rootScope', '$window', '$location', 'Notifications',
-        function($rootScope, $window, $location, Notifications) {
-    $rootScope.$on('$routeChangeError', function(event, current, previous, rejection) {
+.run(['$rootScope', '$window', '$location', 'Notifications', 'log',
+        function($rootScope, $window, $location, Notifications, log) {
+    $rootScope.$on('$routeChangeError',
+            function(event, current, previous, rejection) {
         var error;
         if (rejection && rejection.statusText)
             error = rejection.statusText;
         else
             error = "Object not found";
+        log.error("Failed to navigate to {}", $location.url());
         Notifications.set('route', 'error', error, 10000);
         if (previous) {
             $window.history.back();

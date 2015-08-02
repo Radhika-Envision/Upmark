@@ -11,26 +11,29 @@ import handlers
 import model
 import logging
 
-from utils import to_dict, denormalise, is_current_survey, reorder
+import crud
+from utils import falsy, reorder, ToSon, truthy, updater
 
 
-class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
+log = logging.getLogger('app.crud.measure')
+
+
+class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
+
     @tornado.web.authenticated
     def get(self, measure_id):
-        '''
-        Get a single measure.
-        '''
-        if measure_id == "":
+        '''Get a single measure.'''
+
+        if measure_id == '':
             self.query()
             return
 
-        survey_id = self.get_survey_id()
-        is_current = is_current_survey(survey_id)
+        parent_id = self.get_argument('parentId', '')
 
         with model.session_scope() as session:
             try:
                 measure = session.query(model.Measure)\
-                    .filter_by(id=measure_id, survey_id=survey_id).one()
+                    .get((measure_id, self.survey_id))
                 if measure is None:
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError,
@@ -38,54 +41,119 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
                     ValueError):
                 raise handlers.MissingDocError("No such measure")
 
-            subprocess = measure.subprocess
-            process = subprocess.process
-            function = process.function
-            survey = function.survey
+            to_son = ToSon(include=[
+                # Fields to match from any visited object
+                r'/id$',
+                r'/title$',
+                r'/seq$',
+                # Fields to match from only the root object
+                r'^/intent$',
+                r'^/inputs$',
+                r'^/scenario$',
+                r'^/questions$',
+                r'^/weight$',
+                r'^/response_type$',
+                # Descend into nested objects
+                r'/survey$',
+                r'/parents$',
+                r'/parents/[0-9]+$',
+                r'/parent$',
+                r'/hierarchy$',
+                r'/hierarchy/survey$',
+                r'/hierarchy/structure.*$'
+            ])
+            son = to_son(measure)
 
-            survey_json = to_dict(survey, include={'id', 'title'})
+            if parent_id != '':
+                for i, link in enumerate(measure.qnode_measures):
+                    if str(link.qnode_id) == parent_id:
+                        son['parent'] = son['parents'][i]
+                        son['seq'] = link.seq
+                        break
+                if 'parent' not in son:
+                    raise handlers.MissingDocError(
+                        "That question node is not a parent of this measure")
 
-            function_json = to_dict(function, include={'id', 'title', 'seq'})
-            function_json['survey'] = survey_json
-
-            process_json = to_dict(process, include={'id', 'title', 'seq'})
-            process_json['function'] = function_json
-
-            subprocess_json = to_dict(subprocess, include={'id', 'title', 'seq'})
-            subprocess_json['process'] = process_json
-
-            son = to_dict(measure, include={
-                'id', 'title', 'seq',
-                'intent', 'inputs', 'scenario', 'questions',
-                'weight', 'response_type'})
-            son['subprocess'] = subprocess_json
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
 
-    @tornado.web.authenticated
     def query(self):
-        '''
-        Get a list.
-        '''
+        '''Get a list.'''
+        qnode_id = self.get_argument('qnodeId', '')
+        if qnode_id != '':
+            self.query_children_of(qnode_id)
+            return;
 
-        survey_id = self.get_survey_id()
-        is_current = is_current_survey(survey_id)
+        orphan = self.get_argument('orphan', '')
+        term = self.get_argument('term', '')
 
-        subprocess_id = self.get_argument("subprocessId", "")
-        if subprocess_id == None:
-            raise handlers.MethodError("Subprocess ID is required.")
-
-        sons = []
         with model.session_scope() as session:
-            query = session.query(model.Measure)\
-                .filter_by(subprocess_id=subprocess_id, survey_id=survey_id)\
-                .order_by(model.Measure.seq)
-            query = self.paginate(query)
+            if orphan != '' and truthy(orphan):
+                # Orphans only
+                query = session.query(model.Measure)\
+                    .outerjoin(model.QnodeMeasure)\
+                    .filter(model.Measure.survey_id == self.survey_id)\
+                    .filter(model.QnodeMeasure.qnode_id == None)
+            elif orphan != '' and falsy(orphan):
+                # Non-orphans only
+                query = session.query(model.Measure)\
+                    .join(model.QnodeMeasure)\
+                    .filter(model.Measure.survey_id == self.survey_id)
+            else:
+                # All measures
+                query = session.query(model.Measure)\
+                    .filter_by(survey_id=self.survey_id)
 
-            for ob in query.all():
-                son = to_dict(ob, include={'id', 'title', 'seq'})
-                sons.append(son)
+            if term != '':
+                query = query.filter(
+                    model.Measure.title.ilike(r'%{}%'.format(term)))
+
+            measures = query.all()
+
+            to_son = ToSon(include=[
+                # Fields to match from any visited object
+                r'/id$',
+                r'/title$',
+                r'/intent$',
+                r'/seq$',
+                # Descend into nested objects
+                r'/[0-9]+$',
+                r'/survey$',
+            ])
+            sons = to_son(measures)
+
+            for mson, measure in zip(sons, measures):
+                mson['orphan'] = len(measure.parents) == 0
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(sons))
+        self.finish()
+
+    def query_children_of(self, qnode_id):
+        with model.session_scope() as session:
+            # Only children of a certain qnode
+            qnode = session.query(model.QuestionNode)\
+                .get((qnode_id, self.survey_id))
+            measures = qnode.measures
+
+            to_son = ToSon(include=[
+                # Fields to match from any visited object
+                r'/id$',
+                r'/title$',
+                r'/seq$',
+                # Descend into nested objects
+                r'/[0-9]+$',
+                r'/survey$',
+            ])
+            sons = to_son(measures)
+
+            # Add seq field to measures, because it's not available on the
+            # measure objects themselves: the ordinal lives in a separate
+            # association table.
+            measure_seq = qnode.measure_seq
+            for mson, seq in zip(sons, measure_seq):
+                mson['seq'] = seq
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
@@ -93,82 +161,95 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
 
     @handlers.authz('author')
     def post(self, measure_id):
-        '''
-        Create new.
-        '''
+        '''Create new.'''
         if measure_id != '':
-            raise handlers.MethodError("Can't use POST for existing measure.")
+            raise handlers.MethodError(
+                "Can't specify ID when creating a new measure.")
 
-        survey_id = self.get_survey_id()
+        self.check_editable()
 
-        subprocess_id = self.get_argument('subprocessId', None)
-        if subprocess_id == None:
-            raise handlers.MethodError("subprocessId is required")
-
-        son = json_decode(self.request.body)
-        son = denormalise(son)
+        parent_ids = [p for p in self.get_arguments('parentId')
+                      if p != '']
 
         try:
             with model.session_scope() as session:
-                # This is OK because POST is always for the current survey
-                subprocess = session.query(model.Subprocess)\
-                    .get((subprocess_id, survey_id))
-                measure = model.Measure()
-                self._update(measure, son)
-                measure.subprocess_id = subprocess_id
-                measure.survey_id = survey_id
-                subprocess.measures.append(measure)
-                subprocess.measures.reorder()
+                measure = model.Measure(survey_id=self.survey_id)
+                session.add(measure)
+                self._update(measure, self.request_son)
                 session.flush()
-                session.expunge(measure)
+
+                for parent_id in parent_ids:
+                    qnode = session.query(model.QuestionNode)\
+                        .get((parent_id, self.survey_id))
+                    if qnode is None:
+                        raise handlers.ModelError("No such question node")
+                    qnode.measures.append(measure)
+                    qnode.qnode_measures.reorder()
+                measure_id = str(measure.id)
+                log.info("Created measure %s", measure_id)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.get(measure.id)
+        self.get(measure_id)
 
     @handlers.authz('author')
     def delete(self, measure_id):
-        '''
-        Delete an existing measure.
-        '''
+        '''Delete an existing measure.'''
         if measure_id == '':
             raise handlers.MethodError("Measure ID required")
-        survey_id = self.get_survey_id()
+
+        parent_ids = [p for p in self.get_arguments('parentId')
+                      if p != '']
+
+        self.check_editable()
+
         try:
             with model.session_scope() as session:
                 measure = session.query(model.Measure)\
-                    .get((measure_id, survey_id))
+                    .get((measure_id, self.survey_id))
                 if measure is None:
-                    raise ValueError("No such object")
-                measure.subprocess.measures.remove(measure)
-                session.delete(measure)
+                    raise handlers.MissingDocError("No such measure")
+
+                if len(parent_ids) > 0:
+                    # Just unlink from qnodes
+                    for parent_id in parent_ids:
+                        qnode = session.query(model.QuestionNode)\
+                            .get((parent_id, self.survey_id))
+                        if qnode is None:
+                            raise handlers.MissingDocError(
+                                "No such question node")
+                        if measure not in qnode.measures:
+                            raise handlers.ModelError(
+                                "Measure does not belong to that question node")
+                        qnode.measures.remove(measure)
+                        qnode.qnode_measures.reorder()
+                else:
+                    if len(measure.parents) > 0:
+                        raise handlers.ModelError("Measure is in use")
+                    session.delete(measure)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Measure is in use")
-        except (sqlalchemy.exc.StatementError, ValueError):
+        except sqlalchemy.exc.StatementError:
             raise handlers.MissingDocError("No such measure")
 
         self.finish()
 
     @handlers.authz('author')
     def put(self, measure_id):
-        '''
-        Update existing.
-        '''
+        '''Update existing.'''
+
         if measure_id == '':
             self.ordering()
             return
 
-        son = json_decode(self.request.body)
-        son = denormalise(son)
+        self.check_editable()
 
-        survey_id = self.get_survey_id()
         try:
             with model.session_scope() as session:
                 measure = session.query(model.Measure)\
-                    .get((measure_id, survey_id))
+                    .get((measure_id, self.survey_id))
                 if measure is None:
                     raise ValueError("No such object")
-                self._update(measure, son)
-                session.add(measure)
+                self._update(measure, self.request_son)
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such measure")
         except sqlalchemy.exc.IntegrityError as e:
@@ -176,51 +257,35 @@ class MeasureHandler(handlers.Paginate, handlers.BaseHandler):
         self.get(measure_id)
 
     def ordering(self):
-        '''
-        Change the order that would be returned by a query.
-        '''
-        survey_id = self.get_survey_id()
-        if not is_current_survey(survey_id):
-            raise handlers.MethodError("This surveyId is not current one.")
+        '''Change the order that would be returned by a query.'''
 
-        subprocess_id = self.get_argument("subprocessId", "")
-        if subprocess_id == None:
-            raise handlers.MethodError("Subprocess ID is required.")
+        self.check_editable()
 
-        son = json_decode(self.request.body)
+        qnode_id = self.get_argument('qnodeId', '')
+        if qnode_id == None:
+            raise handlers.MethodError("Question node ID is required.")
+
+        list
         try:
             with model.session_scope() as session:
-                subprocess = session.query(model.Subprocess)\
-                    .get((subprocess_id, survey_id))
-                reorder(subprocess.measures, son)
+                qnode = session.query(model.QuestionNode)\
+                    .get((qnode_id, self.survey_id))
+                reorder(qnode.qnode_measures, self.request_son)
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
 
-        self.query()
+        self.get()
 
     def _update(self, measure, son):
         '''
         Apply user-provided data to the saved model.
         '''
-        if son.get('title', '') != '':
-            measure.title = son['title']
-        if son.get('weight', '') != '':
-            measure.weight = son['weight']
-        if son.get('intent', '') != '':
-            measure.intent = son['intent']
-        if son.get('inputs', '') != '':
-            measure.inputs = son['inputs']
-        if son.get('scenario', '') != '':
-            measure.scenario = son['scenario']
-        if son.get('questions', '') != '':
-            measure.questions = son['questions']
-        if son.get('response_type', '') != '':
-            measure.response_type = son['response_type']
-
-    def get_survey_id(self):
-        survey_id = self.get_argument("surveyId", "")
-        if survey_id == '':
-            raise handlers.MethodError("Survey ID is required.")
-
-        return survey_id
+        update = updater(measure)
+        update('title', son)
+        update('weight', son)
+        update('intent', son)
+        update('inputs', son)
+        update('scenario', son)
+        update('questions', son)
+        update('response_type', son)
