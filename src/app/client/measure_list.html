@@ -6,9 +6,14 @@
                     ng-if="checkRole('measure_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
         </div>
-        <h2>
-            Measures
-        </h2>
+        <div class="stacked-header">
+            <h2 label="S">
+                <a ng-href="#/survey/{{survey.id}}">{{survey.title}}</a>
+            </h2>
+            <h2 label="M">
+                Measures
+            </h2>
+        </div>
     </div>
 </div>
 
@@ -28,11 +33,18 @@
     </search-box>
 
   <table class="table table-hover">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Intent</th>
+      </tr>
+    </thead>
     <tbody>
       <tr ng-repeat="measure in measures"
             ng-class="{strike: measure.orphan}"
             any-href='/measure/{{measure.id}}?survey={{survey.id}}'">
         <td>{{measure.title}}</td>
+        <td class="preview-text">{{measure.intent}}</td>
       </tr>
     </tbody>
   </table>

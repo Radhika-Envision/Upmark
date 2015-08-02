@@ -144,7 +144,7 @@ angular.module('wsaa.surveyQuestions', [
                 measure = stack[1];
                 hstack.push({
                     path: 'measure',
-                    title: 'Ungrouped Measures',
+                    title: 'Measures',
                     label: 'M',
                     entity: measure,
                     level: 'm'
@@ -378,6 +378,7 @@ angular.module('wsaa.surveyQuestions', [
         // Creating new
         $scope.measure = new Measure({
             parent: routeData.parent,
+            survey: routeData.survey,
             weight: 100,
             responseType: 'standard_1'
         });
@@ -450,7 +451,7 @@ angular.module('wsaa.surveyQuestions', [
     $scope.search = {
         term: "",
         surveyId: $scope.survey && $scope.survey.id,
-        orphan: true,
+        orphan: null,
         page: 0,
         pageSize: 10
     };

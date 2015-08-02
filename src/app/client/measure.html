@@ -99,10 +99,10 @@
 </div>
 
 <div class="measure" ng-if="!edit.model && parents">
-<div class="container">
+<div class="container text-muted">
     <p ng-if="parents.length">
         Measures are shared between question sets.
-        Respondents can use the following paths to reach this measure:
+        Respondents can use the following category paths to reach this measure:
     </p>
     <ul ng-if="parents.length">
         <li ng-repeat="parent in parents">
@@ -117,6 +117,12 @@
             </a>
         </li>
     </ul>
+    <p ng-if="parent">
+        This measure can be
+        <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}">
+            viewed without a question set</a>,
+        but it can not be responded to like that.
+    </p>
     <p ng-if="!parents.length">
         This measure is an orphan: it belongs to no categories.
     </p>

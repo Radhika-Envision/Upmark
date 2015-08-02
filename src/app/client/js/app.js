@@ -293,9 +293,16 @@ angular.module('wsaa.aquamark',
                 resolve: {routeData: chain({
                     parent: ['QuestionNode', '$route',
                             function(QuestionNode, $route) {
+                        if (!$route.current.params.parent)
+                            return null;
                         return QuestionNode.get({
                             id: $route.current.params.parent,
                             surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    survey: ['Survey', '$route', function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey
                         }).$promise;
                     }],
                 })}

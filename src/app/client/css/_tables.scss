@@ -17,6 +17,12 @@
             width: 1%;
             white-space: nowrap;
         }
+        &.preview-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 0;
+        }
     }
     > tbody > tr.form-row > td {
         padding: 6px;

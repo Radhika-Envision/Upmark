@@ -115,6 +115,7 @@ class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 # Fields to match from any visited object
                 r'/id$',
                 r'/title$',
+                r'/intent$',
                 r'/seq$',
                 # Descend into nested objects
                 r'/[0-9]+$',
