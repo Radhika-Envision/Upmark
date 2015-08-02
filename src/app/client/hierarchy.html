@@ -65,51 +65,71 @@
                 </tr>
             </thead>
             <tbody>
-                <tr ng-repeat="level in edit.model.structure" class="form-row">
+                <tr ng-repeat="level in edit.model.structure.levels"
+                        class="form-row">
                     <td class="form-group" show-errors>
                         <label for="ltitle{{$index}}" class="sr-only">
                             Name</label>
                         <input type="text" class="form-control"
-                            id="ltitle{{$index}}" name="ltitle"
+                            id="ltitle{{$index}}" name="ltitle{{$index}}"
                             ng-model="level.title" required />
                     </td>
                     <td class="shrink form-group" show-errors>
-                        <label for="label{{$index}}" class="sr-only">
+                        <label for="llabel{{$index}}" class="sr-only">
                             Short label</label>
                         <input type="text" class="form-control"
-                            id="label{{$index}}" name="label"
-                            ng-model="level.label" required />
+                            id="llabel{{$index}}" name="llabel{{$index}}"
+                            ng-model="level.label" required maxlength="2" />
                     </td>
                     <td class="shrink">
                         <div class="btn-group">
-                            <button title="Has measures as direct children"
-                                    class="btn btn-default"
-                                    ng-class="{active: level.hasMeasures}"
-                                    ng-click="level.hasMeasures = true">
-                                Yes
-                            </button>
                             <button title="Can not have measures as children"
                                     class="btn btn-default"
                                     ng-class="{active: !level.hasMeasures}"
                                     ng-click="level.hasMeasures = false">
                                 No
                             </button>
+                            <button title="Has measures as direct children"
+                                    class="btn btn-default"
+                                    ng-class="{active: level.hasMeasures}"
+                                    ng-click="level.hasMeasures = true">
+                                Yes
+                            </button>
                         </div>
                     </td>
                     <td class="shrink">
-                        <a class="btn btn-default btn-round" title="Remove"
-                                ng-click="removeLevel(edit.model, level)">
-                            <i class="fa fa-fw fa-trash-o"></i></a>
+                        <button class="btn btn-default btn-round" title="Remove"
+                                ng-click="removeLevel(edit.model, level)"
+                                ng-style="{visibility: $index < 1 ? 'hidden' : null}">
+                            <i class="fa fa-fw fa-trash-o"></i></button>
+                    </td>
+                </tr>
+                <tr class="form-row">
+                    <td class="form-group" show-errors>
+                        <label for="mtitle" class="sr-only">
+                            Name</label>
+                        <input type="text" class="form-control"
+                            id="mtitle" name="mtitle"
+                            ng-model="edit.model.structure.measure.title"
+                            required />
+                    </td>
+                    <td class="shrink form-group" show-errors>
+                        <label for="mlabel" class="sr-only">
+                            Short label</label>
+                        <input type="text" class="form-control"
+                            id="mlabel" name="mlabel"
+                            ng-model="edit.model.structure.measure.label"
+                            required maxlength="2" />
+                    </td>
+                    <td class="shrink text-muted">
+                        <span>Measure</span>
                     </td>
                 </tr>
             </tbody>
         </table>
-        <p ng-if="!edit.model.structure.length">
-            There are no levels yet. Add one using the
-            <i class="fa fa-fw fa-plus"></i> button above.</p>
-        <div ng-if="edit.model.structure.length" class="help-label">
+        <div class="help-label">
             <p>
-                <i class="fa fa-info"></i>
+                <i class="fa fa-info fa-2x fa-pull-left fa-fw fa-border"></i>
                 These levels define the category types in the survey. Users can
                 refer to categories by the name of the level. For example, if
                 there is a level called "Functions", a user might refer to a
@@ -134,7 +154,8 @@
 </div>
 
 <reorderable href="/qnode/{}?survey={{survey.id}}&hierarchy={{hierarchy.id}}"
-        model="qnodes" title="Categories" check-role="checkRole"
+        model="qnodes" check-role="checkRole"
+        title="{{hierarchy.structure.levels[0].title}}"
         params="{surveyId: survey.id, hierachyId: hierachy.id}"
         resource="Hierarchy" ng-if="!edit.model"></reorderable>
 

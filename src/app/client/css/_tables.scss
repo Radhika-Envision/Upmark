@@ -20,13 +20,12 @@
     }
     > tbody > tr.form-row > td {
         padding: 6px;
-        border-top: none;
-        width: auto;
 
-        &.shrink {
-            width: 1%;
-            white-space: nowrap;
+        > span {
+            display: block;
+            padding: 6px 12px;
         }
+
         .btn.btn-round {
             width: 34px;
             height: 34px;

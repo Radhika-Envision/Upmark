@@ -137,25 +137,37 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         update('title', son)
         update('description', son)
 
+        def check_level(level):
+            if len(level['title']) <= 0:
+                raise handlers.ModelError(
+                    "Level title is too short.")
+            if len(level['label']) <= 0:
+                raise handlers.ModelError(
+                    "Short label is too short.")
+            if len(level['label']) > 2:
+                raise handlers.ModelError(
+                    "Short label is too long.")
+
         if son.get('structure') != None:
-            structure = []
-            for l_son in son['structure']:
-                try:
+            try:
+                s_son = son['structure']
+                structure = {}
+                structure['measure'] = {
+                    'title': str(s_son['measure']['title']),
+                    'label': str(s_son['measure']['label'])
+                }
+                check_level(structure['measure'])
+
+                structure['levels'] = []
+                for l_son in s_son['levels']:
                     level = {
                         'title': str(l_son['title']),
                         'label': str(l_son['label']),
                         'has_measures': truthy(l_son['has_measures'])
                     }
-                except Exception:
-                    raise handlers.ModelError("Could not parse structure")
-                if len(level['title']) <= 0:
-                    raise handlers.ModelError(
-                        "Level title is too short.")
-                if len(level['label']) <= 0:
-                    raise handlers.ModelError(
-                        "Short label is too short.")
-                if len(level['label']) > 2:
-                    raise handlers.ModelError(
-                        "Short label is too long.")
-                structure.append(level)
+                    check_level(level)
+                    structure['levels'].append(level)
+            except Exception as e:
+                raise handlers.ModelError(
+                    "Could not parse structure: %s" % str(e))
             hierarchy.structure = structure

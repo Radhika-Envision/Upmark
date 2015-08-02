@@ -188,7 +188,17 @@ angular.module('wsaa.surveyQuestions', [
         // Creating new
         $scope.hierarchy = new Hierarchy({
             survey: $scope.survey,
-            structure: []
+            structure: {
+                measure: {
+                    title: 'Measures',
+                    label: 'M'
+                },
+                levels: [{
+                    title: 'Categories',
+                    label: 'C',
+                    hasMeasures: true
+                }]
+            }
         });
         $scope.qnodes = null;
         $scope.edit.edit();
@@ -204,16 +214,24 @@ angular.module('wsaa.surveyQuestions', [
     });
 
     $scope.addLevel = function(model) {
-        model.structure.push({
+        var last = model.structure.levels[model.structure.levels.length - 1];
+        if (last.hasMeasures) {
+            last.hasMeasures = false;
+        }
+        model.structure.levels.push({
             title: '',
             label: '',
-            hasMeasures: false
+            hasMeasures: true
         });
     };
 
     $scope.removeLevel = function(model, level) {
-        var i = model.structure.indexOf(level);
-        model.structure.splice(i, 1);
+        if (model.structure.levels.length == 1)
+            return;
+        var i = model.structure.levels.indexOf(level);
+        model.structure.levels.splice(i, 1);
+        if (model.structure.levels.length == 1)
+            model.structure.levels[0].hasMeasures = true;
     };
 
     $scope.checkRole = authz(current, $scope.survey);
