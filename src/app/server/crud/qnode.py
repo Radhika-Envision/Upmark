@@ -151,11 +151,17 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 if qnode is None:
                     raise ValueError("No such object")
 
+                hierarchy = None
+                parent = None
                 if qnode.hierarchy is not None:
-                    qnode.hierarchy.children.remove(qnode)
+                    hierarchy = qnode.hierarchy
                 if qnode.parent is not None:
-                    qnode.parent.children.remove(qnode)
+                    parent = qnode.parent
                 session.delete(qnode)
+                if hierarchy is not None:
+                    hierarchy.qnodes.reorder()
+                if parent is not None:
+                    parent.children.reorder()
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Question node is in use")
         except (sqlalchemy.exc.StatementError, ValueError):
