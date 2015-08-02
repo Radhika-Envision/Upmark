@@ -107,64 +107,106 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
+.factory('Structure', function() {
+    return function(entity) {
+        var stack = [];
+        while (entity) {
+            stack.push(entity);
+            if (entity.parent)
+                entity = entity.parent;
+            else if (entity.hierarchy)
+                entity = entity.hierarchy;
+            else if (entity.survey)
+                entity = entity.survey;
+            else
+                entity = null;
+        }
+        stack.reverse();
+
+        var hstack = []
+        // Survey
+        if (stack.length > 0) {
+            hstack.push({
+                path: 'survey',
+                title: 'Surveys',
+                label: 'S',
+                entity: stack[0],
+                level: 0
+            });
+        }
+        // Hierarchy
+        if (stack.length > 1) {
+            hstack.push({
+                path: 'hierarchy',
+                title: 'Question Sets',
+                label: 'Qs',
+                entity: stack[1],
+                level: 1
+            });
+        }
+
+        var measure = null;
+        var qnodes = [];
+        if (stack.length > 2) {
+            var qnodeMaxIndex = stack.length - 1;
+            if (stack[stack.length - 1].responseType) {
+                measure = stack[stack.length - 1];
+                qnodeMaxIndex = stack.length - 2;
+            } else {
+                measure = null;
+                qnodeMaxIndex = stack.length - 1;
+            }
+
+            var structure = stack[1].structure;
+            // Qnodes and measures
+            for (var i = 2; i <= qnodeMaxIndex; i++) {
+                entity = stack[i];
+                var level = structure.levels[i - 2];
+                hstack.push({
+                    path: 'qnode',
+                    title: level.title,
+                    label: level.label,
+                    entity: entity,
+                    level: i
+                });
+                qnodes.push(entity);
+            }
+
+            if (measure) {
+                hstack.push({
+                    path: 'measure',
+                    title: structure.measure.title,
+                    label: structure.measure.label,
+                    entity: stack[stack.length - 1],
+                    level: stack.length - 1
+                });
+            }
+        }
+
+        return {
+            survey: stack[0] || null,
+            hierarchy: stack[1] || null,
+            qnodes: qnodes,
+            measure: measure,
+            hstack: hstack
+        };
+    };
+})
+
+
 .directive('questionHeader', [function() {
     return {
         restrict: 'E',
         scope: {
-            entity: '=',
-            type: '@'
+            entity: '='
         },
         replace: true,
         templateUrl: 'question_header.html',
-        controller: ['$scope', 'layout', function($scope, layout) {
+        controller: ['$scope', 'layout', 'Structure',
+                function($scope, layout, Structure) {
             $scope.layout = layout;
-
             $scope.$watch('entity', function(entity) {
-                var stack = [];
-                while (entity) {
-                    stack.push(entity);
-                    if (entity.parent)
-                        entity = entity.parent;
-                    else if (entity.hierarchy)
-                        entity = entity.hierarchy;
-                    else if (entity.survey)
-                        entity = entity.survey;
-                    else
-                        entity = null;
-                }
-                stack.reverse();
-
-                var hstack = []
-                // Survey
-                if (stack.length > 0) {
-                    hstack.push({
-                        type: 'survey',
-                        label: 'S',
-                        entity: stack[0]
-                    });
-                }
-                // Hierarchy
-                if (stack.length > 1) {
-                    hstack.push({
-                        type: 'question set',
-                        label: 'Qs',
-                        entity: stack[1]
-                    });
-                }
-                // Qnodes and measures
-                for (var i = 2; i < stack.length; i++) {
-                    hstack.push({
-                        type: 'qnode',
-                        label: stack[1].levels[i - 2].label,
-                        entity: stack[i]
-                    });
-                }
-                if (hstack.length > 2) {
-                    // Last node might be a qnode or a measure; for that node,
-                    // take the type specified by the caller.
-                    hstack[hstack.length - 1].type = $scope.type;
-                }
-                $scope.hstack = hstack;
+                $scope.structure = Structure(entity);
             });
         }]
     }
@@ -239,86 +281,67 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
-.controller('ProcessCtrl', [
-        '$scope', 'Process', 'routeData', 'Editor', 'questionAuthz',
-        '$location', 'Notifications', 'Current', 'Survey', 'format',
-        'SubProcess', 'layout',
-        function($scope, Process, routeData, Editor, authz,
-                 $location, Notifications, current, Survey, format,
-                 SubProcess, layout) {
+.controller('QuestionNodeCtrl', [
+        '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
+        '$location', 'Notifications', 'Current', 'format', 'Structure',
+        'Measure', 'layout',
+        function($scope, QuestionNode, routeData, Editor, authz,
+                 $location, Notifications, current, format, Structure,
+                 Measure, layout) {
+
+    // routeData.parent and routeData.hierarchy will only be defined when
+    // creating a new qnode.
 
     $scope.layout = layout;
-    $scope.survey = routeData.survey;
-    $scope.func = routeData.func;
-    $scope.edit = Editor('process', $scope, {
-        functionId: $scope.func.id,
-        surveyId: $scope.survey.id
-    });
-    if (routeData.process) {
+    if (routeData.qnode) {
         // Editing old
-        $scope.process = routeData.process;
-        $scope.subprocs = routeData.subprocs;
-    } else {
-        // Creating new
-        $scope.process = new Process({
-            'function': $scope.func
-        });
-        $scope.subprocs = null;
-        $scope.edit.edit();
-    }
-
-    $scope.$on('EditSaved', function(event, model) {
-        $location.url(format(
-            '/process/{}?survey={}', model.id, $scope.survey.id));
-    });
-    $scope.$on('EditDeleted', function(event, model) {
-        $location.url(format(
-            '/function/{}?survey={}', $scope.func.id, $scope.survey.id));
-    });
-
-    $scope.checkRole = authz(current, $scope.survey);
-    $scope.SubProcess = SubProcess;
-}])
-
-
-.controller('SubProcessCtrl', [
-        '$scope', 'SubProcess', 'routeData', 'Editor', 'questionAuthz',
-        '$location', 'Notifications', 'Current', 'Survey', 'format', 'Measure',
-        'layout',
-        function($scope, SubProcess, routeData, Editor, authz,
-                 $location, Notifications, current, Survey, format, Measure,
-                 layout) {
-
-    $scope.layout = layout;
-    $scope.survey = routeData.survey;
-    $scope.process = routeData.process;
-    $scope.edit = Editor('subprocess', $scope, {
-        processId: $scope.process.id,
-        surveyId: $scope.survey.id
-    });
-    if (routeData.subprocess) {
-        // Editing old
-        $scope.subprocess = routeData.subprocess;
+        $scope.qnode = routeData.qnode;
+        $scope.children = routeData.children;
         $scope.measures = routeData.measures;
     } else {
         // Creating new
-        $scope.subprocess = new SubProcess({
-            process: $scope.process
+        $scope.qnode = new QuestionNode({
+            'parent': routeData.parent,
+            'hierarchy': routeData.hierarchy
         });
+        $scope.children = null;
         $scope.measures = null;
-        $scope.edit.edit();
     }
+
+    $scope.$watch('qnode', function(qnode) {
+        $scope.structure = Structure(qnode);
+        $scope.survey = $scope.structure.survey;
+        $scope.edit = Editor('qnode', $scope, {
+            parentId: routeData.parent && routeData.parent.id,
+            hierarchyId: routeData.hierarchy && routeData.hierarchy.id,
+            surveyId: $scope.survey.id
+        });
+        if (!qnode.id)
+            $scope.edit.edit();
+
+        var levels = $scope.structure.hierarchy.structure.levels;
+        $scope.currentLevel = levels[$scope.structure.qnodes.length - 1];
+        $scope.nextLevel = levels[$scope.structure.qnodes.length];
+    });
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
-            '/subprocess/{}?survey={}', model.id, $scope.survey.id));
+            '/qnode/{}?survey={}', model.id, $scope.survey.id));
     });
     $scope.$on('EditDeleted', function(event, model) {
-        $location.url(format(
-            '/process/{}?survey={}', $scope.process.id, $scope.survey.id));
+        if (model.parent) {
+            $location.url(format(
+                '/qnode/{}?survey={}', model.parent.id,
+                $scope.survey.id));
+        } else {
+            $location.url(format(
+                '/hierarchy/{}?survey={}', model.hierarchy.id,
+                $scope.survey.id));
+        }
     });
 
     $scope.checkRole = authz(current, $scope.survey);
+    $scope.QuestionNode = QuestionNode;
     $scope.Measure = Measure;
 }])
 

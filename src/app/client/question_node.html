@@ -1,0 +1,73 @@
+<div>
+
+<div class="header">
+<div class="container">
+    <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Delete"
+                ng-click="edit.del()"
+                ng-if="!edit.model && checkRole('qnode_del')">
+            <i class="fa fa-trash-o"></i></button>
+        <button class="btn btn-default btn-round" title="Collapse"
+                ng-click="layout.expandHeader = !layout.expandHeader">
+            <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
+            <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
+        </button>
+        <button class="btn btn-default btn-round" title="Cancel"
+                ng-click="edit.cancel()"
+                ng-if="edit.model && edit.model.id">
+            <i class="fa fa-times"></i></button>
+        <button class="btn btn-default btn-round" title="Save"
+                ng-click="edit.save()"
+                ng-if="edit.model"
+                form="editor">
+            <i class="fa fa-check"></i></button>
+        <button class="btn btn-default btn-round" title="Edit"
+                ng-click="edit.edit()"
+                ng-if="!edit.model && checkRole('qnode_edit')">
+            <i class="fa fa-pencil"></i></button>
+    </div>
+    <question-header entity="qnode"></question-header>
+</div>
+</div>
+
+<div class="measure" ng-if="edit.model">
+<div class="container">
+    <editor-error class="measure" edit="edit"></editor-error>
+    <form novalidate name="form" id="editor">
+        <div class="form-group" show-errors>
+            <label for="title">Name</label>
+            <span class="help-label" ng-if="form.title.$error.required">
+                Please provide a title.</span>
+            <input type="text" class="form-control" id="title" name="title"
+                ng-model="edit.model.title" required />
+        </div>
+        <div class="form-group" show-errors>
+            <label for="desc">Description</label>
+            <textarea id="desc" name="desc" class="form-control"
+                ng-model="edit.model.description"></textarea>
+        </div>
+    </form>
+</div>
+</div>
+
+<div class="measure" ng-if="!edit.model && qnode.description">
+<div class="container">
+    <p>{{qnode.description}}</p>
+</div>
+</div>
+
+<reorderable href="/qnode/{}?survey={{survey.id}}&parent={{qnode.id}}"
+        model="children" check-role="checkRole"
+        title="{{nextLevel.title}}"
+        params="{surveyId: survey.id, parentId: qnode.id}"
+        resource="QuestionNode"
+        ng-if="nextLevel && !edit.model"></reorderable>
+
+<reorderable href="/measure/{}?survey={{survey.id}}&parent={{qnode.id}}"
+        model="measures" check-role="checkRole"
+        title="{{structure.hierarchy.structure.measure.title}}"
+        params="{surveyId: survey.id, parentId: qnode.id}"
+        resource="Measure"
+        ng-if="currentLevel.hasMeasures && !edit.model"></reorderable>
+
+</div>

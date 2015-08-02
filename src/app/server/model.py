@@ -177,6 +177,8 @@ class QuestionNode(Base):
         ),
     )
 
+    survey = relationship(Survey)
+
     def __repr__(self):
         return "QuestionNode(title={}, survey={})".format(
             self.title, self.survey.title)

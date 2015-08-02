@@ -1,4 +1,5 @@
 import datetime
+import logging
 import re
 import time
 import uuid
@@ -7,6 +8,9 @@ import model
 
 import sqlalchemy
 from sqlalchemy.orm import joinedload
+
+
+log = logging.getLogger('app.utils')
 
 
 def truthy(value):
@@ -48,6 +52,7 @@ class ToSon:
         self.visited = []
 
     def __call__(self, value, path=""):
+        log.debug('Visiting %s', path)
         if value in self.visited:
             raise UtilException(
                 "Serialisation failed: cycle detected: %s" % path)
@@ -107,6 +112,7 @@ class ToSon:
             return False
 
         path = "%s/%s" % (basepath, name)
+        log.debug('Testing %s', path)
         if self.include is not None:
             if not any(item.search(path) for item in self.include):
                 return False

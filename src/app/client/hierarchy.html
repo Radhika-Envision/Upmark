@@ -5,7 +5,7 @@
     <div class="toolbar">
         <button class="btn btn-default btn-round" title="Delete"
                 ng-click="edit.del()"
-                ng-if="!edit.model && checkRole('hierachy_del')">
+                ng-if="!edit.model && checkRole('hierarchy_del')">
             <i class="fa fa-trash-o"></i></button>
         <button class="btn btn-default btn-round" title="Collapse"
                 ng-click="layout.expandHeader = !layout.expandHeader">
@@ -23,10 +23,10 @@
             <i class="fa fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
-                ng-if="!edit.model && checkRole('hierachy_edit')">
+                ng-if="!edit.model && checkRole('hierarchy_edit')">
             <i class="fa fa-pencil"></i></button>
     </div>
-    <question-header entity="hierarchy" type="question set"></question-header>
+    <question-header entity="hierarchy"></question-header>
 </div>
 </div>
 
@@ -167,7 +167,7 @@
 <reorderable href="/qnode/{}?survey={{survey.id}}&hierarchy={{hierarchy.id}}"
         model="qnodes" check-role="checkRole"
         title="{{hierarchy.structure.levels[0].title}}"
-        params="{surveyId: survey.id, hierachyId: hierachy.id}"
-        resource="Hierarchy" ng-if="!edit.model"></reorderable>
+        params="{surveyId: survey.id, hierarchyId: hierarchy.id}"
+        resource="QuestionNode" ng-if="!edit.model"></reorderable>
 
 </div>
