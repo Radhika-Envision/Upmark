@@ -147,9 +147,20 @@
 </div>
 </div>
 
-<div class="measure" ng-if="!edit.model && hierarchy.description">
+<div class="measure" ng-if="!edit.model">
 <div class="container">
-    <p>{{hierarchy.description}}</p>
+    <p ng-if="hierarchy.description">{{hierarchy.description}}</p>
+    <p>
+        <span class="text-muted">Structure:</span>
+        <span ng-repeat="level in hierarchy.structure.levels">
+            <span class="text-muted" ng-if="$index > 0">&raquo;</span>
+            {{level.title}}
+        </span>
+        <span>
+            <span class="text-muted">&raquo;</span>
+            {{hierarchy.structure.measure.title}}
+        </span>
+    </p>
 </div>
 </div>
 
