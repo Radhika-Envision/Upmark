@@ -123,29 +123,44 @@ angular.module('wsaa.surveyQuestions', [
         }
         stack.reverse();
 
-        var hstack = []
+        var hstack = [];
+        var survey = null;
+        var hierarchy = null;
+        var measure = null;
         // Survey
         if (stack.length > 0) {
+            survey = stack[0];
             hstack.push({
                 path: 'survey',
                 title: 'Surveys',
                 label: 'S',
-                entity: stack[0],
-                level: 0
+                entity: survey,
+                level: 's'
             });
         }
-        // Hierarchy
+        // Hierarchy, or orphaned measure
         if (stack.length > 1) {
-            hstack.push({
-                path: 'hierarchy',
-                title: 'Question Sets',
-                label: 'Qs',
-                entity: stack[1],
-                level: 1
-            });
+            if (stack[1].responseType) {
+                measure = stack[1];
+                hstack.push({
+                    path: 'measure',
+                    title: 'Ungrouped Measures',
+                    label: 'M',
+                    entity: measure,
+                    level: 'm'
+                });
+            } else {
+                hierarchy = stack[1];
+                hstack.push({
+                    path: 'hierarchy',
+                    title: 'Question Sets',
+                    label: 'Qs',
+                    entity: hierarchy,
+                    level: 'h'
+                });
+            }
         }
 
-        var measure = null;
         var qnodes = [];
         if (stack.length > 2) {
             var qnodeMaxIndex = stack.length - 1;
@@ -157,7 +172,7 @@ angular.module('wsaa.surveyQuestions', [
                 qnodeMaxIndex = stack.length - 1;
             }
 
-            var structure = stack[1].structure;
+            var structure = hierarchy.structure;
             // Qnodes and measures
             for (var i = 2; i <= qnodeMaxIndex; i++) {
                 entity = stack[i];
@@ -167,7 +182,7 @@ angular.module('wsaa.surveyQuestions', [
                     title: level.title,
                     label: level.label,
                     entity: entity,
-                    level: i
+                    level: i - 2
                 });
                 qnodes.push(entity);
             }
@@ -177,15 +192,15 @@ angular.module('wsaa.surveyQuestions', [
                     path: 'measure',
                     title: structure.measure.title,
                     label: structure.measure.label,
-                    entity: stack[stack.length - 1],
-                    level: stack.length - 1
+                    entity: measure,
+                    level: 'm'
                 });
             }
         }
 
         return {
-            survey: stack[0] || null,
-            hierarchy: stack[1] || null,
+            survey: survey,
+            hierarchy: hierarchy,
             qnodes: qnodes,
             measure: measure,
             hstack: hstack

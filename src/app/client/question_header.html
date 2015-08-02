@@ -8,7 +8,7 @@
             }}">
         <span ng-if="item.entity.seq != null">
             {{item.entity.seq + 1}}.</span>
-        <span ng-class="!$first ? 'when-expanded' : ''">
+        <span class="when-expanded">
             {{item.entity.title}}</span>
     </a>
     <span ng-if="item.entity.title && $last">
