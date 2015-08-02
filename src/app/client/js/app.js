@@ -245,10 +245,6 @@ angular.module('wsaa.aquamark',
                             id: parentId,
                             surveyId: $route.current.params.survey
                         }).$promise;
-                    }],
-                    structure: ['parent', 'hierarchy', 'Structure',
-                            function(parent, hierarchy, Structure) {
-                        return Structure(parent || hierarchy);
                     }]
                 })}
             })
@@ -280,32 +276,49 @@ angular.module('wsaa.aquamark',
                 })}
             })
 
+            .when('/measures', {
+                templateUrl : 'measure_list.html',
+                controller : 'MeasureListCtrl',
+                resolve: {routeData: chain({
+                    survey: ['Survey', '$route', function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
+                    }],
+                })}
+            })
             .when('/measure/new', {
                 templateUrl : 'measure.html',
                 controller : 'MeasureCtrl',
                 resolve: {routeData: chain({
-                    qnode: ['QuestionNode', '$route',
+                    parent: ['QuestionNode', '$route',
                             function(QuestionNode, $route) {
                         return QuestionNode.get({
-                            id: $route.current.params.qnode,
+                            id: $route.current.params.parent,
                             surveyId: $route.current.params.survey
                         }).$promise;
                     }],
-                    survey: ['Survey', function(Survey) {
-                        return QuestionNode.get({
-                            id: $route.current.params.survey
-                        }).$promise;
-                    }]
                 })}
             })
             .when('/measure/:measure', {
                 templateUrl : 'measure.html',
                 controller : 'MeasureCtrl',
                 resolve: {routeData: chain({
+                    parent: ['QuestionNode', '$route',
+                            function(QuestionNode, $route) {
+                        if (!$route.current.params.parent)
+                            return null;
+                        return QuestionNode.get({
+                            id: $route.current.params.parent,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
                     measure: ['Measure', '$route', function(Measure, $route) {
                         return Measure.get({
                             id: $route.current.params.measure,
-                            surveyId: $route.current.params.survey
+                            surveyId: $route.current.params.survey,
+                            hierarchyId: $route.current.params.hierarchy,
+                            parentId: $route.current.params.parent
                         }).$promise;
                     }]
                 })}
@@ -402,6 +415,7 @@ angular.module('wsaa.aquamark',
             error = rejection.statusText;
         else
             error = "Object not found";
+        log.error("Failed to navigate to {}", $location.url());
         Notifications.set('route', 'error', error, 10000);
         if (previous) {
             $window.history.back();

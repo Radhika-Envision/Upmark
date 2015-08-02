@@ -349,28 +349,43 @@ angular.module('wsaa.surveyQuestions', [
 .controller('MeasureCtrl', [
         '$scope', 'Measure', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'Survey', 'format', 'layout',
+        'Structure',
         function($scope, Measure, routeData, Editor, authz,
-                 $location, Notifications, current, Survey, format, layout) {
+                 $location, Notifications, current, Survey, format, layout,
+                 Structure) {
 
     $scope.layout = layout;
-    $scope.survey = routeData.survey;
-    $scope.subprocess = routeData.subprocess;
-    $scope.edit = Editor('measure', $scope, {
-        subprocessId: $scope.subprocess.id,
-        surveyId: $scope.survey.id
-    });
+    $scope.parent = routeData.parent;
     if (routeData.measure) {
         // Editing old
         $scope.measure = routeData.measure;
     } else {
         // Creating new
         $scope.measure = new Measure({
-            subprocess: $scope.subprocess,
+            parent: routeData.parent,
             weight: 100,
             responseType: 'standard_1'
         });
-        $scope.edit.edit();
     }
+
+    $scope.$watch('measure', function(measure) {
+        $scope.structure = Structure(measure);
+        $scope.survey = $scope.structure.survey;
+        $scope.edit = Editor('measure', $scope, {
+            parentId: $scope.parent && $scope.parent.id,
+            surveyId: $scope.survey.id
+        });
+        if (!measure.id)
+            $scope.edit.edit();
+
+        if (measure.parents) {
+            var parents = [];
+            for (var i = 0; i < measure.parents.length; i++) {
+                parents.push(Structure(measure.parents[i]));
+            }
+            $scope.parents = parents;
+        }
+    });
 
     $scope.responseTypes = [
         {
@@ -386,15 +401,63 @@ angular.module('wsaa.surveyQuestions', [
     ];
 
     $scope.$on('EditSaved', function(event, model) {
-        $location.url(format(
-            '/measure/{}?survey={}', model.id, $scope.survey.id));
+        if (model.parent) {
+            $location.url(format(
+                '/measure/{}?survey={}&parent={}', model.id, $scope.survey.id,
+                $scope.parent.id));
+        } else {
+            $location.url(format(
+                '/measure/{}?survey={}', model.id, $scope.survey.id));
+        }
     });
     $scope.$on('EditDeleted', function(event, model) {
-        $location.url(format(
-            '/subprocess/{}?survey={}', $scope.subprocess.id, $scope.survey.id));
+        if (model.parent) {
+            $location.url(format(
+                '/qnode/{}?survey={}', model.parent.id, $scope.survey.id));
+        } else {
+            $location.url(format(
+                '/measures?survey={}', $scope.survey.id));
+        }
     });
 
     $scope.checkRole = authz(current, $scope.survey);
+}])
+
+
+.controller('MeasureListCtrl', ['$scope', 'questionAuthz', 'Measure', 'Current',
+        'layout', 'routeData',
+        function($scope, authz, Measure, current, layout, routeData) {
+
+    $scope.layout = layout;
+    $scope.checkRole = authz(current, null);
+    $scope.survey = routeData.survey;
+
+    $scope.search = {
+        term: "",
+        surveyId: $scope.survey && $scope.survey.id,
+        orphan: true,
+        page: 0,
+        pageSize: 10
+    };
+    $scope.$watch('search', function(search) {
+        Measure.query(search).$promise.then(function(measures) {
+            $scope.measures = measures;
+        });
+    }, true);
+
+    $scope.cycleOrphan = function() {
+        switch ($scope.search.orphan) {
+            case true:
+                $scope.search.orphan = null;
+                break;
+            case null:
+                $scope.search.orphan = false;
+                break;
+            case false:
+                $scope.search.orphan = true;
+                break;
+        }
+    };
 }])
 
 

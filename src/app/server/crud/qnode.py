@@ -195,28 +195,6 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
 
     def _update(self, session, qnode, son):
         '''Apply user-provided data to the saved model.'''
-        if 'measure' in son:
-            if son['measure'].get('id') is None:
-                # Create a new measure
-                measure = model.Measure(survey_id=self.survey_id)
-                session.add(measure)
-                crud.measure.update_measure(measure, son['measure'])
-                qnode.measure = measure
-            elif son['measure'].get('id') == str(qnode.measure_id):
-                # Update existing measure
-                crud.measure.update_measure(qnode.measure, son['measure'])
-            else:
-                # Link to different measure.
-                # TODO: Update measure contents? It's a bit weird doing
-                # both at once.
-                measure = session.query(model.Measure)\
-                    .get((son['measure']['id'], self.survey_id))
-                if measure is None:
-                    raise handlers.ModelError("No such measure")
-                qnode.measure = measure
-        else:
-            qnode.measure = None
-
         update = updater(qnode)
         update('title', son)
         update('description', son)
