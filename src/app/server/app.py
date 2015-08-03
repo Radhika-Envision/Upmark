@@ -177,7 +177,7 @@ def get_mappings():
         (r"/qnode/?(.*).json", crud.qnode.QuestionNodeHandler, {}),
         (r"/measure/?(.*).json", crud.measure.MeasureHandler, {}),
         (r"/import/structure/?(.*).json", import_handlers.ImportStructureHandler, {}),
-        (r"/import/response", import_handlers.ImportResponseHandler, {}),
+        (r"/import/response/?(.*).json", import_handlers.ImportResponseHandler, {}),
         (r"/(.*)", tornado.web.StaticFileHandler, {
             'path': os.path.join(package_dir, "..", "client")}),
     ]
