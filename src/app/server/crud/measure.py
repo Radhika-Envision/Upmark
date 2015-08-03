@@ -18,7 +18,8 @@ from utils import falsy, reorder, ToSon, truthy, updater
 log = logging.getLogger('app.crud.measure')
 
 
-class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
+class MeasureHandler(
+        handlers.Paginate, crud.survey.SurveyCentric, handlers.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, measure_id):
@@ -108,6 +109,8 @@ class MeasureHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             if term != '':
                 query = query.filter(
                     model.Measure.title.ilike(r'%{}%'.format(term)))
+
+            query = self.paginate(query)
 
             measures = query.all()
 
