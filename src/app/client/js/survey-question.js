@@ -135,6 +135,9 @@ angular.module('wsaa.surveyQuestions', [
             $scope.navigate = function(survey) {
                 $location.search('survey', survey.id);
             };
+            $scope.isActive = function(survey) {
+                return $location.search().survey == survey.id;
+            };
         }]
     };
 }])

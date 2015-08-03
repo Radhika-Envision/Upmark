@@ -5,8 +5,10 @@
     <ul class="dropdown-menu dropdown-menu-right">
         <li class="dropdown-header">Switch to survey</li>
         <li ng-if="!surveys.length" class="dropdown-header">Loading...</li>
-        <li ng-repeat="survey in surveys">
-            <a href ng-click="navigate(survey)">{{survey.title}}</a>
+        <li ng-repeat="survey in surveys"
+                ng-class="{active: isActive(survey)}">
+            <a href ng-click="navigate(survey)">
+                {{survey.title}}</a>
         </li>
     </ul>
 </span>
