@@ -4,10 +4,13 @@
 <div class="container">
     <div class="toolbar">
         <survey-history entity="measure" service="Measure"></survey-history>
-        <button class="btn btn-default btn-round" title="Delete"
+        <button class="btn btn-default btn-round"
+                title="{{parent ? 'Unlink' : 'Delete'}}"
                 ng-click="edit.del()"
                 ng-if="!edit.model && checkRole('measure_del')">
-            <i class="fa fa-trash-o"></i></button>
+            <i class="fa fa-trash-o"
+                    ng-class="parent ? 'fa-unlink' : 'fa-trash-o'"></i>
+        </button>
         <button class="btn btn-default btn-round" title="Collapse"
                 ng-click="layout.expandHeader = !layout.expandHeader">
             <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>

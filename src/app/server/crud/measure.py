@@ -244,6 +244,9 @@ class MeasureHandler(
             self.ordering()
             return
 
+        parent_ids = [p for p in self.get_arguments('parentId')
+                      if p != '']
+
         self.check_editable()
 
         try:
@@ -253,6 +256,18 @@ class MeasureHandler(
                 if measure is None:
                     raise ValueError("No such object")
                 self._update(measure, self.request_son)
+
+                for parent_id in parent_ids:
+                    # Add links to parents. Links can't be removed like this;
+                    # use the delete method instead.
+                    qnode = session.query(model.QuestionNode)\
+                        .get((parent_id, self.survey_id))
+                    if qnode is None:
+                        raise handlers.ModelError("No such question node")
+                    if qnode in measure.parents:
+                        continue
+                    qnode.measures.append(measure)
+                    qnode.qnode_measures.reorder()
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such measure")
         except sqlalchemy.exc.IntegrityError as e:

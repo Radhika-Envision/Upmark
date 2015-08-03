@@ -282,6 +282,7 @@ angular.module('vpac.widgets', [])
         },
         templateUrl: 'reorder.html',
         replace: true,
+        transclude: true,
         controller: ['$scope', 'format', 'Editor',
                 function($scope, format, Editor) {
             $scope.edit = Editor(

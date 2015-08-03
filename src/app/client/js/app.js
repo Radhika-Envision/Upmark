@@ -275,6 +275,24 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
+            .when('/measure-link', {
+                templateUrl : 'measure_link.html',
+                controller : 'MeasureLinkCtrl',
+                resolve: {routeData: chain({
+                    parent: ['QuestionNode', '$route',
+                            function(QuestionNode, $route) {
+                        return QuestionNode.get({
+                            id: $route.current.params.parent,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    survey: ['Survey', '$route', function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
+                    }],
+                })}
+            })
 
             .when('/measures', {
                 templateUrl : 'measure_list.html',

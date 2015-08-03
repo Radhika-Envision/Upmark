@@ -398,6 +398,62 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
+.controller('MeasureLinkCtrl', [
+        '$scope', 'QuestionNode', 'routeData', 'questionAuthz',
+        '$location', 'Notifications', 'Current', 'format',
+        'Measure', 'layout',
+        function($scope, QuestionNode, routeData, authz,
+                 $location, Notifications, current, format,
+                 Measure, layout) {
+
+    $scope.layout = layout;
+    $scope.qnode = routeData.parent;
+    $scope.survey = routeData.survey;
+
+    $scope.measure = {
+        parent: $scope.qnode,
+        responseType: "dummy"
+    };
+
+    $scope.select = function(measure) {
+        // postData is empty: we don't want to update the contents of the
+        // measure; just its links to parents (giving in query string).
+        var postData = {};
+        Measure.save({
+            id: measure.id,
+            parentId: $scope.qnode.id,
+            surveyId: $scope.survey.id
+        }, postData).$promise.then(
+            function success(measure) {
+                Notifications.set('edit', 'success', "Saved", 5000);
+                $location.url(format(
+                    '/qnode/{}?survey={}', $scope.qnode.id, $scope.survey.id));
+            },
+            function failure(details) {
+                Notifications.set('edit', 'error',
+                    "Could not save object: " + details.statusText);
+            }
+        );
+    };
+
+    $scope.search = {
+        term: "",
+        surveyId: $scope.survey.id,
+        page: 0,
+        pageSize: 10
+    };
+    $scope.$watch('search', function(search) {
+        Measure.query(search).$promise.then(function(measures) {
+            $scope.measures = measures;
+        });
+    }, true);
+
+    $scope.checkRole = authz(current, $scope.survey);
+    $scope.QuestionNode = QuestionNode;
+    $scope.Measure = Measure;
+}])
+
+
 .controller('MeasureCtrl', [
         '$scope', 'Measure', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'Survey', 'format', 'layout',

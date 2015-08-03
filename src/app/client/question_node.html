@@ -69,6 +69,11 @@
         title="{{structure.hierarchy.structure.measure.title}}"
         params="{surveyId: survey.id, parentId: qnode.id}"
         resource="Measure"
-        ng-if="currentLevel.hasMeasures && !edit.model"></reorderable>
+        ng-if="currentLevel.hasMeasures && !edit.model">
+    <a class="btn btn-default btn-round" title="Link to existing"
+            ng-href="#/measure-link?survey={{survey.id}}&parent={{qnode.id}}"
+            ng-if="!edit.model && checkRole('add')">
+        <i class="fa fa-fw fa-link"></i></a>
+</reorderable>
 
 </div>

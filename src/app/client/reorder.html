@@ -18,6 +18,7 @@
                     ng-href="#{{href('new')}}"
                     ng-if="!edit.model && checkRole('add')">
                 <i class="fa fa-fw fa-plus"></i></a>
+            <span ng-transclude></span>
         </div>
         <h2>{{title}}</h2>
     </div>

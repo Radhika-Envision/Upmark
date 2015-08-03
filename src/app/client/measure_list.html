@@ -36,9 +36,11 @@
     <tbody>
       <tr ng-repeat="measure in measures"
             ng-class="{strike: measure.orphan}"
-            any-href='/measure/{{measure.id}}?survey={{survey.id}}'">
+            any-href="/measure/{{measure.id}}?survey={{survey.id}}">
         <td class="preview-text">{{measure.title}}
-            <span class="text-muted"> - {{measure.intent}}</span></td>
+            <span class="text-muted" ng-if="measure.intent">
+                - {{measure.intent}}</span>
+        </td>
       </tr>
     </tbody>
   </table>
