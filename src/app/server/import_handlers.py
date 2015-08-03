@@ -8,6 +8,7 @@ import handlers
 import logging
 import tempfile
 import threading
+import json
 from tornado import gen
 from tornado.web import asynchronous
 from tornado.concurrent import run_on_executor
@@ -72,20 +73,27 @@ class Importer():
         model.connect_db(os.environ.get('DATABASE_URL'))
         
         with model.session_scope() as session:
-            s = session.query(model.Survey).get(survey_id)
-            print("survey", s)
+            survey = session.query(model.Survey).get(survey_id)
+            print("survey", survey)
             m = session.query(model.Measure).filter_by(survey_id=survey_id).first()
             if m:
                 raise Exception("Survey is not empty")
-            sp = session.query(model.Subprocess).filter_by(survey_id=survey_id).first()
-            if sp:
+            h = session.query(model.Hierarchy).filter_by(survey_id=survey_id).first()
+            if h:
                 raise Exception("Survey is not empty")
-            p = session.query(model.Process).filter_by(survey_id=survey_id).first()
-            if p:
+            q = session.query(model.QuestionNode).filter_by(survey_id=survey_id).first()
+            if q:
                 raise Exception("Survey is not empty")
-            f = session.query(model.Function).filter_by(survey_id=survey_id).first()
-            if f:
-                raise Exception("Survey is not empty")
+
+            hierarchy = model.Hierarchy()
+            hierarchy.survey_id = survey.id
+            hierarchy.title = "Importing Document Hierarchy"
+            hierarchy.description = "Importing Document Hierarchy"
+            hierarchy.structure = json.loads('{"measure": {"title": "Measures", "label": "M"}, "levels": [{"has_measures": false, "title": "Function", "label": "C"}, {"has_measures": false, "title": "Process", "label": "P"}, {"has_measures": true, "title": "Subprocess", "label": "SP"}]}')
+            session.add(hierarchy)
+            session.flush()
+
+            log.info("hierarchy: %s" % hierarchy.id)
 
             function_title_row = [{"title" : row[self.col2num("J")], "row_num" : all_rows.index(row)} for row in all_rows if "'Function Header" in str(row[self.col2num("S")])]
             process_title_row = [{"title" : row[self.col2num("J")], "row_num" : all_rows.index(row)} for row in all_rows if "'Process Header" in str(row[self.col2num("S")])]
@@ -100,15 +108,22 @@ class Importer():
                 # print("function title:", function_title)
                 # print("function:", function)
                 function_description = self.parse_description(scoring_sheet, function['row_num'], "empty")
-                # print("function description:", function_description)
+                # log.info("function description: %s" % function_description)
+                # log.info("survey_id: %s" % survey.id)
+                # log.info("heirarchy_id: %s" % hierarchy.id)
+                # log.info("function description: %s" % function_description)
+                # log.info("function description: %s" % function_description)
 
-                f = model.Function()
-                f.survey_id = s.id
-                f.title = function_title
-                f.seq = int(function_order) - 1
-                f.description = function_description
-                session.add(f)
+                qnode_function = model.QuestionNode()
+                qnode_function.survey_id = survey.id
+                qnode_function.hierarchy_id = hierarchy.id
+                qnode_function.seq = int(function_order) - 1
+                qnode_function.title = function_title
+                qnode_function.description = function_description
+
+                session.add(qnode_function)
                 session.flush()
+                log.info("qnode_function: %s"% qnode_function)
 
                 process_row = [row for row in process_title_row if "{}.".format(function_order) in self.parse_text(row['title'])] 
                 for process in process_row:
@@ -120,17 +135,16 @@ class Importer():
                         # print("process order:", process_order)
                         # print("process title:", process_title)
                         process_description = self.parse_description(scoring_sheet, process['row_num'], "empty")
-                        # print("process description:", process_description)
+                        log.info("process description: %s" % process_description)
 
-                        p = model.Process()
-                        p.survey_id = s.id
-                        p.function_id = f.id
-                        p.title = process_title
-                        p.seq = int(process_order) - 1
-                        p.description = process_description
-                        session.add(p)
+                        qnode_process = model.QuestionNode()
+                        qnode_process.survey_id = survey.id
+                        qnode_process.parent_id = qnode_function.id
+                        qnode_process.seq = int(process_order) - 1
+                        qnode_process.title = process_title
+                        qnode_process.description = process_description
+                        session.add(qnode_process)
                         session.flush()
-
 
                         subprocess_row = [row for row in subprocess_title_row if "{}.{}.".format(function_order, process_order) in str(row['title'])] 
                         for subprocess in subprocess_row:
@@ -142,15 +156,16 @@ class Importer():
                                 # print("subprocess order:", subprocess_order)
                                 # print("subprocess title:", subprocess_title)
                                 subprocess_description = self.parse_description(scoring_sheet, subprocess['row_num'], "empty")
-                                # print("subprocess description:", subprocess_description)
+                                log.info("subprocess description: %s" % subprocess_description)
 
-                                sp = model.Subprocess()
-                                sp.survey_id = s.id
-                                sp.process_id = p.id
-                                sp.title = subprocess_title
-                                sp.seq = int(subprocess_order) - 1
-                                sp.description = subprocess_description
-                                session.add(sp)
+                                qnode_subprocess = model.QuestionNode()
+                                qnode_subprocess.survey_id = survey.id
+                                qnode_subprocess.parent_id = qnode_process.id
+                                qnode_subprocess.seq = int(subprocess_order) - 1
+                                qnode_subprocess.title = subprocess_title
+                                qnode_subprocess.description = subprocess_description
+
+                                session.add(qnode_subprocess)
                                 session.flush()
 
                                 # for row in all_rows:
@@ -170,10 +185,6 @@ class Importer():
                                         measure_order = parse("{function}.{process}.{subprocess}.{measure}", str(measure_obj['order']))['measure']
                                         measure_title = measure_obj['title']
 
-                                        # print("measure order:", measure_order)
-                                        # print("measure title:", measure_title)
-                                        # print("measure row_num:",  measure['row_num'])
-
                                         measure_intent = self.parse_description(scoring_sheet, measure['row_num'], "Intent")
                                         measure_inputs = self.parse_description(scoring_sheet, measure['row_num'] + 1, "Iputs")
                                         measure_scenario = self.parse_description(scoring_sheet, measure['row_num'] + 2, "Scenario")
@@ -181,30 +192,25 @@ class Importer():
                                         measure_comments = self.parse_description(scoring_sheet, measure['row_num'] + 4, "Comments")
                                         measure_weight = self.parse_cell_number(measure['weight'])
 
-                                        # print("measure measure_intent:", json.dumps(measure_intent))
-                                        # print("measure measure_inputs:", measure_inputs)
-                                        # print("measure measure_scenario:", measure_scenario)
-                                        # print("measure measure_questions:", measure_questions)
-                                        # print("measure measure_comments:", measure_comments)
 
                                         m = model.Measure()
-                                        m.survey_id = s.id
-                                        m.subprocess_id = sp.id
-                                        m.seq = int(measure_order) - 1
+                                        m.survey_id = survey.id
                                         m.title = measure_title
                                         m.weight = measure_weight
                                         m.intent = measure_intent
                                         m.inputs = measure_inputs
                                         m.scenario = measure_scenario
                                         m.questions = measure_questions
-                                        m.response_type = "Test"
+                                        m.response_type = "standard_1"
                                         session.add(m)
                                         session.flush()
 
+                                        qnode_subprocess.measures.append(m)
+                                        session.flush()
 
 
     def parse_description(self, sheet, starting_row_num, prev_column):
-        print("starting_row_num", starting_row_num, "sheet", sheet.nrows)
+        # print("starting_row_num", starting_row_num, "sheet", sheet.nrows)
         if starting_row_num + 1 >= sheet.nrows:
             return ""
 
