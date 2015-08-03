@@ -14,7 +14,7 @@ import logging
 
 from utils import ToSon, updater
 
-log = logging.getLogger('app.data_access')
+log = logging.getLogger('app.crud.surveys')
 
 
 class SurveyCentric:
@@ -185,3 +185,33 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         update = updater(survey)
         update('title', son)
         update('description', son)
+
+
+class SurveyHistoryHandler(handlers.BaseHandler):
+    def initialize(self, mapper):
+        self.mapper = mapper
+
+    @tornado.web.authenticated
+    def get(self, entity_id):
+        '''
+        Get a list of surveys that some entity belongs to. For example,
+        a single hierarchy may be present in multiple surveys.
+        '''
+        with model.session_scope() as session:
+            query = (session.query(model.Survey)
+                .join(self.mapper)
+                .filter(self.mapper.id==entity_id))
+
+            to_son = ToSon(include=[
+                r'/id$',
+                r'/title$',
+                r'/is_open$',
+                r'/is_editable$',
+                # Descend
+                r'/[0-9]+$',
+            ])
+            sons = to_son(query.all())
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(sons))
+        self.finish()

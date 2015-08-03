@@ -172,10 +172,17 @@ def get_mappings():
         (r"/user/?(.*).json", crud.user.UserHandler, {}),
         (r"/password.json", crud.user.PasswordHandler, {}),
 
-        (r"/survey/?(.*).json", crud.survey.SurveyHandler, {}),
-        (r"/hierarchy/?(.*).json", crud.hierarchy.HierarchyHandler, {}),
-        (r"/qnode/?(.*).json", crud.qnode.QuestionNodeHandler, {}),
-        (r"/measure/?(.*).json", crud.measure.MeasureHandler, {}),
+        (r"/survey/?([^/]*).json", crud.survey.SurveyHandler, {}),
+        (r"/hierarchy/?([^/]*).json", crud.hierarchy.HierarchyHandler, {}),
+        (r"/hierarchy/?([^/]*)/survey.json", crud.survey.SurveyHistoryHandler, {
+            'mapper': model.Hierarchy}),
+        (r"/qnode/?([^/]*).json", crud.qnode.QuestionNodeHandler, {}),
+        (r"/qnode/?([^/]*)/survey.json", crud.survey.SurveyHistoryHandler, {
+            'mapper': model.QuestionNode}),
+        (r"/measure/?([^/]*).json", crud.measure.MeasureHandler, {}),
+        (r"/measure/?([^/]*)/survey.json", crud.survey.SurveyHistoryHandler, {
+            'mapper': model.Measure}),
+
         (r"/import/structure/?(.*).json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response/?(.*).json", import_handlers.ImportResponseHandler, {}),
         (r"/(.*)", tornado.web.StaticFileHandler, {

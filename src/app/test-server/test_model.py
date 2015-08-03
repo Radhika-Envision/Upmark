@@ -5,6 +5,7 @@ from unittest import mock
 import urllib
 
 from sqlalchemy.sql import func
+from sqlalchemy.orm.session import make_transient
 
 import model
 from utils import ToSon
@@ -254,3 +255,58 @@ class SurveyStructureIntegrationTest(unittest.TestCase):
             self.assertEqual(m.title, "Bar Measure")
             m = measures[1]
             self.assertEqual(m.title, "Baz Measure")
+
+    def test_history(self):
+        # Duplicate a couple of objects
+        with model.session_scope() as session:
+            survey = session.query(model.Survey).first()
+            hierarchy = survey.hierarchies[0]
+            session.expunge(survey)
+            make_transient(survey)
+            session.expunge(hierarchy)
+            make_transient(hierarchy)
+
+            survey.id = None
+            survey.created = None
+            survey.title = 'Duplicate survey'
+            session.add(survey)
+            session.flush()
+
+            hierarchy.title = 'Duplicate hierarchy'
+            hierarchy.survey = survey
+            session.add(hierarchy)
+
+        # Make sure hierarchy ID is still the same
+        with model.session_scope() as session:
+            surveys = session.query(model.Survey).all()
+            self.assertNotEqual(surveys[0].id, surveys[1].id)
+            self.assertNotEqual(
+                surveys[0].hierarchies[0].survey_id,
+                surveys[1].hierarchies[0].survey_id)
+            self.assertEqual(
+                surveys[0].hierarchies[0].id,
+                surveys[1].hierarchies[0].id)
+
+        # Get all surveys for some hierarchy ID
+        with model.session_scope() as session:
+            # This hierarchy was duplicated, and should be in two surveys.
+            hierarchy = (session.query(model.Hierarchy)
+                .filter_by(title="Hierarchy 1")
+                .one())
+            surveys = (session.query(model.Survey)
+                .join(model.Hierarchy)
+                .filter(model.Hierarchy.id==hierarchy.id)
+                .all())
+            titles = {s.title for s in surveys}
+            self.assertEqual(titles, {"Duplicate survey", "Test Survey 1"})
+
+            # This one was not, so it should only be in the first.
+            hierarchy = (session.query(model.Hierarchy)
+                .filter_by(title="Hierarchy 2")
+                .one())
+            surveys = (session.query(model.Survey)
+                .join(model.Hierarchy)
+                .filter(model.Hierarchy.id==hierarchy.id)
+                .all())
+            titles = {s.title for s in surveys}
+            self.assertEqual(titles, {"Test Survey 1"})
