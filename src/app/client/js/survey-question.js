@@ -20,7 +20,9 @@ angular.module('wsaa.surveyQuestions', [
         get: { method: 'GET', cache: false },
         create: { method: 'POST' },
         save: { method: 'PUT' },
-        query: { method: 'GET', isArray: true, cache: false }
+        query: { method: 'GET', isArray: true, cache: false },
+        history: { method: 'GET', url: '/hierarchy/:id/survey.json',
+            isArray: true }
     });
 }])
 
@@ -31,7 +33,9 @@ angular.module('wsaa.surveyQuestions', [
         create: { method: 'POST' },
         save: { method: 'PUT' },
         query: { method: 'GET', isArray: true, cache: false },
-        reorder: { method: 'PUT', isArray: true }
+        reorder: { method: 'PUT', isArray: true },
+        history: { method: 'GET', url: '/qnode/:id/survey.json',
+            isArray: true }
     });
 }])
 
@@ -42,7 +46,9 @@ angular.module('wsaa.surveyQuestions', [
         create: { method: 'POST' },
         save: { method: 'PUT' },
         query: { method: 'GET', isArray: true, cache: false },
-        reorder: { method: 'PUT', isArray: true }
+        reorder: { method: 'PUT', isArray: true },
+        history: { method: 'GET', url: '/measure/:id/survey.json',
+            isArray: true }
     });
 }])
 
@@ -104,6 +110,33 @@ angular.module('wsaa.surveyQuestions', [
             $scope.surveys = surveys;
         });
     }, true);
+}])
+
+
+/**
+ * Drop-down menu to navigate to old versions of an entity.
+ */
+.directive('surveyHistory', [function() {
+    return {
+        restrict: 'E',
+        templateUrl: '/survey_history.html',
+        scope: {
+            entity: '=',
+            service: '='
+        },
+        controller: ['$scope', '$location', function($scope, $location) {
+            $scope.toggled = function(open) {
+                if (open) {
+                    $scope.surveys = $scope.service.history({
+                        id: $scope.entity.id
+                    });
+                }
+            };
+            $scope.navigate = function(survey) {
+                $location.search('survey', survey.id);
+            };
+        }]
+    };
 }])
 
 
@@ -293,6 +326,7 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.checkRole = authz(current, $scope.survey);
     $scope.QuestionNode = QuestionNode;
+    $scope.Hierarchy = Hierarchy;
 }])
 
 
@@ -437,6 +471,7 @@ angular.module('wsaa.surveyQuestions', [
     });
 
     $scope.checkRole = authz(current, $scope.survey);
+    $scope.Measure = Measure;
 }])
 
 

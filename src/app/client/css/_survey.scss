@@ -119,6 +119,21 @@ h2 {
     }
 }
 
+ul.dropdown-menu {
+    @media (max-width: 768px) {
+        left: 4px !important;
+        right: 4px !important;
+    }
+    @media (min-width: 768px) {
+        margin-right: -80px;
+    }
+
+    > li > a {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
 .subheader {
     margin-bottom: 20px;
     padding-top: 4px;

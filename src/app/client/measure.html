@@ -3,6 +3,7 @@
 <div class="header">
 <div class="container">
     <div class="toolbar">
+        <survey-history entity="measure" service="Measure"></survey-history>
         <button class="btn btn-default btn-round" title="Delete"
                 ng-click="edit.del()"
                 ng-if="!edit.model && checkRole('measure_del')">

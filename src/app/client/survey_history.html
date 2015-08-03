@@ -1,0 +1,12 @@
+<span dropdown on-toggle="toggled(open)" dropdown-append-to-body>
+    <button class="btn btn-default btn-round" title="History" dropdown-toggle>
+        <i class="fa fa-history"></i></button>
+
+    <ul class="dropdown-menu dropdown-menu-right">
+        <li class="dropdown-header">Switch to survey</li>
+        <li ng-if="!surveys.length" class="dropdown-header">Loading...</li>
+        <li ng-repeat="survey in surveys">
+            <a href ng-click="navigate(survey)">{{survey.title}}</a>
+        </li>
+    </ul>
+</span>
