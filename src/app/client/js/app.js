@@ -166,7 +166,15 @@ angular.module('wsaa.aquamark',
             .when('/survey/new', {
                 templateUrl : 'survey.html',
                 controller : 'SurveyCtrl',
-                resolve: {routeData: chain({})}
+                resolve: {routeData: chain({
+                    duplicate: ['Survey', '$route', function(Survey, $route) {
+                        if (!$route.current.params.duplicate)
+                            return null;
+                        return Survey.get({
+                            id: $route.current.params.duplicate
+                        }).$promise;
+                    }]
+                })}
             })
             .when('/survey/:survey', {
                 templateUrl : 'survey.html',

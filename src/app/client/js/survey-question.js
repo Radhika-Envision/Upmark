@@ -70,13 +70,23 @@ angular.module('wsaa.surveyQuestions', [
                  $location, Notifications, current, Hierarchy, layout, format) {
 
     $scope.layout = layout;
-    $scope.edit = Editor('survey', $scope);
     if (routeData.survey) {
         // Viewing old
+        $scope.edit = Editor('survey', $scope);
         $scope.survey = routeData.survey;
         $scope.hierarchies = routeData.hierarchies;
+    } else if (routeData.duplicate) {
+        // Duplicating existing
+        $scope.edit = Editor('survey', $scope,
+            {duplicateId: routeData.duplicate.id});
+        $scope.survey = routeData.duplicate;
+        $scope.survey.id = null;
+        $scope.survey.title = $scope.survey.title + " (duplicate)"
+        $scope.hierarchies = null;
+        $scope.edit.edit();
     } else {
         // Creating new
+        $scope.edit = Editor('survey', $scope);
         $scope.survey = new Survey({});
         $scope.hierarchies = null;
         $scope.edit.edit();

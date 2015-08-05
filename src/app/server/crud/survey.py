@@ -7,6 +7,7 @@ import tornado.web
 import sqlalchemy
 from sqlalchemy.sql import func
 from sqlalchemy.orm import joinedload
+from sqlalchemy.orm.session import make_transient
 
 import handlers
 import model
@@ -131,16 +132,76 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         if survey_id != '':
             raise handlers.MethodError("Can't use POST for existing survey.")
 
+        duplicate_id = self.get_argument('duplicateId', '')
+
         try:
             with model.session_scope() as session:
                 survey = model.Survey()
                 self._update(survey, self.request_son)
                 session.add(survey)
                 session.flush()
-                session.expunge(survey)
+                survey_id = str(survey.id)
+
+                if duplicate_id != '':
+                    source_survey = (session.query(model.Survey)
+                        .get(duplicate_id))
+                    self.duplicate_structure(source_survey, survey, session)
+
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.get(survey.id)
+        self.get(survey_id)
+
+    def duplicate_structure(self, source_survey, target_survey, session):
+        '''
+        Duplicate an existing survey - just the structure (e.g. hierarchy,
+        qnodes and measures).
+        '''
+        log.info('Duplicating %s from %s', target_survey, source_survey)
+
+        def dissociate(entity):
+            # Expunge followed by make_transient tells SQLAlchemy to use INSERT
+            # instead of UPDATE, thus duplicating the row in the table.
+            session.expunge(entity)
+            make_transient(entity)
+            session.add(entity)
+            return entity
+
+        def dup_hierarchies(hierarchies):
+            for hierarchy in source_survey.hierarchies:
+                log.info('Duplicating %s', hierarchy)
+                qs = hierarchy.qnodes
+                dissociate(hierarchy)
+                hierarchy.survey_id = target_survey.id
+                session.flush()
+                dup_qnodes(qs)
+
+        def dup_qnodes(qnodes):
+            for qnode in qnodes:
+                log.info('Duplicating %s', qnode)
+                children = qnode.children
+                qnode_measures = qnode.qnode_measures
+                dissociate(qnode)
+                qnode.survey_id = target_survey.id
+                session.flush()
+                dup_qnodes(children)
+                dup_qnode_measures(qnode_measures)
+
+        def dup_qnode_measures(qnode_measures):
+            for qnode_measure in qnode_measures:
+                log.info('Duplicating %s', qnode_measure)
+                dissociate(qnode_measure)
+                qnode_measure.survey_id = target_survey.id
+            session.flush()
+
+        def dup_measures(measures):
+            for measure in measures:
+                log.info('Duplicating %s', measure)
+                dissociate(measure)
+                measure.survey_id = target_survey.id
+            session.flush()
+
+        dup_measures(source_survey.measures)
+        dup_hierarchies(source_survey.hierarchies)
 
     @handlers.authz('author')
     def delete(self, survey_id):

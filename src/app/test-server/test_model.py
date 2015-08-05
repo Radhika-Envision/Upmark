@@ -274,7 +274,6 @@ class SurveyStructureIntegrationTest(unittest.TestCase):
 
             hierarchy.title = 'Duplicate hierarchy'
             hierarchy.survey = survey
-            session.add(hierarchy)
 
         # Make sure hierarchy ID is still the same
         with model.session_scope() as session:

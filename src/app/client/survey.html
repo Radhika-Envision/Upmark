@@ -3,6 +3,10 @@
 <div class="header">
 <div class="container">
     <div class="toolbar">
+        <a class="btn btn-default btn-round" title="Duplicate"
+                ng-href="#/survey/new?duplicate={{survey.id}}"
+                ng-if="!edit.model && checkRole('survey_dup')">
+            <small><i class="fa fa-clone"></i></button></a>
         <button class="btn btn-default btn-round" title="Delete"
                 ng-click="edit.del()"
                 ng-if="!edit.model && checkRole('survey_del')">

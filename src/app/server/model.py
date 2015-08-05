@@ -37,7 +37,7 @@ class SystemConfig(Base):
     value = Column(String)
     description = Column(String)
 
-    def __str__(self):
+    def __repr__(self):
         return "SystemConfig(name={}, value={})".format(self.name, self.value)
 
 
@@ -54,7 +54,7 @@ class Organisation(Versioned, Base):
         Index('organisation_name_key', func.lower(name), unique=True),
     )
 
-    def __str__(self):
+    def __repr__(self):
         return "Organisation(name={})".format(self.name)
 
 
@@ -80,7 +80,7 @@ class AppUser(Versioned, Base):
         Index('appuser_email_key', func.lower(email), unique=True),
     )
 
-    def __str__(self):
+    def __repr__(self):
         return "AppUser(email={})".format(self.email)
 
 
@@ -128,7 +128,7 @@ class Survey(Base):
     def is_open(self):
         return self.open_date is not None
 
-    def __str__(self):
+    def __repr__(self):
         return "Survey(title={})".format(self.title)
 
 
@@ -141,7 +141,7 @@ class Hierarchy(Base):
     description = Column(Text)
     structure = Column(JSON, nullable=False)
 
-    def __str__(self):
+    def __repr__(self):
         return "Hierarchy(title={}, survey={})".format(
             self.title, self.survey.title)
 
@@ -197,7 +197,7 @@ class Measure(Base):
     questions = Column(Text, nullable=True)
     response_type = Column(Text, nullable=False)
 
-    survey = relationship(Survey)
+    survey = relationship(Survey, backref='measures')
 
     def __repr__(self):
         return "Measure(title={}, survey={})".format(
