@@ -1,6 +1,9 @@
 import datetime
+import os
 import sys
 import unittest
+import inspect
+
 from unittest import mock
 
 from dateutil.parser import parse
@@ -8,11 +11,13 @@ from dateutil.parser import parse
 sys.path.append('.')
 
 import watchdog
-
+import pytz
 
 def get_config():
     return {
         'MINIMUM_UPTIME_MS': 60000,
+        'N_LOG_LINES': 100,
+        'CONTAINER_NAME': 'aq',
         'MESSAGE_SUBJECT_TEST': "Test message",
         'MESSAGE_CONTENT_TEST': "Test message body",
         'MESSAGE_SUBJECT_CRASHED': "CRASH message",
@@ -28,7 +33,7 @@ class WatchdogTest(unittest.TestCase):
 
     def setUp(self):
         self.base_date = parse("2015-07-17T06:41:43.156012281Z")
-
+    
     def test_config_missing(self):
         def get_config():
             raise FileNotFoundError()
@@ -130,7 +135,7 @@ class WatchdogTest(unittest.TestCase):
 
     def test_crashed_crashed_starting_up(self):
         def get_container_info():
-            started_at = self.base_date + datetime.timedelta(seconds=10)
+            started_at = self.base_date.replace(tzinfo = pytz.utc) + datetime.timedelta(seconds=10)
             running = True
             return started_at, running
 

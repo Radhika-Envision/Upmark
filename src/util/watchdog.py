@@ -12,10 +12,13 @@ import smtplib
 import socket
 from string import Template
 import sys
+import docker
 
 from docker import Client
+from docker.utils import kwargs_from_env
 from dateutil.parser import parse
 import yaml
+import pytz
 
 
 log = logging.getLogger('watchdog')
@@ -50,9 +53,27 @@ def get_config():
         return yaml.load(stream)
 
 
+def get_docker_base_url():
+    if os.environ.get('DOCKER_HOST'):
+        return os.environ.get('DOCKER_HOST')
+    return 'unix://var/run/docker.sock'
+
+
+def get_docker_client():
+    if os.environ.get('DOCKER_HOST'):
+        cert_path = os.environ.get('DOCKER_CERT_PATH')
+        log.debug("DOCKER_CERT_PATH: %s", os.path.join(cert_path, 'cert.pem'))
+        tls_config = docker.tls.TLSConfig(
+          client_cert=(os.path.join(cert_path, 'cert.pem'), os.path.join(cert_path, 'key.pem')), 
+          verify=os.path.join(cert_path, 'ca.pem')
+        )
+        client = docker.Client(base_url=get_docker_base_url(), tls=tls_config)
+        return client
+    return Client(base_url=get_docker_base_url())
+
 def get_container_log():
     config = get_config()
-    c = Client(base_url='unix://var/run/docker.sock')
+    c = get_docker_client()
     try:
         logs = c.logs(config['CONTAINER_NAME'], tail=config['N_LOG_LINES'])
     except docker.errors.NotFound as e:
@@ -63,14 +84,13 @@ def get_container_log():
 
 def get_container_info():
     config = get_config()
-    c = Client(base_url='unix://var/run/docker.sock')
+    c = Client(base_url=get_docker_base_url())
     try:
         info = c.inspect_container(config['CONTAINER_NAME'])
     except docker.errors.NotFound as e:
         raise
 
-    started_at = parse(info['State']['StartedAt'])
-    started_at = started_at.replace(tzinfo=None)
+    started_at = parse(info['State']['StartedAt']).replace(tzinfo = pytz.utc)
     running = info['State']['Running']
     return started_at, running
 
@@ -109,7 +129,7 @@ def check_docker():
 
     elif state['status'] == 'running':
         log.debug("Current status is: running")
-        if started_at > state['started_at']:
+        if started_at.replace(tzinfo = pytz.utc) > state['started_at']:
             # Start time is different, so the machine crashed.
             log.info("Transitioning to: crashed")
             send_email('crashed', get_container_log())
@@ -119,7 +139,8 @@ def check_docker():
     elif running:
         log.debug("Current status is: crashed")
         delta = datetime.timedelta(milliseconds=config['MINIMUM_UPTIME_MS'])
-        if datetime.datetime.utcnow() - delta > state['started_at']:
+        now = datetime.datetime.utcnow().replace(tzinfo = pytz.utc)
+        if now - delta > state['started_at']:
             # Instance has been running for a while. Consider it to be running
             # well again.
             log.info("Transitioning to: running")

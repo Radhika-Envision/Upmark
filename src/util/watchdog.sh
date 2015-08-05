@@ -10,7 +10,7 @@ function error() {
 function install_deps() {
 
     which pip3 || sudo apt-get update && sudo apt-get install -y python3-pip 
-    sudo pip3 install -vU pyyaml docker-py python-dateutil
+    sudo pip3 install -vU pyyaml docker-py python-dateutil pytz
     if [ $? -ne 0 ]; then
         error "Failed to install Python dependencies."
         exit 1
