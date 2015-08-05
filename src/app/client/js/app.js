@@ -97,8 +97,7 @@ angular.module('wsaa.aquamark',
         $routeProvider
 
             .when('/', {
-                templateUrl : 'start.html',
-                controller : 'EmptyCtrl'
+                redirectTo : 'surveys'
             })
             .when('/admin', {
                 templateUrl : 'systemconfig.html',

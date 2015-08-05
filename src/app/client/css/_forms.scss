@@ -62,6 +62,18 @@ $anim-time: 0.3s;
     background-color: $button-bg
 }
 
+.input-group-btn {
+    // Extension to Bootstrap rules to allow multiple button groups.
+    &:not(:first-child):not(:last-child) {
+        >.btn {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+    }
+}
+
 .btn-default, .btn-default.active, .btn-default[disabled],
 .form-control, .form-control.active {
     color: lighten($button-fg, 30%);
@@ -91,6 +103,9 @@ $anim-time: 0.3s;
             border-bottom-color: $primary-col;
             color: $button-fg;
         }
+    }
+    .fa-badge {
+        @include text-shadow-outline($button-bg);
     }
 }
 

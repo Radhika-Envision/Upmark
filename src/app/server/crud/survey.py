@@ -12,7 +12,7 @@ import handlers
 import model
 import logging
 
-from utils import ToSon, updater
+from utils import ToSon, truthy, updater
 
 log = logging.getLogger('app.crud.surveys')
 
@@ -64,10 +64,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         with model.session_scope() as session:
             try:
                 query = session.query(model.Survey)
-                if survey_id == 'current':
-                    survey = query.order_by(model.Survey.created.desc()).first()
-                else:
-                    survey = query.get(survey_id)
+                survey = query.get(survey_id)
                 if survey is None:
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError,
@@ -94,21 +91,30 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         Get a list of surveys.
         '''
 
+        term = self.get_argument('term', '')
+        is_open = truthy(self.get_argument('open', ''))
+        is_editable = truthy(self.get_argument('editable', ''))
+
         sons = []
         with model.session_scope() as session:
             query = session.query(model.Survey)
-
-            term = self.get_argument('term', '')
             if term != '':
                 query = query.filter(
                     model.Survey.title.ilike(r'%{}%'.format(term)))
 
-            query = query.order_by(model.Survey.created)
+            if is_open:
+                query = query.filter_by(open_date=None)
+
+            if is_editable:
+                query = query.filter_by(finalised_date=None)
+
+            query = query.order_by(model.Survey.created.desc())
             query = self.paginate(query)
 
             to_son = ToSon(include=[
                 r'/id$',
                 r'/title$',
+                r'/description$',
                 r'/[0-9]+$'
             ])
             sons = to_son(query.all())

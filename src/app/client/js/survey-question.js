@@ -98,10 +98,11 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.layout = layout;
     $scope.checkRole = authz(current, null);
-    $scope.currentSurvey = Survey.get({id: 'current'});
 
     $scope.search = {
         term: "",
+        open: true,
+        editable: $scope.checkRole('survey_edit'),
         page: 0,
         pageSize: 10
     };

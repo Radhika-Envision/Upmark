@@ -11,32 +11,48 @@
     </div>
 </div>
 
-<div class="container" ng-if="!currentSurvey.id">
-    <p>
-        No survey has been created yet.
-        <span ng-if="checkRole('survey_add')">
-            Add one using the <i class="fa fa-fw fa-plus"></i> button above.
-        </span>
-    </p>
-</div>
 
+<div class="container">
+    <search-box model="search" result="surveys">
+        <button class="btn btn-default" type="button"
+                title="Toggle display of closed surveys"
+                ng-click="search.open = !search.open">
+            <i class="fa fa-clock-o">
+                <i ng-if="!search.open"
+                    class="fa fa-question-circle fa-badge"></i>
+            </i>
+            Open
+        </button>
+        <button class="btn btn-default" type="button"
+                title="Toggle display of editable surveys"
+                ng-click="search.editable = !search.editable"
+                ng-if="checkRole(survey_edit)">
+            <i class="fa fa-pencil">
+                <i ng-if="!search.editable"
+                    class="fa fa-question-circle fa-badge fa-badge-left"></i>
+            </i>
+            Editable
+        </button>
+    </search-box>
 
-<div class="container" ng-if="currentSurvey.id">
-    <p>
-        The current survey is
-        <a ng-href="#/survey/{{currentSurvey.id}}">{{currentSurvey.title}}</a>.
-        You can search for other surveys below.
-    </p>
-
-    <search-box model="search" result="surveys"></search-box>
-
-  <table class="table table-hover">
-    <tbody>
-      <tr ng-repeat="survey in surveys"
-            any-href='/survey/{{survey.id}}'">
-        <td>{{survey.title}}</td>
-      </tr>
-    </tbody>
-  </table>
+    <ul class="list-results">
+        <li>
+            <a ng-repeat="survey in surveys"
+                    ng-href="#/survey/{{survey.id}}">
+                <h4>{{survey.title}}</h4>
+                <p>{{survey.description}}</p>
+            </a>
+        </li>
+        <li ng-if="!surveys.length">
+            <div>
+            <p>No surveys match your query.
+                <span ng-if="checkRole('survey_add')">
+                    You can create a survey by pressing the
+                    <i class="fa fa-fw fa-plus"></i> button above.
+                </span>
+            </p>
+            </div>
+        </li>
+    </ul>
 
 </div>

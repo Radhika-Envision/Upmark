@@ -44,3 +44,14 @@
     -o-transform-origin: $rules;
     transform-origin: $rules;
 }
+
+$outline-width: 0.15em;
+$outline-jitter: 0.25;
+
+@mixin text-shadow-outline($colour) {
+    text-shadow:
+        ($outline-width) ($outline-width * $outline-jitter) $colour,
+        (-$outline-width) (-$outline-width * $outline-jitter) $colour,
+        ($outline-width * $outline-jitter) (-$outline-width) $colour,
+        (-$outline-width * $outline-jitter) ($outline-width) $colour;
+}
