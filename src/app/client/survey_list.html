@@ -40,7 +40,7 @@
             <a ng-repeat="survey in surveys"
                     ng-href="#/survey/{{survey.id}}">
                 <h4>{{survey.title}}</h4>
-                <p>{{survey.description}}</p>
+                <p class="truncate">{{survey.description}}</p>
             </a>
         </li>
         <li ng-if="!surveys.length">

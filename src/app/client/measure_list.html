@@ -37,7 +37,7 @@
       <tr ng-repeat="measure in measures"
             ng-class="{strike: measure.orphan}"
             any-href="/measure/{{measure.id}}?survey={{survey.id}}">
-        <td class="preview-text">{{measure.title}}
+        <td class="truncate">{{measure.title}}
             <span class="text-muted" ng-if="measure.intent">
                 - {{measure.intent}}</span>
         </td>

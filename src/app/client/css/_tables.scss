@@ -19,10 +19,7 @@
             width: 1%;
             white-space: nowrap;
         }
-        &.preview-text {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        &.truncate {
             max-width: 0;
         }
     }

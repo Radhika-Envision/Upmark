@@ -27,7 +27,7 @@
             <i class="fa fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
-                ng-if="!edit.model && checkRole('proc_edit')">
+                ng-if="!edit.model && checkRole('measure_edit')">
             <i class="fa fa-pencil"></i></button>
     </div>
     <question-header entity="measure"></question-header>
@@ -86,22 +86,18 @@
 
 <div class="measure" ng-if="!edit.model">
 <div class="container">
-    <p ng-if="measure.intent">
-        <span class="text-muted">Intent</span>
-        {{measure.intent}}</p>
-    <p ng-if="measure.inputs">
-        <span class="text-muted">Inputs</span>
-        {{measure.inputs}}</p>
-    <p ng-if="measure.scenario">
-        <span class="text-muted">Scenario</span>
-        {{measure.scenario}}</p>
-    <p ng-if="measure.questions">
-        <span class="text-muted">Questions</span>
-        {{measure.questions}}</p>
+    <h3 ng-if="measure.intent">Intent</h3>
+    <p ng-if="measure.intent" class="formatted">{{measure.intent}}</p>
+    <h3 ng-if="measure.inputs">Inputs</h3>
+    <p ng-if="measure.inputs" class="formatted">{{measure.inputs}}</p>
+    <h3 ng-if="measure.scenario">Scenario</h3>
+    <p ng-if="measure.scenario" class="formatted">{{measure.scenario}}</p>
+    <h3 ng-if="measure.questions">Questions</h3>
+    <p ng-if="measure.questions" class="formatted">{{measure.questions}}</p>
 </div>
 </div>
 
-<div class="measure" ng-if="!edit.model && parents">
+<div class="measure" ng-if="!edit.model && parents && checkRole('measure_edit')">
 <div class="container text-muted">
     <p ng-if="parents.length">
         Measures are shared between question sets.

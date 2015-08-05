@@ -150,18 +150,8 @@
 
 <div class="measure" ng-if="!edit.model">
 <div class="container">
-    <p ng-if="hierarchy.description">{{hierarchy.description}}</p>
-    <p>
-        <span class="text-muted">Structure:</span>
-        <span ng-repeat="level in hierarchy.structure.levels">
-            <span class="text-muted" ng-if="$index > 0">&raquo;</span>
-            {{level.title}}
-        </span>
-        <span>
-            <span class="text-muted">&raquo;</span>
-            {{hierarchy.structure.measure.title}}
-        </span>
-    </p>
+    <p ng-if="hierarchy.description"
+            class="formatted">{{hierarchy.description}}</p>
 </div>
 </div>
 
@@ -171,4 +161,20 @@
         params="{surveyId: survey.id, hierarchyId: hierarchy.id}"
         resource="QuestionNode" ng-if="!edit.model"></reorderable>
 
+</div>
+
+<div class="measure" ng-if="!edit.model">
+<div class="container">
+    <p class="text-muted">
+        Question set structure:
+        <span ng-repeat="level in hierarchy.structure.levels">
+            <span ng-if="$index > 0">&raquo;</span>
+            {{level.title}}
+        </span>
+        <span>
+            <span >&raquo;</span>
+            {{hierarchy.structure.measure.title}}
+        </span>
+    </p>
+</div>
 </div>

@@ -48,7 +48,7 @@
 <div ng-if="!edit.model">
 <div class="measure">
 <div class="container">
-    <p>{{survey.description}}</p>
+    <p class="formatted">{{survey.description}}</p>
 
     <p>You can <a ng-href="#/measures?survey={{survey.id}}">
         search for measures</a>, or browse the categories below.</p>
@@ -72,14 +72,15 @@
     <p ng-if="!hierarchies.length">
         There are no question sets yet.
     </p>
-  <table class="table table-hover">
-    <tbody>
-      <tr ng-repeat="hierarchy in hierarchies"
-            any-href='/hierarchy/{{hierarchy.id}}?survey={{survey.id}}'">
-        <td>{{hierarchy.title}}</td>
-      </tr>
-    </tbody>
-  </table>
+
+    <ul class="list-results">
+        <li>
+            <a ng-repeat="hierarchy in hierarchies"
+                    ng-href="#/hierarchy/{{hierarchy.id}}?survey={{survey.id}}">
+                <h4>{{hierarchy.title}}</h4>
+            </a>
+        </li>
+    </ul>
 </div>
 </div>
 

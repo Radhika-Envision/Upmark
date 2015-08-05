@@ -23,7 +23,8 @@
       <tr ng-repeat="measure in measures"
             ng-class="{strike: measure.orphan}"
             ng-click="select(measure)">
-        <td class="preview-text">{{measure.title}}
+        <td class="truncate">
+            {{measure.title}}
             <span class="text-muted" ng-if="measure.intent">
                 - {{measure.intent}}</span>
         </td>

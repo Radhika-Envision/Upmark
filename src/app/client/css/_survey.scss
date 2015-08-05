@@ -10,7 +10,13 @@ h2, h3, h4 {
 h2 {
     font-size: 19px;
 }
-h3, h4 {
+h3 {
+    font-size: 16px;
+    color: #555;
+    margin-top: 12px;
+    margin-bottom: 8px;
+}
+h4 {
     font-size: 16px;
 }
 
@@ -177,6 +183,10 @@ ng-include>.header, .nested>.header {
     }
 }
 
+.formatted {
+    white-space: pre-wrap;
+}
+
 ul.list-results {
     padding-left: 0;
     > li {
@@ -191,9 +201,6 @@ ul.list-results {
             }
             > p {
                 color: #555;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
                 &:last-child {
                     margin-bottom: 0;
                 }
@@ -208,6 +215,12 @@ ul.list-results {
             }
         }
     }
+}
+
+.truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .measure {
