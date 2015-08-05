@@ -8,8 +8,10 @@
             ng-model="model.term"
             ng-model-options="{ debounce: { 'default': 300, 'blur': 0 }}">
     <span class="input-group-addon text-muted">
-        {{(model.page * model.pageSize) + 1}} -
-        {{(model.page * model.pageSize) + result.length}}
+        {{(model.page * model.pageSize) + 1}}
+        <span class="hidden-xs">
+            - {{(model.page * model.pageSize) + result.length}}
+        </span>
     </span>
     <span class="input-group-btn">
         <button class="btn btn-default" type="button" title="Previous page"

@@ -30,12 +30,19 @@
             display: block;
             padding: 6px 12px;
         }
-
+        input[type=text] {
+            min-width: 3.5em;
+        }
         .btn.btn-round {
             width: 34px;
             height: 34px;
             line-height: 34px;
             font-size: 34px * (2 / 3) - 1;
+            margin-left: 6px;
+
+            &:first-child {
+                margin-left: 0;
+            }
         }
     }
 }

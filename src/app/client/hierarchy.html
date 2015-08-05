@@ -61,9 +61,14 @@
             <thead>
                 <tr>
                     <th>Name</th>
-                    <th class="shrink">Short label</th>
-                    <th class="shrink">Has measures</th>
-                    <th class="shrink"></th>
+                    <th class="shrink">
+                        <span class="hidden-xs">Short label</span>
+                        <span class="visible-xs">Label</span>
+                    </th>
+                    <th class="shrink">
+                        <span class="hidden-xs">Has measures</span>
+                        <span class="visible-xs">Measures</span>
+                    </th>
                 </tr>
             </thead>
             <tbody>
@@ -84,22 +89,17 @@
                             ng-model="level.label" required maxlength="2" />
                     </td>
                     <td class="shrink">
-                        <div class="btn-group">
-                            <button title="Can not have measures as children"
-                                    class="btn btn-default"
-                                    ng-class="{active: !level.hasMeasures}"
-                                    ng-click="level.hasMeasures = false">
-                                No
-                            </button>
-                            <button title="Has measures as direct children"
-                                    class="btn btn-default"
-                                    ng-class="{active: level.hasMeasures}"
-                                    ng-click="level.hasMeasures = true">
-                                Yes
-                            </button>
-                        </div>
-                    </td>
-                    <td class="shrink">
+                        <button title="{{level.hasMeasures ?
+                                    'Has measures as children' :
+                                    'Can not have measures as children'}}"
+                                class="btn btn-default btn-round"
+                                ng-click="level.hasMeasures =
+                                    !level.hasMeasures">
+                            <i class="fa fa-fw fa-toggle-off"
+                                ng-hide="level.hasMeasures"></i>
+                            <i class="fa fa-fw fa-toggle-on"
+                                ng-show="level.hasMeasures"></i>
+                        </button>
                         <button class="btn btn-default btn-round" title="Remove"
                                 ng-click="removeLevel(edit.model, level)"
                                 ng-style="{visibility: $index < 1 ? 'hidden' : null}">
@@ -124,7 +124,7 @@
                             required maxlength="2" />
                     </td>
                     <td class="shrink text-muted">
-                        <span>Measure</span>
+                        <span class="hidden-xs">Measure</span>
                     </td>
                 </tr>
             </tbody>
