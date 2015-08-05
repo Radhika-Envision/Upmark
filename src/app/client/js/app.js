@@ -450,8 +450,9 @@ angular.module('wsaa.aquamark',
 }])
 
 
-.controller('RootCtrl', ['$scope',
-        function($scope) {
+.controller('RootCtrl', ['$scope', 'hotkeys',
+        function($scope, hotkeys) {
+    $scope.hotkeyHelp = hotkeys.toggleCheatSheet;
 }])
 .controller('HeaderCtrl', ['$scope', 'confAuthz', 'Current',
         function($scope, confAuthz, Current) {

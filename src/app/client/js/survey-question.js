@@ -63,10 +63,11 @@ angular.module('wsaa.surveyQuestions', [
 
 
 .controller('SurveyCtrl', [
-        '$scope', 'Survey', 'routeData', 'Editor', 'questionAuthz',
+        '$scope', 'Survey', 'routeData', 'Editor', 'questionAuthz', 'hotkeys',
         '$location', 'Notifications', 'Current', 'Hierarchy', 'layout',
-        function($scope, Survey, routeData, Editor, authz,
-                 $location, Notifications, current, Hierarchy, layout) {
+        'format',
+        function($scope, Survey, routeData, Editor, authz, hotkeys,
+                 $location, Notifications, current, Hierarchy, layout, format) {
 
     $scope.layout = layout;
     $scope.edit = Editor('survey', $scope);
@@ -89,6 +90,24 @@ angular.module('wsaa.surveyQuestions', [
     });
 
     $scope.checkRole = authz(current, $scope.survey);
+
+    hotkeys.bindTo($scope)
+        .add({
+            combo: ['a'],
+            description: "Add a new question set",
+            callback: function(event, hotkey) {
+                $location.url(
+                    format("/hierarchy/new?survey={{}}", $scope.survey.id));
+            }
+        })
+        .add({
+            combo: ['s'],
+            description: "Search for measures",
+            callback: function(event, hotkey) {
+                $location.url(
+                    format("/measures?survey={{}}", $scope.survey.id));
+            }
+        });
 }])
 
 
@@ -254,12 +273,28 @@ angular.module('wsaa.surveyQuestions', [
         },
         replace: true,
         templateUrl: 'question_header.html',
-        controller: ['$scope', 'layout', 'Structure',
-                function($scope, layout, Structure) {
+        controller: ['$scope', 'layout', 'Structure', 'hotkeys', 'format',
+                '$location',
+                function($scope, layout, Structure, hotkeys, format, $location) {
             $scope.layout = layout;
             $scope.$watch('entity', function(entity) {
                 $scope.structure = Structure(entity);
             });
+
+            hotkeys.bindTo($scope)
+                .add({
+                    combo: ['ctrl+up'],
+                    description: "Go up one level of the hierarchy",
+                    callback: function(event, hotkey) {
+                        var item = $scope.structure.hstack[
+                            $scope.structure.hstack.length - 2]
+                        var path = format(
+                            "/{}/{}", item.path, item.entity.id);
+                        if (item.path != 'survey')
+                            path += '?survey=' + $scope.structure.survey.id;
+                        $location.url(path);
+                    }
+                });
         }]
     }
 }])
