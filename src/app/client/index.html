@@ -7,6 +7,7 @@
 
 <body ng-controller="RootCtrl">
 
+<div id="non-footer">
 <header ng-controller="HeaderCtrl">
     <nav class="navbar navbar-default navbar-static-top" role="navigation"
             data-toggle="collapse" data-target=".navbar-collapse.in">
@@ -68,6 +69,16 @@
 
 <div id="page-content">
     <div ng-view autoscroll="true"></div>
+</div>
+</div>
+
+<div id="footer">
+<p>
+    <a href="#/legal">&copy;</a>
+    &middot;
+    <a ng-click="hotkeyHelp()" href title="Keyboard shortcuts">
+        <i class="fa fa-fw fa-keyboard-o"></i></a>
+</p>
 </div>
 
 <messages></messages>
