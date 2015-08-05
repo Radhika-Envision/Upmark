@@ -101,6 +101,7 @@ class WatchdogTest(unittest.TestCase):
 
         def get_container_info():
             started_at = self.base_date + datetime.timedelta(days=1)
+            started_at = started_at.replace(tzinfo=None)
             running = True
             return started_at, running
 

@@ -54,11 +54,11 @@ def get_container_log():
     config = get_config()
     c = Client(base_url='unix://var/run/docker.sock')
     try:
-        logs = c.logs(config['CONTAINER_NAME'], tail=100)
+        logs = c.logs(config['CONTAINER_NAME'], tail=config['N_LOG_LINES'])
     except docker.errors.NotFound as e:
         raise
 
-    return logs.decode("utf-8").replace("\n", "<BR/>")
+    return logs.decode("utf-8")
 
 
 def get_container_info():
@@ -135,7 +135,8 @@ def send_email(message_type, logs):
     config = get_config()
 
     template = Template(config['MESSAGE_CONTENT_%s' % message_type.upper()])
-    msg = MIMEText(template.substitute(server=socket.gethostname(), logs=logs), 'html')
+    n_log_lines = config['N_LOG_LINES']
+    msg = MIMEText(template.substitute(server=socket.gethostname(), logs=logs, n_log_lines=n_log_lines), 'text/plain')
 
     msg['Subject'] = config['MESSAGE_SUBJECT_%s' % message_type.upper()]
     msg['From'] = config['MESSAGE_SEND_FROM']
@@ -171,8 +172,8 @@ def run(argv):
         sys.exit(1)
 
     if args.test_email:
-        send_email('test', get_container_log())
-    if args.reset:
+        send_email('test', None)
+    elif args.reset:
         reset()
     else:
         check_docker()
