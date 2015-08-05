@@ -3,7 +3,8 @@
 <div class="header">
 <div class="container">
     <div class="toolbar">
-        <survey-history entity="measure" service="Measure"></survey-history>
+        <survey-history entity="measure" service="Measure"
+                ng-if="!edit.model"></survey-history>
         <button class="btn btn-default btn-round"
                 title="{{parent ? 'Unlink' : 'Delete'}}"
                 ng-click="edit.del()"
