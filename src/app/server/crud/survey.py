@@ -156,7 +156,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         Duplicate an existing survey - just the structure (e.g. hierarchy,
         qnodes and measures).
         '''
-        log.info('Duplicating %s from %s', target_survey, source_survey)
+        log.debug('Duplicating %s from %s', target_survey, source_survey)
 
         def dissociate(entity):
             # Expunge followed by make_transient tells SQLAlchemy to use INSERT
@@ -168,7 +168,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
 
         def dup_hierarchies(hierarchies):
             for hierarchy in source_survey.hierarchies:
-                log.info('Duplicating %s', hierarchy)
+                log.debug('Duplicating %s', hierarchy)
                 qs = hierarchy.qnodes
                 dissociate(hierarchy)
                 hierarchy.survey_id = target_survey.id
@@ -177,7 +177,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
 
         def dup_qnodes(qnodes):
             for qnode in qnodes:
-                log.info('Duplicating %s', qnode)
+                log.debug('Duplicating %s', qnode)
                 children = qnode.children
                 qnode_measures = qnode.qnode_measures
                 dissociate(qnode)
@@ -188,14 +188,14 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
 
         def dup_qnode_measures(qnode_measures):
             for qnode_measure in qnode_measures:
-                log.info('Duplicating %s', qnode_measure)
+                log.debug('Duplicating %s', qnode_measure)
                 dissociate(qnode_measure)
                 qnode_measure.survey_id = target_survey.id
             session.flush()
 
         def dup_measures(measures):
             for measure in measures:
-                log.info('Duplicating %s', measure)
+                log.debug('Duplicating %s', measure)
                 dissociate(measure)
                 measure.survey_id = target_survey.id
             session.flush()

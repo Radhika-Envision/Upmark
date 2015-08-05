@@ -218,7 +218,8 @@ class BaseHandler(tornado.web.RequestHandler):
                 self._request_son = denormalise(json_decode(self.request.body))
             except (TypeError, UnicodeError, ValueError) as e:
                 raise ModelError(
-                    "Could not decode request body: %s" % str(e.message))
+                    "Could not decode request body: %s. Body started with %s" %
+                    (str(e), self.request.body[0:30]))
             return self._request_son
 
 

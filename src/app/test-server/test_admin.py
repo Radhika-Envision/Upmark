@@ -5,110 +5,14 @@ import urllib
 
 from sqlalchemy.sql import func
 from tornado.escape import json_decode, json_encode
-from tornado.testing import AsyncHTTPTestCase
-from tornado.web import Application
 
 import app
-import handlers
+import base
 import model
 from utils import ToSon
 
 
-# TODO: Do this once when the unit tests start up (not in this file?).
-app.parse_options()
-
-
-def get_secure_cookie(user_email=None, super_email=None):
-    def _get_secure_cookie(self, name):
-        if name == 'user' and user_email is not None:
-            with model.session_scope() as session:
-                user = session.query(model.AppUser).\
-                    filter(func.lower(model.AppUser.email) ==
-                           func.lower(user_email)).one()
-                return str(user.id).encode('utf8')
-        elif name == 'superuser' and super_email is not None:
-            with model.session_scope() as session:
-                user = session.query(model.AppUser).\
-                    filter(func.lower(model.AppUser.email) ==
-                           func.lower(super_email)).one()
-                return str(user.id).encode('utf8')
-        else:
-            return None
-
-    return _get_secure_cookie
-
-
-class OrgStructureTestCase(AsyncHTTPTestCase):
-
-    def create_org_structure(self):
-        engine = model.connect_db(os.environ.get('DATABASE_URL'))
-        engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
-        engine.execute("CREATE SCHEMA public")
-        model.initialise_schema(engine)
-
-        with model.session_scope() as session:
-            org1 = model.Organisation(
-                name='Primary',
-                url='http://primary.org',
-                region="Nowhere",
-                number_of_customers = 10)
-            session.add(org1)
-            session.flush()
-
-            org2 = model.Organisation(
-                name='Utility',
-                url='http://utility.org',
-                region="Somewhere",
-                number_of_customers = 1000)
-            session.add(org2)
-            session.flush()
-
-            user = model.AppUser(
-                name='Admin', email='admin', role='admin',
-                organisation_id=org1.id)
-            user.set_password('foo')
-            session.add(user)
-
-            user = model.AppUser(
-                name='Author', email='author', role='author',
-                organisation_id=org1.id)
-            user.set_password('bar')
-            session.add(user)
-
-            user = model.AppUser(
-                name='Authority', email='authority', role='authority',
-                organisation_id=org1.id)
-            user.set_password('bar')
-            session.add(user)
-
-            user = model.AppUser(
-                name='Consultant', email='consultant', role='consultant',
-                organisation_id=org1.id)
-            user.set_password('bar')
-            session.add(user)
-
-            user = model.AppUser(
-                name='Org Admin', email='org_admin', role='org_admin',
-                organisation_id=org2.id)
-            user.set_password('bar')
-            session.add(user)
-
-            user = model.AppUser(
-                name='Clerk', email='clerk', role='clerk',
-                organisation_id=org2.id)
-            user.set_password('bar')
-            session.add(user)
-
-    def setUp(self):
-        super().setUp()
-        self.create_org_structure()
-        app.default_settings()
-
-    def get_app(self):
-        return Application(app.get_mappings(), **app.get_minimal_settings())
-
-
-class AuthNTest(OrgStructureTestCase):
+class AuthNTest(base.AqHttpTestBase):
 
     def test_unauthenticated_root(self):
         response = self.fetch("/", follow_redirects=True)
@@ -133,18 +37,16 @@ class AuthNTest(OrgStructureTestCase):
         self.assertEqual(302, response.code)
         self.assertIn('user=', response.headers['set-cookie'])
 
-    @mock.patch('tornado.web.RequestHandler.get_secure_cookie',
-                get_secure_cookie(user_email='admin'))
     def test_authenticated_root(self):
-        response = self.fetch("/")
+        with base.mock_user('admin'):
+            response = self.fetch("/")
         self.assertIn("Sign out", response.body.decode('utf8'))
 
 
-class OrgTest(OrgStructureTestCase):
+class OrgTest(base.AqHttpTestBase):
 
     def test_list_org(self):
-        with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
-                get_secure_cookie(user_email='admin')):
+        with base.mock_user('admin'):
             response = self.fetch(
                 "/organisation.json", method='GET',)
 
@@ -167,11 +69,10 @@ class OrgTest(OrgStructureTestCase):
         self.assertEqual(orgs_son, expected)
 
 
-class UserTest(OrgStructureTestCase):
+class UserTest(base.AqHttpTestBase):
 
     def test_list_org(self):
-        with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
-                get_secure_cookie(user_email='admin')):
+        with base.mock_user('admin'):
             response = self.fetch(
                 "/user.json?pageSize=2&page=0", method='GET',)
 
@@ -200,7 +101,7 @@ class UserTest(OrgStructureTestCase):
         self.assertEqual(orgs_son, expected)
 
 
-class OrgAuthzTest(OrgStructureTestCase):
+class OrgAuthzTest(base.AqHttpTestBase):
 
     def test_create_org(self):
         users = [
@@ -219,8 +120,7 @@ class OrgAuthzTest(OrgStructureTestCase):
                 "numberOfCustomers": 0,
                 "region": "Foo"
             }
-            with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
-                    get_secure_cookie(user_email=user)):
+            with base.mock_user(user):
                 response = self.fetch(
                     "/organisation.json", method='POST',
                     body=json_encode(post_data))
@@ -261,8 +161,7 @@ class OrgAuthzTest(OrgStructureTestCase):
         to_son = ToSon(include=[r'/id$', r'/name$'])
         org_son = to_son(org)
 
-        with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
-                get_secure_cookie(user_email=user_email)):
+        with base.mock_user(user_email):
 
             post_data = org_son.copy()
             response = self.fetch(
@@ -272,7 +171,7 @@ class OrgAuthzTest(OrgStructureTestCase):
         self.assertEqual(code, response.code)
 
 
-class UserAuthzTest(OrgStructureTestCase):
+class UserAuthzTest(base.AqHttpTestBase):
 
     def test_create_user(self):
         users_own = [
@@ -339,8 +238,7 @@ class UserAuthzTest(OrgStructureTestCase):
             'organisation': {'id': str(org.id)}
         }
 
-        with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
-                        get_secure_cookie(user_email=user_email)), \
+        with base.mock_user(user_email), \
                 mock.patch('crud.user.test_password', lambda x: (1.0, 0.1, {})):
             response = self.fetch(
                 "/user.json", method='POST',
@@ -363,8 +261,7 @@ class UserAuthzTest(OrgStructureTestCase):
             'organisation': {'id': str(org.id)}
         }
 
-        with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
-                        get_secure_cookie(user_email='admin')):
+        with base.mock_user('admin'):
             response = self.fetch(
                 "/user.json", method='POST',
                 body=json_encode(post_data))
@@ -406,8 +303,7 @@ class UserAuthzTest(OrgStructureTestCase):
         for user_email, code, reason in users:
             post_data = user_son.copy()
             post_data['organisation'] = post_data['organisation'].copy()
-            with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
-                    get_secure_cookie(user_email=user_email)):
+            with base.mock_user(user_email):
                 response = self.fetch(
                     "/user/%s.json" % user_son['id'], method='PUT',
                     body=json_encode(post_data))
@@ -423,8 +319,7 @@ class UserAuthzTest(OrgStructureTestCase):
             post_data = user_son.copy()
             post_data['organisation'] = post_data['organisation'].copy()
             post_data['enabled'] = False
-            with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
-                    get_secure_cookie(user_email=user_email)):
+            with base.mock_user(user_email):
                 response = self.fetch(
                     "/user/%s.json" % user_son['id'], method='PUT',
                     body=json_encode(post_data))
@@ -461,8 +356,7 @@ class UserAuthzTest(OrgStructureTestCase):
             user_son = to_son(user)
             user_son['organisation'] = org_son
 
-            with mock.patch('tornado.web.RequestHandler.get_secure_cookie',
-                    get_secure_cookie(user_email=user_email)):
+            with base.mock_user(user_email):
                 response = self.fetch(
                     "/user/%s.json" % user_son['id'], method='PUT',
                     body=json_encode(user_son))
@@ -470,7 +364,7 @@ class UserAuthzTest(OrgStructureTestCase):
                 self.assertEqual(code, response.code)
 
 
-class PasswordTest(OrgStructureTestCase):
+class PasswordTest(base.AqHttpTestBase):
 
     def test_password_strength(self):
         response = self.fetch(

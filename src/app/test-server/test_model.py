@@ -6,149 +6,17 @@ import urllib
 
 from sqlalchemy.sql import func
 from sqlalchemy.orm.session import make_transient
+from tornado.escape import json_encode
+from tornado.testing import AsyncHTTPTestCase
+from tornado.web import Application
 
+import app
+import base
 import model
 from utils import ToSon
 
 
-class SurveyStructureIntegrationTest(unittest.TestCase):
-
-    def setUp(self):
-        super().setUp()
-        engine = model.connect_db(os.environ.get('DATABASE_URL'))
-        engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
-        engine.execute("CREATE SCHEMA public")
-        model.initialise_schema(engine)
-        self.create_structure()
-
-    def create_structure(self):
-        # Create survey
-        with model.session_scope() as session:
-            survey = entity = model.Survey(
-                title='Test Survey 1',
-                description="This is a test survey")
-            session.add(survey)
-            session.flush()
-            survey_id = survey.id
-
-        # Create measures
-        msons = [
-            {
-                'title': "Foo Measure",
-                'intent': "Foo",
-                'weight': 100,
-                'response_type': 'A'
-            },
-            {
-                'title': "Bar Measure",
-                'intent': "Bar",
-                'weight': 200,
-                'response_type': 'A'
-            },
-            {
-                'title': "Baz Measure",
-                'intent': "Baz",
-                'weight': 300,
-                'response_type': 'A'
-            },
-        ]
-        measure_ids = []
-        with model.session_scope() as session:
-            for mson in msons:
-                measure = model.Measure(survey_id=survey_id, **mson)
-                session.add(measure)
-                session.flush()
-                measure_ids.append(measure.id)
-
-        # Create hierarchy, with qnodes and measures as descendants
-        hsons = [
-            {
-                'title': "Hierarchy 1",
-                'description': "Test",
-                'qnodes': [
-                    {
-                        'title': "Function 1",
-                        'description': "Test",
-                        'children': [
-                            {
-                                'title': "Process 1",
-                                'description': "Test",
-                                'measures': [0, 1],
-                            },
-                        ],
-                    },
-                    {
-                        'title': "Function 2",
-                        'description': "Test",
-                    },
-                ],
-            },
-            {
-                'title': "Hierarchy 2",
-                'description': "Test",
-                'qnodes': [
-                    {
-                        'title': "Section 1",
-                        'description': "Test",
-                        'children': [
-                            {
-                                'title': "SubSection 1",
-                                'description': "Test",
-                                'measures': [1, 2],
-                            },
-                        ],
-                    },
-                    {
-                        'title': "Section 2",
-                        'description': "Test",
-                    },
-                ],
-            },
-        ]
-
-        def create_qnodes(qsons, session, hierarchy_id=None, parent_id=None):
-            qnodes = []
-            for qson in qsons:
-                qnode = model.QuestionNode(
-                    hierarchy_id=hierarchy_id,
-                    parent_id=parent_id,
-                    survey_id=survey_id)
-                qnode.title = qson['title']
-                qnode.description = qson['description']
-                qnodes.append(qnode)
-                session.add(qnode)
-                session.flush()
-
-                if 'children' in qson:
-                    qnode.children = create_qnodes(
-                        qson['children'], session, parent_id=qnode.id)
-                    qnode.children.reorder()
-
-                for i in qson.get('measures', []):
-                    mi = measure_ids[i]
-                    measure = session.query(model.Measure)\
-                        .get((mi, survey_id))
-                    qnode.measures.append(measure)
-                    qnode.qnode_measures.reorder()
-            session.flush()
-            return qnodes
-
-        def create_hierarchies(hsons, session):
-            hierarchies = []
-            for hson in hsons:
-                hierarchy = model.Hierarchy(survey_id=survey_id)
-                hierarchy.title = hson['title']
-                hierarchy.description = hson['description']
-                session.add(hierarchy)
-                session.flush()
-                hierarchy.qnodes = create_qnodes(
-                    hson['qnodes'], session, hierarchy_id=hierarchy.id)
-                hierarchy.qnodes.reorder()
-            session.flush()
-            return hierarchies
-
-        with model.session_scope() as session:
-            create_hierarchies(hsons, session)
+class SurveyStructureTest(base.AqModelTestBase):
 
     def test_traverse_structure(self):
         # Read from database
@@ -309,3 +177,95 @@ class SurveyStructureIntegrationTest(unittest.TestCase):
                 .all())
             titles = {s.title for s in surveys}
             self.assertEqual(titles, {"Test Survey 1"})
+
+
+class SurveyTest(base.AqHttpTestBase):
+
+    def test_list_surveys(self):
+        with base.mock_user('clerk'):
+            survey_sons = self.fetch(
+                "/survey.json", method='GET',
+                expected=200, decode=True)
+            self.assertEqual(len(survey_sons), 1)
+
+            survey_sons = self.fetch(
+                "/survey.json?open=true", method='GET',
+                expected=200, decode=True)
+            self.assertEqual(len(survey_sons), 0)
+
+            survey_sons = self.fetch(
+                "/survey.json?editable=true", method='GET',
+                expected=200, decode=True)
+            self.assertEqual(len(survey_sons), 1)
+
+    def test_duplicate_survey(self):
+        with base.mock_user('author'):
+            survey_sons = self.fetch(
+                "/survey.json", method='GET',
+                expected=200, decode=True)
+            self.assertEqual(len(survey_sons), 1)
+            original_survey_id = survey_sons[0]['id']
+
+            survey_son = self.fetch(
+                "/survey/%s.json" % original_survey_id, method='GET',
+                expected=200, decode=True)
+
+            survey_son['title'] = "Duplicate survey"
+
+            survey_son = self.fetch(
+                "/survey.json?duplicateId=%s" % original_survey_id,
+                method='POST', body=json_encode(survey_son),
+                expected=200, decode=True)
+            new_survey_id = survey_son['id']
+            self.assertNotEqual(original_survey_id, new_survey_id)
+
+            def check_hierarchies():
+                # Check duplicated hierarchies
+                original_hierarchy_sons = self.fetch(
+                    "/hierarchy.json?surveyId=%s" % original_survey_id,
+                    method='GET',
+                    expected=200, decode=True)
+                new_hierarchy_sons = self.fetch(
+                    "/hierarchy.json?surveyId=%s" % new_survey_id, method='GET',
+                    expected=200, decode=True)
+
+                for h1, h2 in zip(original_hierarchy_sons, new_hierarchy_sons):
+                    self.assertEqual(h1['id'], h2['id'])
+                    self.assertEqual(h1['title'], h2['title'])
+                    check_qnodes(h1['id'], True)
+
+            def check_qnodes(parent_id, parent_is_hierarchy):
+                # Check duplicated qnodes
+                if parent_is_hierarchy:
+                    url = "/qnode.json?surveyId=%s&hierarchyId=%s"
+                else:
+                    url = "/qnode.json?surveyId=%s&parentId=%s"
+                original_qnode_sons = self.fetch(
+                    url % (original_survey_id, parent_id), method='GET',
+                    expected=200, decode=True)
+                new_qnode_sons = self.fetch(
+                    url % (new_survey_id, parent_id), method='GET',
+                    expected=200, decode=True)
+
+                for q1, q2 in zip(original_qnode_sons, new_qnode_sons):
+                    self.assertEqual(q1['id'], q2['id'])
+                    self.assertEqual(q1['title'], q2['title'])
+                    check_qnodes(q1['id'], False)
+                    check_measures(q1['id'])
+
+            def check_measures(parent_id):
+                # Check duplicated measures
+                url = "/measure.json?surveyId=%s&parentId=%s"
+                original_measure_sons = self.fetch(
+                    url % (original_survey_id, parent_id), method='GET',
+                    expected=200, decode=True)
+                new_measure_sons = self.fetch(
+                    url % (new_survey_id, parent_id), method='GET',
+                    expected=200, decode=True)
+
+                for m1, m2 in zip(original_measure_sons, new_measure_sons):
+                    self.assertEqual(m1['id'], m2['id'])
+                    self.assertEqual(m1['title'], m2['title'])
+
+            check_measures('')
+            check_hierarchies()
