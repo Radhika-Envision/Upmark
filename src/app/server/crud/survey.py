@@ -103,10 +103,10 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                     model.Survey.title.ilike(r'%{}%'.format(term)))
 
             if is_open:
-                query = query.filter_by(open_date=None)
+                query = query.filter(model.Survey.open_date!=None)
 
             if is_editable:
-                query = query.filter_by(finalised_date=None)
+                query = query.filter(model.Survey.finalised_date==None)
 
             query = query.order_by(model.Survey.created.desc())
             query = self.paginate(query)

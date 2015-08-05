@@ -120,7 +120,7 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.search = {
         term: "",
-        open: true,
+        open: !$scope.checkRole('survey_edit'),
         editable: $scope.checkRole('survey_edit'),
         page: 0,
         pageSize: 10
