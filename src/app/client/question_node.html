@@ -3,8 +3,6 @@
 <div class="header">
 <div class="container">
     <div class="toolbar">
-        <survey-history entity="qnode" service="QuestionNode"
-                ng-if="!edit.model"></survey-history>
         <button class="btn btn-default btn-round" title="Delete"
                 ng-click="edit.del()"
                 ng-if="survey.isEditable && !edit.model &&
@@ -29,6 +27,8 @@
                 ng-if="survey.isEditable && !edit.model &&
                     checkRole('qnode_edit')">
             <i class="fa fa-pencil"></i></button>
+        <survey-history entity="qnode" service="QuestionNode"
+                ng-if="!edit.model"></survey-history>
     </div>
     <question-header entity="qnode"></question-header>
 </div>

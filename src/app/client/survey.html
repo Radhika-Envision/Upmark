@@ -3,8 +3,6 @@
 <div class="header">
 <div class="container">
     <div class="toolbar">
-        <survey-history entity="survey" service="Survey"
-                ng-if="!edit.model"></survey-history>
         <a class="btn btn-default btn-round" title="Duplicate"
                 ng-href="#/survey/new?duplicate={{survey.id}}"
                 ng-if="!edit.model && checkRole('survey_dup')">
@@ -28,6 +26,8 @@
                 ng-if="survey.isEditable && !edit.model &&
                     checkRole('survey_edit')">
             <i class="fa fa-pencil"></i></button>
+        <survey-history entity="survey" service="Survey"
+                ng-if="!edit.model"></survey-history>
     </div>
     <question-header entity="survey" type="survey"></question-header>
 </div>
