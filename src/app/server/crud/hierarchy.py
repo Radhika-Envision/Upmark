@@ -103,6 +103,8 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         if hierarchy_id == '':
             raise handlers.MethodError("Hierarchy ID required")
 
+        self.check_editable()
+
         try:
             with model.session_scope() as session:
                 hierarchy = session.query(model.Hierarchy)\
@@ -120,6 +122,9 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
     def delete(self, hierarchy_id):
         if hierarchy_id == '':
             raise handlers.MethodError("Hierarchy ID required")
+
+        self.check_editable()
+
         try:
             with model.session_scope() as session:
                 hierarchy = session.query(model.Hierarchy)\

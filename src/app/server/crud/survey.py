@@ -210,6 +210,9 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         if survey_id == '':
             raise handlers.MethodError("Survey ID required")
+
+        self.check_editable()
+
         try:
             with model.session_scope() as session:
                 survey = session.query(model.Survey)\

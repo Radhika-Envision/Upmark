@@ -108,6 +108,8 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             raise handlers.ModelError(
                 "Can't specify both parent and hierarchy IDs")
 
+        self.check_editable()
+
         try:
             with model.session_scope() as session:
                 qnode = model.QuestionNode(survey_id=self.survey_id)
@@ -145,6 +147,8 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
 
         if qnode_id == '':
             raise handlers.MethodError("Question node ID required")
+
+        self.check_editable()
 
         try:
             with model.session_scope() as session:

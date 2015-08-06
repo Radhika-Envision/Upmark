@@ -242,14 +242,14 @@ class MeasureHandler(
     def put(self, measure_id):
         '''Update existing.'''
 
+        self.check_editable()
+
         if measure_id == '':
             self.ordering()
             return
 
         parent_ids = [p for p in self.get_arguments('parentId')
                       if p != '']
-
-        self.check_editable()
 
         try:
             with model.session_scope() as session:
