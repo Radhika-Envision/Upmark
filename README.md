@@ -70,32 +70,52 @@ crontab /home/ubuntu/aquamark/src/util/watchdog
 
 ### AWS Auto scaling group
 
-AWS Auto-scaling group supports dynamically scalibility upgrading for the service. Not
-only used for Scaling services but used for fault tollerance purpose. So AWS EC2 instances
-will be automatically created instance with the image we created.
+AWS Auto-scaling group supports dynamically scalibility upgrading for the
+service. Not only used for Scaling services but used for fault tollerance
+purpose. So AWS EC2 instances will be automatically created instance with the
+image we created. Most of these instructions should be performed in the AWS
+console.
+
+First create a load balancer. This will be reused for all deployments.
+
+1. Create Load Balacer
+    1. LOAD BALANCING > Load Balancers > Create Load Balancer
+    1. Ensure HTTP and HTTPS are enabled
+    1. Process with default option and proper names
+
+1. DNS
+    1. Assign the domain name to the load balancer IP (use your domain registrar
+       to do this).
 
 Here are the steps of the creating auto-scaling group.
 
+1. Create an instance and install Aquamark on it, as described in the previous
+   section.
+
 1. Create AMI images for current running instance.
-    1. Right click on AWS console.
-    1. Click Image > Create Image button. 
-    1. Create image.
-    1. This process takes a bit while. You can check the process on IMAGES > AMIs menu.
-1. Create Load Balacer
-    1. LOAD BALANCING > Load Balancers > Create
-    1. Process with default option and proper names
-1. Create Autoscaling
-    1. AUTO SCALING > Launch Configurations
+    1. Select the image in the AWS console under EC2 > Instances.
+    1. Click Actions > Image > Create Image button.
+    1. Create the image. This process takes a while. You can check the process
+       in the IMAGES > AMIs screen.
+
+1. Create Autoscaling Group
+    1. AUTO SCALING > Launch Configurations > Create Auto Scaling Group
         1. Configure Auto Scaling group details
-            1. Put in how many instance you need to prepare for scaling, Select proper network
-            1. On advanced tab - check `Receive traffic from Elastic Load Balancer(s)` option and select load balancer which is previously created
-        1. Configure scaling policies - You can specify condition of scale up or scale down of the instacnes
+            1. Put in how many instance you need to prepare for scaling, Select
+               a subnet that is not visible from the outside world, but which
+               can be accessed from the load balancer.
+            1. On advanced tab - check `Receive traffic from Elastic Load
+               Balancer(s)` option and select load balancer which was previously
+               created
+        1. Configure scaling policies - You can specify condition of scale up or
+           scale down of the instances
     1. AUTO SCALING > Auto Scaling Groups
         1. Create Launch Configuration > My AMIs 
         1. Select AMI which created before
         1. Choose same instance type (default)
-        1. At `Configure details`, you need to expand `Advanced details` field and type in `docker restart aq` on User data
-        1. Choose same storage space with images
+        1. At `Configure details`, you need to expand `Advanced details` field
+           and type in `docker restart aq` on User data
+        1. Choose the same storage size as specified by the image (default)
 
 
 ## Development
