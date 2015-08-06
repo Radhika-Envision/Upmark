@@ -32,7 +32,7 @@ def get_config():
 class WatchdogTest(unittest.TestCase):
 
     def setUp(self):
-        self.base_date = parse("2015-07-17T06:41:43.156012281Z")
+        self.base_date = parse("2015-07-17T06:41:43.156012281Z").replace(tzinfo = pytz.utc)
     
     def test_config_missing(self):
         def get_config():
@@ -64,7 +64,7 @@ class WatchdogTest(unittest.TestCase):
             self.assertEqual(state['started_at'], self.base_date)
 
         def _send(msg):
-            raise ValueError()
+            raise AssertionError("This routine should not be running")
 
         with mock.patch('watchdog.get_container_info', get_container_info), \
                 mock.patch('watchdog.load_state', load_state), \
@@ -91,7 +91,7 @@ class WatchdogTest(unittest.TestCase):
                 state['started_at'], self.base_date)
 
         def _send(msg):
-            raise ValueError()
+            raise AssertionError("This routine should not be running")
 
         with mock.patch('watchdog.get_container_info', get_container_info), \
                 mock.patch('watchdog.load_state', load_state), \
@@ -106,7 +106,7 @@ class WatchdogTest(unittest.TestCase):
 
         def get_container_info():
             started_at = self.base_date + datetime.timedelta(days=1)
-            started_at = started_at.replace(tzinfo=None)
+            started_at = started_at.replace(tzinfo = pytz.utc)
             running = True
             return started_at, running
 
@@ -135,7 +135,7 @@ class WatchdogTest(unittest.TestCase):
 
     def test_crashed_crashed_starting_up(self):
         def get_container_info():
-            started_at = self.base_date.replace(tzinfo = pytz.utc) + datetime.timedelta(seconds=10)
+            started_at = self.base_date + datetime.timedelta(seconds=10)
             running = True
             return started_at, running
 
@@ -149,13 +149,18 @@ class WatchdogTest(unittest.TestCase):
             self.assertEqual(state['status'], 'crashed')
             self.assertEqual(state['started_at'], self.base_date)
 
+
+        def get_utcnow():
+            return self.base_date + datetime.timedelta(seconds=10)
+
         def _send(msg):
-            raise ValueError()
+            raise AssertionError("This routine should not be running")
 
         with mock.patch('watchdog.get_container_info', get_container_info), \
                 mock.patch('watchdog.load_state', load_state), \
                 mock.patch('watchdog.save_state', save_state), \
                 mock.patch('watchdog.get_config', get_config), \
+                mock.patch('watchdog.get_utcnow', get_utcnow), \
                 mock.patch('watchdog._send', _send):
             watchdog.check_docker()
 
@@ -171,17 +176,21 @@ class WatchdogTest(unittest.TestCase):
                 'started_at': self.base_date
             }
 
+        def get_utcnow():
+            return self.base_date + datetime.timedelta(seconds=10)
+
         def save_state(state):
             self.assertEqual(state['status'], 'crashed')
             self.assertEqual(state['started_at'], self.base_date)
 
         def _send(msg):
-            raise ValueError()
+            raise AssertionError("This routine should not be running")
 
         with mock.patch('watchdog.get_container_info', get_container_info), \
                 mock.patch('watchdog.load_state', load_state), \
                 mock.patch('watchdog.save_state', save_state), \
                 mock.patch('watchdog.get_config', get_config), \
+                mock.patch('watchdog.get_utcnow', get_utcnow), \
                 mock.patch('watchdog._send', _send):
             watchdog.check_docker()
 
@@ -200,6 +209,9 @@ class WatchdogTest(unittest.TestCase):
                 'started_at': self.base_date
             }
 
+        def get_utcnow():
+            return self.base_date + datetime.timedelta(seconds=130)
+
         def save_state(state):
             self.assertEqual(state['status'], 'running')
             self.assertEqual(
@@ -213,6 +225,7 @@ class WatchdogTest(unittest.TestCase):
                 mock.patch('watchdog.load_state', load_state), \
                 mock.patch('watchdog.save_state', save_state), \
                 mock.patch('watchdog.get_config', get_config), \
+                mock.patch('watchdog.get_utcnow', get_utcnow), \
                 mock.patch('watchdog._send', _send), \
                 mock.patch('socket.gethostname', gethostname):
             watchdog.check_docker()
