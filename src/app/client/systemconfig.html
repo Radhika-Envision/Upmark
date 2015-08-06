@@ -26,7 +26,6 @@
 
 <div class="measure" ng-if="edit.model">
 <div class="container">
-    <editor-error class="measure" edit="edit"></editor-error>
     <form novalidate name="form" id="editor">
         <div class="form-group" ng-repeat="item in edit.model.settings">
             <label for="value{{$index}}">{{item.humanName}}</label>

@@ -31,7 +31,6 @@
 
 <div class="measure" ng-if="edit.model">
 <div class="container">
-    <editor-error class="measure" edit="edit"></editor-error>
     <form novalidate name="form" id="editor">
         <div class="form-group" show-errors>
             <label for="title">Name</label>
@@ -46,6 +45,34 @@
                 ng-model="edit.model.description"></textarea>
         </div>
     </form>
+
+    <div class="help-label" ng-if="duplicating">
+        <p>
+            <i class="fa fa-clone fa-2x fa-pull-left fa-border"></i>
+            You are creating a duplicate of an existing survey. The full
+            structure of the survey will be copied, with the lineage to the old
+            survey preserved. Assessments and responses will not be copied, but
+            they can be at a later time.
+        </p>
+        <p>
+            If you want to create a fresh survey with no lineage,
+            <a href="#/surveys">go back</a> and use the Add
+            <i class="fa fa-plus"></i> function instead.
+        </p>
+    </div>
+
+    <div class="help-label" ng-if="!duplicating">
+        <p>
+            <i class="fa fa-plus fa-2x fa-pull-left fa-fw fa-border"></i>
+            You are creating a new survey with no survey structure. It will not
+            be possible to link responses from other surveys to this one.
+        </p>
+        <p>
+            If you wish to preserve lineage, <a href="#/surveys">open an
+            existing survey</a> and use the Duplicate
+            <i class="fa fa-clone"></i> function instead.
+        </p>
+    </div>
 </div>
 </div>
 

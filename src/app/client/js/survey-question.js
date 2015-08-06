@@ -75,6 +75,7 @@ angular.module('wsaa.surveyQuestions', [
         $scope.edit = Editor('survey', $scope);
         $scope.survey = routeData.survey;
         $scope.hierarchies = routeData.hierarchies;
+        $scope.duplicating = false;
     } else if (routeData.duplicate) {
         // Duplicating existing
         $scope.edit = Editor('survey', $scope,
@@ -84,12 +85,14 @@ angular.module('wsaa.surveyQuestions', [
         $scope.survey.title = $scope.survey.title + " (duplicate)"
         $scope.hierarchies = null;
         $scope.edit.edit();
+        $scope.duplicating = true;
     } else {
         // Creating new
         $scope.edit = Editor('survey', $scope);
         $scope.survey = new Survey({});
         $scope.hierarchies = null;
         $scope.edit.edit();
+        $scope.duplicating = false;
     }
 
     $scope.$on('EditSaved', function(event, model) {
