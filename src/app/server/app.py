@@ -173,6 +173,7 @@ def get_mappings():
         (r"/password.json", crud.user.PasswordHandler, {}),
 
         (r"/survey/?([^/]*).json", crud.survey.SurveyHandler, {}),
+        (r"/survey/?([^/]*)/history.json", crud.survey.SurveyTrackingHandler, {}),
         (r"/hierarchy/?([^/]*).json", crud.hierarchy.HierarchyHandler, {}),
         (r"/hierarchy/?([^/]*)/survey.json", crud.survey.SurveyHistoryHandler, {
             'mapper': model.Hierarchy}),

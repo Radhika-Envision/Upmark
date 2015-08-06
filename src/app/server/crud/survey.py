@@ -158,6 +158,8 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         log.debug('Duplicating %s from %s', target_survey, source_survey)
 
+        target_survey.tracking_id = source_survey.tracking_id
+
         def dissociate(entity):
             # Expunge followed by make_transient tells SQLAlchemy to use INSERT
             # instead of UPDATE, thus duplicating the row in the table.
@@ -271,6 +273,40 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         update = updater(survey)
         update('title', son)
         update('description', son)
+
+
+class SurveyTrackingHandler(handlers.BaseHandler):
+
+    @tornado.web.authenticated
+    def get(self, survey_id):
+        '''
+        Get a list of surveys that share the same lineage.
+        '''
+        if survey_id == '':
+            raise handlers.MethodError("Survey ID is required")
+
+        with model.session_scope() as session:
+            survey = session.query(model.Survey).get(survey_id)
+            if survey is None:
+                raise handlers.MissingDocError("No such survey")
+
+            query = (session.query(model.Survey)
+                .filter(model.Survey.tracking_id==survey.tracking_id)
+                .order_by(model.Survey.created))
+
+            to_son = ToSon(include=[
+                r'/id$',
+                r'/title$',
+                r'/is_open$',
+                r'/is_editable$',
+                # Descend
+                r'/[0-9]+$',
+            ])
+            sons = to_son(query.all())
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(sons))
+        self.finish()
 
 
 class SurveyHistoryHandler(handlers.BaseHandler):

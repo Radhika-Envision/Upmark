@@ -10,7 +10,9 @@ angular.module('wsaa.surveyQuestions', [
         get: { method: 'GET', cache: false },
         create: { method: 'POST' },
         save: { method: 'PUT' },
-        query: { method: 'GET', isArray: true, cache: false }
+        query: { method: 'GET', isArray: true, cache: false },
+        history: { method: 'GET', url: '/survey/:id/history.json',
+            isArray: true, cache: false }
     });
 }])
 
@@ -117,6 +119,8 @@ angular.module('wsaa.surveyQuestions', [
         $scope.survey.$save({editable: !$scope.survey.isEditable});
     };
 
+    $scope.Survey = Survey;
+
     hotkeys.bindTo($scope)
         .add({
             combo: ['a'],
@@ -178,11 +182,18 @@ angular.module('wsaa.surveyQuestions', [
                     });
                 }
             };
+
             $scope.navigate = function(survey) {
-                $location.search('survey', survey.id);
+                if ($scope.entity.isOpen != null)
+                    $location.url('/survey/' + survey.id);
+                else
+                    $location.search('survey', survey.id);
             };
             $scope.isActive = function(survey) {
-                return $location.search().survey == survey.id;
+                if ($scope.entity.isOpen != null)
+                    return $location.url().indexOf('/survey/' + survey.id) >= 0;
+                else
+                    return $location.search().survey == survey.id;
             };
         }]
     };

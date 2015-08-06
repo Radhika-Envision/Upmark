@@ -119,6 +119,7 @@ class Survey(Base):
     open_date = Column(DateTime)
     title = Column(Text, nullable=False)
     description = Column(Text)
+    tracking_id = Column(GUID, default=uuid.uuid4, nullable=False)
 
     @property
     def is_editable(self):

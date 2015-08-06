@@ -280,6 +280,7 @@ class SurveyTest(base.AqHttpTestBase):
             sa = session.query(model.Survey).get(original_survey_id)
             sb = session.query(model.Survey).get(new_survey_id)
             self.assertNotEqual(sa.id, sb.id)
+            self.assertEqual(sa.tracking_id, sb.tracking_id)
             self.assertNotEqual(sa, sb)
             log.info("Visiting survey pair %s and %s", sa, sb)
 
