@@ -42,6 +42,8 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 r'/id$',
                 r'/title$',
                 r'/seq$',
+                r'/is_open$',
+                r'/is_editable$',
                 # Root-only
                 r'^/description$',
                 r'^/structure.*',

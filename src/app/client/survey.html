@@ -6,10 +6,11 @@
         <a class="btn btn-default btn-round" title="Duplicate"
                 ng-href="#/survey/new?duplicate={{survey.id}}"
                 ng-if="!edit.model && checkRole('survey_dup')">
-            <small><i class="fa fa-clone"></i></button></a>
+            <small><i class="fa fa-clone"></i></small></button></a>
         <button class="btn btn-default btn-round" title="Delete"
                 ng-click="edit.del()"
-                ng-if="!edit.model && checkRole('survey_del')">
+                ng-if="survey.isEditable && !edit.model &&
+                    checkRole('survey_del')">
             <i class="fa fa-trash-o"></i></button>
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
@@ -22,7 +23,8 @@
             <i class="fa fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
-                ng-if="!edit.model && checkRole('survey_edit')">
+                ng-if="survey.isEditable && !edit.model &&
+                    checkRole('survey_edit')">
             <i class="fa fa-pencil"></i></button>
     </div>
     <question-header entity="survey" type="survey"></question-header>
@@ -81,8 +83,17 @@
 <div class="container">
     <p class="formatted">{{survey.description}}</p>
 
-    <p>You can <a ng-href="#/measures?survey={{survey.id}}">
-        search for measures</a>, or browse the categories below.</p>
+    <p>
+        <span ng-if="survey.isOpen">
+            This survey is open for responses<span ng-if="checkRole('survey_edit')"><span ng-if="survey.isEditable"> and is editable</span><span ng-if="!survey.isEditable"> but is not editable</span></span>.
+        </span>
+        <span ng-if="!survey.isOpen">
+            This survey is not yet open for responses<span ng-if="checkRole('survey_edit')"><span ng-if="survey.isEditable"> but is editable</span><span ng-if="!survey.isEditable">, nor is it editable</span></span>.
+        </span>
+
+        You can <a ng-href="#/measures?survey={{survey.id}}">
+        search for measures</a>, or browse the categories below.
+    </p>
 </div>
 </div>
 
@@ -91,7 +102,7 @@
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="Add new"
                     ng-href="#/hierarchy/new?survey={{survey.id}}"
-                    ng-if="checkRole('hierarchy_add')">
+                    ng-if="survey.isEditable && checkRole('hierarchy_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
         </div>
         <h2>
@@ -112,6 +123,32 @@
             </a>
         </li>
     </ul>
+</div>
+</div>
+
+<div ng-if="!edit.model && checkRole('survey_state')">
+<div class="measure">
+<div class="container">
+    <p class="text-center">
+        <a href class="btn btn-link" ng-click="toggleOpen()">
+            <span ng-if="survey.isOpen">
+                <i class="fa fa-ban"></i>
+                Un-open survey</span>
+            <span ng-if="!survey.isOpen">
+                <i class="fa fa-circle-o"></i>
+                Open survey</span>
+        </a>
+        <a href class="btn btn-link" ng-click="toggleEditable()">
+            <i class="fa fa-pencil-square-o">
+                <i ng-if="survey.isEditable"
+                    class="fa fa-ban fa-badge fa-badge-left"></i>
+            </i>
+            <span ng-if="survey.isEditable">
+                Make non-editable</span>
+            <span ng-if="!survey.isEditable">
+                Make editable</span>
+        </a>
+    </p>
 </div>
 </div>
 

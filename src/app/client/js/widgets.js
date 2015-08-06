@@ -278,7 +278,8 @@ angular.module('vpac.widgets', [])
             title: '@',
             checkRole: '=',
             params: '=',
-            resource: '='
+            resource: '=',
+            canEdit: '='
         },
         templateUrl: 'reorder.html',
         replace: true,

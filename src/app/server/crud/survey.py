@@ -78,8 +78,8 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/title$',
                 r'/description$',
                 r'/created$',
-                r'/finalised_date$',
-                r'/open_date$'
+                r'/is_open$',
+                r'/is_editable$'
             ])
             son = to_son(survey)
         self.set_header("Content-Type", "application/json")
@@ -233,12 +233,28 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.MethodError(
                 "Can't use PUT for new survey (no ID).")
 
+        open_ = self.get_argument('open', '')
+        editable = self.get_argument('editable', '')
+
         try:
             with model.session_scope() as session:
                 survey = session.query(model.Survey).get(survey_id)
                 if survey is None:
                     raise ValueError("No such object")
-                self._update(survey, self.request_son)
+
+                if open_ == '' and editable == '':
+                    self.check_editable()
+                    self._update(survey, self.request_son)
+                elif open_ != '':
+                    if truthy(open_):
+                        survey.open_date = datetime.datetime.utcnow()
+                    else:
+                        survey.open_date = None
+                elif editable != '':
+                    if truthy(editable):
+                        survey.finalised_date = None
+                    else:
+                        survey.finalised_date = datetime.datetime.utcnow()
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such survey")
         except sqlalchemy.exc.IntegrityError as e:
@@ -267,7 +283,8 @@ class SurveyHistoryHandler(handlers.BaseHandler):
         with model.session_scope() as session:
             query = (session.query(model.Survey)
                 .join(self.mapper)
-                .filter(self.mapper.id==entity_id))
+                .filter(self.mapper.id==entity_id)
+                .order_by(model.Survey.created))
 
             to_son = ToSon(include=[
                 r'/id$',

@@ -7,7 +7,8 @@
                 ng-if="!edit.model"></survey-history>
         <button class="btn btn-default btn-round" title="Delete"
                 ng-click="edit.del()"
-                ng-if="!edit.model && checkRole('hierarchy_del')">
+                ng-if="survey.isEditable && !edit.model &&
+                    checkRole('hierarchy_del')">
             <i class="fa fa-trash-o"></i></button>
         <button class="btn btn-default btn-round" title="Collapse"
                 ng-click="layout.expandHeader = !layout.expandHeader">
@@ -25,7 +26,8 @@
             <i class="fa fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
-                ng-if="!edit.model && checkRole('hierarchy_edit')">
+                ng-if="survey.isEditable && !edit.model &&
+                    checkRole('hierarchy_edit')">
             <i class="fa fa-pencil"></i></button>
     </div>
     <question-header entity="hierarchy"></question-header>
@@ -131,7 +133,7 @@
         </table>
         <div class="help-label">
             <p>
-                <i class="fa fa-info fa-2x fa-pull-left fa-fw fa-border"></i>
+                <i class="fa fa-list fa-2x fa-pull-left fa-border"></i>
                 These levels define the category types in the survey. Users can
                 refer to categories by the name of the level. For example, if
                 there is a level called "Functions", a user might refer to a
@@ -160,7 +162,8 @@
         model="qnodes" check-role="checkRole"
         title="{{hierarchy.structure.levels[0].title}}"
         params="{surveyId: survey.id, hierarchyId: hierarchy.id}"
-        resource="QuestionNode" ng-if="!edit.model"></reorderable>
+        resource="QuestionNode" ng-if="!edit.model"
+        can-edit="survey.isEditable"></reorderable>
 
 </div>
 

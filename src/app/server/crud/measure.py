@@ -47,6 +47,8 @@ class MeasureHandler(
                 r'/id$',
                 r'/title$',
                 r'/seq$',
+                r'/is_open$',
+                r'/is_editable$',
                 # Fields to match from only the root object
                 r'^/intent$',
                 r'^/inputs$',
@@ -55,7 +57,7 @@ class MeasureHandler(
                 r'^/weight$',
                 r'^/response_type$',
                 # Descend into nested objects
-                r'/survey$',
+                r'^/survey$',
                 r'/parents$',
                 r'/parents/[0-9]+$',
                 r'/parent$',

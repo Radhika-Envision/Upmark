@@ -8,7 +8,8 @@
         <button class="btn btn-default btn-round"
                 title="{{parent ? 'Unlink' : 'Delete'}}"
                 ng-click="edit.del()"
-                ng-if="!edit.model && checkRole('measure_del')">
+                ng-if="survey.isEditable && !edit.model &&
+                    checkRole('measure_del')">
             <i class="fa fa-trash-o"
                     ng-class="parent ? 'fa-unlink' : 'fa-trash-o'"></i>
         </button>
@@ -28,7 +29,8 @@
             <i class="fa fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
-                ng-if="!edit.model && checkRole('measure_edit')">
+                ng-if="survey.isEditable && !edit.model &&
+                    checkRole('measure_edit')">
             <i class="fa fa-pencil"></i></button>
     </div>
     <question-header entity="measure"></question-header>

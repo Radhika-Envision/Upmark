@@ -22,7 +22,7 @@ angular.module('wsaa.surveyQuestions', [
         save: { method: 'PUT' },
         query: { method: 'GET', isArray: true, cache: false },
         history: { method: 'GET', url: '/hierarchy/:id/survey.json',
-            isArray: true }
+            isArray: true, cache: false }
     });
 }])
 
@@ -35,7 +35,7 @@ angular.module('wsaa.surveyQuestions', [
         query: { method: 'GET', isArray: true, cache: false },
         reorder: { method: 'PUT', isArray: true },
         history: { method: 'GET', url: '/qnode/:id/survey.json',
-            isArray: true }
+            isArray: true, cache: false }
     });
 }])
 
@@ -48,7 +48,7 @@ angular.module('wsaa.surveyQuestions', [
         query: { method: 'GET', isArray: true, cache: false },
         reorder: { method: 'PUT', isArray: true },
         history: { method: 'GET', url: '/measure/:id/survey.json',
-            isArray: true }
+            isArray: true, cache: false }
     });
 }])
 
@@ -56,6 +56,12 @@ angular.module('wsaa.surveyQuestions', [
 .factory('questionAuthz', ['Roles', function(Roles) {
     return function(current, survey) {
         return function(functionName) {
+            switch(functionName) {
+                case 'survey_dup':
+                case 'survey_state':
+                    return Roles.hasPermission(current.user.role, 'admin');
+                    break;
+            }
             return Roles.hasPermission(current.user.role, 'author');
         };
     };
@@ -103,6 +109,13 @@ angular.module('wsaa.surveyQuestions', [
     });
 
     $scope.checkRole = authz(current, $scope.survey);
+
+    $scope.toggleOpen = function() {
+        $scope.survey.$save({open: !$scope.survey.isOpen});
+    };
+    $scope.toggleEditable = function() {
+        $scope.survey.$save({editable: !$scope.survey.isEditable});
+    };
 
     hotkeys.bindTo($scope)
         .add({
