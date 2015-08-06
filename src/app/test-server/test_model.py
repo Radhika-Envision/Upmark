@@ -1,3 +1,4 @@
+import logging
 import os
 import pprint
 import unittest
@@ -14,6 +15,9 @@ import app
 import base
 import model
 from utils import ToSon
+
+
+log = logging.getLogger('app.test_model')
 
 
 class SurveyStructureTest(base.AqModelTestBase):
@@ -269,3 +273,101 @@ class SurveyTest(base.AqHttpTestBase):
 
             check_measures('')
             check_hierarchies()
+
+        # Thoroughly test new relationships: make sure there is no
+        # cross-referencing between new and old survey.
+        with model.session_scope() as session:
+            sa = session.query(model.Survey).get(original_survey_id)
+            sb = session.query(model.Survey).get(new_survey_id)
+            self.assertNotEqual(sa.id, sb.id)
+            self.assertNotEqual(sa, sb)
+            log.info("Visiting survey pair %s and %s", sa, sb)
+
+            def visit_hierarchy(a, b):
+                log.info("Visiting hierarchy pair %s and %s", a, b)
+                self.assertEqual(a.id, b.id)
+                self.assertNotEqual(a, b)
+
+                self.assertEqual(a.survey_id, sa.id)
+                self.assertEqual(b.survey_id, sb.id)
+                self.assertEqual(a.survey, sa)
+                self.assertEqual(b.survey, sb)
+
+                for qa, qb in zip(a.qnodes, b.qnodes):
+                    visit_qnode(qa, qb, a, b, None, None)
+
+            def visit_qnode(a, b, ha, hb, pa, pb):
+                log.info("Visiting qnode pair %s and %s", a, b)
+                self.assertEqual(a.id, b.id)
+                self.assertNotEqual(a, b)
+                self.assertEqual(a.hierarchy_id, b.hierarchy_id)
+
+                self.assertEqual(a.survey_id, sa.id)
+                self.assertEqual(b.survey_id, sb.id)
+                self.assertEqual(a.survey, sa)
+                self.assertEqual(b.survey, sb)
+
+                if ha is not None:
+                    self.assertEqual(a.hierarchy_id, ha.id)
+                    self.assertEqual(b.hierarchy_id, hb.id)
+                    self.assertEqual(a.hierarchy, ha)
+                    self.assertEqual(b.hierarchy, hb)
+
+                if pa is not None:
+                    self.assertEqual(a.parent_id, pa.id)
+                    self.assertEqual(b.parent_id, pb.id)
+                    self.assertEqual(a.parent, pa)
+                    self.assertEqual(b.parent, pb)
+
+                for qa, qb in zip(a.children, b.children):
+                    visit_qnode(qa, qb, None, None, a, b)
+                for qma, qmb in zip(a.qnode_measures, b.qnode_measures):
+                    visit_qnode_measure(qma, qmb, a, b)
+                for ma, mb in zip(a.measures, b.measures):
+                    visit_measure(ma, mb, None, None, a, b)
+
+            def visit_qnode_measure(a, b, qa, qb):
+                log.info("Visiting qnode_measure pair %s and %s", a, b)
+                self.assertEqual(a.qnode_id, b.qnode_id)
+                self.assertEqual(a.measure_id, b.measure_id)
+                self.assertNotEqual(a.measure, b.measure)
+
+                self.assertEqual(a.survey_id, sa.id)
+                self.assertEqual(b.survey_id, sb.id)
+                self.assertEqual(a.survey, sa)
+                self.assertEqual(b.survey, sb)
+
+                self.assertEqual(a.qnode_id, qa.id)
+                self.assertEqual(b.qnode_id, qb.id)
+                self.assertEqual(a.qnode, qa)
+                self.assertEqual(b.qnode, qb)
+
+                visit_measure(a.measure, b.measure, a, b, qa, qb)
+
+            def visit_measure(a, b, qma, qmb, pa, pb):
+                log.info("Visiting measure pair %s and %s", a, b)
+                self.assertEqual(a.id, b.id)
+                self.assertNotEqual(a, b)
+
+                self.assertEqual(a.survey_id, sa.id)
+                self.assertEqual(b.survey_id, sb.id)
+                self.assertEqual(a.survey, sa)
+                self.assertEqual(b.survey, sb)
+
+                if qma is not None:
+                    self.assertIn(qma, a.qnode_measures)
+                    self.assertNotIn(qma, b.qnode_measures)
+                    self.assertIn(qmb, b.qnode_measures)
+                    self.assertNotIn(qmb, a.qnode_measures)
+
+                if pa is not None:
+                    self.assertIn(pa, a.parents)
+                    self.assertNotIn(pa, b.parents)
+                    self.assertIn(pb, b.parents)
+                    self.assertNotIn(pb, a.parents)
+
+            for a, b in zip(sa.measures, sb.measures):
+                visit_measure(a, b, None, None, None, None)
+
+            for a, b in zip(sa.hierarchies, sb.hierarchies):
+                visit_hierarchy(a, b)
