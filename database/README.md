@@ -60,12 +60,14 @@ These are the steps of create job on web instance.
 
     The script will install the [cron job].
 
-## S3 File Versioning permission
+## AWS Permissions and key
 
 AWS S3 stores files attached on responses. And also S3 has [versioning functionality] on bucket.
 Enable versioning is not reverasable so once it enabled only suspension versionning is possible. 
 But if we give all the permission to the user, user(access key) can do everything so to restrict 
-users permission. 
+users permission.
+
+For backup database we need to have permission to access DBSnapshot. Second part describes how to add this permission 
 
 Here is the steps to do.
 
@@ -133,7 +135,32 @@ Here is the steps to do.
         }
         ```
 
-    1. Using this policy, you can create key.
+1. Add another policy for RDS snapshot
+    1. Same as above steps create Custom Policy.
+    1. Type in name like `Aquamark_RDS_backup`.
+    1. Type in policy.
+
+        ```
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Sid": "1",
+                    "Effect": "Allow",
+                    "Action": [
+                        "rds:CreateDBSnapshot",
+                        "rds:DescribeDBSnapshots"
+                    ],
+                    "Resource": [
+                        "*"
+                    ]
+                }
+            ]
+        }
+        ```
+
+1. Using this policy, you can create key.
+1. Finally you can login use `aws configure`
 
 
 ## Downloading Backups
