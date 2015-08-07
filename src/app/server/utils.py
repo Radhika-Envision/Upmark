@@ -184,12 +184,12 @@ class updater:
             setattr(self.model, name, value)
 
 
-def reorder(collection, son):
+def reorder(collection, son, id_attr='id'):
     '''
     Update the order of items in an `ordering_list` according to a serialised
     list.
     '''
-    current = {str(m.id): m.seq for m in collection}
+    current = {str(getattr(m, id_attr)): m.seq for m in collection}
     proposed = {m['id']: m['seq'] for m in son}
     if current != proposed:
         raise handlers.MethodError(
@@ -198,5 +198,5 @@ def reorder(collection, son):
             "user has changed the order too. Try reloading the list.")
 
     order = {m['id']: i for i, m in enumerate(son)}
-    collection.sort(key=lambda m: order[str(m.id)])
+    collection.sort(key=lambda m: order[str(getattr(m, id_attr))])
     collection.reorder()

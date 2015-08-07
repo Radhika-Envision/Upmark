@@ -290,12 +290,14 @@ class MeasureHandler(
             with model.session_scope() as session:
                 qnode = session.query(model.QuestionNode)\
                     .get((qnode_id, self.survey_id))
-                reorder(qnode.qnode_measures, self.request_son)
+                reorder(
+                    qnode.qnode_measures, self.request_son,
+                    id_attr='measure_id')
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
 
-        self.get()
+        self.query()
 
     def _update(self, measure, son):
         '''

@@ -70,7 +70,7 @@
 <reorderable href="/measure/{}?survey={{survey.id}}&parent={{qnode.id}}"
         model="measures" check-role="checkRole"
         title="{{structure.hierarchy.structure.measure.title}}"
-        params="{surveyId: survey.id, parentId: qnode.id}"
+        params="{surveyId: survey.id, qnodeId: qnode.id}"
         resource="Measure"
         ng-if="currentLevel.hasMeasures && !edit.model"
         can-edit="survey.isEditable">
