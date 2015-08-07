@@ -213,14 +213,15 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         if survey_id == '':
             raise handlers.MethodError("Survey ID required")
 
-        self.check_editable()
-
         try:
             with model.session_scope() as session:
                 survey = session.query(model.Survey)\
                     .get(survey_id)
                 if survey is None:
                     raise ValueError("No such object")
+                if not survey.is_editable:
+                    raise handlers.MethodError(
+                        "This survey is closed for editing")
                 session.delete(survey)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Survey is in use")
@@ -248,7 +249,9 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                     raise ValueError("No such object")
 
                 if open_ == '' and editable == '':
-                    self.check_editable()
+                    if not survey.is_editable:
+                        raise handlers.MethodError(
+                            "This survey is closed for editing")
                     self._update(survey, self.request_son)
                 elif open_ != '':
                     if truthy(open_):
