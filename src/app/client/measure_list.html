@@ -21,14 +21,20 @@
 <div class="container">
     <search-box model="search" result="measures">
         <button class="btn btn-default" type="button"
-                title="Toggle display of orphan measures"
+                title="{{search.orphan === true ?
+                    'Only show orphan measures' :
+                        search.orphan === false ?
+                        'Only show linked measures' :
+                        'Show both orphan and linked measures'}}"
                 ng-click="cycleOrphan()">
-            <i class="fa fa-file-o">
-                <i ng-if="search.orphan === false"
-                    class="fa fa-circle-o fa-badge text-success"></i>
-                <i ng-if="search.orphan === true"
-                    class="fa fa-ban fa-badge text-danger"></i>
+
+            <i class="fa fa-link" ng-if="search.orphan == null">
+                <i class="fa fa-question-circle fa-badge"></i>
             </i>
+            <i class="fa fa-unlink" ng-if="search.orphan === true"></i>
+            <i class="fa fa-link" ng-if="search.orphan === false"></i>
+
+            Linked
         </button>
     </search-box>
 
@@ -44,5 +50,24 @@
       </tr>
     </tbody>
   </table>
+
+    <div>
+    <p class="text-muted">
+        <span ng-if="search.orphan == null">
+            Displaying both <i>orphan and linked</i> measures.</span>
+        <span ng-if="search.orphan === true">
+            Displaying only <i>orphan</i> measures.</span>
+        <span ng-if="search.orphan === false">
+            Displaying only <i>linked</i> measures.</span>
+
+        <span ng-if="!measures.length">
+            No measures match your query.</span>
+
+        <span ng-if="!measures.length && checkRole('measure_add')">
+            You can create a measure by pressing the
+            <i class="fa fa-fw fa-plus"></i> button above.
+        </span>
+    </p>
+    </div>
 
 </div>
