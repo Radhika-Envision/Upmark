@@ -3,9 +3,27 @@ web:
   ports:
    - "8000:8000"
   environment:
-   - DEV_MODE:True
-   - XSRF_PROTECTION:False
+    DEV_MODE: True
+    AQ_XSRF: True
   volumes:
    - ./src/app:/usr/share/aquamark/app
-  external_links:
-   - postgres
+  links:
+   - postgres:postgres
+
+test:
+  build: ./src/app/
+  volumes:
+   - ./src/app:/usr/share/aquamark/app
+  links:
+   - postgresTest:postgres
+  working_dir: /usr/share/aquamark/app/test-server
+  entrypoint: ['python3', '-m', 'unittest']
+  command: ['discover']
+
+postgres:
+  image: postgres:9
+
+postgresTest:
+  image: postgres:9
+  volumes:
+   - .testdb:/var/lib/postgresql/data

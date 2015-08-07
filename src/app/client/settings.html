@@ -2,11 +2,16 @@
 'use strict';
 angular.module('settings', [])
 
+{% if deploy_id is not None %}
 .constant('deployId', '{{deploy_id}}')
+{% else %}
+.constant('deployId', null)
+{% end %}
 
 .constant('versionedResources', {
     exclude: [
-        '^/?bootstrap'
+        '^/?bootstrap',
+        '^/?nodes_renderer'
     ],
     include: [
         '^/?.*\.html$',

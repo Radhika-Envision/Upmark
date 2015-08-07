@@ -26,6 +26,12 @@ def modify_user(args):
 
     try:
         with session_scope() as session:
+            if args.organisation is not None:
+                organisation = session.query(Organisation) \
+                    .filter_by(name=args.organisation).one()
+            else:
+                organisation = None
+
             try:
                 user = session.query(AppUser).filter_by(email=args.email).one()
                 is_new = False
@@ -45,10 +51,8 @@ def modify_user(args):
                 user.name = args.name
             if args.role is not None:
                 user.role = args.role
-            if args.organisation is not None:
-                organisation = session.query(Organisation) \
-                    .filter_by(name=args.organisation).one()
-                user.organisation_id = organisation.id
+            if organisation is not None:
+                user.organisation_id = str(organisation.id)
             session.flush()
             session.expunge(user)
 

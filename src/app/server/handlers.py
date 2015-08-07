@@ -17,7 +17,7 @@ from sqlalchemy.sql import func
 
 import model 
 
-from utils import falsy, truthy
+from utils import denormalise, falsy, truthy
 from tornado.escape import json_decode, json_encode
 
 
@@ -29,8 +29,8 @@ DEPLOY_ID = str(time.time())
 
 
 def deploy_id():
-    if tornado.options.options.dev:
-        return str(time.time())
+    if truthy(tornado.options.options.dev):
+        return None
     else:
         return DEPLOY_ID
 
@@ -93,7 +93,7 @@ STYLESHEETS = [
         'href': '/.bower_components/bootstrap/dist/css/bootstrap.css'
     },
     {
-        'cdn': '//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css', # @IgnorePep8
+        'cdn': '//maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css', # @IgnorePep8
         'href': '/.bower_components/font-awesome/css/font-awesome.css'
     },
     {
@@ -111,7 +111,8 @@ STYLESHEETS = [
         'min-href': '/minify/3rd-party-min.css',
         'hrefs': [
             '/.bower_components/angular-hotkeys/build/hotkeys.css',
-            '/.bower_components/angular-ui-select/dist/select.css'
+            '/.bower_components/angular-ui-select/dist/select.css',
+            '/.bower_components/angular-ui-tree/dist/angular-ui-tree.min.css'
         ]
     },
 ]
@@ -122,28 +123,32 @@ SCRIPTS = [
         'href': '/.bower_components/jquery/dist/jquery.js'
     },
     {
-        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular.min.js', # @IgnorePep8
+        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular.min.js', # @IgnorePep8
         'href': '/.bower_components/angular/angular.js'
     },
     {
-        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular-cookies.min.js', # @IgnorePep8
+        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular-cookies.min.js', # @IgnorePep8
         'href': '/.bower_components/angular-cookies/angular-cookies.js'
     },
     {
-        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular-route.min.js', # @IgnorePep8
+        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular-route.min.js', # @IgnorePep8
         'href': '/.bower_components/angular-route/angular-route.js'
     },
     {
-        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular-resource.min.js', # @IgnorePep8
+        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular-resource.min.js', # @IgnorePep8
         'href': '/.bower_components/angular-resource/angular-resource.js'
     },
     {
-        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular-animate.min.js', # @IgnorePep8
+        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular-animate.min.js', # @IgnorePep8
         'href': '/.bower_components/angular-animate/angular-animate.js'
     },
     {
-        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular-sanitize.min.js', # @IgnorePep8
+        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular-sanitize.min.js', # @IgnorePep8
         'href': '/.bower_components/angular-sanitize/angular-sanitize.js'
+    },
+    {
+        'cdn': '//code.jquery.com/ui/1.11.4/jquery-ui.min.js',
+        'href': '/.bower_components/jquery-ui/jquery-ui.js'
     },
     {
         'min-href': '/minify/3rd-party-min.js',
@@ -153,7 +158,10 @@ SCRIPTS = [
             '/.bower_components/angular-hotkeys/build/hotkeys.js',
             '/.bower_components/angular-bootstrap-show-errors/src/showErrors.js',
             '/.bower_components/angular-validation-match/dist/angular-validation-match.js',
-            '/.bower_components/angular-ui-select/dist/select.js'
+            '/.bower_components/angular-ui-select/dist/select.js',
+            '/.bower_components/angular-ui-tree/dist/angular-ui-tree.js',
+            '/.bower_components/angular-ui-sortable/sortable.js',
+            '/.bower_components/jqueryui-touch-punch/jquery.ui.touch-punch.js'
         ]
     },
     {
@@ -162,6 +170,7 @@ SCRIPTS = [
             '/js/app.js',
             '/js/admin.js',
             '/js/survey.js',
+            '/js/survey-question.js',
             '/js/utils.js',
             '/js/widgets.js',
         ]
@@ -180,6 +189,10 @@ class BaseHandler(tornado.web.RequestHandler):
         with model.session_scope() as session:
             try:
                 user = session.query(model.AppUser).get(uid)
+                if not user.enabled:
+                    superuser = self.get_secure_cookie('superuser')
+                    if superuser is None:
+                        return None
             except sqlalchemy.exc.StatementError:
                 return None
             if user is not None:
@@ -195,6 +208,19 @@ class BaseHandler(tornado.web.RequestHandler):
                 get(self.current_user.organisation_id)
             session.expunge(organisation)
             return organisation
+
+    @property
+    def request_son(self):
+        try:
+            return self._request_son
+        except AttributeError:
+            try:
+                self._request_son = denormalise(json_decode(self.request.body))
+            except (TypeError, UnicodeError, ValueError) as e:
+                raise ModelError(
+                    "Could not decode request body: %s. Body started with %s" %
+                    (str(e), self.request.body[0:30]))
+            return self._request_son
 
 
 def authz(*roles):
@@ -256,13 +282,13 @@ class MainHandler(BaseHandler):
 
             # Add a resource deployment version number to bust the cache, except
             # for CDN links.
-            if k != 'cdn':
+            if self.deploy_id and k != 'cdn':
                 hrefs = ['%s?v=%s' % (href, self.deploy_id) for href in hrefs]
 
             if dev_mode and k in {'cdn', 'min-href'}:
-                print('Warning: using release resouce in dev mode')
+                print('Warning: using release resource in dev mode')
             elif not dev_mode and k in {'href', 'hrefs'}:
-                print('Warning: using dev resouce in release')
+                print('Warning: using dev resource in release')
 
             resources.extend(hrefs)
 
@@ -309,8 +335,6 @@ class AuthLoginHandler(MainHandler):
                 user = session.query(model.AppUser).\
                     filter(func.lower(model.AppUser.email) == func.lower(email)).\
                     one()
-                if not user.enabled:
-                    raise ValueError("User account disabled")
                 if not user.check_password(password):
                     raise ValueError("Login incorrect")
                 session.expunge(user)
@@ -318,6 +342,14 @@ class AuthLoginHandler(MainHandler):
             self.clear_cookie("user")
             self.clear_cookie("superuser")
             error_msg = "?error=" + tornado.escape.url_escape("Login incorrect")
+            self.redirect("/login/" + error_msg)
+            return
+
+        if not user.enabled:
+            self.clear_cookie("user")
+            self.clear_cookie("superuser")
+            error_msg = "?error=" + tornado.escape.url_escape(
+                "Your account is inactive. Please contact an administrator")
             self.redirect("/login/" + error_msg)
             return
 

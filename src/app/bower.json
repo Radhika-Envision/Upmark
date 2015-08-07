@@ -18,14 +18,17 @@
     "angular-route": "~1.4.1",
     "angular-resource": "~1.4.1",
     "bootstrap": "~3.3.0",
-    "font-awesome": "~4.2.0",
+    "font-awesome": "~4.4.0",
     "angular-animate": "~1.4.1",
     "angular-hotkeys": "chieffancypants/angular-hotkeys#~1.4.5",
     "angular-validation-match": "~1.5.0",
     "angular-bootstrap-show-errors": "~2.3.0",
     "angular-sanitize": "~1.4.1",
     "angular-ui-select": "~0.12.0",
-    "angular-cookies": "~1.4.1"
+    "angular-ui-sortable": "~0.13.4",
+    "angular-cookies": "~1.4.1",
+    "angular-ui-tree": "~2.5.0",
+    "jqueryui-touch-punch": "#4bc009145202d9c7483ba85f3a236a8f3470354d"
   },
   "resolutions": {
     "angular": "~1.4.1"

@@ -67,18 +67,19 @@ angular.module('vpac.widgets', [])
     function Notifications() {
         this.messages = [];
     };
-    Notifications.prototype.add = function(id, type, body, duration) {
+    Notifications.prototype.set = function(id, type, body, duration) {
         var newMessage = {
             id: id,
             type: type,
             css: type == 'error' ? 'danger' : type,
             body: body
         };
-        for (var i = 0; i < this.messages.length; i++) {
-            if (angular.equals(this.messages[i], newMessage))
-                return;
-        }
+        this.remove(id);
         this.messages = [newMessage].concat(this.messages);
+        if (type == 'error')
+            log.error(body);
+        else
+            log.info(body);
 
         if (duration) {
             $timeout(function(that, message) {
@@ -134,6 +135,8 @@ angular.module('vpac.widgets', [])
         controller: ['$scope', function($scope) {
             if (!$scope.model.pageSize)
                 $scope.model.pageSize = 10;
+            if (!$scope.model.page)
+                $scope.model.page = 0;
             $scope.$watch('model', function(model, oldModel) {
                 if (model.page === undefined)
                     model.page = 0;
@@ -146,6 +149,185 @@ angular.module('vpac.widgets', [])
         }]
     };
 }])
+
+
+/**
+ * Manages state for a modal editing session.
+ */
+.factory('Editor', [
+        '$parse', 'log', 'Notifications', '$q',
+         function($parse, log, Notifications, $q) {
+
+    function Editor(targetPath, scope, params, resource) {
+        this.model = null;
+        this.scope = scope;
+        this.params = params;
+        this.resource = resource;
+        this.getter = $parse(targetPath);
+        this.saving = false;
+    };
+
+    Editor.prototype.edit = function() {
+        log.debug("Creating edit object");
+        this.model = angular.copy(this.getter(this.scope));
+    };
+
+    Editor.prototype.cancel = function() {
+        this.model = null;
+        Notifications.remove('edit');
+    };
+
+    Editor.prototype.save = function() {
+        this.scope.$broadcast('show-errors-check-validity');
+
+        var that = this;
+        var success = function(model, getResponseHeaders) {
+            try {
+                log.debug("Success");
+                that.getter.assign(that.scope, model);
+                that.model = null;
+                that.scope.$emit('EditSaved', model);
+                Notifications.set('edit', 'success', "Saved", 5000);
+            } finally {
+                that.saving = false;
+                that = null;
+            }
+        };
+        var failure = function(details) {
+            try {
+                that.scope.$emit('EditError');
+                Notifications.set('edit', 'error',
+                    "Could not save object: " + details.statusText);
+            } finally {
+                that.saving = false;
+                that = null;
+                return $q.reject(details);
+            }
+        };
+
+        if (angular.isArray(this.model)) {
+            log.info("Reordering list");
+            this.resource.reorder(this.params, this.model, success, failure);
+        } else if (!this.model.id) {
+            log.info("Saving as new entry");
+            this.model.$create(this.params, success, failure);
+        } else {
+            log.info("Saving over old entry");
+            this.model.$save(this.params, success, failure);
+        }
+        this.saving = true;
+        Notifications.set('edit', 'info', "Saving");
+    };
+
+    Editor.prototype.del = function() {
+        var that = this;
+        var success = function(model, getResponseHeaders) {
+            try {
+                log.debug("Success");
+                that.model = null;
+                that.scope.$emit('EditDeleted', model);
+                Notifications.set('edit', 'success', "Deleted", 5000);
+            } finally {
+                that.saving = false;
+                that = null;
+            }
+        };
+        var failure = function(details) {
+            try {
+                that.scope.$emit('EditError');
+                Notifications.set('edit', 'error',
+                    "Could not delete object: " + details.statusText);
+            } finally {
+                that.saving = false;
+                that = null;
+                return $q.reject(details);
+            }
+        };
+
+        log.info("Deleting");
+        var model = this.getter(this.scope);
+        model.$delete(this.params, success, failure);
+
+        this.saving = true;
+        Notifications.set('edit', 'info', "Deleting");
+    };
+
+    Editor.prototype.destroy = function() {
+        this.cancel();
+        this.scope = null;
+        this.getter = null;
+    };
+
+    return function(targetPath, scope, params, resource) {
+        log.debug('Creating editor');
+        var editor = new Editor(targetPath, scope, params, resource);
+        scope.$on('$destroy', function() {
+            editor.destroy();
+            editor = null;
+        });
+        return editor;
+    };
+}])
+
+
+.directive('reorderable', [function() {
+    return {
+        restrict: 'E',
+        scope: {
+            model: '=',
+            title: '@',
+            checkRole: '=',
+            params: '=',
+            resource: '=',
+            canEdit: '='
+        },
+        templateUrl: 'reorder.html',
+        replace: true,
+        transclude: true,
+        controller: ['$scope', 'format', 'Editor',
+                function($scope, format, Editor) {
+            $scope.edit = Editor(
+                'model', $scope, $scope.params, $scope.resource);
+            $scope.href = function(id) {
+                return format($scope.hrefSpec, id);
+            };
+            $scope.dragOpts = {
+                axis: 'y',
+                handle: '.grab-handle'
+            };
+            $scope.$on('EditSaved', function(event, model) {
+                event.stopPropagation();
+            });
+        }],
+        link: function(scope, elem, attrs) {
+            scope.hrefSpec = attrs.href;
+        }
+    };
+}])
+
+
+.directive('anyHref', ['$location', function($location) {
+    return {
+        restrict: 'A',
+        link: function(scope, elem, attrs) {
+            elem.on('click.anyHref', function() {
+                scope.$apply(function() {
+                    $location.url(attrs.anyHref);
+                });
+            });
+            scope.$on('$destroy', function() {
+                elem.off('.anyHref');
+            });
+        }
+    };
+}])
+
+
+.factory('layout', function() {
+    return {
+        expandHeader: true
+    };
+})
 
 
 .directive('pageTitle', ['$document', '$injector', function($document, $injector) {

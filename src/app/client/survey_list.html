@@ -1,0 +1,71 @@
+<div class="header">
+    <div class="container">
+        <div class="toolbar">
+            <a class="btn btn-default btn-round" title="Add new"
+                    ng-href="#/survey/new" ng-if="checkRole('survey_add')">
+                <i class="fa fa-fw fa-plus"></i></a>
+        </div>
+        <h2>
+            Surveys
+        </h2>
+    </div>
+</div>
+
+
+<div class="container">
+    <search-box model="search" result="surveys">
+        <button class="btn btn-default" type="button"
+                title="{{search.open ?
+                    'Only show open surveys' :
+                    'Show both open and closed surveys'}}"
+                ng-click="search.open = !search.open">
+            <i class="fa fa-clock-o">
+                <i ng-if="!search.open"
+                    class="fa fa-question-circle fa-badge"></i>
+            </i>
+            <span class="hidden-xs">Open</span>
+        </button>
+        <button class="btn btn-default" type="button"
+                title="{{search.editable ?
+                    'Only show editable surveys' :
+                    'Show both editable and finalised surveys'}}"
+                ng-click="search.editable = !search.editable"
+                ng-if="checkRole(survey_edit)">
+            <i class="fa fa-pencil-square-o">
+                <i ng-if="!search.editable"
+                    class="fa fa-question-circle fa-badge fa-badge-left"></i>
+            </i>
+            <span class="hidden-xs">Editable</span>
+        </button>
+    </search-box>
+
+    <ul class="list-results">
+        <li>
+            <a ng-repeat="survey in surveys"
+                    ng-href="#/survey/{{survey.id}}">
+                <h4>{{survey.title}}</h4>
+                <p class="truncate">{{survey.description}}</p>
+            </a>
+        </li>
+        <li ng-if="!surveys.length">
+            <div>
+            <p>
+                <span ng-if="!search.open && !search.editable">
+                    No surveys match your query.</span>
+                <span ng-if="search.open && !search.editable">
+                    No <i>open</i> surveys match your query.</span>
+                <span ng-if="!search.open && search.editable">
+                    No <i>editable</i> surveys match your query.</span>
+                <span ng-if="search.open && search.editable">
+                    No <i>editable and open</i> surveys match your query.</span>
+
+                <span ng-if="checkRole('survey_add')">
+                    You can create a survey by pressing the
+                    <i class="fa fa-fw fa-plus"></i> button above.
+                </span>
+            </p>
+            </div>
+        </li>
+    </ul>
+
+</div>

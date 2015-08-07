@@ -4,6 +4,7 @@ import base64
 import inspect
 import logging.config
 import os
+import signal
 
 from alembic.config import Config
 from alembic import command
@@ -13,8 +14,9 @@ import sqlalchemy.orm
 import tornado.options
 import tornado.web
 
-import data_access, user_handlers, org_handlers
+import crud
 import handlers
+import import_handlers
 import model
 from utils import truthy
 
@@ -50,10 +52,6 @@ def parse_options():
         help="Development mode (default: True)")
 
     tornado.options.define(
-        "debug", default=os.environ.get('DEBUG_MODE', 'True'),
-        help="Debug mode (default: True)")
-
-    tornado.options.define(
         "analytics_id", default=os.environ.get('ANALYTICS_ID', ''),
         help="Google Analytics ID, leave blank to disable (default: '')")
 
@@ -71,21 +69,32 @@ def get_cookie_secret():
             log.info("Generating new cookie secret")
             secret = base64.b64encode(os.urandom(50)).decode('ascii')
             conf = model.SystemConfig(name='cookie_secret', value=secret)
+            conf.human_name = "Cookie Secret"
+            conf.user_defined = False
             session.add(conf)
         return conf.value
 
 
-def get_settings():
+def get_minimal_settings():
     package_dir = get_package_dir()
     return {
-        "cookie_secret": get_cookie_secret(),
-        "xsrf_cookies": truthy(tornado.options.options.xsrf),
-        "debug": truthy(tornado.options.options.debug),
-        "serve_traceback": truthy(tornado.options.options.dev),
-        "gzip": True,
         "template_path": os.path.join(package_dir, "..", "client"),
         "login_url": "/login/",
+        "cookie_secret": 'dummy'
     }
+
+
+def get_settings():
+    package_dir = get_package_dir()
+    settings = get_minimal_settings()
+    settings.update({
+        "cookie_secret": get_cookie_secret(),
+        "xsrf_cookies": truthy(tornado.options.options.xsrf),
+        "debug": truthy(tornado.options.options.dev),
+        "serve_traceback": truthy(tornado.options.options.dev),
+        "gzip": True
+    })
+    return settings
 
 
 def connect_db():
@@ -94,7 +103,7 @@ def connect_db():
     alembic_cfg.set_main_option(
         "script_location", os.path.join(package_dir, "..", "alembic"))
     if os.environ.get('DATABASE_URL') is not None:
-        alembic_cfg.set_main_option("url", os.environ.get('DATABASE_URL'))
+        alembic_cfg.set_main_option("sqlalchemy.url", os.environ.get('DATABASE_URL'))
 
     engine = model.connect_db(os.environ.get('DATABASE_URL'))
     inspector = sqlalchemy.engine.reflection.Inspector.from_engine(engine)
@@ -108,7 +117,7 @@ def connect_db():
         command.upgrade(alembic_cfg, "head")
 
 
-def add_default_user():
+def default_settings():
     with model.session_scope() as session:
         count = session.query(func.count(model.AppUser.id)).scalar()
         if count == 0:
@@ -124,37 +133,67 @@ def add_default_user():
             user.set_password("admin")
             session.add(user)
 
+        setting = session.query(model.SystemConfig).get('pass_threshold')
+        if setting is None:
+            setting = model.SystemConfig(name='pass_threshold')
+            setting.human_name = "Password Strength Threshold"
+            setting.description = "The minimum strength for a password, " \
+                "between 0.0 and 1.0, where 0.0 allows very weak passwords " \
+                "and 1.0 requires strong passwords."
+            setting.user_defined = True
+            setting.value = 0.85
+            session.add(setting)
+
+
+def get_mappings():
+    package_dir = get_package_dir()
+    return [
+        (r"/login/?(.*)", handlers.AuthLoginHandler, {
+            'path': os.path.join(package_dir, "..", "client")}),
+        (r"/logout/?", handlers.AuthLogoutHandler),
+        (r"/()", handlers.MainHandler, {
+            'path': '../client/index.html'}),
+
+        (r"/bower_components/(.*)", tornado.web.StaticFileHandler, {
+            'path': os.path.join(
+                package_dir, "..", "client", ".bower_components")}),
+        (r"/minify/(.*)", handlers.MinifyHandler, {
+            'path': '/minify/',
+            'root': os.path.join(package_dir, "..", "client")}),
+        (r"/(.*\.css)", handlers.CssHandler, {
+            'root': os.path.join(package_dir, "..", "client")}),
+
+        (r"/systemconfig.json", crud.config.SystemConfigHandler, {}),
+        (r"/organisation/?(.*).json", crud.org.OrgHandler, {}),
+        (r"/user/?(.*).json", crud.user.UserHandler, {}),
+        (r"/password.json", crud.user.PasswordHandler, {}),
+
+        (r"/survey/?([^/]*).json", crud.survey.SurveyHandler, {}),
+        (r"/survey/?([^/]*)/history.json", crud.survey.SurveyTrackingHandler, {}),
+        (r"/hierarchy/?([^/]*).json", crud.hierarchy.HierarchyHandler, {}),
+        (r"/hierarchy/?([^/]*)/survey.json", crud.survey.SurveyHistoryHandler, {
+            'mapper': model.Hierarchy}),
+        (r"/qnode/?([^/]*).json", crud.qnode.QuestionNodeHandler, {}),
+        (r"/qnode/?([^/]*)/survey.json", crud.survey.SurveyHistoryHandler, {
+            'mapper': model.QuestionNode}),
+        (r"/measure/?([^/]*).json", crud.measure.MeasureHandler, {}),
+        (r"/measure/?([^/]*)/survey.json", crud.survey.SurveyHistoryHandler, {
+            'mapper': model.Measure}),
+
+        (r"/import/structure/?(.*).json", import_handlers.ImportStructureHandler, {}),
+        (r"/import/response/?(.*).json", import_handlers.ImportResponseHandler, {}),
+        (r"/(.*)", tornado.web.StaticFileHandler, {
+            'path': os.path.join(package_dir, "..", "client")}),
+    ]
+
 
 def start_web_server():
 
     package_dir = get_package_dir()
     settings = get_settings()
-    add_default_user()
+    default_settings()
 
-    application = tornado.web.Application(
-        [
-            (r"/login/?(.*)", handlers.AuthLoginHandler, {
-                'path': os.path.join(package_dir, "..", "client")}),
-            (r"/logout/?", handlers.AuthLogoutHandler),
-            (r"/()", handlers.MainHandler, {
-                'path': '../client/index.html'}),
-
-            (r"/bower_components/(.*)", tornado.web.StaticFileHandler, {
-                'path': os.path.join(
-                    package_dir, "..", "client", ".bower_components")}),
-            (r"/minify/(.*)", handlers.MinifyHandler, {
-                'path': '/minify/',
-                'root': os.path.join(package_dir, "..", "client")}),
-            (r"/(.*\.css)", handlers.CssHandler, {
-                'root': os.path.join(package_dir, "..", "client")}),
-
-            (r"/organisation/?(.*).json", org_handlers.OrgHandler, {}),
-            (r"/user/?(.*).json", user_handlers.UserHandler, {}),
-
-            (r"/(.*)", tornado.web.StaticFileHandler, {
-                'path': os.path.join(package_dir, "..", "client")}),
-        ], **settings
-    )
+    application = tornado.web.Application(get_mappings(), **settings)
 
     try:
         # If port is a string, *some* GNU/Linux systems try to look up the port
@@ -175,10 +214,20 @@ def start_web_server():
     tornado.ioloop.IOLoop.instance().start()
 
 
+def signal_handler(signum, frame):
+    tornado.ioloop.IOLoop.instance().add_callback_from_signal(stop_web_server)
+
+
+def stop_web_server():
+    log.warn("Server shutdown due to signal")
+    tornado.ioloop.IOLoop.instance().stop()
+
+
 if __name__ == "__main__":
     try:
         parse_options()
         connect_db()
+        signal.signal(signal.SIGTERM, signal_handler)
         start_web_server()
     except KeyboardInterrupt:
         log.info("Shutting down due to user request (e.g. Ctrl-C)")

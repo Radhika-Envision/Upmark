@@ -1,3 +1,5 @@
 *.sublime*
 *__pycache__*
 *.pyc
+.cookies.txt
+*database/wal*

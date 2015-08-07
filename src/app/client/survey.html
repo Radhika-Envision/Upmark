@@ -1,0 +1,157 @@
+<div>
+
+<div class="header">
+<div class="container">
+    <div class="toolbar">
+        <a class="btn btn-default btn-round" title="Duplicate"
+                ng-href="#/survey/new?duplicate={{survey.id}}"
+                ng-if="!edit.model && checkRole('survey_dup')">
+            <small><i class="fa fa-clone"></i></small></button></a>
+        <button class="btn btn-default btn-round" title="Delete"
+                ng-click="edit.del()"
+                ng-if="survey.isEditable && !edit.model &&
+                    checkRole('survey_del')">
+            <i class="fa fa-trash-o"></i></button>
+        <button class="btn btn-default btn-round" title="Cancel"
+                ng-click="edit.cancel()"
+                ng-if="edit.model && edit.model.id">
+            <i class="fa fa-times"></i></button>
+        <button class="btn btn-default btn-round" title="Save"
+                ng-click="edit.save()"
+                ng-if="edit.model"
+                form="editor">
+            <i class="fa fa-check"></i></button>
+        <button class="btn btn-default btn-round" title="Edit"
+                ng-click="edit.edit()"
+                ng-if="survey.isEditable && !edit.model &&
+                    checkRole('survey_edit')">
+            <i class="fa fa-pencil"></i></button>
+        <survey-history entity="survey" service="Survey"
+                ng-if="!edit.model"></survey-history>
+    </div>
+    <question-header entity="survey" type="survey"></question-header>
+</div>
+</div>
+
+<div class="measure" ng-if="edit.model">
+<div class="container">
+    <form novalidate name="form" id="editor">
+        <div class="form-group" show-errors>
+            <label for="title">Name</label>
+            <span class="help-label" ng-if="form.title.$error.required">
+                Please provide a title.</span>
+            <input type="text" class="form-control" id="title" name="title"
+                ng-model="edit.model.title" required />
+        </div>
+        <div class="form-group">
+            <label for="title">Description</label>
+            <textarea type="text" class="form-control" id="desc" name="desc"
+                ng-model="edit.model.description"></textarea>
+        </div>
+    </form>
+
+    <div class="help-label" ng-if="duplicating">
+        <p>
+            <i class="fa fa-clone fa-2x fa-pull-left fa-border"></i>
+            You are creating a duplicate of an existing survey. The full
+            structure of the survey will be copied, with the lineage to the old
+            survey preserved. Assessments and responses will not be copied, but
+            they can be at a later time.
+        </p>
+        <p>
+            If you want to create a fresh survey with no lineage,
+            <a href="#/surveys">go back</a> and use the Add
+            <i class="fa fa-plus"></i> function instead.
+        </p>
+    </div>
+
+    <div class="help-label" ng-if="!duplicating">
+        <p>
+            <i class="fa fa-plus fa-2x fa-pull-left fa-fw fa-border"></i>
+            You are creating a new survey with no survey structure. It will not
+            be possible to link responses from other surveys to this one.
+        </p>
+        <p>
+            If you wish to preserve lineage, <a href="#/surveys">open an
+            existing survey</a> and use the Duplicate
+            <i class="fa fa-clone"></i> function instead.
+        </p>
+    </div>
+</div>
+</div>
+
+<div ng-if="!edit.model">
+<div class="measure">
+<div class="container">
+    <p class="formatted">{{survey.description}}</p>
+
+    <p>
+        <span ng-if="survey.isOpen">
+            This survey is open for responses<span ng-if="checkRole('survey_edit')"><span ng-if="survey.isEditable"> and is editable</span><span ng-if="!survey.isEditable"> but is not editable</span></span>.
+        </span>
+        <span ng-if="!survey.isOpen">
+            This survey is not yet open for responses<span ng-if="checkRole('survey_edit')"><span ng-if="survey.isEditable"> but is editable</span><span ng-if="!survey.isEditable">, nor is it editable</span></span>.
+        </span>
+
+        You can <a ng-href="#/measures?survey={{survey.id}}">
+        search for measures</a>, or browse the categories below.
+    </p>
+</div>
+</div>
+
+<div class="container">
+    <div class="section">
+        <div class="toolbar">
+            <a class="btn btn-default btn-round" title="Add new"
+                    ng-href="#/hierarchy/new?survey={{survey.id}}"
+                    ng-if="survey.isEditable && checkRole('hierarchy_add')">
+                <i class="fa fa-fw fa-plus"></i></a>
+        </div>
+        <h2>
+            Question Sets
+        </h2>
+    </div>
+</div>
+<div class="container">
+    <p ng-if="!hierarchies.length">
+        There are no question sets yet.
+    </p>
+
+    <ul class="list-results">
+        <li>
+            <a ng-repeat="hierarchy in hierarchies"
+                    ng-href="#/hierarchy/{{hierarchy.id}}?survey={{survey.id}}">
+                <h4>{{hierarchy.title}}</h4>
+            </a>
+        </li>
+    </ul>
+</div>
+</div>
+
+<div ng-if="!edit.model && checkRole('survey_state')">
+<div class="measure">
+<div class="container">
+    <p class="text-center">
+        <a href class="btn btn-link" ng-click="toggleOpen()">
+            <span ng-if="survey.isOpen">
+                <i class="fa fa-ban"></i>
+                Un-open survey</span>
+            <span ng-if="!survey.isOpen">
+                <i class="fa fa-circle-o"></i>
+                Open survey</span>
+        </a>
+        <a href class="btn btn-link" ng-click="toggleEditable()">
+            <i class="fa fa-pencil-square-o">
+                <i ng-if="survey.isEditable"
+                    class="fa fa-ban fa-badge fa-badge-left"></i>
+            </i>
+            <span ng-if="survey.isEditable">
+                Make non-editable</span>
+            <span ng-if="!survey.isEditable">
+                Make editable</span>
+        </a>
+    </p>
+</div>
+</div>
+
+</div>

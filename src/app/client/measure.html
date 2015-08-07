@@ -1,0 +1,134 @@
+<div>
+
+<div class="header">
+<div class="container">
+    <div class="toolbar">
+        <button class="btn btn-default btn-round"
+                title="{{parent ? 'Unlink' : 'Delete'}}"
+                ng-click="edit.del()"
+                ng-if="survey.isEditable && !edit.model &&
+                    checkRole('measure_del')">
+            <i class="fa fa-trash-o"
+                    ng-class="parent ? 'fa-unlink' : 'fa-trash-o'"></i>
+        </button>
+        <button class="btn btn-default btn-round" title="Collapse"
+                ng-click="layout.expandHeader = !layout.expandHeader">
+            <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
+            <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
+        </button>
+        <button class="btn btn-default btn-round" title="Cancel"
+                ng-click="edit.cancel()"
+                ng-if="edit.model && edit.model.id">
+            <i class="fa fa-times"></i></button>
+        <button class="btn btn-default btn-round" title="Save"
+                ng-click="edit.save()"
+                ng-if="edit.model"
+                form="editor">
+            <i class="fa fa-check"></i></button>
+        <button class="btn btn-default btn-round" title="Edit"
+                ng-click="edit.edit()"
+                ng-if="survey.isEditable && !edit.model &&
+                    checkRole('measure_edit')">
+            <i class="fa fa-pencil"></i></button>
+        <survey-history entity="measure" service="Measure"
+                ng-if="!edit.model"></survey-history>
+    </div>
+    <question-header entity="measure"></question-header>
+</div>
+</div>
+
+<div class="measure" ng-if="edit.model">
+<div class="container">
+    <form novalidate name="form" id="editor">
+        <div class="form-group" show-errors>
+            <label for="title">Name</label>
+            <span class="help-label" ng-if="form.title.$error.required">
+                Please provide a title.</span>
+            <input type="text" class="form-control" id="title" name="title"
+                ng-model="edit.model.title" required />
+        </div>
+        <div class="form-group" show-errors>
+            <label for="title">Weight</label>
+            <span class="help-label" ng-if="form.weight.$error.required">
+                Please provide a weight.</span>
+            <span class="help-label" ng-if="form.weight.$error.min">
+                Negative numbers are not allowed</span>
+            <input type="number" class="form-control" id="weight" name="weight"
+                ng-model="edit.model.weight" min="0" required />
+        </div>
+        <div class="form-group" show-errors>
+            <label for="intent">Intent</label>
+            <textarea id="intent" name="intent" class="form-control"
+                ng-model="edit.model.intent"></textarea>
+        </div>
+        <div class="form-group" show-errors>
+            <label for="inputs">Inputs</label>
+            <textarea id="inputs" name="inputs" class="form-control"
+                ng-model="edit.model.inputs"></textarea>
+        </div>
+        <div class="form-group" show-errors>
+            <label for="scenario">Scenario</label>
+            <textarea id="scenario" name="scenario" class="form-control"
+                ng-model="edit.model.scenario"></textarea>
+        </div>
+        <div class="form-group" show-errors>
+            <label for="questions">Questions</label>
+            <textarea id="questions" name="questions" class="form-control"
+                ng-model="edit.model.questions"></textarea>
+        </div>
+        <div class="form-group" show-errors>
+            <label for="questions">Response Type</label>
+            <select type="text" class="form-control"
+                id="response_type" name="response_type"
+                ng-options="rt.id as (rt.name + ' - ' + rt.description) for rt in responseTypes"
+                ng-model="edit.model.responseType"></select>
+        </div>
+    </form>
+</div>
+</div>
+
+<div class="measure" ng-if="!edit.model">
+<div class="container">
+    <h3 ng-if="measure.intent">Intent</h3>
+    <p ng-if="measure.intent" class="formatted">{{measure.intent}}</p>
+    <h3 ng-if="measure.inputs">Inputs</h3>
+    <p ng-if="measure.inputs" class="formatted">{{measure.inputs}}</p>
+    <h3 ng-if="measure.scenario">Scenario</h3>
+    <p ng-if="measure.scenario" class="formatted">{{measure.scenario}}</p>
+    <h3 ng-if="measure.questions">Questions</h3>
+    <p ng-if="measure.questions" class="formatted">{{measure.questions}}</p>
+</div>
+</div>
+
+<div class="measure" ng-if="!edit.model && parents && checkRole('measure_edit')">
+<div class="container text-muted">
+    <p ng-if="parents.length">
+        Measures are shared between question sets.
+        Respondents can use the following category paths to reach this measure:
+    </p>
+    <ul ng-if="parents.length">
+        <li ng-repeat="parent in parents">
+            <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}&parent={{parent.qnodes[parent.qnodes.length - 1].id}}">
+            {{parent.hierarchy.title}}
+            <span ng-repeat="item in parent.qnodes">
+                &raquo;
+                <span ng-if="item.seq != null">
+                    {{item.seq + 1}}.</span>
+                {{item.title}}
+            </span>
+            </a>
+        </li>
+    </ul>
+    <p ng-if="parent">
+        This measure can be
+        <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}">
+            viewed without a question set</a>,
+        but it can not be responded to like that.
+    </p>
+    <p ng-if="!parents.length">
+        This measure is an orphan: it belongs to no categories.
+    </p>
+</div>
+</div>
+
+</div>

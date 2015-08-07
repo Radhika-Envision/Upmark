@@ -15,6 +15,7 @@ Run with:
 
 ```bash
 sudo docker run -d --name postgres_aq postgres:9
+crontab src/util/watchdog
 sudo docker run -d --name aquamark \
     --link postgres_aq:postgres \
     -e ANALYTICS_ID=foo \
@@ -36,6 +37,87 @@ organisation.
 [ga]: http://www.google.com.au/analytics/
 
 
+## Deployment on AWS
+
+Clone the repository and build the image.
+
+```bash
+cd /home/ubuntu
+
+git clone https://github.com/vpac-innovations/aquamark.git
+# Enter your username and password
+sudo docker build -t vpac/aquamark /home/ubuntu/aquamark/src/app
+```
+
+Edit the watchdog config file and add your email credentials. Then test that the
+email function works.
+
+```bash
+nano /home/ubuntu/aquamark/src/util/watchdog.config
+/home/ubuntu/aquamark/src/util/watchdog.py --test
+```
+
+Start the container with restart option, and the watchdog task.
+
+```bash
+sudo docker run -d --name aquamark \
+    --restart=always \
+    -e ANALYTICS_ID=<your analytics ID> \
+    -e DATABASE_URL=<as specified by AWS RDS> \
+    vpac/aquamark
+crontab /home/ubuntu/aquamark/src/util/watchdog
+```
+
+### AWS Auto scaling group
+
+AWS Auto-scaling group supports dynamically scalibility upgrading for the
+service. Not only used for Scaling services but used for fault tollerance
+purpose. So AWS EC2 instances will be automatically created instance with the
+image we created. Most of these instructions should be performed in the AWS
+console.
+
+First create a load balancer. This will be reused for all deployments.
+
+1. Create Load Balacer
+    1. LOAD BALANCING > Load Balancers > Create Load Balancer
+    1. Ensure HTTP and HTTPS are enabled
+    1. Process with default option and proper names
+
+1. DNS
+    1. Assign the domain name to the load balancer IP (use your domain registrar
+       to do this).
+
+Here are the steps of the creating auto-scaling group.
+
+1. Create an instance and install Aquamark on it, as described in the previous
+   section.
+
+1. Create AMI images for current running instance.
+    1. Select the image in the AWS console under EC2 > Instances.
+    1. Click Actions > Image > Create Image button.
+    1. Create the image. This process takes a while. You can check the process
+       in the IMAGES > AMIs screen.
+
+1. Create Autoscaling Group
+    1. AUTO SCALING > Launch Configurations > Create Auto Scaling Group
+        1. Configure Auto Scaling group details
+            1. Put in how many instance you need to prepare for scaling, Select
+               a subnet that is not visible from the outside world, but which
+               can be accessed from the load balancer.
+            1. On advanced tab - check `Receive traffic from Elastic Load
+               Balancer(s)` option and select load balancer which was previously
+               created
+        1. Configure scaling policies - You can specify condition of scale up or
+           scale down of the instances
+    1. AUTO SCALING > Auto Scaling Groups
+        1. Create Launch Configuration > My AMIs 
+        1. Select AMI which created before
+        1. Choose same instance type (default)
+        1. At `Configure details`, you need to expand `Advanced details` field
+           and type in `docker restart aq` on User data
+        1. Choose the same storage size as specified by the image (default)
+
+
 ## Development
 
 The easiest way to run during development is to start a Docker container as
@@ -51,7 +133,6 @@ sudo docker run --rm --name aq \
     -v "$PWD/src/app:/usr/share/aquamark/app" \
     -p 8000:8000 \
     -e DEV_MODE=True \
-    -e DEBUG_MODE=True \
     vpac/aquamark
 ```
 

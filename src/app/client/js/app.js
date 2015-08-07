@@ -3,7 +3,8 @@
 angular.module('wsaa.aquamark',
                ['ngRoute', 'ngAnimate', 'ui.bootstrap', 'cfp.hotkeys',
                 'ui.bootstrap.showErrors', 'validation.match', 'settings',
-                'wsaa.survey', 'wsaa.admin', 'vpac.utils', 'vpac.widgets'])
+                'wsaa.survey', 'wsaa.admin', 'wsaa.surveyQuestions',
+                'vpac.utils', 'vpac.widgets'])
 
 
 /**
@@ -94,33 +95,23 @@ angular.module('wsaa.aquamark',
                 logProvider, chain) {
 
         $routeProvider
-            .when('/survey/:survey/:fn/:proc/:subProc/:measure', {
-                templateUrl : 'survey-measure.html',
-                controller : 'SurveyCtrl',
-                resolve: {routeData: chain({
-                    measure: ['Measure', '$route', function(Measure, $route) {
-                        return Measure.get($route.current.params).$promise;
-                    }],
-                    schema: ['measure', 'Schema', function(measure, Schema) {
-                        return Schema.get({name: measure.responseType}).$promise;
-                    }]
-                })}
-            })
+
             .when('/', {
-                templateUrl : 'start.html',
-                controller : 'EmptyCtrl'
+                redirectTo : 'surveys'
             })
+            .when('/admin', {
+                templateUrl : 'systemconfig.html',
+                controller : 'SystemConfigCtrl',
+                resolve: {
+                    systemConfig: ['SystemConfig', function(SystemConfig) {
+                        return SystemConfig.get().$promise;
+                    }]
+                }
+            })
+
             .when('/users', {
                 templateUrl : 'user_list.html',
-                controller : 'UserListCtrl',
-                resolve: {routeData: chain({
-                    users: ['User', function(User) {
-                        return User.query().$promise;
-                    }],
-                    current: ['Current', function(Current) {
-                        return Current.$promise;
-                    }]
-                })}
+                controller : 'UserListCtrl'
             })
             .when('/user/new', {
                 templateUrl : 'user.html',
@@ -128,9 +119,6 @@ angular.module('wsaa.aquamark',
                 resolve: {routeData: chain({
                     roles: ['Roles', function(Roles) {
                         return Roles.get().$promise;
-                    }],
-                    current: ['Current', function(Current) {
-                        return Current.$promise;
                     }]
                 })}
             })
@@ -143,54 +131,240 @@ angular.module('wsaa.aquamark',
                     }],
                     user: ['User', '$route', function(User, $route) {
                         return User.get($route.current.params).$promise;
-                    }],
-                    current: ['Current', function(Current) {
-                        return Current.$promise;
                     }]
                 })}
             })
+
             .when('/orgs', {
                 templateUrl : 'organisation_list.html',
-                controller : 'OrganisationListCtrl',
-                resolve: {routeData: chain({
-                    orgs: ['Organisation', function(Organisation) {
-                        return Organisation.query({}).$promise;
-                    }],
-                    current: ['Current', function(Current) {
-                        return Current.$promise;
-                    }]
-                })}
+                controller : 'OrganisationListCtrl'
             })
             .when('/org/new', {
                 templateUrl : 'organisation.html',
                 controller : 'OrganisationCtrl',
-                resolve: {routeData: chain({
-                    current: ['Current', function(Current) {
-                        return Current.$promise;
-                    }]
-                })}
+                resolve: {
+                    org: function() {
+                        return null;
+                    }
+                }
             })
             .when('/org/:id', {
                 templateUrl : 'organisation.html',
                 controller : 'OrganisationCtrl',
-                resolve: {routeData: chain({
-                    org: ['Organisation', '$route', function(Organisation, $route) {
+                resolve: {
+                    org: ['Organisation', '$route',
+                            function(Organisation, $route) {
                         return Organisation.get($route.current.params).$promise;
-                    }],
-                    current: ['Current', function(Current) {
-                        return Current.$promise;
-                    }],
-                    users: ['User', 'org', function(User, org) {
-                        return User.query({org_id: org.id}).$promise;
+                    }]
+                }
+            })
+
+            .when('/surveys', {
+                templateUrl : 'survey_list.html',
+                controller : 'SurveyListCtrl'
+            })
+            .when('/survey/new', {
+                templateUrl : 'survey.html',
+                controller : 'SurveyCtrl',
+                resolve: {routeData: chain({
+                    duplicate: ['Survey', '$route', function(Survey, $route) {
+                        if (!$route.current.params.duplicate)
+                            return null;
+                        return Survey.get({
+                            id: $route.current.params.duplicate
+                        }).$promise;
                     }]
                 })}
             })
+            .when('/survey/:survey', {
+                templateUrl : 'survey.html',
+                controller : 'SurveyCtrl',
+                resolve: {routeData: chain({
+                    survey: ['Survey', '$route', function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    hierarchies: ['Hierarchy', 'survey',
+                            function(Hierarchy, survey) {
+                        return Hierarchy.query({
+                            surveyId: survey.id
+                        }).$promise;
+                    }]
+                })}
+            })
+
+            .when('/hierarchy/new', {
+                templateUrl : 'hierarchy.html',
+                controller : 'HierarchyCtrl',
+                resolve: {routeData: chain({
+                    survey: ['Survey', '$route', function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
+                    }]
+                })}
+            })
+            .when('/hierarchy/:hierarchy', {
+                templateUrl : 'hierarchy.html',
+                controller : 'HierarchyCtrl',
+                resolve: {routeData: chain({
+                    hierarchy: ['Hierarchy', '$route',
+                            function(Hierarchy, $route) {
+                        return Hierarchy.get({
+                            id: $route.current.params.hierarchy,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    survey: ['hierarchy', function(hierarchy) {
+                        return hierarchy.survey;
+                    }],
+                    qnodes: ['QuestionNode', 'hierarchy', 'survey',
+                            function(QuestionNode, hierarchy, survey) {
+                        return QuestionNode.query({
+                            hierarchyId: hierarchy.id,
+                            surveyId: survey.id
+                        }).$promise;
+                    }]
+                })}
+            })
+
+            .when('/qnode/new', {
+                templateUrl : 'question_node.html',
+                controller : 'QuestionNodeCtrl',
+                resolve: {routeData: chain({
+                    hierarchy: ['Hierarchy', '$route',
+                            function(Hierarchy, $route) {
+                        var hierarchyId = $route.current.params.hierarchy;
+                        if (!hierarchyId)
+                            return null
+                        return Hierarchy.get({
+                            id: hierarchyId,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    parent: ['QuestionNode', '$route',
+                            function(QuestionNode, $route) {
+                        var parentId = $route.current.params.parent;
+                        if (!parentId)
+                            return null;
+                        return QuestionNode.get({
+                            id: parentId,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }]
+                })}
+            })
+            .when('/qnode/:qnode', {
+                templateUrl : 'question_node.html',
+                controller : 'QuestionNodeCtrl',
+                resolve: {routeData: chain({
+                    qnode: ['QuestionNode', '$route',
+                            function(QuestionNode, $route) {
+                        return QuestionNode.get({
+                            id: $route.current.params.qnode,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    children: ['QuestionNode', '$route',
+                            function(QuestionNode, $route) {
+                        return QuestionNode.query({
+                            parentId: $route.current.params.qnode,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    measures: ['Measure', '$route',
+                            function(Measure, $route) {
+                        return Measure.query({
+                            qnodeId: $route.current.params.qnode,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }]
+                })}
+            })
+            .when('/measure-link', {
+                templateUrl : 'measure_link.html',
+                controller : 'MeasureLinkCtrl',
+                resolve: {routeData: chain({
+                    parent: ['QuestionNode', '$route',
+                            function(QuestionNode, $route) {
+                        return QuestionNode.get({
+                            id: $route.current.params.parent,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    survey: ['Survey', '$route', function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
+                    }],
+                })}
+            })
+
+            .when('/measures', {
+                templateUrl : 'measure_list.html',
+                controller : 'MeasureListCtrl',
+                resolve: {routeData: chain({
+                    survey: ['Survey', '$route', function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
+                    }],
+                })}
+            })
+            .when('/measure/new', {
+                templateUrl : 'measure.html',
+                controller : 'MeasureCtrl',
+                resolve: {routeData: chain({
+                    parent: ['QuestionNode', '$route',
+                            function(QuestionNode, $route) {
+                        if (!$route.current.params.parent)
+                            return null;
+                        return QuestionNode.get({
+                            id: $route.current.params.parent,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    survey: ['Survey', '$route', function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
+                    }],
+                })}
+            })
+            .when('/measure/:measure', {
+                templateUrl : 'measure.html',
+                controller : 'MeasureCtrl',
+                resolve: {routeData: chain({
+                    parent: ['QuestionNode', '$route',
+                            function(QuestionNode, $route) {
+                        if (!$route.current.params.parent)
+                            return null;
+                        return QuestionNode.get({
+                            id: $route.current.params.parent,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    measure: ['Measure', '$route', function(Measure, $route) {
+                        return Measure.get({
+                            id: $route.current.params.measure,
+                            surveyId: $route.current.params.survey,
+                            hierarchyId: $route.current.params.hierarchy,
+                            parentId: $route.current.params.parent
+                        }).$promise;
+                    }]
+                })}
+            })
+
             .when('/legal', {
                 templateUrl : 'legal.html',
                 controller : 'EmptyCtrl'
             })
+
             .otherwise({
-                redirectTo : '/'
+                resolve: {error: ['$q', function($q) {
+                    return $q.reject({statusText: "That page does not exist"});
+                }]}
             });
 
         $animateProvider.classNameFilter(/animate/);
@@ -227,6 +401,9 @@ angular.module('wsaa.aquamark',
  */
 .config(['$httpProvider', 'versionedResources', 'deployId',
     function($httpProvider, versionedResources, deployId) {
+        if (!deployId)
+            return;
+
         var includes = versionedResources.include.map(function(r) {
             return new RegExp(r);
         });
@@ -261,8 +438,33 @@ angular.module('wsaa.aquamark',
 }])
 
 
-.controller('RootCtrl', ['$scope',
-        function($scope) {
+.run(['$rootScope', '$window', '$location', 'Notifications', 'log',
+        function($rootScope, $window, $location, Notifications, log) {
+    $rootScope.$on('$routeChangeError',
+            function(event, current, previous, rejection) {
+        var error;
+        if (rejection && rejection.statusText)
+            error = rejection.statusText;
+        else
+            error = "Object not found";
+        log.error("Failed to navigate to {}", $location.url());
+        Notifications.set('route', 'error', error, 10000);
+        if (previous) {
+            $window.history.back();
+        } else {
+            $location.path("/");
+        }
+    });
+}])
+
+
+.controller('RootCtrl', ['$scope', 'hotkeys',
+        function($scope, hotkeys) {
+    $scope.hotkeyHelp = hotkeys.toggleCheatSheet;
+}])
+.controller('HeaderCtrl', ['$scope', 'confAuthz', 'Current',
+        function($scope, confAuthz, Current) {
+        $scope.checkRole = confAuthz(Current);
 }])
 .controller('EmptyCtrl', ['$scope',
         function($scope) {

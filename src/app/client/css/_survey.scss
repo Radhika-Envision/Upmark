@@ -3,12 +3,109 @@
 
 $anim-time: 0.5s;
 
+h2, h3, h4 {
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+h2 {
+    font-size: 19px;
+}
+h3 {
+    font-size: 16px;
+    color: #555;
+    margin-top: 12px;
+    margin-bottom: 8px;
+}
+h4 {
+    font-size: 16px;
+}
+
+h2 {
+    &[label]:before {
+        content: attr(label);
+        position: absolute;
+        left: -40px;
+        background-color: white;
+        border-radius: 50%;
+        top: 2px;
+        font-size: 10px;
+        width: 25px;
+        height: 25px;
+        line-height: 25px;
+        text-align: center;
+        font-weight: bold;
+        opacity: 1;
+        box-shadow: 0 0 3px rgba(0, 0, 0, 0.1), 2px 2px 10px rgba(0, 0, 0, 0.1);
+        @include transition(
+            box-shadow $anim-time ease,
+            background-color $anim-time ease,
+            opacity $anim-time ease
+        );
+    }
+    &.survey-s[label]:before {
+        background-color: mix($survey-colour, white, 50%);
+        color: mix($survey-colour, black, 50%);
+    }
+    &.survey-h[label]:before {
+        background-color: mix($hierarchy-colour, white, 50%);
+        color: mix($hierarchy-colour, black, 50%);
+    }
+    &.survey-0[label]:before {
+        background-color: mix($function-colour, white, 50%);
+        color: mix($function-colour, black, 50%);
+    }
+    &.survey-1[label]:before {
+        background-color: mix($process-colour, white, 50%);
+        color: mix($process-colour, black, 50%);
+    }
+    &.survey-2[label]:before {
+        background-color: mix($subprocess-colour, white, 50%);
+        color: mix($subprocess-colour, black, 50%);
+    }
+    &.survey-m[label]:before {
+        background-color: mix($measure-colour, white, 50%);
+        color: mix($measure-colour, black, 50%);
+    }
+}
+.stacked-header {
+    >h2:not(:last-child) {
+        opacity: 0.8;
+    }
+}
+
+.header-collapsed {
+    h2 {
+        display: inline;
+        &[label]:before {
+            display: none;
+        }
+    }
+    .when-expanded {
+        display: none;
+    }
+}
+.header-expanded {
+    h2 {
+        display: block;
+    }
+    .when-collapsed {
+        display: none;
+    }
+}
+
 .header {
     background: $primary-colour;
     position: relative;
     padding-top: 10px;
     padding-bottom: 10px;
     margin-bottom: 20px;
+
+    h2 {
+        .clock-progress {
+            @include transform(scale(19/16));
+            @include transform-origin(9px 1px);
+        }
+    }
 
     h2, h3, h4 {
         color: mix(black, $primary-colour, 70%);
@@ -22,25 +119,42 @@ $anim-time: 0.5s;
             right: 0;
         }
     }
-    h2 {
-        font-size: 19px;
-        .clock-progress {
-            @include transform(scale(19/16));
-            @include transform-origin(9px 1px);
-        }
-    }
-    h3, h4 {
-        font-size: 16px;
-    }
-
-    .btn-group {
-        position: absolute;
-        right: 10px;
-    }
 
     a {
         color: inherit;
     }
+}
+
+ul.dropdown-menu {
+    border: none;
+
+    @media (max-width: 768px) {
+        left: 4px !important;
+        right: 4px !important;
+    }
+    @media (min-width: 768px) {
+        margin-right: -80px;
+    }
+
+    > li > a {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    > li.active > a, > li.active > a:hover {
+        background-color: #f5f5f5;
+        color: black;
+
+        &:before {
+            @include fontawesome('\f0da');
+            position: absolute;
+            left: 0.6em;
+        }
+    }
+}
+
+.nudge-right {
+    position: relative;
+    left: 0.6em;
 }
 
 .subheader {
@@ -55,15 +169,75 @@ $anim-time: 0.5s;
     margin-top: -30px;
 }
 
+.toolbar {
+    float: right;
+    position: relative;
+    z-index: 1;
+    margin-top: 4px;
+}
+
+.grab-handle {
+    cursor: move;
+}
+
 /* Nested pages should have less prominent headers */
-ng-include>.header {
+ng-include>.header, .nested>.header {
     background: transparent;
-    margin-bottom: 0;
+    margin-bottom: 10px;
     padding-bottom: 0;
 
     h2 {
         font-size: 16px;
     }
+}
+
+.section {
+    margin-top: 20px;
+    margin-bottom: 12px;
+
+    .toolbar {
+        margin-top: -3px;
+    }
+}
+
+.formatted {
+    white-space: pre-wrap;
+}
+
+ul.list-results {
+    padding-left: 0;
+    > li {
+        list-style: none;
+        > a, > div {
+            display: block;
+            padding: 8px;
+        }
+        > a {
+            > h4 {
+                font-weight: bold;
+            }
+            > p {
+                color: #555;
+                &:last-child {
+                    margin-bottom: 0;
+                }
+            }
+        }
+
+        a:hover {
+            text-decoration: none;
+            background: #f5f5f5;
+            > h4 {
+                text-decoration: underline;
+            }
+        }
+    }
+}
+
+.truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .measure {

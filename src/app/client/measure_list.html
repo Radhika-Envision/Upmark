@@ -1,0 +1,48 @@
+<div class="header">
+    <div class="container">
+        <div class="toolbar">
+            <a class="btn btn-default btn-round" title="Add new"
+                    ng-href="#/measure/new?survey={{survey.id}}"
+                    ng-if="checkRole('measure_add')">
+                <i class="fa fa-fw fa-plus"></i></a>
+        </div>
+        <div class="stacked-header">
+            <h2 label="S">
+                <a ng-href="#/survey/{{survey.id}}">{{survey.title}}</a>
+            </h2>
+            <h2 label="M">
+                Measures
+            </h2>
+        </div>
+    </div>
+</div>
+
+
+<div class="container">
+    <search-box model="search" result="measures">
+        <button class="btn btn-default" type="button"
+                title="Toggle display of orphan measures"
+                ng-click="cycleOrphan()">
+            <i class="fa fa-file-o">
+                <i ng-if="search.orphan === false"
+                    class="fa fa-circle-o fa-badge text-success"></i>
+                <i ng-if="search.orphan === true"
+                    class="fa fa-ban fa-badge text-danger"></i>
+            </i>
+        </button>
+    </search-box>
+
+  <table class="table table-hover">
+    <tbody>
+      <tr ng-repeat="measure in measures"
+            ng-class="{strike: measure.orphan}"
+            any-href="/measure/{{measure.id}}?survey={{survey.id}}">
+        <td class="truncate">{{measure.title}}
+            <span class="text-muted" ng-if="measure.intent">
+                - {{measure.intent}}</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>

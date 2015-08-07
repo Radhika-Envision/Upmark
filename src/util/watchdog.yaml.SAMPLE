@@ -1,0 +1,29 @@
+CONTAINER_NAME: aq
+MINIMUM_UPTIME_MS: 60000
+
+SMTP_SERVER: <YOUR SMTP SERVER>
+SMTP_PORT: 587
+SMTP_USERNAME: <SMTP SERVER USERNAME>
+SMTP_PASSWORD: <SMTP SERVER PASSWORD>
+
+MESSAGE_SEND_FROM: <SENDER EMAIL>
+MESSAGE_SEND_TO: [<RECEIPIENT LIST>]
+N_LOG_LINES: 100
+
+MESSAGE_SUBJECT_CRASHED: Aquamark has CRASHED
+MESSAGE_CONTENT_CRASHED: |
+    Aquamark server ${server} has CRASHED.
+    
+    Here are the last ${n_log_lines} lines from the logs:
+    ${logs}
+
+MESSAGE_SUBJECT_RECOVERED: Aquamark is RUNNING
+MESSAGE_CONTENT_RECOVERED: |
+    Aquamark server ${server} has recovered.
+    
+    Here are the last ${n_log_lines} lines from the logs:
+    ${logs}
+
+MESSAGE_SUBJECT_TEST: Aquamark watchdog TEST
+MESSAGE_CONTENT_TEST: |
+    This is a TEST email from Aquamark server ${server}.
