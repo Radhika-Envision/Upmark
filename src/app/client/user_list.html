@@ -15,7 +15,11 @@
 <div class="container">
     <search-box model="search" result="users">
         <button class="btn btn-default" type="button"
-                title="Toggle display of inactive users"
+                title="{{search.enabled === true ?
+                    'Only show active users' :
+                        search.enabled === false ?
+                        'Only show inactive users' :
+                        'Show both active and inactive users'}}"
                 ng-click="cycleEnabled()">
             <i class="fa fa-user">
                 <i ng-if="search.enabled === true"
@@ -23,6 +27,7 @@
                 <i ng-if="search.enabled === false"
                     class="fa fa-ban fa-badge text-danger"></i>
             </i>
+            <span class="hidden-xs">Active</span>
         </button>
     </search-box>
 
@@ -42,4 +47,23 @@
       </tr>
     </tbody>
   </table>
+
+    <div>
+    <p class="text-muted">
+        <span ng-if="search.enabled === false">
+            Displaying only <i>inactive</i> users.</span>
+        <span ng-if="search.enabled === true">
+            Displaying only <i>active</i> users.</span>
+        <span ng-if="search.enabled == null">
+            Displaying both <i>active and inactive</i> users.</span>
+
+        <span ng-if="!users.length">
+            No users match your query.</span>
+
+        <span ng-if="!users.length && checkRole('user_add')">
+            You can create a user by pressing the
+            <i class="fa fa-fw fa-plus"></i> button above.
+        </span>
+    </p>
+    </div>
 </div>

@@ -47,19 +47,20 @@
                 <p class="truncate">{{survey.description}}</p>
             </a>
         </li>
-        <li ng-if="!surveys.length">
+        <li>
             <div>
-            <p>
-                <span ng-if="!search.open && !search.editable">
-                    No surveys match your query.</span>
+            <p class="text-muted">
                 <span ng-if="search.open && !search.editable">
-                    No <i>open</i> surveys match your query.</span>
+                    Displaying only <i>open</i> surveys.</span>
                 <span ng-if="!search.open && search.editable">
-                    No <i>editable</i> surveys match your query.</span>
+                    Displaying only <i>editable</i> surveys.</span>
                 <span ng-if="search.open && search.editable">
-                    No <i>editable and open</i> surveys match your query.</span>
+                    Displaying only <i>editable and open</i> surveys.</span>
 
-                <span ng-if="checkRole('survey_add')">
+                <span ng-if="!surveys.length">
+                    No surveys match your query.</span>
+
+                <span ng-if="!surveys.length && checkRole('survey_add')">
                     You can create a survey by pressing the
                     <i class="fa fa-fw fa-plus"></i> button above.
                 </span>
