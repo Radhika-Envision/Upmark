@@ -241,6 +241,9 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
 
         open_ = self.get_argument('open', '')
         editable = self.get_argument('editable', '')
+        if open_ != '' or editable != '':
+            self._update_state(survey_id, open_, editable)
+            return
 
         try:
             with model.session_scope() as session:
@@ -248,17 +251,33 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 if survey is None:
                     raise ValueError("No such object")
 
-                if open_ == '' and editable == '':
-                    if not survey.is_editable:
-                        raise handlers.MethodError(
-                            "This survey is closed for editing")
-                    self._update(survey, self.request_son)
-                elif open_ != '':
+                if not survey.is_editable:
+                    raise handlers.MethodError(
+                        "This survey is closed for editing")
+                self._update(survey, self.request_son)
+        except (sqlalchemy.exc.StatementError, ValueError):
+            raise handlers.MissingDocError("No such survey")
+        except sqlalchemy.exc.IntegrityError as e:
+            raise handlers.ModelError.from_sa(e)
+        self.get(survey_id)
+
+    @handlers.authz('admin')
+    def _update_state(self, survey_id, open_, editable):
+        '''
+        Just update the state of the survey (not title etc.)
+        '''
+        try:
+            with model.session_scope() as session:
+                survey = session.query(model.Survey).get(survey_id)
+                if survey is None:
+                    raise ValueError("No such object")
+
+                if open_ != '':
                     if truthy(open_):
                         survey.open_date = datetime.datetime.utcnow()
                     else:
                         survey.open_date = None
-                elif editable != '':
+                if editable != '':
                     if truthy(editable):
                         survey.finalised_date = None
                     else:

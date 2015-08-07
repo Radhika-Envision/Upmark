@@ -113,10 +113,26 @@ angular.module('wsaa.surveyQuestions', [
     $scope.checkRole = authz(current, $scope.survey);
 
     $scope.toggleOpen = function() {
-        $scope.survey.$save({open: !$scope.survey.isOpen});
+        $scope.survey.$save({open: !$scope.survey.isOpen},
+            function success() {
+                Notifications.set('edit', 'success', "Saved", 5000);
+            },
+            function failure(details) {
+                Notifications.set('edit', 'error',
+                    "Could not save object: " + details.statusText);
+            }
+        );
     };
     $scope.toggleEditable = function() {
-        $scope.survey.$save({editable: !$scope.survey.isEditable});
+        $scope.survey.$save({editable: !$scope.survey.isEditable},
+            function success() {
+                Notifications.set('edit', 'success', "Saved", 5000);
+            },
+            function failure(details) {
+                Notifications.set('edit', 'error',
+                    "Could not save object: " + details.statusText);
+            }
+        );
     };
 
     $scope.Survey = Survey;
