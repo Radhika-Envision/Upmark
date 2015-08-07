@@ -41,7 +41,6 @@ RUN mv /tmp/bower_components /usr/share/aquamark/.bower_components
 
 ENV PORT=8000 \
     DEV_MODE=False \
-    DEBUG_MODE=False \
     DATABASE_URL=postgresql://postgres:postgres@postgres/postgres \
     ANALYTICS_ID= \
     PYTHONPATH=.:/usr/share/aquamark/app/server/

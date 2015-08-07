@@ -29,7 +29,7 @@ DEPLOY_ID = str(time.time())
 
 
 def deploy_id():
-    if tornado.options.options.dev:
+    if truthy(tornado.options.options.dev):
         return None
     else:
         return DEPLOY_ID

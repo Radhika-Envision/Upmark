@@ -52,10 +52,6 @@ def parse_options():
         help="Development mode (default: True)")
 
     tornado.options.define(
-        "debug", default=os.environ.get('DEBUG_MODE', 'True'),
-        help="Debug mode (default: True)")
-
-    tornado.options.define(
         "analytics_id", default=os.environ.get('ANALYTICS_ID', ''),
         help="Google Analytics ID, leave blank to disable (default: '')")
 
@@ -94,7 +90,7 @@ def get_settings():
     settings.update({
         "cookie_secret": get_cookie_secret(),
         "xsrf_cookies": truthy(tornado.options.options.xsrf),
-        "debug": truthy(tornado.options.options.debug),
+        "debug": truthy(tornado.options.options.dev),
         "serve_traceback": truthy(tornado.options.options.dev),
         "gzip": True
     })

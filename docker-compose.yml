@@ -4,7 +4,6 @@ web:
    - "8000:8000"
   environment:
     DEV_MODE: True
-    DEBUG_MODE: True
     AQ_XSRF: True
   volumes:
    - ./src/app:/usr/share/aquamark/app
