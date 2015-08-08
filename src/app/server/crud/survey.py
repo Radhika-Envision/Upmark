@@ -15,7 +15,7 @@ import logging
 
 from utils import ToSon, truthy, updater
 
-log = logging.getLogger('app.crud.surveys')
+log = logging.getLogger('app.crud.survey')
 
 
 class SurveyCentric:

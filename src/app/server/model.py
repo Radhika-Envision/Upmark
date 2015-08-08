@@ -3,9 +3,9 @@ import os
 import sys
 import uuid
 
-from sqlalchemy import Boolean, create_engine, Column, DateTime, Float, \
+from sqlalchemy import Boolean, create_engine, Column, DateTime, Enum, Float, \
     ForeignKey, Index, Integer, String, Text, Table
-from sqlalchemy.dialects.postgresql import UUID, JSON
+from sqlalchemy.dialects.postgresql import JSON
 import sqlalchemy.exc
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
@@ -44,6 +44,7 @@ class SystemConfig(Base):
 class Organisation(Versioned, Base):
     __tablename__ = 'organisation'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
+
     name = Column(Text, nullable=False)
     url = Column(Text, nullable=True)
     region = Column(Text, nullable=False)
@@ -61,12 +62,13 @@ class Organisation(Versioned, Base):
 class AppUser(Versioned, Base):
     __tablename__ = 'appuser'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    organisation_id = Column(
+        GUID, ForeignKey("organisation.id"), nullable=False)
+
     email = Column(Text, nullable=False)
     name = Column(Text, nullable=False)
     password = Column(Text, nullable=False)
     role = Column(Text, nullable=False)
-    organisation_id = Column(
-        GUID, ForeignKey("organisation.id"), nullable=False)
     created = Column(DateTime, default=func.now(), nullable=False)
     enabled = Column(Boolean, nullable=False, default=True)
 
@@ -112,6 +114,8 @@ def has_privillege(current_role, *target_roles):
 class Survey(Base):
     __tablename__ = 'survey'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    tracking_id = Column(GUID, default=uuid.uuid4, nullable=False)
+
     created = Column(DateTime, default=func.now(), nullable=False)
     # Survey is not editable after being finalised.
     finalised_date = Column(DateTime)
@@ -119,7 +123,6 @@ class Survey(Base):
     open_date = Column(DateTime)
     title = Column(Text, nullable=False)
     description = Column(Text)
-    tracking_id = Column(GUID, default=uuid.uuid4, nullable=False)
 
     @property
     def is_editable(self):
@@ -138,6 +141,7 @@ class Hierarchy(Base):
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(
         GUID, ForeignKey('survey.id'), nullable=False, primary_key=True)
+
     title = Column(Text, nullable=False)
     description = Column(Text)
     structure = Column(JSON, nullable=False)
@@ -153,6 +157,7 @@ class QuestionNode(Base):
     survey_id = Column(GUID, nullable=False, primary_key=True)
     hierarchy_id = Column(GUID)
     parent_id = Column(GUID)
+
     seq = Column(Integer)
 
     title = Column(Text, nullable=False)
@@ -190,6 +195,7 @@ class Measure(Base):
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(
         GUID, ForeignKey("survey.id"), nullable=False, primary_key=True)
+
     title = Column(Text, nullable=False)
     weight = Column(Float, nullable=False)
     intent = Column(Text, nullable=True)
@@ -198,7 +204,8 @@ class Measure(Base):
     questions = Column(Text, nullable=True)
     response_type = Column(Text, nullable=False)
 
-    survey = relationship(Survey, backref='measures')
+    survey = relationship(
+        Survey, backref=backref('measures', passive_deletes=True))
 
     def __repr__(self):
         return "Measure(title={}, survey={})".format(
@@ -213,6 +220,7 @@ class QnodeMeasure(Base):
     survey_id = Column(GUID, nullable=False, primary_key=True)
     qnode_id = Column(GUID, nullable=False, primary_key=True)
     measure_id = Column(GUID, nullable=False, primary_key=True)
+
     seq = Column(Integer)
 
     __table_args__ = (
@@ -254,11 +262,13 @@ class QnodeMeasure(Base):
 class Assessment(Base):
     __tablename__ = 'assessment'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
-    organisation_id = Column(GUID, ForeignKey('organisation.id'), nullable=False)
+    survey_id = Column(GUID, nullable=False)
+    organisation_id = Column(GUID, nullable=False)
     hierarchy_id = Column(GUID, nullable=False)
-    # TODO: Make this field an enum?
-    approval = Column(Text, nullable=False)
+
+    title = Column(Text)
+    approval = Column(
+        Enum('draft', 'final', 'reviewed', 'approved'),  nullable=False)
     created = Column(DateTime, default=func.now(), nullable=False)
 
     __table_args__ = (
@@ -270,6 +280,10 @@ class Assessment(Base):
             ['survey_id'],
             ['survey.id']
         ),
+        ForeignKeyConstraint(
+            ['organisation_id'],
+            ['organisation.id']
+        ),
     )
 
     survey = relationship(Survey)
@@ -280,19 +294,53 @@ class Assessment(Base):
             self.survey.title, self.assessment.Organisation.name)
 
 
+class ResponseNode(Base):
+    __tablename__ = 'rnode'
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    survey_id = Column(GUID, nullable=False)
+    assessment_id = Column(GUID, nullable=False)
+    qnode_id = Column(GUID, nullable=False)
+
+    n_submitted = Column(Integer, default=0, nullable=False)
+    n_reviewed = Column(Integer, default=0, nullable=False)
+    n_approved = Column(Integer, default=0, nullable=False)
+    score = Column(Float, default=0.0, nullable=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['qnode_id', 'survey_id'],
+            ['qnode.id', 'qnode.survey_id']
+        ),
+        ForeignKeyConstraint(
+            ['survey_id'],
+            ['survey.id']
+        ),
+        ForeignKeyConstraint(
+            ['assessment_id'],
+            ['assessment.id']
+        ),
+    )
+
+    survey = relationship(Survey)
+
+    def __repr__(self):
+        return "ResponseNode(qnode={}, survey={}, org={})".format(
+            self.qnode.title, self.survey.title,
+            self.assessment.Organisation.name)
+
+
 class Response(Versioned, Base):
     __tablename__ = 'response'
-    # Here we define columns for the table response
-    # Notice that each column is also a normal Python instance attribute.
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    survey_id = Column(GUID, ForeignKey('survey.id'), nullable=False)
-    user_id = Column(GUID, ForeignKey('appuser.id'), nullable=False)
-    assessment_id = Column(GUID, ForeignKey('assessment.id'), nullable=False)
+    survey_id = Column(GUID, nullable=False)
+    user_id = Column(GUID, nullable=False)
+    rnode_id = Column(GUID, nullable=False)
     measure_id = Column(GUID, nullable=False)
+
     comment = Column(Text, nullable=False)
     not_relevant = Column(Boolean, nullable=False)
     response_parts = Column(Text, nullable=False)
-    audit_reason = Column(Text, nullable=True)
+    audit_reason = Column(Text)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -303,9 +351,18 @@ class Response(Versioned, Base):
             ['survey_id'],
             ['survey.id']
         ),
+        ForeignKeyConstraint(
+            ['user_id'],
+            ['appuser.id']
+        ),
+        ForeignKeyConstraint(
+            ['rnode_id'],
+            ['rnode.id']
+        ),
     )
 
     survey = relationship(Survey)
+    user = relationship(AppUser)
 
     def __repr__(self):
         return "QnodeMeasure(measure={}, survey={}, org={})".format(
@@ -381,10 +438,18 @@ Assessment.hierarchy = relationship(
                      Assessment.survey_id == Hierarchy.survey_id))
 
 
-Assessment.responses = relationship(
-    Response, backref='assessment', passive_deletes=True,
-    primaryjoin=and_(foreign(Response.assessment_id) == Assessment.id,
-                     Response.survey_id == Assessment.survey_id))
+Assessment.rnodes = relationship(
+    ResponseNode, backref='assessment', passive_deletes=True)
+
+
+ResponseNode.qnode = relationship(
+    QuestionNode,
+    primaryjoin=and_(foreign(ResponseNode.qnode_id) == QuestionNode.id,
+                     ResponseNode.survey_id == QuestionNode.survey_id))
+
+
+ResponseNode.responses = relationship(
+    Response, backref="parent", passive_deletes=True)
 
 
 Response.measure = relationship(

@@ -14,7 +14,8 @@ import logging
 
 from utils import reorder, ToSon, truthy, updater
 
-log = logging.getLogger('app.data_access')
+
+log = logging.getLogger('app.crud.hierarchy')
 
 
 class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
@@ -60,7 +61,6 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
     @tornado.web.authenticated
     def query(self):
         '''Get a list.'''
-        sons = []
         with model.session_scope() as session:
             query = session.query(model.Hierarchy)\
                 .filter_by(survey_id=self.survey_id)\

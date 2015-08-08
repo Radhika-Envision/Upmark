@@ -199,6 +199,13 @@ class BaseHandler(tornado.web.RequestHandler):
                 session.expunge(user)
             return user
 
+    def has_privillege(self, *roles):
+        return model.has_privillege(self.current_user.role, *roles)
+
+    def check_privillege(self, *roles):
+        if not self.has_privillege(*roles):
+            raise AuthzError()
+
     @property
     def organisation(self):
         if self.current_user is None or self.current_user.organisation_id is None:
@@ -236,8 +243,7 @@ def authz(*roles):
     def decorator(fn):
         @functools.wraps(fn)
         def wrapper(self, *args, **kwargs):
-            if not any(model.has_privillege(
-                    self.current_user.role, role) for role in roles):
+            if not model.has_privillege(self.current_user.role, *roles):
                 raise AuthzError()
             return fn(self, *args, **kwargs)
         return wrapper
