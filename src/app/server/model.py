@@ -123,6 +123,7 @@ class Survey(Base):
     open_date = Column(DateTime)
     title = Column(Text, nullable=False)
     description = Column(Text)
+    response_types = Column(JSON, default=list, nullable=False)
 
     @property
     def is_editable(self):
