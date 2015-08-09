@@ -46,8 +46,8 @@
                     {"score": 0.32, "if": "dev__i >= 2", "name": "Usually"},
                     {"score": 0.40, "if": "dev__i >= 2", "name": "Always"}
                 ]
-            },
-        ],
+            }
+        ]
         "formula": "(dev + doc) * (cov + eff)"
     },
     {
@@ -60,10 +60,10 @@
                     {"score": 0.4, "name": "Limited"},
                     {"score": 0.6, "name": "Adequate"},
                     {"score": 0.8, "name": "Good"},
-                    {"score": 0.1, "name": "Comprehensive"}
+                    {"score": 1.0, "name": "Comprehensive"}
                 ]
-            },
-        ],
+            }
+        ]
     },
     {
         "id": "business-support-2",
@@ -75,10 +75,10 @@
                     {"score": 0.4, "name": "Limited"},
                     {"score": 0.6, "name": "Adequate"},
                     {"score": 0.8, "name": "Good"},
-                    {"score": 0.1, "name": "Comprehensive"}
+                    {"score": 1.0, "name": "Comprehensive"}
                 ]
-            },
-        ],
+            }
+        ]
     },
     {
         "id": "business-support-3",
@@ -90,10 +90,10 @@
                     {"score": 0.4, "name": "Limited"},
                     {"score": 0.6, "name": "Adequate"},
                     {"score": 0.8, "name": "Good"},
-                    {"score": 0.1, "name": "Effective"}
+                    {"score": 1.0, "name": "Effective"}
                 ]
-            },
-        ],
+            }
+        ]
     },
     {
         "id": "business-support-4",
@@ -105,10 +105,10 @@
                     {"score": 0.4, "name": "Limited"},
                     {"score": 0.6, "name": "Adequate"},
                     {"score": 0.8, "name": "Good"},
-                    {"score": 0.1, "name": "Streamlined"}
+                    {"score": 1.0, "name": "Streamlined"}
                 ]
-            },
-        ],
+            }
+        ]
     },
     {
         "id": "business-support-5",
@@ -120,10 +120,10 @@
                     {"score": 0.4, "name": "Limited"},
                     {"score": 0.6, "name": "Adequate"},
                     {"score": 0.8, "name": "Good"},
-                    {"score": 0.1, "name": "Comprehensive"}
+                    {"score": 1.0, "name": "Comprehensive"}
                 ]
-            },
-        ],
+            }
+        ]
     },
     {
         "id": "business-support-6",
@@ -135,10 +135,10 @@
                     {"score": 0.4, "name": "Limited"},
                     {"score": 0.6, "name": "Adequate"},
                     {"score": 0.8, "name": "Good"},
-                    {"score": 0.1, "name": "Fully Controlled"}
+                    {"score": 1.0, "name": "Fully Controlled"}
                 ]
-            },
-        ],
+            }
+        ]
     },
     {
         "id": "business-support-7",
@@ -150,10 +150,10 @@
                     {"score": 0.4, "name": "Limited"},
                     {"score": 0.6, "name": "Moderate"},
                     {"score": 0.8, "name": "Good"},
-                    {"score": 0.1, "name": "Full Backup"}
+                    {"score": 1.0, "name": "Full Backup"}
                 ]
-            },
-        ],
+            }
+        ]
     },
     {
         "id": "business-support-8",
@@ -165,10 +165,10 @@
                     {"score": 0.4, "name": "Basic"},
                     {"score": 0.6, "name": "Fair"},
                     {"score": 0.8, "name": "Good"},
-                    {"score": 0.1, "name": "Excellent"}
+                    {"score": 1.0, "name": "Excellent"}
                 ]
-            },
-        ],
+            }
+        ]
     },
     {
         "id": "business-support-9",
@@ -180,10 +180,10 @@
                     {"score": 0.4, "name": "Limited"},
                     {"score": 0.6, "name": "Moderate"},
                     {"score": 0.8, "name": "Good"},
-                    {"score": 0.1, "name": "Fully Compatible"}
+                    {"score": 1.0, "name": "Fully Compatible"}
                 ]
-            },
-        ],
+            }
+        ]
     },
     {
         "id": "business-support-10",
@@ -195,10 +195,10 @@
                     {"score": 0.4, "name": "Basic"},
                     {"score": 0.6, "name": "Fair"},
                     {"score": 0.8, "name": "Good"},
-                    {"score": 0.1, "name": "Comprehensive"}
+                    {"score": 1.0, "name": "Comprehensive"}
                 ]
-            },
-        ],
+            }
+        ]
     },
     {
         "id": "business-support-11",
@@ -210,10 +210,10 @@
                     {"score": 0.4, "name": "Basic"},
                     {"score": 0.6, "name": "Fair"},
                     {"score": 0.8, "name": "Good"},
-                    {"score": 0.1, "name": "Excellent"}
+                    {"score": 1.0, "name": "Excellent"}
                 ]
-            },
-        ],
+            }
+        ]
     },
     {
         "id": "business-support-12",
@@ -225,10 +225,10 @@
                     {"score": 0.4, "name": "Basic"},
                     {"score": 0.6, "name": "Fair"},
                     {"score": 0.8, "name": "Good"},
-                    {"score": 0.1, "name": "Excellent"}
+                    {"score": 1.0, "name": "Excellent"}
                 ]
-            },
-        ],
+            }
+        ]
     },
     {
         "id": "business-support-13",
@@ -240,10 +240,10 @@
                     {"score": 0.4, "name": "Basic"},
                     {"score": 0.6, "name": "Fair"},
                     {"score": 0.8, "name": "Good"},
-                    {"score": 0.1, "name": "Comprehensive"}
+                    {"score": 1.0, "name": "Comprehensive"}
                 ]
-            },
-        ],
+            }
+        ]
     },
     {
         "id": "business-support-14",
@@ -255,10 +255,10 @@
                     {"score": 0.4, "name": "Basic"},
                     {"score": 0.6, "name": "Fair"},
                     {"score": 0.8, "name": "Good"},
-                    {"score": 0.1, "name": "Excellent"}
+                    {"score": 1.0, "name": "Excellent"}
                 ]
-            },
-        ],
+            }
+        ]
     },
     {
         "id": "business-support-15",
@@ -270,10 +270,10 @@
                     {"score": 0.4, "name": "Basic"},
                     {"score": 0.6, "name": "Fair"},
                     {"score": 0.8, "name": "Good"},
-                    {"score": 0.1, "name": "Comprehensive"}
+                    {"score": 1.0, "name": "Comprehensive"}
                 ]
-            },
-        ],
+            }
+        ]
     },
     {
         "id": "business-support-16",
@@ -285,10 +285,10 @@
                     {"score": 0.4, "name": "Basic"},
                     {"score": 0.6, "name": "Fair"},
                     {"score": 0.8, "name": "Good"},
-                    {"score": 0.1, "name": "Comprehensive"}
+                    {"score": 1.0, "name": "Comprehensive"}
                 ]
-            },
-        ],
+            }
+        ]
     },
     {
         "id": "business-support-17",
@@ -300,10 +300,10 @@
                     {"score": 0.4, "name": "Basic"},
                     {"score": 0.6, "name": "Fair"},
                     {"score": 0.8, "name": "Good"},
-                    {"score": 0.1, "name": "High"}
+                    {"score": 1.0, "name": "High"}
                 ]
-            },
-        ],
+            }
+        ]
     },
     {
         "id": "business-support-18",
@@ -315,9 +315,9 @@
                     {"score": 0.4, "name": "Basic"},
                     {"score": 0.6, "name": "Moderate"},
                     {"score": 0.8, "name": "Good"},
-                    {"score": 0.1, "name": "Comprehensive"}
+                    {"score": 1.0, "name": "Comprehensive"}
                 ]
-            },
-        ],
-    },
+            }
+        ]
+    }
 }
