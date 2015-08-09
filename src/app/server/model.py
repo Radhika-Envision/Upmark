@@ -269,7 +269,8 @@ class Assessment(Base):
 
     title = Column(Text)
     approval = Column(
-        Enum('draft', 'final', 'reviewed', 'approved'),  nullable=False)
+        Enum('draft', 'final', 'reviewed', 'approved', native_enum=False),
+        nullable=False)
     created = Column(DateTime, default=func.now(), nullable=False)
 
     __table_args__ = (
@@ -334,13 +335,14 @@ class Response(Versioned, Base):
     __tablename__ = 'response'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(GUID, nullable=False)
-    user_id = Column(GUID, nullable=False)
-    rnode_id = Column(GUID, nullable=False)
     measure_id = Column(GUID, nullable=False)
+    assessment_id = Column(GUID, nullable=False)
+    user_id = Column(GUID, nullable=False)
 
     comment = Column(Text, nullable=False)
     not_relevant = Column(Boolean, nullable=False)
-    response_parts = Column(Text, nullable=False)
+    response_parts = Column(JSON, nullable=False)
+    attachments = Column(JSON, nullable=False)
     audit_reason = Column(Text)
 
     __table_args__ = (
@@ -357,8 +359,8 @@ class Response(Versioned, Base):
             ['appuser.id']
         ),
         ForeignKeyConstraint(
-            ['rnode_id'],
-            ['rnode.id']
+            ['assessment_id'],
+            ['assessment.id']
         ),
     )
 
@@ -439,18 +441,14 @@ Assessment.hierarchy = relationship(
                      Assessment.survey_id == Hierarchy.survey_id))
 
 
-Assessment.rnodes = relationship(
-    ResponseNode, backref='assessment', passive_deletes=True)
+Assessment.responses = relationship(
+    Response, backref='assessment', passive_deletes=True)
 
 
 ResponseNode.qnode = relationship(
     QuestionNode,
     primaryjoin=and_(foreign(ResponseNode.qnode_id) == QuestionNode.id,
                      ResponseNode.survey_id == QuestionNode.survey_id))
-
-
-ResponseNode.responses = relationship(
-    Response, backref="parent", passive_deletes=True)
 
 
 Response.measure = relationship(

@@ -37,6 +37,7 @@
 </div>
 </div>
 
+
 <div class="measure" ng-if="edit.model">
 <div class="container">
     <form novalidate name="form" id="editor">
@@ -87,6 +88,7 @@
 </div>
 </div>
 
+
 <div class="measure" ng-if="!edit.model">
 <div class="container">
     <h3 ng-if="measure.intent">Intent</h3>
@@ -100,7 +102,9 @@
 </div>
 </div>
 
-<div class="measure" ng-if="!edit.model && parents && checkRole('measure_edit')">
+
+<div class="measure"
+        ng-if="!edit.model && parents && checkRole('measure_edit')">
 <div class="container text-muted">
     <p ng-if="parents.length">
         Measures are shared between question sets.
