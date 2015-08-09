@@ -18,7 +18,7 @@
                 "id": "doc",
                 "name": "Documentation",
                 "options": [
-                    {"score": 0.12, "if": "dev__i >= 0", "name": "None"},
+                    {"score": 0.12, "name": "None"},
                     {"score": 0.14, "if": "dev__i >= 1", "name": "Minimal"},
                     {"score": 0.16, "if": "dev__i >= 2", "name": "Moderate"},
                     {"score": 0.18, "if": "dev__i >= 3", "name": "Advanced"},
@@ -29,8 +29,8 @@
                 "id": "cov",
                 "name": "Coverage & Frequency",
                 "options": [
-                    {"score": 0.12, "if": "dev__i >= 0", "name": "Sparse"},
-                    {"score": 0.24, "if": "dev__i >= 0", "name": "Limited"},
+                    {"score": 0.12, "name": "Sparse"},
+                    {"score": 0.24, "name": "Limited"},
                     {"score": 0.36, "if": "dev__i >= 2", "name": "Moderate"},
                     {"score": 0.46, "if": "dev__i >= 2", "name": "Predominant"},
                     {"score": 0.60, "if": "dev__i >= 2", "name": "Total"}
@@ -40,14 +40,14 @@
                 "id": "eff",
                 "name": "Effectiveness",
                 "options": [
-                    {"score": 0.08, "if": "dev__i >= 0", "name": "Rarely"},
-                    {"score": 0.16, "if": "dev__i >= 0", "name": "Occasionally"},
+                    {"score": 0.08, "name": "Rarely"},
+                    {"score": 0.16, "name": "Occasionally"},
                     {"score": 0.24, "if": "dev__i >= 2", "name": "Often"},
                     {"score": 0.32, "if": "dev__i >= 2", "name": "Usually"},
                     {"score": 0.40, "if": "dev__i >= 2", "name": "Always"}
                 ]
             }
-        ]
+        ],
         "formula": "(dev + doc) * (cov + eff)"
     },
     {
@@ -320,4 +320,4 @@
             }
         ]
     }
-}
+]
