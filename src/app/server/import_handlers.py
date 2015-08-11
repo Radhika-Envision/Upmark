@@ -109,8 +109,8 @@ class Importer():
             hierarchy.survey_id = survey.id
             hierarchy.title = "Importing Document Hierarchy"
             hierarchy.description = "Importing Document Hierarchy"
-            hierarchy.structure = json.loads(
-                '{"measure": {"title": "Measures", "label": "M"}, "levels": [{"has_measures": false, "title": "Function", "label": "C"}, {"has_measures": false, "title": "Process", "label": "P"}, {"has_measures": true, "title": "Subprocess", "label": "SP"}]}')
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'importing_file_hierarchy.json')) as data_file:    
+                hierarchy.structure = json.load(data_file)
             session.add(hierarchy)
             session.flush()
 
@@ -229,8 +229,8 @@ class Importer():
                                             scoring_sheet, measure['row_num'] + 2, "Scenario")
                                         measure_questions = self.parse_description(
                                             scoring_sheet, measure['row_num'] + 3, "Questions")
-                                        measure_comments = self.parse_description(
-                                            scoring_sheet, measure['row_num'] + 4, "Comments")
+                                        # measure_comments = self.parse_description(
+                                        #     scoring_sheet, measure['row_num'] + 4, "Comments")
                                         measure_weight = self.parse_cell_number(
                                             measure['weight'])
 
@@ -361,6 +361,19 @@ class Importer():
                                         if not (m.title == measure_title):
                                             raise Exception("This file is not match with Survey.")
                                         
+                                        # r = model.Response()
+                                        # r.survey_id = survey.id
+                                        # r.user_id = self.get_current_user().id
+                                        # # r.assessment_id = assement.id
+                                        # r.measure_id = m.id
+                                        # r.comment = measure_comments
+                                        # r.not_relevant = True
+                                        # # r.response_parts = measure_parts
+                                        # r.audit_reason = audit_reason
+
+                                        session.add(r)
+                                        session.flush()
+
                                         ######## TODO : save response to the database
 
 
