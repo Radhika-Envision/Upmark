@@ -205,7 +205,7 @@ class Importer():
 
                                 # for row in all_rows:
                                 #     print("row", row[self.col2num("F")])
-                                measure_title_row = [{"title": row[self.col2num("k")], "row_num": all_rows.index(row), "weight": row[self.col2num("L")]}
+                                measure_title_row = [{"title": row[self.col2num("k")], "row_num": all_rows.index(row), "weight": row[self.col2num("L")], "resp_num": row[self.col2num("F")]}
                                                      for row in all_rows
                                                      if float(function_order) == self.parse_cell_number(row[self.col2num("C")]) and
                                                      float(process_order) == self.parse_cell_number(row[self.col2num("D")]) and
@@ -242,7 +242,11 @@ class Importer():
                                         m.inputs = measure_inputs
                                         m.scenario = measure_scenario
                                         m.questions = measure_questions
-                                        m.response_type = "standard_1"
+                                        response_type = "standard"
+                                        if function_order == "7":
+                                            log.info("business-support:", measure['resp_num'])
+                                            response_type = "business-support-%s" % int(self.parse_cell_number(measure['resp_num']))
+                                        m.response_type = response_type
                                         session.add(m)
                                         session.flush()
 
@@ -401,11 +405,11 @@ class Importer():
     def parse_text(self, row_text):
         row_text = str(row_text)
         if row_text[:6] == "text:'":
-            parse_obj = parse("text:'{text}'", row_text)
+            parse_obj = parse("text:'{value}'", row_text)
         else:
-            parse_obj = parse('text:"{text}"', row_text)
+            parse_obj = parse('text:"{value}"', row_text)
         if parse_obj:
-            return parse_obj['text']
+            return parse_obj['value']
         return ''
 
     def parse_cell_number(self, cell):
