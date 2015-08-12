@@ -1,0 +1,180 @@
+<div>
+<div class="section" ng-show="!rtEdit.rt">
+    <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Add new"
+                ng-click="addRt(edit.model)">
+            <i class="fa fa-fw fa-plus"></i></button>
+    </div>
+    <h2>
+        Response Types
+    </h2>
+
+    <ul class="list-results">
+        <li>
+            <a ng-repeat="rt in edit.model.responseTypes" href
+                    ng-click="editRt(edit.model, $index)">
+                <button class="btn btn-default btn-round pull-right" title="Remove"
+                        ng-click="remove(edit.model.responseTypes, rt)"
+                        ng-style="{visibility: edit.model.responseTypes.length <= 1 ? 'hidden' : null}">
+                    <i class="fa fa-fw fa-trash-o"></i></button>
+                <h4>{{rt.name}}</h4>
+                <p>
+                    <ng-pluralize count="rt.parts.length"
+                        when="{
+                            '0': 'No parts (comment only, no score)',
+                            '1': '1 part',
+                            'other': '{} parts'}"></ng-pluralize>
+                    <span ng-if="rt.parts.length > 0">
+                        -
+                        <span ng-repeat="opt in rt.parts[0].options"><span
+                                ng-if="$index > 0">, </span>
+                            {{opt.name}}</span>
+                    </span>
+                    <span ng-if="rt.parts.length > 1">(etc.)</span>
+                </p>
+            </a>
+        </li>
+    </ul>
+</div>
+
+<div ng-if="rtEdit.rt" ng-init="rt = rtEdit.rt">
+    <div class="section">
+        <div class="toolbar">
+            <button class="btn btn-default btn-round" title="Cancel"
+                    ng-click="cancelRt()">
+                <i class="fa fa-fw fa-times"></i></button>
+            <button class="btn btn-default btn-round" title="Save"
+                    ng-click="saveRt()">
+                <i class="fa fa-fw fa-check"></i></button>
+        </div>
+        <h2>
+            {{rt.name}} (Editing)
+        </h2>
+    </div>
+
+    <div class="form-group" show-errors>
+        <label for="ltitle{{$index}}">Name</label>
+        <input type="text" class="form-control"
+            id="ltitle{{$index}}" name="ltitle{{$index}}"
+            ng-model="rt.name" required />
+    </div>
+    <div class="form-group" show-errors>
+        <label for="lid{{$index}}">ID</label>
+        <input type="text" class="form-control"
+            id="lid{{$index}}" name="lid{{$index}}"
+            ng-model="rt.id" required />
+    </div>
+
+    <div class="section">
+        <div class="toolbar">
+            <button class="btn btn-default btn-round" title="Add part"
+                    ng-click="addPart(rt)">
+                <i class="fa fa-fw fa-plus"></i></button>
+        </div>
+        <h3>Response Parts</h3>
+    </div>
+    <table class="table" ng-if="rt.parts.length">
+        <tbody ng-repeat="part in rt.parts" ng-init="rti = $index">
+            <tr class="form-row">
+                <td class="form-group" show-errors>
+                    <label for="lid{{$index}}" class="sr-only">
+                        ID</label>
+                    <input type="text" class="form-control"
+                        id="lid{{$index}}" name="lid{{$index}}"
+                        ng-model="part.id" required
+                        placeholder="Part ID" />
+                </td>
+                <td class="form-group" show-errors>
+                    <label for="ltitle{{$index}}" class="sr-only">
+                        Part name</label>
+                    <input type="text" class="form-control"
+                        id="ltitle{{$index}}" name="ltitle{{$index}}"
+                        ng-model="part.name" required
+                        placeholder="Part name" />
+                </td>
+                <td class="shrink">
+                    <button class="btn btn-default btn-round" title="Remove"
+                            ng-click="remove(rt.parts, part)">
+                        <i class="fa fa-fw fa-trash-o"></i></button>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="3" style="padding-left: 40px;">
+                    <div class="section section-collapse">
+                        <div class="toolbar">
+                            <button class="btn btn-default btn-round"
+                                    title="Add option"
+                                    ng-click="addOption(part)">
+                                <i class="fa fa-fw fa-plus"></i></button>
+                        </div>
+                        <h3>Options</h3>
+                    </div>
+                    <table class="table">
+                        <tbody ng-repeat="opt in part.options"
+                                ng-init="pi = $index">
+                            <tr class="form-row">
+                                <td class="form-group" show-errors>
+                                    <label for="lscore{{rti}}-{{pi}}-{{$index}}"
+                                            class="sr-only">
+                                        Score</label>
+                                    <input type="number" class="form-control"
+                                        id="lscore{{rti}}-{{pi}}-{{$index}}"
+                                        name="lscore{{rti}}-{{pi}}-{{$index}}"
+                                        ng-model="opt.score" required
+                                        placeholder="Option score"/>
+                                </td>
+                                <td class="form-group" show-errors>
+                                    <label for="lname{{rti}}-{{pi}}-{{$index}}"
+                                    class="sr-only">
+                                        Name</label>
+                                    <input type="text" class="form-control"
+                                        id="lname{{rti}}-{{pi}}-{{$index}}"
+                                        name="lname{{rti}}-{{pi}}-{{$index}}"
+                                        ng-model="opt.name" required
+                                        placeholder="Option name"/>
+                                </td>
+                                <td class="form-group" show-errors>
+                                    <label for="lif{{rti}}-{{pi}}-{{$index}}"
+                                    class="sr-only">
+                                        Condition</label>
+                                    <input type="text" class="form-control"
+                                        id="lif{{rti}}-{{pi}}-{{$index}}"
+                                        name="lif{{rti}}-{{pi}}-{{$index}}"
+                                        ng-model="opt['if']"
+                                        placeholder="Always" />
+                                </td>
+                                <td class="shrink">
+                                    <button class="btn btn-default btn-round"
+                                            title="Remove"
+                                            ng-click="remove(part.options, opt)"
+                                            ng-style="{visibility: part.options.length <= 2 ? 'hidden' : null}">
+                                        <i class="fa fa-fw fa-trash-o"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p ng-if="!rt.parts.length" class="text-muted">
+        This response type has no response parts.
+    </p>
+
+    <div class="section" ng-if="rt.parts.length > 1">
+    <div class="form-group" show-errors>
+        <label for="lformula{{$index}}">Score Formula</label>
+        <input type="text" class="form-control"
+            id="lformula{{$index}}" name="lformula{{$index}}"
+            ng-model="rt.formula" required />
+    </div>
+    </div>
+</div>
+
+<p>
+Each measure that is part of this survey will need to use one of these response
+types. They determine the types of answers that a respondant can give.
+</p>
+
+</div>

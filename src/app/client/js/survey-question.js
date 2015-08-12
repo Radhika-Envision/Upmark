@@ -73,9 +73,10 @@ angular.module('wsaa.surveyQuestions', [
 .controller('SurveyCtrl', [
         '$scope', 'Survey', 'routeData', 'Editor', 'questionAuthz', 'hotkeys',
         '$location', 'Notifications', 'Current', 'Hierarchy', 'layout',
-        'format',
+        'format', '$http',
         function($scope, Survey, routeData, Editor, authz, hotkeys,
-                 $location, Notifications, current, Hierarchy, layout, format) {
+                 $location, Notifications, current, Hierarchy, layout, format,
+                 $http) {
 
     $scope.layout = layout;
     if (routeData.survey) {
@@ -97,11 +98,89 @@ angular.module('wsaa.surveyQuestions', [
     } else {
         // Creating new
         $scope.edit = Editor('survey', $scope);
-        $scope.survey = new Survey({});
+        $scope.survey = new Survey({
+            responseTypes: []
+        });
         $scope.hierarchies = null;
         $scope.edit.edit();
+        $http.get('/default_response_types.json').then(
+            function success(response) {
+                $scope.edit.model.responseTypes = response.data;
+            },
+            function failure(details) {
+                Notifications.set('edit', 'warning',
+                    "Could not get response types: " + details.statusText);
+            }
+        );
         $scope.duplicating = false;
     }
+
+    $scope.rtEdit = {};
+    $scope.editRt = function(model, index) {
+        $scope.rtEdit = {
+            model: model,
+            rt: angular.copy(model.responseTypes[index]),
+            i: index
+        };
+    };
+    $scope.saveRt = function() {
+        var rts = $scope.rtEdit.model.responseTypes;
+        rts[$scope.rtEdit.i] = angular.copy($scope.rtEdit.rt);
+        $scope.rtEdit = {};
+    };
+    $scope.cancelRt = function() {
+        $scope.rtEdit = {};
+    };
+    $scope.addRt = function(model) {
+        var i = model.responseTypes.length + 1;
+        model.responseTypes.push({
+            id: 'response_' + i,
+            name: 'Response Type ' + i,
+            parts: []
+        })
+    };
+    $scope.addPart = function(rt) {
+        var i = rt.parts.length + 1;
+        var part = {
+            id: 'part_' + i,
+            name: 'Response part ' + i,
+            options: [
+                {score: 0, name: 'No'},
+                {score: 1, name: 'Yes'}
+            ]
+        };
+        rt.parts.push(part);
+        $scope.updateFormula(rt);
+    };
+    $scope.addOption = function(part) {
+        part.options.push({
+            score: 0,
+            name: 'Option ' + (part.options.length + 1)
+        })
+    };
+    $scope.updateFormula = function(rt) {
+        if (rt.parts.length <= 1) {
+            rt.formula = null;
+            return;
+        }
+        var formula = "";
+        for (var i = 0; i < rt.parts.length; i++) {
+            var part = rt.parts[i];
+            if (i > 0)
+                formula += " + ";
+            if (part.id)
+                formula += part.id;
+            else
+                formula += "?";
+        }
+        rt.formula = formula;
+    };
+    $scope.remove = function(list, item) {
+        var i = list.indexOf(item);
+        if (i < 0)
+            return;
+        list.splice(i, 1);
+    };
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url('/survey/' + model.id);
@@ -584,19 +663,6 @@ angular.module('wsaa.surveyQuestions', [
             $scope.parents = parents;
         }
     });
-
-    $scope.responseTypes = [
-        {
-            id: 'standard_1',
-            name: "Standard",
-            description: "Guided four-part response"
-        },
-        {
-            id: 'yesno_1',
-            name: "Yes/No",
-            description: "Simple \"yes\" or \"no\" response"
-        }
-    ];
 
     $scope.$on('EditSaved', function(event, model) {
         if (model.parent) {

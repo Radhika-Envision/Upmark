@@ -45,6 +45,9 @@
             }
         }
     }
+    > tbody + tbody {
+        border-top: none;
+    }
 }
 
 tr.strike {

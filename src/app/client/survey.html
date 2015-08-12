@@ -48,6 +48,7 @@
             <textarea type="text" class="form-control" id="desc" name="desc"
                 ng-model="edit.model.description"></textarea>
         </div>
+        <div ng-include="'response_types.html'"></div>
     </form>
 
     <div class="help-label" ng-if="!edit.model.id && duplicating">

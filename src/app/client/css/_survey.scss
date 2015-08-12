@@ -195,6 +195,14 @@ ng-include>.header, .nested>.header {
     margin-top: 20px;
     margin-bottom: 12px;
 
+    &.section-collapse {
+        margin-top: 0;
+        margin-bottom: 0;
+        > h3 {
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+    }
     .toolbar {
         margin-top: -3px;
     }

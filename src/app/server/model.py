@@ -16,6 +16,7 @@ from sqlalchemy.schema import CheckConstraint, ForeignKeyConstraint, Index,\
 from sqlalchemy.sql import func
 from sqlalchemy.sql.expression import and_
 from passlib.hash import sha256_crypt
+from voluptuous import All, Length, Optional, Range, Required, Schema
 
 from guid import GUID
 from history_meta import Versioned, versioned_session
@@ -123,7 +124,7 @@ class Survey(Base):
     open_date = Column(DateTime)
     title = Column(Text, nullable=False)
     description = Column(Text)
-    response_types = Column(JSON, default=list, nullable=False)
+    _response_types = Column('response_types', JSON, nullable=False)
 
     @property
     def is_editable(self):
@@ -132,6 +133,34 @@ class Survey(Base):
     @property
     def is_open(self):
         return self.open_date is not None
+
+    _response_types_schema = Schema([
+        {
+            Required('id'): All(str, Length(min=1)),
+            Required('name'): All(str, Length(min=1)),
+            Required('parts'): [
+                {
+                    Optional('id'): All(str, Length(min=1)),
+                    Optional('name'): All(str, Length(min=1)),
+                    Required('options'): All([
+                        {
+                            Required('score'): All(float, Range(min=0, max=1)),
+                            Required('name'): All(str, Length(min=1)),
+                            Optional('if'): All(str, Length(min=1))
+                        }
+                    ], Length(min=2))
+                }
+            ],
+            Optional('formula'): All(str, Length(min=1))
+        }
+    ])
+    @property
+    def response_types(self):
+        return self._response_types
+    @response_types.setter
+    def response_types(self, rts):
+        Survey._response_types_schema(rts)
+        self._response_types = ob
 
     def __repr__(self):
         return "Survey(title={})".format(self.title)
@@ -145,7 +174,28 @@ class Hierarchy(Base):
 
     title = Column(Text, nullable=False)
     description = Column(Text)
-    structure = Column(JSON, nullable=False)
+    _structure = Column('structure', JSON, nullable=False)
+
+    _structure_schema = Schema({
+        Required('levels'): All([
+            {
+                Required('title'): All(str, Length(min=1)),
+                Required('label'): All(str, Length(min=1, max=2)),
+                Required('has_measures'): bool
+            }
+        ], Length(min=1)),
+        Required('measure'): {
+            Required('title'): All(str, Length(min=1)),
+            Required('label'): All(str, Length(min=1, max=2))
+        }
+    })
+    @property
+    def structure(self):
+        return self._structure
+    @structure.setter
+    def structure(self, s):
+        Hierarchy._structure_schema(s)
+        self._structure = s
 
     def __repr__(self):
         return "Hierarchy(title={}, survey={})".format(

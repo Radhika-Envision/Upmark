@@ -1,4 +1,5 @@
 import datetime
+import logging
 import time
 import uuid
 
@@ -8,10 +9,10 @@ import sqlalchemy
 from sqlalchemy.sql import func
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import make_transient
+import voluptuous
 
 import handlers
 import model
-import logging
 
 from utils import ToSon, truthy, updater
 
@@ -73,14 +74,22 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                     ValueError):
                 raise handlers.MissingDocError("No such survey")
 
+            exclude = []
+            if not self.has_privillege('author'):
+                exclude += [
+                    r'/response_types.*score$',
+                    r'/response_types.*formula$'
+                ]
+
             to_son = ToSon(include=[
                 r'/id$',
                 r'/title$',
                 r'/description$',
                 r'/created$',
                 r'/is_open$',
-                r'/is_editable$'
-            ])
+                r'/is_editable$',
+                r'/response_types.*$'
+            ], exclude=exclude)
             son = to_son(survey)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -295,6 +304,10 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         update = updater(survey)
         update('title', son)
         update('description', son)
+        try:
+            update('response_types', son)
+        except voluptuous.Error as e:
+            raise handlers.ModelError("Response types are invalid: %s" % str(e))
 
 
 class SurveyTrackingHandler(handlers.BaseHandler):
