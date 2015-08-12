@@ -236,25 +236,22 @@ class SurveyTest(base.AqHttpTestBase):
                 for h1, h2 in zip(original_hierarchy_sons, new_hierarchy_sons):
                     self.assertEqual(h1['id'], h2['id'])
                     self.assertEqual(h1['title'], h2['title'])
-                    check_qnodes(h1['id'], True)
+                    check_qnodes(h1['id'], '')
 
-            def check_qnodes(parent_id, parent_is_hierarchy):
+            def check_qnodes(hierarchy_id, parent_id):
                 # Check duplicated qnodes
-                if parent_is_hierarchy:
-                    url = "/qnode.json?surveyId=%s&hierarchyId=%s"
-                else:
-                    url = "/qnode.json?surveyId=%s&parentId=%s"
+                url = "/qnode.json?surveyId=%s&hierarchyId=%s&parentId=%s"
                 original_qnode_sons = self.fetch(
-                    url % (original_survey_id, parent_id), method='GET',
-                    expected=200, decode=True)
+                    url % (original_survey_id, hierarchy_id, parent_id),
+                    method='GET', expected=200, decode=True)
                 new_qnode_sons = self.fetch(
-                    url % (new_survey_id, parent_id), method='GET',
-                    expected=200, decode=True)
+                    url % (new_survey_id, hierarchy_id, parent_id),
+                    method='GET', expected=200, decode=True)
 
                 for q1, q2 in zip(original_qnode_sons, new_qnode_sons):
                     self.assertEqual(q1['id'], q2['id'])
                     self.assertEqual(q1['title'], q2['title'])
-                    check_qnodes(q1['id'], False)
+                    check_qnodes(hierarchy_id, q1['id'])
                     check_measures(q1['id'])
 
             def check_measures(parent_id):
@@ -294,6 +291,7 @@ class SurveyTest(base.AqHttpTestBase):
                 self.assertEqual(a.survey, sa)
                 self.assertEqual(b.survey, sb)
 
+                self.assertEqual(len(a.qnodes), len(b.qnodes))
                 for qa, qb in zip(a.qnodes, b.qnodes):
                     visit_qnode(qa, qb, a, b, None, None)
 
@@ -308,22 +306,26 @@ class SurveyTest(base.AqHttpTestBase):
                 self.assertEqual(a.survey, sa)
                 self.assertEqual(b.survey, sb)
 
-                if ha is not None:
-                    self.assertEqual(a.hierarchy_id, ha.id)
-                    self.assertEqual(b.hierarchy_id, hb.id)
-                    self.assertEqual(a.hierarchy, ha)
-                    self.assertEqual(b.hierarchy, hb)
+                self.assertEqual(a.hierarchy_id, ha.id)
+                self.assertEqual(b.hierarchy_id, hb.id)
+                self.assertEqual(a.hierarchy, ha)
+                self.assertEqual(b.hierarchy, hb)
 
                 if pa is not None:
                     self.assertEqual(a.parent_id, pa.id)
                     self.assertEqual(b.parent_id, pb.id)
-                    self.assertEqual(a.parent, pa)
-                    self.assertEqual(b.parent, pb)
+                self.assertEqual(a.parent, pa)
+                self.assertEqual(b.parent, pb)
 
+                self.assertEqual(len(a.children), len(b.children))
                 for qa, qb in zip(a.children, b.children):
-                    visit_qnode(qa, qb, None, None, a, b)
+                    visit_qnode(qa, qb, ha, hb, a, b)
+
+                self.assertEqual(len(a.qnode_measures), len(b.qnode_measures))
                 for qma, qmb in zip(a.qnode_measures, b.qnode_measures):
                     visit_qnode_measure(qma, qmb, a, b)
+
+                self.assertEqual(len(a.measures), len(b.measures))
                 for ma, mb in zip(a.measures, b.measures):
                     visit_measure(ma, mb, None, None, a, b)
 
@@ -367,8 +369,10 @@ class SurveyTest(base.AqHttpTestBase):
                     self.assertIn(pb, b.parents)
                     self.assertNotIn(pb, a.parents)
 
+            self.assertEqual(len(sa.measures), len(sb.measures))
             for a, b in zip(sa.measures, sb.measures):
                 visit_measure(a, b, None, None, None, None)
 
+            self.assertEqual(len(sa.hierarchies), len(sb.hierarchies))
             for a, b in zip(sa.hierarchies, sb.hierarchies):
                 visit_hierarchy(a, b)

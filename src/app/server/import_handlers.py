@@ -168,6 +168,7 @@ class Importer():
 
                         qnode_process = model.QuestionNode()
                         qnode_process.survey_id = survey.id
+                        qnode_process.hierarchy_id = hierarchy.id
                         qnode_process.parent_id = qnode_function.id
                         qnode_process.seq = int(process_order) - 1
                         qnode_process.title = process_title
@@ -194,6 +195,7 @@ class Importer():
 
                                 qnode_subprocess = model.QuestionNode()
                                 qnode_subprocess.survey_id = survey.id
+                                qnode_subprocess.hierarchy_id = hierarchy.id
                                 qnode_subprocess.parent_id = qnode_process.id
                                 qnode_subprocess.seq = int(
                                     subprocess_order) - 1
@@ -285,7 +287,7 @@ class Importer():
                 function_description = self.parse_description(scoring_sheet, function['row_num'], "empty")
 
                 qnode_function = session.query(model.QuestionNode).filter_by(
-                    survey_id=survey_id, hierarchy_id=hierarchy.id, seq=(int(function_order) - 1)).first()
+                    survey_id=survey_id, hierarchy_id=hierarchy.id, parent_id=None, seq=(int(function_order) - 1)).first()
 
                 if not qnode_function:
                     raise Exception("This file is not match with Survey.")

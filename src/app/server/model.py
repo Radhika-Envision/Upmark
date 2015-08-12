@@ -141,18 +141,22 @@ class Survey(Base):
             'name': All(str, Length(min=1)),
             'parts': [
                 {
-                    'id': All(str, Length(min=1)),
-                    'name': All(str, Length(min=1)),
+                    Required('id', default=None): Any(
+                        All(str, Length(min=1)), None),
+                    Required('name', default=None): Any(
+                        All(str, Length(min=1)), None),
                     'options': All([
                         {
                             'score': All(Coerce(float), Range(min=0, max=1)),
                             'name': All(str, Length(min=1)),
-                            'if': Any(All(str, Length(min=1)), None)
+                            Required('if', default=None): Any(
+                                All(str, Length(min=1)), None)
                         }
                     ], Length(min=2))
                 }
             ],
-            'formula': Any(All(str, Length(min=1)), None)
+            Required('formula', default=None): Any(
+                All(str, Length(min=1)), None)
         }
     ], required=True)
     @property
@@ -207,7 +211,7 @@ class QuestionNode(Base):
     __tablename__ = 'qnode'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(GUID, nullable=False, primary_key=True)
-    hierarchy_id = Column(GUID)
+    hierarchy_id = Column(GUID, nullable=False)
     parent_id = Column(GUID)
 
     seq = Column(Integer)
@@ -227,11 +231,6 @@ class QuestionNode(Base):
         ForeignKeyConstraint(
             ['survey_id'],
             ['survey.id']
-        ),
-        CheckConstraint(
-            '(parent_id IS NULL AND hierarchy_id IS NOT NULL) OR '
-            '(parent_id IS NOT NULL AND hierarchy_id IS NULL)',
-            name='qnode_root_check'
         ),
     )
 
@@ -448,11 +447,21 @@ Survey.hierarchies = relationship(
     order_by='Hierarchy.title')
 
 
-Hierarchy.qnodes = relationship(
+# All qnodes that belong to this hierarchy - including all descendants. These
+# have no intrinsic order.
+Hierarchy.qnodes_all = relationship(
     QuestionNode, backref='hierarchy', passive_deletes=True,
-    order_by=QuestionNode.seq, collection_class=ordering_list('seq'),
     primaryjoin=and_(foreign(QuestionNode.hierarchy_id) == Hierarchy.id,
                      QuestionNode.survey_id == Hierarchy.survey_id))
+
+
+# "Children" of the hierarchy: these are roots of the qnode tree.
+Hierarchy.qnodes = relationship(
+    QuestionNode, passive_deletes=True,
+    order_by=QuestionNode.seq, collection_class=ordering_list('seq'),
+    primaryjoin=and_(and_(foreign(QuestionNode.hierarchy_id) == Hierarchy.id,
+                          QuestionNode.survey_id == Hierarchy.survey_id),
+                     QuestionNode.parent_id == None))
 
 
 # The remote_side argument needs to be set on the many-to-one side, so it's

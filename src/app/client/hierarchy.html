@@ -161,7 +161,7 @@
 <reorderable href="/qnode/{}?survey={{survey.id}}&hierarchy={{hierarchy.id}}"
         model="qnodes" check-role="checkRole"
         title="{{hierarchy.structure.levels[0].title}}"
-        params="{surveyId: survey.id, hierarchyId: hierarchy.id}"
+        params="{surveyId: survey.id, hierarchyId: hierarchy.id, root: ''}"
         resource="QuestionNode" ng-if="!edit.model"
         can-edit="survey.isEditable"></reorderable>
 

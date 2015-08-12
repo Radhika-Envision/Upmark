@@ -223,7 +223,8 @@ angular.module('wsaa.aquamark',
                             function(QuestionNode, hierarchy, survey) {
                         return QuestionNode.query({
                             hierarchyId: hierarchy.id,
-                            surveyId: survey.id
+                            surveyId: survey.id,
+                            root: ''
                         }).$promise;
                     }]
                 })}
