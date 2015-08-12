@@ -54,113 +54,16 @@ These are the steps of create job on web instance.
     Default output format [None]:
     ```
 
+    Refer to [`../doc/aws_credentials.md`][ac] for details on setting up
+    permissions.
     Details for creating an AWS API key are available in [AWS help]. If you
     need to edit them, the files are `~/.aws/config` and
     `~/.aws/credentials`.
 
     The script will install the [cron job].
 
-## AWS Permissions and key
 
-AWS S3 stores files attached on responses. And also S3 has [versioning functionality] on bucket.
-Enable versioning is not reverasable so once it enabled only suspension versionning is possible. 
-But if we give all the permission to the user, user(access key) can do everything so to restrict 
-users permission.
-
-For backup database we need to have permission to access DBSnapshot. Second part describes how to add this permission 
-
-Here is the steps to do.
-
-1. Login to AWS Console.
-1. On top right corner of the screen, on the account has a dropdown menu. Select `Security Credentials`
-1. Click `User` on the left side menu.
-1. Click the user you want to use if there is no user create user.
-1. On the permission tab, you can see `Inline Policies`, expand the tab.
-    
-    1. To create inline policy, click the link `click here`.
-    1. Select `Custom Policy`.
-    1. Type in name like `Aquamark_S3`.
-    1. Type in policy.
-
-        ```
-        {
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Sid": "1",
-                    "Effect": "Allow",
-                    "Action": [
-                        "s3:AbortMultipartUpload",
-                        "s3:GetBucketAcl",
-                        "s3:GetBucketCORS",
-                        "s3:GetBucketLocation",
-                        "s3:GetBucketLogging",
-                        "s3:GetBucketNotification",
-                        "s3:GetBucketPolicy",
-                        "s3:GetBucketRequestPayment",
-                        "s3:GetBucketTagging",
-                        "s3:GetBucketVersioning",
-                        "s3:GetBucketWebsite",
-                        "s3:GetLifecycleConfiguration",
-                        "s3:GetObject",
-                        "s3:GetObjectAcl",
-                        "s3:GetObjectTorrent",
-                        "s3:GetObjectVersion",
-                        "s3:GetObjectVersionAcl",
-                        "s3:GetObjectVersionTorrent",
-                        "s3:ListAllMyBuckets",
-                        "s3:ListBucket",
-                        "s3:ListBucketMultipartUploads",
-                        "s3:ListBucketVersions",
-                        "s3:ListMultipartUploadParts",
-                        "s3:PutBucketAcl",
-                        "s3:PutBucketCORS",
-                        "s3:PutBucketLogging",
-                        "s3:PutBucketNotification",
-                        "s3:PutBucketPolicy",
-                        "s3:PutBucketRequestPayment",
-                        "s3:PutBucketTagging",
-                        "s3:PutBucketWebsite",
-                        "s3:PutLifecycleConfiguration",
-                        "s3:PutObject",
-                        "s3:PutObjectAcl",
-                        "s3:PutObjectVersionAcl",
-                        "s3:RestoreObject"
-                    ],
-                    "Resource": [
-                        "*"
-                    ]
-                }
-            ]
-        }
-        ```
-
-1. Add another policy for RDS snapshot
-    1. Same as above steps create Custom Policy.
-    1. Type in name like `Aquamark_RDS_backup`.
-    1. Type in policy.
-
-        ```
-        {
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Sid": "1",
-                    "Effect": "Allow",
-                    "Action": [
-                        "rds:CreateDBSnapshot",
-                        "rds:DescribeDBSnapshots"
-                    ],
-                    "Resource": [
-                        "*"
-                    ]
-                }
-            ]
-        }
-        ```
-
-1. Using this policy, you can create key.
-1. Finally you can login use `aws configure`
+[ac]: ../doc/aws_credentials.md
 
 
 ## Downloading Backups
@@ -191,6 +94,18 @@ backup, you need to:
     You can get the ENDPOINT and password from the AWS console.
 
 1. Delete the temporary RDS instance (because it's publicly accessible).
+
+
+## Files Stored in S3
+
+AWS S3 stores files attached on responses. And also S3 has
+[versioning functionality] on bucket. Enable versioning is not reverasable so
+once it enabled only suspension versionning is possible. But if we give all
+the permission to the user, that user could suspend versioning and then delete
+a file. So a special policy is created that does not allow the
+`s3:SetBucketVersioning` permission. See [`../doc/aws_credentials.md`][ac] for
+details.
+
 
 [pricing policy]: http://aws.amazon.com/rds/pricing/
 [deployment key]: https://github.com/blog/2024-read-only-deploy-keys
