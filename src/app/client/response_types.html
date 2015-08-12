@@ -89,7 +89,7 @@
                         ID</label>
                     <input type="text" class="form-control"
                         id="lid{{$index}}" name="lid{{$index}}"
-                        ng-model="part.id" required
+                        ng-model="part.id" empty-as-null
                         placeholder="Part ID"
                         title="Part ID" />
                 </td>
@@ -98,7 +98,7 @@
                         Part name</label>
                     <input type="text" class="form-control"
                         id="ltitle{{$index}}" name="ltitle{{$index}}"
-                        ng-model="part.name" required
+                        ng-model="part.name" empty-as-null
                         placeholder="Part name"
                         title="Part name" />
                 </td>
@@ -210,7 +210,7 @@
         <i>0.5</i>, while <i>a__i > 2</i> means the option is avialable when
         item 3 or above has been selected for part <i>a</i>.
     </p>
-    <p ng-if="edit.model.id && !duplicating">
+    <p ng-if="edit.model.id || duplicating">
         <b>Be careful</b> when editing existing response types: the ID fields
         are used to link the types with the measures. If you remove a type or
         change its ID, be sure to update the measures.

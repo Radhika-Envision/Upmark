@@ -666,6 +666,8 @@ angular.module('wsaa.surveyQuestions', [
         }
     });
     $scope.$watch('structure.survey', function(survey) {
+        if (!survey.responseTypes)
+            return;
         var responseTypes = angular.copy(survey.responseTypes);
         responseTypes.forEach(function(t) {
             if (t.parts.length == 0) {
@@ -676,8 +678,12 @@ angular.module('wsaa.surveyQuestions', [
                 } else {
                     t.description = "" + t.parts.length + " parts";
                 }
-                var optNames = t.parts[0].options.map(function(o) { return o.name; });
-                optNames = optNames.filter(function(n) { return !!n });
+                var optNames = t.parts[0].options.map(function(o) {
+                    return o.name;
+                });
+                optNames = optNames.filter(function(n) {
+                    return !!n;
+                });
                 optNames = optNames.join(', ');
                 if (optNames)
                     t.description += ': ' + optNames;
