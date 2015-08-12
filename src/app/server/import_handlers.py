@@ -408,7 +408,7 @@ class Importer():
         else:
             parse_obj = parse('text:"{value}"', row_text)
         if parse_obj:
-            return parse_obj['value']
+            return parse_obj['value'].replace("\\n", chr(10))
         return ''
 
     def parse_cell_number(self, cell):
