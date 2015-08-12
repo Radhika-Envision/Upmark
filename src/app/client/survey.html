@@ -18,7 +18,7 @@
             <i class="fa fa-times"></i></button>
         <button class="btn btn-default btn-round" title="Save"
                 ng-click="edit.save()"
-                ng-if="edit.model"
+                ng-if="edit.model && !rtEdit.rt"
                 form="editor">
             <i class="fa fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Edit"

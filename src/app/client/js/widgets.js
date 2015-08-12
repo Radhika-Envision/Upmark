@@ -270,6 +270,23 @@ angular.module('vpac.widgets', [])
 }])
 
 
+.directive('emptyAsNull', function() {
+    return {
+        restrict: 'A',
+        require: 'ngModel',
+        link: function (scope, elem, attrs, ctrl) {
+            function emptyToNull(viewValue) {
+                if (viewValue === '')
+                    return null;
+                return viewValue;
+            };
+            ctrl.$parsers.push(emptyToNull);
+            ctrl.$modelValue = emptyToNull(ctrl.$viewValue);
+        }
+    };
+})
+
+
 .directive('reorderable', [function() {
     return {
         restrict: 'E',

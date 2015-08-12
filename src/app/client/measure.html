@@ -80,8 +80,8 @@
         <div class="form-group" show-errors>
             <label for="questions">Response Type</label>
             <select type="text" class="form-control"
-                id="response_type" name="response_type"
-                ng-options="rt.id as (rt.name + ' - ' + rt.description) for rt in survey.responseTypes"
+                id="responseType" name="responseType"
+                ng-options="rt.id as (rt.name + ' - ' + rt.description) for rt in responseTypes"
                 ng-model="edit.model.responseType"></select>
         </div>
     </form>

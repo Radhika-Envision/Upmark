@@ -70,7 +70,7 @@ class MeasureHandler(
                 r'/hierarchy$',
                 r'/hierarchy/survey$',
                 r'/hierarchy/structure.*$',
-                r'/survey/response_types.*'
+                r'/response_types.*$'
             ], exclude=exclude)
             son = to_son(measure)
 
@@ -83,6 +83,8 @@ class MeasureHandler(
                 if 'parent' not in son:
                     raise handlers.MissingDocError(
                         "That question node is not a parent of this measure")
+            else:
+                son['survey'] = to_son(measure.survey)
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))

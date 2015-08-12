@@ -145,8 +145,8 @@ angular.module('wsaa.surveyQuestions', [
             id: 'part_' + i,
             name: 'Response part ' + i,
             options: [
-                {score: 0, name: 'No'},
-                {score: 1, name: 'Yes'}
+                {score: 0, name: 'No', 'if': null},
+                {score: 1, name: 'Yes', 'if': null}
             ]
         };
         rt.parts.push(part);
@@ -175,11 +175,13 @@ angular.module('wsaa.surveyQuestions', [
         }
         rt.formula = formula;
     };
-    $scope.remove = function(list, item) {
+    $scope.remove = function(rt, list, item) {
         var i = list.indexOf(item);
         if (i < 0)
             return;
         list.splice(i, 1);
+        if (item.options)
+            $scope.updateFormula(rt);
     };
 
     $scope.$on('EditSaved', function(event, model) {
@@ -662,6 +664,28 @@ angular.module('wsaa.surveyQuestions', [
             }
             $scope.parents = parents;
         }
+    });
+    $scope.$watch('structure.survey', function(survey) {
+        var responseTypes = angular.copy(survey.responseTypes);
+        responseTypes.forEach(function(t) {
+            if (t.parts.length == 0) {
+                t.description = "No parts";
+            } else {
+                if (t.parts.length == 1) {
+                    t.description = "1 part";
+                } else {
+                    t.description = "" + t.parts.length + " parts";
+                }
+                var optNames = t.parts[0].options.map(function(o) { return o.name; });
+                optNames = optNames.filter(function(n) { return !!n });
+                optNames = optNames.join(', ');
+                if (optNames)
+                    t.description += ': ' + optNames;
+                if (t.parts.length > 1)
+                    t.description += ' etc.';
+            }
+        });
+        $scope.responseTypes = responseTypes;
     });
 
     $scope.$on('EditSaved', function(event, model) {

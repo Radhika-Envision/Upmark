@@ -16,7 +16,8 @@ from sqlalchemy.schema import CheckConstraint, ForeignKeyConstraint, Index,\
 from sqlalchemy.sql import func
 from sqlalchemy.sql.expression import and_
 from passlib.hash import sha256_crypt
-from voluptuous import All, Length, Optional, Range, Required, Schema
+from voluptuous import All, Any, Coerce, Length, Optional, Range, Required, \
+    Schema
 
 from guid import GUID
 from history_meta import Versioned, versioned_session
@@ -136,31 +137,31 @@ class Survey(Base):
 
     _response_types_schema = Schema([
         {
-            Required('id'): All(str, Length(min=1)),
-            Required('name'): All(str, Length(min=1)),
-            Required('parts'): [
+            'id': All(str, Length(min=1)),
+            'name': All(str, Length(min=1)),
+            'parts': [
                 {
-                    Optional('id'): All(str, Length(min=1)),
-                    Optional('name'): All(str, Length(min=1)),
-                    Required('options'): All([
+                    'id': All(str, Length(min=1)),
+                    'name': All(str, Length(min=1)),
+                    'options': All([
                         {
-                            Required('score'): All(float, Range(min=0, max=1)),
-                            Required('name'): All(str, Length(min=1)),
-                            Optional('if'): All(str, Length(min=1))
+                            'score': All(Coerce(float), Range(min=0, max=1)),
+                            'name': All(str, Length(min=1)),
+                            'if': Any(All(str, Length(min=1)), None)
                         }
                     ], Length(min=2))
                 }
             ],
-            Optional('formula'): All(str, Length(min=1))
+            'formula': Any(All(str, Length(min=1)), None)
         }
-    ])
+    ], required=True)
     @property
     def response_types(self):
         return self._response_types
     @response_types.setter
     def response_types(self, rts):
-        Survey._response_types_schema(rts)
-        self._response_types = ob
+        rts = Survey._response_types_schema(rts)
+        self._response_types = rts
 
     def __repr__(self):
         return "Survey(title={})".format(self.title)
@@ -177,18 +178,18 @@ class Hierarchy(Base):
     _structure = Column('structure', JSON, nullable=False)
 
     _structure_schema = Schema({
-        Required('levels'): All([
+        'levels': All([
             {
-                Required('title'): All(str, Length(min=1)),
-                Required('label'): All(str, Length(min=1, max=2)),
-                Required('has_measures'): bool
+                'title': All(str, Length(min=1)),
+                'label': All(str, Length(min=1, max=2)),
+                'has_measures': bool
             }
         ], Length(min=1)),
-        Required('measure'): {
-            Required('title'): All(str, Length(min=1)),
-            Required('label'): All(str, Length(min=1, max=2))
+        'measure': {
+            'title': All(str, Length(min=1)),
+            'label': All(str, Length(min=1, max=2))
         }
-    })
+    }, required=True)
     @property
     def structure(self):
         return self._structure

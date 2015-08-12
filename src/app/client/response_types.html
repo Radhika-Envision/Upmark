@@ -14,14 +14,14 @@
             <a ng-repeat="rt in edit.model.responseTypes" href
                     ng-click="editRt(edit.model, $index)">
                 <button class="btn btn-default btn-round pull-right" title="Remove"
-                        ng-click="remove(edit.model.responseTypes, rt)"
+                        ng-click="remove(rt, edit.model.responseTypes, rt); $event.preventDefault()"
                         ng-style="{visibility: edit.model.responseTypes.length <= 1 ? 'hidden' : null}">
                     <i class="fa fa-fw fa-trash-o"></i></button>
                 <h4>{{rt.name}}</h4>
                 <p>
                     <ng-pluralize count="rt.parts.length"
                         when="{
-                            '0': 'No parts (comment only, no score)',
+                            '0': 'Comment only (no score)',
                             '1': '1 part',
                             'other': '{} parts'}"></ng-pluralize>
                     <span ng-if="rt.parts.length > 0">
@@ -34,6 +34,10 @@
                 </p>
             </a>
         </li>
+        <li ng-if="!edit.model.responseTypes.length">
+            This survey has no response types. You can create one by
+            pressing the <i class="fa fa-fw fa-plus"></i> button above.
+        </li>
     </ul>
 </div>
 
@@ -43,12 +47,12 @@
             <button class="btn btn-default btn-round" title="Cancel"
                     ng-click="cancelRt()">
                 <i class="fa fa-fw fa-times"></i></button>
-            <button class="btn btn-default btn-round" title="Save"
+            <button class="btn btn-default btn-round" title="OK"
                     ng-click="saveRt()">
                 <i class="fa fa-fw fa-check"></i></button>
         </div>
         <h2>
-            {{rt.name}} (Editing)
+            {{rt.name}} <span class="text-muted">(Editing)</span>
         </h2>
     </div>
 
@@ -56,13 +60,17 @@
         <label for="ltitle{{$index}}">Name</label>
         <input type="text" class="form-control"
             id="ltitle{{$index}}" name="ltitle{{$index}}"
-            ng-model="rt.name" required />
+            title="Response type name"
+            ng-model="rt.name" required
+            placeholder="Name" />
     </div>
     <div class="form-group" show-errors>
         <label for="lid{{$index}}">ID</label>
         <input type="text" class="form-control"
             id="lid{{$index}}" name="lid{{$index}}"
-            ng-model="rt.id" required />
+            title="Response type ID (links to measures)"
+            ng-model="rt.id" required
+            placeholder="ID" />
     </div>
 
     <div class="section">
@@ -82,7 +90,8 @@
                     <input type="text" class="form-control"
                         id="lid{{$index}}" name="lid{{$index}}"
                         ng-model="part.id" required
-                        placeholder="Part ID" />
+                        placeholder="Part ID"
+                        title="Part ID" />
                 </td>
                 <td class="form-group" show-errors>
                     <label for="ltitle{{$index}}" class="sr-only">
@@ -90,11 +99,12 @@
                     <input type="text" class="form-control"
                         id="ltitle{{$index}}" name="ltitle{{$index}}"
                         ng-model="part.name" required
-                        placeholder="Part name" />
+                        placeholder="Part name"
+                        title="Part name" />
                 </td>
                 <td class="shrink">
                     <button class="btn btn-default btn-round" title="Remove"
-                            ng-click="remove(rt.parts, part)">
+                            ng-click="remove(rt, rt.parts, part)">
                         <i class="fa fa-fw fa-trash-o"></i></button>
                 </td>
             </tr>
@@ -121,7 +131,8 @@
                                         id="lscore{{rti}}-{{pi}}-{{$index}}"
                                         name="lscore{{rti}}-{{pi}}-{{$index}}"
                                         ng-model="opt.score" required
-                                        placeholder="Option score"/>
+                                        placeholder="Option score (0..1)"
+                                        title="The score for this option (0..1)"/>
                                 </td>
                                 <td class="form-group" show-errors>
                                     <label for="lname{{rti}}-{{pi}}-{{$index}}"
@@ -131,7 +142,8 @@
                                         id="lname{{rti}}-{{pi}}-{{$index}}"
                                         name="lname{{rti}}-{{pi}}-{{$index}}"
                                         ng-model="opt.name" required
-                                        placeholder="Option name"/>
+                                        placeholder="Option name"
+                                        title="Option name"/>
                                 </td>
                                 <td class="form-group" show-errors>
                                     <label for="lif{{rti}}-{{pi}}-{{$index}}"
@@ -140,13 +152,14 @@
                                     <input type="text" class="form-control"
                                         id="lif{{rti}}-{{pi}}-{{$index}}"
                                         name="lif{{rti}}-{{pi}}-{{$index}}"
-                                        ng-model="opt['if']"
-                                        placeholder="Always" />
+                                        ng-model="opt['if']" empty-as-null
+                                        placeholder="Condition (default: always)"
+                                        title="The condition under which this option is available (expression)" />
                                 </td>
                                 <td class="shrink">
                                     <button class="btn btn-default btn-round"
                                             title="Remove"
-                                            ng-click="remove(part.options, opt)"
+                                            ng-click="remove(rt, part.options, opt)"
                                             ng-style="{visibility: part.options.length <= 2 ? 'hidden' : null}">
                                         <i class="fa fa-fw fa-trash-o"></i></button>
                                 </td>
@@ -158,8 +171,9 @@
         </tbody>
     </table>
 
-    <p ng-if="!rt.parts.length" class="text-muted">
-        This response type has no response parts.
+    <p ng-if="!rt.parts.length">
+        This response type has no response parts. You can create one by
+        pressing the <i class="fa fa-fw fa-plus"></i> button above.
     </p>
 
     <div class="section" ng-if="rt.parts.length > 1">
@@ -172,9 +186,38 @@
     </div>
 </div>
 
+<div class="help-label">
+    <p>
+        <i class="fa fa-sliders fa-2x fa-pull-left fa-border"></i>
+        Each measure that is part of this survey will need to use one of these
+        response types. They determine the types of answers that a respondent
+        can give, and how the scores are calculated.
+    </p>
+    <p ng-if="rtEdit.rt">
+        Responses can have any number of parts. Those with no parts will not
+        contribute to a respondent's score. Otherwise, the score is calculated
+        by combining the scores of the parts. By default, the score is simply
+        the sum of all the parts - however that can be customised by setting
+        the <i>Formula</i>. For example, a formula of <i>(a + b) * c</i> would
+        add parts <i>a</i> and <i>b</i> together, and then multiply by <i>c</i>
+        - where <i>a</i>, <i>b</i> and <i>c</i> are the IDs of the response
+        parts.
+    </p>
+    <p ng-if="rtEdit.rt.parts.length">
+        The <i>Condition</i> field defines the conditions under which a
+        respondent can select each option. For example, <i>a > 0.5</i> means the
+        option is only available when the score of part <i>a</i> is greater than
+        <i>0.5</i>, while <i>a__i > 2</i> means the option is avialable when
+        item 3 or above has been selected for part <i>a</i>.
+    </p>
+    <p ng-if="edit.model.id && !duplicating">
+        <b>Be careful</b> when editing existing response types: the ID fields
+        are used to link the types with the measures. If you remove a type or
+        change its ID, be sure to update the measures.
+    </p>
+</div>
 <p>
-Each measure that is part of this survey will need to use one of these response
-types. They determine the types of answers that a respondant can give.
+
 </p>
 
 </div>
