@@ -14,10 +14,10 @@
     <span ng-if="item.entity.title && $last">
         <span ng-if="item.entity.seq != null">
             {{item.entity.seq + 1}}.</span>
-        {{item.entity.title}}
+        <page-title>{{item.entity.title}}</page-title>
     </span>
     <span ng-if="!item.entity.title">
-        {{item.title}} - New
+        <page-title>{{item.title}} - New</page-title>
     </span>
 </h2>
 </div>
