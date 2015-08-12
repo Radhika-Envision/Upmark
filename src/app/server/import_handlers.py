@@ -107,9 +107,9 @@ class Importer():
 
             hierarchy = model.Hierarchy()
             hierarchy.survey_id = survey.id
-            hierarchy.title = "Importing Document Hierarchy"
-            hierarchy.description = "Importing Document Hierarchy"
-            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'importing_file_hierarchy.json')) as data_file:    
+            hierarchy.title = "Aquamark (Imported)"
+            hierarchy.description = "WSAA's own 4-level hierarchy."
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'aquamark_hierarchy.json')) as data_file:
                 hierarchy.structure = json.load(data_file)
             session.add(hierarchy)
             session.flush()
@@ -224,13 +224,12 @@ class Importer():
                                         measure_intent = self.parse_description(
                                             scoring_sheet, measure['row_num'], "Intent")
                                         measure_inputs = self.parse_description(
-                                            scoring_sheet, measure['row_num'] + 1, "Iputs")
+                                            scoring_sheet, measure['row_num'] + 1, "Inputs")
                                         measure_scenario = self.parse_description(
                                             scoring_sheet, measure['row_num'] + 2, "Scenario")
                                         measure_questions = self.parse_description(
                                             scoring_sheet, measure['row_num'] + 3, "Questions")
-                                        # measure_comments = self.parse_description(
-                                        #     scoring_sheet, measure['row_num'] + 4, "Comments")
+                                        # Comments are part of the response, so ignore that row
                                         measure_weight = self.parse_cell_number(
                                             measure['weight'])
 
@@ -244,7 +243,7 @@ class Importer():
                                         m.questions = measure_questions
                                         response_type = "standard"
                                         if function_order == "7":
-                                            log.info("business-support:", measure['resp_num'])
+                                            log.info("business-support: %s", measure['resp_num'])
                                             response_type = "business-support-%s" % int(self.parse_cell_number(measure['resp_num']))
                                         m.response_type = response_type
                                         session.add(m)
@@ -347,7 +346,7 @@ class Importer():
                                         measure_intent = self.parse_description(
                                             scoring_sheet, measure['row_num'], "Intent")
                                         measure_inputs = self.parse_description(
-                                            scoring_sheet, measure['row_num'] + 1, "Iputs")
+                                            scoring_sheet, measure['row_num'] + 1, "Inputs")
                                         measure_scenario = self.parse_description(
                                             scoring_sheet, measure['row_num'] + 2, "Scenario")
                                         measure_questions = self.parse_description(
