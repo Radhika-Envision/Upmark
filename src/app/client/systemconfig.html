@@ -24,7 +24,7 @@
 </div>
 </div>
 
-<div class="measure" ng-if="edit.model">
+<div ng-if="edit.model">
 <div class="container">
     <form novalidate name="form" id="editor">
         <div class="form-group" ng-repeat="item in edit.model.settings">
@@ -38,7 +38,7 @@
 </div>
 </div>
 
-<div class="measure" ng-if="!edit.model">
+<div ng-if="!edit.model">
 <div class="container">
     <dl ng-repeat="item in systemConfig.settings">
         <dt>{{item.humanName}}</dt>

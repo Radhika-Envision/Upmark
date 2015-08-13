@@ -33,7 +33,7 @@
 </div>
 </div>
 
-<div class="measure" ng-if="edit.model">
+<div ng-if="edit.model">
 <div class="container">
     <form novalidate name="form" id="editor">
         <div class="form-group" show-errors>
@@ -83,7 +83,7 @@
 </div>
 
 <div ng-if="!edit.model">
-<div class="measure">
+<div>
 <div class="container">
     <p class="formatted">{{survey.description}}</p>
 
@@ -131,7 +131,7 @@
 </div>
 
 <div ng-if="!edit.model && checkRole('survey_state')">
-<div class="measure">
+<div>
 <div class="container">
     <p class="text-center">
         <a href class="btn btn-link" ng-click="toggleOpen()">

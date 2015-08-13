@@ -30,7 +30,7 @@
 </div>
 </div>
 
-<div class="measure" ng-if="edit.model">
+<div ng-if="edit.model">
 <div class="container">
     <form novalidate name="form" id="editor">
         <div class="form-group" show-errors>
@@ -74,17 +74,17 @@
 </div>
 </div>
 
-<div class="measure" ng-if="!edit.model">
+<div ng-if="!edit.model">
 <div class="container">
-    <dl>
+    <dl ng-if="org.url">
         <dt>Web site</dt>
         <dd><a ng-href="{{org.url}}">{{org.url}}</a></dd>
     </dl>
-    <dl>
+    <dl ng-if="org.numberOfCustomers">
         <dt>Number of customers</dt>
         <dd>{{org.numberOfCustomers}}</dd>
     </dl>
-    <dl>
+    <dl ng-if="org.region">
         <dt>Region</dt>
         <dd>{{org.region}}</dd>
     </dl>
