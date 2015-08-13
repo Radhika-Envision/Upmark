@@ -25,7 +25,7 @@ log = logging.getLogger('app.import_handler')
 class ImportStructureHandler(handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-    # @handlers.authz('author')
+    @handlers.authz('author')
     @gen.coroutine
     def post(self, survey_id):
         fileinfo = self.request.files['file'][0]
@@ -46,7 +46,7 @@ class ImportStructureHandler(handlers.BaseHandler):
 class ImportResponseHandler(handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-    # @handlers.authz('author')
+    @handlers.authz('author')
     @gen.coroutine
     def post(self, survey_id):
         fileinfo = self.request.files['file'][0]
@@ -141,7 +141,7 @@ class Importer():
                 function_title = function['title'].replace("{} - ".format(
                     function_order), "")
                 function_description = self.parse_description(
-                    all_rows, function['row_num'], "")
+                    all_rows, function['row_num'])
 
                 qnode_function = model.QuestionNode()
                 qnode_function.survey_id = survey.id
@@ -372,17 +372,33 @@ class Importer():
         #                                 ######## TODO : save response to the database
 
 
-    def parse_description(self, all_rows, starting_row_num, prev_column):
+    def parse_description(self, all_rows, starting_row_num, prev_column = None, paragraph=None):
         # print("starting_row_num", starting_row_num, "sheet", sheet.nrows)
         if starting_row_num + 1 >= len(all_rows):
             return ""
 
-        header_cell = all_rows[starting_row_num + 1][self.col2num("J")].value
-        desc = ""
-        if prev_column == header_cell:
-            description_cell = all_rows[starting_row_num + 1][self.col2num("K")]
-            desc = description_cell.value
-            desc += self.parse_description(all_rows, starting_row_num + 1, prev_column)
-            return desc
+        if prev_column:
+            header_cell = all_rows[starting_row_num + 1][self.col2num("J")].value
+
+            if prev_column == header_cell:
+                description_cell = all_rows[starting_row_num + 1][self.col2num("K")]
+                desc = description_cell.value
+                desc += self.parse_description(all_rows, starting_row_num + 1, prev_column)
+                return desc
+            else:
+                return ""
         else:
-            return ''
+            para = all_rows[starting_row_num + 1][self.col2num("I")].value
+            description_cell = all_rows[starting_row_num + 1][self.col2num("K")]
+
+            if paragraph:
+                if para == paragraph:
+                    desc = chr(10) + chr(10) + description_cell.value
+                    desc += self.parse_description(all_rows, starting_row_num + 1, None, paragraph=para)
+                    return desc
+                else:
+                    return ""
+            else:
+                desc = description_cell.value
+                desc += self.parse_description(all_rows, starting_row_num + 1, None, paragraph=para)
+                return desc
