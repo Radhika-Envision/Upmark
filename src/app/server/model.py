@@ -141,18 +141,22 @@ class Survey(Base):
             'name': All(str, Length(min=1)),
             'parts': [
                 {
-                    'id': All(str, Length(min=1)),
-                    'name': All(str, Length(min=1)),
+                    Required('id', default=None): Any(
+                        All(str, Length(min=1)), None),
+                    Required('name', default=None): Any(
+                        All(str, Length(min=1)), None),
                     'options': All([
                         {
                             'score': All(Coerce(float), Range(min=0, max=1)),
                             'name': All(str, Length(min=1)),
-                            'if': Any(All(str, Length(min=1)), None)
+                            Required('if', default=None): Any(
+                                All(str, Length(min=1)), None)
                         }
                     ], Length(min=2))
                 }
             ],
-            'formula': Any(All(str, Length(min=1)), None)
+            Required('formula', default=None): Any(
+                All(str, Length(min=1)), None)
         }
     ], required=True)
     @property
@@ -160,8 +164,7 @@ class Survey(Base):
         return self._response_types
     @response_types.setter
     def response_types(self, rts):
-        rts = Survey._response_types_schema(rts)
-        self._response_types = rts
+        self._response_types = Survey._response_types_schema(rts)
 
     def __repr__(self):
         return "Survey(title={})".format(self.title)
@@ -195,19 +198,18 @@ class Hierarchy(Base):
         return self._structure
     @structure.setter
     def structure(self, s):
-        Hierarchy._structure_schema(s)
-        self._structure = s
+        self._structure = Hierarchy._structure_schema(s)
 
     def __repr__(self):
         return "Hierarchy(title={}, survey={})".format(
-            self.title, self.survey.title)
+            self.title, getattr(self.survey, 'title', None))
 
 
 class QuestionNode(Base):
     __tablename__ = 'qnode'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(GUID, nullable=False, primary_key=True)
-    hierarchy_id = Column(GUID)
+    hierarchy_id = Column(GUID, nullable=False)
     parent_id = Column(GUID)
 
     seq = Column(Integer)
@@ -228,18 +230,13 @@ class QuestionNode(Base):
             ['survey_id'],
             ['survey.id']
         ),
-        CheckConstraint(
-            '(parent_id IS NULL AND hierarchy_id IS NOT NULL) OR '
-            '(parent_id IS NOT NULL AND hierarchy_id IS NULL)',
-            name='qnode_root_check'
-        ),
     )
 
     survey = relationship(Survey)
 
     def __repr__(self):
         return "QuestionNode(title={}, survey={})".format(
-            self.title, self.survey.title)
+            self.title, getattr(self.survey, 'title', None))
 
 
 class Measure(Base):
@@ -261,7 +258,7 @@ class Measure(Base):
 
     def __repr__(self):
         return "Measure(title={}, survey={})".format(
-            self.title, self.survey.title)
+            self.title, getattr(self.survey, 'title', None))
 
 
 class QnodeMeasure(Base):
@@ -308,7 +305,9 @@ class QnodeMeasure(Base):
 
     def __repr__(self):
         return "QnodeMeasure(qnode={}, measure={}, survey={})".format(
-            self.qnode.title, self.measure.title, self.survey.title)
+            getattr(self.qnode, 'title', None),
+            getattr(self.measure, 'title', None),
+            getattr(self.survey, 'title', None))
 
 
 class Assessment(Base):
@@ -344,7 +343,8 @@ class Assessment(Base):
 
     def __repr__(self):
         return "Assessment(survey={}, org={})".format(
-            self.survey.title, self.assessment.Organisation.name)
+            getattr(self.survey, 'title', None),
+            getattr(self.organisation, 'name', None))
 
 
 class ResponseNode(Base):
@@ -377,9 +377,11 @@ class ResponseNode(Base):
     survey = relationship(Survey)
 
     def __repr__(self):
+        org = getattr(self.assessment, 'organisation', None)
         return "ResponseNode(qnode={}, survey={}, org={})".format(
-            self.qnode.title, self.survey.title,
-            self.assessment.Organisation.name)
+            getattr(self.qnode, 'title', None),
+            getattr(self.survey, 'title', None),
+            getattr(org, 'name', None))
 
 
 class Response(Versioned, Base):
@@ -419,9 +421,11 @@ class Response(Versioned, Base):
     user = relationship(AppUser)
 
     def __repr__(self):
+        org = getattr(self.assessment, 'organisation', None)
         return "QnodeMeasure(measure={}, survey={}, org={})".format(
-            self.measure.title, self.survey.title,
-            self.assessment.Organisation.name)
+            getattr(self.measure, 'title', None),
+            getattr(self.survey, 'title', None),
+            getattr(org, 'name', None))
 
 
 # Lists and Complex Relationships
@@ -448,11 +452,25 @@ Survey.hierarchies = relationship(
     order_by='Hierarchy.title')
 
 
+# The link from a node to a hierarchy uses a one-way backref. Although this is
+# kind of the backref of Hierarchy.qnodes (below), we don't want modifications
+# to this attribute to affect the other side of the relationship: otherwise non-
+# root nodes couldn't have their hierarchies set easily.
+# http://docs.sqlalchemy.org/en/latest/orm/backref.html#one-way-backrefs
+QuestionNode.hierarchy = relationship(
+    Hierarchy,
+    primaryjoin=and_(foreign(QuestionNode.hierarchy_id) == remote(Hierarchy.id),
+                     QuestionNode.survey_id == remote(Hierarchy.survey_id)))
+
+
+# "Children" of the hierarchy: these are roots of the qnode tree. Use
+# back_populates instead of backref for the reasons described above.
 Hierarchy.qnodes = relationship(
-    QuestionNode, backref='hierarchy', passive_deletes=True,
+    QuestionNode, back_populates='hierarchy', passive_deletes=True,
     order_by=QuestionNode.seq, collection_class=ordering_list('seq'),
-    primaryjoin=and_(foreign(QuestionNode.hierarchy_id) == Hierarchy.id,
-                     QuestionNode.survey_id == Hierarchy.survey_id))
+    primaryjoin=and_(and_(foreign(QuestionNode.hierarchy_id) == Hierarchy.id,
+                          QuestionNode.survey_id == Hierarchy.survey_id),
+                     QuestionNode.parent_id == None))
 
 
 # The remote_side argument needs to be set on the many-to-one side, so it's

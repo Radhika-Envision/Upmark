@@ -106,7 +106,8 @@
 <div class="measure"
         ng-if="!edit.model && parents && checkRole('measure_edit')">
 <div class="container text-muted">
-    <p ng-if="parents.length">
+    <p ng-if="parents.length" class="clearfix">
+        <i class="fa fa-sitemap fa-2x fa-pull-left fa-border"></i>
         Measures are shared between question sets.
         Respondents can use the following category paths to reach this measure:
     </p>

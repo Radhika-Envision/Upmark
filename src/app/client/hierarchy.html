@@ -133,18 +133,16 @@
         </table>
         <div class="help-label">
             <p>
-                <i class="fa fa-list fa-2x fa-pull-left fa-border"></i>
+                <i class="fa fa-sitemap fa-2x fa-pull-left fa-border"></i>
                 These levels define the category types in the survey. Users can
                 refer to categories by the name of the level. For example, if
                 there is a level called "Functions", a user might refer to a
                 category as "Function 2".
-                The short label is displayed in a
-                bubble next to the header. It should be no longer than two
-                characters.
+                The short label is displayed in a bubble next to the header.
             </p>
             <p>
                 Some categories can contain measures. Typically, only the
-                deepest level of a hierarchy should containe measures.
+                deepest level of a hierarchy should contain measures.
             </p>
         </div>
     </form>
@@ -161,7 +159,7 @@
 <reorderable href="/qnode/{}?survey={{survey.id}}&hierarchy={{hierarchy.id}}"
         model="qnodes" check-role="checkRole"
         title="{{hierarchy.structure.levels[0].title}}"
-        params="{surveyId: survey.id, hierarchyId: hierarchy.id}"
+        params="{surveyId: survey.id, hierarchyId: hierarchy.id, root: ''}"
         resource="QuestionNode" ng-if="!edit.model"
         can-edit="survey.isEditable"></reorderable>
 

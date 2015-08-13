@@ -195,7 +195,7 @@ class AqModelTestBase(unittest.TestCase):
             },
         ]
 
-        def create_qnodes(qsons, session, hierarchy_id=None, parent_id=None):
+        def create_qnodes(qsons, session, hierarchy_id, parent_id=None):
             qnodes = []
             for qson in qsons:
                 qnode = model.QuestionNode(
@@ -210,7 +210,8 @@ class AqModelTestBase(unittest.TestCase):
 
                 if 'children' in qson:
                     qnode.children = create_qnodes(
-                        qson['children'], session, parent_id=qnode.id)
+                        qson['children'], session, hierarchy_id,
+                        parent_id=qnode.id)
                     qnode.children.reorder()
 
                 for i in qson.get('measures', []):
@@ -231,7 +232,7 @@ class AqModelTestBase(unittest.TestCase):
                 session.add(hierarchy)
                 session.flush()
                 hierarchy.qnodes = create_qnodes(
-                    hson['qnodes'], session, hierarchy_id=hierarchy.id)
+                    hson['qnodes'], session, hierarchy.id)
                 hierarchy.qnodes.reorder()
             session.flush()
             return hierarchies
