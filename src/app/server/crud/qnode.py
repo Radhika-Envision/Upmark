@@ -140,7 +140,6 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     parent = None
 
                 qnode.hierarchy = hierarchy
-                session.flush()
 
                 if parent is not None:
                     log.debug("Appending to parent")

@@ -454,13 +454,19 @@ Survey.hierarchies = relationship(
     order_by='Hierarchy.title')
 
 
+# The link from a node to a hierarchy uses a one-way backref. Although this is
+# kind of the backref of Hierarchy.qnodes (below), we don't want modifications
+# to this attribute to affect the other side of the relationship: otherwise non-
+# root nodes couldn't have their hierarchies set easily.
+# http://docs.sqlalchemy.org/en/latest/orm/backref.html#one-way-backrefs
 QuestionNode.hierarchy = relationship(
     Hierarchy,
     primaryjoin=and_(foreign(QuestionNode.hierarchy_id) == remote(Hierarchy.id),
                      QuestionNode.survey_id == remote(Hierarchy.survey_id)))
 
 
-# "Children" of the hierarchy: these are roots of the qnode tree.
+# "Children" of the hierarchy: these are roots of the qnode tree. Use
+# back_populates instead of backref for the reasons described above.
 Hierarchy.qnodes = relationship(
     QuestionNode, back_populates='hierarchy', passive_deletes=True,
     order_by=QuestionNode.seq, collection_class=ordering_list('seq'),
