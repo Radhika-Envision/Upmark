@@ -164,8 +164,7 @@ class Survey(Base):
         return self._response_types
     @response_types.setter
     def response_types(self, rts):
-        rts = Survey._response_types_schema(rts)
-        self._response_types = rts
+        self._response_types = Survey._response_types_schema(rts)
 
     def __repr__(self):
         return "Survey(title={})".format(self.title)
@@ -199,8 +198,7 @@ class Hierarchy(Base):
         return self._structure
     @structure.setter
     def structure(self, s):
-        Hierarchy._structure_schema(s)
-        self._structure = s
+        self._structure = Hierarchy._structure_schema(s)
 
     def __repr__(self):
         return "Hierarchy(title={}, survey={})".format(
