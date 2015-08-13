@@ -1,6 +1,8 @@
 @import '_utils.scss';
 
 .table {
+    margin-bottom: 0;
+
      > thead > tr > th {
         border-bottom: 1px solid #ddd;
         width: auto;

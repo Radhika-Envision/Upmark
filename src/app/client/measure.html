@@ -89,7 +89,7 @@
 </div>
 
 
-<div class="measure" ng-if="!edit.model">
+<div ng-if="!edit.model">
 <div class="container">
     <h3 ng-if="measure.intent">Intent</h3>
     <p ng-if="measure.intent" class="formatted">{{measure.intent}}</p>
@@ -103,36 +103,39 @@
 </div>
 
 
-<div class="measure"
+<div class="spaced"
         ng-if="!edit.model && parents && checkRole('measure_edit')">
 <div class="container text-muted">
-    <p ng-if="parents.length" class="clearfix">
-        <i class="fa fa-sitemap fa-2x fa-pull-left fa-border"></i>
-        Measures are shared between question sets.
-        Respondents can use the following category paths to reach this measure:
-    </p>
-    <ul ng-if="parents.length">
-        <li ng-repeat="parent in parents">
-            <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}&parent={{parent.qnodes[parent.qnodes.length - 1].id}}">
-            {{parent.hierarchy.title}}
-            <span ng-repeat="item in parent.qnodes">
-                &raquo;
-                <span ng-if="item.seq != null">
-                    {{item.seq + 1}}.</span>
-                {{item.title}}
-            </span>
-            </a>
+    <ul class="fa-ul">
+        <li>
+            <i class="fa-li fa fa-sitemap fa-border"></i>
+            Measures are shared between question sets.
+            Respondents can use the following category paths to reach this
+            measure:
+            <ul ng-if="parents.length">
+                <li ng-repeat="parent in parents">
+                    <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}&parent={{parent.qnodes[parent.qnodes.length - 1].id}}">
+                    {{parent.hierarchy.title}}
+                    <span ng-repeat="item in parent.qnodes">
+                        &raquo;
+                        <span ng-if="item.seq != null">
+                            {{item.seq + 1}}.</span>
+                        {{item.title}}
+                    </span>
+                    </a>
+                </li>
+            </ul>
+            <p ng-if="parent">
+                This measure can be
+                <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}">
+                    viewed without a question set</a>,
+                but it can not be responded to like that.
+            </p>
+            <p ng-if="!parents.length">
+                This measure is an orphan: it belongs to no categories.
+            </p>
         </li>
     </ul>
-    <p ng-if="parent">
-        This measure can be
-        <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}">
-            viewed without a question set</a>,
-        but it can not be responded to like that.
-    </p>
-    <p ng-if="!parents.length">
-        This measure is an orphan: it belongs to no categories.
-    </p>
 </div>
 </div>
 

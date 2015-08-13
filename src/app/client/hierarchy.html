@@ -131,25 +131,27 @@
                 </tr>
             </tbody>
         </table>
-        <div class="help-label">
-            <p>
-                <i class="fa fa-sitemap fa-2x fa-pull-left fa-border"></i>
-                These levels define the category types in the survey. Users can
-                refer to categories by the name of the level. For example, if
-                there is a level called "Functions", a user might refer to a
-                category as "Function 2".
-                The short label is displayed in a bubble next to the header.
-            </p>
-            <p>
-                Some categories can contain measures. Typically, only the
-                deepest level of a hierarchy should contain measures.
-            </p>
-        </div>
+        <ul class="fa-ul text-muted spaced">
+            <li>
+                <i class="fa-li fa fa-sitemap fa-border"></i>
+                <p>
+                    These levels define the category types in the survey. Users can
+                    refer to categories by the name of the level. For example, if
+                    there is a level called "Functions", a user might refer to a
+                    category as "Function 2".
+                    The short label is displayed in a bubble next to the header.
+                </p>
+                <p>
+                    Some categories can contain measures. Typically, only the
+                    deepest level of a hierarchy should contain measures.
+                </p>
+            </li>
+        </ul>
     </form>
 </div>
 </div>
 
-<div class="measure" ng-if="!edit.model">
+<div ng-if="!edit.model">
 <div class="container">
     <p ng-if="hierarchy.description"
             class="formatted">{{hierarchy.description}}</p>
@@ -165,7 +167,7 @@
 
 </div>
 
-<div class="measure" ng-if="!edit.model">
+<div class="spaced" ng-if="!edit.model">
 <div class="container">
     <p class="text-muted">
         Question set structure:

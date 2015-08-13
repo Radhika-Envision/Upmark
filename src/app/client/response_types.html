@@ -186,38 +186,37 @@
     </div>
 </div>
 
-<div class="help-label">
-    <p>
-        <i class="fa fa-sliders fa-2x fa-pull-left fa-border"></i>
-        Each measure that is part of this survey will need to use one of these
-        response types. They determine the types of answers that a respondent
-        can give, and how the scores are calculated.
-    </p>
-    <p ng-if="rtEdit.rt">
-        Responses can have any number of parts. Those with no parts will not
-        contribute to a respondent's score. Otherwise, the score is calculated
-        by combining the scores of the parts. By default, the score is simply
-        the sum of all the parts - however that can be customised by setting
-        the <i>Formula</i>. For example, a formula of <i>(a + b) * c</i> would
-        add parts <i>a</i> and <i>b</i> together, and then multiply by <i>c</i>
-        - where <i>a</i>, <i>b</i> and <i>c</i> are the IDs of the response
-        parts.
-    </p>
-    <p ng-if="rtEdit.rt.parts.length">
-        The <i>Condition</i> field defines the conditions under which a
-        respondent can select each option. For example, <i>a > 0.5</i> means the
-        option is only available when the score of part <i>a</i> is greater than
-        <i>0.5</i>, while <i>a__i > 2</i> means the option is avialable when
-        item 3 or above has been selected for part <i>a</i>.
-    </p>
-    <p ng-if="edit.model.id || duplicating">
-        <b>Be careful</b> when editing existing response types: the ID fields
-        are used to link the types with the measures. If you remove a type or
-        change its ID, be sure to update the measures.
-    </p>
-</div>
-<p>
-
-</p>
+<ul class="fa-ul text-muted">
+    <li>
+        <i class="fa-li fa fa-sliders fa-border"></i>
+        <p>
+            Each measure that is part of this survey will need to use one of these
+            response types. They determine the types of answers that a respondent
+            can give, and how the scores are calculated.
+        </p>
+        <p ng-if="rtEdit.rt">
+            Responses can have any number of parts. Those with no parts will not
+            contribute to a respondent's score. Otherwise, the score is calculated
+            by combining the scores of the parts. By default, the score is simply
+            the sum of all the parts - however that can be customised by setting
+            the <i>Formula</i>. For example, a formula of <i>(a + b) * c</i> would
+            add parts <i>a</i> and <i>b</i> together, and then multiply by <i>c</i>
+            - where <i>a</i>, <i>b</i> and <i>c</i> are the IDs of the response
+            parts.
+        </p>
+        <p ng-if="rtEdit.rt.parts.length">
+            The <i>Condition</i> field defines the conditions under which a
+            respondent can select each option. For example, <i>a > 0.5</i> means the
+            option is only available when the score of part <i>a</i> is greater than
+            <i>0.5</i>, while <i>a__i > 2</i> means the option is avialable when
+            item 3 or above has been selected for part <i>a</i>.
+        </p>
+        <p ng-if="edit.model.id || duplicating">
+            <b>Be careful</b> when editing existing response types: the ID fields
+            are used to link the types with the measures. If you remove a type or
+            change its ID, be sure to update the measures.
+        </p>
+    </li>
+</ul>
 
 </div>

@@ -6,17 +6,17 @@
     "levels": [
         {
             "has_measures": false,
-            "title": "Function",
+            "title": "Functions",
             "label": "F"
         },
         {
             "has_measures": false,
-            "title": "Process",
+            "title": "Processes",
             "label": "P"
         },
         {
             "has_measures": true,
-            "title": "Subprocess",
+            "title": "Sub-Processes",
             "label": "Sp"
         }
     ]

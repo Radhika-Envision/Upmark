@@ -120,6 +120,10 @@ h2 {
         }
     }
 
+    + div > div > h3:first-child {
+        margin-top: 0;
+    }
+
     a {
         color: inherit;
     }
@@ -148,6 +152,29 @@ ul.dropdown-menu {
             @include fontawesome('\f0da');
             position: absolute;
             left: 0.6em;
+        }
+    }
+}
+
+ul.fa-ul {
+    > li > i.fa-li {
+        top: 0;
+        &.fa-border {
+            width: 1.54em;
+            height: 1.54em;
+            text-align: center;
+        }
+    }
+    @media (max-width: 768px) {
+        margin-left: 2.1em;
+        > li > i.fa-li {
+            font-size: 1em;
+        }
+    }
+    @media (min-width: 768px) {
+        margin-left: 4.3em;
+        > li > i.fa-li {
+            font-size: 2em;
         }
     }
 }
@@ -246,6 +273,10 @@ ul.list-results {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.spaced {
+    margin-top: 18px;
 }
 
 .measure {
