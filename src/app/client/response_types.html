@@ -84,22 +84,27 @@
     <table class="table" ng-if="rt.parts.length">
         <tbody ng-repeat="part in rt.parts" ng-init="rti = $index">
             <tr class="form-row">
-                <td class="form-group" show-errors>
-                    <label for="lid{{$index}}" class="sr-only">
+                <td class="shrink"><strong>Part {{$index + 1}}</strong></td>
+                <td class="shrink form-group" show-errors>
+                    <label for="lid{{rti}}-{{$index}}" class="sr-only">
                         ID</label>
                     <input type="text" class="form-control"
-                        id="lid{{$index}}" name="lid{{$index}}"
+                        id="lid{{rti}}-{{$index}}"
+                        name="lid{{rti}}-{{$index}}"
                         ng-model="part.id" empty-as-null
                         placeholder="Part ID"
                         title="Part ID" />
                 </td>
                 <td class="form-group" show-errors>
-                    <label for="ltitle{{$index}}" class="sr-only">
+                    <label for="ltitle{{rti}}-{{$index}}" class="sr-only">
                         Part name</label>
                     <input type="text" class="form-control"
-                        id="ltitle{{$index}}" name="ltitle{{$index}}"
+                        id="ltitle{{rti}}-{{$index}}"
+                        name="ltitle{{rti}}-{{$index}}"
                         ng-model="part.name" empty-as-null
-                        placeholder="Part name"
+                        placeholder="{{rt.parts.length > 1 ?
+                            'Part name (required for multi-part response types)' :
+                            'Part name (optional for one-part response types)'}}"
                         title="Part name" />
                 </td>
                 <td class="shrink">
@@ -123,7 +128,7 @@
                         <tbody ng-repeat="opt in part.options"
                                 ng-init="pi = $index">
                             <tr class="form-row">
-                                <td class="form-group" show-errors>
+                                <td class="form-group shrink" show-errors>
                                     <label for="lscore{{rti}}-{{pi}}-{{$index}}"
                                             class="sr-only">
                                         Score</label>
@@ -145,7 +150,8 @@
                                         placeholder="Option name"
                                         title="Option name"/>
                                 </td>
-                                <td class="form-group" show-errors>
+                                <td class="form-group" show-errors
+                                        ng-if="rt.parts.length > 1">
                                     <label for="lif{{rti}}-{{pi}}-{{$index}}"
                                     class="sr-only">
                                         Condition</label>
@@ -160,7 +166,9 @@
                                     <button class="btn btn-default btn-round"
                                             title="Remove"
                                             ng-click="remove(rt, part.options, opt)"
-                                            ng-style="{visibility: part.options.length <= 2 ? 'hidden' : null}">
+                                            ng-style="{visibility:
+                                                part.options.length > 2 && $last ?
+                                                    null : 'hidden'}">
                                         <i class="fa fa-fw fa-trash-o"></i></button>
                                 </td>
                             </tr>

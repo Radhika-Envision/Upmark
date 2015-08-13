@@ -627,10 +627,10 @@ angular.module('wsaa.surveyQuestions', [
 .controller('MeasureCtrl', [
         '$scope', 'Measure', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'Survey', 'format', 'layout',
-        'Structure',
+        'Structure', 'Arrays',
         function($scope, Measure, routeData, Editor, authz,
                  $location, Notifications, current, Survey, format, layout,
-                 Structure) {
+                 Structure, Arrays) {
 
     $scope.layout = layout;
     $scope.parent = routeData.parent;
@@ -668,8 +668,10 @@ angular.module('wsaa.surveyQuestions', [
     $scope.$watch('structure.survey', function(survey) {
         if (!survey.responseTypes)
             return;
+        var responseType = null;
         var responseTypes = angular.copy(survey.responseTypes);
-        responseTypes.forEach(function(t) {
+        for (var i = 0; i < responseTypes.length; i++) {
+            var t = responseTypes[i];
             if (t.parts.length == 0) {
                 t.description = "No parts";
             } else {
@@ -690,8 +692,15 @@ angular.module('wsaa.surveyQuestions', [
                 if (t.parts.length > 1)
                     t.description += ' etc.';
             }
-        });
+        }
         $scope.responseTypes = responseTypes;
+    });
+    $scope.$watchGroup(['measure.responseType', 'structure.survey.responseTypes'],
+                       function(vars) {
+        var rtId = vars[0];
+        var rts = vars[1];
+        var i = Arrays.indexOf(rts, rtId, 'id', null);
+        $scope.responseType = rts[i];
     });
 
     $scope.$on('EditSaved', function(event, model) {

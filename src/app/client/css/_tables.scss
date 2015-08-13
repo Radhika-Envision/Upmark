@@ -1,9 +1,10 @@
 @import '_utils.scss';
 
 .table {
+    counter-reset: tabular;
     margin-bottom: 0;
 
-     > thead > tr > th {
+    > thead > tr > th {
         border-bottom: 1px solid #ddd;
         width: auto;
 
@@ -20,15 +21,22 @@
         &.shrink {
             width: 1%;
             white-space: nowrap;
+            input {
+                min-width: 100px;
+            }
         }
         &.truncate {
             max-width: 0;
         }
     }
+    > tbody > tr.table-li > td:first-child:before {
+        counter-increment: tabular;
+        content: counter(tabular) ". ";
+    }
     > tbody > tr.form-row > td {
         padding: 6px;
 
-        > span {
+        > span, > strong, > i {
             display: block;
             padding: 6px 12px;
         }
@@ -47,9 +55,16 @@
             }
         }
     }
+    > tbody > tr.form-row.table-li > td:first-child:before {
+        padding-top: 6px;
+        padding-bottom: 3px;
+        display: inline-block;
+        line-height: 1.42857143;
+    }
     > tbody + tbody {
         border-top: none;
     }
+
 }
 
 tr.strike {

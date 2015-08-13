@@ -1,0 +1,26 @@
+<div class="response container">
+
+<ol class="responses list-unstyled">
+    <li ng-repeat="part in responseType.parts" class="clearfix"
+            ng-init="pi = $index"
+            ng-class="{
+                active: $index == response.active,
+                disabled: disabled(pi)}">
+        <label ng-click="response.active = $index">{{part.name}}</label>
+        <div class="btn-group">
+            <button ng-repeat="o in part.options"
+                    class="btn btn-default"
+                    ng-class="{active: response.responses[pi] == $index}"
+                    ng-click="respond(resp, o)"
+                    ng-disabled="disabled(pi, $index)">
+                <span class="score">{{$index + 1}}</span>
+                {{o.name}}
+                <span class="text-hidden">{{$index + 1}}</span>
+            </button>
+        </div>
+    </li>
+</ol>
+
+<pre>{{responseType | json}}</pre>
+
+</div>

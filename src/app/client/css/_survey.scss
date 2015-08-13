@@ -279,7 +279,7 @@ ul.list-results {
     margin-top: 18px;
 }
 
-.measure {
+.response {
     h5 {
         color: mix(black, white, 70%);
         line-height: 1.6;
@@ -290,16 +290,57 @@ ul.list-results {
 
     ol.responses {
         padding: 0;
-        display: table;
-        border-spacing: 0 $response-spacing;
 
-        li {
-            display: table-row;
-            list-style: none;
-            margin: 4px 0;
+        // Lay out options horizontally on large screens
+        @media (min-width: 992px) {
+            display: table;
+            border-spacing: 0 $response-spacing;
+            li {
+                display: table-row;
+                list-style: none;
+                margin: 4px 0;
+            }
+            li>* {
+                display: table-cell;
+            }
         }
-        li>* {
-            display: table-cell;
+        // On medium screens, use horizontal layout but with label on its own
+        // row
+        @media (min-width: 768px) and (max-width: 992px),
+            (max-width: 768px) and (orientation: landscape) {
+            display: block;
+            li {
+                display: block;
+                list-style: none;
+                margin: 4px 0;
+            }
+            li>* {
+                display: block;
+            }
+        }
+        // On small screens, stack everything vertically
+        @media (max-width: 768px) and (orientation: portrait) {
+            display: block;
+            li {
+                display: block;
+                list-style: none;
+                margin: 4px 0;
+            }
+            li>* {
+                display: block;
+                &.btn-group > .btn {
+                    display: block;
+                    float: none;
+                    width: 100%;
+                    margin-left: 0;
+                    &:first-child {
+                        border-radius: 4px 4px 0 0;
+                    }
+                    &:last-child {
+                        border-radius: 0 0 4px 4px;
+                    }
+                }
+            }
         }
 
         label {

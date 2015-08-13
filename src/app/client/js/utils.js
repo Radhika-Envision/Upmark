@@ -285,30 +285,54 @@ angular.module('vpac.utils', [])
          *    arr[i] == item.
          * @return the index of the item or -1 if it was not found.
          */
-        indexOf: function(arr, item, getter) {
-            if (angular.isFunction(getter)) {
-                var keyNeedle = getter(item);
-                for (var i = 0; i < arr.length; i++) {
-                    var keyHaystack = getter(arr[i]);
-                    if (keyHaystack == keyNeedle)
-                        return i;
+        indexOf: function(arr, item, getter, iGetter) {
+            function makeGetter(getter) {
+                var fn;
+                if (angular.isFunction(getter))
+                    fn = function(x) { return fn.getter(x); };
+                else if (angular.isString(getter))
+                    fn = function(x) { return x[fn.getter]; };
+                else
+                    fn = function(x) { return x; };
+                fn.getter = getter;
+                return fn;
+            };
+
+            var get, iGet = get = {};
+
+            try {
+                get = makeGetter(getter);
+                if (iGetter === undefined)
+                    iGet = get;
+                else
+                    iGet = makeGetter(iGetter);
+
+                var keyNeedle = iGet(item);
+
+                if (angular.isFunction(getter)) {
+                    for (var i = 0; i < arr.length; i++) {
+                        var keyHaystack = getter(arr[i]);
+                        if (keyHaystack == keyNeedle)
+                            return i;
+                    }
+                } else if (angular.isString(getter)) {
+                    for (var i = 0; i < arr.length; i++) {
+                        var keyHaystack = arr[i][getter];
+                        if (keyHaystack == keyNeedle)
+                            return i;
+                    }
+                } else {
+                    for (var i = 0; i < arr.length; i++) {
+                        var keyHaystack = arr[i];
+                        if (keyHaystack == keyNeedle)
+                            return i;
+                    }
                 }
-            } else if (angular.isString(getter)) {
-                var keyNeedle = item[getter];
-                for (var i = 0; i < arr.length; i++) {
-                    var keyHaystack = arr[i][getter];
-                    if (keyHaystack == keyNeedle)
-                        return i;
-                }
-            } else {
-                var keyNeedle = item;
-                for (var i = 0; i < arr.length; i++) {
-                    var keyHaystack = arr[i];
-                    if (keyHaystack == keyNeedle)
-                        return i;
-                }
+                return -1;
+            } finally {
+                get.getter = null;
+                iGet.getter = null;
             }
-            return -1;
         },
 
         /**
