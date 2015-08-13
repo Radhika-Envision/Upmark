@@ -15,7 +15,7 @@ import logging
 from utils import reorder, ToSon, updater
 
 
-log = logging.getLogger('app.data_access')
+log = logging.getLogger('app.crud.qnode')
 
 
 class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
@@ -115,6 +115,7 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             with model.session_scope() as session:
                 qnode = model.QuestionNode(survey_id=self.survey_id)
                 self._update(session, qnode, self.request_son)
+                log.debug("new: %s", qnode)
 
                 if hierarchy_id != '':
                     hierarchy = session.query(model.Hierarchy)\
@@ -123,6 +124,7 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                         raise handlers.ModelError("No such hierarchy")
                 else:
                     hierarchy = None
+                log.debug("hierarchy: %s", hierarchy)
 
                 if parent_id != '':
                     parent = session.query(model.QuestionNode)\
@@ -141,11 +143,15 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 session.flush()
 
                 if parent is not None:
+                    log.debug("Appending to parent")
                     parent.children.append(qnode)
                     parent.children.reorder()
+                    log.debug("committing: %s", parent.children)
                 elif hierarchy is not None:
+                    log.debug("Appending to hierarchy")
                     hierarchy.qnodes.append(qnode)
                     hierarchy.qnodes.reorder()
+                    log.debug("committing: %s", hierarchy.qnodes)
                 else:
                     raise handlers.ModelError("Parent or hierarchy ID required")
 
@@ -172,6 +178,7 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     .get((qnode_id, self.survey_id))
                 if qnode is None:
                     raise ValueError("No such object")
+                log.debug("deleting: %s", qnode)
 
                 hierarchy = None
                 parent = None
@@ -206,6 +213,7 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     .get((qnode_id, self.survey_id))
                 if qnode is None:
                     raise ValueError("No such object")
+                log.debug("updating: %s", qnode)
 
                 self._update(session, qnode, self.request_son)
 
@@ -251,12 +259,14 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                         if hierarchy_id != str(parent.hierarchy_id):
                             raise handlers.MissingDocError(
                                 "Parent does not belong to that hierarchy")
+                    log.debug("Reordering children of: %s", parent)
                     reorder(parent.children, son)
                 elif root is not None:
                     hierarchy = session.query(model.Hierarchy)\
                         .get((hierarchy_id, self.survey_id))
                     if hierarchy is None:
                         raise handlers.MissingDocError("No such hierarchy")
+                    log.debug("Reordering children of: %s", hierarchy)
                     reorder(hierarchy.qnodes, son)
                 else:
                     raise handlers.ModelError(

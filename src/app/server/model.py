@@ -204,7 +204,7 @@ class Hierarchy(Base):
 
     def __repr__(self):
         return "Hierarchy(title={}, survey={})".format(
-            self.title, self.survey.title)
+            self.title, getattr(self.survey, 'title', None))
 
 
 class QuestionNode(Base):
@@ -238,7 +238,7 @@ class QuestionNode(Base):
 
     def __repr__(self):
         return "QuestionNode(title={}, survey={})".format(
-            self.title, self.survey.title)
+            self.title, getattr(self.survey, 'title', None))
 
 
 class Measure(Base):
@@ -260,7 +260,7 @@ class Measure(Base):
 
     def __repr__(self):
         return "Measure(title={}, survey={})".format(
-            self.title, self.survey.title)
+            self.title, getattr(self.survey, 'title', None))
 
 
 class QnodeMeasure(Base):
@@ -307,7 +307,9 @@ class QnodeMeasure(Base):
 
     def __repr__(self):
         return "QnodeMeasure(qnode={}, measure={}, survey={})".format(
-            self.qnode.title, self.measure.title, self.survey.title)
+            getattr(self.qnode, 'title', None),
+            getattr(self.measure, 'title', None),
+            getattr(self.survey, 'title', None))
 
 
 class Assessment(Base):
@@ -343,7 +345,8 @@ class Assessment(Base):
 
     def __repr__(self):
         return "Assessment(survey={}, org={})".format(
-            self.survey.title, self.assessment.Organisation.name)
+            getattr(self.survey, 'title', None),
+            getattr(self.organisation, 'name', None))
 
 
 class ResponseNode(Base):
@@ -376,9 +379,11 @@ class ResponseNode(Base):
     survey = relationship(Survey)
 
     def __repr__(self):
+        org = getattr(self.assessment, 'organisation', None)
         return "ResponseNode(qnode={}, survey={}, org={})".format(
-            self.qnode.title, self.survey.title,
-            self.assessment.Organisation.name)
+            getattr(self.qnode, 'title', None),
+            getattr(self.survey, 'title', None),
+            getattr(org, 'name', None))
 
 
 class Response(Versioned, Base):
@@ -418,9 +423,11 @@ class Response(Versioned, Base):
     user = relationship(AppUser)
 
     def __repr__(self):
+        org = getattr(self.assessment, 'organisation', None)
         return "QnodeMeasure(measure={}, survey={}, org={})".format(
-            self.measure.title, self.survey.title,
-            self.assessment.Organisation.name)
+            getattr(self.measure, 'title', None),
+            getattr(self.survey, 'title', None),
+            getattr(org, 'name', None))
 
 
 # Lists and Complex Relationships
@@ -447,17 +454,15 @@ Survey.hierarchies = relationship(
     order_by='Hierarchy.title')
 
 
-# All qnodes that belong to this hierarchy - including all descendants. These
-# have no intrinsic order.
-Hierarchy.qnodes_all = relationship(
-    QuestionNode, backref='hierarchy', passive_deletes=True,
-    primaryjoin=and_(foreign(QuestionNode.hierarchy_id) == Hierarchy.id,
-                     QuestionNode.survey_id == Hierarchy.survey_id))
+QuestionNode.hierarchy = relationship(
+    Hierarchy,
+    primaryjoin=and_(foreign(QuestionNode.hierarchy_id) == remote(Hierarchy.id),
+                     QuestionNode.survey_id == remote(Hierarchy.survey_id)))
 
 
 # "Children" of the hierarchy: these are roots of the qnode tree.
 Hierarchy.qnodes = relationship(
-    QuestionNode, passive_deletes=True,
+    QuestionNode, back_populates='hierarchy', passive_deletes=True,
     order_by=QuestionNode.seq, collection_class=ordering_list('seq'),
     primaryjoin=and_(and_(foreign(QuestionNode.hierarchy_id) == Hierarchy.id,
                           QuestionNode.survey_id == Hierarchy.survey_id),
