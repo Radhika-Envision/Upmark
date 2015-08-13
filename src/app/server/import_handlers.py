@@ -235,8 +235,9 @@ class Importer():
                             m.scenario = measure_scenario
                             m.questions = measure_questions
                             response_type = "standard"
-                            if function_order == "7":
-                                response_type = "business-support-%s" % int(self.parse_cell_number(measure['resp_num']))
+                            if function_order == 7:
+                                response_type = "business-support-%s" % int(measure['resp_num'])
+                            log.info("response_type: %s", response_type)
                             m.response_type = response_type
                             session.add(m)
                             session.flush()
