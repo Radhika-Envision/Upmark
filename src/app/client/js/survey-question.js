@@ -725,6 +725,7 @@ angular.module('wsaa.surveyQuestions', [
         }
     });
     $scope.$watch('structure.survey', function(survey) {
+        // Do a little processing on the response types
         if (!survey.responseTypes)
             return;
         var responseType = null;
@@ -784,6 +785,122 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.checkRole = authz(current, $scope.survey);
     $scope.Measure = Measure;
+}])
+
+
+.factory('responseAuthz', ['Roles', function(Roles) {
+    return function(current, assessment) {
+        return function(functionName) {
+            var ownOrg = false;
+            var org = assessment && assessment.organisation || null;
+            if (org)
+                ownOrg = org == current.user.organisation.id;
+            switch(functionName) {
+                case 'view_aggregate_score':
+                    if (Roles.hasPermission(current.user.role, 'consultant'))
+                        return true;
+                    return false;
+                    break;
+                case 'view_single_score':
+                    if (Roles.hasPermission(current.user.role, 'consultant'))
+                        return true;
+                    if (Roles.hasPermission(current.user.role, 'author'))
+                        return true;
+                    return true;
+                    break;
+                case 'view_response':
+                    if (Roles.hasPermission(current.user.role, 'consultant'))
+                        return true;
+                    if (Roles.hasPermission(current.user.role, 'clerk'))
+                        return ownOrg;
+                    break;
+                case 'alter_response':
+                    if (Roles.hasPermission(current.user.role, 'consultant'))
+                        return true;
+                    if (Roles.hasPermission(current.user.role, 'clerk'))
+                        return ownOrg;
+                    break;
+            }
+            return false;
+        };
+    };
+}])
+
+
+.directive('response', [function() {
+    return {
+        restrict: 'E',
+        scope: {
+            responseType: '=type',
+            response: '=model'
+        },
+        replace: true,
+        templateUrl: 'response.html',
+        controller: ['$scope', 'hotkeys', 'Current', 'responseAuthz',
+                function($scope, hotkeys, current, authz) {
+            if (!$scope.response) {
+                $scope.response = {
+                    responseParts: [],
+                    comment: null
+                };
+            }
+            $scope.stats = {
+                expressionVars: {},
+                score: 0.0
+            };
+
+            $scope.choose = function(iPart, iOpt, note) {
+                console.log('choosing', iPart, iOpt, note)
+                $scope.response.responseParts[iPart] = {
+                    index: iOpt,
+                    note: note
+                };
+            };
+            $scope.active = function(iPart, iOpt) {
+                return $scope.response.responseParts[iPart].index == iOpt;
+            };
+            $scope.enabled = function(iPart, iOpt) {
+                return true;
+            };
+
+            $scope.$watch('responseType.parts.length', function(length) {
+                $scope.response.responseParts = $scope.response.responseParts
+                    .slice(0, length);
+            });
+
+            $scope.$watch('response.responseParts', function(parts) {
+                // Calculate score
+                var responseType = $scope.responseType;
+                var expressionVars = {};
+                var score = 0.0;
+                for (var i = 0; i < responseType.parts.length; i++) {
+                    var partT = responseType.parts[i];
+                    var partR = parts[i];
+                    if (partT.id) {
+                        if (partR && partR.index != null) {
+                            var option = partT.options[partR.index];
+                            expressionVars[partT.id] = option.score;
+                            expressionVars[partT.id + '__i'] = partR.index;
+                            score += option.score;
+                        } else {
+                            expressionVars[partT.id] = 0.0;
+                            expressionVars[partT.id + '__i'] = -1;
+                        }
+                    }
+                }
+                if (responseType.formula) {
+                    var exp = Parser.parse(responseType.formula);
+                    score = exp.evaluate(expressionVars);
+                }
+                $scope.stats = {
+                    expressionVars: expressionVars,
+                    score: score
+                };
+            }, true);
+
+            $scope.checkRole = authz(current, $scope.survey);
+        }]
+    }
 }])
 
 

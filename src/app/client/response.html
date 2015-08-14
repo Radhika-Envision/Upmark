@@ -1,22 +1,30 @@
 <div class="response container">
 
+<h2>
+    Response
+    <span ng-if="checkRole('view_single_score') && responseType.parts.length"
+            class="text-muted pull-right">
+        {{stats.score * 100 | number:0}}%</span>
+</h2>
+
 <ol class="responses list-unstyled">
     <li ng-repeat="part in responseType.parts" class="clearfix"
-            ng-init="pi = $index"
             ng-class="{
                 active: $index == response.active,
                 disabled: disabled(pi)}">
-        <div>
+        <div ng-if="part.name">
             <label ng-click="response.active = $index">{{part.name}}</label>
         </div>
         <div>
-            <div class="btn-group btn-group-justified">
-                <div class="btn-group" ng-repeat="o in part.options">
+            <div class="btn-group btn-group-justified"
+                        ng-init="pi = $index">
+                <div class="btn-group"
+                        ng-repeat="o in part.options">
                 <button
                         class="btn btn-default"
                         ng-class="{active: response.responses[pi] == $index}"
-                        ng-click="respond(resp, o)"
-                        ng-disabled="disabled(pi, $index)">
+                        ng-click="choose(pi, $index, o.name)"
+                        ng-disabled="!enabled(pi, $index)">
                     <span class="index">{{$index + 1}}</span>
                     {{o.name}}
                     <span class="text-hidden">{{$index + 1}}</span>
@@ -27,6 +35,11 @@
     </li>
 </ol>
 
-<pre>{{responseType | json}}</pre>
+<label for="comments">Comments</label>
+<textarea id="comments" class="form-control autoresize"
+        ng-model="response.comment"
+        ng-class="{empty: response.comment == ''}"
+        focus-on="focus-comment"
+        blur-on="blur-comment"></textarea>
 
 </div>

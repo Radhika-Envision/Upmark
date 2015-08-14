@@ -107,7 +107,8 @@
 </div>
 
 
-<div class="spaced" ng-include="'response.html'"></div>
+<response class="spaced" ng-if="!edit.model"
+    type="responseType" model="response"></response>
 
 
 <div class="spaced"
