@@ -4,7 +4,7 @@
     <div class="toolbar">
         <button class="btn btn-default btn-round" title="Import"
                 ng-click="import()"
-                form="editor">
+                form="editor" ng-show="!isProgressing">
             <i class="fa fa-check"></i></button>
     </div>
     <h2 label="S">Survey - Import</h2>
@@ -26,7 +26,7 @@
                 ng-model="survey.description"></textarea>
         </div>
         <div class="dropzone" id="dropzone">
-            <div class="dz-default dz-message">Drop file here!!</div>
+            <div class="dz-default dz-message">Drop file here!!<br>Or click here.</div>
         </div>
     </form>
 </div>

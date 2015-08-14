@@ -262,15 +262,21 @@ angular.module('wsaa.surveyQuestions', [
 
 .controller('SurveyImportCtrl', [
         '$scope', 'Survey', 'hotkeys', '$location', 
-        'Notifications', 'layout', 'format', '$http',
+        'Notifications', 'layout', 'format', '$http', '$cookies',
         function($scope, Survey, hotkeys, $location, 
-                 Notifications, layout, format, $http) {
+                 Notifications, layout, format, $http, $cookies) {
 
     $scope.isProgressing = false;
     $scope.survey = {
         title: "Aquamark Import",
         description: ""
     };
+
+    console.log($http.defaults.xsrfHeaderName);
+
+    var xsrf = {};
+    var name = $http.defaults.xsrfHeaderName; 
+    xsrf[name] = $cookies.get($http.defaults.xsrfCookieName);
 
     var config = {
         url: '/import/structure.json',
@@ -279,6 +285,7 @@ angular.module('wsaa.surveyQuestions', [
         maxThumbnailFilesize: 10,
         parallelUploads: 1,
         acceptedFiles: ".xls",
+        headers: xsrf,
         autoProcessQueue: false
     };
 
@@ -301,12 +308,15 @@ angular.module('wsaa.surveyQuestions', [
     });
 
     dropzone.on("success", function(file, response) {
-        console.log($scope);
-        $scope.isProgressing = false;
+        $location.url('/#/surveys');
+        $scope.$apply();
     });
 
     dropzone.on("error", function(file, response) {
+        Notifications.set('Import', 'error',
+                          "File Importing Error: "  + file.xhr.status + " " + file.xhr.statusText);
         $scope.isProgressing = false;
+        $scope.$apply();
     });
 
 }])
