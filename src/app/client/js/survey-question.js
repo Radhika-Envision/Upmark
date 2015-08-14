@@ -294,7 +294,7 @@ angular.module('wsaa.surveyQuestions', [
         url: '/import/structure.json',
         maxFilesize: 50,
         paramName: "file",
-        acceptedFiles: ".xls",
+        acceptedFiles: ".xls,.xlsx",
         headers: headers,
         autoProcessQueue: false
     };
