@@ -272,8 +272,6 @@ angular.module('wsaa.surveyQuestions', [
         description: ""
     };
 
-    console.log($http.defaults.xsrfHeaderName);
-
     var xsrf = {};
     var name = $http.defaults.xsrfHeaderName; 
     xsrf[name] = $cookies.get($http.defaults.xsrfCookieName);
@@ -293,7 +291,6 @@ angular.module('wsaa.surveyQuestions', [
     var dropzone = new Dropzone("#dropzone", config);
 
     $scope.import = function() {
-        console.log($scope);
         $scope.isProgressing = true;
         dropzone.processQueue();
     };
