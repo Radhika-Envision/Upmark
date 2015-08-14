@@ -27,20 +27,22 @@ class ImportStructureHandler(handlers.BaseHandler):
 
     @handlers.authz('author')
     @gen.coroutine
-    def post(self, survey_id):
+    def post(self):
         fileinfo = self.request.files['file'][0]
         fd = tempfile.NamedTemporaryFile()
         fd.write(fileinfo['body'])
-        yield self.background_task(survey_id, fd.name)
-        self.set_header("Content-Type", "text/plain")
-        self.write("Task finished")
+        yield self.background_task(fd.name)
         fd.close()
+        self.set_header("Content-Type", "text/plain")
         self.finish()
 
     @run_on_executor
-    def background_task(self, survey_id, file_path):
+    def background_task(self, file_path):
         i = Importer()
-        i.process_structure_file(file_path, survey_id)
+        title = self.get_argument('title')
+        description = self.get_argument('description')
+        survey_id = i.process_structure_file(file_path, title, description)
+        return survey_id
 
 
 class ImportResponseHandler(handlers.BaseHandler):
@@ -59,9 +61,11 @@ class ImportResponseHandler(handlers.BaseHandler):
         self.finish()
 
     @run_on_executor
-    def background_task(self, survey_id, file_path):
+    def background_task(self, file_path):
         i = Importer()
-        i.process_response_file(file_path, survey_id)
+        title = self.request.title
+        description = self.request.description
+        i.process_structure_file(file_path, title, description)
 
 
 class Importer():
@@ -73,7 +77,7 @@ class Importer():
                 num = num * 26 + (ord(c.upper()) - ord('A'))
         return num
 
-    def process_structure_file(self, path, survey_id):
+    def process_structure_file(self, path, title, description):
         """
         Open and read an Excel file
         """
@@ -89,23 +93,27 @@ class Importer():
         model.connect_db(os.environ.get('DATABASE_URL'))
 
         with model.session_scope() as session:
-            survey = session.query(model.Survey).get(survey_id)
+
+            survey = model.Survey()
+            survey.title = title
+            survey.description = description
             with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'aquamark_response_types.json')) as file:
                 survey.response_types = json.load(file)
-                session.flush()
+            session.add(survey)
+            session.flush()
 
-            m = session.query(model.Measure).filter_by(
-                survey_id=survey_id).first()
-            if m:
-                raise Exception("Survey is not empty")
-            h = session.query(model.Hierarchy).filter_by(
-                survey_id=survey_id).first()
-            if h:
-                raise Exception("Survey is not empty")
-            q = session.query(model.QuestionNode).filter_by(
-                survey_id=survey_id).first()
-            if q:
-                raise Exception("Survey is not empty")
+            # m = session.query(model.Measure).filter_by(
+            #     survey_id=survey_id).first()
+            # if m:
+            #     raise Exception("Survey is not empty")
+            # h = session.query(model.Hierarchy).filter_by(
+            #     survey_id=survey_id).first()
+            # if h:
+            #     raise Exception("Survey is not empty")
+            # q = session.query(model.QuestionNode).filter_by(
+            #     survey_id=survey_id).first()
+            # if q:
+            #     raise Exception("Survey is not empty")
 
             hierarchy = model.Hierarchy()
             hierarchy.survey_id = survey.id
@@ -131,10 +139,6 @@ class Importer():
                                      "row_num": all_rows.index(row)} 
                                      for row in all_rows if str(row[self.col2num("S")].value) == "SubProcess Header"]
 
-            for a in process_title_row:
-                log.info("a: %s", a)
-
-
 
             for function in function_title_row:
                 function_order = int(function['order'])
@@ -152,11 +156,8 @@ class Importer():
 
                 session.add(qnode_function)
                 session.flush()
-                log.info("qnode_function: %s" % qnode_function)
 
                 process_row = [row for row in process_title_row if "{}.".format(function_order) in row['title']]
-                for b in process_row:
-                    log.info("b: %s", b)
 
                 for process in process_row:
                     process_order = int(process['order'])
@@ -175,7 +176,7 @@ class Importer():
                     qnode_process.seq = process_order - 1
                     qnode_process.title = process_title
                     qnode_process.description = process_description
-                    log.info("qnode_process: %s" % qnode_process)
+                    # log.info("qnode_process: %s" % qnode_process)
                     session.add(qnode_process)
                     session.flush()
 
@@ -237,12 +238,13 @@ class Importer():
                             response_type = "standard"
                             if function_order == 7:
                                 response_type = "business-support-%s" % int(measure['resp_num'])
-                            log.info("response_type: %s", response_type)
+                            # log.info("response_type: %s", response_type)
                             m.response_type = response_type
                             session.add(m)
                             session.flush()
                             qnode_subprocess.measures.append(m)
                             session.flush()
+            return survey.id
 
     def process_response_file(self, path, survey_id):
         """

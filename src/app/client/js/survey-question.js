@@ -70,6 +70,64 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
+.directive('dropzone', function() {
+    return {
+        restrict: 'C',
+        link: function(scope, element, attrs) {
+
+            var config = {
+                url: '/import/structure.json',
+                maxFilesize: 100,
+                paramName: "file",
+                maxThumbnailFilesize: 10,
+                parallelUploads: 1,
+                autoProcessQueue: false
+            };
+
+            var eventHandlers = {
+                'addedfile': function(file) {
+                    scope.file = file;
+                    if (this.files[1]!=null) {
+                        this.removeFile(this.files[0]);
+                    }
+                    scope.$apply(function() {
+                        scope.fileAdded = true;
+                    });
+                },
+
+                'success': function (file, response) {
+                },
+
+                'error' : function(file, response) {
+                    alert("error");
+                }
+
+            };
+
+            var dropzone = new Dropzone(element[0], config);
+
+            angular.forEach(eventHandlers, function(handler, event) {
+                dropzone.on(event, handler);
+            });
+
+            scope.processDropzone = function() {
+                dropzone.processQueue();
+            };
+
+
+            dropzone.on('sending', function(file, xhr, formData){
+                formData.append('title', scope.survey.title);
+                formData.append('description', scope.survey.description);
+            });
+
+            scope.resetDropzone = function() {
+                dropzone.removeAllFiles();
+            }
+        }
+    }
+})
+
+
 .controller('SurveyCtrl', [
         '$scope', 'Survey', 'routeData', 'Editor', 'questionAuthz', 'hotkeys',
         '$location', 'Notifications', 'Current', 'Hierarchy', 'layout',
@@ -257,6 +315,23 @@ angular.module('wsaa.surveyQuestions', [
             $scope.surveys = surveys;
         });
     }, true);
+}])
+
+
+.controller('SurveyImportCtrl', [
+        '$scope', 'Survey', 'hotkeys', '$location', 
+        'Notifications', 'layout', 'format', '$http',
+        function($scope, Survey, hotkeys, $location, 
+                 Notifications, layout, format, $http) {
+
+    $scope.survey = {
+        title: "Aquamark Import",
+        description: ""
+    };
+
+    $scope.import = function() {
+        $scope.processDropzone($scope.survey);
+    };
 }])
 
 

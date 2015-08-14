@@ -176,6 +176,10 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
+            .when('/survey/import', {
+                templateUrl : 'survey_import.html',
+                controller : 'SurveyImportCtrl'
+            })
             .when('/survey/:survey', {
                 templateUrl : 'survey.html',
                 controller : 'SurveyCtrl',
