@@ -58,31 +58,35 @@
                 ng-model="edit.model.weight" min="0" required />
         </div>
         <div class="form-group" show-errors>
-            <label for="intent">Intent</label>
-            <textarea id="intent" name="intent" class="form-control"
-                ng-model="edit.model.intent"></textarea>
-        </div>
-        <div class="form-group" show-errors>
-            <label for="inputs">Inputs</label>
-            <textarea id="inputs" name="inputs" class="form-control"
-                ng-model="edit.model.inputs"></textarea>
-        </div>
-        <div class="form-group" show-errors>
-            <label for="scenario">Scenario</label>
-            <textarea id="scenario" name="scenario" class="form-control"
-                ng-model="edit.model.scenario"></textarea>
-        </div>
-        <div class="form-group" show-errors>
-            <label for="questions">Questions</label>
-            <textarea id="questions" name="questions" class="form-control"
-                ng-model="edit.model.questions"></textarea>
-        </div>
-        <div class="form-group" show-errors>
             <label for="questions">Response Type</label>
             <select type="text" class="form-control"
                 id="responseType" name="responseType"
                 ng-options="rt.id as (rt.name + ' - ' + rt.description) for rt in responseTypes"
                 ng-model="edit.model.responseType"></select>
+        </div>
+        <div class="form-group" show-errors>
+            <label for="intent">Intent</label>
+            <textarea id="intent" name="intent"
+                class="autoresize form-control"
+                ng-model="edit.model.intent"></textarea>
+        </div>
+        <div class="form-group" show-errors>
+            <label for="inputs">Inputs</label>
+            <textarea id="inputs" name="inputs"
+                class="autoresize form-control"
+                ng-model="edit.model.inputs"></textarea>
+        </div>
+        <div class="form-group" show-errors>
+            <label for="scenario">Scenario</label>
+            <textarea id="scenario" name="scenario"
+                class="autoresize form-control"
+                ng-model="edit.model.scenario"></textarea>
+        </div>
+        <div class="form-group" show-errors>
+            <label for="questions">Questions</label>
+            <textarea id="questions" name="questions"
+                class="autoresize form-control"
+                ng-model="edit.model.questions"></textarea>
         </div>
     </form>
 </div>

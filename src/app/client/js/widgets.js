@@ -334,6 +334,7 @@ angular.module('vpac.widgets', [])
             });
             scope.$on('$destroy', function() {
                 elem.off('.anyHref');
+                scope = null;
             });
         }
     };
@@ -378,6 +379,31 @@ angular.module('vpac.widgets', [])
             scope.$on('$destroy', function() {
                 numTitles--;
                 $document[0].title = defaultTitle;
+            });
+        }
+    };
+}])
+
+
+.directive('autoresize', [function() {
+    return {
+        restrict: 'AC',
+        link: function(scope, elem, attrs) {
+            var resize = function() {
+                // Resize to something small first in case we should shrink -
+                // otherwise scrollHeight will be wrong.
+                elem.css('height', '10px');
+                var height = elem[0].scrollHeight;
+                height += elem.outerHeight() - elem.innerHeight();
+                elem.css('height', '' + height + 'px');
+            };
+
+            elem.on('input change', resize);
+            scope.$watch(attrs.ngModel, resize);
+
+            scope.$on('$destroy', function() {
+                elem.off();
+                elem = null;
             });
         }
     };

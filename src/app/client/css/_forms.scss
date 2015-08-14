@@ -55,6 +55,13 @@ $anim-time: 0.3s;
     box-shadow: none;
 }
 
+textarea.autoresize {
+    // Actual resizing is done in a script.
+    overflow: hidden;
+    resize: none;
+    min-height: 60px;
+}
+
 .input-group {
     margin-bottom: 10px;
 }
