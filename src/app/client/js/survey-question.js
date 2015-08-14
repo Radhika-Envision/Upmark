@@ -308,7 +308,7 @@ angular.module('wsaa.surveyQuestions', [
     });
 
     dropzone.on("success", function(file, response) {
-        $location.url('/#/surveys');
+        $location.url('/surveys');
         $scope.$apply();
     });
 
