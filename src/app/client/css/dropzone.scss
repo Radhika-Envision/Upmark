@@ -1,0 +1,53 @@
+@import '_utils.scss';
+@import '_defines.scss';
+
+.dropzone {
+    text-align: center;
+    padding-top: 30px;
+    padding-bottom: 20px;
+    border-radius: 10px;
+    background-color: transparent;
+    @include transition(
+        background-color $anim-time ease
+    );
+}
+
+.dz-clickable {
+    cursor: pointer;
+}
+
+.dz-drag-hover {
+    background: $secondary-colour;
+}
+
+.dz-started {
+    .dz-message > p + p {
+        display: none;
+    }
+}
+
+/* Clicking on a file just shows the file chooser dialogue */
+.dz-preview {
+    pointer-events: none;
+}
+
+/* Error messages displayed elsewhere */
+.dz-image {
+    display: none;
+}
+
+.dz-progress {
+    display: none;
+}
+
+.dz-error-message {
+    display: none;
+}
+
+.dz-success-mark {
+    display: none;
+}
+
+.dz-error-mark {
+    display: none;
+}

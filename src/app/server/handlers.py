@@ -104,6 +104,7 @@ STYLESHEETS = [
         'min-href': '/minify/app-min.css',
         'hrefs': [
             '/css/app.css',
+            '/css/dropzone.css',
             '/css/clock.css'
         ]
     },
@@ -112,7 +113,6 @@ STYLESHEETS = [
         'hrefs': [
             '/.bower_components/angular-hotkeys/build/hotkeys.css',
             '/.bower_components/angular-ui-select/dist/select.css',
-            '/.bower_components/dropzone/dist/dropzone.css',
             '/.bower_components/angular-ui-tree/dist/angular-ui-tree.min.css'
         ]
     },

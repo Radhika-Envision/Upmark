@@ -270,9 +270,9 @@ angular.module('wsaa.surveyQuestions', [
 
 
 .controller('SurveyImportCtrl', [
-        '$scope', 'Survey', 'hotkeys', '$location', 
+        '$scope', 'Survey', 'hotkeys', '$location', '$timeout',
         'Notifications', 'layout', 'format', '$http', '$cookies',
-        function($scope, Survey, hotkeys, $location, 
+        function($scope, Survey, hotkeys, $location, $timeout,
                  Notifications, layout, format, $http, $cookies) {
 
     $scope.isProgressing = false;
@@ -281,18 +281,17 @@ angular.module('wsaa.surveyQuestions', [
         description: ""
     };
 
-    var xsrf = {};
-    var name = $http.defaults.xsrfHeaderName; 
-    xsrf[name] = $cookies.get($http.defaults.xsrfCookieName);
+    var headers = {};
+    var xsrfName = $http.defaults.xsrfHeaderName;
+    headers[xsrfName] = $cookies.get($http.defaults.xsrfCookieName);
 
     var config = {
         url: '/import/structure.json',
-        maxFilesize: 100,
+        maxFiles: 1,
+        maxFilesize: 20,
         paramName: "file",
-        maxThumbnailFilesize: 10,
-        parallelUploads: 1,
         acceptedFiles: ".xls",
-        headers: xsrf,
+        headers: headers,
         autoProcessQueue: false
     };
 
@@ -314,13 +313,23 @@ angular.module('wsaa.surveyQuestions', [
     });
 
     dropzone.on("success", function(file, response) {
+        Notifications.set('import', 'success', "Import finished");
         $location.url('/surveys');
+        $scope.isProgressing = false;
         $scope.$apply();
     });
 
+    dropzone.on('maxfilesexceeded', function(file) {
+        dropzone.removeAllFiles();
+        dropzone.addFile(file);
+    });
+
     dropzone.on("error", function(file, response) {
-        Notifications.set('Import', 'error',
-                          "File Importing Error: "  + file.xhr.status + " " + file.xhr.statusText);
+        if (!(file && file.xhr))
+            return;
+        Notifications.set('import', 'error',
+            "File Importing Error: " + file.xhr.status + " " +
+                file.xhr.statusText);
         $scope.isProgressing = false;
         $scope.$apply();
     });

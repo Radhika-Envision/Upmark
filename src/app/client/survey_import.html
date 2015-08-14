@@ -26,7 +26,10 @@
                 ng-model="survey.description"></textarea>
         </div>
         <div class="dropzone" id="dropzone">
-            <div class="dz-default dz-message">Drop file here!!<br>Or click here.</div>
+            <div class="dz-default dz-message">
+                <p><i class="fa fa-cloud-upload fa-5x"></i></p>
+                <p>Drop a file here, or click to select one</p>
+            </div>
         </div>
     </form>
 </div>
@@ -36,7 +39,9 @@
         <h1>Processing...</h1>
     </div>
     <div class="progress">
-        <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
+        <div class="progress-bar progress-bar-striped active"
+                role="progressbar" aria-valuenow="100" aria-valuemin="0"
+                aria-valuemax="100" style="width: 100%">
             <span class="sr-only">Progressing...</span>
         </div>
     </div>
