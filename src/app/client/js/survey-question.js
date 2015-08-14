@@ -313,7 +313,7 @@ angular.module('wsaa.surveyQuestions', [
     });
 
     dropzone.on("success", function(file, response) {
-        Notifications.set('import', 'success', "Import finished");
+        Notifications.set('import', 'success', "Import finished", 5000);
         $location.url('/surveys');
         $scope.isProgressing = false;
         $scope.$apply();

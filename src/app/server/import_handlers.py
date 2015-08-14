@@ -30,10 +30,13 @@ class ImportStructureHandler(handlers.BaseHandler):
     def post(self):
         fileinfo = self.request.files['file'][0]
         fd = tempfile.NamedTemporaryFile()
-        fd.write(fileinfo['body'])
-        yield self.background_task(fd.name)
-        fd.close()
+        try:
+            fd.write(fileinfo['body'])
+            survey_id = yield self.background_task(fd.name)
+        finally:
+            fd.close()
         self.set_header("Content-Type", "text/plain")
+        self.write(survey_id)
         self.finish()
 
     @run_on_executor
@@ -53,11 +56,13 @@ class ImportResponseHandler(handlers.BaseHandler):
     def post(self, survey_id):
         fileinfo = self.request.files['file'][0]
         fd = tempfile.NamedTemporaryFile()
-        fd.write(fileinfo['body'])
-        yield self.background_task(survey_id, fd.name)
+        try:
+            fd.write(fileinfo['body'])
+            yield self.background_task(fd.name)
+        finally:
+            fd.close()
         self.set_header("Content-Type", "text/plain")
         self.write("Task finished")
-        fd.close()
         self.finish()
 
     @run_on_executor
