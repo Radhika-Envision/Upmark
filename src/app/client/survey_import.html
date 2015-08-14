@@ -45,9 +45,13 @@
                 </span>
             </p>
         </div>
-        <div ng-if="progress.uploadFraction >= 1">
+        <div ng-if="progress.uploadFraction >= 1 && !progress.isFinished">
             <i class="fa fa-circle-o-notch fa-spin fa-5x"></i>
             <p>Processing</p>
+        </div>
+        <div ng-if="progress.isFinished">
+            <i class="fa fa-check fa-5x"></i>
+            <p>Finished</p>
         </div>
     </div>
 </div>

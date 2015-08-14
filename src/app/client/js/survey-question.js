@@ -277,6 +277,7 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.progress = {
         isWorking: false,
+        isFinished: false,
         uploadFraction: 0.0
     };
     Notifications.remove('import');
@@ -302,7 +303,12 @@ angular.module('wsaa.surveyQuestions', [
     var dropzone = new Dropzone("#dropzone", config);
 
     $scope.import = function() {
+        if (!dropzone.files.length) {
+            Notifications.set('import', 'error', "Please choose a file");
+            return;
+        }
         $scope.progress.isWorking = true;
+        $scope.progress.isFinished = false;
         $scope.progress.uploadFraction = 0.0;
         dropzone.processQueue();
     };
@@ -325,9 +331,10 @@ angular.module('wsaa.surveyQuestions', [
     dropzone.on("success", function(file, response) {
         Notifications.set('import', 'success', "Import finished", 5000);
         $timeout(function() {
-            $location.url('/surveys');
-            $scope.progress.isWorking = false;
-            $scope.$apply();
+            $scope.progress.isFinished = true;
+        }, 1000);
+        $timeout(function() {
+            $location.url('/survey/' + response);
         }, 5000);
     });
 
@@ -346,6 +353,7 @@ angular.module('wsaa.surveyQuestions', [
         }
         Notifications.set('import', 'error', error);
         $scope.progress.isWorking = false;
+        $scope.progress.isFinished = false;
         $scope.$apply();
     });
 

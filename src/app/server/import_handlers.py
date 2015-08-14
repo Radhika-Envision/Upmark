@@ -106,6 +106,7 @@ class Importer():
                 survey.response_types = json.load(file)
             session.add(survey)
             session.flush()
+            survey_id = str(survey.id)
 
             # m = session.query(model.Measure).filter_by(
             #     survey_id=survey_id).first()
@@ -249,7 +250,7 @@ class Importer():
                             session.flush()
                             qnode_subprocess.measures.append(m)
                             session.flush()
-            return survey.id
+            return survey_id
 
     def process_response_file(self, path, survey_id):
         """
