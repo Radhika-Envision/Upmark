@@ -878,7 +878,8 @@ angular.module('wsaa.surveyQuestions', [
         replace: true,
         templateUrl: 'response.html',
         controller: ['$scope', 'hotkeys', 'Current', 'responseAuthz',
-                function($scope, hotkeys, current, authz) {
+                'Notifications',
+                function($scope, hotkeys, current, authz, Notifications) {
             if (!$scope.response) {
                 $scope.response = {
                     responseParts: [],
@@ -913,8 +914,20 @@ angular.module('wsaa.surveyQuestions', [
                 var option = partT.options[iOpt];
                 if (!option['if'])
                     return true;
-                var exp = Parser.parse(option['if']);
-                return exp.evaluate($scope.stats.expressionVars);
+                var isEnabled;
+                try {
+                    var exp = Parser.parse(option['if']);
+                    isEnabled = exp.evaluate($scope.stats.expressionVars);
+                } catch (e) {
+                    if ($scope.debug) {
+                        Notifications.set('response', 'warning',
+                            "Condition: " + e.message);
+                    }
+                    throw e;
+                }
+
+                Notifications.remove('response');
+                return isEnabled;
             };
 
             $scope.$watch('responseType.parts.length', function(length) {
@@ -922,8 +935,8 @@ angular.module('wsaa.surveyQuestions', [
                     .slice(0, length);
             });
 
-            $scope.$watchGroup(['responseType', 'response.responseParts'],
-                    function(vals) {
+            $scope.$watchGroup(['responseType', 'response.responseParts',
+                    'responseType.formula'], function(vals) {
                 // Calculate score
                 var responseType = vals[0];
                 var responseParts = vals[1];
@@ -951,8 +964,17 @@ angular.module('wsaa.surveyQuestions', [
                     }
                 }
                 if (responseType.formula) {
-                    var exp = Parser.parse(responseType.formula);
-                    score = exp.evaluate(expressionVars);
+                    try {
+                        var exp = Parser.parse(responseType.formula);
+                        score = exp.evaluate(expressionVars);
+                    } catch (e) {
+                        if ($scope.debug) {
+                            Notifications.set('response', 'warning',
+                                "Formula: " + e.message);
+                        }
+                        throw e;
+                    }
+                    Notifications.remove('response');
                 }
                 $scope.stats = {
                     expressionVars: expressionVars,
@@ -961,7 +983,10 @@ angular.module('wsaa.surveyQuestions', [
             });
 
             $scope.checkRole = authz(current, $scope.survey);
-        }]
+        }],
+        link: function(scope, elem, attrs) {
+            scope.debug = attrs.debug !== undefined;
+        }
     }
 }])
 

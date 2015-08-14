@@ -160,7 +160,7 @@ div[textarea-label] {
     }
 }
 
-:not(ng-include):not(.nested)>.header .btn-default {
+:not(ng-include):not(.nested)>.header .btn-default, .well .btn-default {
     &:not([disabled]) {
         color: lighten($button-fg, 30%);
     }
@@ -180,6 +180,15 @@ div[textarea-label] {
         box-shadow: none;
         border-bottom-color: $primary-col;
         color: $button-fg;
+    }
+}
+.well {
+    border: none;
+    box-shadow: none;
+    border-radius: 4px;
+
+    textarea, .btn-default[disabled] {
+        background: white;
     }
 }
 
