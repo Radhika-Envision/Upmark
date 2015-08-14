@@ -61,6 +61,27 @@ textarea.autoresize {
     resize: none;
     min-height: 60px;
 }
+div[textarea-label] {
+    /* Hovers a label over a textarea */
+    position: relative;
+    &:before {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        content: attr(textarea-label);
+        text-align: center;
+        line-height: 80px;
+        font-size: 40px;
+        font-weight: bold;
+        opacity: 0.2;
+        pointer-events: none;
+    }
+    textarea.autoresize {
+        min-height: 80px;
+    }
+}
 
 .input-group {
     margin-bottom: 10px;
@@ -88,7 +109,7 @@ textarea.autoresize {
     border-color: transparent;
 
     &[disabled] {
-        color: lighten($button-fg, 60%);
+        color: darken($button-bg, 20%);
         background-color: $button-bg;
         border-color: transparent;
     }
@@ -109,6 +130,7 @@ textarea.autoresize {
             box-shadow: none;
             border-bottom-color: $primary-col;
             color: $button-fg;
+            background-color: mix($button-bg, $primary-colour, 60%);
         }
     }
     .fa-badge {

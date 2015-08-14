@@ -886,16 +886,18 @@ angular.module('wsaa.surveyQuestions', [
                 };
             }
             $scope.stats = {
-                expressionVars: {},
+                expressionVars: null,
                 score: 0.0
             };
 
             $scope.choose = function(iPart, iOpt, note) {
                 console.log('choosing', iPart, iOpt, note)
-                $scope.response.responseParts[iPart] = {
+                var parts = angular.copy($scope.response.responseParts);
+                parts[iPart] = {
                     index: iOpt,
                     note: note
                 };
+                $scope.response.responseParts = parts;
             };
             $scope.active = function(iPart, iOpt) {
                 var partR = $scope.response.responseParts[iPart];
@@ -904,6 +906,8 @@ angular.module('wsaa.surveyQuestions', [
                 return false;
             };
             $scope.enabled = function(iPart, iOpt) {
+                if (!$scope.stats.expressionVars)
+                    return false;
                 var responseType = $scope.responseType;
                 var partT = responseType.parts[iPart];
                 var option = partT.options[iOpt];
@@ -918,14 +922,20 @@ angular.module('wsaa.surveyQuestions', [
                     .slice(0, length);
             });
 
-            $scope.$watch('response.responseParts', function(parts) {
+            $scope.$watchGroup(['responseType', 'response.responseParts'],
+                    function(vals) {
                 // Calculate score
-                var responseType = $scope.responseType;
+                var responseType = vals[0];
+                var responseParts = vals[1];
+                if (!responseType || !responseParts)
+                    return;
+
+                console.log('calculating score')
                 var expressionVars = {};
                 var score = 0.0;
                 for (var i = 0; i < responseType.parts.length; i++) {
                     var partT = responseType.parts[i];
-                    var partR = parts[i];
+                    var partR = responseParts[i];
                     if (partT.id) {
                         if (partR && partR.index != null) {
                             var option = partT.options[partR.index];
@@ -946,7 +956,7 @@ angular.module('wsaa.surveyQuestions', [
                     expressionVars: expressionVars,
                     score: score
                 };
-            }, true);
+            });
 
             $scope.checkRole = authz(current, $scope.survey);
         }]
