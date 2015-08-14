@@ -73,10 +73,10 @@ angular.module('wsaa.surveyQuestions', [
 .controller('SurveyCtrl', [
         '$scope', 'Survey', 'routeData', 'Editor', 'questionAuthz', 'hotkeys',
         '$location', 'Notifications', 'Current', 'Hierarchy', 'layout',
-        'format', '$http',
+        'format', '$http', 'Numbers',
         function($scope, Survey, routeData, Editor, authz, hotkeys,
                  $location, Notifications, current, Hierarchy, layout, format,
-                 $http) {
+                 $http, Numbers) {
 
     $scope.layout = layout;
     if (routeData.survey) {
@@ -140,10 +140,19 @@ angular.module('wsaa.surveyQuestions', [
         })
     };
     $scope.addPart = function(rt) {
-        var i = rt.parts.length + 1;
+        var ids = {};
+        for (var i = 0; i < rt.parts.length; i++) {
+            ids[rt.parts[i].id] = true;
+        }
+        var id;
+        for (var i = 0; i <= rt.parts.length; i++) {
+            id = Numbers.idOf(i);
+            if (!ids[id])
+                break;
+        }
         var part = {
-            id: 'part_' + i,
-            name: 'Response part ' + i,
+            id: id,
+            name: 'Response part ' + id.toUpperCase(),
             options: [
                 {score: 0, name: 'No', 'if': null},
                 {score: 1, name: 'Yes', 'if': null}

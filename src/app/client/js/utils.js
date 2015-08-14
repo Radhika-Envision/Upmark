@@ -434,6 +434,14 @@ angular.module('vpac.utils', [])
             seed = ((seed + 0xfd7046c5) + (seed << 3))   & 0xffffffff;
             seed = ((seed ^ 0xb55a4f09) ^ (seed >>> 16)) & 0xffffffff;
             return (seed & 0xfffffff) / 0x10000000;
+        },
+        /**
+         * Convert an integer to a character ID - e.g. 0 -> a, 1 -> b, 25 -> z,
+         * 26 -> aa, 27 -> ab, etc.
+         */
+        idOf: function(i) {
+            return (i >= 26 ? Numbers.idOf((i / 26 >> 0) - 1) : '') +
+                'abcdefghijklmnopqrstuvwxyz'[i % 26 >> 0];
         }
     };
     return Numbers;
