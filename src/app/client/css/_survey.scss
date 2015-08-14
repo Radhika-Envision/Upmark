@@ -300,8 +300,12 @@ ul.list-results {
                 list-style: none;
                 margin: 4px 0;
             }
-            li>* {
+            li > div {
                 display: table-cell;
+                vertical-align: middle;
+                .btn-group-justified {
+                    border-spacing: initial;
+                }
             }
         }
         // On medium screens, use horizontal layout but with label on its own
@@ -314,40 +318,53 @@ ul.list-results {
                 list-style: none;
                 margin: 4px 0;
             }
-            li>* {
+            li > div {
                 display: block;
             }
         }
         // On small screens, stack everything vertically
-        @media (max-width: 768px) and (orientation: portrait) {
+        @media (max-width: 768px) {
             display: block;
             li {
                 display: block;
                 list-style: none;
                 margin: 4px 0;
             }
-            li>* {
+            li > div {
                 display: block;
-                &.btn-group > .btn {
+                > .btn-group-justified {
                     display: block;
-                    float: none;
-                    width: 100%;
-                    margin-left: 0;
-                    &:first-child {
-                        border-radius: 4px 4px 0 0;
-                    }
-                    &:last-child {
-                        border-radius: 0 0 4px 4px;
+                    > .btn-group {
+                        display: block;
+                        width: 100%;
+                        margin-left: 0;
+                        .btn {
+                            display: block;
+                            float: none;
+                            width: 100%;
+                            margin-left: 0;
+                        }
+                        &:first-child > .btn {
+                            border-radius: 4px 4px 0 0;
+                        }
+                        &:last-child > .btn {
+                            border-radius: 0 0 4px 4px;
+                        }
                     }
                 }
             }
         }
 
         label {
-            padding: 6px 30px 6px 0;
+            // Match size to buttons
+            padding: 6px 30px 3px 0;
+            border: solid transparent;
+            margin: 0;
+            border-width: 1px 0 3px 0;
             font-weight: normal;
             line-height: 1.42857143;
             position: relative;
+            white-space: nowrap;
 
             &:before {
                 @include fontawesome("\f0da");
@@ -364,21 +381,21 @@ ul.list-results {
                 }
             }
 
-            .score, label:before {
-                opacity: 0;
+            .index, label:before {
+                eopacity: 0;
                 visibility: hidden;
                 @include transition(
                     opacity $anim-time ease,
                     visibility $anim-time step-end
                 );
             }
-            .score {
+            .index {
                 color: #aaa;
             }
         }
 
         li.active {
-            .btn:not([disabled]) .score, label:before {
+            .btn:not([disabled]) .index, label:before {
                 opacity: 1;
                 visibility: visible;
                 @include transition(

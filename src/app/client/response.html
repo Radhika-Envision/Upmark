@@ -6,17 +6,23 @@
             ng-class="{
                 active: $index == response.active,
                 disabled: disabled(pi)}">
-        <label ng-click="response.active = $index">{{part.name}}</label>
-        <div class="btn-group">
-            <button ng-repeat="o in part.options"
-                    class="btn btn-default"
-                    ng-class="{active: response.responses[pi] == $index}"
-                    ng-click="respond(resp, o)"
-                    ng-disabled="disabled(pi, $index)">
-                <span class="score">{{$index + 1}}</span>
-                {{o.name}}
-                <span class="text-hidden">{{$index + 1}}</span>
-            </button>
+        <div>
+            <label ng-click="response.active = $index">{{part.name}}</label>
+        </div>
+        <div>
+            <div class="btn-group btn-group-justified">
+                <div class="btn-group" ng-repeat="o in part.options">
+                <button
+                        class="btn btn-default"
+                        ng-class="{active: response.responses[pi] == $index}"
+                        ng-click="respond(resp, o)"
+                        ng-disabled="disabled(pi, $index)">
+                    <span class="index">{{$index + 1}}</span>
+                    {{o.name}}
+                    <span class="text-hidden">{{$index + 1}}</span>
+                </button>
+                </div>
+            </div>
         </div>
     </li>
 </ol>
