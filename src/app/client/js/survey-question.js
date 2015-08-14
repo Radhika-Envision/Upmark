@@ -857,10 +857,19 @@ angular.module('wsaa.surveyQuestions', [
                 };
             };
             $scope.active = function(iPart, iOpt) {
-                return $scope.response.responseParts[iPart].index == iOpt;
+                var partR = $scope.response.responseParts[iPart];
+                if (partR)
+                    return partR.index == iOpt;
+                return false;
             };
             $scope.enabled = function(iPart, iOpt) {
-                return true;
+                var responseType = $scope.responseType;
+                var partT = responseType.parts[iPart];
+                var option = partT.options[iOpt];
+                if (!option['if'])
+                    return true;
+                var exp = Parser.parse(option['if']);
+                return exp.evaluate($scope.stats.expressionVars);
             };
 
             $scope.$watch('responseType.parts.length', function(length) {

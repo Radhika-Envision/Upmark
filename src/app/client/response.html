@@ -22,7 +22,7 @@
                         ng-repeat="o in part.options">
                 <button
                         class="btn btn-default"
-                        ng-class="{active: response.responses[pi] == $index}"
+                        ng-class="{active: active(pi, $index)}"
                         ng-click="choose(pi, $index, o.name)"
                         ng-disabled="!enabled(pi, $index)">
                     <span class="index">{{$index + 1}}</span>
