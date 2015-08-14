@@ -4,14 +4,14 @@
     <div class="toolbar">
         <button class="btn btn-default btn-round" title="Import"
                 ng-click="import()"
-                form="editor" ng-show="!isProgressing">
+                form="editor" ng-show="!progress.isWorking">
             <i class="fa fa-check"></i></button>
     </div>
     <h2 label="S">Survey - Import</h2>
 </div>
 </div>
 
-<div class="container" ng-show="!isProgressing">
+<div class="container" ng-show="!progress.isWorking">
     <form novalidate name="form" id="editor">
         <div class="form-group" show-errors>
             <label for="title">Name</label>
@@ -34,15 +34,20 @@
     </form>
 </div>
 
-<div class="container" ng-show="isProgressing">
-    <div class="modal-header">
-        <h1>Processing...</h1>
-    </div>
-    <div class="progress">
-        <div class="progress-bar progress-bar-striped active"
-                role="progressbar" aria-valuenow="100" aria-valuemin="0"
-                aria-valuemax="100" style="width: 100%">
-            <span class="sr-only">Progressing...</span>
+<div class="container" ng-show="progress.isWorking">
+    <div class="modalprogress">
+        <div ng-if="progress.uploadFraction < 1">
+            <clock-progress fraction="progress.uploadFraction"></clock-progress>
+            <p>
+                Uploading
+                <span class="text-muted">
+                    {{progress.uploadFraction * 100 | number:0}}%
+                </span>
+            </p>
+        </div>
+        <div ng-if="progress.uploadFraction >= 1">
+            <i class="fa fa-circle-o-notch fa-spin fa-5x"></i>
+            <p>Processing</p>
         </div>
     </div>
 </div>

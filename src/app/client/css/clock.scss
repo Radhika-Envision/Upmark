@@ -1,3 +1,5 @@
+@import '_utils.scss';
+
 $fg-colour: #444;
 $bg-colour: white;
 
@@ -13,4 +15,8 @@ $bg-colour: white;
 .clock-fill {
     fill: $fg-colour;
     stroke: none;
+}
+.clock-progress {
+    pointer-events: none;
+    @include transform-origin(0px 0px);
 }

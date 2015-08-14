@@ -275,7 +275,11 @@ angular.module('wsaa.surveyQuestions', [
         function($scope, Survey, hotkeys, $location, $timeout,
                  Notifications, layout, format, $http, $cookies) {
 
-    $scope.isProgressing = false;
+    $scope.progress = {
+        isWorking: false,
+        uploadFraction: 0.0
+    };
+    Notifications.remove('import');
     $scope.survey = {
         title: "Aquamark Import",
         description: ""
@@ -287,8 +291,7 @@ angular.module('wsaa.surveyQuestions', [
 
     var config = {
         url: '/import/structure.json',
-        maxFiles: 1,
-        maxFilesize: 20,
+        maxFilesize: 50,
         paramName: "file",
         acceptedFiles: ".xls",
         headers: headers,
@@ -299,7 +302,8 @@ angular.module('wsaa.surveyQuestions', [
     var dropzone = new Dropzone("#dropzone", config);
 
     $scope.import = function() {
-        $scope.isProgressing = true;
+        $scope.progress.isWorking = true;
+        $scope.progress.uploadFraction = 0.0;
         dropzone.processQueue();
     };
 
@@ -307,30 +311,41 @@ angular.module('wsaa.surveyQuestions', [
         dropzone.processQueue();
     }
 
-    dropzone.on('sending', function(file, xhr, formData){
+    dropzone.on('sending', function(file, xhr, formData) {
         formData.append('title', $scope.survey.title);
         formData.append('description', $scope.survey.description);
     });
 
-    dropzone.on("success", function(file, response) {
-        Notifications.set('import', 'success', "Import finished", 5000);
-        $location.url('/surveys');
-        $scope.isProgressing = false;
+    dropzone.on('uploadprogress', function(file, progress) {
+        console.log(progress);
+        $scope.progress.uploadFraction = progress / 100;
         $scope.$apply();
     });
 
-    dropzone.on('maxfilesexceeded', function(file) {
-        dropzone.removeAllFiles();
-        dropzone.addFile(file);
+    dropzone.on("success", function(file, response) {
+        Notifications.set('import', 'success', "Import finished", 5000);
+        $timeout(function() {
+            $location.url('/surveys');
+            $scope.progress.isWorking = false;
+            $scope.$apply();
+        }, 5000);
     });
 
-    dropzone.on("error", function(file, response) {
-        if (!(file && file.xhr))
-            return;
-        Notifications.set('import', 'error',
-            "File Importing Error: " + file.xhr.status + " " +
-                file.xhr.statusText);
-        $scope.isProgressing = false;
+    dropzone.on('addedfile', function(file) {
+        if (dropzone.files.length > 1)
+            dropzone.removeFile(dropzone.files[0]);
+    });
+
+    dropzone.on("error", function(file, details, request) {
+        var error;
+        if (request) {
+            error = "Import failed: " + request.statusText;
+        } else {
+            error = details;
+            dropzone.removeAllFiles();
+        }
+        Notifications.set('import', 'error', error);
+        $scope.progress.isWorking = false;
         $scope.$apply();
     });
 

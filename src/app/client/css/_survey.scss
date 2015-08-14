@@ -457,3 +457,26 @@ ul.list-results {
 .text-hidden {
     visibility: hidden;
 }
+
+.modalprogress {
+    padding-top: 30px;
+    padding-bottom: 20px;
+    text-align: center;
+
+    > div > i + p, .clock-progress + p {
+        margin-top: 10px;
+    }
+    /* Style clock to match fontawesome spinner */
+    .clock-progress {
+        @include transform(scale(70/(18)));
+        width: 70px;
+        height: 70px;
+    }
+    .clock-edge {
+        stroke-width: 2.5px;
+        stroke: #333;
+    }
+    .clock-fill {
+        fill: #333;
+    }
+}
