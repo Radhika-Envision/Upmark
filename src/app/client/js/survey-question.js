@@ -936,13 +936,15 @@ angular.module('wsaa.surveyQuestions', [
                 for (var i = 0; i < responseType.parts.length; i++) {
                     var partT = responseType.parts[i];
                     var partR = responseParts[i];
-                    if (partT.id) {
-                        if (partR && partR.index != null) {
-                            var option = partT.options[partR.index];
+                    if (partR && partR.index != null) {
+                        var option = partT.options[partR.index];
+                        if (partT.id) {
                             expressionVars[partT.id] = option.score;
                             expressionVars[partT.id + '__i'] = partR.index;
-                            score += option.score;
-                        } else {
+                        }
+                        score += option.score;
+                    } else {
+                        if (partT.id) {
                             expressionVars[partT.id] = 0.0;
                             expressionVars[partT.id + '__i'] = -1;
                         }
