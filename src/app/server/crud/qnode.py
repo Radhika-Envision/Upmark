@@ -179,6 +179,9 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     raise ValueError("No such object")
                 log.debug("deleting: %s", qnode)
 
+                if len(qnode.qnode_measures) > 0:
+                    raise handlers.ModelError("Question node is in use")
+
                 hierarchy = None
                 parent = None
                 if qnode.hierarchy is not None:
