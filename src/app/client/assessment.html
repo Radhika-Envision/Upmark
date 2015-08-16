@@ -1,0 +1,73 @@
+<div>
+
+<div class="header">
+<div class="container">
+    <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Delete"
+                ng-click="edit.del()"
+                ng-if="!edit.model && checkRole('assessment_del')">
+            <i class="fa fa-trash-o"></i></button>
+        <button class="btn btn-default btn-round" title="Collapse"
+                ng-click="layout.expandHeader = !layout.expandHeader">
+            <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
+            <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
+        </button>
+        <button class="btn btn-default btn-round" title="Cancel"
+                ng-click="edit.cancel()"
+                ng-if="edit.model && edit.model.id">
+            <i class="fa fa-times"></i></button>
+        <button class="btn btn-default btn-round" title="Save"
+                ng-click="edit.save()"
+                ng-if="edit.model"
+                form="editor">
+            <i class="fa fa-check"></i></button>
+        <button class="btn btn-default btn-round" title="Edit"
+                ng-click="edit.edit()"
+                ng-if="survey.isEditable && !edit.model &&
+                    checkRole('hierarchy_edit')">
+            <i class="fa fa-pencil"></i></button>
+    </div>
+    <question-header entity="assessment"></question-header>
+</div>
+</div>
+
+<div class="container" ng-if="edit.model && !edit.model.hierarchy">
+    <p>Please choose a question set.</p>
+
+    <ul class="list-results">
+        <li>
+            <a ng-repeat="hierarchy in hierarchies" href
+                    ng-click="edit.model.hierarchy = hierarchy">
+                <h4>{{hierarchy.title}}</h4>
+            </a>
+        </li>
+    </ul>
+</div>
+
+<div class="container" ng-if="edit.model && edit.model.hierarchy">
+    <form novalidate name="form" id="editor">
+        <div class="form-group" show-errors>
+            <label for="title">Name</label>
+            <span class="help-label" ng-if="form.title.$error.required">
+                Please provide a title.</span>
+            <input type="text" class="form-control" id="title" name="title"
+                ng-model="edit.model.title" required />
+        </div>
+    </form>
+
+    <p class="text-muted">Question set: <i>{{edit.model.hierarchy.title}}</i></p>
+</div>
+
+<div ng-if="!edit.model" class="container">
+    <p ng-if="assessment.hierarchy.description"
+            class="formatted">{{assessment.hierarchy.description}}</p>
+</div>
+
+<reorderable href="/qnode/{}?survey={{survey.id}}&hierarchy={{hierarchy.id}}"
+        model="qnodes" check-role="checkRole"
+        title="{{hierarchy.structure.levels[0].title}}"
+        params="{surveyId: survey.id, hierarchyId: hierarchy.id, root: ''}"
+        resource="QuestionNode" ng-if="!edit.model"
+        can-edit="survey.isEditable"></reorderable>
+
+</div>

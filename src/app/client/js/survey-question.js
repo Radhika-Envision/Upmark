@@ -66,8 +66,9 @@ angular.module('wsaa.surveyQuestions', [
                 case 'assessment_add':
                     return Roles.hasPermission(current.user.role, 'clerk');
                     break;
-                case 'assessment_review':
-                    return Roles.hasPermission(current.user.role, 'consultant');
+                case 'assessment_browse':
+                    return Roles.hasPermission(current.user.role, 'clerk') ||
+                        Roles.hasPermission(current.user.role, 'consultant');
                     break;
                 default:
                     return Roles.hasPermission(current.user.role, 'author');
@@ -432,6 +433,7 @@ angular.module('wsaa.surveyQuestions', [
         var hstack = [];
         var survey = null;
         var hierarchy = null;
+        var assessment = null;
         var measure = null;
         // Survey
         if (stack.length > 0) {
@@ -454,6 +456,15 @@ angular.module('wsaa.surveyQuestions', [
                     label: 'M',
                     entity: measure,
                     level: 'm'
+                });
+            } else if (stack[1].organisation) {
+                assessment = stack[1];
+                hstack.push({
+                    path: 'assessment',
+                    title: 'Assessments',
+                    label: 'A',
+                    entity: assessment,
+                    level: 'a'
                 });
             } else {
                 hierarchy = stack[1];
@@ -507,6 +518,7 @@ angular.module('wsaa.surveyQuestions', [
         return {
             survey: survey,
             hierarchy: hierarchy,
+            assessment: assessment,
             qnodes: qnodes,
             measure: measure,
             hstack: hstack

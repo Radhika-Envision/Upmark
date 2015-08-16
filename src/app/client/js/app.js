@@ -235,6 +235,31 @@ angular.module('wsaa.aquamark',
                 })}
             })
 
+            .when('/assessment/new', {
+                templateUrl : 'assessment.html',
+                controller : 'AssessmentCtrl',
+                resolve: {routeData: chain({
+                    survey: ['Survey', '$route', function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    organisation: ['Organisation', '$route', function(Organisation, $route) {
+                        if (!$route.current.params.organisation)
+                            return null;
+                        return Organisation.get({
+                            id: $route.current.params.organisation
+                        }).$promise;
+                    }],
+                    hierarchies: ['Hierarchy', 'survey',
+                            function(Hierarchy, survey) {
+                        return Hierarchy.query({
+                            surveyId: survey.id
+                        }).$promise;
+                    }]
+                })}
+            })
+
             .when('/qnode/new', {
                 templateUrl : 'question_node.html',
                 controller : 'QuestionNodeCtrl',
@@ -473,7 +498,6 @@ angular.module('wsaa.aquamark',
         var superuser = $cookies.get('superuser');
         if (superuser) {
             var pastUsers = decodeURIComponent($cookies.get('past-users'));
-            console.log(pastUsers);
             $scope.pastUsers = angular.fromJson(pastUsers);
         } else {
             $scope.pastUsers = null;

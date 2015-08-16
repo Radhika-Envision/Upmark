@@ -163,11 +163,11 @@
 
 
 <div class="container"
-        ng-if="assessments.length || survey.isOpen || checkRole('assessment_review')">
+        ng-if="checkRole('assessment_browse') && (assessments.length || survey.isOpen)">
     <div class="section">
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="Add new"
-                    ng-href="#/assessment/new?survey={{survey.id}}"
+                    ng-href="#/assessment/new?survey={{survey.id}}&organisation={{aSearch.organisation.id}}"
                     ng-if="survey.isOpen && checkRole('assessment_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
         </div>
@@ -191,11 +191,20 @@
 
     <p ng-if="!assessments.length">
         <i>{{aSearch.organisation.name}}</i> has no assessments for this survey.
-        <span ng-if="survey.isOpen && checkRole('assessment_add')">
-            You can create one by clicking the <i class="fa fa-plus"></i> button
-            above.
-        </span>
     </p>
+    <div ng-if="survey.isOpen && checkRole('assessment_add')">
+        <p ng-if="!assessments.length" class="text-center">
+            <a ng-href="#/assessment/new?survey={{survey.id}}&organisation={{aSearch.organisation.id}}"
+                    class="btn btn-default btn-lg">
+                <i class="fa fa-plus"></i>
+                Start a new assessment
+            </a>
+        </p>
+        <p ng-if="assessments.length" class="text-muted">
+            You can create another assessment by clicking the
+            <i class="fa fa-plus"></i> button above.
+        </p>
+    </div>
 
     <ul class="list-results">
         <li>

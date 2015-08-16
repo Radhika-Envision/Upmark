@@ -54,6 +54,53 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 }])
 
 
+.controller('AssessmentCtrl', [
+        '$scope', 'Assessment', 'Hierarchy', 'routeData', 'Editor',
+        'responseAuthz', 'layout', '$location', 'Current', 'format', '$filter',
+        function($scope, Assessment, Hierarchy, routeData, Editor, authz,
+                 layout, $location, current, format, $filter) {
+
+    $scope.layout = layout;
+    $scope.survey = routeData.survey;
+    $scope.edit = Editor('assessment', $scope, {surveyId: $scope.survey.id});
+    if (routeData.assessment) {
+        // Editing old
+        $scope.assessment = routeData.assessment;
+    } else {
+        // Creating new
+        $scope.assessment = new Assessment({
+            survey: $scope.survey,
+            organisation: routeData.organisation
+        });
+        $scope.hierarchies = routeData.hierarchies;
+        if ($scope.hierarchies.length == 1) {
+            $scope.assessment.hierarchy = $scope.hierarchies[0];
+        }
+        $scope.edit.edit();
+    }
+
+    $scope.$watch('edit.model.hierarchy', function(hierarchy) {
+        if (!hierarchy || !$scope.edit.model)
+            return;
+        if (!$scope.edit.model.title) {
+            $scope.edit.model.title = format('{} - {}',
+                hierarchy.title, $filter('date')(new Date(), 'MMM yyyy'));
+        }
+    });
+
+    $scope.$on('EditSaved', function(event, model) {
+        $location.url(format(
+            '/assessment/{}', model.id, $scope.survey.id));
+    });
+    $scope.$on('EditDeleted', function(event, model) {
+        $location.url(format(
+            '/survey/{}', $scope.survey.id));
+    });
+
+    $scope.checkRole = authz(current, $scope.assessment);
+}])
+
+
 .directive('response', [function() {
     return {
         restrict: 'E',
