@@ -19,7 +19,8 @@ log = logging.getLogger('app.crud.measure')
 
 
 class MeasureHandler(
-        handlers.Paginate, crud.survey.SurveyCentric, handlers.BaseHandler):
+        handlers.Paginate, crud.assessment.AssessmentCentric,
+        crud.survey.SurveyCentric, handlers.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, measure_id):

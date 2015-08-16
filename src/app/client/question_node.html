@@ -59,7 +59,7 @@
 </div>
 </div>
 
-<reorderable href="/qnode/{}?survey={{survey.id}}&parent={{qnode.id}}"
+<reorderable href="/qnode/{}?{{qnode.assessment ? 'assessment=' + qnode.assessment.id : 'survey=' + survey.id}}"
         model="children" check-role="checkRole"
         title="{{nextLevel.title}}"
         params="{surveyId: survey.id, parentId: qnode.id}"
@@ -67,7 +67,7 @@
         ng-if="nextLevel && !edit.model"
         can-edit="survey.isEditable"></reorderable>
 
-<reorderable href="/measure/{}?survey={{survey.id}}&parent={{qnode.id}}"
+<reorderable href="/measure/{}?{{qnode.assessment ? 'assessment=' + qnode.assessment.id : 'survey=' + survey.id}}&parent={{qnode.id}}"
         model="measures" check-role="checkRole"
         title="{{structure.hierarchy.structure.measure.title}}"
         params="{surveyId: survey.id, qnodeId: qnode.id}"

@@ -514,6 +514,10 @@ Assessment.responses = relationship(
     Response, backref='assessment', passive_deletes=True)
 
 
+ResponseNode.assessment = relationship(Assessment)
+Response.assessment = relationship(Assessment)
+
+
 ResponseNode.qnode = relationship(
     QuestionNode,
     primaryjoin=and_(foreign(ResponseNode.qnode_id) == QuestionNode.id,

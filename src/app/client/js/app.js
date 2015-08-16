@@ -317,21 +317,24 @@ angular.module('wsaa.aquamark',
                             function(QuestionNode, $route) {
                         return QuestionNode.get({
                             id: $route.current.params.qnode,
-                            surveyId: $route.current.params.survey
+                            surveyId: $route.current.params.survey,
+                            assessmentId: $route.current.params.assessment
                         }).$promise;
                     }],
                     children: ['QuestionNode', '$route',
                             function(QuestionNode, $route) {
                         return QuestionNode.query({
                             parentId: $route.current.params.qnode,
-                            surveyId: $route.current.params.survey
+                            surveyId: $route.current.params.survey,
+                            assessmentId: $route.current.params.assessment
                         }).$promise;
                     }],
                     measures: ['Measure', '$route',
                             function(Measure, $route) {
                         return Measure.query({
                             qnodeId: $route.current.params.qnode,
-                            surveyId: $route.current.params.survey
+                            surveyId: $route.current.params.survey,
+                            assessmentId: $route.current.params.assessment
                         }).$promise;
                     }]
                 })}
@@ -396,7 +399,8 @@ angular.module('wsaa.aquamark',
                             return null;
                         return QuestionNode.get({
                             id: $route.current.params.parent,
-                            surveyId: $route.current.params.survey
+                            surveyId: $route.current.params.survey,
+                            assessmentId: $route.current.params.assessment
                         }).$promise;
                     }],
                     measure: ['Measure', '$route', function(Measure, $route) {
@@ -404,7 +408,8 @@ angular.module('wsaa.aquamark',
                             id: $route.current.params.measure,
                             surveyId: $route.current.params.survey,
                             hierarchyId: $route.current.params.hierarchy,
-                            parentId: $route.current.params.parent
+                            parentId: $route.current.params.parent,
+                            assessmentId: $route.current.params.assessment
                         }).$promise;
                     }]
                 })}

@@ -96,7 +96,7 @@
     <table class="table table-hover">
         <tbody>
             <tr ng-repeat="qnode in qnodes"
-                    any-href="/qnode/{{qnode.id}}?assessmentId={{assessment.id}}">
+                    any-href="/qnode/{{qnode.id}}?assessment={{assessment.id}}">
                 <td class="shrink">{{qnode.seq + 1}}</td>
                 <td>{{qnode.title}}</td>
             </tr>

@@ -18,6 +18,41 @@ from utils import reorder, ToSon, truthy, updater
 log = logging.getLogger('app.crud.assessment')
 
 
+class AssessmentCentric:
+    @property
+    def assessment_id(self):
+        assessment_id = self.get_argument("assessmentId", "")
+        if assessment_id == '':
+            raise handlers.MethodError("Assessment ID is required")
+
+        return assessment_id
+
+    @property
+    def assessment(self):
+        if not hasattr(self, '_assessment'):
+            with model.session_scope() as session:
+                assessment = session.query(model.Assessment).get(
+                    self.assessment_id)
+                if assessment is None:
+                    raise handlers.MissingDocError("No such assessment")
+                session.expunge(assessment)
+            self._assessment = assessment
+        return self._assessment
+
+    @property
+    def survey_id(self):
+        survey_id = self.get_argument("surveyId", "")
+        if survey_id != '':
+            return survey_id
+
+        assessment_id = self.get_argument("assessmentId", "")
+        log.warn('s: %s, a:%s', survey_id, assessment_id)
+        if assessment_id == '':
+            raise handlers.MethodError("Assessment ID or survey ID required")
+
+        return str(self.assessment.survey_id)
+
+
 class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
 
     @tornado.web.authenticated
