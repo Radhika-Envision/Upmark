@@ -55,8 +55,9 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 .controller('AssessmentCtrl', [
         '$scope', 'Assessment', 'Hierarchy', 'routeData', 'Editor',
         'responseAuthz', 'layout', '$location', 'Current', 'format', '$filter',
+        'Notifications',
         function($scope, Assessment, Hierarchy, routeData, Editor, authz,
-                 layout, $location, current, format, $filter) {
+                 layout, $location, current, format, $filter, Notifications) {
 
     $scope.layout = layout;
     $scope.survey = routeData.survey;
@@ -69,8 +70,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         // Creating new
         $scope.assessment = new Assessment({
             survey: $scope.survey,
-            organisation: routeData.organisation,
-            approval: 'draft'
+            organisation: routeData.organisation
         });
         $scope.edit.params.surveyId = $scope.survey.id;
         $scope.edit.params.orgId = routeData.organisation.id;
@@ -91,6 +91,23 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         }
         $scope.edit.params.hierarchyId = hierarchy.id;
     });
+
+    $scope.setState = function(state) {
+        var assessment = angular.copy($scope.assessment);
+        assessment.approval = state;
+        assessment.$save();
+    };
+    $scope.setState = function(state) {
+        $scope.assessment.$save({approval: state},
+            function success() {
+                Notifications.set('edit', 'success', "Saved", 5000);
+            },
+            function failure(details) {
+                Notifications.set('edit', 'error',
+                    "Could not save object: " + details.statusText);
+            }
+        );
+    };
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(

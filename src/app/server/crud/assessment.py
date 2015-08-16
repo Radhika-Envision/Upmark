@@ -117,7 +117,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             with model.session_scope() as session:
                 assessment = model.Assessment(
                     survey_id=survey_id, hierarchy_id=hierarchy_id,
-                    organisation_id=org_id)
+                    organisation_id=org_id, approval='draft')
                 self._update(assessment, self.request_son)
                 session.add(assessment)
                 session.flush()
@@ -126,11 +126,13 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.get(assessment_id)
 
-    @handlers.authz('clerk')
+    @tornado.web.authenticated
     def put(self, assessment_id):
         '''Update existing.'''
         if assessment_id == '':
             raise handlers.MethodError("Assessment ID required")
+
+        approval = self.get_argument('approval', '')
 
         try:
             with model.session_scope() as session:
@@ -138,6 +140,9 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                     .get(assessment_id)
                 if assessment is None:
                     raise ValueError("No such object")
+                self._check_modify(assessment)
+                if approval != '':
+                    self._set_approval(assessment, approval)
                 self._update(assessment, self.request_son)
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such assessment")
@@ -145,7 +150,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.get(assessment_id)
 
-    @handlers.authz('org_admin')
+    @tornado.web.authenticated
     def delete(self, assessment_id):
         if assessment_id == '':
             raise handlers.MethodError("Assessment ID required")
@@ -156,6 +161,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                     .get(assessment_id)
                 if assessment is None:
                     raise ValueError("No such object")
+                self._check_delete(assessment)
                 session.delete(assessment)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("This assessment is in use")
@@ -164,23 +170,30 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
 
         self.finish()
 
-    def _check_update(self, assessment, son):
-        if assessment.approval != son['approval']:
-            if (self.current_user.role == 'org_admin' and
-                son['approval'] not in {'draft', 'final'}):
-                    raise handlers.AuthzError(
-                        "You can't approve this assessment.")
-            elif (self.current_user.role == 'consultant' and
-                  son['approval'] not in {'draft', 'final', 'reviewed'}):
-                    raise handlers.AuthzError(
-                        "You can't approve this assessment.")
-            elif self.has_privillege('authority'):
-                pass
-            else:
+    def _check_delete(self, assessment):
+        if assessment.organisation.id != self.organisation.id:
+            self.check_privillege('admin')
+
+    def _check_modify(self, assessment):
+        if assessment.organisation.id != self.organisation.id:
+            self.check_privillege('consultant')
+
+    def _set_approval(self, assessment, approval):
+        if self.current_user.role == 'org_admin':
+            if approval not in {'draft', 'final'}:
                 raise handlers.AuthzError(
-                    "You can't approve this assessment.")
+                    "You can't mark this assessment as %s." % approval)
+        elif self.current_user.role == 'consultant':
+            if approval not in {'draft', 'final', 'reviewed'}:
+                raise handlers.AuthzError(
+                    "You can't mark this assessment as %s." % approval)
+        elif self.has_privillege('authority'):
+            pass
+        else:
+            raise handlers.AuthzError(
+                "You can't mark this assessment as %s." % approval)
+        assessment.approval = approval
 
     def _update(self, assessment, son):
         update = updater(assessment)
         update('title', son)
-        update('approval', son)
