@@ -27,8 +27,11 @@
                         ng-click="choose(pi, $index, o.name)"
                         ng-disabled="!enabled(pi, $index)">
                     <span class="index">{{$index + 1}}</span>
+                    <span ng-class="{'text-hidden': !active(pi, $index)}">
+                        &bull;</span>
                     {{o.name}}
-                    <span class="text-hidden">{{$index + 1}}</span>
+                    <span class="text-hidden">&bull;</span>
+                    <span class="text-hidden index">{{$index + 1}}</span>
                 </button>
                 </div>
             </div>

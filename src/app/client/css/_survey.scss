@@ -288,6 +288,9 @@ ul.list-results {
 
     ol.responses {
         padding: 0;
+        .btn-default[disabled] {
+            background-color: lighten($button-bg, 3%);
+        }
 
         // Lay out options horizontally on large screens
         @media (min-width: 992px) {
@@ -330,26 +333,7 @@ ul.list-results {
             }
             li > div {
                 display: block;
-                > .btn-group-justified {
-                    display: block;
-                    > .btn-group {
-                        display: block;
-                        width: 100%;
-                        margin-left: 0;
-                        .btn {
-                            display: block;
-                            float: none;
-                            width: 100%;
-                            margin-left: 0;
-                        }
-                        &:first-child > .btn {
-                            border-radius: 4px 4px 0 0;
-                        }
-                        &:last-child > .btn {
-                            border-radius: 0 0 4px 4px;
-                        }
-                    }
-                }
+                /* See _forms.css for button group style */
             }
         }
 
