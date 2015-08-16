@@ -174,6 +174,7 @@ SCRIPTS = [
             '/js/admin.js',
             '/js/survey.js',
             '/js/survey-question.js',
+            '/js/survey-answer.js',
             '/js/utils.js',
             '/js/widgets.js',
         ]

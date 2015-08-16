@@ -127,6 +127,15 @@ div[textarea-label] {
         }
     }
     &:active, &.active, &.active:focus, &:active.focus, &:active:focus {
+        box-shadow: none;
+        color: $button-fg;
+    }
+    .fa-badge {
+        @include text-shadow-outline($button-bg);
+    }
+}
+.btn-default, .btn-default.active {
+    &:active, &.active, &.active:focus, &:active.focus, &:active:focus {
         &:not([disabled]):not(.btn-round) {
             box-shadow: none;
             color: $button-fg;
@@ -135,8 +144,12 @@ div[textarea-label] {
             border-radius: 2px !important;
         }
     }
-    .fa-badge {
-        @include text-shadow-outline($button-bg);
+}
+.btn-default.ui-select-toggle:not([disabled]):not(.btn-round) {
+    &:active, &:active:focus {
+        background-color: $button-bg;
+        @include transform(scale(1));
+        border-radius: 4px !important;
     }
 }
 
@@ -179,6 +192,9 @@ div[textarea-label] {
     box-shadow: none;
     border-color: transparent;
     background-color: transparent;
+}
+.ui-select-container + p {
+  margin-top: 8px;
 }
 
 .has-error {

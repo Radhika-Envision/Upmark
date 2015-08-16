@@ -33,8 +33,7 @@
 </div>
 </div>
 
-<div ng-if="edit.model">
-<div class="container">
+<div ng-if="edit.model" class="container">
     <form novalidate name="form" id="editor">
         <div class="form-group" show-errors>
             <label for="title">Name</label>
@@ -81,30 +80,38 @@
         </li>
     </div>
 </div>
-</div>
+
 
 <div ng-if="!edit.model">
-<div>
+
 <div class="container">
     <p class="formatted">{{survey.description}}</p>
 
-    <p>
-        <span ng-if="survey.isOpen">
-            This survey is open for responses<span ng-if="checkRole('survey_edit')"><span ng-if="survey.isEditable"> and is editable</span><span ng-if="!survey.isEditable"> but is not editable</span></span>.
+    <p ng-if="checkRole('survey_edit')">
+        <span ng-if="survey.isOpen && survey.isEditable">
+            This survey is open for responses and is editable.
         </span>
-        <span ng-if="!survey.isOpen">
-            This survey is not yet open for responses<span ng-if="checkRole('survey_edit')"><span ng-if="survey.isEditable"> but is editable</span><span ng-if="!survey.isEditable">, nor is it editable</span></span>.
+        <span ng-if="!survey.isOpen && survey.isEditable">
+            This survey is not open for responses but is editable.
         </span>
+        <span ng-if="survey.isOpen && !survey.isEditable">
+            This survey is open for responses but is not editable.
+        </span>
+    </p>
 
-        You can <a ng-href="#/measures?survey={{survey.id}}">
-        search for measures</a>, or browse the categories below.
+    <p ng-if="!checkRole('survey_edit') && !survey.isOpen">
+        This survey is not open for responses. You can preview the survey
+        structure below.
     </p>
 </div>
-</div>
 
-<div class="container">
+
+<div class="container" ng-if="!survey.isOpen || checkRole('survey_edit')">
     <div class="section">
         <div class="toolbar">
+            <a class="btn btn-default btn-round" title="Search for measures"
+                    ng-href="#/measures?survey={{survey.id}}">
+                <i class="fa fa-fw fa-search"></i></a>
             <a class="btn btn-default btn-round" title="Add new"
                     ng-href="#/hierarchy/new?survey={{survey.id}}"
                     ng-if="survey.isEditable && checkRole('hierarchy_add')">
@@ -114,11 +121,6 @@
             Question Sets
         </h2>
     </div>
-</div>
-<div class="container">
-    <p ng-if="!hierarchies.length">
-        There are no question sets yet.
-    </p>
 
     <ul class="list-results">
         <li>
@@ -128,22 +130,25 @@
             </a>
         </li>
     </ul>
-</div>
+
+    <p ng-if="!hierarchies.length">
+        There are no question sets yet.
+    </p>
 </div>
 
-<div ng-if="!edit.model && checkRole('survey_state')">
-<div>
-<div class="container">
+
+<div class="container" ng-if="checkRole('survey_state')">
     <p class="text-center">
-        <a href class="btn btn-link" ng-click="toggleOpen()">
+        <!-- Admin buttons -->
+        <button class="btn btn-link" ng-click="toggleOpen()">
             <span ng-if="survey.isOpen">
                 <i class="fa fa-ban"></i>
                 Un-open survey</span>
             <span ng-if="!survey.isOpen">
                 <i class="fa fa-circle-o"></i>
                 Open survey</span>
-        </a>
-        <a href class="btn btn-link" ng-click="toggleEditable()">
+        </button>
+        <button class="btn btn-link" ng-click="toggleEditable()">
             <i class="fa fa-pencil-square-o">
                 <i ng-if="survey.isEditable"
                     class="fa fa-ban fa-badge fa-badge-left"></i>
@@ -152,9 +157,56 @@
                 Make non-editable</span>
             <span ng-if="!survey.isEditable">
                 Make editable</span>
-        </a>
+        </button>
     </p>
 </div>
+
+
+<div class="container"
+        ng-if="assessments.length || survey.isOpen || checkRole('assessment_review')">
+    <div class="section">
+        <div class="toolbar">
+            <a class="btn btn-default btn-round" title="Add new"
+                    ng-href="#/assessment/new?survey={{survey.id}}"
+                    ng-if="survey.isOpen && checkRole('assessment_add')">
+                <i class="fa fa-fw fa-plus"></i></a>
+        </div>
+        <h2>
+            Assessments
+        </h2>
+    </div>
+
+    <ui-select ng-model="aSearch.organisation" reset-search-input="false"
+            ng-if="checkRole('assessment_review')">
+        <ui-select-match placeholder="Type to select organisation">
+            <i class="fa fa-university"></i>
+            {{aSearch.organisation.name}}</ui-select-match>
+        <ui-select-choices
+                repeat="organisation in organisations | filter: $select.search"
+                refresh="searchOrg($select.search)"
+                refresh-delay="0">
+            <div ng-bind-html="organisation.name | highlight: $select.search"></div>
+        </ui-select-choices>
+    </ui-select>
+
+    <p ng-if="!assessments.length">
+        <i>{{aSearch.organisation.name}}</i> has no assessments for this survey.
+        <span ng-if="survey.isOpen && checkRole('assessment_add')">
+            You can create one by clicking the <i class="fa fa-plus"></i> button
+            above.
+        </span>
+    </p>
+
+    <ul class="list-results">
+        <li>
+            <a ng-repeat="assessment in assessments"
+                    ng-href="#/hierarchy/{{assessment.hierarchy.id}}?assessment={{assessment.id}}">
+                <h4>{{assessment.title}}</h4>
+            </a>
+        </li>
+    </ul>
 </div>
+
+</div><!-- !edit.model -->
 
 </div>
