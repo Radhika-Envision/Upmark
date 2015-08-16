@@ -18,7 +18,7 @@ from sqlalchemy.sql import func
 import model 
 
 from utils import denormalise, falsy, truthy
-from tornado.escape import json_decode, json_encode
+from tornado.escape import json_decode, json_encode, url_escape, url_unescape
 
 
 log = logging.getLogger('app.handlers')
@@ -374,17 +374,22 @@ class AuthLoginHandler(MainHandler):
         their password.
         '''
         superuser_id = self.get_secure_cookie('superuser')
+
         if superuser_id is None:
             raise AuthzError("Not authorised: you are not a superuser")
         superuser_id = superuser_id.decode('utf8')
         with model.session_scope() as session:
             superuser = session.query(model.AppUser).get(superuser_id)
-            if superuser is None or not model.has_privillege(superuser.role, 'admin'):
-                raise handlers.MissingDocError("Not authorised: you are not a superuser")
+            if superuser is None or not model.has_privillege(
+                    superuser.role, 'admin'):
+                raise handlers.MissingDocError(
+                    "Not authorised: you are not a superuser")
 
             user = session.query(model.AppUser).get(user_id)
             if user is None:
                 raise handlers.MissingDocError("No such user")
+
+            self._store_last_user(session);
 
             name = user.name
             log.warn('User %s is impersonating %s', superuser.email, user.email)
@@ -393,6 +398,38 @@ class AuthLoginHandler(MainHandler):
         self.set_header("Content-Type", "text/plain")
         self.write("Impersonating %s" % name)
         self.finish()
+
+    def _store_last_user(self, session):
+        user_id = self.get_secure_cookie('user')
+        if user_id is None:
+            return
+        user_id = user_id.decode('utf8')
+
+        try:
+            past_users = self.get_cookie('past-users')
+            past_users = json_decode(url_unescape(past_users, plus=False))
+            log.warn('Past users: %s', past_users)
+        except Exception as e:
+            log.warn('Failed to decode past users: %s', e)
+            past_users = []
+
+        if user_id is None:
+            return;
+        try:
+            past_users = list(filter(lambda x: x['id'] != user_id, past_users))
+        except KeyError:
+            past_users = []
+
+        log.warn('%s', user_id)
+        user = session.query(model.AppUser).get(user_id)
+        if user is None:
+            return
+
+        past_users.insert(0, {'id': user_id, 'name': user.name})
+        past_users = past_users[:10]
+        log.warn('%s', past_users)
+        self.set_cookie('past-users', url_escape(
+            json_encode(past_users), plus=False))
 
 
 class AuthLogoutHandler(BaseHandler):

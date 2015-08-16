@@ -463,9 +463,35 @@ angular.module('wsaa.aquamark',
 }])
 
 
-.controller('RootCtrl', ['$scope', 'hotkeys',
-        function($scope, hotkeys) {
+.controller('RootCtrl', ['$scope', 'hotkeys', '$cookies', 'User',
+        'Notifications', '$window',
+        function($scope, hotkeys, $cookies, User, Notifications, $window) {
     $scope.hotkeyHelp = hotkeys.toggleCheatSheet;
+
+    try {
+        var superuser = $cookies.get('superuser');
+        if (superuser) {
+            var pastUsers = decodeURIComponent($cookies.get('past-users'));
+            console.log(pastUsers);
+            $scope.pastUsers = angular.fromJson(pastUsers);
+        } else {
+            $scope.pastUsers = null;
+        }
+    } catch (e) {
+        $scope.pastUsers = null;
+    }
+
+    $scope.impersonate = function(id) {
+        User.impersonate({id: id}).$promise.then(
+            function success() {
+                $window.location.reload();
+            },
+            function error(details) {
+                Notifications.set('user', 'error',
+                    "Could not impersonate: " + details.statusText);
+            }
+        );
+    };
 }])
 .controller('HeaderCtrl', ['$scope', 'confAuthz', 'Current',
         function($scope, confAuthz, Current) {
