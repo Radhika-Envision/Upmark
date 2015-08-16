@@ -10,7 +10,7 @@
                 <i class="fa fa-fw fa-check" ng-if="message.type == 'success'"></i>
                 {{message.body}}
                 <button class="btn btn-default btn-round pull-right"
-                        ng-click="notifications.remove(message)">
+                        ng-click="notifications.remove(message.id)">
                     <i class="fa fa-times"></i></button>
             </div>
         </li>
