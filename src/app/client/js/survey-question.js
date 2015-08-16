@@ -81,10 +81,10 @@ angular.module('wsaa.surveyQuestions', [
 .controller('SurveyCtrl', [
         '$scope', 'Survey', 'routeData', 'Editor', 'questionAuthz', 'hotkeys',
         '$location', 'Notifications', 'Current', 'Hierarchy', 'layout',
-        'format', '$http', 'Numbers', 'Organisation',
+        'format', '$http', 'Numbers', 'Organisation', 'Assessment',
         function($scope, Survey, routeData, Editor, authz, hotkeys,
                  $location, Notifications, current, Hierarchy, layout, format,
-                 $http, Numbers, Organisation) {
+                 $http, Numbers, Organisation, Assessment) {
 
     $scope.layout = layout;
     if (routeData.survey) {
@@ -241,6 +241,17 @@ angular.module('wsaa.surveyQuestions', [
             $scope.organisations = orgs;
         });
     };
+    $scope.$watch('aSearch.organisation', function(organisation) {
+        Assessment.query({orgId: organisation.id, surveyId: $scope.survey.id}).$promise.then(
+            function success(assessments) {
+                $scope.assessments = assessments;
+            },
+            function failure(details) {
+                Notifications.set('survey', 'error',
+                    "Could not get assessment list: " + details.statusText);
+            }
+        );
+    });
 
     $scope.Survey = Survey;
 
@@ -421,6 +432,8 @@ angular.module('wsaa.surveyQuestions', [
             stack.push(entity);
             if (entity.parent)
                 entity = entity.parent;
+            else if (entity.organisation && entity.survey)
+                entity = entity.survey;
             else if (entity.hierarchy)
                 entity = entity.hierarchy;
             else if (entity.survey)
@@ -479,7 +492,7 @@ angular.module('wsaa.surveyQuestions', [
         }
 
         var qnodes = [];
-        if (stack.length > 2) {
+        if (stack.length > 2 && hierarchy) {
             var qnodeMaxIndex = stack.length - 1;
             if (stack[stack.length - 1].responseType) {
                 measure = stack[stack.length - 1];

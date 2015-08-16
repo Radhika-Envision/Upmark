@@ -6,3 +6,5 @@ from . import survey
 from . import hierarchy
 from . import qnode
 from . import measure
+
+from . import assessment

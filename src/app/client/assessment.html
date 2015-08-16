@@ -5,7 +5,7 @@
     <div class="toolbar">
         <button class="btn btn-default btn-round" title="Delete"
                 ng-click="edit.del()"
-                ng-if="!edit.model && checkRole('assessment_del')">
+                ng-if="!edit.model && checkRole('assessment_admin')">
             <i class="fa fa-trash-o"></i></button>
         <button class="btn btn-default btn-round" title="Collapse"
                 ng-click="layout.expandHeader = !layout.expandHeader">
@@ -23,8 +23,7 @@
             <i class="fa fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
-                ng-if="survey.isEditable && !edit.model &&
-                    checkRole('hierarchy_edit')">
+                ng-if="!edit.model && checkRole('assessment_edit')">
             <i class="fa fa-pencil"></i></button>
     </div>
     <question-header entity="assessment"></question-header>
@@ -61,13 +60,46 @@
 <div ng-if="!edit.model" class="container">
     <p ng-if="assessment.hierarchy.description"
             class="formatted">{{assessment.hierarchy.description}}</p>
-</div>
 
-<reorderable href="/qnode/{}?survey={{survey.id}}&hierarchy={{hierarchy.id}}"
-        model="qnodes" check-role="checkRole"
-        title="{{hierarchy.structure.levels[0].title}}"
-        params="{surveyId: survey.id, hierarchyId: hierarchy.id, root: ''}"
-        resource="QuestionNode" ng-if="!edit.model"
-        can-edit="survey.isEditable"></reorderable>
+    <div class="text-center">
+        <div class="btn-group">
+            <button class="btn btn-default"
+                    ng-class="{active: assessment.approval == 'draft'}"
+                    ng-click="setState('draft')">
+                Draft
+            </button>
+            <button class="btn btn-default"
+                    ng-class="{active: assessment.approval == 'final'}"
+                    ng-click="setState('final')">
+                Final
+            </button>
+            <button class="btn btn-default"
+                    ng-class="{active: assessment.approval == 'reviwed'}"
+                    ng-click="setState('reviwed')">
+                Reviewed
+            </button>
+            <button class="btn btn-default"
+                    ng-class="{active: assessment.approval == 'approved'}"
+                    ng-click="setState('approved')">
+                Approved
+            </button>
+        </div>
+    </div>
+
+    <h2 class="spaced">{{assessment.hierarchy.structure.levels[0].title}}</h2>
+    <table class="table table-hover">
+        <tbody>
+            <tr ng-repeat="qnode in qnodes"
+                    any-href="/qnode/{{qnode.id}}?assessmentId={{assessment.id}}">
+                <td class="shrink">{{qnode.seq + 1}}</td>
+                <td>{{qnode.title}}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p ng-if="!qnodes.length" class="text-muted">
+        None.
+    </p>
+</div>
 
 </div>

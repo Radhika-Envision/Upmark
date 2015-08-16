@@ -180,6 +180,8 @@ def get_mappings():
         (r"/measure/?([^/]*)/survey.json", crud.survey.SurveyHistoryHandler, {
             'mapper': model.Measure}),
 
+        (r"/assessment/?([^/]*).json", crud.assessment.AssessmentHandler, {}),
+
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response.json", import_handlers.ImportResponseHandler, {}),
         (r"/(.*)", tornado.web.StaticFileHandler, {

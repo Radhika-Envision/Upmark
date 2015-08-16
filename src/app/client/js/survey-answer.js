@@ -21,7 +21,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
             var ownOrg = false;
             var org = assessment && assessment.organisation || null;
             if (org)
-                ownOrg = org == current.user.organisation.id;
+                ownOrg = org.id == current.user.organisation.id;
             switch(functionName) {
                 case 'view_aggregate_score':
                     if (Roles.hasPermission(current.user.role, 'consultant'))
@@ -29,18 +29,16 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                     return false;
                     break;
                 case 'view_single_score':
-                    if (Roles.hasPermission(current.user.role, 'consultant'))
-                        return true;
-                    if (Roles.hasPermission(current.user.role, 'author'))
-                        return true;
                     return true;
                     break;
-                case 'view_response':
+                case 'assessment_admin':
                     if (Roles.hasPermission(current.user.role, 'consultant'))
                         return true;
-                    if (Roles.hasPermission(current.user.role, 'clerk'))
+                    if (Roles.hasPermission(current.user.role, 'org-admin'))
                         return ownOrg;
                     break;
+                case 'assessment_edit':
+                case 'view_response':
                 case 'alter_response':
                     if (Roles.hasPermission(current.user.role, 'consultant'))
                         return true;
@@ -62,16 +60,20 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 
     $scope.layout = layout;
     $scope.survey = routeData.survey;
-    $scope.edit = Editor('assessment', $scope, {surveyId: $scope.survey.id});
+    $scope.edit = Editor('assessment', $scope, {});
     if (routeData.assessment) {
         // Editing old
         $scope.assessment = routeData.assessment;
+        $scope.qnodes = routeData.qnodes;
     } else {
         // Creating new
         $scope.assessment = new Assessment({
             survey: $scope.survey,
-            organisation: routeData.organisation
+            organisation: routeData.organisation,
+            approval: 'draft'
         });
+        $scope.edit.params.surveyId = $scope.survey.id;
+        $scope.edit.params.orgId = routeData.organisation.id;
         $scope.hierarchies = routeData.hierarchies;
         if ($scope.hierarchies.length == 1) {
             $scope.assessment.hierarchy = $scope.hierarchies[0];
@@ -80,12 +82,14 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
     }
 
     $scope.$watch('edit.model.hierarchy', function(hierarchy) {
+        // Generate title first time
         if (!hierarchy || !$scope.edit.model)
             return;
         if (!$scope.edit.model.title) {
             $scope.edit.model.title = format('{} - {}',
                 hierarchy.title, $filter('date')(new Date(), 'MMM yyyy'));
         }
+        $scope.edit.params.hierarchyId = hierarchy.id;
     });
 
     $scope.$on('EditSaved', function(event, model) {
