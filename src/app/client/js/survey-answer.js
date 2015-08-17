@@ -144,15 +144,20 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                 expressionVars: null,
                 score: 0.0
             };
+            $scope.state = {
+                active: 0
+            };
 
             $scope.choose = function(iPart, iOpt, note) {
-                console.log('choosing', iPart, iOpt, note)
+                console.log('choosing', iPart, iOpt)
                 var parts = angular.copy($scope.response.responseParts);
                 parts[iPart] = {
                     index: iOpt,
-                    note: note
+                    note: $scope.responseType.parts[iPart].options[iOpt].name
                 };
                 $scope.response.responseParts = parts;
+                var nParts = $scope.responseType.parts.length;
+                $scope.state.active = Math.min(iPart + 1, nParts - 1);
             };
             $scope.active = function(iPart, iOpt) {
                 var partR = $scope.response.responseParts[iPart];
@@ -237,6 +242,52 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
             });
 
             $scope.checkRole = authz(current, $scope.survey);
+
+            hotkeys.bindTo($scope)
+                .add({
+                    combo: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+                    description: "Choose the Nth option for the active response part",
+                    callback: function(event, hotkey) {
+                        var i = Number(String.fromCharCode(event.keyCode)) - 1;
+                        i = Math.max(0, i);
+                        i = Math.min($scope.responseType.parts.length, i);
+                        $scope.choose($scope.state.active, i);
+                    }
+                })
+                .add({
+                    combo: ['-', '_'],
+                    description: "Previous response",
+                    callback: function(event, hotkey) {
+                        $scope.state.active = Math.max(
+                            0, $scope.state.active - 1);
+                    }
+                })
+                .add({
+                    combo: ['+', '='],
+                    description: "Next response",
+                    callback: function(event, hotkey) {
+                        $scope.state.active = Math.min(
+                            $scope.responseType.parts.length - 1,
+                            $scope.state.active + 1);
+                    }
+                })
+                .add({
+                    combo: ['c'],
+                    description: "Edit comment",
+                    callback: function(event, hotkey) {
+                        event.stopPropagation();
+                        event.preventDefault();
+                        $scope.$emit('focus-comment');
+                    }
+                })
+                .add({
+                    combo: ['esc'],
+                    description: "Stop editing comment",
+                    allowIn: ['TEXTAREA'],
+                    callback: function(event, hotkey) {
+                        $scope.$emit('blur-comment');
+                    }
+                });
         }],
         link: function(scope, elem, attrs) {
             scope.debug = attrs.debug !== undefined;

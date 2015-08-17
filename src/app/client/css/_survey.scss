@@ -364,7 +364,7 @@ ul.list-results {
             }
 
             .index, label:before {
-                eopacity: 0;
+                opacity: 0;
                 visibility: hidden;
                 @include transition(
                     opacity $anim-time ease,

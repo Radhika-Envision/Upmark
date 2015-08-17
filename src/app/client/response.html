@@ -10,28 +10,23 @@
 
 <ol class="responses list-unstyled">
     <li ng-repeat="part in responseType.parts" class="clearfix"
-            ng-class="{
-                active: $index == response.active,
-                disabled: disabled(pi)}">
+            ng-class="{active: $index == state.active}">
         <div ng-if="part.name">
-            <label ng-click="response.active = $index">{{part.name}}</label>
+            <label ng-click="state.active = $index">{{part.name}}</label>
         </div>
         <div>
             <div class="btn-group btn-group-justified"
-                        ng-init="pi = $index">
+                    ng-init="pi = $index">
                 <div class="btn-group"
                         ng-repeat="o in part.options">
                 <button
                         class="btn btn-default"
                         ng-class="{active: active(pi, $index)}"
-                        ng-click="choose(pi, $index, o.name)"
+                        ng-click="choose(pi, $index)"
                         ng-disabled="!enabled(pi, $index)">
                     <span class="index">{{$index + 1}}</span>
-                    <span ng-class="{'text-hidden': !active(pi, $index)}">
-                        &bull;</span>
                     {{o.name}}
-                    <span class="text-hidden">&bull;</span>
-                    <span class="text-hidden index">{{$index + 1}}</span>
+                    <span class="text-hidden">{{$index + 1}}</span>
                 </button>
                 </div>
             </div>
