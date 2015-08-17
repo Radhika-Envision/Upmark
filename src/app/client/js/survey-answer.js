@@ -8,8 +8,18 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         get: { method: 'GET', cache: false },
         create: { method: 'POST' },
         save: { method: 'PUT' },
-        query: { method: 'GET', isArray: true, cache: false },
-        history: { method: 'GET', url: '/assessment/:id/history.json',
+        query: { method: 'GET', isArray: true, cache: false }
+    });
+}])
+
+
+.factory('Response', ['$resource', function($resource) {
+    return $resource('/assessment/:assessmentId/response/:measureId.json',
+            {assessmentId: '@assessmentId', measureId: '@measureId'}, {
+        get: { method: 'GET', cache: false },
+        save: { method: 'PUT' },
+        history: { method: 'GET',
+            url: '/assessment/:assessmentId/response/:measureId/history.json',
             isArray: true, cache: false }
     });
 }])
@@ -131,6 +141,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         },
         replace: true,
         templateUrl: 'response.html',
+        transclude: true,
         controller: ['$scope', 'hotkeys', 'Current', 'responseAuthz',
                 'Notifications',
                 function($scope, hotkeys, current, authz, Notifications) {
@@ -140,6 +151,9 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                     comment: null
                 };
             }
+            if (!$scope.response.responseParts)
+                $scope.response.responseParts = [];
+
             $scope.stats = {
                 expressionVars: null,
                 score: 0.0

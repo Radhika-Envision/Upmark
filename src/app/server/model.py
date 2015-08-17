@@ -11,6 +11,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import backref, foreign, relationship, remote, sessionmaker
+from sqlalchemy.orm.session import object_session
 from sqlalchemy.schema import CheckConstraint, ForeignKeyConstraint, Index,\
     MetaData
 from sqlalchemy.sql import func
@@ -394,7 +395,7 @@ class Response(Versioned, Base):
 
     comment = Column(Text, nullable=False)
     not_relevant = Column(Boolean, nullable=False)
-    response_parts = Column(JSON, nullable=False)
+    _response_parts = Column('response_parts', JSON, nullable=False)
     attachments = Column(JSON, nullable=False)
     audit_reason = Column(Text)
 
@@ -419,6 +420,35 @@ class Response(Versioned, Base):
 
     survey = relationship(Survey)
     user = relationship(AppUser)
+
+    @property
+    def parent(self):
+        qnode = None
+        for p in self.measure.parents:
+            if p.hierarchy_id == self.assessment.hierarchy_id:
+                qnode = p
+                break
+        if qnode is None:
+            # Might happen if a measure is unlinked after the response is
+            # created
+            return None
+        rnode = (object_session(self).query(ResponseNode)
+            .filter_by(assessment_id=self.assessment_id, qnode_id=qnode.id)
+            .first())
+        return rnode
+
+    _response_parts_schema = Schema([
+        {
+            'index': int,
+            'note': All(str, Length(min=1))
+        }
+    ], required=True)
+    @property
+    def response_parts(self):
+        return self._response_parts
+    @response_parts.setter
+    def response_parts(self, s):
+        self._response_parts = Response._response_parts_schema(s)
 
     def __repr__(self):
         org = getattr(self.assessment, 'organisation', None)

@@ -1,12 +1,17 @@
 <div class="response">
 
-<h2>
-    Response
-    <span ng-if="debug">Sample</span>
-    <span ng-if="checkRole('view_single_score') && responseType.parts.length"
-            class="text-muted pull-right">
-        {{stats.score * 100 | number:0}}%</span>
-</h2>
+<div class="section">
+    <div class="toolbar">
+        <span ng-if="!edit.model" ng-transclude></span>
+    </div>
+    <h2>
+        Response
+        <span ng-if="debug">Sample</span>
+        <span ng-if="checkRole('view_single_score') && responseType.parts.length"
+                class="text-muted pull-right">
+            {{stats.score * 100 | number:0}}%</span>
+    </h2>
+</div>
 
 <ol class="responses list-unstyled">
     <li ng-repeat="part in responseType.parts" class="clearfix"

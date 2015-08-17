@@ -44,11 +44,11 @@ class MeasureHandler(
                 raise handlers.MissingDocError("No such measure")
 
             exclude = []
-            if not self.has_privillege('author'):
-                exclude += [
-                    r'/response_types.*score$',
-                    r'/response_types.*formula$'
-                ]
+            #if not self.has_privillege('author'):
+            #    exclude += [
+            #        r'/response_types.*score$',
+            #        r'/response_types.*formula$'
+            #    ]
 
             to_son = ToSon(include=[
                 # Fields to match from any visited object

@@ -779,10 +779,10 @@ angular.module('wsaa.surveyQuestions', [
 .controller('MeasureCtrl', [
         '$scope', 'Measure', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'Survey', 'format', 'layout',
-        'Structure', 'Arrays',
+        'Structure', 'Arrays', 'Response',
         function($scope, Measure, routeData, Editor, authz,
                  $location, Notifications, current, Survey, format, layout,
-                 Structure, Arrays) {
+                 Structure, Arrays, Response) {
 
     $scope.layout = layout;
     $scope.parent = routeData.parent;
@@ -799,6 +799,39 @@ angular.module('wsaa.surveyQuestions', [
             responseType: 'standard_1'
         });
     }
+
+    if ($scope.assessment) {
+        // Get the response that is associated with this measure and assessment.
+        // Create an empty one if it doesn't exist yet.
+        $scope.response = Response.get({
+            measureId: $scope.measure.id,
+            assessmentId: $scope.assessment.id
+        })
+        $scope.response.$promise.catch(function failure(details) {
+            if (details.status != 404) {
+                Notifications.set('edit', 'error',
+                    "Failed to get response details: " + details.statusText);
+                return;
+            }
+            $scope.response = new Response({
+                measureId: $scope.measure.id,
+                assessmentId: $scope.assessment.id,
+                responseParts: [],
+                comment: '',
+                notRelevant: false
+            });
+        });
+    }
+    $scope.saveResponse = function() {
+        $scope.response.$save().then(
+            function success() {
+                Notifications.set('edit', 'success', "Saved", 5000);
+            },
+            function failure(details) {
+                Notifications.set('edit', 'error',
+                    "Could not save response: " + details.statusText);
+            });
+    };
 
     $scope.$watch('measure', function(measure) {
         $scope.structure = Structure(measure);
