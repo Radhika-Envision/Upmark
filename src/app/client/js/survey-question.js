@@ -569,12 +569,15 @@ angular.module('wsaa.surveyQuestions', [
 
             hotkeys.bindTo($scope)
                 .add({
-                    combo: ['ctrl+up'],
+                    combo: ['u'],
                     description: "Go up one level of the hierarchy",
                     callback: function(event, hotkey) {
                         var item = $scope.structure.hstack[
                             $scope.structure.hstack.length - 2]
-                        $location.url($scope.itemUrl(item));
+                        if (item)
+                            $location.url($scope.itemUrl(item));
+                        else
+                            $location.url('/surveys');
                     }
                 });
         }]

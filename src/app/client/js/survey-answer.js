@@ -256,7 +256,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                 })
                 .add({
                     combo: ['-', '_'],
-                    description: "Previous response",
+                    description: "Previous response part",
                     callback: function(event, hotkey) {
                         $scope.state.active = Math.max(
                             0, $scope.state.active - 1);
@@ -264,7 +264,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                 })
                 .add({
                     combo: ['+', '='],
-                    description: "Next response",
+                    description: "Next response part",
                     callback: function(event, hotkey) {
                         $scope.state.active = Math.min(
                             $scope.responseType.parts.length - 1,
