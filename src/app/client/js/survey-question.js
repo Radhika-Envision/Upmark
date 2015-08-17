@@ -426,14 +426,12 @@ angular.module('wsaa.surveyQuestions', [
 
 
 .factory('Structure', function() {
-    return function(entity) {
+    return function(entity, assessment) {
         var stack = [];
         while (entity) {
             stack.push(entity);
             if (entity.parent)
                 entity = entity.parent;
-            else if (entity.organisation && entity.survey)
-                entity = entity.survey;
             else if (entity.hierarchy)
                 entity = entity.hierarchy;
             else if (entity.survey)
@@ -446,7 +444,6 @@ angular.module('wsaa.surveyQuestions', [
         var hstack = [];
         var survey = null;
         var hierarchy = null;
-        var assessment = null;
         var measure = null;
         // Survey
         if (stack.length > 0) {
@@ -470,15 +467,6 @@ angular.module('wsaa.surveyQuestions', [
                     entity: measure,
                     level: 'm'
                 });
-            } else if (stack[1].organisation) {
-                assessment = stack[1];
-                hstack.push({
-                    path: 'assessment',
-                    title: 'Assessments',
-                    label: 'A',
-                    entity: assessment,
-                    level: 'a'
-                });
             } else {
                 hierarchy = stack[1];
                 hstack.push({
@@ -489,6 +477,17 @@ angular.module('wsaa.surveyQuestions', [
                     level: 'h'
                 });
             }
+        }
+
+        if (assessment) {
+            // Assessments take the place of the hierarchy.
+            hstack[1] = {
+                path: 'assessment',
+                title: 'Assessments',
+                label: 'A',
+                entity: assessment,
+                level: 'h'
+            };
         }
 
         var qnodes = [];
@@ -544,7 +543,8 @@ angular.module('wsaa.surveyQuestions', [
     return {
         restrict: 'E',
         scope: {
-            entity: '='
+            entity: '=',
+            assessment: '='
         },
         replace: true,
         templateUrl: 'question_header.html',
@@ -552,9 +552,20 @@ angular.module('wsaa.surveyQuestions', [
                 '$location',
                 function($scope, layout, Structure, hotkeys, format, $location) {
             $scope.layout = layout;
-            $scope.$watch('entity', function(entity) {
-                $scope.structure = Structure(entity);
+            $scope.$watchGroup(['entity', 'assessment'], function(vals) {
+                $scope.structure = Structure(vals[0], vals[1]);
             });
+
+            $scope.itemUrl = function(item) {
+                var path = format("/{}/{}", item.path, item.entity.id);
+                if (item.path != 'survey' && item.path != 'assessment') {
+                    if ($scope.assessment)
+                        path += '?assessment=' + $scope.assessment.id;
+                    else
+                        path += '?survey=' + $scope.structure.survey.id;
+                }
+                return path;
+            };
 
             hotkeys.bindTo($scope)
                 .add({
@@ -563,11 +574,7 @@ angular.module('wsaa.surveyQuestions', [
                     callback: function(event, hotkey) {
                         var item = $scope.structure.hstack[
                             $scope.structure.hstack.length - 2]
-                        var path = format(
-                            "/{}/{}", item.path, item.entity.id);
-                        if (item.path != 'survey')
-                            path += '?survey=' + $scope.structure.survey.id;
-                        $location.url(path);
+                        $location.url($scope.itemUrl(item));
                     }
                 });
         }]
@@ -656,6 +663,7 @@ angular.module('wsaa.surveyQuestions', [
     // creating a new qnode.
 
     $scope.layout = layout;
+    $scope.assessment = routeData.assessment;
     if (routeData.qnode) {
         // Editing old
         $scope.qnode = routeData.qnode;
@@ -775,6 +783,7 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.layout = layout;
     $scope.parent = routeData.parent;
+    $scope.assessment = routeData.assessment;
     if (routeData.measure) {
         // Editing old
         $scope.measure = routeData.measure;

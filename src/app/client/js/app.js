@@ -313,28 +313,36 @@ angular.module('wsaa.aquamark',
                 templateUrl : 'question_node.html',
                 controller : 'QuestionNodeCtrl',
                 resolve: {routeData: chain({
-                    qnode: ['QuestionNode', '$route',
-                            function(QuestionNode, $route) {
+                    assessment: ['Assessment', '$route',
+                            function(Assessment, $route) {
+                        if (!$route.current.params.assessment)
+                            return null;
+                        return Assessment.get({
+                            id: $route.current.params.assessment
+                        }).$promise;
+                    }],
+                    qnode: ['QuestionNode', '$route', 'assessment',
+                            function(QuestionNode, $route, assessment) {
                         return QuestionNode.get({
                             id: $route.current.params.qnode,
-                            surveyId: $route.current.params.survey,
-                            assessmentId: $route.current.params.assessment
+                            surveyId: assessment ? assessment.survey.id :
+                                $route.current.params.survey,
                         }).$promise;
                     }],
-                    children: ['QuestionNode', '$route',
-                            function(QuestionNode, $route) {
+                    children: ['QuestionNode', '$route', 'assessment',
+                            function(QuestionNode, $route, assessment) {
                         return QuestionNode.query({
                             parentId: $route.current.params.qnode,
-                            surveyId: $route.current.params.survey,
-                            assessmentId: $route.current.params.assessment
+                            surveyId: assessment ? assessment.survey.id :
+                                $route.current.params.survey,
                         }).$promise;
                     }],
-                    measures: ['Measure', '$route',
-                            function(Measure, $route) {
+                    measures: ['Measure', '$route', 'assessment',
+                            function(Measure, $route, assessment) {
                         return Measure.query({
                             qnodeId: $route.current.params.qnode,
-                            surveyId: $route.current.params.survey,
-                            assessmentId: $route.current.params.assessment
+                            surveyId: assessment ? assessment.survey.id :
+                                $route.current.params.survey,
                         }).$promise;
                     }]
                 })}
@@ -393,23 +401,31 @@ angular.module('wsaa.aquamark',
                 templateUrl : 'measure.html',
                 controller : 'MeasureCtrl',
                 resolve: {routeData: chain({
-                    parent: ['QuestionNode', '$route',
-                            function(QuestionNode, $route) {
+                    assessment: ['Assessment', '$route',
+                            function(Assessment, $route) {
+                        if (!$route.current.params.assessment)
+                            return null;
+                        return Assessment.get({
+                            id: $route.current.params.assessment
+                        }).$promise;
+                    }],
+                    parent: ['QuestionNode', '$route', 'assessment',
+                            function(QuestionNode, $route, assessment) {
                         if (!$route.current.params.parent)
                             return null;
                         return QuestionNode.get({
                             id: $route.current.params.parent,
-                            surveyId: $route.current.params.survey,
-                            assessmentId: $route.current.params.assessment
+                            surveyId: assessment ? assessment.survey.id :
+                                $route.current.params.survey,
                         }).$promise;
                     }],
-                    measure: ['Measure', '$route', function(Measure, $route) {
+                    measure: ['Measure', '$route', 'assessment',
+                            function(Measure, $route, assessment) {
                         return Measure.get({
                             id: $route.current.params.measure,
-                            surveyId: $route.current.params.survey,
-                            hierarchyId: $route.current.params.hierarchy,
-                            parentId: $route.current.params.parent,
-                            assessmentId: $route.current.params.assessment
+                            surveyId: assessment ? assessment.survey.id :
+                                $route.current.params.survey,
+                            parentId: $route.current.params.parent
                         }).$promise;
                     }]
                 })}

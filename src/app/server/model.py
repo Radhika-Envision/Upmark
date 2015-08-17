@@ -515,7 +515,6 @@ Assessment.responses = relationship(
 
 
 ResponseNode.assessment = relationship(Assessment)
-Response.assessment = relationship(Assessment)
 
 
 ResponseNode.qnode = relationship(

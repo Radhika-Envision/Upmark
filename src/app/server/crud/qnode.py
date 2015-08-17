@@ -7,8 +7,7 @@ import tornado.web
 import sqlalchemy
 from sqlalchemy.orm import joinedload
 
-import crud.assessment
-import crud.survey
+import crud
 import handlers
 import model
 import logging
@@ -19,17 +18,13 @@ from utils import reorder, ToSon, updater
 log = logging.getLogger('app.crud.qnode')
 
 
-class QuestionNodeHandler(
-    crud.assessment.AssessmentCentric, crud.survey.SurveyCentric,
-    handlers.BaseHandler):
+class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, qnode_id):
         if qnode_id == '':
             self.query()
             return
-
-        assessment_id = self.get_argument('assessmentId', '')
 
         with model.session_scope() as session:
             try:
@@ -59,25 +54,6 @@ class QuestionNodeHandler(
                 r'/hierarchy/survey$'
             ])
             son = to_son(qnode)
-
-            if assessment_id != '':
-                rnode = (session.query(model.ResponseNode)
-                    .filter_by(assessment_id=assessment_id, qnode_id=qnode.id)
-                    .first())
-                to_son = ToSon(include=[
-                    r'/id$',
-                    r'/n_submitted$',
-                    r'/n_reviewed$',
-                    r'/n_approved$',
-                    r'/score$'
-                ])
-                son['rnode'] = to_son(rnode)
-                to_son = ToSon(include=[
-                    r'/id$',
-                    r'/title$',
-                    r'/approval$'
-                ])
-                son['assessment'] = to_son(self.assessment)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
