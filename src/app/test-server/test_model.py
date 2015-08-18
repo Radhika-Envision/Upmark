@@ -27,9 +27,11 @@ class SurveyStructureTest(base.AqModelTestBase):
         with model.session_scope() as session:
             survey = session.query(model.Survey).first()
             self.assertEqual(len(survey.hierarchies), 2)
+            self.assertEqual(len(survey.measures), 3)
             h = survey.hierarchies[0]
             self.assertEqual(h.title, "Hierarchy 1")
             self.assertEqual(len(h.qnodes), 2)
+            self.assertEqual(h.n_measures, 2)
 
             self.assertEqual(h.qnodes[1].seq, 1)
             q = h.qnodes[0]
@@ -37,12 +39,14 @@ class SurveyStructureTest(base.AqModelTestBase):
             self.assertEqual(q.seq, 0)
             self.assertEqual(len(q.children), 1)
             self.assertEqual(len(q.measures), 0)
+            self.assertEqual(q.n_measures, 2)
 
             q = q.children[0]
             self.assertEqual(q.title, "Process 1")
             self.assertEqual(q.seq, 0)
             self.assertEqual(len(q.children), 0)
             self.assertEqual(len(q.measures), 2)
+            self.assertEqual(q.n_measures, 2)
 
             # Test association proxy from measure to qnode (via qnode_measure)
             self.assertEqual(q.qnode_measures[0].seq, 0)
@@ -82,19 +86,25 @@ class SurveyStructureTest(base.AqModelTestBase):
     def test_unlink_measure(self):
         with model.session_scope() as session:
             survey = session.query(model.Survey).first()
-            q = survey.hierarchies[0].qnodes[0].children[0]
+            h = survey.hierarchies[0]
+            q = h.qnodes[0].children[0]
             self.assertEqual(len(q.measures), 2)
+            self.assertEqual(q.parent.n_measures, 2)
             self.assertEqual(q.measures[0].title, "Foo Measure")
             self.assertEqual(q.qnode_measures[0].seq, 0)
             self.assertEqual(q.measures[1].title, "Bar Measure")
             self.assertEqual(q.qnode_measures[1].seq, 1)
             q.measures.remove(q.measures[0])
+            q.update_stats_ancestors()
             # Alter sequence: remove first element, and confirm that sequence
             # numbers update.
             session.flush()
             self.assertEqual(len(q.measures), 1)
             self.assertEqual(q.measures[0].title, "Bar Measure")
             self.assertEqual(q.qnode_measures[0].seq, 0)
+            self.assertEqual(q.n_measures, 1)
+            self.assertEqual(q.parent.n_measures, 1)
+            self.assertEqual(h.n_measures, 1)
 
     def test_orphan_measure(self):
         with model.session_scope() as session:

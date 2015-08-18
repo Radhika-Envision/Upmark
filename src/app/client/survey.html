@@ -127,10 +127,10 @@
     </div>
 
     <ul class="list-results">
-        <li>
-            <a ng-repeat="hierarchy in hierarchies"
-                    ng-href="#/hierarchy/{{hierarchy.id}}?survey={{survey.id}}">
+        <li ng-repeat="hierarchy in hierarchies">
+            <a ng-href="#/hierarchy/{{hierarchy.id}}?survey={{survey.id}}">
                 <h4>{{hierarchy.title}}</h4>
+                <p class="truncate">{{hierarchy.nMeasures}} measures</p>
             </a>
         </li>
     </ul>

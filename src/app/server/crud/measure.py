@@ -200,6 +200,7 @@ class MeasureHandler(
                         raise handlers.ModelError("No such question node")
                     qnode.measures.append(measure)
                     qnode.qnode_measures.reorder()
+                    qnode.update_stats_ancestors()
                 measure_id = str(measure.id)
                 log.info("Created measure %s", measure_id)
         except sqlalchemy.exc.IntegrityError as e:
@@ -237,6 +238,7 @@ class MeasureHandler(
                                 "Measure does not belong to that question node")
                         qnode.measures.remove(measure)
                         qnode.qnode_measures.reorder()
+                        qnode.update_stats_ancestors()
                 else:
                     if len(measure.parents) > 0:
                         raise handlers.ModelError("Measure is in use")
@@ -280,6 +282,7 @@ class MeasureHandler(
                         continue
                     qnode.measures.append(measure)
                     qnode.qnode_measures.reorder()
+                    qnode.update_stats_ancestors()
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such measure")
         except sqlalchemy.exc.IntegrityError as e:

@@ -160,12 +160,19 @@ class Survey(Base):
                 All(str, Length(min=1)), None)
         }
     ], required=True)
+
     @property
     def response_types(self):
         return self._response_types
+
     @response_types.setter
     def response_types(self, rts):
         self._response_types = Survey._response_types_schema(rts)
+
+    def update_stats_descendants(self):
+        '''Updates the stats of an entire tree.'''
+        for hierarchy in self.hierarchies:
+            hierarchy.update_stats_descendants()
 
     def __repr__(self):
         return "Survey(title={})".format(self.title)
@@ -176,6 +183,8 @@ class Hierarchy(Base):
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(
         GUID, ForeignKey('survey.id'), nullable=False, primary_key=True)
+
+    n_measures = Column(Integer, default=0, nullable=False)
 
     title = Column(Text, nullable=False)
     description = Column(Text)
@@ -194,12 +203,25 @@ class Hierarchy(Base):
             'label': All(str, Length(min=1, max=2))
         }
     }, required=True)
+
     @property
     def structure(self):
         return self._structure
+
     @structure.setter
     def structure(self, s):
         self._structure = Hierarchy._structure_schema(s)
+
+    def update_stats(self):
+        '''Updates the stats this hierarchy.'''
+        n_measures = sum(qnode.n_measures for qnode in self.qnodes)
+        self.n_measures = n_measures
+
+    def update_stats_descendants(self):
+        '''Updates the stats of an entire subtree.'''
+        for qnode in self.qnodes:
+            qnode.update_stats_descendants()
+        self.update_stats()
 
     def __repr__(self):
         return "Hierarchy(title={}, survey={})".format(
@@ -214,6 +236,7 @@ class QuestionNode(Base):
     parent_id = Column(GUID)
 
     seq = Column(Integer)
+    n_measures = Column(Integer, default=0, nullable=False)
 
     title = Column(Text, nullable=False)
     description = Column(Text)
@@ -234,6 +257,24 @@ class QuestionNode(Base):
     )
 
     survey = relationship(Survey)
+
+    def update_stats_ancestors(self):
+        '''Updates the stats this node, and all ancestors.'''
+        n_measures = len(self.measures)
+        n_measures += sum(child.n_measures for child in self.children)
+        self.n_measures = n_measures
+        if self.parent is not None:
+            self.parent.update_stats_ancestors()
+        else:
+            self.hierarchy.update_stats()
+
+    def update_stats_descendants(self):
+        '''Updates the stats of an entire subtree.'''
+        for child in self.children:
+            child.update_stats_descendants()
+        n_measures = len(self.measures)
+        n_measures += sum(child.n_measures for child in self.children)
+        self.n_measures = n_measures
 
     def __repr__(self):
         return "QuestionNode(title={}, survey={})".format(
@@ -292,7 +333,8 @@ class QnodeMeasure(Base):
 
     # This constructor is used by association_proxy when adding items to the
     # colleciton.
-    def __init__(self, measure=None, qnode=None, seq=None, survey=None, **kwargs):
+    def __init__(self, measure=None, qnode=None, seq=None, survey=None,
+                 **kwargs):
         self.measure = measure
         self.qnode = qnode
         self.seq = seq
@@ -443,9 +485,11 @@ class Response(Versioned, Base):
             'note': All(str, Length(min=1))
         }
     ], required=True)
+
     @property
     def response_parts(self):
         return self._response_parts
+
     @response_parts.setter
     def response_parts(self, s):
         self._response_parts = Response._response_parts_schema(s)

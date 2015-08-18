@@ -43,6 +43,7 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 r'/id$',
                 r'/title$',
                 r'/seq$',
+                r'/n_measures$',
                 r'/is_open$',
                 r'/is_editable$',
                 # Fields to match from only the root object
@@ -89,6 +90,7 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 r'/id$',
                 r'/title$',
                 r'/seq$',
+                r'/n_measures$',
                 # Descend into nested objects
                 r'/[0-9]+$',
             ])
@@ -155,6 +157,7 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     raise handlers.ModelError("Parent or hierarchy ID required")
 
                 session.flush()
+                qnode.update_stats_ancestors()
                 qnode_id = str(qnode.id)
 
         except sqlalchemy.exc.IntegrityError as e:
@@ -193,6 +196,7 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     hierarchy.qnodes.reorder()
                 if parent is not None:
                     parent.children.reorder()
+                    parent.update_stats_ancestors()
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Question node is in use")
         except (sqlalchemy.exc.StatementError, ValueError):

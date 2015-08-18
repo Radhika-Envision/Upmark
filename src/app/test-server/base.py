@@ -238,7 +238,9 @@ class AqModelTestBase(unittest.TestCase):
             return hierarchies
 
         with model.session_scope() as session:
+            survey = session.query(model.Survey).first()
             create_hierarchies(hsons, session)
+            survey.update_stats_descendants()
 
 
 class AqHttpTestBase(AqModelTestBase, AsyncHTTPTestCase):

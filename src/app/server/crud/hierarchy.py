@@ -46,6 +46,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 r'/seq$',
                 r'/is_open$',
                 r'/is_editable$',
+                r'/n_measures$',
                 # Root-only
                 r'^/description$',
                 r'^/structure.*',
@@ -68,6 +69,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             to_son = ToSon(include=[
                 r'/id$',
                 r'/title$',
+                r'/n_measures$',
                 # Descend
                 r'/[0-9]+$'
             ])

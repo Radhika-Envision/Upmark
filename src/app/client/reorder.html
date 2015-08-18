@@ -28,6 +28,7 @@
             <tr ng-repeat="item in model" any-href="{{href(item.id)}}">
                 <td class="shrink">{{item.seq + 1}}</td>
                 <td>{{item.title}}</td>
+                <td class="shrink text-muted">{{item.nMeasures}}</td>
             </tr>
         </tbody>
     </table>
@@ -37,6 +38,7 @@
             <tr ng-repeat="item in edit.model"">
                 <td class="shrink">{{item.seq + 1}}</td>
                 <td>{{item.title}}</td>
+                <td class="shrink text-muted">{{item.nMeasures}}</td>
                 <td class="shrink grab-handle">
                     <i class="fa fa-fw fa-unsorted"></i></td>
             </tr>
