@@ -274,6 +274,7 @@ class Importer():
                             session.flush()
                             qnode_subprocess.measures.append(m)
                             session.flush()
+            survey.update_stats_descendants()
             return survey_id
 
     def process_response_file(self, path, survey_id):
