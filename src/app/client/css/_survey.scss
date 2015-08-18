@@ -66,15 +66,19 @@ h2 {
     }
 }
 .stacked-header {
-    >h2:not(:last-child) {
+    > h2:not(:last-child) {
         opacity: 0.8;
+    }
+    > h2 >.toolbar {
+        margin-top: 0;
     }
 }
 
 .stacked-header.header-collapsed {
     position: relative;
     h2 {
-        display: inline-block;
+        display: inline;
+        line-height: 38px;
         position: static;
         padding-right: 0.2em;
         &[label]:before {
@@ -205,6 +209,9 @@ ul.fa-ul {
     position: relative;
     z-index: 1;
     margin-top: 4px;
+    > a {
+        vertical-align: top;
+    }
 }
 
 .grab-handle {

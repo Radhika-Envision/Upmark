@@ -554,16 +554,37 @@ angular.module('wsaa.surveyQuestions', [
             $scope.layout = layout;
             $scope.$watchGroup(['entity', 'assessment'], function(vals) {
                 $scope.structure = Structure(vals[0], vals[1]);
+                $scope.currentItem = $scope.structure.hstack[
+                    $scope.structure.hstack.length - 1];
+                $scope.upItem = $scope.structure.hstack[
+                    $scope.structure.hstack.length - 2];
             });
 
-            $scope.itemUrl = function(item) {
-                var path = format("/{}/{}", item.path, item.entity.id);
+            $scope.itemUrl = function(item, accessor) {
+                if (!item)
+                    return "";
+
+                var key;
+                if (accessor)
+                    key = item.entity[accessor];
+                else
+                    key = item.entity.id;
+
+                if (!key)
+                    return "";
+
+                var path = format("/{}/{}", item.path, key);
+                var query = [];
                 if (item.path != 'survey' && item.path != 'assessment') {
                     if ($scope.assessment)
-                        path += '?assessment=' + $scope.assessment.id;
+                        query.push('assessment=' + $scope.assessment.id);
                     else
-                        path += '?survey=' + $scope.structure.survey.id;
+                        query.push('survey=' + $scope.structure.survey.id);
                 }
+                if (item.path == 'measure' && item.entity.parent) {
+                    query.push('parent=' + item.entity.parent.id);
+                }
+                path += '?' + query.join('&');
                 return path;
             };
 
@@ -572,12 +593,30 @@ angular.module('wsaa.surveyQuestions', [
                     combo: ['u'],
                     description: "Go up one level of the hierarchy",
                     callback: function(event, hotkey) {
-                        var item = $scope.structure.hstack[
-                            $scope.structure.hstack.length - 2]
-                        if (item)
-                            $location.url($scope.itemUrl(item));
-                        else
-                            $location.url('/surveys');
+                        var url = $scope.itemUrl($scope.upItem);
+                        if (!url)
+                            url = '/surveys';
+                        $location.url(url);
+                    }
+                })
+                .add({
+                    combo: ['p'],
+                    description: "Go to the previous category or measure",
+                    callback: function(event, hotkey) {
+                        var url = $scope.itemUrl($scope.currentItem, 'prev');
+                        if (!url)
+                            return;
+                        $location.url(url);
+                    }
+                })
+                .add({
+                    combo: ['n'],
+                    description: "Go to the next category or measure",
+                    callback: function(event, hotkey) {
+                        var url = $scope.itemUrl($scope.currentItem, 'next');
+                        if (!url)
+                            return;
+                        $location.url(url);
                     }
                 });
         }]

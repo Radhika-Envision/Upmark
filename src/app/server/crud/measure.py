@@ -76,14 +76,33 @@ class MeasureHandler(
             son = to_son(measure)
 
             if parent_id != '':
-                for i, link in enumerate(measure.qnode_measures):
+                for p, link in zip(son['parents'], measure.qnode_measures):
                     if str(link.qnode_id) == parent_id:
-                        son['parent'] = son['parents'][i]
+                        son['parent'] = p
                         son['seq'] = link.seq
                         break
                 if 'parent' not in son:
                     raise handlers.MissingDocError(
                         "That question node is not a parent of this measure")
+
+                prev = (session.query(model.QnodeMeasure)
+                    .filter(model.QnodeMeasure.qnode_id == parent_id,
+                            model.QnodeMeasure.survey_id == measure.survey_id,
+                            model.QnodeMeasure.seq < son['seq'])
+                    .order_by(model.QnodeMeasure.seq.desc())
+                    .first())
+                next_ = (session.query(model.QnodeMeasure)
+                    .filter(model.QnodeMeasure.qnode_id == parent_id,
+                            model.QnodeMeasure.survey_id == measure.survey_id,
+                            model.QnodeMeasure.seq > son['seq'])
+                    .order_by(model.QnodeMeasure.seq)
+                    .first())
+
+                if prev is not None:
+                    son['prev'] = str(prev.measure_id)
+                if next_ is not None:
+                    son['next'] = str(next_.measure_id)
+
             else:
                 son['survey'] = to_son(measure.survey)
 

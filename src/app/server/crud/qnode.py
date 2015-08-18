@@ -55,6 +55,25 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 r'/hierarchy/survey$'
             ])
             son = to_son(qnode)
+
+            sibling_query = (session.query(model.QuestionNode)
+                .filter(model.QuestionNode.survey_id==qnode.survey_id,
+                        model.QuestionNode.parent_id==qnode.parent_id))
+
+            prev = (sibling_query
+                .filter(model.QuestionNode.seq < qnode.seq)
+                .order_by(model.QuestionNode.seq.desc())
+                .first())
+            next_ = (sibling_query
+                .filter(model.QuestionNode.seq > qnode.seq)
+                .order_by(model.QuestionNode.seq)
+                .first())
+
+            if prev is not None:
+                son['prev'] = str(prev.id)
+            if next_ is not None:
+                son['next'] = str(next_.id)
+
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
