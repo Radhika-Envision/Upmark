@@ -377,8 +377,8 @@ angular.module('wsaa.surveyQuestions', [
             error = "Import failed: " + request.statusText;
         } else {
             error = details;
-            dropzone.removeAllFiles();
         }
+        dropzone.removeAllFiles();
         Notifications.set('import', 'error', error);
         $scope.progress.isWorking = false;
         $scope.progress.isFinished = false;
