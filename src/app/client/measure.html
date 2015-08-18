@@ -114,6 +114,8 @@
                 ng-click="saveResponse()">
             <i class="fa fa-check fa-fw"></i></button>
     </response>
+    <p class="spaced" ng-if="response.user">Last edited by
+        <a ng-href="#/user/{{response.user.id}}">{{response.user.name}}</a>.</p>
 </div>
 
 

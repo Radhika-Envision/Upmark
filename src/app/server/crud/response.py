@@ -36,6 +36,7 @@ class ResponseHandler(handlers.BaseHandler):
                 # Fields to match from any visited object
                 r'/id$',
                 r'/title$',
+                r'/name$',
                 # Fields to match from only the root object
                 r'^/assessment_id$',
                 r'^/measure_id$',
@@ -48,6 +49,7 @@ class ResponseHandler(handlers.BaseHandler):
                 r'/parent$',
                 r'/measure$',
                 r'/assessment$',
+                r'/user$',
             ], exclude=[
                 # The IDs of rnodes and responses are not part of the API
                 'r/^id$/',
