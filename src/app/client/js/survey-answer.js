@@ -163,7 +163,6 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
             };
 
             $scope.choose = function(iPart, iOpt, note) {
-                console.log('choosing', iPart, iOpt)
                 var parts = angular.copy($scope.response.responseParts);
                 parts[iPart] = {
                     index: iOpt,
@@ -216,7 +215,6 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                 if (!responseType || !responseParts)
                     return;
 
-                console.log('calculating score')
                 var expressionVars = {};
                 var score = 0.0;
                 for (var i = 0; i < responseType.parts.length; i++) {

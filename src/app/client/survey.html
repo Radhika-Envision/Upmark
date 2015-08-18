@@ -110,6 +110,31 @@
 </div>
 
 
+<div class="container" ng-if="checkRole('survey_state')">
+    <p class="text-center">
+        <!-- Admin buttons -->
+        <button class="btn btn-link" ng-click="toggleOpen()">
+            <span ng-if="survey.isOpen">
+                <i class="fa fa-ban"></i>
+                Un-open survey</span>
+            <span ng-if="!survey.isOpen">
+                <i class="fa fa-circle-o"></i>
+                Open survey</span>
+        </button>
+        <button class="btn btn-link" ng-click="toggleEditable()">
+            <i class="fa fa-pencil-square-o">
+                <i ng-if="survey.isEditable"
+                    class="fa fa-ban fa-badge fa-badge-left"></i>
+            </i>
+            <span ng-if="survey.isEditable">
+                Make non-editable</span>
+            <span ng-if="!survey.isEditable">
+                Make editable</span>
+        </button>
+    </p>
+</div>
+
+
 <div class="container" ng-if="!survey.isOpen || checkRole('survey_edit')">
     <div class="section">
         <div class="toolbar">
@@ -137,31 +162,6 @@
 
     <p ng-if="!hierarchies.length">
         There are no question sets yet.
-    </p>
-</div>
-
-
-<div class="container" ng-if="checkRole('survey_state')">
-    <p class="text-center">
-        <!-- Admin buttons -->
-        <button class="btn btn-link" ng-click="toggleOpen()">
-            <span ng-if="survey.isOpen">
-                <i class="fa fa-ban"></i>
-                Un-open survey</span>
-            <span ng-if="!survey.isOpen">
-                <i class="fa fa-circle-o"></i>
-                Open survey</span>
-        </button>
-        <button class="btn btn-link" ng-click="toggleEditable()">
-            <i class="fa fa-pencil-square-o">
-                <i ng-if="survey.isEditable"
-                    class="fa fa-ban fa-badge fa-badge-left"></i>
-            </i>
-            <span ng-if="survey.isEditable">
-                Make non-editable</span>
-            <span ng-if="!survey.isEditable">
-                Make editable</span>
-        </button>
     </p>
 </div>
 
