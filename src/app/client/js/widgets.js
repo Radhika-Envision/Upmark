@@ -344,7 +344,7 @@ angular.module('vpac.widgets', [])
 
 .factory('layout', function() {
     return {
-        expandHeader: true
+        expandHeader: false
     };
 })
 

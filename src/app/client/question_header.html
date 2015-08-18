@@ -5,6 +5,8 @@
     <a ng-if="item.entity.title && !$last" ng-href="#{{itemUrl(item)}}">
         <span ng-if="item.entity.seq != null">
             {{item.entity.seq + 1}}.</span>
+        <span class="when-collapsed" ng-if="item.entity.seq == null">
+            {{item.label}}</span>
         <span class="when-expanded">
             {{item.entity.title}}</span>
     </a>

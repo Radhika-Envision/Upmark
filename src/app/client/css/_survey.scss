@@ -71,10 +71,16 @@ h2 {
     }
 }
 
-.header-collapsed {
+.stacked-header.header-collapsed {
+    position: relative;
     h2 {
-        display: inline;
+        display: inline-block;
+        position: static;
+        padding-right: 0.2em;
         &[label]:before {
+            top: 6px;
+        }
+        &:not(:last-child)[label]:before {
             display: none;
         }
     }
