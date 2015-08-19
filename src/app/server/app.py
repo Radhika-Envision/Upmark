@@ -185,7 +185,7 @@ def get_mappings():
 
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response.json", import_handlers.ImportResponseHandler, {}),
-        (r"/import/assessment/?([^/]*).json", import_handlers.ImportAssessmentHandler, {}),
+        (r"/import/assessment.json", import_handlers.ImportAssessmentHandler, {}),
         (r"/(.*)", tornado.web.StaticFileHandler, {
             'path': os.path.join(package_dir, "..", "client")}),
     ]

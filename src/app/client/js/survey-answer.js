@@ -132,6 +132,109 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 }])
 
 
+.controller('AssessmentImportCtrl', [
+        '$scope', 'Assessment', 'Hierarchy', 'routeData', 'Editor',
+        'responseAuthz', 'layout', '$location', 'Current', 'format', '$filter',
+        'Notifications', '$http', '$cookies', '$timeout',
+        function($scope, Assessment, Hierarchy, routeData, Editor, authz,
+                 layout, $location, current, format, $filter, Notifications, 
+                 $http, $cookies, $timeout) {
+
+    $scope.survey = routeData.survey;
+    $scope.hierarchies = routeData.hierarchies;
+    $scope.progress = {
+        isWorking: false,
+        isFinished: false,
+        uploadFraction: 0.0
+    };
+    Notifications.remove('import');
+    $scope.assessment = new Assessment({
+        survey: $scope.survey,
+        hierarchy : null,
+        title: "Aquamark Assessment Import",
+        organisation: routeData.organisation
+    });
+    if ($scope.hierarchies.length == 1) {
+        $scope.assessment.hierarchy = $scope.hierarchies[0];
+    }
+
+    var headers = {};
+    var xsrfName = $http.defaults.xsrfHeaderName;
+    headers[xsrfName] = $cookies.get($http.defaults.xsrfCookieName);
+
+    var config = {
+        url: '/import/assessment.json',
+        maxFilesize: 50,
+        paramName: "file",
+        acceptedFiles: ".xls,.xlsx",
+        headers: headers,
+        autoProcessQueue: false
+    };
+
+    Dropzone.autoDiscover = false;
+    var dropzone = new Dropzone("#dropzone", config);
+
+    $scope.import = function() {
+        if (!dropzone.files.length) {
+            Notifications.set('import', 'error', "Please choose a file");
+            return;
+        }
+        $scope.progress.isWorking = true;
+        $scope.progress.isFinished = false;
+        $scope.progress.uploadFraction = 0.0;
+        dropzone.processQueue();
+    };
+
+    $scope.reset = function() {
+        dropzone.processQueue();
+    }
+
+    dropzone.on('sending', function(file, xhr, formData) {
+        formData.append('survey', $scope.survey.id);
+        formData.append('organisation', $scope.assessment.organisation.id);
+        formData.append('hierarchy', $scope.assessment.hierarchy.id);
+        formData.append('title', $scope.assessment.title);
+    });
+
+    dropzone.on('uploadprogress', function(file, progress) {
+        console.log(progress);
+        $scope.progress.uploadFraction = progress / 100;
+        $scope.$apply();
+    });
+
+    dropzone.on("success", function(file, response) {
+        Notifications.set('import', 'success', "Import finished", 5000);
+        $timeout(function() {
+            $scope.progress.isFinished = true;
+        }, 1000);
+        $timeout(function() {
+            $location.url('/survey/' + response);
+        }, 5000);
+    });
+
+    dropzone.on('addedfile', function(file) {
+        if (dropzone.files.length > 1)
+            dropzone.removeFile(dropzone.files[0]);
+    });
+
+    dropzone.on("error", function(file, details, request) {
+        var error;
+        if (request) {
+            error = "Import failed: " + request.statusText;
+        } else {
+            error = details;
+        }
+        dropzone.removeAllFiles();
+        Notifications.set('import', 'error', error);
+        $scope.progress.isWorking = false;
+        $scope.progress.isFinished = false;
+        $scope.$apply();
+    });
+
+    $scope.checkRole = authz(current, $scope.assessment);
+}])
+
+
 .directive('response', [function() {
     return {
         restrict: 'E',

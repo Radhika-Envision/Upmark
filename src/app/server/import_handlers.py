@@ -79,23 +79,27 @@ class ImportAssessmentHandler(handlers.BaseHandler):
 
     @handlers.authz('author')
     @gen.coroutine
-    def post(self, survey_id):
+    def post(self):
         fileinfo = self.request.files['file'][0]
         fd = tempfile.NamedTemporaryFile()
         try:
             fd.write(fileinfo['body'])
-            survey_id = yield self.background_task(fd.name, survey_id)
+            survey_id = yield self.background_task(fd.name)
         finally:
             fd.close()
         self.set_header("Content-Type", "text/plain")
+        self.write(survey_id)
         self.finish()
 
     @run_on_executor
-    def background_task(self, file_path, survey_id):
+    def background_task(self, file_path):
         i = Importer()
+        survey_id = self.get_argument('survey')
+        organisation_id = self.get_argument('organisation')
+        hierarchy_id = self.get_argument("hierarchy")
         title = self.get_argument('title')
-        organisation = self.get_argument('organisation')
-        survey_id = i.process_assessment_file(file_path, survey_id, title, organisation)
+        user_id = self.get_current_user().id
+        survey_id = i.process_assessment_file(file_path, survey_id, hierarchy_id, organisation_id, title, user_id)
         return survey_id
 
 
@@ -116,7 +120,6 @@ class Importer():
         with xlrd.open_workbook(path) as book:
             scoring_sheet = book.sheet_by_name("Scoring")
 
-            # read rows
             for row_num in range(0, scoring_sheet.nrows - 1):
                 row = scoring_sheet.row_values(row_num)
                 all_rows.append(row)
@@ -133,19 +136,6 @@ class Importer():
             session.add(survey)
             session.flush()
             survey_id = str(survey.id)
-
-            # m = session.query(model.Measure).filter_by(
-            #     survey_id=survey_id).first()
-            # if m:
-            #     raise Exception("Survey is not empty")
-            # h = session.query(model.Hierarchy).filter_by(
-            #     survey_id=survey_id).first()
-            # if h:
-            #     raise Exception("Survey is not empty")
-            # q = session.query(model.QuestionNode).filter_by(
-            #     survey_id=survey_id).first()
-            # if q:
-            #     raise Exception("Survey is not empty")
 
             hierarchy = model.Hierarchy()
             hierarchy.survey_id = survey.id
@@ -291,7 +281,7 @@ class Importer():
         '''
 
 
-    def process_assessment_file(self, path, survey_id, title, organisation):
+    def process_assessment_file(self, path, survey_id, hierarchy_id, organisation_id, title, user_id):
         """
         Open and read an Excel file
         """
@@ -311,14 +301,14 @@ class Importer():
             if survey is None:
                 raise Exception("There is no Survey.")
 
-            hierarchy = session.query(model.Hierarchy).filter_by(survey_id=survey_id).one()
+            hierarchy = session.query(model.Hierarchy).filter_by(id=hierarchy_id).one()
             if hierarchy is None:
                 raise Exception("There is no Hierarchy.")
 
             assessment = model.Assessment()
             assessment.survey_id = survey.id
             assessment.hierarchy_id = hierarchy.id
-            assessment.organisation_id = organisation.id
+            assessment.organisation_id = organisation_id
             assessment.title = title
             assessment.approval = 'draft'
             session.add(assessment)
@@ -339,8 +329,8 @@ class Importer():
             survey_qnodes = session.query(model.QuestionNode).filter_by(survey_id=survey_id)
             # session.expunge_all()
 
-            for row_num in range(0, len(all_rows)-1):
-                try:
+            try:
+                for row_num in range(0, len(all_rows)-1):
                     order, title = self.parse_order_title(all_rows, row_num, "A", "{order} {title}")
                     function = survey_qnodes.filter_by(parent_id=None, title=title).one()
 
@@ -351,25 +341,32 @@ class Importer():
                     subprocess = survey_qnodes.filter_by(parent_id=process.id, title=title).one()
 
                     order, title = self.parse_order_title(all_rows, row_num, "D", "{order} {title}")
-
                     measure = [m for m in subprocess.measures if m.title == title]
-                    if len(measure) > 0:
+
+                    if len(measure) == 1:
                         measure = measure[0]
                     else:
                         raise Exception("This survey is not matching current open survey. ")
 
-                except sqlalchemy.orm.exc.NoResultFound:
-                    raise Exception("This survey is not matching current open survey. ", all_rows[row_num], title)
+                    response = model.Response()
+                    response.survey_id = survey_id
+                    response.measure_id = measure.id
+                    response.assessment_id = assessment.id
+                    response.user_id = user_id
+                    response.comment = all_rows[row_num][self.col2num("K")]
+                    response.not_relevant = False
+                    session.add(response)
+            except sqlalchemy.orm.exc.NoResultFound:
+                raise Exception("This survey is not matching current open survey. ", all_rows[row_num], title)
+
+        return survey_id
+
 
 
     def parse_order_title(self, all_rows, row_num, col_chr, parse_expression):
         col_num = self.col2num(col_chr)
         column = all_rows[row_num][col_num]
-        # log.info("column: %s", column)
-        # log.info("col_chr: %s", col_chr)
-        # log.info("parse_expression: %s", parse_expression)
         column_object = parse(parse_expression, column)
-        # log.info("column_object: %s", column_object)
         order = column_object["order"]
         title = column_object["title"].replace("\n", chr(10))
         return order, title        
