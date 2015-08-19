@@ -505,6 +505,9 @@ class Response(Versioned, Base):
     audit_reason = Column(Text)
 
     score = Column(Float, default=0.0, nullable=False)
+    approval = Column(
+        Enum('draft', 'final', 'reviewed', 'approved', native_enum=False),
+        nullable=False)
 
     __table_args__ = (
         ForeignKeyConstraint(
