@@ -3,17 +3,17 @@
 <div class="toolbar" ng-if="!layout.expandHeader">
     <a ng-disabled="!currentItem.entity.prev"
             class="btn btn-default btn-round"
-            ng-href="#{{itemUrl(currentItem, 'prev')}}"
+            ng-href="{{itemUrl(currentItem, 'prev')}}"
             title="Previous">
         <i class="fa fa-fw fa-angle-left"></i></a>
     <a ng-disabled="!upItem.entity"
             class="btn btn-default btn-round"
-            ng-href="#{{itemUrl(upItem)}}"
+            ng-href="{{itemUrl(upItem)}}"
             title="Go up one level">
         <i class="fa fa-fw fa-angle-up"></i></a>
     <a ng-disabled="!currentItem.entity.next"
             class="btn btn-default btn-round"
-            ng-href="#{{itemUrl(currentItem, 'next')}}"
+            ng-href="{{itemUrl(currentItem, 'next')}}"
             title="Next">
         <i class="fa fa-fw fa-angle-right"></i></a>
 </div>
@@ -22,21 +22,21 @@
     <div class="toolbar" ng-if="layout.expandHeader && $last">
         <a ng-disabled="!currentItem.entity.prev"
                 class="btn btn-default btn-round"
-                ng-href="#{{itemUrl(currentItem, 'prev')}}"
+                ng-href="{{itemUrl(currentItem, 'prev')}}"
                 title="Previous">
             <i class="fa fa-fw fa-angle-left"></i></a>
         <a ng-disabled="!upItem.entity"
                 class="btn btn-default btn-round"
-                ng-href="#{{itemUrl(upItem)}}"
+                ng-href="{{itemUrl(upItem)}}"
                 title="Go up one level">
             <i class="fa fa-fw fa-angle-up"></i></a>
         <a ng-disabled="!currentItem.entity.next"
                 class="btn btn-default btn-round"
-                ng-href="#{{itemUrl(currentItem, 'next')}}"
+                ng-href="{{itemUrl(currentItem, 'next')}}"
                 title="Next">
             <i class="fa fa-fw fa-angle-right"></i></a>
     </div>
-    <a ng-if="item.entity.title && !$last" ng-href="#{{itemUrl(item)}}">
+    <a ng-if="item.entity.title && !$last" ng-href="{{itemUrl(item)}}">
         <span ng-if="item.entity.seq != null">
             {{item.entity.seq + 1}}.</span>
         <span class="when-collapsed" ng-if="item.entity.seq == null">

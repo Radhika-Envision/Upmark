@@ -564,16 +564,13 @@ angular.module('wsaa.surveyQuestions', [
                 if (!item)
                     return "";
 
-                var key;
-                if (accessor)
-                    key = item.entity[accessor];
-                else
-                    key = item.entity.id;
+                var accessor = accessor || 'id';
+                var key = item.entity[accessor];
 
                 if (!key)
                     return "";
 
-                var path = format("/{}/{}", item.path, key);
+                var path = format("#/{}/{}", item.path, key);
                 var query = [];
                 if (item.path != 'survey' && item.path != 'assessment') {
                     if ($scope.assessment)
@@ -585,6 +582,7 @@ angular.module('wsaa.surveyQuestions', [
                     query.push('parent=' + item.entity.parent.id);
                 }
                 path += '?' + query.join('&');
+
                 return path;
             };
 
@@ -596,7 +594,7 @@ angular.module('wsaa.surveyQuestions', [
                         var url = $scope.itemUrl($scope.upItem);
                         if (!url)
                             url = '/surveys';
-                        $location.url(url);
+                        $location.url(url.substring(1));
                     }
                 })
                 .add({
@@ -606,7 +604,7 @@ angular.module('wsaa.surveyQuestions', [
                         var url = $scope.itemUrl($scope.currentItem, 'prev');
                         if (!url)
                             return;
-                        $location.url(url);
+                        $location.url(url.substring(1));
                     }
                 })
                 .add({
@@ -616,7 +614,7 @@ angular.module('wsaa.surveyQuestions', [
                         var url = $scope.itemUrl($scope.currentItem, 'next');
                         if (!url)
                             return;
-                        $location.url(url);
+                        $location.url(url.substring(1));
                     }
                 });
         }]
