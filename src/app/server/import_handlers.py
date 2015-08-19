@@ -9,6 +9,7 @@ import logging
 import tempfile
 import threading
 import json
+import sqlalchemy
 
 from sqlalchemy.orm import joinedload
 from tornado import gen
@@ -87,13 +88,14 @@ class ImportAssessmentHandler(handlers.BaseHandler):
         finally:
             fd.close()
         self.set_header("Content-Type", "text/plain")
-        self.write(survey_id)
         self.finish()
 
     @run_on_executor
     def background_task(self, file_path, survey_id):
         i = Importer()
-        survey_id = i.process_assessment_file(file_path, survey_id)
+        title = self.get_argument('title')
+        organisation = self.get_argument('organisation')
+        survey_id = i.process_assessment_file(file_path, survey_id, title, organisation)
         return survey_id
 
 
@@ -289,7 +291,7 @@ class Importer():
         '''
 
 
-    def process_assessment_file(self, path, survey_id):
+    def process_assessment_file(self, path, survey_id, title, organisation):
         """
         Open and read an Excel file
         """
@@ -309,14 +311,22 @@ class Importer():
             if survey is None:
                 raise Exception("There is no Survey.")
 
-            hierarchy = session.query(model.Hierarchy).filter_by(survey_id = survey_id).one()
+            hierarchy = session.query(model.Hierarchy).filter_by(survey_id=survey_id).one()
             if hierarchy is None:
                 raise Exception("There is no Hierarchy.")
 
+            assessment = model.Assessment()
+            assessment.survey_id = survey.id
+            assessment.hierarchy_id = hierarchy.id
+            assessment.organisation_id = organisation.id
+            assessment.title = title
+            assessment.approval = 'draft'
+            session.add(assessment)
+            session.flush()
 
             all_rows = []
             for row_num in range(1, sheet.nrows - 1):
-                cell = sheet.row(row_num)
+                cell = sheet.row_values(row_num)
                 all_rows.append(cell)
 
             # all_functions = session.query(model.Qnode).filter_by(survey_id = survey_id)
@@ -326,34 +336,42 @@ class Importer():
             subprocess_col_num = self.col2num("C")
             measure_col_num = self.col2num("D")
 
-            list_check = [
-               {col: "A", model: model.QuestionNode, expression: "{order} {title}"},
-               {col: "B", model: model.QuestionNode, expression: "{function_order}.{order} {title}"},
-               {col: "C", model: model.QuestionNode, expression: "{function_order}.{process_order}.{order} {title}"},
-               {col: "D", model: model.Measure, expression: "{order} {title}"}
-            ]
+            survey_qnodes = session.query(model.QuestionNode).filter_by(survey_id=survey_id)
+            # session.expunge_all()
 
-            log.info("row length: %s", len(all_rows))
-            for row_num in range(0, len(all_rows)):
-                for check in list_check:
-                    order, title = self.parse_order_title(all_rows, row_num, check.col, check.expression)
-                    if check.col == "D":
-                        matching = session.query(check["model"]).filter_by(survey_id=survey_id, title=title)
+            for row_num in range(0, len(all_rows)-1):
+                try:
+                    order, title = self.parse_order_title(all_rows, row_num, "A", "{order} {title}")
+                    function = survey_qnodes.filter_by(parent_id=None, title=title).one()
+
+                    order, title = self.parse_order_title(all_rows, row_num, "B", "{order} {title}")
+                    process = survey_qnodes.filter_by(parent_id=function.id, title=title).one()
+
+                    order, title = self.parse_order_title(all_rows, row_num, "C", "{order} {title}")
+                    subprocess = survey_qnodes.filter_by(parent_id=process.id, title=title).one()
+
+                    order, title = self.parse_order_title(all_rows, row_num, "D", "{order} {title}")
+
+                    measure = [m for m in subprocess.measures if m.title == title]
+                    if len(measure) > 0:
+                        measure = measure[0]
                     else:
-                        matching = session.query(check["model"]).filter_by(survey_id=survey_id, seq=order, title=title)
+                        raise Exception("This survey is not matching current open survey. ")
 
-                    if matching is None:
-                        raise Exception("Function is not matching current open survey.")
-
-
+                except sqlalchemy.orm.exc.NoResultFound:
+                    raise Exception("This survey is not matching current open survey. ", all_rows[row_num], title)
 
 
     def parse_order_title(self, all_rows, row_num, col_chr, parse_expression):
         col_num = self.col2num(col_chr)
         column = all_rows[row_num][col_num]
+        # log.info("column: %s", column)
+        # log.info("col_chr: %s", col_chr)
+        # log.info("parse_expression: %s", parse_expression)
         column_object = parse(parse_expression, column)
+        # log.info("column_object: %s", column_object)
         order = column_object["order"]
-        title = column_object["title"]
+        title = column_object["title"].replace("\n", chr(10))
         return order, title        
 
 
