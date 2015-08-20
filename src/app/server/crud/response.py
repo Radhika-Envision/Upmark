@@ -76,6 +76,14 @@ class ResponseHandler(handlers.BaseHandler):
             raise handlers.ModelError("qnode ID required")
 
         with model.session_scope() as session:
+            assessment = (session.query(model.Assessment)
+                .filter_by(id=assessment_id)
+                .first())
+
+            if assessment is None:
+                raise handlers.MissingDocError("No such assessment")
+            self._check_authz(assessment)
+
             rnode = (session.query(model.ResponseNode)
                 .filter_by(assessment_id=assessment_id,
                            qnode_id=qnode_id)
@@ -86,19 +94,24 @@ class ResponseHandler(handlers.BaseHandler):
             else:
                 responses = rnode.responses
 
+            exclude = [
+                # The IDs of rnodes and responses are not part of the API
+                r'^/[0-9]+/id$',
+            ]
+            if self.current_user.role in {'clerk', 'org_admin'}:
+                exclude += [
+                    r'/score$',
+                ]
+
             to_son = ToSon(include=[
                 # Fields to match from any visited object
                 r'/id$',
                 r'/score$',
+                r'/approval$',
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/measure$',
-                # Only root
-                r'^/[0-9]+/approval$',
-            ], exclude=[
-                # The IDs of rnodes and responses are not part of the API
-                r'^/[0-9]+/id$',
-            ])
+            ], exclude=exclude)
             sons = to_son(responses)
 
         self.set_header("Content-Type", "application/json")

@@ -126,20 +126,26 @@ angular.module('vpac.utils', [])
         if (!path1 || !path2)
             throw "Missing path; can't bind.";
 
-        logger('bind: Binding {}.{} to {}.{}', scope2.$id, path2, scope1.$id, path1);
+        logger('bind: Binding {}.{} to {}.{}',
+            scope2.$id, path2, scope1.$id, path1);
+
         scope1.$watch(path1, function(value) {
             if (value === undefined)
                 return;
-            logger('bind: {}.{} = {}.{} = {}', scope2.$id, path2, scope1.$id, path1, value);
+            logger('bind: {}.{} = {}.{} = {}',
+                scope2.$id, path2, scope1.$id, path1, value);
             get2.assign(scope2, value);
         });
 
         if (twoWay) {
-            logger('bind: Binding {}.{} to {}.{}', scope1.$id, path1, scope2.$id, path2);
+            logger('bind: Binding {}.{} to {}.{}',
+                scope1.$id, path1, scope2.$id, path2);
+
             scope2.$watch(path2, function(value) {
                 if (value === undefined)
                     return;
-                logger('bind: {}.{} = {}.{} = {}', scope1.$id, path1, scope2.$id, path2, value);
+                logger('bind: {}.{} = {}.{} = {}',
+                    scope1.$id, path1, scope2.$id, path2, value);
                 get1.assign(scope1, value);
             });
         }

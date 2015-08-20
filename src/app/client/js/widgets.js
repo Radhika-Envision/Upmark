@@ -360,6 +360,8 @@ angular.module('vpac.widgets', [])
         restrict: 'A',
         link: function(scope, elem, attrs) {
             elem.on('click.anyHref', function() {
+                if (attrs.disabled)
+                    return;
                 scope.$apply(function() {
                     $location.url(attrs.anyHref);
                 });

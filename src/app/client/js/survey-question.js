@@ -699,10 +699,10 @@ angular.module('wsaa.surveyQuestions', [
 .controller('QuestionNodeCtrl', [
         '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'format', 'Structure',
-        'Measure', 'layout', 'Response', 'Arrays',
+        'layout', 'Arrays',
         function($scope, QuestionNode, routeData, Editor, authz,
                  $location, Notifications, current, format, Structure,
-                 Measure, layout, Response, Arrays) {
+                 layout, Arrays) {
 
     // routeData.parent and routeData.hierarchy will only be defined when
     // creating a new qnode.
@@ -724,55 +724,19 @@ angular.module('wsaa.surveyQuestions', [
         $scope.measures = null;
     }
 
-    if ($scope.assessment) {
-        // Get the responses that is associated with this qnode and assessment.
-        $scope.$watch('measures.$resolved', function(measures) {
-            $scope.measures.$promise.then(function(measures) {
-                Response.query({
-                    assessmentId: $scope.assessment.id,
-                    qnodeId: $scope.qnode.id
-                }).$promise.then(
-                    function success(responses) {
-                        var rmap = {};
-                        for (var i = 0; i < responses.length; i++) {
-                            var response = responses[i];
-                            rmap[response.measure.id] = response;
-                        }
-                        for (var i = 0; i < measures.length; i++) {
-                            var measure = measures[i];
-                            var approval;
-                            if (rmap[measure.id])
-                                approval = rmap[measure.id].approval;
-                            else
-                                approval = 'draft'
-                            measure.approval = approval;
-                        }
-                    },
-                    function failure(details) {
-                        Notifications.set('edit', 'error',
-                            "Could not get aggregate scores: " +
-                            details.statusText);
-                    }
-                );
-            });
-        });
-    }
-
-    $scope.$watch('qnode', function(qnode) {
-        $scope.structure = Structure(qnode);
-        $scope.survey = $scope.structure.survey;
-        $scope.edit = Editor('qnode', $scope, {
-            parentId: routeData.parent && routeData.parent.id,
-            hierarchyId: routeData.hierarchy && routeData.hierarchy.id,
-            surveyId: $scope.survey.id
-        });
-        if (!qnode.id)
-            $scope.edit.edit();
-
-        var levels = $scope.structure.hierarchy.structure.levels;
-        $scope.currentLevel = levels[$scope.structure.qnodes.length - 1];
-        $scope.nextLevel = levels[$scope.structure.qnodes.length];
+    $scope.structure = Structure($scope.qnode);
+    $scope.survey = $scope.structure.survey;
+    $scope.edit = Editor('qnode', $scope, {
+        parentId: routeData.parent && routeData.parent.id,
+        hierarchyId: routeData.hierarchy && routeData.hierarchy.id,
+        surveyId: $scope.survey.id
     });
+    if (!$scope.qnode.id)
+        $scope.edit.edit();
+
+    var levels = $scope.structure.hierarchy.structure.levels;
+    $scope.currentLevel = levels[$scope.structure.qnodes.length - 1];
+    $scope.nextLevel = levels[$scope.structure.qnodes.length];
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
@@ -809,8 +773,88 @@ angular.module('wsaa.surveyQuestions', [
     };
 
     $scope.checkRole = authz(current, $scope.survey);
-    $scope.QuestionNode = QuestionNode;
-    $scope.Measure = Measure;
+    $scope.editable = ($scope.survey.isEditable &&
+        !$scope.assessment && $scope.checkRole('survey_node_edit'));
+}])
+
+
+.controller('QnodeChildren', ['$scope', 'bind', 'Editor', 'QuestionNode',
+        function($scope, bind, Editor, QuestionNode) {
+
+    bind($scope, 'children', $scope, 'model', true);
+
+    $scope.edit = Editor('model', $scope, {}, QuestionNode);
+    $scope.$on('EditSaved', function(event, model) {
+        event.stopPropagation();
+    });
+
+    $scope.dragOpts = {
+        axis: 'y',
+        handle: '.grab-handle'
+    };
+
+    $scope.$watchGroup(['survey', 'assessment', 'qnode'], function() {
+        if ($scope.assessment)
+            $scope.query = 'assessment=' + $scope.assessment.id;
+        else
+            $scope.query = 'survey=' + $scope.survey.id;
+
+        $scope.edit.params = {
+            surveyId: $scope.survey.id,
+            parentId: $scope.qnode.id
+        }
+    });
+}])
+
+
+.controller('QnodeMeasures', ['$scope', 'bind', 'Editor', 'Measure', 'Response',
+        'Notifications',
+        function($scope, bind, Editor, Measure, Response, Notifications) {
+
+    bind($scope, 'measures', $scope, 'model', true);
+
+    $scope.edit = Editor('model', $scope, {}, Measure);
+    $scope.$on('EditSaved', function(event, model) {
+        event.stopPropagation();
+    });
+
+    $scope.dragOpts = {
+        axis: 'y',
+        handle: '.grab-handle'
+    };
+
+    if ($scope.assessment)
+        $scope.query = 'assessment=' + $scope.assessment.id;
+    else
+        $scope.query = 'survey=' + $scope.survey.id;
+    $scope.query += "&parent=" + $scope.qnode.id;
+
+    $scope.edit.params = {
+        surveyId: $scope.survey.id,
+        qnodeId: $scope.qnode.id
+    }
+
+    if ($scope.assessment) {
+        // Get the responses that are associated with this qnode and assessment.
+        Response.query({
+            assessmentId: $scope.assessment.id,
+            qnodeId: $scope.qnode.id
+        }).$promise.then(
+            function success(responses) {
+                var rmap = {};
+                for (var i = 0; i < responses.length; i++) {
+                    var response = responses[i];
+                    rmap[response.measure.id] = response;
+                }
+                $scope.responseMap = rmap;
+            },
+            function failure(details) {
+                Notifications.set('edit', 'error',
+                    "Could not get aggregate scores: " +
+                    details.statusText);
+            }
+        );
+    }
 }])
 
 

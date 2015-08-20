@@ -1,0 +1,46 @@
+<div class="section">
+    <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Reset order"
+                ng-click="edit.cancel()"
+                ng-if="edit.model">
+            <i class="fa fa-fw fa-times"></i></button>
+        <button class="btn btn-default btn-round" title="Save order"
+                ng-click="edit.save()"
+                ng-if="edit.model">
+            <i class="fa fa-fw fa-check"></i></button>
+        <button class="btn btn-default btn-round" title="Change order"
+                ng-click="edit.edit()"
+                ng-if="editable && model.length > 1 && !edit.model">
+            <i class="fa fa-fw fa-unsorted"></i></button>
+        <a class="btn btn-default btn-round" title="Add new"
+                ng-href="#/measure/new?{{query}}"
+                ng-if="editable && !edit.model">
+            <i class="fa fa-fw fa-plus"></i></a>
+        <a class="btn btn-default btn-round" title="Link to existing"
+                ng-href="#/measure-link?{{query}}"
+                ng-if="editable && !edit.model">
+            <i class="fa fa-fw fa-link"></i></a>
+    </div>
+    <h2>{{structure.hierarchy.structure.measure.title}}</h2>
+</div>
+<table class="table table-hover">
+    <tbody ui-sortable="dragOpts" ng-model="edit.model">
+        <tr ng-repeat="item in edit.model || model"
+                any-href="/measure/{{item.id}}?{{query}}"
+                ng-disabled="edit.model">
+            <td class="shrink">{{item.seq + 1}}</td>
+            <td>{{item.title}}</td>
+            <td class="shrink text-muted" ng-if="!assessment">
+                1
+            </td>
+            <td class="shrink text-muted" ng-if="assessment">
+                {{responseMap[item.id].score || 0 | number:0}}
+            </td>
+            <td class="shrink text-muted" ng-if="assessment">
+                {{responseMap[item.id].approval || 'draft'}}
+            </td>
+            <td class="shrink grab-handle" ng-if="edit.model">
+                <i class="fa fa-fw fa-unsorted"></i></td>
+        </tr>
+    </tbody>
+</table>
