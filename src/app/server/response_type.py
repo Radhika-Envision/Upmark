@@ -39,7 +39,7 @@ class ResponseType:
 
     def calculate_score(self, response):
         if len(response) != len(self.parts):
-            raise ResponseError("Response needs %d parts" % len(self.parts))
+            raise ResponseError("Response is incomplete")
 
         score = 0.0
         variables = {}

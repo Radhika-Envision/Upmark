@@ -169,7 +169,8 @@ class Survey(Base):
     @response_types.setter
     def response_types(self, rts):
         self._response_types = Survey._response_types_schema(rts)
-        del self._materialised_response_types
+        if hasattr(self, '_materialised_response_types'):
+            del self._materialised_response_types
 
     @property
     def materialised_response_types(self):
@@ -267,6 +268,11 @@ class QuestionNode(Base):
 
     survey = relationship(Survey)
 
+    def get_rnode(self, assessment):
+        return (object_session(self).query(ResponseNode)
+            .filter_by(assessment_id=assessment.id, qnode_id=self.id)
+            .first())
+
     def update_stats_ancestors(self):
         '''Updates the stats this node, and all ancestors.'''
         n_measures = len(self.measures)
@@ -306,6 +312,11 @@ class Measure(Base):
 
     survey = relationship(
         Survey, backref=backref('measures', passive_deletes=True))
+
+    def get_response(self, assessment):
+        return (object_session(self).query(Response)
+            .filter_by(assessment_id=assessment.id, measure_id=self.id)
+            .first())
 
     def __repr__(self):
         return "Measure(title={}, survey={})".format(
@@ -393,6 +404,13 @@ class Assessment(Base):
     survey = relationship(Survey)
     organisation = relationship(Organisation)
 
+    @property
+    def rnodes(self):
+        for qnode in self.assessment.qnodes:
+            rnode = qnode.get_rnode(self)
+            if rnode is not None:
+                yield rnode
+
     def update_stats_descendants(self):
         for rnode in self.rnodes:
             rnode.update_stats_descendants()
@@ -431,32 +449,25 @@ class ResponseNode(Base):
     )
 
     survey = relationship(Survey)
+    assessment = relationship(Assessment)
 
     @property
     def parent(self):
-        rnode = (object_session(self).query(ResponseNode)
-            .filter_by(assessment_id=self.assessment_id,
-                       qnode_id=self.qnode.parent_id)
-            .first())
-        return rnode
+        if self.qnode.parent is None:
+            return None
+        return self.qnode.parent.get_rnode(self.assessment)
 
     @property
     def children(self):
         for child_qnode in self.qnode.children:
-            rnode = (object_session(self).query(ResponseNode)
-                .filter_by(assessment_id=self.assessment_id,
-                           qnode_id=child_qnode.id)
-                .first())
+            rnode = child_qnode.get_rnode(self.assessment)
             if rnode is not None:
                 yield rnode
 
     @property
     def responses(self):
         for measure in self.qnode.measures:
-            response = (object_session(self).query(Response)
-                .filter_by(assessment_id=self.assessment_id,
-                           measure_id=measure.id)
-                .first())
+            response = measure.get_response(self.assessment)
             if response is not None:
                 yield response
 
@@ -572,10 +583,7 @@ class Response(Versioned, Base):
             # Might happen if a measure is unlinked after the response is
             # created
             return None
-        rnode = (object_session(self).query(ResponseNode)
-            .filter_by(assessment_id=self.assessment_id, qnode_id=qnode.id)
-            .first())
-        return rnode
+        return qnode.get_rnode(self.assessment)
 
     _response_parts_schema = Schema([
         {
@@ -708,10 +716,6 @@ Assessment.hierarchy = relationship(
 
 Assessment.responses = relationship(
     Response, backref='assessment', passive_deletes=True)
-
-
-Assessment.rnodes = relationship(
-    ResponseNode, backref='assessment', passive_deletes=True)
 
 
 ResponseNode.qnode = relationship(

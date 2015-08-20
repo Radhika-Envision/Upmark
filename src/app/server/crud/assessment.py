@@ -5,6 +5,7 @@ import uuid
 from tornado.escape import json_decode, json_encode
 import tornado.web
 import sqlalchemy
+from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 import crud.survey
@@ -82,6 +83,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/name$',
                 r'/description$',
                 r'/approval$',
+                r'/n_measures$',
                 # Nested
                 r'/survey$',
                 r'/organisation$',
@@ -177,6 +179,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                     raise ValueError("No such object")
                 self._check_modify(assessment)
                 if approval != '':
+                    self._check_approval(session, assessment, approval)
                     self._set_approval(assessment, approval)
                 self._update(assessment, self.request_son)
         except (sqlalchemy.exc.StatementError, ValueError):
@@ -212,6 +215,35 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
     def _check_modify(self, assessment):
         if assessment.organisation.id != self.organisation.id:
             self.check_privillege('consultant')
+
+    def _check_approval(self, session, assessment, approval):
+        if approval == 'approved':
+            approval_set = ('approved')
+        elif approval == 'reviewed':
+            approval_set = ('reviewed', 'approved')
+        elif approval == 'final':
+            approval_set = ('final', 'reviewed', 'approved')
+        else:
+            # No special requirements for setting to draft.
+            return
+
+        n_relevant_responses = (session.query(model.Response)
+                 .filter(model.Response.assessment_id == assessment.id,
+                         model.Response.approval.in_(approval_set))
+                 .count())
+        n_measures = (session.query(model.QnodeMeasure.measure_id)
+                .join(model.QuestionNode)
+                .filter(model.QuestionNode.hierarchy_id == assessment.hierarchy_id,
+                        model.QuestionNode.survey_id == assessment.survey_id,
+                        model.QnodeMeasure.survey_id == assessment.survey_id,
+                        model.QnodeMeasure.qnode_id == model.QuestionNode.id)
+                .distinct()
+                .count())
+
+        if n_relevant_responses < n_measures:
+            raise handlers.ModelError(
+                "%d of %d responses are incomplete" %
+                (n_measures - n_relevant_responses, n_measures))
 
     def _set_approval(self, assessment, approval):
         if self.current_user.role == 'org_admin':
