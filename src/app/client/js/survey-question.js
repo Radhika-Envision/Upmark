@@ -70,6 +70,9 @@ angular.module('wsaa.surveyQuestions', [
                     return Roles.hasPermission(current.user.role, 'clerk') ||
                         Roles.hasPermission(current.user.role, 'consultant');
                     break;
+                case 'assessment_review':
+                    return Roles.hasPermission(current.user.role, 'consultant');
+                    break;
                 default:
                     return Roles.hasPermission(current.user.role, 'author');
             }
