@@ -217,15 +217,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             self.check_privillege('consultant')
 
     def _check_approval(self, session, assessment, approval):
-        if approval == 'approved':
-            approval_set = ('approved')
-        elif approval == 'reviewed':
-            approval_set = ('reviewed', 'approved')
-        elif approval == 'final':
-            approval_set = ('final', 'reviewed', 'approved')
-        else:
-            # No special requirements for setting to draft.
-            return
+        order = ['draft', 'final', 'reviewed', 'approved']
+        approval_set = order[order.index(approval):]
 
         n_relevant_responses = (session.query(model.Response)
                  .filter(model.Response.assessment_id == assessment.id,

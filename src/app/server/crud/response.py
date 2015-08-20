@@ -94,7 +94,7 @@ class ResponseHandler(handlers.BaseHandler):
                     session.add(response)
 
                 if approval != '':
-                    self._set_approval(response, approval)
+                    self._set_approval(response, assessment, approval)
 
                 self._check_response_approval(response)
 
@@ -144,7 +144,13 @@ class ResponseHandler(handlers.BaseHandler):
                 raise handlers.AuthzError(
                     "This response has already been approved")
 
-    def _set_approval(self, response, approval):
+    def _set_approval(self, response, assessment, approval):
+        order = ['draft', 'final', 'reviewed', 'approved']
+        if order.index(assessment.approval) > order.index(approval):
+            raise handlers.ModelError(
+                "This response belongs to an assessment with a state of '%s'."
+                % assessment.approval)
+
         if self.current_user.role in {'org_admin', 'clerk'}:
             if approval not in {'draft', 'final'}:
                 raise handlers.AuthzError(
