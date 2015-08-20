@@ -76,10 +76,8 @@ class ResponseHandler(handlers.BaseHandler):
                 if assessment is None:
                     raise handlers.MissingDocError("No such assessment")
 
-                if not self.has_privillege('consultant'):
-                    if assessment.organisation.id != self.organisation.id:
-                        raise handlers.AuthzError(
-                            "You can't modify another organisation's response")
+                self._check_authz(assessment)
+                self._check_assessment_approval(assessment)
 
                 query = (session.query(model.Response).filter_by(
                      assessment_id=assessment_id, measure_id=measure_id))
@@ -92,11 +90,13 @@ class ResponseHandler(handlers.BaseHandler):
                         raise handlers.MissingDocError("No such measure")
                     response = model.Response(
                         assessment_id=assessment_id, measure_id=measure_id,
-                        survey_id=assessment.survey.id)
+                        survey_id=assessment.survey.id, approval='draft')
                     session.add(response)
 
                 if approval != '':
                     self._set_approval(response, approval)
+
+                self._check_response_approval(response)
 
                 self._update(response, self.request_son)
                 session.flush()
@@ -109,6 +109,40 @@ class ResponseHandler(handlers.BaseHandler):
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(assessment_id, measure_id)
+
+    def _check_authz(self, assessment):
+        if not self.has_privillege('consultant'):
+            if assessment.organisation.id != self.organisation.id:
+                raise handlers.AuthzError(
+                    "You can't modify another organisation's response")
+
+    def _check_assessment_approval(self, assessment):
+        if assessment.approval == 'draft':
+            pass
+        elif assessment.approval == 'final':
+            if not self.has_privillege('org_admin', 'consultant'):
+                raise handlers.AuthzError(
+                    "This assessment has already been finalised")
+        elif assessment.approval == 'reviewed':
+            if not self.has_privillege('consultant'):
+                raise handlers.AuthzError(
+                    "This assessment has already been reviewed")
+        else:
+            if not self.has_privillege('authority'):
+                raise handlers.AuthzError(
+                    "This assessment has already been approved")
+
+    def _check_response_approval(self, response):
+        if response.approval in {'draft', 'final'}:
+            pass
+        elif response.approval == 'reviewed':
+            if not self.has_privillege('consultant'):
+                raise handlers.AuthzError(
+                    "This response has already been reviewed")
+        else:
+            if not self.has_privillege('authority'):
+                raise handlers.AuthzError(
+                    "This response has already been approved")
 
     def _set_approval(self, response, approval):
         if self.current_user.role in {'org_admin', 'clerk'}:

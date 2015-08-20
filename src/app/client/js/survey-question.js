@@ -855,7 +855,8 @@ angular.module('wsaa.surveyQuestions', [
                 assessmentId: $scope.assessment.id,
                 responseParts: [],
                 comment: '',
-                notRelevant: false
+                notRelevant: false,
+                approval: 'draft'
             });
         });
     }
