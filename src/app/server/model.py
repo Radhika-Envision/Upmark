@@ -461,9 +461,30 @@ class ResponseNode(Base):
                 yield response
 
     def update_stats(self):
-        score = sum(c.score for c in self.children)
-        score += sum(r.score for r in self.responses)
+        score = 0.0
+        n_approved = 0
+        n_reviewed = 0
+        n_submitted = 0
+
+        for c in self.children:
+            score += c.score
+            n_approved += c.n_approved
+            n_reviewed += c.n_reviewed
+            n_submitted += c.n_submitted
+
+        for r in self.responses:
+            score += r.score * r.measure.weight
+            if r.approval in {'final', 'reviewed', 'approved'}:
+                n_submitted += 1
+            if r.approval in {'reviewed', 'approved'}:
+                n_reviewed += 1
+            if r.approval in {'approved'}:
+                n_approved += 1
+
         self.score = score
+        self.n_approved = n_approved
+        self.n_reviewed = n_reviewed
+        self.n_submitted = n_submitted
 
     def update_stats_descendants(self):
         for child in self.children:
