@@ -79,7 +79,7 @@ class ResponseType:
                 if not bool(enabled):
                     raise ResponseError(
                         "Response part %d is invalid: conditions for option "
-                        "%s are not met" % (i + 1, option.name))
+                        "'%s' are not met" % (i + 1, option.name))
 
         if self.formula is not None:
             try:

@@ -816,10 +816,10 @@ angular.module('wsaa.surveyQuestions', [
 .controller('MeasureCtrl', [
         '$scope', 'Measure', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'Survey', 'format', 'layout',
-        'Structure', 'Arrays', 'Response',
+        'Structure', 'Arrays', 'Response', 'hotkeys',
         function($scope, Measure, routeData, Editor, authz,
                  $location, Notifications, current, Survey, format, layout,
-                 Structure, Arrays, Response) {
+                 Structure, Arrays, Response, hotkeys) {
 
     $scope.layout = layout;
     $scope.parent = routeData.parent;
@@ -961,6 +961,24 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.checkRole = authz(current, $scope.survey);
     $scope.Measure = Measure;
+
+    if ($scope.assessment) {
+        var t_approval;
+        if (current.user.role == 'clerk' || current.user.role == 'org_admin')
+            t_approval = 'final';
+        else if (current.user.role == 'consultant')
+            t_approval = 'reviewed';
+        else
+            t_approval = 'approved';
+        hotkeys.bindTo($scope)
+            .add({
+                combo: ['ctrl+enter'],
+                description: "Save the response, and mark it as " + t_approval,
+                callback: function(event, hotkey) {
+                    $scope.setState(t_approval);
+                }
+            });
+    }
 }])
 
 
