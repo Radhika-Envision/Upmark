@@ -12,6 +12,7 @@ import model
 import logging
 
 import crud
+from response_type import ResponseTypeError
 from utils import falsy, reorder, ToSon, truthy, updater
 
 
@@ -45,6 +46,7 @@ class ResponseHandler(handlers.BaseHandler):
                 r'^/not_relevant$',
                 r'^/attachments$',
                 r'^/audit_reason$',
+                r'^/approval$',
                 # Descend
                 r'/parent$',
                 r'/measure$',
@@ -64,6 +66,8 @@ class ResponseHandler(handlers.BaseHandler):
     @tornado.web.authenticated
     def put(self, assessment_id, measure_id):
         '''Save (create or update).'''
+
+        approval = self.get_argument('approval', '')
 
         try:
             with model.session_scope() as session:
@@ -91,12 +95,36 @@ class ResponseHandler(handlers.BaseHandler):
                         survey_id=assessment.survey.id)
                     session.add(response)
 
+                if approval != '':
+                    self._set_approval(response, approval)
+
                 self._update(response, self.request_son)
-                self._update_score(response, session)
+                session.flush()
+
+                try:
+                    response.update_stats_ancestors()
+                except ResponseTypeError as e:
+                    raise handlers.ModelError(str(e))
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(assessment_id, measure_id)
+
+    def _set_approval(self, response, approval):
+        if self.current_user.role in {'org_admin', 'clerk'}:
+            if approval not in {'draft', 'final'}:
+                raise handlers.AuthzError(
+                    "You can't mark this response as %s." % approval)
+        elif self.current_user.role == 'consultant':
+            if approval not in {'draft', 'final', 'reviewed'}:
+                raise handlers.AuthzError(
+                    "You can't mark this response as %s." % approval)
+        elif self.has_privillege('authority'):
+            pass
+        else:
+            raise handlers.AuthzError(
+                "You can't mark this response as %s." % approval)
+        response.approval = approval
 
     def _update(self, response, son):
         '''
@@ -112,7 +140,3 @@ class ResponseHandler(handlers.BaseHandler):
 
         # TODO: attachments
         response.attachments = []
-
-    def _update_score(self, response, session):
-        # TODO
-        pass

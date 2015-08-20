@@ -34,12 +34,10 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                 ownOrg = org.id == current.user.organisation.id;
             switch(functionName) {
                 case 'view_aggregate_score':
+                case 'view_single_score':
                     if (Roles.hasPermission(current.user.role, 'consultant'))
                         return true;
                     return false;
-                    break;
-                case 'view_single_score':
-                    return true;
                     break;
                 case 'assessment_admin':
                     if (Roles.hasPermission(current.user.role, 'consultant'))
@@ -102,11 +100,6 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         $scope.edit.params.hierarchyId = hierarchy.id;
     });
 
-    $scope.setState = function(state) {
-        var assessment = angular.copy($scope.assessment);
-        assessment.approval = state;
-        assessment.$save();
-    };
     $scope.setState = function(state) {
         $scope.assessment.$save({approval: state},
             function success() {

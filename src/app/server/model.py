@@ -129,10 +129,6 @@ class Survey(Base):
     description = Column(Text)
     _response_types = Column('response_types', JSON, nullable=False)
 
-    def __init__(self, **kwargs):
-        self.materialised_response_types = ResponseTypeCache([])
-        super().__init__(**kwargs)
-
     @property
     def is_editable(self):
         return self.finalised_date is None
@@ -173,8 +169,14 @@ class Survey(Base):
     @response_types.setter
     def response_types(self, rts):
         self._response_types = Survey._response_types_schema(rts)
-        self.materialised_response_types = ResponseTypeCache(
-            self._response_types)
+        del self._materialised_response_types
+
+    @property
+    def materialised_response_types(self):
+        if not hasattr(self, '_materialised_response_types'):
+            self._materialised_response_types = ResponseTypeCache(
+                self._response_types)
+        return self._materialised_response_types
 
     def update_stats_descendants(self):
         '''Updates the stats of an entire tree.'''
@@ -434,7 +436,7 @@ class ResponseNode(Base):
     def parent(self):
         rnode = (object_session(self).query(ResponseNode)
             .filter_by(assessment_id=self.assessment_id,
-                       qnode_id=self.qnode_id)
+                       qnode_id=self.qnode.parent_id)
             .first())
         return rnode
 
@@ -460,12 +462,14 @@ class ResponseNode(Base):
 
     def update_stats(self):
         score = sum(c.score for c in self.children)
-        score += sum(m.score for m in self.measures)
+        score += sum(r.score for r in self.responses)
         self.score = score
 
     def update_stats_descendants(self):
         for child in self.children:
             child.update_stats_descendants()
+        for response in self.responses:
+            response.update_stats()
         self.update_stats()
 
     def update_stats_ancestors(self):
@@ -566,11 +570,11 @@ class Response(Versioned, Base):
     @response_parts.setter
     def response_parts(self, s):
         self._response_parts = Response._response_parts_schema(s)
-        self.update_stats()
 
     def update_stats(self):
         try:
-            rt = self.survey.materialised_response_types[self.response_type]
+            rt = self.survey.materialised_response_types[
+                self.measure.response_type]
         except KeyError:
             raise ModelError(
                 "Measure '%s' is misconfigured: response type is not defined." %
@@ -578,6 +582,7 @@ class Response(Versioned, Base):
         self.score = rt.calculate_score(self.response_parts)
 
     def update_stats_ancestors(self):
+        self.update_stats()
         parent = self.parent
         if parent is None:
             qnode = self.parent_qnode

@@ -869,6 +869,17 @@ angular.module('wsaa.surveyQuestions', [
                     "Could not save response: " + details.statusText);
             });
     };
+    $scope.setState = function(state) {
+        $scope.response.$save({approval: state},
+            function success() {
+                Notifications.set('edit', 'success', "Saved", 5000);
+            },
+            function failure(details) {
+                Notifications.set('edit', 'error',
+                    "Could not save response: " + details.statusText);
+            }
+        );
+    };
 
     $scope.$watch('measure', function(measure) {
         $scope.structure = Structure(measure);
