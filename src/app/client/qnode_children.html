@@ -26,7 +26,13 @@
                 ng-disabled="edit.model">
             <td class="shrink">{{item.seq + 1}}</td>
             <td>{{item.title}}</td>
-            <td class="shrink text-muted">{{item.nMeasures}}</td>
+            <td class="shrink text-muted">
+                {{rnodeMap[item.id].nSubmitted}}
+                {{rnodeMap[item.id].nReviewed}}
+                {{rnodeMap[item.id].nApproved}}
+                {{rnodeMap[item.id].score | number:0}}</td>
+            <td class="shrink text-muted">
+                {{item.nMeasures}}</td>
             <td class="shrink grab-handle" ng-if="edit.model">
                 <i class="fa fa-fw fa-unsorted"></i></td>
         </tr>

@@ -82,7 +82,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
     if (routeData.assessment) {
         // Editing old
         $scope.assessment = routeData.assessment;
-        $scope.qnodes = routeData.qnodes;
+        $scope.children = routeData.qnodes;
     } else {
         // Creating new
         $scope.assessment = new Assessment({

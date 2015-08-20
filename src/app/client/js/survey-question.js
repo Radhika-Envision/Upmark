@@ -783,25 +783,29 @@ angular.module('wsaa.surveyQuestions', [
         handle: '.grab-handle'
     };
 
-    if ($scope.assessment)
+    if ($scope.assessment) {
         $scope.query = 'assessment=' + $scope.assessment.id;
-    else
+    } else if ($scope.hierarchy) {
         $scope.query = 'survey=' + $scope.survey.id;
-
-    $scope.edit.params = {
-        surveyId: $scope.survey.id
-    }
-
-    if ($scope.hierarchy) {
         $scope.query += '&hierarchy=' + $scope.hierarchy.id;
-        $scope.edit.params.hierarchyId = $scope.hierarchy.id;
-        $scope.edit.params.root = '';
+        $scope.edit.params = {
+            surveyId: $scope.survey.id,
+            hierarchyId: $scope.hierarchy.id,
+            root: ''
+        }
     } else {
+        $scope.query = 'survey=' + $scope.survey.id;
         $scope.edit.params.parentId = $scope.qnode.id;
+        $scope.edit.params = {
+            surveyId: $scope.survey.id,
+            parentId: $scope.qnode.id
+        }
     }
 
     $scope.$watchGroup(['hierarchy', 'structure'], function(vars) {
-        if ($scope.hierarchy)
+        if ($scope.assessment && !$scope.qnode)
+            $scope.title = $scope.assessment.hierarchy.structure.levels[0].title;
+        else if ($scope.hierarchy)
             $scope.title = $scope.hierarchy.structure.levels[0].title;
         else
             $scope.title = $scope.nextLevel.title;
@@ -812,7 +816,8 @@ angular.module('wsaa.surveyQuestions', [
         ResponseNode.query({
             assessmentId: $scope.assessment.id,
             parentId: $scope.qnode ? $scope.qnode.id : null,
-            hierarchyId: $scope.hierarchy ? $scope.hierarchy.id : null
+            hierarchyId: $scope.hierarchy ? $scope.hierarchy.id : null,
+            root: $scope.qnode ? null : ''
         }).$promise.then(
             function success(rnodes) {
                 var rmap = {};

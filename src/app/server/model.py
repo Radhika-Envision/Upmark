@@ -414,7 +414,7 @@ class Assessment(Base):
 
     @property
     def rnodes(self):
-        for qnode in self.assessment.qnodes:
+        for qnode in self.hierarchy.qnodes:
             rnode = qnode.get_rnode(self)
             if rnode is not None:
                 yield rnode
@@ -513,6 +513,7 @@ class ResponseNode(Base):
         self.update_stats()
 
     def update_stats_ancestors(self):
+        self.update_stats()
         parent = self.parent
         if parent is None:
             qnode = self.qnode.parent
@@ -523,7 +524,6 @@ class ResponseNode(Base):
                 qnode_id=qnode.id)
             object_session(self).add(parent)
             object_session(self).flush()
-        self.update_stats()
         parent.update_stats_ancestors()
 
     def __repr__(self):

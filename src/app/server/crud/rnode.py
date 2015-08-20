@@ -31,8 +31,14 @@ class ResponseNodeHandler(handlers.BaseHandler):
     def query(self, assessment_id):
         '''Get a list.'''
         parent_id = self.get_argument('parentId', '')
-        if parent_id == '':
-            raise handlers.ModelError("Parent qnode ID required")
+        root = self.get_argument('root', None)
+
+        if root is not None and parent_id != '':
+            raise handlers.ModelError(
+                "Can't specify parent ID when requesting roots")
+        if root is None and parent_id == '':
+            raise handlers.ModelError(
+                "'root' or parent ID required")
 
         with model.session_scope() as session:
             assessment = (session.query(model.Assessment)
@@ -43,15 +49,17 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 raise handlers.MissingDocError("No such assessment")
             self._check_authz(assessment)
 
-            rnode = (session.query(model.ResponseNode)
-                .filter_by(assessment_id=assessment_id,
-                           qnode_id=parent_id)
-                .first())
-
-            if rnode is None:
-                children = []
+            if root is not None:
+                children = assessment.rnodes
             else:
-                children = rnode.children
+                rnode = (session.query(model.ResponseNode)
+                    .filter_by(assessment_id=assessment_id,
+                               qnode_id=parent_id)
+                    .first())
+                if rnode is None:
+                    children = []
+                else:
+                    children = rnode.children
 
             exclude = [
                 # The IDs of rnodes and responses are not part of the API
