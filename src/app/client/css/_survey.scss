@@ -217,6 +217,9 @@ ul.fa-ul {
 .grab-handle {
     cursor: move;
 }
+reorder-view:not([reorder-edit]) .grab-handle {
+    display: none;
+}
 
 /* Nested pages should have less prominent headers */
 ng-include>.header, .nested>.header {

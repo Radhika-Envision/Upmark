@@ -15,7 +15,7 @@
                     ng-if="canEdit && model.length > 1 && !edit.model && checkRole('reorder')">
                 <i class="fa fa-fw fa-unsorted"></i></button>
             <a class="btn btn-default btn-round" title="Add new"
-                    ng-href="#{{href('new')}}"
+                    ng-href="#{{itemUrl({id: 'new'})}}"
                     ng-if="canEdit && !edit.model && checkRole('add')">
                 <i class="fa fa-fw fa-plus"></i></a>
             <span ng-if="!edit.model" ng-transclude></span>
@@ -23,30 +23,9 @@
         <h2>{{title}}</h2>
     </div>
 
-    <table ng-if="!edit.model && model.length" class="table table-hover">
-        <tbody ng-model="model">
-            <tr ng-repeat="item in model" any-href="{{href(item.id)}}">
-                <td class="shrink">{{item.seq + 1}}</td>
-                <td>{{item.title}}</td>
-                <td class="shrink text-muted">{{item.nMeasures}}</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <table ng-if="edit.model.length" class="table">
-        <tbody ui-sortable="dragOpts" ng-model="edit.model">
-            <tr ng-repeat="item in edit.model"">
-                <td class="shrink">{{item.seq + 1}}</td>
-                <td>{{item.title}}</td>
-                <td class="shrink text-muted">{{item.nMeasures}}</td>
-                <td class="shrink grab-handle">
-                    <i class="fa fa-fw fa-unsorted"></i></td>
-            </tr>
-        </tbody>
-    </table>
-
-    <p ng-if="!model.length" class="text-muted">
-        No items.
-    </p>
+    <reorder-view ng-if="!edit.model" item-url="itemUrl"
+        model="model"></reorder-view>
+    <reorder-view ng-if="edit.model" item-url="itemUrl" reorder-edit
+        model="edit.model"></reorder-view>
 </div>
 </div>

@@ -269,8 +269,12 @@ class QuestionNode(Base):
     survey = relationship(Survey)
 
     def get_rnode(self, assessment):
+        if isinstance(assessment, str):
+            assessment_id = assessment
+        else:
+            assessment_id = assessment.id
         return (object_session(self).query(ResponseNode)
-            .filter_by(assessment_id=assessment.id, qnode_id=self.id)
+            .filter_by(assessment_id=assessment_id, qnode_id=self.id)
             .first())
 
     def update_stats_ancestors(self):
@@ -314,8 +318,12 @@ class Measure(Base):
         Survey, backref=backref('measures', passive_deletes=True))
 
     def get_response(self, assessment):
+        if isinstance(assessment, str):
+            assessment_id = assessment
+        else:
+            assessment_id = assessment.id
         return (object_session(self).query(Response)
-            .filter_by(assessment_id=assessment.id, measure_id=self.id)
+            .filter_by(assessment_id=assessment_id, measure_id=self.id)
             .first())
 
     def __repr__(self):
@@ -484,7 +492,7 @@ class ResponseNode(Base):
             n_submitted += c.n_submitted
 
         for r in self.responses:
-            score += r.score * r.measure.weight
+            score += r.score
             if r.approval in {'final', 'reviewed', 'approved'}:
                 n_submitted += 1
             if r.approval in {'reviewed', 'approved'}:
@@ -608,7 +616,8 @@ class Response(Versioned, Base):
             raise ModelError(
                 "Measure '%s' is misconfigured: response type is not defined." %
                 self.measure.title)
-        self.score = rt.calculate_score(self.response_parts)
+        score = rt.calculate_score(self.response_parts)
+        self.score = score * self.measure.weight
 
     def update_stats_ancestors(self):
         self.update_stats()

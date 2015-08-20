@@ -458,7 +458,7 @@ angular.module('wsaa.surveyQuestions', [
         }
         // Hierarchy, or orphaned measure
         if (stack.length > 1) {
-            if (stack[1].responseType) {
+            if (stack[1].responseType !== undefined) {
                 measure = stack[1];
                 hstack.push({
                     path: 'measure',
@@ -493,7 +493,7 @@ angular.module('wsaa.surveyQuestions', [
         var qnodes = [];
         if (stack.length > 2 && hierarchy) {
             var qnodeMaxIndex = stack.length - 1;
-            if (stack[stack.length - 1].responseType) {
+            if (stack[stack.length - 1].responseType !== undefined) {
                 measure = stack[stack.length - 1];
                 qnodeMaxIndex = stack.length - 2;
             } else {
@@ -685,6 +685,11 @@ angular.module('wsaa.surveyQuestions', [
             model.structure.levels[0].hasMeasures = true;
     };
 
+    $scope.qnodeUrl = function(item, $index) {
+        return format("/qnode/{}?survey={}&hierarchy={}",
+            item.id, $scope.survey.id, $scope.hierarchy.id);
+    };
+
     $scope.checkRole = authz(current, $scope.survey);
     $scope.QuestionNode = QuestionNode;
     $scope.Hierarchy = Hierarchy;
@@ -694,10 +699,10 @@ angular.module('wsaa.surveyQuestions', [
 .controller('QuestionNodeCtrl', [
         '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'format', 'Structure',
-        'Measure', 'layout',
+        'Measure', 'layout', 'Response', 'Arrays',
         function($scope, QuestionNode, routeData, Editor, authz,
                  $location, Notifications, current, format, Structure,
-                 Measure, layout) {
+                 Measure, layout, Response, Arrays) {
 
     // routeData.parent and routeData.hierarchy will only be defined when
     // creating a new qnode.
@@ -717,6 +722,40 @@ angular.module('wsaa.surveyQuestions', [
         });
         $scope.children = null;
         $scope.measures = null;
+    }
+
+    if ($scope.assessment) {
+        // Get the responses that is associated with this qnode and assessment.
+        $scope.$watch('measures.$resolved', function(measures) {
+            $scope.measures.$promise.then(function(measures) {
+                Response.query({
+                    assessmentId: $scope.assessment.id,
+                    qnodeId: $scope.qnode.id
+                }).$promise.then(
+                    function success(responses) {
+                        var rmap = {};
+                        for (var i = 0; i < responses.length; i++) {
+                            var response = responses[i];
+                            rmap[response.measure.id] = response;
+                        }
+                        for (var i = 0; i < measures.length; i++) {
+                            var measure = measures[i];
+                            var approval;
+                            if (rmap[measure.id])
+                                approval = rmap[measure.id].approval;
+                            else
+                                approval = 'draft'
+                            measure.approval = approval;
+                        }
+                    },
+                    function failure(details) {
+                        Notifications.set('edit', 'error',
+                            "Could not get aggregate scores: " +
+                            details.statusText);
+                    }
+                );
+            });
+        });
     }
 
     $scope.$watch('qnode', function(qnode) {
@@ -750,6 +789,24 @@ angular.module('wsaa.surveyQuestions', [
                 $scope.survey.id));
         }
     });
+
+    $scope.qnodeUrl = function(item, $index) {
+        var query;
+        if ($scope.assessment)
+            query = 'assessment=' + $scope.assessment.id;
+        else
+            query = 'survey=' + $scope.survey.id;
+        return format("/qnode/{}?{}", item.id, query);
+    };
+
+    $scope.measureUrl = function(item, $index) {
+        var query = 'parent=' + $scope.qnode.id;
+        if ($scope.assessment)
+            query += '&assessment=' + $scope.assessment.id;
+        else
+            query += '&survey=' + $scope.survey.id;
+        return format("/measure/{}?{}", item.id, query);
+    };
 
     $scope.checkRole = authz(current, $scope.survey);
     $scope.QuestionNode = QuestionNode;
@@ -833,7 +890,7 @@ angular.module('wsaa.surveyQuestions', [
             parent: routeData.parent,
             survey: routeData.survey,
             weight: 100,
-            responseType: 'standard_1'
+            responseType: null
         });
     }
 
@@ -843,7 +900,7 @@ angular.module('wsaa.surveyQuestions', [
         $scope.response = Response.get({
             measureId: $scope.measure.id,
             assessmentId: $scope.assessment.id
-        })
+        });
         $scope.response.$promise.catch(function failure(details) {
             if (details.status != 404) {
                 Notifications.set('edit', 'error',

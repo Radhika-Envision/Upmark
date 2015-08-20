@@ -1,0 +1,14 @@
+<table class="table table-hover">
+    <tbody ui-sortable="dragOpts" ng-model="model">
+        <tr ng-repeat="item in model" any-href="{{itemUrl(item, $index)}}">
+            <td class="shrink">{{item.seq + 1}}</td>
+            <td>{{item.title}}</td>
+            <td class="shrink grab-handle">
+                <i class="fa fa-fw fa-unsorted"></i></td>
+        </tr>
+    </tbody>
+</table>
+
+<p ng-if="!model.length" class="text-muted">
+    No items.
+</p>

@@ -25,6 +25,10 @@ class ResponseHandler(handlers.BaseHandler):
     def get(self, assessment_id, measure_id):
         '''Get a single response.'''
 
+        if measure_id == '':
+            self.query(assessment_id)
+            return
+
         with model.session_scope() as session:
             query = (session.query(model.Response).filter_by(
                     assessment_id=assessment_id, measure_id=measure_id))
@@ -63,6 +67,42 @@ class ResponseHandler(handlers.BaseHandler):
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
+        self.finish()
+
+    def query(self, assessment_id):
+        '''Get a list.'''
+        qnode_id = self.get_argument('qnodeId', '')
+        if qnode_id == '':
+            raise handlers.ModelError("qnode ID required")
+
+        with model.session_scope() as session:
+            rnode = (session.query(model.ResponseNode)
+                .filter_by(assessment_id=assessment_id,
+                           qnode_id=qnode_id)
+                .first())
+
+            if rnode is None:
+                responses = []
+            else:
+                responses = rnode.responses
+
+            to_son = ToSon(include=[
+                # Fields to match from any visited object
+                r'/id$',
+                r'/score$',
+                # Descend into nested objects
+                r'/[0-9]+$',
+                r'/measure$',
+                # Only root
+                r'^/[0-9]+/approval$',
+            ], exclude=[
+                # The IDs of rnodes and responses are not part of the API
+                r'^/[0-9]+/id$',
+            ])
+            sons = to_son(responses)
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(sons))
         self.finish()
 
     @tornado.web.authenticated

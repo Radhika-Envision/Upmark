@@ -59,24 +59,54 @@
 </div>
 </div>
 
-<reorderable href="/qnode/{}?{{assessment ? 'assessment=' + assessment.id : 'survey=' + survey.id}}"
+<script type="text/ng-template" id="qnode-reorder.html">
+    <table class="table table-hover">
+        <tbody ui-sortable="dragOpts" ng-model="model">
+            <tr ng-repeat="item in model" any-href="{{itemUrl(item, $index)}}">
+                <td class="shrink">{{item.seq + 1}}</td>
+                <td>{{item.title}}</td>
+                <td class="shrink text-muted">{{item.nMeasures}}</td>
+                <td class="shrink grab-handle">
+                    <i class="fa fa-fw fa-unsorted"></i></td>
+            </tr>
+        </tbody>
+    </table>
+</script>
+
+<script type="text/ng-template" id="measure-reorder.html">
+    <table class="table table-hover">
+        <tbody ui-sortable="dragOpts" ng-model="model">
+            <tr ng-repeat="item in model" any-href="{{itemUrl(item, $index)}}">
+                <td class="shrink">{{item.seq + 1}}</td>
+                <td>{{item.title}}</td>
+                <td class="shrink text-muted">{{item.approval}}</td>
+                <td class="shrink grab-handle">
+                    <i class="fa fa-fw fa-unsorted"></i></td>
+            </tr>
+        </tbody>
+    </table>
+</script>
+
+<reorderable item-url="qnodeUrl"
         model="children" check-role="checkRole"
         title="{{nextLevel.title}}"
         params="{surveyId: survey.id, parentId: qnode.id}"
-        resource="QuestionNode"
+        resource="QuestionNode" scores="responseNodeMap"
         ng-if="nextLevel && !edit.model"
-        can-edit="survey.isEditable"></reorderable>
+        can-edit="survey.isEditable && !assessment"
+        template-url="qnode-reorder.html"></reorderable>
 
-<reorderable href="/measure/{}?{{assessment ? 'assessment=' + assessment.id : 'survey=' + survey.id}}&parent={{qnode.id}}"
+<reorderable item-url="measureUrl"
         model="measures" check-role="checkRole"
         title="{{structure.hierarchy.structure.measure.title}}"
         params="{surveyId: survey.id, qnodeId: qnode.id}"
-        resource="Measure"
+        resource="Measure" scores="responseMap"
         ng-if="currentLevel.hasMeasures && !edit.model"
-        can-edit="survey.isEditable">
+        can-edit="survey.isEditable"
+        template-url="measure-reorder.html">
     <a class="btn btn-default btn-round" title="Link to existing"
             ng-href="#/measure-link?survey={{survey.id}}&parent={{qnode.id}}"
-            ng-if="survey.isEditable && !edit.model && checkRole('add')">
+            ng-if="survey.isEditable && !edit.model && checkRole('add') && !assessment">
         <i class="fa fa-fw fa-link"></i></a>
 </reorderable>
 

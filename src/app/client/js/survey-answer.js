@@ -18,6 +18,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
             {assessmentId: '@assessmentId', measureId: '@measureId'}, {
         get: { method: 'GET', cache: false },
         save: { method: 'PUT' },
+        query: { method: 'GET', isArray: true, cache: false },
         history: { method: 'GET',
             url: '/assessment/:assessmentId/response/:measureId/history.json',
             isArray: true, cache: false }

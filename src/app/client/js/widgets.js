@@ -288,7 +288,8 @@ angular.module('vpac.widgets', [])
 })
 
 
-.directive('reorderable', [function() {
+.directive('reorderable', ['$http', '$templateCache', '$compile',
+           function($http, $templateCache, $compile) {
     return {
         restrict: 'E',
         scope: {
@@ -297,7 +298,8 @@ angular.module('vpac.widgets', [])
             checkRole: '=',
             params: '=',
             resource: '=',
-            canEdit: '='
+            canEdit: '=',
+            itemUrl: '='
         },
         templateUrl: 'reorder.html',
         replace: true,
@@ -309,16 +311,45 @@ angular.module('vpac.widgets', [])
             $scope.href = function(id) {
                 return format($scope.hrefSpec, id);
             };
-            $scope.dragOpts = {
-                axis: 'y',
-                handle: '.grab-handle'
-            };
             $scope.$on('EditSaved', function(event, model) {
                 event.stopPropagation();
             });
         }],
         link: function(scope, elem, attrs) {
+            scope.templateUrl = attrs.templateUrl || 'reorder-template.html';
+        }
+    };
+}])
+
+
+.directive('reorderView', ['$templateRequest', '$compile',
+           function($templateRequest, $compile) {
+    return {
+        restrict: 'EA',
+        scope: {
+            model: '=',
+            itemUrl: '='
+        },
+        controller: ['$scope', function($scope) {
+            $scope.dragOpts = {
+                axis: 'y',
+                handle: '.grab-handle'
+            };
+        }],
+        link: function(scope, elem, attrs) {
             scope.hrefSpec = attrs.href;
+            console.log('templateUrl', scope.$parent.templateUrl);
+            $templateRequest(scope.$parent.templateUrl).then(function(template) {
+                var html = angular.element(template);
+                if (attrs.reorderEdit == null) {
+                    var dragRoot = html.find('[ui-sortable]');
+                    dragRoot.attr('ui-sortable', null);
+                    dragRoot.attr('ng-model', null);
+                }
+                $compile(html)(scope, function(clonedElement) {
+                    elem.append(clonedElement);
+                });
+            });
         }
     };
 }])

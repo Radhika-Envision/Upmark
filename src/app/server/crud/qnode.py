@@ -52,7 +52,9 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 r'/parent$',
                 r'/hierarchy$',
                 r'/hierarchy/structure.*$',
-                r'/hierarchy/survey$'
+                r'/hierarchy/survey$',
+                # Response types needed here when creating a new measure
+                r'/response_types.*$'
             ])
             son = to_son(qnode)
 
