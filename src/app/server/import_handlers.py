@@ -361,33 +361,27 @@ class Importer():
                     response.comment = all_rows[row_num][self.col2num("K")]
                     response.not_relevant = False # Need to fix this hard coding
                     response_part = []
-                    response_text = all_rows[row_num][self.col2num("E")]
-                    response_options = [r["name"] for r in r_types["parts"][0]["options"]]
-                    response_index = response_options.index(response_text)
-                    response_part.append({"index": response_index, "note": response_text})
+
+                    response_part.append(self.parse_response_type(all_rows, row_num, r_types, "E"))
                     if function_order != "7":
-                        response_text = all_rows[row_num][self.col2num("F")]
-                        response_options = [r["name"] for r in r_types["parts"][1]["options"]]
-                        response_index = response_options.index(response_text)
-                        response_part.append({"index": response_index, "note": response_text})
-
-                        response_text = all_rows[row_num][self.col2num("G")]
-                        response_options = [r["name"] for r in r_types["parts"][2]["options"]]
-                        response_index = response_options.index(response_text)
-                        response_part.append({"index": response_index, "note": response_text})
-
-                        response_text = all_rows[row_num][self.col2num("H")]
-                        response_options = [r["name"] for r in r_types["parts"][3]["options"]]
-                        response_index = response_options.index(response_text)
-                        response_part.append({"index": response_index, "note": response_text})
+                        response_part.append(self.parse_response_type(all_rows, row_num, r_types, "F"))
+                        response_part.append(self.parse_response_type(all_rows, row_num, r_types, "G"))
+                        response_part.append(self.parse_response_type(all_rows, row_num, r_types, "H"))
                     response.response_parts  = response_part
-                    response.audit_reason = "Test"
+                    response.audit_reason = "Import"
                     response.attachments = None
                     session.add(response)
             except sqlalchemy.orm.exc.NoResultFound:
                 raise Exception("This survey is not matching current open survey. ", all_rows[row_num], title)
 
         return survey_id
+
+    def parse_response_type(self, all_rows, row_num, types, col_chr):
+        response_text = all_rows[row_num][self.col2num(col_chr)]
+        index =  ord(col_chr) - ord("E")
+        response_options = [r["name"] for r in types["parts"][index]["options"]]
+        response_index = response_options.index(response_text)
+        return {"index": response_index, "note": response_text}
 
 
     def parse_order_title(self, all_rows, row_num, col_chr, parse_expression):
