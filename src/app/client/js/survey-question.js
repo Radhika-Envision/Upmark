@@ -634,7 +634,7 @@ angular.module('wsaa.surveyQuestions', [
     if (routeData.hierarchy) {
         // Editing old
         $scope.hierarchy = routeData.hierarchy;
-        $scope.qnodes = routeData.qnodes;
+        $scope.children = routeData.qnodes;
     } else {
         // Creating new
         $scope.hierarchy = new Hierarchy({
@@ -651,7 +651,7 @@ angular.module('wsaa.surveyQuestions', [
                 }]
             }
         });
-        $scope.qnodes = null;
+        $scope.children = null;
         $scope.edit.edit();
     }
 
@@ -693,6 +693,9 @@ angular.module('wsaa.surveyQuestions', [
     $scope.checkRole = authz(current, $scope.survey);
     $scope.QuestionNode = QuestionNode;
     $scope.Hierarchy = Hierarchy;
+
+    $scope.editable = ($scope.survey.isEditable &&
+        $scope.checkRole('survey_node_edit'));
 }])
 
 
@@ -754,24 +757,6 @@ angular.module('wsaa.surveyQuestions', [
         }
     });
 
-    $scope.qnodeUrl = function(item, $index) {
-        var query;
-        if ($scope.assessment)
-            query = 'assessment=' + $scope.assessment.id;
-        else
-            query = 'survey=' + $scope.survey.id;
-        return format("/qnode/{}?{}", item.id, query);
-    };
-
-    $scope.measureUrl = function(item, $index) {
-        var query = 'parent=' + $scope.qnode.id;
-        if ($scope.assessment)
-            query += '&assessment=' + $scope.assessment.id;
-        else
-            query += '&survey=' + $scope.survey.id;
-        return format("/measure/{}?{}", item.id, query);
-    };
-
     $scope.checkRole = authz(current, $scope.survey);
     $scope.editable = ($scope.survey.isEditable &&
         !$scope.assessment && $scope.checkRole('survey_node_edit'));
@@ -793,16 +778,28 @@ angular.module('wsaa.surveyQuestions', [
         handle: '.grab-handle'
     };
 
-    $scope.$watchGroup(['survey', 'assessment', 'qnode'], function() {
-        if ($scope.assessment)
-            $scope.query = 'assessment=' + $scope.assessment.id;
-        else
-            $scope.query = 'survey=' + $scope.survey.id;
+    if ($scope.assessment)
+        $scope.query = 'assessment=' + $scope.assessment.id;
+    else
+        $scope.query = 'survey=' + $scope.survey.id;
 
-        $scope.edit.params = {
-            surveyId: $scope.survey.id,
-            parentId: $scope.qnode.id
-        }
+    $scope.edit.params = {
+        surveyId: $scope.survey.id
+    }
+
+    if ($scope.hierarchy) {
+        $scope.query += '&hierarchy=' + $scope.hierarchy.id;
+        $scope.edit.params.hierarchyId = $scope.hierarchy.id;
+        $scope.edit.params.root = '';
+    } else {
+        $scope.edit.params.parentId = $scope.qnode.id;
+    }
+
+    $scope.$watchGroup(['hierarchy', 'structure'], function(vars) {
+        if ($scope.hierarchy)
+            $scope.title = $scope.hierarchy.structure.levels[0].title;
+        else
+            $scope.title = $scope.nextLevel.title;
     });
 }])
 
@@ -833,6 +830,8 @@ angular.module('wsaa.surveyQuestions', [
         surveyId: $scope.survey.id,
         qnodeId: $scope.qnode.id
     }
+
+    $scope.title = $scope.structure.hierarchy.structure.measure.title;
 
     if ($scope.assessment) {
         // Get the responses that are associated with this qnode and assessment.

@@ -1,5 +1,3 @@
-<div>
-
 <div class="header">
 <div class="container">
     <div class="toolbar">
@@ -158,29 +156,11 @@
 </div>
 </div>
 
-<script type="text/ng-template" id="hierarchy-reorder.html">
-    <table class="table table-hover">
-        <tbody ui-sortable="dragOpts" ng-model="model">
-            <tr ng-repeat="item in model" any-href="{{itemUrl(item, $index)}}">
-                <td class="shrink">{{item.seq + 1}}</td>
-                <td>{{item.title}}</td>
-                <td class="shrink text-muted">{{item.nMeasures}}</td>
-                <td class="shrink grab-handle">
-                    <i class="fa fa-fw fa-unsorted"></i></td>
-            </tr>
-        </tbody>
-    </table>
-</script>
 
-<reorderable item-url="qnodeUrl"
-        model="qnodes" check-role="checkRole"
-        title="{{hierarchy.structure.levels[0].title}}"
-        params="{surveyId: survey.id, hierarchyId: hierarchy.id, root: ''}"
-        resource="QuestionNode" ng-if="!edit.model"
-        can-edit="survey.isEditable"
-        template-url="hierarchy-reorder.html"></reorderable>
+<div class="container"
+    ng-controller="QnodeChildren" ng-include="'qnode_children.html'"
+    ng-if="!edit.model"></div>
 
-</div>
 
 <div class="spaced" ng-if="!edit.model">
 <div class="container">
