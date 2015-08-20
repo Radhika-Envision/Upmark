@@ -64,6 +64,45 @@ angular.module('vpac.widgets', [])
 }])
 
 
+.directive('columnProgress', [function() {
+    return {
+        restrict: 'E',
+        scope: {
+            items: '='
+        },
+        templateUrl: "bar-progress.html",
+        controller: ['$scope', function($scope) {
+            $scope.$watch('items', function(items) {
+                if (!items) {
+                    $scope.summary = '';
+                    return;
+                }
+                var summary = [];
+                for (var i = 0; i < items.length; i++) {
+                    var item = items[i];
+                    summary.push(item.name + ': ' + item.value);
+                }
+                $scope.summary = summary.join(', ');
+            });
+        }]
+    };
+}])
+
+
+.directive('columnProgressColumn', [function() {
+    return {
+        restrict: 'A',
+        link: function(scope, elem, attrs) {
+            scope.$watch('item.fraction', function(fraction) {
+                if (fraction < 0.1)
+                    fraction = 0.1;
+                elem.css('height', '' + (fraction * 100) + '%');
+            });
+        }
+    };
+}])
+
+
 .factory('Notifications', ['log', '$timeout', 'Arrays',
         function(log, $timeout, Arrays) {
     function Notifications() {

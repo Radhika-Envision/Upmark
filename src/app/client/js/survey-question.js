@@ -823,7 +823,27 @@ angular.module('wsaa.surveyQuestions', [
                 var rmap = {};
                 for (var i = 0; i < rnodes.length; i++) {
                     var rnode = rnodes[i];
-                    rmap[rnode.qnode.id] = rnode;
+                    var nm = rnode.qnode.nMeasures;
+                    rmap[rnode.qnode.id] = {
+                        score: rnode.score,
+                        progressItems: [
+                            {
+                                name: 'Submitted',
+                                value: rnode.nSubmitted,
+                                fraction: rnode.nSubmitted / nm
+                            },
+                            {
+                                name: 'Reviewed',
+                                value: rnode.nReviewed,
+                                fraction: rnode.nReviewed / nm
+                            },
+                            {
+                                name: 'Approved',
+                                value: rnode.nApproved,
+                                fraction: rnode.nApproved / nm
+                            },
+                        ]
+                    };
                 }
                 $scope.rnodeMap = rmap;
             },

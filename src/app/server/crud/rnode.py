@@ -77,6 +77,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 r'/n_submitted$',
                 r'/n_reviewed$',
                 r'/n_approved$',
+                r'/n_measures$',
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/qnode$',

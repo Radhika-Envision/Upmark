@@ -31,6 +31,10 @@
                 {{rnodeMap[item.id].nReviewed}}
                 {{rnodeMap[item.id].nApproved}}
                 {{rnodeMap[item.id].score | number:0}}</td>
+            <td class="shrink">
+                <column-progress items="rnodeMap[item.id].progressItems">
+                    </column-progress>
+            </td>
             <td class="shrink text-muted">
                 {{item.nMeasures}}</td>
             <td class="shrink grab-handle" ng-if="edit.model">
