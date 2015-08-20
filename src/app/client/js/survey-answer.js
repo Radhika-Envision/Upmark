@@ -26,6 +26,14 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 }])
 
 
+.factory('ResponseNode', ['$resource', function($resource) {
+    return $resource('/assessment/:assessmentId/rnode/:qnodeId.json',
+            {assessmentId: '@assessmentId', qnodeId: '@qnodeId'}, {
+        query: { method: 'GET', isArray: true, cache: false }
+    });
+}])
+
+
 .factory('responseAuthz', ['Roles', function(Roles) {
     return function(current, assessment) {
         return function(functionName) {

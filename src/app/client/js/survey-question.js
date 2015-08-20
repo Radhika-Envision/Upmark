@@ -767,7 +767,9 @@ angular.module('wsaa.surveyQuestions', [
 
 
 .controller('QnodeChildren', ['$scope', 'bind', 'Editor', 'QuestionNode',
-        function($scope, bind, Editor, QuestionNode) {
+        'ResponseNode', 'Notifications',
+        function($scope, bind, Editor, QuestionNode, ResponseNode,
+            Notifications) {
 
     bind($scope, 'children', $scope, 'model', true);
 
@@ -804,6 +806,29 @@ angular.module('wsaa.surveyQuestions', [
         else
             $scope.title = $scope.nextLevel.title;
     });
+
+    if ($scope.assessment) {
+        // Get the responses that are associated with this qnode and assessment.
+        ResponseNode.query({
+            assessmentId: $scope.assessment.id,
+            parentId: $scope.qnode ? $scope.qnode.id : null,
+            hierarchyId: $scope.hierarchy ? $scope.hierarchy.id : null
+        }).$promise.then(
+            function success(rnodes) {
+                var rmap = {};
+                for (var i = 0; i < rnodes.length; i++) {
+                    var rnode = rnodes[i];
+                    rmap[rnode.qnode.id] = rnode;
+                }
+                $scope.rnodeMap = rmap;
+            },
+            function failure(details) {
+                Notifications.set('edit', 'error',
+                    "Could not get aggregate scores: " +
+                    details.statusText);
+            }
+        );
+    }
 }])
 
 
