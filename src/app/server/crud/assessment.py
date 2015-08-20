@@ -124,6 +124,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/id$',
                 r'/title$',
                 r'/name$',
+                r'/approval$',
+                r'/created$',
                 # Descend
                 r'/[0-9]+$',
                 r'/organisation$'

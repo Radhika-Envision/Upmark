@@ -536,13 +536,13 @@ column-progress {
             left: 0;
             bottom: 0;
             border-left: 3px solid;
-            border-color: rgb(255, 62, 0);
+            border-color: #FFA600;
         }
         + span > [column-progress-column] {
-            border-color: rgb(188, 17, 131);
+            border-color: #FF3E00;
         }
         + span + span > [column-progress-column] {
-            border-color: rgb(104, 55, 151);
+            border-color: #683797;;
         }
     }
 }

@@ -198,6 +198,9 @@
             <a ng-repeat="assessment in assessments"
                     ng-href="#/assessment/{{assessment.id}}">
                 <h4>{{assessment.title}}</h4>
+                <p class="truncate">
+                    {{assessment.created * 1000 | date:'fullDate'}}
+                    ({{assessment.approval}})</p>
             </a>
         </li>
     </ul>
