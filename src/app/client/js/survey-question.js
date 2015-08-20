@@ -854,6 +854,32 @@ angular.module('wsaa.surveyQuestions', [
             }
         );
     }
+    var dummyStats = {
+        score: 0,
+        progressItems: [
+            {
+                name: 'Submitted',
+                value: 0,
+                fraction: 0
+            },
+            {
+                name: 'Reviewed',
+                value: 0,
+                fraction: 0
+            },
+            {
+                name: 'Approved',
+                value: 0,
+                fraction: 0
+            },
+        ]
+    };
+    $scope.getStats = function(qnodeId) {
+        if ($scope.rnodeMap && $scope.rnodeMap[qnodeId])
+            return $scope.rnodeMap[qnodeId];
+        else
+            return dummyStats;
+    };
 }])
 
 
@@ -895,8 +921,30 @@ angular.module('wsaa.surveyQuestions', [
             function success(responses) {
                 var rmap = {};
                 for (var i = 0; i < responses.length; i++) {
-                    var response = responses[i];
-                    rmap[response.measure.id] = response;
+                    var r = responses[i];
+                    var nApproved = r.approval == 'approved' ? 1 : 0;
+                    var nReviewed = r.approval == 'reviewed' ? 1 : nApproved;
+                    var nSubmitted = r.approval == 'final' ? 1 : nReviewed;
+                    rmap[r.measure.id] = {
+                        score: r.score,
+                        progressItems: [
+                            {
+                                name: 'Submitted',
+                                value: nSubmitted,
+                                fraction: nSubmitted
+                            },
+                            {
+                                name: 'Reviewed',
+                                value: nReviewed,
+                                fraction: nReviewed
+                            },
+                            {
+                                name: 'Approved',
+                                value: nApproved,
+                                fraction: nApproved
+                            },
+                        ]
+                    };
                 }
                 $scope.responseMap = rmap;
             },
@@ -907,6 +955,32 @@ angular.module('wsaa.surveyQuestions', [
             }
         );
     }
+    var dummyStats = {
+        score: 0,
+        progressItems: [
+            {
+                name: 'Submitted',
+                value: 0,
+                fraction: 0
+            },
+            {
+                name: 'Reviewed',
+                value: 0,
+                fraction: 0
+            },
+            {
+                name: 'Approved',
+                value: 0,
+                fraction: 0
+            },
+        ]
+    };
+    $scope.getStats = function(measureId) {
+        if ($scope.responseMap && $scope.responseMap[measureId])
+            return $scope.responseMap[measureId];
+        else
+            return dummyStats;
+    };
 }])
 
 

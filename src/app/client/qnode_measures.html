@@ -34,11 +34,16 @@
                 1
             </td>
             <td class="shrink text-muted"
-                    ng-if="assessment && checkRole('assessment_review')">
-                {{responseMap[item.id].score || 0 | number:0}}
+                    ng-if="assessment && checkRole('assessment_review')"
+                    title="Score">
+                {{getStats(item.id).score | number:0}}
             </td>
-            <td class="shrink text-muted" ng-if="assessment">
-                {{responseMap[item.id].approval || 'draft'}}
+            <td class="shrink">
+                <column-progress items="getStats(item.id).progressItems">
+                    </column-progress>
+            </td>
+            <td class="shrink text-muted" title="Number of measures">
+                1
             </td>
             <td class="shrink grab-handle" ng-if="edit.model">
                 <i class="fa fa-fw fa-unsorted"></i></td>

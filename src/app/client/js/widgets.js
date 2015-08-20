@@ -103,8 +103,7 @@ angular.module('vpac.widgets', [])
         restrict: 'A',
         link: function(scope, elem, attrs) {
             scope.$watch('item.fraction', function(fraction) {
-                if (fraction < 0.1)
-                    fraction = 0.1;
+                fraction = fraction * 0.93 + 0.07;
                 elem.css('height', '' + (fraction * 100) + '%');
             });
         }
