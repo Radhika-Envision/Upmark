@@ -101,7 +101,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 
 .controller('AssessmentImportCtrl', [
         '$scope', 'Assessment', 'Hierarchy', 'routeData', 'Editor',
-        'responseAuthz', 'layout', '$location', 'Current', 'format', '$filter',
+        'questionAuthz', 'layout', '$location', 'Current', 'format', '$filter',
         'Notifications', '$http', '$cookies', '$timeout',
         function($scope, Assessment, Hierarchy, routeData, Editor, authz,
                  layout, $location, current, format, $filter, Notifications, 
