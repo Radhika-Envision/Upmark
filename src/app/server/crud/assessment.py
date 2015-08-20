@@ -117,7 +117,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             if org_id != '':
                 query = query.filter_by(organisation_id=org_id)
 
-            query = query.order_by(model.Assessment.created)
+            query = query.order_by(model.Assessment.created.desc())
             query = self.paginate(query)
 
             to_son = ToSon(include=[
