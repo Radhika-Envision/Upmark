@@ -33,6 +33,8 @@ class ResponseHandler(handlers.BaseHandler):
             if response is None:
                 raise handlers.MissingDocError("No such response")
 
+            self._check_authz(response.assessment)
+
             to_son = ToSon(include=[
                 # Fields to match from any visited object
                 r'/id$',
