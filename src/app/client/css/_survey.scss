@@ -488,6 +488,7 @@ column-progress {
     display: inline-block;
     vertical-align: top;
     height: 1.42857143em;
+    position: relative;
     transform: skewX(-10deg);
     /*
      * Fix for jagged edges
@@ -498,6 +499,19 @@ column-progress {
     > span {
         height: 100%;
         display: inline-block;
+
+        &:before {
+            position: absolute;
+            content: ' ';
+            background-color: white;
+            top: -3px;
+            left: -4px;
+            right: -5px;
+            bottom: -4px;
+            border-radius: 5px;
+            display: block;
+            pointer-events: all;
+        }
     }
 
     > span > span {

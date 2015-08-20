@@ -1,5 +1,7 @@
-<span title='{{summary}}'>
-    <span ng-repeat='item in items track by $index'>
+<span title="{{summary}}" tooltip="{{summary}}"
+        tooltip-append-to-body="true"
+        tooltip-trigger="click">
+    <span ng-repeat="item in items track by $index">
         <span></span>
         <span column-progress-column>
             <span class="sr-only">

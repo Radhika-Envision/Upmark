@@ -84,7 +84,16 @@ angular.module('vpac.widgets', [])
                 }
                 $scope.summary = summary.join(', ');
             });
-        }]
+        }],
+        link: function(scope, elem, attrs) {
+            elem.on('click', function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+            });
+            scope.$on('$destroy', function() {
+                elem.off('click');
+            });
+        }
     };
 }])
 
