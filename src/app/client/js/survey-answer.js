@@ -34,44 +34,9 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 }])
 
 
-.factory('responseAuthz', ['Roles', function(Roles) {
-    return function(current, assessment) {
-        return function(functionName) {
-            var ownOrg = false;
-            var org = assessment && assessment.organisation || null;
-            if (org)
-                ownOrg = org.id == current.user.organisation.id;
-            switch(functionName) {
-                case 'view_aggregate_score':
-                case 'view_single_score':
-                    if (Roles.hasPermission(current.user.role, 'consultant'))
-                        return true;
-                    return false;
-                    break;
-                case 'assessment_admin':
-                    if (Roles.hasPermission(current.user.role, 'consultant'))
-                        return true;
-                    if (Roles.hasPermission(current.user.role, 'org-admin'))
-                        return ownOrg;
-                    break;
-                case 'assessment_edit':
-                case 'view_response':
-                case 'alter_response':
-                    if (Roles.hasPermission(current.user.role, 'consultant'))
-                        return true;
-                    if (Roles.hasPermission(current.user.role, 'clerk'))
-                        return ownOrg;
-                    break;
-            }
-            return false;
-        };
-    };
-}])
-
-
 .controller('AssessmentCtrl', [
         '$scope', 'Assessment', 'Hierarchy', 'routeData', 'Editor',
-        'responseAuthz', 'layout', '$location', 'Current', 'format', '$filter',
+        'questionAuthz', 'layout', '$location', 'Current', 'format', '$filter',
         'Notifications',
         function($scope, Assessment, Hierarchy, routeData, Editor, authz,
                  layout, $location, current, format, $filter, Notifications) {
@@ -130,7 +95,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
             '/survey/{}', $scope.survey.id));
     });
 
-    $scope.checkRole = authz(current, $scope.assessment);
+    $scope.checkRole = authz(current, $scope.survey, $scope.assessment);
 }])
 
 
@@ -144,7 +109,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         replace: true,
         templateUrl: 'response.html',
         transclude: true,
-        controller: ['$scope', 'hotkeys', 'Current', 'responseAuthz',
+        controller: ['$scope', 'hotkeys', 'Current', 'questionAuthz',
                 'Notifications',
                 function($scope, hotkeys, current, authz, Notifications) {
             if (!$scope.response) {

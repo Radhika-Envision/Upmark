@@ -56,7 +56,11 @@ angular.module('wsaa.surveyQuestions', [
 
 
 .factory('questionAuthz', ['Roles', function(Roles) {
-    return function(current, survey) {
+    return function(current, survey, assessment) {
+        var ownOrg = false;
+        var org = assessment && assessment.organisation || null;
+        if (org)
+            ownOrg = org.id == current.user.organisation.id;
         return function(functionName) {
             switch(functionName) {
                 case 'survey_dup':
@@ -72,6 +76,26 @@ angular.module('wsaa.surveyQuestions', [
                     break;
                 case 'assessment_review':
                     return Roles.hasPermission(current.user.role, 'consultant');
+                    break;
+                case 'view_aggregate_score':
+                case 'view_single_score':
+                    if (Roles.hasPermission(current.user.role, 'consultant'))
+                        return true;
+                    return false;
+                    break;
+                case 'assessment_admin':
+                    if (Roles.hasPermission(current.user.role, 'consultant'))
+                        return true;
+                    if (Roles.hasPermission(current.user.role, 'org-admin'))
+                        return ownOrg;
+                    break;
+                case 'assessment_edit':
+                case 'view_response':
+                case 'alter_response':
+                    if (Roles.hasPermission(current.user.role, 'consultant'))
+                        return true;
+                    if (Roles.hasPermission(current.user.role, 'clerk'))
+                        return ownOrg;
                     break;
                 default:
                     return Roles.hasPermission(current.user.role, 'author');
@@ -760,7 +784,10 @@ angular.module('wsaa.surveyQuestions', [
         }
     });
 
-    $scope.checkRole = authz(current, $scope.survey);
+    // Used to get history
+    $scope.QuestionNode = QuestionNode;
+
+    $scope.checkRole = authz(current, $scope.survey, $scope.assessment);
     $scope.editable = ($scope.survey.isEditable &&
         !$scope.assessment && $scope.checkRole('survey_node_edit'));
 }])
@@ -1157,6 +1184,10 @@ angular.module('wsaa.surveyQuestions', [
             }
         }
         $scope.responseTypes = responseTypes;
+
+        $scope.checkRole = authz(current, $scope.survey, $scope.assessment);
+        $scope.editable = ($scope.survey.isEditable &&
+            !$scope.assessment && $scope.checkRole('measure_edit'));
     });
     $scope.$watchGroup(['measure.responseType', 'structure.survey.responseTypes'],
                        function(vars) {
@@ -1186,7 +1217,6 @@ angular.module('wsaa.surveyQuestions', [
         }
     });
 
-    $scope.checkRole = authz(current, $scope.survey);
     $scope.Measure = Measure;
 
     if ($scope.assessment) {

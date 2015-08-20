@@ -30,15 +30,11 @@
                 ng-disabled="edit.model">
             <td class="shrink">{{item.seq + 1}}</td>
             <td>{{item.title}}</td>
-            <td class="shrink text-muted" ng-if="!assessment">
-                1
-            </td>
-            <td class="shrink text-muted"
-                    ng-if="assessment && checkRole('assessment_review')"
-                    title="Score">
+            <td class="shrink text-muted" title="Score"
+                    ng-if="assessment && checkRole('assessment_review')">
                 {{getStats(item.id).score | number:0}}
             </td>
-            <td class="shrink">
+            <td class="shrink" ng-if="assessment">
                 <column-progress items="getStats(item.id).progressItems">
                     </column-progress>
             </td>
