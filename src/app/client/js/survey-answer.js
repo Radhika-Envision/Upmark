@@ -253,7 +253,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                     combo: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
                     description: "Choose the Nth option for the active response part",
                     callback: function(event, hotkey) {
-                        var i = Number(String.fromCharCode(event.keyCode)) - 1;
+                        var i = Number(String.fromCharCode(event.which)) - 1;
                         i = Math.max(0, i);
                         i = Math.min($scope.responseType.parts.length, i);
                         $scope.choose($scope.state.active, i);
