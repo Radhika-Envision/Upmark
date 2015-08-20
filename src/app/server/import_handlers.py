@@ -275,11 +275,9 @@ class Importer():
         """
         book = xlrd.open_workbook(path)
         scoring_sheet = book.sheet_by_name("Scoring")
-
         '''
         TODO : process response
         '''
-
 
     def process_assessment_file(self, path, survey_id, hierarchy_id, organisation_id, title, user_id):
         """
@@ -319,20 +317,23 @@ class Importer():
                 cell = sheet.row_values(row_num)
                 all_rows.append(cell)
 
-            # all_functions = session.query(model.Qnode).filter_by(survey_id = survey_id)
-
             function_col_num = self.col2num("A")
             process_col_num = self.col2num("B")
             subprocess_col_num = self.col2num("C")
             measure_col_num = self.col2num("D")
 
             survey_qnodes = session.query(model.QuestionNode).filter_by(survey_id=survey_id)
+
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'aquamark_response_types.json')) as file:
+                response_types = json.load(file)
             # session.expunge_all()
 
             try:
+                # for row_num in range(0, 1):
                 for row_num in range(0, len(all_rows)-1):
                     order, title = self.parse_order_title(all_rows, row_num, "A", "{order} {title}")
                     function = survey_qnodes.filter_by(parent_id=None, title=title).one()
+                    function_order = order
 
                     order, title = self.parse_order_title(all_rows, row_num, "B", "{order} {title}")
                     process = survey_qnodes.filter_by(parent_id=function.id, title=title).one()
@@ -347,6 +348,10 @@ class Importer():
                         measure = measure[0]
                     else:
                         raise Exception("This survey is not matching current open survey. ")
+        
+
+                    log.info("measure response_type: %s", [r for r in response_types if r["id"] == measure.response_type][0])
+                    r_types = [r for r in response_types if r["id"] == measure.response_type][0]
 
                     response = model.Response()
                     response.survey_id = survey_id
@@ -354,13 +359,35 @@ class Importer():
                     response.assessment_id = assessment.id
                     response.user_id = user_id
                     response.comment = all_rows[row_num][self.col2num("K")]
-                    response.not_relevant = False
+                    response.not_relevant = False # Need to fix this hard coding
+                    response_part = []
+                    response_text = all_rows[row_num][self.col2num("E")]
+                    response_options = [r["name"] for r in r_types["parts"][0]["options"]]
+                    response_index = response_options.index(response_text)
+                    response_part.append({"index": response_index, "note": response_text})
+                    if function_order != "7":
+                        response_text = all_rows[row_num][self.col2num("F")]
+                        response_options = [r["name"] for r in r_types["parts"][1]["options"]]
+                        response_index = response_options.index(response_text)
+                        response_part.append({"index": response_index, "note": response_text})
+
+                        response_text = all_rows[row_num][self.col2num("G")]
+                        response_options = [r["name"] for r in r_types["parts"][2]["options"]]
+                        response_index = response_options.index(response_text)
+                        response_part.append({"index": response_index, "note": response_text})
+
+                        response_text = all_rows[row_num][self.col2num("H")]
+                        response_options = [r["name"] for r in r_types["parts"][3]["options"]]
+                        response_index = response_options.index(response_text)
+                        response_part.append({"index": response_index, "note": response_text})
+                    response.response_parts  = response_part
+                    response.audit_reason = "Test"
+                    response.attachments = None
                     session.add(response)
             except sqlalchemy.orm.exc.NoResultFound:
                 raise Exception("This survey is not matching current open survey. ", all_rows[row_num], title)
 
         return survey_id
-
 
 
     def parse_order_title(self, all_rows, row_num, col_chr, parse_expression):
