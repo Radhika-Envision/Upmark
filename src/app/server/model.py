@@ -609,14 +609,17 @@ class Response(Versioned, Base):
         self._response_parts = Response._response_parts_schema(s)
 
     def update_stats(self):
-        try:
-            rt = self.survey.materialised_response_types[
-                self.measure.response_type]
-        except KeyError:
-            raise ModelError(
-                "Measure '%s' is misconfigured: response type is not defined." %
-                self.measure.title)
-        score = rt.calculate_score(self.response_parts)
+        if self.not_relevant:
+            score = 0.0
+        else:
+            try:
+                rt = self.survey.materialised_response_types[
+                    self.measure.response_type]
+            except KeyError:
+                raise ModelError(
+                    "Measure '%s': response type is not defined." %
+                    self.measure.title)
+            score = rt.calculate_score(self.response_parts)
         self.score = score * self.measure.weight
 
     def update_stats_ancestors(self):

@@ -216,7 +216,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                 }
                 $scope.stats = {
                     expressionVars: expressionVars,
-                    score: score
+                    score: $scope.response.notRelevant ? 0 : score
                 };
             });
 

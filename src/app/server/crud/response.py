@@ -118,6 +118,9 @@ class ResponseHandler(handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
+    # There is no POST, because responses are accessed by measure + assessment
+    # instead of by their own ID.
+
     @tornado.web.authenticated
     def put(self, assessment_id, measure_id):
         '''Save (create or update).'''

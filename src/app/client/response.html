@@ -9,11 +9,12 @@
         <span ng-if="debug">Sample</span>
         <span ng-if="checkRole('view_single_score') && responseType.parts.length"
                 class="text-muted pull-right">
-            {{stats.score * 100 | number:0}}%</span>
+            {{stats.score * 100 | number:0}}%
+        </span>
     </h2>
 </div>
 
-<ol class="responses list-unstyled">
+<ol class="responses list-unstyled" ng-if="!response.notRelevant">
     <li ng-repeat="part in responseType.parts" class="clearfix"
             ng-class="{active: $index == state.active}">
         <div ng-if="part.name">

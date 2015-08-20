@@ -107,6 +107,11 @@
 
 <div class="container spaced" ng-if="!edit.model && assessment">
     <response type="responseType" model="response">
+        <button class="btn btn-round btn-on-danger"
+                title="Not relevant"
+                ng-click="toggleNotRelvant()"
+                ng-class="{active: response.notRelevant}">
+            <i class="fa fa-times fa-fw"></i></button>
         <button class="btn btn-default btn-round"
                 title="Save response"
                 ng-click="saveResponse()">

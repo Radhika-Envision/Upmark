@@ -1124,6 +1124,19 @@ angular.module('wsaa.surveyQuestions', [
                     "Could not save response: " + details.statusText);
             });
     };
+    $scope.toggleNotRelvant = function() {
+        var oldValue = $scope.response.notRelevant;
+        $scope.response.notRelevant = !oldValue;
+        $scope.response.$save().then(
+            function success() {
+                Notifications.set('edit', 'success', "Saved", 5000);
+            },
+            function failure(details) {
+                $scope.response.notRelevant = oldValue;
+                Notifications.set('edit', 'error',
+                    "Could not save response: " + details.statusText);
+            });
+    };
     $scope.setState = function(state) {
         $scope.response.$save({approval: state},
             function success() {
