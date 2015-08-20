@@ -8,4 +8,5 @@ from . import qnode
 from . import measure
 
 from . import assessment
+from . import rnode
 from . import response

@@ -5,8 +5,7 @@
     <div class="toolbar">
         <button class="btn btn-default btn-round" title="Delete"
                 ng-click="edit.del()"
-                ng-if="survey.isEditable && !edit.model &&
-                    checkRole('qnode_del')">
+                ng-if="editable && !edit.model && checkRole('qnode_del')">
             <i class="fa fa-trash-o"></i></button>
         <button class="btn btn-default btn-round" title="Collapse"
                 ng-click="layout.expandHeader = !layout.expandHeader">
@@ -24,8 +23,7 @@
             <i class="fa fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
-                ng-if="survey.isEditable && !edit.model &&
-                    checkRole('qnode_edit')">
+                ng-if="editable && !edit.model">
             <i class="fa fa-pencil"></i></button>
         <survey-history entity="qnode" service="QuestionNode"
                 ng-if="!edit.model"></survey-history>
@@ -59,25 +57,15 @@
 </div>
 </div>
 
-<reorderable href="/qnode/{}?{{assessment ? 'assessment=' + assessment.id : 'survey=' + survey.id}}"
-        model="children" check-role="checkRole"
-        title="{{nextLevel.title}}"
-        params="{surveyId: survey.id, parentId: qnode.id}"
-        resource="QuestionNode"
-        ng-if="nextLevel && !edit.model"
-        can-edit="survey.isEditable"></reorderable>
 
-<reorderable href="/measure/{}?{{assessment ? 'assessment=' + assessment.id : 'survey=' + survey.id}}&parent={{qnode.id}}"
-        model="measures" check-role="checkRole"
-        title="{{structure.hierarchy.structure.measure.title}}"
-        params="{surveyId: survey.id, qnodeId: qnode.id}"
-        resource="Measure"
-        ng-if="currentLevel.hasMeasures && !edit.model"
-        can-edit="survey.isEditable">
-    <a class="btn btn-default btn-round" title="Link to existing"
-            ng-href="#/measure-link?survey={{survey.id}}&parent={{qnode.id}}"
-            ng-if="survey.isEditable && !edit.model && checkRole('add')">
-        <i class="fa fa-fw fa-link"></i></a>
-</reorderable>
+<div class="container"
+    ng-controller="QnodeChildren" ng-include="'qnode_children.html'"
+    ng-if="nextLevel && !edit.model"></div>
+
+
+<div class="container"
+    ng-controller="QnodeMeasures" ng-include="'qnode_measures.html'"
+    ng-if="currentLevel.hasMeasures && !edit.model"></div>
+
 
 </div>

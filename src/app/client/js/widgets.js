@@ -64,6 +64,53 @@ angular.module('vpac.widgets', [])
 }])
 
 
+.directive('columnProgress', [function() {
+    return {
+        restrict: 'E',
+        scope: {
+            items: '='
+        },
+        templateUrl: "bar-progress.html",
+        controller: ['$scope', function($scope) {
+            $scope.$watch('items', function(items) {
+                if (!items) {
+                    $scope.summary = '';
+                    return;
+                }
+                var summary = [];
+                for (var i = 0; i < items.length; i++) {
+                    var item = items[i];
+                    summary.push(item.name + ': ' + item.value);
+                }
+                $scope.summary = summary.join(', ');
+            });
+        }],
+        link: function(scope, elem, attrs) {
+            elem.on('click', function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+            });
+            scope.$on('$destroy', function() {
+                elem.off('click');
+            });
+        }
+    };
+}])
+
+
+.directive('columnProgressColumn', [function() {
+    return {
+        restrict: 'A',
+        link: function(scope, elem, attrs) {
+            scope.$watch('item.fraction', function(fraction) {
+                fraction = fraction * 0.93 + 0.07;
+                elem.css('height', '' + (fraction * 100) + '%');
+            });
+        }
+    };
+}])
+
+
 .factory('Notifications', ['log', '$timeout', 'Arrays',
         function(log, $timeout, Arrays) {
     function Notifications() {
@@ -288,47 +335,13 @@ angular.module('vpac.widgets', [])
 })
 
 
-.directive('reorderable', [function() {
-    return {
-        restrict: 'E',
-        scope: {
-            model: '=',
-            title: '@',
-            checkRole: '=',
-            params: '=',
-            resource: '=',
-            canEdit: '='
-        },
-        templateUrl: 'reorder.html',
-        replace: true,
-        transclude: true,
-        controller: ['$scope', 'format', 'Editor',
-                function($scope, format, Editor) {
-            $scope.edit = Editor(
-                'model', $scope, $scope.params, $scope.resource);
-            $scope.href = function(id) {
-                return format($scope.hrefSpec, id);
-            };
-            $scope.dragOpts = {
-                axis: 'y',
-                handle: '.grab-handle'
-            };
-            $scope.$on('EditSaved', function(event, model) {
-                event.stopPropagation();
-            });
-        }],
-        link: function(scope, elem, attrs) {
-            scope.hrefSpec = attrs.href;
-        }
-    };
-}])
-
-
 .directive('anyHref', ['$location', function($location) {
     return {
         restrict: 'A',
         link: function(scope, elem, attrs) {
             elem.on('click.anyHref', function() {
+                if (attrs.disabled)
+                    return;
                 scope.$apply(function() {
                     $location.url(attrs.anyHref);
                 });

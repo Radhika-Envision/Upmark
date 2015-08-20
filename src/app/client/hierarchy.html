@@ -1,5 +1,3 @@
-<div>
-
 <div class="header">
 <div class="container">
     <div class="toolbar">
@@ -158,14 +156,11 @@
 </div>
 </div>
 
-<reorderable href="/qnode/{}?survey={{survey.id}}&hierarchy={{hierarchy.id}}"
-        model="qnodes" check-role="checkRole"
-        title="{{hierarchy.structure.levels[0].title}}"
-        params="{surveyId: survey.id, hierarchyId: hierarchy.id, root: ''}"
-        resource="QuestionNode" ng-if="!edit.model"
-        can-edit="survey.isEditable"></reorderable>
 
-</div>
+<div class="container"
+    ng-controller="QnodeChildren" ng-include="'qnode_children.html'"
+    ng-if="!edit.model"></div>
+
 
 <div class="spaced" ng-if="!edit.model">
 <div class="container">

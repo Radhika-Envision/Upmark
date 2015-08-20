@@ -12,6 +12,7 @@ import model
 import logging
 
 import crud
+from response_type import ResponseTypeError
 from utils import falsy, reorder, ToSon, truthy, updater
 
 
@@ -24,6 +25,10 @@ class ResponseHandler(handlers.BaseHandler):
     def get(self, assessment_id, measure_id):
         '''Get a single response.'''
 
+        if measure_id == '':
+            self.query(assessment_id)
+            return
+
         with model.session_scope() as session:
             query = (session.query(model.Response).filter_by(
                     assessment_id=assessment_id, measure_id=measure_id))
@@ -31,6 +36,8 @@ class ResponseHandler(handlers.BaseHandler):
 
             if response is None:
                 raise handlers.MissingDocError("No such response")
+
+            self._check_authz(response.assessment)
 
             to_son = ToSon(include=[
                 # Fields to match from any visited object
@@ -45,6 +52,7 @@ class ResponseHandler(handlers.BaseHandler):
                 r'^/not_relevant$',
                 r'^/attachments$',
                 r'^/audit_reason$',
+                r'^/approval$',
                 # Descend
                 r'/parent$',
                 r'/measure$',
@@ -61,9 +69,63 @@ class ResponseHandler(handlers.BaseHandler):
         self.write(json_encode(son))
         self.finish()
 
+    def query(self, assessment_id):
+        '''Get a list.'''
+        qnode_id = self.get_argument('qnodeId', '')
+        if qnode_id == '':
+            raise handlers.ModelError("qnode ID required")
+
+        with model.session_scope() as session:
+            assessment = (session.query(model.Assessment)
+                .filter_by(id=assessment_id)
+                .first())
+
+            if assessment is None:
+                raise handlers.MissingDocError("No such assessment")
+            self._check_authz(assessment)
+
+            rnode = (session.query(model.ResponseNode)
+                .filter_by(assessment_id=assessment_id,
+                           qnode_id=qnode_id)
+                .first())
+
+            if rnode is None:
+                responses = []
+            else:
+                responses = rnode.responses
+
+            exclude = [
+                # The IDs of rnodes and responses are not part of the API
+                r'^/[0-9]+/id$',
+            ]
+            if self.current_user.role in {'clerk', 'org_admin'}:
+                exclude += [
+                    r'/score$',
+                ]
+
+            to_son = ToSon(include=[
+                # Fields to match from any visited object
+                r'/id$',
+                r'/score$',
+                r'/approval$',
+                # Descend into nested objects
+                r'/[0-9]+$',
+                r'/measure$',
+            ], exclude=exclude)
+            sons = to_son(responses)
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(sons))
+        self.finish()
+
+    # There is no POST, because responses are accessed by measure + assessment
+    # instead of by their own ID.
+
     @tornado.web.authenticated
     def put(self, assessment_id, measure_id):
         '''Save (create or update).'''
+
+        approval = self.get_argument('approval', '')
 
         try:
             with model.session_scope() as session:
@@ -72,10 +134,8 @@ class ResponseHandler(handlers.BaseHandler):
                 if assessment is None:
                     raise handlers.MissingDocError("No such assessment")
 
-                if not self.has_privillege('consultant'):
-                    if assessment.organisation.id != self.organisation.id:
-                        raise handlers.AuthzError(
-                            "You can't modify another organisation's response")
+                self._check_authz(assessment)
+                self._check_assessment_approval(assessment)
 
                 query = (session.query(model.Response).filter_by(
                      assessment_id=assessment_id, measure_id=measure_id))
@@ -88,15 +148,81 @@ class ResponseHandler(handlers.BaseHandler):
                         raise handlers.MissingDocError("No such measure")
                     response = model.Response(
                         assessment_id=assessment_id, measure_id=measure_id,
-                        survey_id=assessment.survey.id)
+                        survey_id=assessment.survey.id, approval='draft')
                     session.add(response)
 
+                if approval != '':
+                    self._set_approval(response, assessment, approval)
+
+                self._check_response_approval(response)
+
                 self._update(response, self.request_son)
-                self._update_score(response, session)
+                session.flush()
+
+                try:
+                    response.update_stats_ancestors()
+                except ResponseTypeError as e:
+                    raise handlers.ModelError(str(e))
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(assessment_id, measure_id)
+
+    def _check_authz(self, assessment):
+        if not self.has_privillege('consultant'):
+            if assessment.organisation.id != self.organisation.id:
+                raise handlers.AuthzError(
+                    "You can't modify another organisation's response")
+
+    def _check_assessment_approval(self, assessment):
+        if assessment.approval == 'draft':
+            pass
+        elif assessment.approval == 'final':
+            if not self.has_privillege('org_admin', 'consultant'):
+                raise handlers.AuthzError(
+                    "This assessment has already been finalised")
+        elif assessment.approval == 'reviewed':
+            if not self.has_privillege('consultant'):
+                raise handlers.AuthzError(
+                    "This assessment has already been reviewed")
+        else:
+            if not self.has_privillege('authority'):
+                raise handlers.AuthzError(
+                    "This assessment has already been approved")
+
+    def _check_response_approval(self, response):
+        if response.approval in {'draft', 'final'}:
+            pass
+        elif response.approval == 'reviewed':
+            if not self.has_privillege('consultant'):
+                raise handlers.AuthzError(
+                    "This response has already been reviewed")
+        else:
+            if not self.has_privillege('authority'):
+                raise handlers.AuthzError(
+                    "This response has already been approved")
+
+    def _set_approval(self, response, assessment, approval):
+        order = ['draft', 'final', 'reviewed', 'approved']
+        if order.index(assessment.approval) > order.index(approval):
+            raise handlers.ModelError(
+                "This response belongs to an assessment with a state of '%s'."
+                % assessment.approval)
+
+        if self.current_user.role in {'org_admin', 'clerk'}:
+            if approval not in {'draft', 'final'}:
+                raise handlers.AuthzError(
+                    "You can't mark this response as %s." % approval)
+        elif self.current_user.role == 'consultant':
+            if approval not in {'draft', 'final', 'reviewed'}:
+                raise handlers.AuthzError(
+                    "You can't mark this response as %s." % approval)
+        elif self.has_privillege('authority'):
+            pass
+        else:
+            raise handlers.AuthzError(
+                "You can't mark this response as %s." % approval)
+        response.approval = approval
 
     def _update(self, response, son):
         '''
@@ -112,7 +238,3 @@ class ResponseHandler(handlers.BaseHandler):
 
         # TODO: attachments
         response.attachments = []
-
-    def _update_score(self, response, session):
-        # TODO
-        pass

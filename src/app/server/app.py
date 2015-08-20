@@ -181,7 +181,10 @@ def get_mappings():
             'mapper': model.Measure}),
 
         (r"/assessment/?([^/]*).json", crud.assessment.AssessmentHandler, {}),
-        (r"/assessment/([^/]*)/response/([^/]*).json", crud.response.ResponseHandler, {}),
+        (r"/assessment/([^/]*)/rnode/?([^/]*).json",
+            crud.rnode.ResponseNodeHandler, {}),
+        (r"/assessment/([^/]*)/response/?([^/]*).json",
+            crud.response.ResponseHandler, {}),
 
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response.json", import_handlers.ImportResponseHandler, {}),

@@ -217,6 +217,9 @@ ul.fa-ul {
 .grab-handle {
     cursor: move;
 }
+reorder-view:not([reorder-edit]) .grab-handle {
+    display: none;
+}
 
 /* Nested pages should have less prominent headers */
 ng-include>.header, .nested>.header {
@@ -475,5 +478,71 @@ ul.list-results {
     }
     .clock-fill {
         fill: #333;
+    }
+}
+
+column-progress {
+    $column-width: 3px;
+    $column-spacing: 2px;
+
+    display: inline-block;
+    vertical-align: top;
+    height: 1.42857143em;
+    position: relative;
+    transform: skewX(-10deg);
+    /*
+     * Fix for jagged edges
+     * http://stackoverflow.com/a/6898097/320036
+     */
+    -webkit-backface-visibility: hidden;
+
+    > span {
+        height: 100%;
+        display: inline-block;
+
+        &:before {
+            position: absolute;
+            content: ' ';
+            background-color: white;
+            top: -3px;
+            left: -4px;
+            right: -5px;
+            bottom: -4px;
+            border-radius: 5px;
+            display: block;
+            pointer-events: all;
+        }
+    }
+
+    > span > span {
+        width: $column-width;
+        height: 100%;
+        display: inline-block;
+        margin-left: $column-spacing;
+        overflow: hidden;
+        position: relative;
+
+        > span:not([column-progress-column]) {
+            display: block;
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            top: 0;
+            border-left: 3px solid #eee;
+        }
+        > span[column-progress-column] {
+            display: block;
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            border-left: 3px solid;
+            border-color: #FFA600;
+        }
+        + span > [column-progress-column] {
+            border-color: #FF3E00;
+        }
+        + span + span > [column-progress-column] {
+            border-color: #683797;;
+        }
     }
 }

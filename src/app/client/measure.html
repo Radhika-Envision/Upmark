@@ -6,8 +6,7 @@
         <button class="btn btn-default btn-round"
                 title="{{parent ? 'Unlink' : 'Delete'}}"
                 ng-click="edit.del()"
-                ng-if="survey.isEditable && !edit.model &&
-                    checkRole('measure_del')">
+                ng-if="editable && !edit.model && checkRole('measure_del')">
             <i class="fa fa-trash-o"
                     ng-class="parent ? 'fa-unlink' : 'fa-trash-o'"></i>
         </button>
@@ -27,8 +26,7 @@
             <i class="fa fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
-                ng-if="survey.isEditable && !edit.model &&
-                    checkRole('measure_edit')">
+                ng-if="editable && !edit.model">
             <i class="fa fa-pencil"></i></button>
         <survey-history entity="measure" service="Measure"
                 ng-if="!edit.model"></survey-history>
@@ -109,11 +107,48 @@
 
 <div class="container spaced" ng-if="!edit.model && assessment">
     <response type="responseType" model="response">
+        <button class="btn btn-round btn-on-danger"
+                title="Not relevant"
+                ng-click="toggleNotRelvant()"
+                ng-class="{active: response.notRelevant}">
+            <i class="fa fa-times fa-fw"></i></button>
         <button class="btn btn-default btn-round"
                 title="Save response"
                 ng-click="saveResponse()">
             <i class="fa fa-check fa-fw"></i></button>
     </response>
+
+    <div class="spaced btn-group btn-group-justified">
+        <div class="btn-group">
+            <button class="btn btn-default"
+                    ng-class="{active: response.approval == 'draft'}"
+                    ng-click="setState('draft')">
+                Draft
+            </button>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-default"
+                    ng-class="{active: response.approval == 'final'}"
+                    ng-click="setState('final')">
+                Final
+            </button>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-default"
+                    ng-class="{active: response.approval == 'reviewed'}"
+                    ng-click="setState('reviewed')">
+                Reviewed
+            </button>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-default"
+                    ng-class="{active: response.approval == 'approved'}"
+                    ng-click="setState('approved')">
+                Approved
+            </button>
+        </div>
+    </div>
+
     <p class="spaced" ng-if="response.user">Last edited by
         <a ng-href="#/user/{{response.user.id}}">{{response.user.name}}</a>.</p>
 </div>

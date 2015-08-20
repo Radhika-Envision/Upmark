@@ -43,13 +43,6 @@ class MeasureHandler(
                     ValueError):
                 raise handlers.MissingDocError("No such measure")
 
-            exclude = []
-            #if not self.has_privillege('author'):
-            #    exclude += [
-            #        r'/response_types.*score$',
-            #        r'/response_types.*formula$'
-            #    ]
-
             to_son = ToSon(include=[
                 # Fields to match from any visited object
                 r'/id$',
@@ -72,7 +65,7 @@ class MeasureHandler(
                 r'/hierarchy/survey$',
                 r'/hierarchy/structure.*$',
                 r'/response_types.*$'
-            ], exclude=exclude)
+            ])
             son = to_son(measure)
 
             if parent_id != '':

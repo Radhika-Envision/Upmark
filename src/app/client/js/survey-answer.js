@@ -18,6 +18,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
             {assessmentId: '@assessmentId', measureId: '@measureId'}, {
         get: { method: 'GET', cache: false },
         save: { method: 'PUT' },
+        query: { method: 'GET', isArray: true, cache: false },
         history: { method: 'GET',
             url: '/assessment/:assessmentId/response/:measureId/history.json',
             isArray: true, cache: false }
@@ -25,46 +26,17 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 }])
 
 
-.factory('responseAuthz', ['Roles', function(Roles) {
-    return function(current, assessment) {
-        return function(functionName) {
-            var ownOrg = false;
-            var org = assessment && assessment.organisation || null;
-            if (org)
-                ownOrg = org.id == current.user.organisation.id;
-            switch(functionName) {
-                case 'view_aggregate_score':
-                    if (Roles.hasPermission(current.user.role, 'consultant'))
-                        return true;
-                    return false;
-                    break;
-                case 'view_single_score':
-                    return true;
-                    break;
-                case 'assessment_admin':
-                    if (Roles.hasPermission(current.user.role, 'consultant'))
-                        return true;
-                    if (Roles.hasPermission(current.user.role, 'org-admin'))
-                        return ownOrg;
-                    break;
-                case 'assessment_edit':
-                case 'view_response':
-                case 'alter_response':
-                    if (Roles.hasPermission(current.user.role, 'consultant'))
-                        return true;
-                    if (Roles.hasPermission(current.user.role, 'clerk'))
-                        return ownOrg;
-                    break;
-            }
-            return false;
-        };
-    };
+.factory('ResponseNode', ['$resource', function($resource) {
+    return $resource('/assessment/:assessmentId/rnode/:qnodeId.json',
+            {assessmentId: '@assessmentId', qnodeId: '@qnodeId'}, {
+        query: { method: 'GET', isArray: true, cache: false }
+    });
 }])
 
 
 .controller('AssessmentCtrl', [
         '$scope', 'Assessment', 'Hierarchy', 'routeData', 'Editor',
-        'responseAuthz', 'layout', '$location', 'Current', 'format', '$filter',
+        'questionAuthz', 'layout', '$location', 'Current', 'format', '$filter',
         'Notifications',
         function($scope, Assessment, Hierarchy, routeData, Editor, authz,
                  layout, $location, current, format, $filter, Notifications) {
@@ -75,7 +47,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
     if (routeData.assessment) {
         // Editing old
         $scope.assessment = routeData.assessment;
-        $scope.qnodes = routeData.qnodes;
+        $scope.children = routeData.qnodes;
     } else {
         // Creating new
         $scope.assessment = new Assessment({
@@ -103,11 +75,6 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
     });
 
     $scope.setState = function(state) {
-        var assessment = angular.copy($scope.assessment);
-        assessment.approval = state;
-        assessment.$save();
-    };
-    $scope.setState = function(state) {
         $scope.assessment.$save({approval: state},
             function success() {
                 Notifications.set('edit', 'success', "Saved", 5000);
@@ -128,7 +95,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
             '/survey/{}', $scope.survey.id));
     });
 
-    $scope.checkRole = authz(current, $scope.assessment);
+    $scope.checkRole = authz(current, $scope.survey, $scope.assessment);
 }])
 
 
@@ -245,7 +212,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         replace: true,
         templateUrl: 'response.html',
         transclude: true,
-        controller: ['$scope', 'hotkeys', 'Current', 'responseAuthz',
+        controller: ['$scope', 'hotkeys', 'Current', 'questionAuthz',
                 'Notifications',
                 function($scope, hotkeys, current, authz, Notifications) {
             if (!$scope.response) {
@@ -352,7 +319,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                 }
                 $scope.stats = {
                     expressionVars: expressionVars,
-                    score: score
+                    score: $scope.response.notRelevant ? 0 : score
                 };
             });
 
@@ -363,7 +330,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                     combo: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
                     description: "Choose the Nth option for the active response part",
                     callback: function(event, hotkey) {
-                        var i = Number(String.fromCharCode(event.keyCode)) - 1;
+                        var i = Number(String.fromCharCode(event.which)) - 1;
                         i = Math.max(0, i);
                         i = Math.min($scope.responseType.parts.length, i);
                         $scope.choose($scope.state.active, i);

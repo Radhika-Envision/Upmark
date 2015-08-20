@@ -56,7 +56,11 @@ angular.module('wsaa.surveyQuestions', [
 
 
 .factory('questionAuthz', ['Roles', function(Roles) {
-    return function(current, survey) {
+    return function(current, survey, assessment) {
+        var ownOrg = false;
+        var org = assessment && assessment.organisation || null;
+        if (org)
+            ownOrg = org.id == current.user.organisation.id;
         return function(functionName) {
             switch(functionName) {
                 case 'survey_dup':
@@ -69,6 +73,29 @@ angular.module('wsaa.surveyQuestions', [
                 case 'assessment_browse':
                     return Roles.hasPermission(current.user.role, 'clerk') ||
                         Roles.hasPermission(current.user.role, 'consultant');
+                    break;
+                case 'assessment_review':
+                    return Roles.hasPermission(current.user.role, 'consultant');
+                    break;
+                case 'view_aggregate_score':
+                case 'view_single_score':
+                    if (Roles.hasPermission(current.user.role, 'consultant'))
+                        return true;
+                    return false;
+                    break;
+                case 'assessment_admin':
+                    if (Roles.hasPermission(current.user.role, 'consultant'))
+                        return true;
+                    if (Roles.hasPermission(current.user.role, 'org-admin'))
+                        return ownOrg;
+                    break;
+                case 'assessment_edit':
+                case 'view_response':
+                case 'alter_response':
+                    if (Roles.hasPermission(current.user.role, 'consultant'))
+                        return true;
+                    if (Roles.hasPermission(current.user.role, 'clerk'))
+                        return ownOrg;
                     break;
                 default:
                     return Roles.hasPermission(current.user.role, 'author');
@@ -458,7 +485,7 @@ angular.module('wsaa.surveyQuestions', [
         }
         // Hierarchy, or orphaned measure
         if (stack.length > 1) {
-            if (stack[1].responseType) {
+            if (stack[1].responseType !== undefined) {
                 measure = stack[1];
                 hstack.push({
                     path: 'measure',
@@ -493,7 +520,7 @@ angular.module('wsaa.surveyQuestions', [
         var qnodes = [];
         if (stack.length > 2 && hierarchy) {
             var qnodeMaxIndex = stack.length - 1;
-            if (stack[stack.length - 1].responseType) {
+            if (stack[stack.length - 1].responseType !== undefined) {
                 measure = stack[stack.length - 1];
                 qnodeMaxIndex = stack.length - 2;
             } else {
@@ -634,7 +661,7 @@ angular.module('wsaa.surveyQuestions', [
     if (routeData.hierarchy) {
         // Editing old
         $scope.hierarchy = routeData.hierarchy;
-        $scope.qnodes = routeData.qnodes;
+        $scope.children = routeData.qnodes;
     } else {
         // Creating new
         $scope.hierarchy = new Hierarchy({
@@ -651,7 +678,7 @@ angular.module('wsaa.surveyQuestions', [
                 }]
             }
         });
-        $scope.qnodes = null;
+        $scope.children = null;
         $scope.edit.edit();
     }
 
@@ -685,19 +712,27 @@ angular.module('wsaa.surveyQuestions', [
             model.structure.levels[0].hasMeasures = true;
     };
 
+    $scope.qnodeUrl = function(item, $index) {
+        return format("/qnode/{}?survey={}&hierarchy={}",
+            item.id, $scope.survey.id, $scope.hierarchy.id);
+    };
+
     $scope.checkRole = authz(current, $scope.survey);
     $scope.QuestionNode = QuestionNode;
     $scope.Hierarchy = Hierarchy;
+
+    $scope.editable = ($scope.survey.isEditable &&
+        $scope.checkRole('survey_node_edit'));
 }])
 
 
 .controller('QuestionNodeCtrl', [
         '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'format', 'Structure',
-        'Measure', 'layout',
+        'layout', 'Arrays',
         function($scope, QuestionNode, routeData, Editor, authz,
                  $location, Notifications, current, format, Structure,
-                 Measure, layout) {
+                 layout, Arrays) {
 
     // routeData.parent and routeData.hierarchy will only be defined when
     // creating a new qnode.
@@ -719,21 +754,19 @@ angular.module('wsaa.surveyQuestions', [
         $scope.measures = null;
     }
 
-    $scope.$watch('qnode', function(qnode) {
-        $scope.structure = Structure(qnode);
-        $scope.survey = $scope.structure.survey;
-        $scope.edit = Editor('qnode', $scope, {
-            parentId: routeData.parent && routeData.parent.id,
-            hierarchyId: routeData.hierarchy && routeData.hierarchy.id,
-            surveyId: $scope.survey.id
-        });
-        if (!qnode.id)
-            $scope.edit.edit();
-
-        var levels = $scope.structure.hierarchy.structure.levels;
-        $scope.currentLevel = levels[$scope.structure.qnodes.length - 1];
-        $scope.nextLevel = levels[$scope.structure.qnodes.length];
+    $scope.structure = Structure($scope.qnode);
+    $scope.survey = $scope.structure.survey;
+    $scope.edit = Editor('qnode', $scope, {
+        parentId: routeData.parent && routeData.parent.id,
+        hierarchyId: routeData.hierarchy && routeData.hierarchy.id,
+        surveyId: $scope.survey.id
     });
+    if (!$scope.qnode.id)
+        $scope.edit.edit();
+
+    var levels = $scope.structure.hierarchy.structure.levels;
+    $scope.currentLevel = levels[$scope.structure.qnodes.length - 1];
+    $scope.nextLevel = levels[$scope.structure.qnodes.length];
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
@@ -751,9 +784,230 @@ angular.module('wsaa.surveyQuestions', [
         }
     });
 
-    $scope.checkRole = authz(current, $scope.survey);
+    // Used to get history
     $scope.QuestionNode = QuestionNode;
-    $scope.Measure = Measure;
+
+    $scope.checkRole = authz(current, $scope.survey, $scope.assessment);
+    $scope.editable = ($scope.survey.isEditable &&
+        !$scope.assessment && $scope.checkRole('survey_node_edit'));
+}])
+
+
+.controller('QnodeChildren', ['$scope', 'bind', 'Editor', 'QuestionNode',
+        'ResponseNode', 'Notifications',
+        function($scope, bind, Editor, QuestionNode, ResponseNode,
+            Notifications) {
+
+    bind($scope, 'children', $scope, 'model', true);
+
+    $scope.edit = Editor('model', $scope, {}, QuestionNode);
+    $scope.$on('EditSaved', function(event, model) {
+        event.stopPropagation();
+    });
+
+    $scope.dragOpts = {
+        axis: 'y',
+        handle: '.grab-handle'
+    };
+
+    if ($scope.assessment) {
+        $scope.query = 'assessment=' + $scope.assessment.id;
+    } else if ($scope.hierarchy) {
+        $scope.query = 'survey=' + $scope.survey.id;
+        $scope.query += '&hierarchy=' + $scope.hierarchy.id;
+        $scope.edit.params = {
+            surveyId: $scope.survey.id,
+            hierarchyId: $scope.hierarchy.id,
+            root: ''
+        }
+    } else {
+        $scope.query = 'survey=' + $scope.survey.id;
+        $scope.edit.params.parentId = $scope.qnode.id;
+        $scope.edit.params = {
+            surveyId: $scope.survey.id,
+            parentId: $scope.qnode.id
+        }
+    }
+
+    $scope.$watchGroup(['hierarchy', 'structure'], function(vars) {
+        if ($scope.assessment && !$scope.qnode)
+            $scope.title = $scope.assessment.hierarchy.structure.levels[0].title;
+        else if ($scope.hierarchy)
+            $scope.title = $scope.hierarchy.structure.levels[0].title;
+        else
+            $scope.title = $scope.nextLevel.title;
+    });
+
+    if ($scope.assessment) {
+        // Get the responses that are associated with this qnode and assessment.
+        ResponseNode.query({
+            assessmentId: $scope.assessment.id,
+            parentId: $scope.qnode ? $scope.qnode.id : null,
+            hierarchyId: $scope.hierarchy ? $scope.hierarchy.id : null,
+            root: $scope.qnode ? null : ''
+        }).$promise.then(
+            function success(rnodes) {
+                var rmap = {};
+                for (var i = 0; i < rnodes.length; i++) {
+                    var rnode = rnodes[i];
+                    var nm = rnode.qnode.nMeasures;
+                    rmap[rnode.qnode.id] = {
+                        score: rnode.score,
+                        progressItems: [
+                            {
+                                name: 'Submitted',
+                                value: rnode.nSubmitted,
+                                fraction: rnode.nSubmitted / nm
+                            },
+                            {
+                                name: 'Reviewed',
+                                value: rnode.nReviewed,
+                                fraction: rnode.nReviewed / nm
+                            },
+                            {
+                                name: 'Approved',
+                                value: rnode.nApproved,
+                                fraction: rnode.nApproved / nm
+                            },
+                        ]
+                    };
+                }
+                $scope.rnodeMap = rmap;
+            },
+            function failure(details) {
+                Notifications.set('edit', 'error',
+                    "Could not get aggregate scores: " +
+                    details.statusText);
+            }
+        );
+    }
+    var dummyStats = {
+        score: 0,
+        progressItems: [
+            {
+                name: 'Submitted',
+                value: 0,
+                fraction: 0
+            },
+            {
+                name: 'Reviewed',
+                value: 0,
+                fraction: 0
+            },
+            {
+                name: 'Approved',
+                value: 0,
+                fraction: 0
+            },
+        ]
+    };
+    $scope.getStats = function(qnodeId) {
+        if ($scope.rnodeMap && $scope.rnodeMap[qnodeId])
+            return $scope.rnodeMap[qnodeId];
+        else
+            return dummyStats;
+    };
+}])
+
+
+.controller('QnodeMeasures', ['$scope', 'bind', 'Editor', 'Measure', 'Response',
+        'Notifications',
+        function($scope, bind, Editor, Measure, Response, Notifications) {
+
+    bind($scope, 'measures', $scope, 'model', true);
+
+    $scope.edit = Editor('model', $scope, {}, Measure);
+    $scope.$on('EditSaved', function(event, model) {
+        event.stopPropagation();
+    });
+
+    $scope.dragOpts = {
+        axis: 'y',
+        handle: '.grab-handle'
+    };
+
+    if ($scope.assessment)
+        $scope.query = 'assessment=' + $scope.assessment.id;
+    else
+        $scope.query = 'survey=' + $scope.survey.id;
+    $scope.query += "&parent=" + $scope.qnode.id;
+
+    $scope.edit.params = {
+        surveyId: $scope.survey.id,
+        qnodeId: $scope.qnode.id
+    }
+
+    $scope.title = $scope.structure.hierarchy.structure.measure.title;
+
+    if ($scope.assessment) {
+        // Get the responses that are associated with this qnode and assessment.
+        Response.query({
+            assessmentId: $scope.assessment.id,
+            qnodeId: $scope.qnode.id
+        }).$promise.then(
+            function success(responses) {
+                var rmap = {};
+                for (var i = 0; i < responses.length; i++) {
+                    var r = responses[i];
+                    var nApproved = r.approval == 'approved' ? 1 : 0;
+                    var nReviewed = r.approval == 'reviewed' ? 1 : nApproved;
+                    var nSubmitted = r.approval == 'final' ? 1 : nReviewed;
+                    rmap[r.measure.id] = {
+                        score: r.score,
+                        progressItems: [
+                            {
+                                name: 'Submitted',
+                                value: nSubmitted,
+                                fraction: nSubmitted
+                            },
+                            {
+                                name: 'Reviewed',
+                                value: nReviewed,
+                                fraction: nReviewed
+                            },
+                            {
+                                name: 'Approved',
+                                value: nApproved,
+                                fraction: nApproved
+                            },
+                        ]
+                    };
+                }
+                $scope.responseMap = rmap;
+            },
+            function failure(details) {
+                Notifications.set('edit', 'error',
+                    "Could not get aggregate scores: " +
+                    details.statusText);
+            }
+        );
+    }
+    var dummyStats = {
+        score: 0,
+        progressItems: [
+            {
+                name: 'Submitted',
+                value: 0,
+                fraction: 0
+            },
+            {
+                name: 'Reviewed',
+                value: 0,
+                fraction: 0
+            },
+            {
+                name: 'Approved',
+                value: 0,
+                fraction: 0
+            },
+        ]
+    };
+    $scope.getStats = function(measureId) {
+        if ($scope.responseMap && $scope.responseMap[measureId])
+            return $scope.responseMap[measureId];
+        else
+            return dummyStats;
+    };
 }])
 
 
@@ -816,10 +1070,10 @@ angular.module('wsaa.surveyQuestions', [
 .controller('MeasureCtrl', [
         '$scope', 'Measure', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'Survey', 'format', 'layout',
-        'Structure', 'Arrays', 'Response',
+        'Structure', 'Arrays', 'Response', 'hotkeys',
         function($scope, Measure, routeData, Editor, authz,
                  $location, Notifications, current, Survey, format, layout,
-                 Structure, Arrays, Response) {
+                 Structure, Arrays, Response, hotkeys) {
 
     $scope.layout = layout;
     $scope.parent = routeData.parent;
@@ -833,7 +1087,7 @@ angular.module('wsaa.surveyQuestions', [
             parent: routeData.parent,
             survey: routeData.survey,
             weight: 100,
-            responseType: 'standard_1'
+            responseType: null
         });
     }
 
@@ -843,7 +1097,7 @@ angular.module('wsaa.surveyQuestions', [
         $scope.response = Response.get({
             measureId: $scope.measure.id,
             assessmentId: $scope.assessment.id
-        })
+        });
         $scope.response.$promise.catch(function failure(details) {
             if (details.status != 404) {
                 Notifications.set('edit', 'error',
@@ -855,7 +1109,8 @@ angular.module('wsaa.surveyQuestions', [
                 assessmentId: $scope.assessment.id,
                 responseParts: [],
                 comment: '',
-                notRelevant: false
+                notRelevant: false,
+                approval: 'draft'
             });
         });
     }
@@ -868,6 +1123,30 @@ angular.module('wsaa.surveyQuestions', [
                 Notifications.set('edit', 'error',
                     "Could not save response: " + details.statusText);
             });
+    };
+    $scope.toggleNotRelvant = function() {
+        var oldValue = $scope.response.notRelevant;
+        $scope.response.notRelevant = !oldValue;
+        $scope.response.$save().then(
+            function success() {
+                Notifications.set('edit', 'success', "Saved", 5000);
+            },
+            function failure(details) {
+                $scope.response.notRelevant = oldValue;
+                Notifications.set('edit', 'error',
+                    "Could not save response: " + details.statusText);
+            });
+    };
+    $scope.setState = function(state) {
+        $scope.response.$save({approval: state},
+            function success() {
+                Notifications.set('edit', 'success', "Saved", 5000);
+            },
+            function failure(details) {
+                Notifications.set('edit', 'error',
+                    "Could not save response: " + details.statusText);
+            }
+        );
     };
 
     $scope.$watch('measure', function(measure) {
@@ -918,6 +1197,10 @@ angular.module('wsaa.surveyQuestions', [
             }
         }
         $scope.responseTypes = responseTypes;
+
+        $scope.checkRole = authz(current, $scope.survey, $scope.assessment);
+        $scope.editable = ($scope.survey.isEditable &&
+            !$scope.assessment && $scope.checkRole('measure_edit'));
     });
     $scope.$watchGroup(['measure.responseType', 'structure.survey.responseTypes'],
                        function(vars) {
@@ -947,8 +1230,25 @@ angular.module('wsaa.surveyQuestions', [
         }
     });
 
-    $scope.checkRole = authz(current, $scope.survey);
     $scope.Measure = Measure;
+
+    if ($scope.assessment) {
+        var t_approval;
+        if (current.user.role == 'clerk' || current.user.role == 'org_admin')
+            t_approval = 'final';
+        else if (current.user.role == 'consultant')
+            t_approval = 'reviewed';
+        else
+            t_approval = 'approved';
+        hotkeys.bindTo($scope)
+            .add({
+                combo: ['ctrl+enter'],
+                description: "Save the response, and mark it as " + t_approval,
+                callback: function(event, hotkey) {
+                    $scope.setState(t_approval);
+                }
+            });
+    }
 }])
 
 

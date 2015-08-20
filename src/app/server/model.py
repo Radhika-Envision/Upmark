@@ -22,6 +22,7 @@ from voluptuous import All, Any, Coerce, Length, Optional, Range, Required, \
 
 from guid import GUID
 from history_meta import Versioned, versioned_session
+from response_type import ResponseTypeCache
 
 
 metadata = MetaData()
@@ -168,6 +169,15 @@ class Survey(Base):
     @response_types.setter
     def response_types(self, rts):
         self._response_types = Survey._response_types_schema(rts)
+        if hasattr(self, '_materialised_response_types'):
+            del self._materialised_response_types
+
+    @property
+    def materialised_response_types(self):
+        if not hasattr(self, '_materialised_response_types'):
+            self._materialised_response_types = ResponseTypeCache(
+                self._response_types)
+        return self._materialised_response_types
 
     def update_stats_descendants(self):
         '''Updates the stats of an entire tree.'''
@@ -258,6 +268,15 @@ class QuestionNode(Base):
 
     survey = relationship(Survey)
 
+    def get_rnode(self, assessment):
+        if isinstance(assessment, str):
+            assessment_id = assessment
+        else:
+            assessment_id = assessment.id
+        return (object_session(self).query(ResponseNode)
+            .filter_by(assessment_id=assessment_id, qnode_id=self.id)
+            .first())
+
     def update_stats_ancestors(self):
         '''Updates the stats this node, and all ancestors.'''
         n_measures = len(self.measures)
@@ -297,6 +316,15 @@ class Measure(Base):
 
     survey = relationship(
         Survey, backref=backref('measures', passive_deletes=True))
+
+    def get_response(self, assessment):
+        if isinstance(assessment, str):
+            assessment_id = assessment
+        else:
+            assessment_id = assessment.id
+        return (object_session(self).query(Response)
+            .filter_by(assessment_id=assessment_id, measure_id=self.id)
+            .first())
 
     def __repr__(self):
         return "Measure(title={}, survey={})".format(
@@ -384,6 +412,17 @@ class Assessment(Base):
     survey = relationship(Survey)
     organisation = relationship(Organisation)
 
+    @property
+    def rnodes(self):
+        for qnode in self.hierarchy.qnodes:
+            rnode = qnode.get_rnode(self)
+            if rnode is not None:
+                yield rnode
+
+    def update_stats_descendants(self):
+        for rnode in self.rnodes:
+            rnode.update_stats_descendants()
+
     def __repr__(self):
         return "Assessment(survey={}, org={})".format(
             getattr(self.survey, 'title', None),
@@ -418,6 +457,74 @@ class ResponseNode(Base):
     )
 
     survey = relationship(Survey)
+    assessment = relationship(Assessment)
+
+    @property
+    def parent(self):
+        if self.qnode.parent is None:
+            return None
+        return self.qnode.parent.get_rnode(self.assessment)
+
+    @property
+    def children(self):
+        for child_qnode in self.qnode.children:
+            rnode = child_qnode.get_rnode(self.assessment)
+            if rnode is not None:
+                yield rnode
+
+    @property
+    def responses(self):
+        for measure in self.qnode.measures:
+            response = measure.get_response(self.assessment)
+            if response is not None:
+                yield response
+
+    def update_stats(self):
+        score = 0.0
+        n_approved = 0
+        n_reviewed = 0
+        n_submitted = 0
+
+        for c in self.children:
+            score += c.score
+            n_approved += c.n_approved
+            n_reviewed += c.n_reviewed
+            n_submitted += c.n_submitted
+
+        for r in self.responses:
+            score += r.score
+            if r.approval in {'final', 'reviewed', 'approved'}:
+                n_submitted += 1
+            if r.approval in {'reviewed', 'approved'}:
+                n_reviewed += 1
+            if r.approval in {'approved'}:
+                n_approved += 1
+
+        self.score = score
+        self.n_approved = n_approved
+        self.n_reviewed = n_reviewed
+        self.n_submitted = n_submitted
+
+    def update_stats_descendants(self):
+        for child in self.children:
+            child.update_stats_descendants()
+        for response in self.responses:
+            response.update_stats()
+        self.update_stats()
+
+    def update_stats_ancestors(self):
+        self.update_stats()
+        parent = self.parent
+        if parent is None:
+            qnode = self.qnode.parent
+            if qnode is None:
+                return
+            parent = ResponseNode(
+                survey_id=self.survey_id, assessment_id=self.assessment_id,
+                qnode_id=qnode.id)
+            object_session(self).add(parent)
+            object_session(self).flush()
+        parent.update_stats_ancestors()
 
     def __repr__(self):
         org = getattr(self.assessment, 'organisation', None)
@@ -440,6 +547,11 @@ class Response(Versioned, Base):
     _response_parts = Column('response_parts', JSON, nullable=False)
     attachments = Column(JSON, nullable=False)
     audit_reason = Column(Text)
+
+    score = Column(Float, default=0.0, nullable=False)
+    approval = Column(
+        Enum('draft', 'final', 'reviewed', 'approved', native_enum=False),
+        nullable=False)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -464,20 +576,22 @@ class Response(Versioned, Base):
     user = relationship(AppUser)
 
     @property
-    def parent(self):
-        qnode = None
+    def parent_qnode(self):
         for p in self.measure.parents:
             if p.hierarchy_id == self.assessment.hierarchy_id:
-                qnode = p
-                break
+                return p
+        # Might happen if a measure is unlinked after the response is
+        # created
+        return None
+
+    @property
+    def parent(self):
+        qnode = self.parent_qnode
         if qnode is None:
             # Might happen if a measure is unlinked after the response is
             # created
             return None
-        rnode = (object_session(self).query(ResponseNode)
-            .filter_by(assessment_id=self.assessment_id, qnode_id=qnode.id)
-            .first())
-        return rnode
+        return qnode.get_rnode(self.assessment)
 
     _response_parts_schema = Schema([
         {
@@ -493,6 +607,34 @@ class Response(Versioned, Base):
     @response_parts.setter
     def response_parts(self, s):
         self._response_parts = Response._response_parts_schema(s)
+
+    def update_stats(self):
+        if self.not_relevant:
+            score = 0.0
+        else:
+            try:
+                rt = self.survey.materialised_response_types[
+                    self.measure.response_type]
+            except KeyError:
+                raise ModelError(
+                    "Measure '%s': response type is not defined." %
+                    self.measure.title)
+            score = rt.calculate_score(self.response_parts)
+        self.score = score * self.measure.weight
+
+    def update_stats_ancestors(self):
+        self.update_stats()
+        parent = self.parent
+        if parent is None:
+            qnode = self.parent_qnode
+            if qnode is None:
+                return
+            parent = ResponseNode(
+                survey_id=self.survey_id, assessment_id=self.assessment_id,
+                qnode_id=qnode.id)
+            object_session(self).add(parent)
+        object_session(self).flush()
+        parent.update_stats_ancestors()
 
     def __repr__(self):
         org = getattr(self.assessment, 'organisation', None)
@@ -586,9 +728,6 @@ Assessment.hierarchy = relationship(
 
 Assessment.responses = relationship(
     Response, backref='assessment', passive_deletes=True)
-
-
-ResponseNode.assessment = relationship(Assessment)
 
 
 ResponseNode.qnode = relationship(
