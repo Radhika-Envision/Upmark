@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from datetime import datetime
 import os
 import sys
 import uuid
@@ -53,7 +54,7 @@ class Organisation(Versioned, Base):
     url = Column(Text, nullable=True)
     region = Column(Text, nullable=False)
     number_of_customers = Column(Integer, nullable=False)
-    created = Column(DateTime, default=func.now(), nullable=False)
+    created = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     __table_args__ = (
         Index('organisation_name_key', func.lower(name), unique=True),
@@ -73,7 +74,7 @@ class AppUser(Versioned, Base):
     name = Column(Text, nullable=False)
     password = Column(Text, nullable=False)
     role = Column(Text, nullable=False)
-    created = Column(DateTime, default=func.now(), nullable=False)
+    created = Column(DateTime, default=datetime.utcnow, nullable=False)
     enabled = Column(Boolean, nullable=False, default=True)
 
     def set_password(self, plaintext):
@@ -120,7 +121,7 @@ class Survey(Base):
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     tracking_id = Column(GUID, default=uuid.uuid4, nullable=False)
 
-    created = Column(DateTime, default=func.now(), nullable=False)
+    created = Column(DateTime, default=datetime.utcnow, nullable=False)
     # Survey is not editable after being finalised.
     finalised_date = Column(DateTime)
     # Survey is not open for responses until after the open_date.
@@ -392,7 +393,7 @@ class Assessment(Base):
     approval = Column(
         Enum('draft', 'final', 'reviewed', 'approved', native_enum=False),
         nullable=False)
-    created = Column(DateTime, default=func.now(), nullable=False)
+    created = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -547,6 +548,7 @@ class Response(Versioned, Base):
     _response_parts = Column('response_parts', JSON, nullable=False)
     attachments = Column(JSON, nullable=False)
     audit_reason = Column(Text)
+    modified = Column(DateTime, nullable=False)
 
     score = Column(Float, default=0.0, nullable=False)
     approval = Column(
@@ -765,7 +767,7 @@ def session_scope(version=False):
 
 
 def connect_db(url):
-    global Session
+    global Session, VersionedSession
     engine = create_engine(url)
     conn = engine.connect()
     # Never drop the schema here.

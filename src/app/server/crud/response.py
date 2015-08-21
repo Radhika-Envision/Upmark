@@ -53,6 +53,7 @@ class ResponseHandler(handlers.BaseHandler):
                 r'^/attachments$',
                 r'^/audit_reason$',
                 r'^/approval$',
+                r'^/version$',
                 # Descend
                 r'/parent$',
                 r'/measure$',
@@ -128,14 +129,13 @@ class ResponseHandler(handlers.BaseHandler):
         approval = self.get_argument('approval', '')
 
         try:
-            with model.session_scope() as session:
+            with model.session_scope(version=True) as session:
                 assessment = (session.query(model.Assessment)
                     .get(assessment_id))
                 if assessment is None:
                     raise handlers.MissingDocError("No such assessment")
 
                 self._check_authz(assessment)
-                self._check_assessment_approval(assessment)
 
                 query = (session.query(model.Response).filter_by(
                      assessment_id=assessment_id, measure_id=measure_id))
@@ -147,16 +147,23 @@ class ResponseHandler(handlers.BaseHandler):
                     if measure is None:
                         raise handlers.MissingDocError("No such measure")
                     response = model.Response(
-                        assessment_id=assessment_id, measure_id=measure_id,
-                        survey_id=assessment.survey.id, approval='draft')
+                        assessment_id=assessment_id,
+                        measure_id=measure_id,
+                        survey_id=assessment.survey.id,
+                        approval='draft')
                     session.add(response)
+                else:
+                    td = datetime.datetime.utcnow() - response.modified
+                    minutes_since_update = td.seconds / 60
+                    same_user = response.user.id == self.current_user.id
+                    if minutes_since_update < 30 and same_user:
+                        response.version_on_update = False
 
                 if approval != '':
-                    self._set_approval(response, assessment, approval)
+                    self._check_approval_change(response, assessment, approval)
 
-                self._check_response_approval(response)
-
-                self._update(response, self.request_son)
+                self._update(response, self.request_son, approval)
+                self._check_approval_state(response)
                 session.flush()
 
                 try:
@@ -174,7 +181,7 @@ class ResponseHandler(handlers.BaseHandler):
                 raise handlers.AuthzError(
                     "You can't modify another organisation's response")
 
-    def _check_assessment_approval(self, assessment):
+    def _check_approval_change(self, response, assessment, approval):
         if assessment.approval == 'draft':
             pass
         elif assessment.approval == 'final':
@@ -190,19 +197,6 @@ class ResponseHandler(handlers.BaseHandler):
                 raise handlers.AuthzError(
                     "This assessment has already been approved")
 
-    def _check_response_approval(self, response):
-        if response.approval in {'draft', 'final'}:
-            pass
-        elif response.approval == 'reviewed':
-            if not self.has_privillege('consultant'):
-                raise handlers.AuthzError(
-                    "This response has already been reviewed")
-        else:
-            if not self.has_privillege('authority'):
-                raise handlers.AuthzError(
-                    "This response has already been approved")
-
-    def _set_approval(self, response, assessment, approval):
         order = ['draft', 'final', 'reviewed', 'approved']
         if order.index(assessment.approval) > order.index(approval):
             raise handlers.ModelError(
@@ -222,19 +216,86 @@ class ResponseHandler(handlers.BaseHandler):
         else:
             raise handlers.AuthzError(
                 "You can't mark this response as %s." % approval)
-        response.approval = approval
 
-    def _update(self, response, son):
+    def _check_approval_state(self, response):
+        if response.approval in {'draft', 'final'}:
+            pass
+        elif response.approval == 'reviewed':
+            if not self.has_privillege('consultant'):
+                raise handlers.AuthzError(
+                    "This response has already been reviewed")
+        else:
+            if not self.has_privillege('authority'):
+                raise handlers.AuthzError(
+                    "This response has already been approved")
+
+    def _update(self, response, son, approval):
         '''
         Apply user-provided data to the saved model.
         '''
         update = updater(response)
         update('comment', son)
         update('not_relevant', son)
-        response.response_parts = son['response_parts']
+        update('response_parts', son)
 
-        response.user_id = self.current_user.id
+        extras = {
+            'modified': datetime.datetime.utcnow(),
+            'user_id': str(self.current_user.id)
+        }
+        if approval != '':
+            extras['approval'] = approval
+
+        update('modified', extras)
+        update('approval', extras)
+        update('user_id', extras)
         update('audit_reason', son)
 
         # TODO: attachments
-        response.attachments = []
+        #response.attachments = []
+
+
+class ResponseHistoryHandler(handlers.Paginate, handlers.BaseHandler):
+    @tornado.web.authenticated
+    def get(self, assessment_id, measure_id):
+        '''Get a list of versions of a response.'''
+        ResponseHistory = model.Response.__history_mapper__.class_
+        with model.session_scope() as session:
+            # Current version
+            versions = (session.query(model.Response)
+                .filter_by(assessment_id=assessment_id,
+                           measure_id=measure_id)
+                .first())
+
+            # Other versions
+            query = (session.query(ResponseHistory)
+                .filter_by(assessment_id=assessment_id,
+                           measure_id=measure_id)
+                .order_by(ResponseHistory.version.desc()))
+            query = self.paginate(query)
+
+            versions = query.all()
+
+            to_son = ToSon(include=[
+                r'/id$',
+                r'/name$',
+                r'/approval$',
+                r'/version$',
+                r'/modified$',
+                # Descend
+                r'/[0-9]+$',
+                r'/user$',
+                r'/organisation$',
+            ], exclude=[
+                # The IDs of rnodes and responses are not part of the API
+                r'^/[0-9]+/id$',
+            ])
+            sons = to_son(versions)
+
+            for son, version in zip(sons, versions):
+                user = session.query(model.AppUser).get(version.user_id)
+                if user is not None:
+                    son['user'] = to_son(user)
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(sons))
+        self.finish()

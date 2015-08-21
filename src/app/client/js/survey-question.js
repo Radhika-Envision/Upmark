@@ -1148,6 +1148,8 @@ angular.module('wsaa.surveyQuestions', [
             }
         );
     };
+    $scope.setResponse = function(response) {
+    };
 
     $scope.$watch('measure', function(measure) {
         $scope.structure = Structure(measure);
@@ -1285,6 +1287,58 @@ angular.module('wsaa.surveyQuestions', [
                 $scope.search.orphan = true;
                 break;
         }
+    };
+}])
+
+
+/**
+ * Drop-down menu to navigate to old versions of an entity.
+ */
+.controller('ResponseHistory', ['$scope', '$location', 'Response',
+        function($scope, $location, Response) {
+    $scope.toggled = function(open) {
+        if (open) {
+            $scope.search = {
+                assessmentId: $scope.assessment.id,
+                measureId: $scope.measure.id,
+                page: 0,
+                pageSize: 10
+            };
+        }
+    };
+
+    $scope.search = null;
+
+    $scope.$watch('search', function(search) {
+        if (!search) {
+            $scope.versions = null;
+            return;
+        }
+        Response.history(search).$promise.then(
+            function success(versions) {
+                $scope.versions = versions;
+            }
+        );
+    }, true);
+
+    $scope.nextPage = function($event) {
+        if ($scope.search.page > 0)
+            $scope.search.page--;
+        $event.preventDefault();
+        $event.stopPropagation();
+    };
+    $scope.prevPage = function($event) {
+        if ($scope.versions.length >= $scope.search.pageSize)
+            $scope.search.page++;
+        $event.preventDefault();
+        $event.stopPropagation();
+    };
+
+    $scope.navigate = function(version) {
+        $scope.setResponse(version);
+    };
+    $scope.isActive = function(version) {
+        return version.version == $scope.response.version;
     };
 }])
 

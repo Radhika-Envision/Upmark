@@ -107,6 +107,42 @@
 
 <div class="container spaced" ng-if="!edit.model && assessment">
     <response type="responseType" model="response">
+        <span ng-controller="ResponseHistory" dropdown
+                on-toggle="toggled(open)" dropdown-append-to-body>
+            <button class="btn btn-default btn-round" title="History"
+                    dropdown-toggle>
+                <i class="fa fa-history"></i></button>
+
+            <ul class="dropdown-menu dropdown-menu-right">
+                <li class="dropdown-header">
+                    Versions
+                    <button class="btn btn-default btn-round" title="Newer"
+                            ng-click="nextPage($event)">
+                        <i class="fa fa-caret-left"></i></button>
+                    <button class="btn btn-default btn-round" title="Older"
+                            ng-click="prevPage($event)">
+                        <i class="fa fa-caret-right"></i></button>
+                </li>
+                <li ng-if="!versions.length" class="dropdown-header">
+                    Loading...</li>
+                <li ng-repeat="version in versions"
+                        ng-class="{active: isActive(version)}">
+                    <a href ng-click="navigate(version)">
+                        {{version.version}}
+                        by {{version.user.name}}
+                        at {{version.modified | date:medium}}
+                        <span class="pull-right nudge-right text-muted">
+                            <i class="fa fa-circle-o" ng-style="{
+                                visibility: version.isOpen ? null : 'hidden' }"
+                                title="Open for responses"></i>
+                            <i class="fa fa-pencil-square-o" ng-style="{
+                                visibility: version.isEditable ? null : 'hidden' }"
+                                title="Editable"></i>
+                        </span>
+                        </a>
+                </li>
+            </ul>
+        </span>
         <button class="btn btn-round btn-on-danger"
                 title="Not relevant"
                 ng-click="toggleNotRelvant()"
@@ -149,8 +185,47 @@
         </div>
     </div>
 
-    <p class="spaced" ng-if="response.user">Last edited by
-        <a ng-href="#/user/{{response.user.id}}">{{response.user.name}}</a>.</p>
+    <div class="spaced text-muted">
+        <ul class="fa-ul">
+            <li>
+                <i class="fa-li fa fa-history fa-border"></i>
+                <p>
+                    Version {{response.version}}
+                </p>
+                <p>Submitted by
+                    <a ng-href="#/user/{{response.user.id}}">
+                        {{response.user.name}}</a>
+                </p>
+            </li>
+            <li>
+                <i class="fa-li fa fa-check-square-o fa-border"></i>
+                <p>
+                    Responses and assessments progress through approval
+                    states <i>draft</i> &raquo; <i>final</i> &raquo;
+                    <i>reviewed</i> &raquo; <i>approved</i>. Approval states
+                    are resticted to roles as follows:
+                </p>
+                <ul>
+                    <li>
+                        Clerk: Draft, Final (responses only)
+                    </li>
+                    <li>
+                        Organisation Admin: Draft, Final
+                    </li>
+                    <li>
+                        Consultant: Reviewed
+                    </li>
+                    <li>
+                        Authority: Approved
+                    </li>
+                </ul>
+                <p>
+                    Increasing the appoval state indicates that the response is
+                    ready for the next level of review.
+                </p>
+            </li>
+        </ul>
+    </div>
 </div>
 
 

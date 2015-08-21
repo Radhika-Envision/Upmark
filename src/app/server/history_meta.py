@@ -161,6 +161,28 @@ class Versioned(object):
             return mp
         return map
 
+    @property
+    def version_on_update(self):
+        try:
+            return self._version_on_update
+        except AttributeError:
+            return True
+
+    @version_on_update.setter
+    def version_on_update(self, enabled):
+        self._version_on_update = enabled
+
+    @property
+    def version_on_delete(self):
+        try:
+            return self._version_on_delete
+        except AttributeError:
+            return True
+
+    @version_on_delete.setter
+    def version_on_delete(self, enabled):
+        self._version_on_delete = enabled
+
 
 def versioned_objects(iter):
     for obj in iter:
@@ -253,6 +275,8 @@ def versioned_session(session):
     @event.listens_for(session, 'before_flush')
     def before_flush(session, flush_context, instances):
         for obj in versioned_objects(session.dirty):
-            create_version(obj, session)
+            if obj.version_on_update:
+                create_version(obj, session)
         for obj in versioned_objects(session.deleted):
-            create_version(obj, session, deleted=True)
+            if obj.version_on_delete:
+                create_version(obj, session, deleted=True)

@@ -185,6 +185,8 @@ def get_mappings():
             crud.rnode.ResponseNodeHandler, {}),
         (r"/assessment/([^/]*)/response/?([^/]*).json",
             crud.response.ResponseHandler, {}),
+        (r"/assessment/([^/]*)/response/?([^/]*)/history.json",
+            crud.response.ResponseHistoryHandler, {}),
 
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response.json", import_handlers.ImportResponseHandler, {}),
