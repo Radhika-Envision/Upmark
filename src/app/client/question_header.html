@@ -6,9 +6,8 @@
             ng-href="{{itemUrl(currentItem, 'prev')}}"
             title="Previous">
         <i class="fa fa-fw fa-angle-left"></i></a>
-    <a ng-disabled="!upItem.entity"
-            class="btn btn-default btn-round"
-            ng-href="{{itemUrl(upItem)}}"
+    <a class="btn btn-default btn-round"
+            ng-href="{{itemUrl(upItem) || '#/surveys'}}"
             title="Go up one level">
         <i class="fa fa-fw fa-angle-up"></i></a>
     <a ng-disabled="!currentItem.entity.next"
@@ -25,9 +24,8 @@
                 ng-href="{{itemUrl(currentItem, 'prev')}}"
                 title="Previous">
             <i class="fa fa-fw fa-angle-left"></i></a>
-        <a ng-disabled="!upItem.entity"
-                class="btn btn-default btn-round"
-                ng-href="{{itemUrl(upItem)}}"
+        <a class="btn btn-default btn-round"
+                ng-href="{{itemUrl(upItem) || '#/surveys'}}"
                 title="Go up one level">
             <i class="fa fa-fw fa-angle-up"></i></a>
         <a ng-disabled="!currentItem.entity.next"
