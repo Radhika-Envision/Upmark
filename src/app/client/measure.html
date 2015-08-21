@@ -158,28 +158,32 @@
         <div class="btn-group">
             <button class="btn btn-default"
                     ng-class="{active: response.approval == 'draft'}"
-                    ng-click="setState('draft')">
+                    ng-click="setState('draft')"
+                    title="Set as 'draft' and save">
                 Draft
             </button>
         </div>
         <div class="btn-group">
             <button class="btn btn-default"
                     ng-class="{active: response.approval == 'final'}"
-                    ng-click="setState('final')">
+                    ng-click="setState('final')"
+                    title="Set as 'final' and save">
                 Final
             </button>
         </div>
         <div class="btn-group">
             <button class="btn btn-default"
                     ng-class="{active: response.approval == 'reviewed'}"
-                    ng-click="setState('reviewed')">
+                    ng-click="setState('reviewed')"
+                    title="Set as 'reviewed' and save">
                 Reviewed
             </button>
         </div>
         <div class="btn-group">
             <button class="btn btn-default"
                     ng-class="{active: response.approval == 'approved'}"
-                    ng-click="setState('approved')">
+                    ng-click="setState('approved')"
+                    title="Set as 'approved' and save">
                 Approved
             </button>
         </div>
