@@ -1074,10 +1074,10 @@ angular.module('wsaa.surveyQuestions', [
 .controller('MeasureCtrl', [
         '$scope', 'Measure', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'Survey', 'format', 'layout',
-        'Structure', 'Arrays', 'Response', 'hotkeys',
+        'Structure', 'Arrays', 'Response', 'hotkeys', '$http', '$cookies',
         function($scope, Measure, routeData, Editor, authz,
                  $location, Notifications, current, Survey, format, layout,
-                 Structure, Arrays, Response, hotkeys) {
+                 Structure, Arrays, Response, hotkeys, $http, $cookies) {
 
     $scope.layout = layout;
     $scope.parent = routeData.parent;
@@ -1120,7 +1120,8 @@ angular.module('wsaa.surveyQuestions', [
     }
     $scope.saveResponse = function() {
         $scope.response.$save().then(
-            function success() {
+            function success(response) {
+                $scope.upload(response.assessment.id, response.id);
                 Notifications.set('edit', 'success', "Saved", 5000);
             },
             function failure(details) {
@@ -1261,6 +1262,33 @@ angular.module('wsaa.surveyQuestions', [
                 }
             });
     }
+
+    var headers = {};
+    var xsrfName = $http.defaults.xsrfHeaderName;
+    headers[xsrfName] = $cookies.get($http.defaults.xsrfCookieName);
+    $scope.attachments = [];
+
+    var config = {
+        url: '/',
+        maxFilesize: 50,
+        paramName: "file",
+        headers: headers,
+        autoProcessQueue: false
+    };
+
+    Dropzone.autoDiscover = false;
+    var dropzone = new Dropzone("#dropzone", config);
+    dropzone.on('addedfile', function(file) {
+        
+    });
+
+    $scope.upload = function(assessment, response) {
+        if (dropzone.files.length > 0) {
+            dropzone.options.url = '/assessment/' + assessment + '/response/' + response + '/attachment.json';
+            dropzone.options.autoProcessQueue = true;
+            dropzone.processQueue();
+        }
+    };
 }])
 
 

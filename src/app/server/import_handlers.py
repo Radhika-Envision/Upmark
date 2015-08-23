@@ -49,6 +49,26 @@ class ImportStructureHandler(handlers.BaseHandler):
         return survey_id
 
 
+class ResponseAttachmentsHandler(handlers.BaseHandler):
+    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
+
+    @handlers.authz('author')
+    @gen.coroutine
+    def post(self, assessment_id, response_id):
+        fileinfo = self.request.files['file'][0]
+        fd = tempfile.NamedTemporaryFile()
+        log.info("assessment_id: %s", assessment_id)
+        log.info("response_id: %s", response_id)
+        try:
+            fd.write(fileinfo['body'])
+            # survey_id = yield self.background_task(fd.name)
+        finally:
+            fd.close()
+        self.set_header("Content-Type", "text/plain")
+        self.write("Attachment file upload.")
+        self.finish()
+
+
 class ImportResponseHandler(handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
@@ -379,8 +399,8 @@ class Importer():
     def parse_response_type(self, all_rows, row_num, types, col_chr):
         response_text = all_rows[row_num][self.col2num(col_chr)]
         index =  ord(col_chr) - ord("E")
-        response_options = [r["name"] for r in types["parts"][index]["options"]]
-        response_index = response_options.index(response_text)
+        response_options = [r["name"].replace(" ", "").lower() for r in types["parts"][index]["options"]]
+        response_index = response_options.index(response_text.replace(" ", "").lower())
         return {"index": response_index, "note": response_text}
 
 

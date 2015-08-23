@@ -187,7 +187,9 @@ def get_mappings():
             crud.response.ResponseHandler, {}),
         (r"/assessment/([^/]*)/response/?([^/]*)/history.json",
             crud.response.ResponseHistoryHandler, {}),
-
+        (r"/assessment/([^/]*)/response/([^/]*)/attachment.json",
+            import_handlers.ResponseAttachmentsHandler, {}),
+        # (r"/response/attachment.json", import_handlers.ResponseAttachmentsHandler, {}),
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response.json", import_handlers.ImportResponseHandler, {}),
         (r"/import/assessment.json", import_handlers.ImportAssessmentHandler, {}),
