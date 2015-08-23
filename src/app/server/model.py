@@ -73,7 +73,9 @@ class AppUser(Base):
     email = Column(Text, nullable=False)
     name = Column(Text, nullable=False)
     password = Column(Text, nullable=False)
-    role = Column(Text, nullable=False)
+    role = Column(Enum(
+            'author', 'authority', 'consultant', 'org_admin', 'clerk',
+            native_enum=False), nullable=False)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
     enabled = Column(Boolean, nullable=False, default=True)
 
