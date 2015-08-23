@@ -640,7 +640,7 @@ class Response(Versioned, Base):
 
     def __repr__(self):
         org = getattr(self.assessment, 'organisation', None)
-        return "QnodeMeasure(measure={}, survey={}, org={})".format(
+        return "Response(measure={}, survey={}, org={})".format(
             getattr(self.measure, 'title', None),
             getattr(self.survey, 'title', None),
             getattr(org, 'name', None))

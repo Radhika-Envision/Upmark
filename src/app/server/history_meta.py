@@ -4,6 +4,8 @@
 
 """Versioned mixin class and other utilities."""
 
+import logging
+
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import mapper, attributes, object_mapper
 from sqlalchemy.orm.exc import UnmappedColumnError
@@ -11,6 +13,9 @@ from sqlalchemy import Table, Column, ForeignKeyConstraint, Integer, DateTime
 from sqlalchemy import event, util
 import datetime
 from sqlalchemy.orm.properties import RelationshipProperty
+
+
+log = logging.getLogger('app.model.versioned')
 
 
 def col_references_table(col, table):
@@ -191,6 +196,7 @@ def versioned_objects(iter):
 
 
 def create_version(obj, session, deleted=False):
+    log.debug('Versioning %s', obj)
     obj_mapper = object_mapper(obj)
     history_mapper = obj.__history_mapper__
     history_cls = history_mapper.class_
@@ -207,6 +213,8 @@ def create_version(obj, session, deleted=False):
     ):
         if hm.single:
             continue
+
+        log.debug('Working on %s and %s', om, hm)
 
         for hist_col in hm.local_table.c:
             if _is_versioning_col(hist_col):
@@ -235,15 +243,21 @@ def create_version(obj, session, deleted=False):
 
             a, u, d = attributes.get_history(obj, prop.key)
 
+            log.debug('key: %s, added: %s, unchanged: %s, deleted: %s',
+                      prop.key, a, u, d)
+
             if d:
                 attr[hist_col.key] = d[0]
                 obj_changed = True
             elif u:
                 attr[hist_col.key] = u[0]
-            else:
+            elif a:
                 # if the attribute had no value.
                 attr[hist_col.key] = a[0]
                 obj_changed = True
+            else:
+                # The attribute has never had a value
+                attr[hist_col.key] = None
 
     if not obj_changed:
         # not changed, but we have relationships.  OK

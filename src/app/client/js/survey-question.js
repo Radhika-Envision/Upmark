@@ -1133,7 +1133,8 @@ angular.module('wsaa.surveyQuestions', [
             },
             function failure(details) {
                 if (details.status == 403) {
-                    Notifications.set('edit', 'info', details.statusText);
+                    Notifications.set('edit', 'info',
+                        "Not saved yet: " + details.statusText);
                 } else {
                     $scope.response.notRelevant = oldValue;
                     Notifications.set('edit', 'error',
