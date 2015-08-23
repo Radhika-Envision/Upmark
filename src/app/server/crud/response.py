@@ -6,6 +6,7 @@ from tornado.escape import json_decode, json_encode
 import tornado.web
 import sqlalchemy
 from sqlalchemy.orm import joinedload
+from sqlalchemy.orm.session import object_session
 
 import handlers
 import model
@@ -19,6 +20,9 @@ from utils import falsy, reorder, ToSon, truthy, updater
 log = logging.getLogger('app.crud.response')
 
 
+ResponseHistory = model.Response.__history_mapper__.class_
+
+
 class ResponseHandler(handlers.BaseHandler):
 
     @tornado.web.authenticated
@@ -29,13 +33,30 @@ class ResponseHandler(handlers.BaseHandler):
             self.query(assessment_id)
             return
 
+        version = self.get_argument('version', '')
+
         with model.session_scope() as session:
-            query = (session.query(model.Response).filter_by(
-                    assessment_id=assessment_id, measure_id=measure_id))
-            response = query.first()
+            response = (session.query(model.Response)
+                    .filter_by(assessment_id=assessment_id,
+                               measure_id=measure_id)
+                    .first())
 
             if response is None:
                 raise handlers.MissingDocError("No such response")
+
+            if version != '' and version != response.version:
+                try:
+                    version = int(version)
+                except ValueError:
+                    raise handlers.ModelError("Invalid version number")
+                response_history = (session.query(ResponseHistory)
+                        .filter_by(id=response.id, version=version)
+                        .first())
+
+                if response is None:
+                    raise handlers.MissingDocError("No such response version")
+            else:
+                response_history = None
 
             self._check_authz(response.assessment)
 
@@ -64,7 +85,29 @@ class ResponseHandler(handlers.BaseHandler):
                 'r/^id$/',
                 'r/parent/id$'
             ])
-            son = to_son(response)
+            if response_history is None:
+                son = to_son(response)
+            else:
+                son = to_son(response_history)
+                assessment = (session.query(model.Assessment)
+                        .filter_by(id=response_history.assessment_id)
+                        .first())
+                measure = (session.query(model.Measure)
+                        .filter_by(id=response_history.measure_id,
+                                   survey_id=assessment.survey_id)
+                        .first())
+                parent = (measure.get_parent(assessment.hierarchy_id)
+                        .get_rnode(assessment_id))
+                user = (session.query(model.AppUser)
+                        .filter_by(id=response_history.user_id)
+                        .first())
+                dummy_relations = {
+                    'parent': parent,
+                    'measure': measure,
+                    'assessment': assessment,
+                    'user': user
+                }
+                son.update(to_son(dummy_relations))
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -152,9 +195,9 @@ class ResponseHandler(handlers.BaseHandler):
                     session.add(response)
                 else:
                     td = datetime.datetime.utcnow() - response.modified
-                    minutes_since_update = td.seconds / 60
+                    hours_since_update = td.seconds / 60 / 60
                     same_user = response.user.id == self.current_user.id
-                    if minutes_since_update < 30 and same_user:
+                    if hours_since_update < 8 and same_user:
                         response.version_on_update = False
 
                 if approval != '':
@@ -243,26 +286,27 @@ class ResponseHandler(handlers.BaseHandler):
         if approval != '':
             extras['approval'] = approval
 
-        update('modified', extras)
         update('approval', extras)
         update('user_id', extras)
         update('audit_reason', son)
 
         # TODO: attachments
         #response.attachments = []
+        if response in object_session(response).dirty:
+            log.warn('Was modified')
+            update('modified', extras)
 
 
 class ResponseHistoryHandler(handlers.Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
     def get(self, assessment_id, measure_id):
         '''Get a list of versions of a response.'''
-        ResponseHistory = model.Response.__history_mapper__.class_
         with model.session_scope() as session:
             # Current version
             versions = (session.query(model.Response)
                 .filter_by(assessment_id=assessment_id,
                            measure_id=measure_id)
-                .first())
+                .all())
 
             # Other versions
             query = (session.query(ResponseHistory)
@@ -271,7 +315,7 @@ class ResponseHistoryHandler(handlers.Paginate, handlers.BaseHandler):
                 .order_by(ResponseHistory.version.desc()))
             query = self.paginate(query)
 
-            versions = query.all()
+            versions += query.all()
 
             to_son = ToSon(include=[
                 r'/id$',

@@ -320,6 +320,16 @@ class Measure(Base):
     survey = relationship(
         Survey, backref=backref('measures', passive_deletes=True))
 
+    def get_parent(self, hierarchy):
+        if isinstance(hierarchy, (str, uuid.UUID)):
+            hierarchy_id = hierarchy
+        else:
+            hierarchy_id = hierarchy.id
+        for p in self.parents:
+            if p.hierarchy_id == hierarchy_id:
+                return p
+        return None
+
     def get_response(self, assessment):
         if isinstance(assessment, str):
             assessment_id = assessment

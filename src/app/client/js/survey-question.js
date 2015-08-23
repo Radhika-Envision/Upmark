@@ -1158,6 +1158,7 @@ angular.module('wsaa.surveyQuestions', [
         );
     };
     $scope.setResponse = function(response) {
+        $scope.response = response;
     };
 
     $scope.$watch('measure', function(measure) {
@@ -1304,7 +1305,8 @@ angular.module('wsaa.surveyQuestions', [
  * Drop-down menu to navigate to old versions of an entity.
  */
 .controller('ResponseHistory', ['$scope', '$location', 'Response',
-        function($scope, $location, Response) {
+        'Notifications',
+        function($scope, $location, Response, Notifications) {
     $scope.toggled = function(open) {
         if (open) {
             $scope.search = {
@@ -1344,7 +1346,20 @@ angular.module('wsaa.surveyQuestions', [
     };
 
     $scope.navigate = function(version) {
-        $scope.setResponse(version);
+        var query = {
+            measureId: $scope.measure.id,
+            assessmentId: $scope.assessment.id,
+            version: version.version
+        };
+        Response.get(query).$promise.then(
+            function success(response) {
+                $scope.setResponse(response);
+            },
+            function failure(details) {
+                Notifications.set('edit', 'error',
+                    "Could not get response: " + details.statusText);
+            }
+        );
     };
     $scope.isActive = function(version) {
         return version.version == $scope.response.version;

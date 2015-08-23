@@ -180,7 +180,14 @@ class updater:
         else:
             return
 
-        if getattr(self.model, name) != value:
+        current_value = getattr(self.model, name)
+        if isinstance(current_value, uuid.UUID):
+            equal = str(current_value) == str(value)
+        else:
+            equal = current_value == value
+
+        if not equal:
+            log.warn('Setting %s: %s -> %s', name, current_value, value)
             setattr(self.model, name, value)
 
 
