@@ -61,6 +61,8 @@ angular.module('wsaa.surveyQuestions', [
         var org = assessment && assessment.organisation || null;
         if (org)
             ownOrg = org.id == current.user.organisation.id;
+        else
+            ownOrg = true;
         return function(functionName) {
             switch(functionName) {
                 case 'survey_dup':
@@ -81,12 +83,14 @@ angular.module('wsaa.surveyQuestions', [
                 case 'view_single_score':
                     if (Roles.hasPermission(current.user.role, 'consultant'))
                         return true;
+                    if (Roles.hasPermission(current.user.role, 'org_admin'))
+                        return ownOrg;
                     return false;
                     break;
                 case 'assessment_admin':
                     if (Roles.hasPermission(current.user.role, 'consultant'))
                         return true;
-                    if (Roles.hasPermission(current.user.role, 'org-admin'))
+                    if (Roles.hasPermission(current.user.role, 'org_admin'))
                         return ownOrg;
                     break;
                 case 'assessment_edit':

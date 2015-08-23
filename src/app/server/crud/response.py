@@ -99,10 +99,8 @@ class ResponseHandler(handlers.BaseHandler):
                 # The IDs of rnodes and responses are not part of the API
                 r'^/[0-9]+/id$',
             ]
-            if self.current_user.role in {'clerk', 'org_admin'}:
-                exclude += [
-                    r'/score$',
-                ]
+            if self.current_user.role == 'clerk':
+                exclude.append(r'/score$')
 
             to_son = ToSon(include=[
                 # Fields to match from any visited object
