@@ -46,7 +46,7 @@ class SystemConfig(Base):
         return "SystemConfig(name={}, value={})".format(self.name, self.value)
 
 
-class Organisation(Versioned, Base):
+class Organisation(Base):
     __tablename__ = 'organisation'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
 
@@ -64,7 +64,7 @@ class Organisation(Versioned, Base):
         return "Organisation(name={})".format(self.name)
 
 
-class AppUser(Versioned, Base):
+class AppUser(Base):
     __tablename__ = 'appuser'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     organisation_id = Column(
