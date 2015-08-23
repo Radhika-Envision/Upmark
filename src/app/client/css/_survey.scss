@@ -534,14 +534,14 @@ column-progress {
             left: 0;
             bottom: 0;
             top: 0;
-            border-left: 3px solid #eee;
+            border-left: $column-width solid #eee;
         }
         > span[column-progress-column] {
             display: block;
             position: absolute;
             left: 0;
             bottom: 0;
-            border-left: 3px solid;
+            border-left: $column-width solid;
             border-color: #FFA600;
         }
         + span > [column-progress-column] {
@@ -550,5 +550,15 @@ column-progress {
         + span + span > [column-progress-column] {
             border-color: #683797;;
         }
+    }
+
+    [column-progress-column].complete:after {
+        content: ' ';
+        border: solid white;
+        border-width: 0 0 1px 0;
+        position: absolute;
+        bottom: 2px;
+        left: -$column-width;
+        right: 0;
     }
 }

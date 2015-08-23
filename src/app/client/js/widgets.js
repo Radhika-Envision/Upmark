@@ -103,8 +103,8 @@ angular.module('vpac.widgets', [])
         restrict: 'A',
         link: function(scope, elem, attrs) {
             scope.$watch('item.fraction', function(fraction) {
-                fraction = fraction * 0.93 + 0.07;
                 elem.css('height', '' + (fraction * 100) + '%');
+                elem.toggleClass('complete', fraction > 0.999999);
             });
         }
     };
