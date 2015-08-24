@@ -104,7 +104,6 @@
 </div>
 </div>
 
-
 <div class="container spaced" ng-if="!edit.model && assessment">
     <response type="responseType" model="response">
         <span ng-controller="ResponseHistory" dropdown
@@ -153,7 +152,6 @@
                 ng-click="saveResponse()">
             <i class="fa fa-check fa-fw"></i></button>
     </response>
-
     <div class="spaced btn-group btn-group-justified">
         <div class="btn-group">
             <button class="btn btn-default"
@@ -188,7 +186,20 @@
             </button>
         </div>
     </div>
+</div>
 
+<div class="container spaced">
+    <h2>File Attachments</h2>
+     <div class="dropzone" id="dropzone">
+        <div class="dz-message ">
+            <p><i class="fa fa-cloud-upload fa-5x"></i></p>
+            <p>Drop a file here, or click to select one</p>
+        </div>
+    </div>
+</div>
+
+<div class="container spaced" ng-if="!edit.model && assessment">
+    
     <div class="spaced text-muted">
         <ul class="fa-ul">
             <li>
@@ -231,20 +242,6 @@
         </ul>
     </div>
 </div>
-
-<div class="container spaced">
-    <h2>File Attachments</h2>
-     <div class="dropzone" id="dropzone">
-        <div class="dz-message ">
-            <p><i class="fa fa-cloud-upload fa-5x"></i></p>
-            <p>Drop a file here, or click to select one</p>
-        </div>
-    </div>
-</div>
-
-<div class="container">
-</div>
-
 
 <div class="spaced"
         ng-if="!edit.model && parents && checkRole('measure_edit')">
