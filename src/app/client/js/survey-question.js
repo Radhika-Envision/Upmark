@@ -1267,6 +1267,16 @@ angular.module('wsaa.surveyQuestions', [
     var xsrfName = $http.defaults.xsrfHeaderName;
     headers[xsrfName] = $cookies.get($http.defaults.xsrfCookieName);
     $scope.attachments = [];
+    $scope.externals = [{"url":""}];
+    $scope.addExternal = function() {
+        $scope.externals.push({"url":""});
+    }
+
+    $scope.deleteExternal = function(index) {
+        if (index > -1) {
+            $scope.externals.splice(index, 1);
+        }
+    }
 
     var config = {
         url: '/',

@@ -90,7 +90,6 @@
 </div>
 </div>
 
-
 <div ng-if="!edit.model">
 <div class="container">
     <h3 ng-if="measure.intent">Intent</h3>
@@ -190,16 +189,32 @@
 
 <div class="container spaced">
     <h2>File Attachments</h2>
-     <div class="dropzone" id="dropzone">
+    <div><!-- already attached files-->
+    </div>
+    <div class="dropzone" id="dropzone">
         <div class="dz-message ">
             <p><i class="fa fa-cloud-upload fa-5x"></i></p>
             <p>Drop a file here, or click to select one</p>
         </div>
     </div>
+    <div class="input-group ng-isolate-scope" ng-repeat="external in externals">
+        <label class="input-group-addon" for="searchBox" title="Search">
+            <i class="fa fa-link"></i>
+            <span class="sr-only">Search</span>
+        </label>
+        <input type="text" class="form-control btn-default search-box ng-pristine ng-valid ng-touched" ng-model="external.url">
+        <span class="input-group-btn">
+            <button class="btn btn-default" type="button" title="Add more external link" ng-click="addExternal()">
+                <i class="fa fa-plus"></i></button>
+        </span>
+        <span class="input-group-btn">
+            <button class="btn btn-default" type="button" title="Delete this link" ng-click="deleteExternal($index)" ng-disabled="$index==0">
+                <i class="fa fa-remove"></i></button>
+        </span>
+    </div>
 </div>
 
 <div class="container spaced" ng-if="!edit.model && assessment">
-    
     <div class="spaced text-muted">
         <ul class="fa-ul">
             <li>
