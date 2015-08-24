@@ -61,6 +61,7 @@ def upgrade():
     for r in session.query(ResponseHistory).all():
         r.score = 0.0
         r.approval = 'draft'
+    session.flush()
 
     op.alter_column('response', 'score', nullable=False)
     op.alter_column('response', 'approval', nullable=False)

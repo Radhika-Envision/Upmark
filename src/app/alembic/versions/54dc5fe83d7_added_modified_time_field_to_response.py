@@ -55,6 +55,7 @@ def upgrade():
         r.modified = datetime.datetime.now()
     for r in session.query(ResponseHistory).all():
         r.modified = datetime.datetime.now()
+    session.flush()
 
     op.alter_column('response', 'modified', nullable=False)
     op.alter_column('response_history', 'modified', nullable=False)
