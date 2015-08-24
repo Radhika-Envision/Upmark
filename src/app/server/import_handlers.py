@@ -10,6 +10,7 @@ import tempfile
 import threading
 import json
 import sqlalchemy
+import datetime
 
 from sqlalchemy.orm import joinedload
 from tornado import gen
@@ -64,8 +65,27 @@ class ResponseAttachmentsHandler(handlers.BaseHandler):
             # survey_id = yield self.background_task(fd.name)
         finally:
             fd.close()
+        with model.session_scope() as session:
+            assessment = session.query(model.Assessment).filter_by(id=assessment_id).one()
+            attachment = model.Attachment()
+            attachment.organisation_id = assessment.organisation_id
+            attachment.response_id = response_id
+            attachment.blob = bytes(self.request.files['file'][0]['body'])
+            session.add(attachment)
         self.set_header("Content-Type", "text/plain")
         self.write("Attachment file upload.")
+        self.finish()
+
+
+    # @handlers.authz('author')
+    @gen.coroutine
+    def get(self, assessment_id, response_id):
+        file_name = self.get_argument('file')
+        with model.session_scope() as session:
+            attachment = session.query(model.Attachment).filter_by(response_id=response_id).first()
+            blob = attachment.blob
+        self.set_header("Content-Type", "text/plain")
+        self.write(bytes(blob))
         self.finish()
 
 
@@ -104,9 +124,10 @@ class ImportAssessmentHandler(handlers.BaseHandler):
         fd = tempfile.NamedTemporaryFile()
         try:
             fd.write(fileinfo['body'])
-            survey_id = yield self.background_task(fd.name)
+            survey_id = yield self.background_task(fd.name)            
         finally:
             fd.close()
+
         self.set_header("Content-Type", "text/plain")
         self.write(survey_id)
         self.finish()
@@ -353,13 +374,16 @@ class Importer():
                 for row_num in range(0, len(all_rows)-1):
                     order, title = self.parse_order_title(all_rows, row_num, "A", "{order} {title}")
                     function = survey_qnodes.filter_by(parent_id=None, title=title).one()
+                    log.info("function: %s", function)
                     function_order = order
 
                     order, title = self.parse_order_title(all_rows, row_num, "B", "{order} {title}")
                     process = survey_qnodes.filter_by(parent_id=function.id, title=title).one()
+                    log.info("process: %s", process)
 
                     order, title = self.parse_order_title(all_rows, row_num, "C", "{order} {title}")
                     subprocess = survey_qnodes.filter_by(parent_id=process.id, title=title).one()
+                    log.info("subprocess: %s", subprocess)
 
                     order, title = self.parse_order_title(all_rows, row_num, "D", "{order} {title}")
                     measure = [m for m in subprocess.measures if m.title == title]
@@ -368,6 +392,7 @@ class Importer():
                         measure = measure[0]
                     else:
                         raise Exception("This survey is not matching current open survey. ")
+                    log.info("measure: %s", measure)
         
 
                     log.info("measure response_type: %s", [r for r in response_types if r["id"] == measure.response_type][0])
@@ -380,6 +405,8 @@ class Importer():
                     response.user_id = user_id
                     response.comment = all_rows[row_num][self.col2num("K")]
                     response.not_relevant = False # Need to fix this hard coding
+                    response.modified = datetime.datetime.utcnow()
+                    response.approval = 'draft'
                     response_part = []
 
                     response_part.append(self.parse_response_type(all_rows, row_num, r_types, "E"))
@@ -393,6 +420,8 @@ class Importer():
                     session.add(response)
             except sqlalchemy.orm.exc.NoResultFound:
                 raise Exception("This survey is not matching current open survey. ", all_rows[row_num], title)
+
+            assessment.update_stats_descendants()
 
         return survey_id
 

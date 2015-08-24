@@ -5,7 +5,7 @@ import sys
 import uuid
 
 from sqlalchemy import Boolean, create_engine, Column, DateTime, Enum, Float, \
-    ForeignKey, Index, Integer, String, Text, Table
+    ForeignKey, Index, Integer, String, Text, Table, Binary
 from sqlalchemy.dialects.postgresql import JSON
 import sqlalchemy.exc
 from sqlalchemy.ext.associationproxy import association_proxy
@@ -656,6 +656,16 @@ class Response(Versioned, Base):
             getattr(self.measure, 'title', None),
             getattr(self.survey, 'title', None),
             getattr(org, 'name', None))
+
+
+class Attachment(Base):
+    __tablename__ = 'attachment'
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+
+    organisation_id = Column(Text, nullable=False)
+    response_id = Column(Text, nullable=True)
+    url = Column(Text, nullable=True)
+    blob = Column(Binary, nullable=True)
 
 
 # Lists and Complex Relationships
