@@ -662,8 +662,9 @@ class Attachment(Base):
     __tablename__ = 'attachment'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
 
-    organisation_id = Column(Text, nullable=False)
-    response_id = Column(Text, nullable=True)
+    organisation_id = Column(GUID, nullable=False)
+    response_id = Column(GUID, nullable=False)
+    file_name = Column(Text, nullable=True)
     url = Column(Text, nullable=True)
     blob = Column(Binary, nullable=True)
 
