@@ -1363,9 +1363,14 @@ angular.module('wsaa.surveyQuestions', [
             $scope.versions = null;
             return;
         }
+        $scope.loading = true;
         Response.history(search).$promise.then(
             function success(versions) {
                 $scope.versions = versions;
+                $scope.loading = false;
+            },
+            function failure(details) {
+                $scope.loading = false;
             }
         );
     }, true);

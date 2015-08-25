@@ -127,8 +127,6 @@
                     Versions
                     </div>
                 </li>
-                <li ng-if="!versions.length" class="dropdown-header">
-                    Loading...</li>
                 <li ng-repeat="version in versions"
                         ng-class="{active: isActive(version)}">
                     <a href ng-click="navigate(version)">
@@ -146,6 +144,10 @@
                         </span>
                     </a>
                 </li>
+                <li ng-if="!versions.length" class="dropdown-header">
+                    No versions.</li>
+                <li ng-if="loading" class="dropdown-header">
+                    Loading...</li>
             </ul>
         </span>
         <button class="btn btn-round btn-on-danger"
