@@ -10,3 +10,4 @@ from . import measure
 from . import assessment
 from . import rnode
 from . import response
+from . import attachment

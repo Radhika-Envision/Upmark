@@ -206,7 +206,16 @@
         </div>
         <h2>File Attachments</h2>
     </div>
-    <div><!-- already attached files-->
+    <div class="section" ng-repeat="attachment in attachments">
+        <div class="toolbar">
+<!--             <a class="btn btn-default btn-round" title="Delete attachment" ng-click="deleteAttachment(attachment)">
+                <i class="fa fa-fw fa-remove"></i></a> -->
+            <a class="btn btn-default btn-round" title="Download" ng-click="downloadAttachment(attachment)">
+                <i class="fa fa-fw fa-download"></i></a>
+        </div>
+        <span>
+            {{attachment.fileName}}
+        </span>
     </div>
     <div class="dropzone" id="dropzone" ng-show="showFileDrop">
         <div class="dz-message ">

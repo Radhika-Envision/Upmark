@@ -55,6 +55,16 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
+.factory('Attachment', ['$resource', function($resource) {
+    return $resource('/attachment/:id.json', {id: '@id'}, {
+        // get: { method: 'GET', isArray: false, cache: false, responseType: "blob" },
+        query: { method: 'GET', url: '/assessment/:assessmentId/measure/:measureId/attachment.json',
+            isArray: true, cache: false },
+        remove: { method: 'DELETE', cache: false }
+    });
+}])
+
+
 .factory('questionAuthz', ['Roles', function(Roles) {
     return function(current, survey, assessment) {
         var ownOrg = false;
@@ -371,10 +381,6 @@ angular.module('wsaa.surveyQuestions', [
         $scope.progress.uploadFraction = 0.0;
         dropzone.processQueue();
     };
-
-    $scope.reset = function() {
-        dropzone.processQueue();
-    }
 
     dropzone.on('sending', function(file, xhr, formData) {
         formData.append('title', $scope.survey.title);
@@ -1074,14 +1080,18 @@ angular.module('wsaa.surveyQuestions', [
 .controller('MeasureCtrl', [
         '$scope', 'Measure', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'Survey', 'format', 'layout',
-        'Structure', 'Arrays', 'Response', 'hotkeys', '$http', '$cookies',
+        'Structure', 'Arrays', 'Response', 'Attachment', 'hotkeys', 
+        '$http', '$cookies', '$window',
         function($scope, Measure, routeData, Editor, authz,
                  $location, Notifications, current, Survey, format, layout,
-                 Structure, Arrays, Response, hotkeys, $http, $cookies) {
+                 Structure, Arrays, Response, Attachment, hotkeys, 
+                 $http, $cookies, $window) {
 
     $scope.layout = layout;
     $scope.parent = routeData.parent;
     $scope.assessment = routeData.assessment;
+    $scope.attachments = routeData.attachments;
+
     if (routeData.measure) {
         // Editing old
         $scope.measure = routeData.measure;
@@ -1266,7 +1276,6 @@ angular.module('wsaa.surveyQuestions', [
     var headers = {};
     var xsrfName = $http.defaults.xsrfHeaderName;
     headers[xsrfName] = $cookies.get($http.defaults.xsrfCookieName);
-    $scope.attachments = [];
     $scope.externals = [{"url":""}];
     $scope.addExternal = function() {
         $scope.externals.push({"url":""});
@@ -1288,17 +1297,25 @@ angular.module('wsaa.surveyQuestions', [
 
     Dropzone.autoDiscover = false;
     var dropzone = new Dropzone("#dropzone", config);
-    dropzone.on('addedfile', function(file) {
-        
-    });
 
     $scope.upload = function(assessment, response) {
         if (dropzone.files.length > 0) {
-            dropzone.options.url = '/assessment/' + assessment + '/response/' + response + '/attachment.json';
+            measure_id = response;
+            dropzone.options.url = '/assessment/' + assessment + '/measure/' + measure_id + '/attachment.json';
             dropzone.options.autoProcessQueue = true;
             dropzone.processQueue();
         }
     };
+
+    dropzone.on("success", function(file, response) {
+        dropzone.removeAllFiles();
+    });
+    $scope.deleteAttachment = function(attachment) {
+        Attachment.remove({id:attachment.id});
+    }
+    $scope.downloadAttachment = function(attachment) {
+        $window.open("/attachment/" + attachment.id + ".json");
+    }
 }])
 
 

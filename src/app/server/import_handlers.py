@@ -50,45 +50,6 @@ class ImportStructureHandler(handlers.BaseHandler):
         return survey_id
 
 
-class ResponseAttachmentsHandler(handlers.BaseHandler):
-    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
-
-    @handlers.authz('author')
-    @gen.coroutine
-    def post(self, assessment_id, response_id):
-        fileinfo = self.request.files['file'][0]
-        fd = tempfile.NamedTemporaryFile()
-        log.info("assessment_id: %s", assessment_id)
-        log.info("response_id: %s", response_id)
-        try:
-            fd.write(fileinfo['body'])
-            # survey_id = yield self.background_task(fd.name)
-        finally:
-            fd.close()
-        with model.session_scope() as session:
-            assessment = session.query(model.Assessment).filter_by(id=assessment_id).one()
-            attachment = model.Attachment()
-            attachment.organisation_id = assessment.organisation_id
-            attachment.response_id = response_id
-            attachment.blob = bytes(self.request.files['file'][0]['body'])
-            session.add(attachment)
-        self.set_header("Content-Type", "text/plain")
-        self.write("Attachment file upload.")
-        self.finish()
-
-
-    # @handlers.authz('author')
-    @gen.coroutine
-    def get(self, assessment_id, response_id):
-        file_name = self.get_argument('file')
-        with model.session_scope() as session:
-            attachment = session.query(model.Attachment).filter_by(response_id=response_id).first()
-            blob = attachment.blob
-        self.set_header("Content-Type", "text/plain")
-        self.write(bytes(blob))
-        self.finish()
-
-
 class ImportResponseHandler(handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
