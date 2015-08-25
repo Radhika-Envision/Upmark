@@ -69,7 +69,7 @@ class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
 class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-    @handlers.authz('author')
+    @tornado.web.authenticated
     @gen.coroutine
     def post(self, assessment_id, measure_id):
         fileinfo = self.request.files['file'][0]
@@ -86,7 +86,7 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(attachment.id)
         self.finish()
 
-    @handlers.authz('author')
+    @tornado.web.authenticated
     def get(self, assessment_id, measure_id):
         with model.session_scope() as session:
             response = session.query(model.Response).filter_by(assessment_id=assessment_id, measure_id=measure_id).one()
