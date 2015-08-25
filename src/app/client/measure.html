@@ -113,23 +113,37 @@
 
             <ul class="dropdown-menu dropdown-menu-right">
                 <li class="dropdown-header">
+                    <div>
+                    <div class="toolbar">
+                        <span class="btn-group">
+                            <button class="btn btn-default" title="Newer"
+                                    ng-click="nextPage($event)">
+                                <i class="fa fa-caret-left"></i></button>
+                            <button class="btn btn-default" title="Older"
+                                    ng-click="prevPage($event)">
+                                <i class="fa fa-caret-right"></i></button>
+                        </span>
+                    </div>
                     Versions
-                    <button class="btn btn-default btn-round" title="Newer"
-                            ng-click="nextPage($event)">
-                        <i class="fa fa-caret-left"></i></button>
-                    <button class="btn btn-default btn-round" title="Older"
-                            ng-click="prevPage($event)">
-                        <i class="fa fa-caret-right"></i></button>
+                    </div>
                 </li>
                 <li ng-if="!versions.length" class="dropdown-header">
                     Loading...</li>
                 <li ng-repeat="version in versions"
                         ng-class="{active: isActive(version)}">
                     <a href ng-click="navigate(version)">
-                        {{version.version}}
-                        {{version.approval}}
-                        by {{version.user.name}}
-                        at {{version.modified * 1000 | date:'medium'}}
+                        <span class="field field-2">
+                            {{version.version}}
+                        </span>
+                        <span class="field field-4">
+                            {{version.approval}}
+                        </span>
+                        <span class="field field-8">
+                            {{version.user.name}}
+                        </span>
+                        <span>
+                            {{version.modified * 1000 | timeAgo}}
+                        </span>
                     </a>
                 </li>
             </ul>
@@ -222,7 +236,7 @@
                 <i class="fa-li fa fa-history fa-border"></i>
                 <p>
                     Version {{response.version}} -
-                    {{response.modified * 1000 | date:'medium'}}
+                    {{response.modified * 1000 | timeAgo}}
                 </p>
                 <p>
                     Submitted by

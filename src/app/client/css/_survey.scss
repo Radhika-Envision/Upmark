@@ -162,6 +162,31 @@ ul.dropdown-menu {
             left: 0.6em;
         }
     }
+
+    span.field {
+        display: inline-block;
+        white-space: nowrap;
+    }
+    span.field-2 {
+        width: 2em;
+    }
+    span.field-4 {
+        width: 4.5em;
+    }
+    span.field-8 {
+        width: 8em;
+    }
+}
+
+.dropdown-header {
+    padding: 10px 20px;
+    .toolbar {
+        margin-top: -8px;
+        .btn {
+            font-size: 14px;
+            padding: 2px 10px;
+        }
+    }
 }
 
 ul.fa-ul {

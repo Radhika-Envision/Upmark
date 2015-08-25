@@ -3,6 +3,7 @@
 angular.module('wsaa.aquamark',
                ['ngRoute', 'ngAnimate', 'ui.bootstrap', 'cfp.hotkeys',
                 'ui.bootstrap.showErrors', 'validation.match', 'settings',
+                'yaru22.angular-timeago',
                 'wsaa.survey', 'wsaa.admin', 'wsaa.surveyQuestions',
                 'wsaa.surveyAnswers',
                 'vpac.utils', 'vpac.widgets'])
@@ -537,8 +538,9 @@ angular.module('wsaa.aquamark',
 }])
 
 
-.run(['$rootScope', '$window', '$location', 'Notifications', 'log',
-        function($rootScope, $window, $location, Notifications, log) {
+.run(['$rootScope', '$window', '$location', 'Notifications', 'log', 'timeAgo',
+        function($rootScope, $window, $location, Notifications, log, timeAgo) {
+
     $rootScope.$on('$routeChangeError',
             function(event, current, previous, rejection) {
         var error;
@@ -554,6 +556,10 @@ angular.module('wsaa.aquamark',
             $location.path("/");
         }
     });
+
+    var oneDay = 60 * 60 * 24;
+    timeAgo.settings.allowFuture = true;
+    timeAgo.settings.fullDateAfterSeconds = oneDay * 3;
 }])
 
 

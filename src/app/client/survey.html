@@ -203,7 +203,8 @@
                     ng-href="#/assessment/{{assessment.id}}">
                 <h4>{{assessment.title}}</h4>
                 <p class="truncate">
-                    {{assessment.created * 1000 | date:'fullDate'}}
+                    Created
+                    {{assessment.created * 1000 | timeAgo:'fullDate'}}
                     ({{assessment.approval}})</p>
             </a>
         </li>

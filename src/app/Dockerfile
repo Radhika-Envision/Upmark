@@ -23,9 +23,11 @@ RUN pip3 install -vU setuptools
 
 # Install dependencies before copying full source directory. This speeds up
 # Docker rebuilds.
-COPY requirements.txt bower.json /tmp/
+COPY requirements.txt /tmp/
 WORKDIR /tmp
 RUN pip3 install -r requirements.txt
+
+COPY bower.json /tmp/
 RUN bower \
         --allow-root \
         --config.interactive=false \
