@@ -127,17 +127,10 @@
                         ng-class="{active: isActive(version)}">
                     <a href ng-click="navigate(version)">
                         {{version.version}}
+                        {{version.approval}}
                         by {{version.user.name}}
-                        at {{version.modified | date:medium}}
-                        <span class="pull-right nudge-right text-muted">
-                            <i class="fa fa-circle-o" ng-style="{
-                                visibility: version.isOpen ? null : 'hidden' }"
-                                title="Open for responses"></i>
-                            <i class="fa fa-pencil-square-o" ng-style="{
-                                visibility: version.isEditable ? null : 'hidden' }"
-                                title="Editable"></i>
-                        </span>
-                        </a>
+                        at {{version.modified * 1000 | date:'medium'}}
+                    </a>
                 </li>
             </ul>
         </span>
@@ -225,12 +218,14 @@
 <div class="container spaced" ng-if="!edit.model && assessment">
     <div class="spaced text-muted">
         <ul class="fa-ul">
-            <li>
+            <li ng-if="response.user.name">
                 <i class="fa-li fa fa-history fa-border"></i>
                 <p>
-                    Version {{response.version}}
+                    Version {{response.version}} -
+                    {{response.modified * 1000 | date:'medium'}}
                 </p>
-                <p>Submitted by
+                <p>
+                    Submitted by
                     <a ng-href="#/user/{{response.user.id}}">
                         {{response.user.name}}</a>
                 </p>
@@ -238,7 +233,7 @@
             <li>
                 <i class="fa-li fa fa-check-square-o fa-border"></i>
                 <p>
-                    Responses and assessments progress through approval
+                    Responses progress through approval
                     states <i>draft</i> &raquo; <i>final</i> &raquo;
                     <i>reviewed</i> &raquo; <i>approved</i>. Approval states
                     are resticted to roles as follows:
@@ -259,7 +254,16 @@
                 </ul>
                 <p>
                     Increasing the appoval state indicates that the response is
-                    ready for the next level of review.
+                    ready for the next level of review. It is OK to reduce the
+                    approval state if you wish to make a change after it as been
+                    reviewed; this will indicate that it needs to be reviewed
+                    again.
+                </p>
+                <p>
+                    Assessments progress through the same states. When all the
+                    responses in an assessment are <i>Final</i>, the assessment
+                    itself can be marked as <i>Final</i>, and so on. After that
+                    it is not possible to reduce the state of the responses.
                 </p>
             </li>
         </ul>

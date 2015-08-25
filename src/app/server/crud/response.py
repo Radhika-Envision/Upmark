@@ -75,6 +75,7 @@ class ResponseHandler(handlers.BaseHandler):
                 r'^/audit_reason$',
                 r'^/approval$',
                 r'^/version$',
+                r'^/modified$',
                 # Descend
                 r'/parent$',
                 r'/measure$',
@@ -150,6 +151,7 @@ class ResponseHandler(handlers.BaseHandler):
                 r'/id$',
                 r'/score$',
                 r'/approval$',
+                r'/modified$',
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/measure$',
@@ -206,6 +208,9 @@ class ResponseHandler(handlers.BaseHandler):
                 self._update(response, self.request_son, approval)
                 self._check_approval_state(response)
                 session.flush()
+
+                # Prevent creating a second version during following operations
+                response.version_on_update = False
 
                 try:
                     response.update_stats_ancestors()
@@ -287,14 +292,13 @@ class ResponseHandler(handlers.BaseHandler):
             extras['approval'] = approval
 
         update('approval', extras)
-        update('user_id', extras)
         update('audit_reason', son)
 
-        # TODO: attachments
-        #response.attachments = []
-        if response in object_session(response).dirty:
-            log.warn('Was modified')
+        if object_session(response).is_modified(response):
             update('modified', extras)
+            update('user_id', extras)
+
+        # Attachments are stored elsewhere.
 
 
 class ResponseHistoryHandler(handlers.Paginate, handlers.BaseHandler):

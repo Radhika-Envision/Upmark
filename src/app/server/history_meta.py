@@ -247,17 +247,14 @@ def create_version(obj, session, deleted=False):
                       prop.key, a, u, d)
 
             if d:
-                attr[hist_col.key] = d[0]
+                attr[prop.key] = d[0]
                 obj_changed = True
             elif u:
-                attr[hist_col.key] = u[0]
+                attr[prop.key] = u[0]
             elif a:
                 # if the attribute had no value.
-                attr[hist_col.key] = a[0]
+                attr[prop.key] = a[0]
                 obj_changed = True
-            else:
-                # The attribute has never had a value
-                attr[hist_col.key] = None
 
     if not obj_changed:
         # not changed, but we have relationships.  OK

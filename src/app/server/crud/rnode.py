@@ -90,4 +90,4 @@ class ResponseNodeHandler(handlers.BaseHandler):
         if not self.has_privillege('consultant'):
             if assessment.organisation.id != self.organisation.id:
                 raise handlers.AuthzError(
-                    "You can't modify another organisation's response")
+                    "You can't view another organisation's response")
