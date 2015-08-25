@@ -188,19 +188,27 @@
 </div>
 
 <div class="container spaced">
-    <h2>File Attachments</h2>
+    <div class="section">
+        <div class="toolbar">
+            <a class="btn btn-default btn-round" title="Upload" ng-click="showFileDrop=!showFileDrop">
+                <i class="fa fa-fw fa-cloud-upload"></i></a>
+            <a class="btn btn-default btn-round" title="External link" ng-click="showExternal=!showExternal">
+                <i class="fa fa-fw fa-link"></i></a>
+        </div>
+        <h2>File Attachments</h2>
+    </div>
     <div><!-- already attached files-->
     </div>
-    <div class="dropzone" id="dropzone">
+    <div class="dropzone" id="dropzone" ng-show="showFileDrop">
         <div class="dz-message ">
             <p><i class="fa fa-cloud-upload fa-5x"></i></p>
             <p>Drop a file here, or click to select one</p>
         </div>
     </div>
-    <div class="input-group ng-isolate-scope" ng-repeat="external in externals">
+    <div class="input-group ng-isolate-scope" ng-repeat="external in externals" ng-show="showExternal">
         <label class="input-group-addon" for="searchBox" title="Search">
             <i class="fa fa-link"></i>
-            <span class="sr-only">Search</span>
+            <span class="sr-only">External Link</span>
         </label>
         <input type="text" class="form-control btn-default search-box ng-pristine ng-valid ng-touched" ng-model="external.url">
         <span class="input-group-btn">
