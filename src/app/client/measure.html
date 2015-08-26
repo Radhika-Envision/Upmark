@@ -198,14 +198,19 @@
     <div ng-controller="ResponseAttachmentCtrl">
     <div class="section">
         <div class="toolbar">
-            <a class="btn btn-default btn-round" title="Upload"
-                    ng-click="showFileDrop =! showFileDrop">
-                <i class="fa fa-fw fa-cloud-upload"></i></a>
-            <a class="btn btn-default btn-round" title="Add external link"
+            <button class="btn btn-default btn-round"
+                    title="Upload"
+                    ng-if="!showFileDrop && !externals.length"
+                    ng-click="toggleFileDrop()">
+                <i class="fa fa-fw fa-cloud-upload"></i>
+            </button>
+            <button class="btn btn-default btn-round"
+                    title="Add external link"
+                    ng-if="!showFileDrop && !externals.length"
                     ng-click="addExternal()">
                 <i class="fa fa-fw fa-link">
-                    <i class="fa fa-badge fa-plus"></i>
-                </i></a>
+                    <i class="fa fa-badge fa-plus"></i></i>
+            </button>
             <button class="btn btn-default btn-round"
                 title="Cancel"
                 ng-if="showFileDrop || externals.length"
@@ -224,7 +229,8 @@
         <li ng-repeat="attachment in attachments">
             <a ng-href="/attachment/{{attachment.id}}.json"
                     ng-if="!attachment.url">
-                <button class="btn btn-default btn-round pull-right" title="Remove"
+                <button class="btn btn-default btn-round pull-right"
+                        title="Remove"
                         ng-click="deleteAttachment(attachment);
                                   $event.preventDefault()">
                     <i class="fa fa-fw fa-trash-o"></i></button>
@@ -232,19 +238,29 @@
             </a>
             <a ng-href="{{attachment.url}}"
                     ng-if="attachment.url">
-                <button class="btn btn-default btn-round pull-right" title="Remove"
+                <button class="btn btn-default btn-round pull-right"
+                        title="Remove"
                         ng-click="deleteAttachment(attachment);
                                   $event.preventDefault()">
                     <i class="fa fa-fw fa-trash-o"></i></button>
                 {{attachment.fileName || attachment.url}}
             </a>
         </li>
+        <li ng-if="!attachments.length" class="text-muted">
+            No attachments.
+        </li>
     </ul>
     <div class="dropzone" id="dropzone" ng-show="showFileDrop">
         <div class="dz-message ">
             <p><i class="fa fa-cloud-upload fa-5x"></i></p>
-            <p>Drop a file here, or click to select one</p>
+            <p>Drop files here, or click to select one</p>
         </div>
+        <p class="text-warning">
+            <i class="fa fa-warning"></i>
+            Files that are uploaded <b>cannot</b> be deleted. For highly
+            confidential data, create an external link
+            <i class="fa fa-link"></i> instead.
+        </p>
     </div>
     <ul class="list-unstyled">
         <li class="input-group" ng-repeat="external in externals">

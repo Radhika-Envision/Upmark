@@ -1288,6 +1288,9 @@ angular.module('wsaa.surveyQuestions', [
     $scope.addExternal = function() {
         $scope.externals.push({"url": ""});
     }
+    $scope.toggleFileDrop = function() {
+        $scope.showFileDrop = !$scope.showFileDrop;
+    };
 
     $scope.deleteExternal = function(index) {
         if (index > -1) {

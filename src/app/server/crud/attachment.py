@@ -153,7 +153,8 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
 
             self._check_authz(response.assessment)
 
-            query = session.query(model.Attachment).filter_by(response_id=response.id)
+            query = (session.query(model.Attachment)
+                    .filter_by(response_id=response.id))
 
             to_son = ToSon(include=[
                 r'/id$',
@@ -161,9 +162,7 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/url$',
                 # Descend
                 r'/[0-9]+$'
-
             ])
-            log.info("to_son: %s", to_son)
             sons = to_son(query.all())
 
         self.set_header("Content-Type", "application/json")
