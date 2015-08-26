@@ -245,7 +245,8 @@ angular.module('wsaa.aquamark',
                             id: $route.current.params.survey
                         }).$promise;
                     }],
-                    organisation: ['Organisation', '$route', function(Organisation, $route) {
+                    organisation: ['Organisation', '$route',
+                            function(Organisation, $route) {
                         if (!$route.current.params.organisation)
                             return null;
                         return Organisation.get({
@@ -256,6 +257,33 @@ angular.module('wsaa.aquamark',
                             function(Hierarchy, survey) {
                         return Hierarchy.query({
                             surveyId: survey.id
+                        }).$promise;
+                    }],
+                    duplicate: ['Assessment', '$route',
+                            function(Assessment, $route) {
+                        if (!$route.current.params.duplicate)
+                            return null;
+                        return Assessment.get({
+                            id: $route.current.params.duplicate
+                        }).$promise;
+                    }]
+                })}
+            })
+            .when('/assessment/duplicate', {
+                templateUrl : 'assessment_dup.html',
+                controller : 'AssessmentDuplicateCtrl',
+                resolve: {routeData: chain({
+                    survey: ['Survey', '$route', function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    organisation: ['Organisation', '$route',
+                            function(Organisation, $route) {
+                        if (!$route.current.params.organisation)
+                            return null;
+                        return Organisation.get({
+                            id: $route.current.params.organisation
                         }).$promise;
                     }]
                 })}

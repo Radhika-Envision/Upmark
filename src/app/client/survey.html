@@ -174,6 +174,12 @@
                     ng-href="#/assessment/import?survey={{survey.id}}&organisation={{aSearch.organisation.id}}"
                     ng-if="survey.isOpen && checkRole('assessment_add')">
                 <i class="fa fa-fw fa-cloud-upload"></i></a>
+            <a class="btn btn-default btn-round" title="Duplicate existing"
+                    ng-href="#/assessment/duplicate?survey={{survey.id}}&organisation={{aSearch.organisation.id}}"
+                    ng-if="survey.isOpen && checkRole('assessment_add')">
+                <i class="fa fa-fw fa-clone">
+                    <i class="fa fa-link fa-badge"></i>
+                </i></a>
             <a class="btn btn-default btn-round" title="Add new"
                     ng-href="#/assessment/new?survey={{survey.id}}&organisation={{aSearch.organisation.id}}"
                     ng-if="survey.isOpen && checkRole('assessment_add')">

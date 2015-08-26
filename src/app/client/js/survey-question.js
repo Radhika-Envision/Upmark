@@ -283,7 +283,10 @@ angular.module('wsaa.surveyQuestions', [
         });
     };
     $scope.$watch('aSearch.organisation', function(organisation) {
-        Assessment.query({orgId: organisation.id, surveyId: $scope.survey.id}).$promise.then(
+        Assessment.query({
+            orgId: organisation.id,
+            surveyId: $scope.survey.id
+        }).$promise.then(
             function success(assessments) {
                 $scope.assessments = assessments;
             },

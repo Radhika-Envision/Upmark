@@ -99,7 +99,11 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
     def query(self):
         '''Get a list.'''
 
+        term = self.get_argument('term', '')
         survey_id = self.get_argument('surveyId', '')
+        approval = self.get_argument('approval', '')
+        tracking_id = self.get_argument('trackingId', '')
+
         org_id = self.get_argument('orgId', '')
         if self.current_user.role in {'clerk', 'org_admin'}:
             if org_id == '':
@@ -111,11 +115,25 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
         with model.session_scope() as session:
             query = session.query(model.Assessment)
 
+            if term != '':
+                query = query.filter(
+                    model.Assessment.title.ilike(r'%{}%'.format(term)))
+
             if survey_id != '':
                 query = query.filter_by(survey_id=survey_id)
 
+            if approval != '':
+                approval_set = self.approval_set(approval)
+                log.warn('Approval set: %s', approval_set)
+                query = query.filter(
+                    model.Assessment.approval.in_(approval_set))
+
             if org_id != '':
                 query = query.filter_by(organisation_id=org_id)
+
+            if tracking_id != '':
+                query = query.join(model.Survey)
+                query = query.filter(model.Survey.tracking_id == tracking_id)
 
             query = query.order_by(model.Assessment.created.desc())
             query = self.paginate(query)
@@ -128,7 +146,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/created$',
                 # Descend
                 r'/[0-9]+$',
-                r'/organisation$'
+                r'/organisation$',
+                r'/survey$'
             ])
             sons = to_son(query.all())
 
@@ -219,8 +238,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             self.check_privillege('consultant')
 
     def _check_approval(self, session, assessment, approval):
-        order = ['draft', 'final', 'reviewed', 'approved']
-        approval_set = order[order.index(approval):]
+        approval_set = self.approval_set(approval)
 
         n_relevant_responses = (session.query(model.Response)
                  .filter(model.Response.assessment_id == assessment.id,
@@ -239,6 +257,10 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError(
                 "%d of %d responses are incomplete" %
                 (n_measures - n_relevant_responses, n_measures))
+
+    def approval_set(self, minimum):
+        order = ['draft', 'final', 'reviewed', 'approved']
+        return order[order.index(minimum):]
 
     def _set_approval(self, assessment, approval):
         if self.current_user.role == 'org_admin':

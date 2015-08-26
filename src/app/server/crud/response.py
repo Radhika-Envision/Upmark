@@ -214,7 +214,7 @@ class ResponseHandler(handlers.BaseHandler):
 
                 try:
                     response.update_stats_ancestors()
-                except ResponseTypeError as e:
+                except (model.ModelError, ResponseTypeError) as e:
                     raise handlers.ModelError(str(e))
 
         except sqlalchemy.exc.IntegrityError as e:

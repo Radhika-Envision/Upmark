@@ -16,6 +16,10 @@
                 ng-click="edit.cancel()"
                 ng-if="edit.model && edit.model.id">
             <i class="fa fa-times"></i></button>
+        <a class="btn btn-default btn-round" title="Cancel"
+                ng-href="#/survey/{{survey.id}}"
+                ng-if="edit.model && !edit.model.id">
+            <i class="fa fa-times"></i></a>
         <button class="btn btn-default btn-round" title="Save"
                 ng-click="edit.save()"
                 ng-if="edit.model"
@@ -31,13 +35,16 @@
 </div>
 
 <div class="container" ng-if="edit.model && !edit.model.hierarchy">
-    <p>Please choose a question set.</p>
+    <p>
+        Please choose a question set. This will determine the categories that
+        are available to you when filling out your assessment.
+    </p>
 
     <ul class="list-results">
-        <li>
-            <a ng-repeat="hierarchy in hierarchies" href
-                    ng-click="edit.model.hierarchy = hierarchy">
+        <li ng-repeat="hierarchy in hierarchies">
+            <a href ng-click="edit.model.hierarchy = hierarchy">
                 <h4>{{hierarchy.title}}</h4>
+                <p class="truncate">{{hierarchy.nMeasures}} measures</p>
             </a>
         </li>
     </ul>
@@ -54,7 +61,14 @@
         </div>
     </form>
 
-    <p class="text-muted">Question set: <i>{{edit.model.hierarchy.title}}</i></p>
+    <p class="text-muted">
+        Question set: <i>{{edit.model.hierarchy.title}}</i>
+    </p>
+
+    <p class="text-muted" ng-if="duplicate">
+        Source assessment: <i>{{duplicate.title}}</i>
+    </p>
+
 </div>
 
 <div ng-if="!edit.model" class="container">

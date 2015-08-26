@@ -60,6 +60,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         if ($scope.hierarchies.length == 1) {
             $scope.assessment.hierarchy = $scope.hierarchies[0];
         }
+        $scope.duplicate = routeData.duplicate;
         $scope.edit.edit();
     }
 
@@ -96,6 +97,40 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
     });
 
     $scope.checkRole = authz(current, $scope.survey, $scope.assessment);
+}])
+
+
+.controller('AssessmentDuplicateCtrl', [
+        '$scope', 'Assessment', 'routeData', 'layout', '$location',
+        'Current', 'format', '$filter', 'Notifications',
+        function($scope, Assessment, routeData, layout, $location,
+                 Current, format, $filter, Notifications) {
+
+    $scope.layout = layout;
+    $scope.survey = routeData.survey;
+    $scope.organisation = routeData.organisation;
+    $scope.assessments = null;
+
+    $scope.search = {
+        term: "",
+        trackingId: $scope.survey.trackingId,
+        organisationId: $scope.organisation.id,
+        approval: 'draft',
+        page: 0,
+        pageSize: 10
+    };
+    $scope.$watch('search', function(search) {
+        Assessment.query(search).$promise.then(function(assessments) {
+            $scope.assessments = assessments;
+        });
+    }, true);
+    $scope.cycleApproval = function() {
+        var states = ['draft', 'final', 'reviewed', 'approved'];
+        var i = states.indexOf($scope.search.approval);
+        if (i >= states.length - 1)
+            i = -1;
+        $scope.search.approval = states[i + 1];
+    };
 }])
 
 
