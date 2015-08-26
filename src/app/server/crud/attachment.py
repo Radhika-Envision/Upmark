@@ -86,23 +86,31 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
         son = self.request_son
         externals = son["externals"]
         with model.session_scope() as session:
+            response = (session.query(model.Response)
+                    .filter_by(assessment_id=assessment_id,
+                                measure_id=measure_id)
+                    .first())
+
+            if response is None:
+                raise handlers.MissingDocError("No such response")
+
+            self._check_authz(response.assessment)
+
             for external in externals:
-                response = (session.query(model.Response)
-                        .filter_by(assessment_id=assessment_id,
-                                   measure_id=measure_id)
-                        .first())
-
-                if response is None:
-                    raise handlers.MissingDocError("No such response")
-
-                self._check_authz(response.assessment)
-
+                url = external.get('url', '').strip()
+                file_name = external.get('file_name', '').strip()
+                if url == '' and file_name == '':
+                    continue
+                if url == '':
+                    raise handlers.ModelError(
+                        "URL required for link '%s'" % file_name)
                 attachment = model.Attachment()
                 attachment.organisation_id = response.assessment.organisation_id
                 attachment.response_id = response.id
-                attachment.url = external["url"]
+                attachment.url = url
+                attachment.file_name = file_name
                 session.add(attachment)
-        self.finish()
+        self.get(assessment_id, measure_id)
 
 
     @tornado.web.authenticated

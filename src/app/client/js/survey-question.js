@@ -58,7 +58,7 @@ angular.module('wsaa.surveyQuestions', [
 .factory('Attachment', ['$resource', function($resource) {
     return $resource('/assessment/:assessmentId/measure/:measureId/attachment.json',
             {assessmentId: '@assessmentId', measureId: '@measureId'}, {
-        saveExternals: {method: 'PUT'},
+        saveExternals: { method: 'PUT', isArray: true },
         query: { method: 'GET', isArray: true, cache: false },
         remove: { method: 'DELETE', url: '/attachment/:id.json', cache: false }
     });
@@ -1316,13 +1316,13 @@ angular.module('wsaa.surveyQuestions', [
                 externals: $scope.externals
             }).$promise.then(
                 function success(attachments) {
-                    $scope.refreshAttachments();
+                    $scope.attachments = attachments;
                     $scope.externals = [];
                 },
                 function failure(details) {
                     if ($scope.attachments) {
                         Notifications.set('attach', 'error',
-                            "Failed to refresh attachment list: " +
+                            "Failed to add attachments: " +
                             details.statusText);
                     }
                 }
@@ -1336,6 +1336,11 @@ angular.module('wsaa.surveyQuestions', [
             dropzone.options.autoProcessQueue = true;
             dropzone.processQueue();
         }
+    };
+    $scope.cancelNewAttachments = function() {
+        dropzone.removeAllFiles();
+        $scope.showFileDrop = false;
+        $scope.externals = [];
     };
 
     $scope.$on('response-saved', $scope.save);
@@ -1381,11 +1386,17 @@ angular.module('wsaa.surveyQuestions', [
         Notifications.set('attach', 'error', error);
     });
     $scope.deleteAttachment = function(attachment) {
+        var isExternal = attachment.url;
         Attachment.remove({id: attachment.id}).$promise.then(
             function success() {
-                Notifications.set('attach', 'success',
-                    "The attachment was removed, but it can not be deleted " +
-                    "from the database.", 5000);
+                var message;
+                if (!isExternal) {
+                    message = "The attachment was removed, but it can not be " +
+                              "deleted from the database.";
+                } else {
+                    message = "Link removed.";
+                }
+                Notifications.set('attach', 'success', message, 5000);
                 $scope.refreshAttachments();
             },
             function failure(details) {

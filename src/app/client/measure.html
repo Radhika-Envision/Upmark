@@ -198,55 +198,81 @@
     <div ng-controller="ResponseAttachmentCtrl">
     <div class="section">
         <div class="toolbar">
-            <a class="btn btn-default btn-round" title="Upload" ng-click="showFileDrop =! showFileDrop">
+            <a class="btn btn-default btn-round" title="Upload"
+                    ng-click="showFileDrop =! showFileDrop">
                 <i class="fa fa-fw fa-cloud-upload"></i></a>
-            <a class="btn btn-default btn-round" title="External link" ng-click="addExternal()">
+            <a class="btn btn-default btn-round" title="Add external link"
+                    ng-click="addExternal()">
                 <i class="fa fa-fw fa-link">
                     <i class="fa fa-badge fa-plus"></i>
                 </i></a>
             <button class="btn btn-default btn-round"
+                title="Cancel"
+                ng-if="showFileDrop || externals.length"
+                ng-click="cancelNewAttachments()">
+                <i class="fa fa-times fa-fw"></i></button>
+            <button class="btn btn-default btn-round"
                 title="Save response"
+                ng-if="showFileDrop || externals.length"
                 ng-click="saveResponse()">
                 <i class="fa fa-check fa-fw"></i></button>
 
         </div>
         <h3>Attachments</h3>
     </div>
-    <div class="section" ng-repeat="attachment in attachments">
-        <div class="toolbar">
-            <a class="btn btn-default btn-round" title="Delete attachment"
-                    ng-click="deleteAttachment(attachment)">
-                <i class="fa fa-fw fa-trash-o"></i></a>
-            <!-- <a class="btn btn-default btn-round" title="Download"
-                    ng-href="/attachment/{{attachment.id}}.json" download>
-                <i class="fa fa-fw fa-download"></i></a> -->
-        </div>
-        <span>
-            <a ng-href="/attachment/{{attachment.id}}.json">{{attachment.fileName}}</a><a ng-href="{{attachment.url}}">{{attachment.url}}</a>
-        </span>
-    </div>
+    <ul class="list-results">
+        <li ng-repeat="attachment in attachments">
+            <a ng-href="/attachment/{{attachment.id}}.json"
+                    ng-if="!attachment.url">
+                <button class="btn btn-default btn-round pull-right" title="Remove"
+                        ng-click="deleteAttachment(attachment);
+                                  $event.preventDefault()">
+                    <i class="fa fa-fw fa-trash-o"></i></button>
+                {{attachment.fileName}}
+            </a>
+            <a ng-href="{{attachment.url}}"
+                    ng-if="attachment.url">
+                <button class="btn btn-default btn-round pull-right" title="Remove"
+                        ng-click="deleteAttachment(attachment);
+                                  $event.preventDefault()">
+                    <i class="fa fa-fw fa-trash-o"></i></button>
+                {{attachment.fileName || attachment.url}}
+            </a>
+        </li>
+    </ul>
     <div class="dropzone" id="dropzone" ng-show="showFileDrop">
         <div class="dz-message ">
             <p><i class="fa fa-cloud-upload fa-5x"></i></p>
             <p>Drop a file here, or click to select one</p>
         </div>
     </div>
-    <div class="input-group ng-isolate-scope"
-            ng-repeat="external in externals">
-        <label class="input-group-addon" for="searchBox" title="Search">
-            <i class="fa fa-link"></i>
-            <span class="sr-only">External Link</span>
-        </label>
-        <input type="text"
-                class="form-control btn-default search-box"
-                ng-model="external.url">
-        <span class="input-group-btn">
-            <button class="btn btn-default" type="button"
-                    title="Delete this link"
-                    ng-click="deleteExternal($index)">
-                <i class="fa fa-remove"></i></button>
-        </span>
-    </div>
+    <ul class="list-unstyled">
+        <li class="input-group" ng-repeat="external in externals">
+            <label class="input-group-addon" for="extname{{$index}}" title="Title">
+                <i class="fa fa-at"></i>
+                <span class="sr-only">Title</span>
+            </label>
+            <input type="text" id="extname{{$index}}"
+                    class="form-control btn-default"
+                    ng-model="external.fileName"
+                    placeholder="Link title">
+            <label class="input-group-addon" for="exturl{{$index}}"
+                    title="External link URL">
+                <i class="fa fa-link"></i>
+                <span class="sr-only">External link URL</span>
+            </label>
+            <input type="text" id="exturl{{$index}}"
+                    class="form-control btn-default"
+                    ng-model="external.url"
+                    placeholder="Link URL">
+            <span class="input-group-btn">
+                <button class="btn btn-default" type="button"
+                        title="Delete this link"
+                        ng-click="deleteExternal($index)">
+                    <i class="fa fa-trash-o"></i></button>
+            </span>
+        </li>
+    </ul>
     </div>
 </div>
 
