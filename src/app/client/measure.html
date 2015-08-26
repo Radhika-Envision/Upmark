@@ -154,7 +154,7 @@
                 title="Not relevant"
                 ng-click="toggleNotRelvant()"
                 ng-class="{active: response.notRelevant}">
-            <i class="fa fa-times fa-fw"></i></button>
+            <i class="fa fa-ban fa-fw"></i></button>
         <button class="btn btn-default btn-round"
                 title="Save response"
                 ng-click="saveResponse()">
@@ -205,7 +205,7 @@
                     <i class="fa fa-badge fa-plus"></i>
                 </i></a>
         </div>
-        <h2>Attachments</h2>
+        <h3>Attachments</h3>
     </div>
     <div class="section" ng-repeat="attachment in attachments">
         <div class="toolbar">

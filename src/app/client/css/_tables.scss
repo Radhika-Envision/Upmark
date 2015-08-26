@@ -97,6 +97,9 @@ tr.strike {
         float: left;
     }
 }
+.btn-round .fa-badge {
+    left: -0.8em;
+}
 
 [any-href]:not([disabled]) {
     cursor: pointer;
