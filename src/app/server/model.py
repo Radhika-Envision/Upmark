@@ -5,7 +5,7 @@ import sys
 import uuid
 
 from sqlalchemy import Boolean, create_engine, Column, DateTime, Enum, Float, \
-    ForeignKey, Index, Integer, String, Text, Table, Binary
+    ForeignKey, Index, Integer, String, Text, Table, LargeBinary
 from sqlalchemy.dialects.postgresql import JSON
 import sqlalchemy.exc
 from sqlalchemy.ext.associationproxy import association_proxy
@@ -698,7 +698,7 @@ class Attachment(Base):
 
     file_name = Column(Text, nullable=True)
     url = Column(Text, nullable=True)
-    blob = Column(Binary, nullable=True)
+    blob = Column(LargeBinary, nullable=True)
 
     response = relationship(Response, backref='attachments')
     organisation = relationship(Organisation)
