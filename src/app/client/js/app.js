@@ -452,13 +452,6 @@ angular.module('wsaa.aquamark',
                                 $route.current.params.survey,
                             parentId: $route.current.params.parent
                         }).$promise;
-                    }],
-                    attachments: ['Attachment', '$route', 'assessment',
-                            function(Attachment, $route, assessment) {
-                        return Attachment.query({
-                            assessmentId: assessment.id,
-                            measureId: $route.current.params.measure
-                        }).$promise;
                     }]
                 })}
             })

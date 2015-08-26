@@ -194,9 +194,8 @@
             </button>
         </div>
     </div>
-</div>
 
-<div class="container spaced">
+    <div ng-controller="ResponseAttachmentCtrl">
     <div class="section">
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="Upload" ng-click="showFileDrop =! showFileDrop">
@@ -206,7 +205,7 @@
                     <i class="fa fa-badge fa-plus"></i>
                 </i></a>
         </div>
-        <h2>File Attachments</h2>
+        <h2>Attachments</h2>
     </div>
     <div class="section" ng-repeat="attachment in attachments">
         <div class="toolbar">
@@ -250,6 +249,7 @@
                     ng-disabled="$index==0">
                 <i class="fa fa-remove"></i></button>
         </span>
+    </div>
     </div>
 </div>
 

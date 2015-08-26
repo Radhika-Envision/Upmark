@@ -1080,17 +1080,14 @@ angular.module('wsaa.surveyQuestions', [
 .controller('MeasureCtrl', [
         '$scope', 'Measure', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'Survey', 'format', 'layout',
-        'Structure', 'Arrays', 'Response', 'Attachment', 'hotkeys', 
-        '$http', '$cookies',
+        'Structure', 'Arrays', 'Response', 'hotkeys',
         function($scope, Measure, routeData, Editor, authz,
                  $location, Notifications, current, Survey, format, layout,
-                 Structure, Arrays, Response, Attachment, hotkeys, 
-                 $http, $cookies) {
+                 Structure, Arrays, Response, hotkeys) {
 
     $scope.layout = layout;
     $scope.parent = routeData.parent;
     $scope.assessment = routeData.assessment;
-    $scope.attachments = routeData.attachments;
 
     if (routeData.measure) {
         // Editing old
@@ -1131,7 +1128,7 @@ angular.module('wsaa.surveyQuestions', [
     $scope.saveResponse = function() {
         $scope.response.$save().then(
             function success(response) {
-                $scope.upload(response.assessment.id, response.measure.id);
+                $scope.$broadcast('response-saved');
                 Notifications.set('edit', 'success', "Saved", 5000);
             },
             function failure(details) {
@@ -1272,6 +1269,14 @@ angular.module('wsaa.surveyQuestions', [
                 }
             });
     }
+}])
+
+
+.controller('ResponseAttachmentCtrl', [
+        '$scope', 'Attachment', '$http', '$cookies', 'Notifications',
+        function($scope, Attachment, $http, $cookies, Notifications) {
+
+    $scope.attachments = null;
 
     var headers = {};
     var xsrfName = $http.defaults.xsrfHeaderName;
@@ -1298,14 +1303,16 @@ angular.module('wsaa.surveyQuestions', [
     Dropzone.autoDiscover = false;
     var dropzone = new Dropzone("#dropzone", config);
 
-    $scope.upload = function(assessment, measure) {
+    $scope.upload = function() {
         if (dropzone.files.length > 0) {
-            dropzone.options.url = '/assessment/' + assessment +
-                '/measure/' + measure + '/attachment.json';
+            dropzone.options.url = '/assessment/' + $scope.assessment.id +
+                '/measure/' + $scope.measure.id + '/attachment.json';
             dropzone.options.autoProcessQueue = true;
             dropzone.processQueue();
         }
     };
+
+    $scope.$on('response-saved', $scope.upload);
 
     $scope.refeshAttachments = function() {
         Attachment.query({
@@ -1316,11 +1323,15 @@ angular.module('wsaa.surveyQuestions', [
                 $scope.attachments = attachments;
             },
             function failure(details) {
-                Notifications.set('attach', 'error',
-                    "Failed to refresh attachment list: " + details.statusText);
+                if ($scope.attachments) {
+                    Notifications.set('attach', 'error',
+                        "Failed to refresh attachment list: " +
+                        details.statusText);
+                }
             }
         );
     };
+    $scope.refeshAttachments();
 
     dropzone.on("success", function(file, response) {
         console.log('success');
@@ -1343,9 +1354,9 @@ angular.module('wsaa.surveyQuestions', [
     $scope.deleteAttachment = function(attachment) {
         Attachment.remove({id: attachment.id}).$promise.then(
             function success() {
-                Notifications.set('attach', 'warning',
+                Notifications.set('attach', 'success',
                     "The attachment was removed, but it can not be deleted " +
-                    "from the database.");
+                    "from the database.", 5000);
                 $scope.refeshAttachments();
             },
             function failure(details) {
@@ -1353,7 +1364,7 @@ angular.module('wsaa.surveyQuestions', [
                     "Could not delete attachment: " + details.statusText);
             }
         );
-    }
+    };
 }])
 
 
