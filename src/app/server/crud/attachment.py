@@ -35,6 +35,9 @@ class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
                     .get(attachment_id)
                 if attachment is None:
                     raise ValueError("No such object")
+
+                self._check_authz(attachment)
+
                 file_name = attachment.file_name
                 blob = attachment.blob
             except (sqlalchemy.exc.StatementError,
@@ -55,6 +58,9 @@ class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
                     .get(attachment_id)
                 if attachment is None:
                     raise ValueError("No such object")
+
+                self._check_authz(attachment)
+
                 session.delete(attachment)
             except (sqlalchemy.exc.StatementError,
                     sqlalchemy.orm.exc.NoResultFound,
@@ -64,6 +70,12 @@ class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
         self.set_header("Content-Type", "text/plain")
         self.write(attachment_id)
         self.finish()
+
+    def _check_authz(self, attachment):
+        if not self.has_privillege('consultant'):
+            if attachment.organisation.id != self.organisation.id:
+                raise handlers.AuthzError(
+                    "You can't modify another organisation's response")
 
 
 class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
@@ -75,6 +87,9 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
         fileinfo = self.request.files['file'][0]
         with model.session_scope() as session:
             assessment = session.query(model.Assessment).filter_by(id=assessment_id).one()
+
+            self._check_authz(assessment)
+
             response = session.query(model.Response).filter_by(assessment_id=assessment_id, measure_id=measure_id).one()
             attachment = model.Attachment()
             attachment.organisation_id = assessment.organisation_id
@@ -90,6 +105,9 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
     def get(self, assessment_id, measure_id):
         with model.session_scope() as session:
             response = session.query(model.Response).filter_by(assessment_id=assessment_id, measure_id=measure_id).one()
+
+            self._check_authz(response.assessment)
+
             query = session.query(model.Attachment).filter_by(response_id=response.id)
 
             to_son = ToSon(include=[
@@ -106,3 +124,9 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
         self.finish()
+
+    def _check_authz(self, assessment):
+        if not self.has_privillege('consultant'):
+            if assessment.organisation.id != self.organisation.id:
+                raise handlers.AuthzError(
+                    "You can't modify another organisation's response")
