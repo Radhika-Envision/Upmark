@@ -1,7 +1,9 @@
+from concurrent.futures import ThreadPoolExecutor
 import datetime
 import time
 import uuid
 
+from tornado import gen
 from tornado.escape import json_decode, json_encode
 import tornado.web
 import sqlalchemy
@@ -19,8 +21,11 @@ from utils import reorder, ToSon, truthy, updater
 
 log = logging.getLogger('app.crud.assessment')
 
+MAX_WORKERS = 4
+
 
 class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
+    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated
     def get(self, assessment_id):
@@ -122,6 +127,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
         self.finish()
 
     @handlers.authz('clerk')
+    @gen.coroutine
     def post(self, assessment_id):
         '''Create new.'''
         if assessment_id != '':
@@ -130,9 +136,11 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
         survey_id = self.get_argument('surveyId', '')
         if survey_id == '':
             raise handlers.MethodError("Survey ID is required")
+
         hierarchy_id = self.get_argument('hierarchyId', '')
         if hierarchy_id == '':
             raise handlers.MethodError("Hierarchy ID is required")
+
         org_id = self.get_argument('orgId', '')
         if org_id == '':
             raise handlers.MethodError("Organisation ID is required")
@@ -150,7 +158,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 assessment_id = str(assessment.id)
 
                 if duplicate_id != '':
-                    self.duplicate(assessment, duplicate_id, session)
+                    yield AssessmentHandler.executor.submit(
+                        self.duplicate, assessment, duplicate_id, session)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(assessment_id)
@@ -221,7 +230,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 assessment = session.query(model.Assessment)\
                     .get(assessment_id)
                 if assessment is None:
-                    raise ValueError("No such object")
+                    raise handlers.ModelError("No such assessment")
                 self._check_modify(assessment)
                 if approval != '':
                     self._check_approval(session, assessment, approval)
@@ -243,7 +252,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 assessment = session.query(model.Assessment)\
                     .get(assessment_id)
                 if assessment is None:
-                    raise ValueError("No such object")
+                    raise handlers.ModelError("No such assessment")
                 self._check_delete(assessment)
                 session.delete(assessment)
         except sqlalchemy.exc.IntegrityError as e:
