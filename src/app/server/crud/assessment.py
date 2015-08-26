@@ -126,7 +126,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
-    @handlers.authz('clerk')
+    @tornado.web.authenticated
     @gen.coroutine
     def post(self, assessment_id):
         '''Create new.'''
@@ -146,6 +146,9 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.MethodError("Organisation ID is required")
 
         duplicate_id = self.get_argument('duplicateId', '')
+
+        if org_id != str(self.organisation.id):
+            self.check_privillege('consultant')
 
         try:
             with model.session_scope() as session:
@@ -171,6 +174,10 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
         if s_assessment is None:
             raise handlers.MissingDocError(
                 "Source assessment (for duplication) no found")
+
+        if s_assessment.organisation_id != assessment.organisation_id:
+            raise handlers.ModelError(
+                "Can't duplicate an assessment across two organisations")
 
         hierarchy_id = str(assessment.hierarchy.id)
         measure_ids = {str(m.id) for m in assessment.survey.measures
