@@ -1366,6 +1366,9 @@ angular.module('wsaa.surveyQuestions', [
         );
     };
     $scope.refreshAttachments();
+    $scope.safeUrl = function(url) {
+        return !! /^(https?|ftp):\/\//.exec(url);
+    };
 
     dropzone.on("queuecomplete", function(file, response) {
         console.log('success');
