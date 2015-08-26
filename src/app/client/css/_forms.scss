@@ -102,8 +102,10 @@ div[textarea-label] {
     }
 }
 
-.btn-default, .btn-default.active, .btn-default[disabled],
-.form-control, .form-control.active {
+.btn-default, .btn-default[disabled],
+.form-control, .form-control.active,
+.open > .dropdown-toggle.btn-default
+{
     color: lighten($button-fg, 30%);
     background-color: $button-bg;
     border-color: transparent;
@@ -115,7 +117,8 @@ div[textarea-label] {
         border-color: transparent;
     }
 
-    &:hover, &:active, &.active:focus, &:focus, &:active.focus, &:active:focus {
+    &:hover, &:active, &.active, &.active:hover, &.active:focus, &:focus,
+    &:active.focus, &:active:focus {
         outline: none;
         border-color: transparent;
     }
