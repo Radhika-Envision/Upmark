@@ -160,6 +160,20 @@ class AssessmentTest(base.AqHttpTestBase):
                 response.comment = "Response for %s" % m.title
                 session.add(response)
                 response.response_parts = [{'index': 1, 'note': "Yes"}]
+
+                response.attachments.append(model.Attachment(
+                    file_name="File %s 1" % m.title,
+                    url="Bar",
+                    organisation_id=organisation.id))
+                response.attachments.append(model.Attachment(
+                    file_name="File %s 2" % m.title,
+                    url="Baz",
+                    organisation_id=organisation.id))
+                response.attachments.append(model.Attachment(
+                    file_name="File %s 3" % m.title,
+                    blob=b'A blob',
+                    organisation_id=organisation.id))
+
             session.flush()
 
             assessment.update_stats_descendants()
@@ -242,12 +256,18 @@ class AssessmentTest(base.AqHttpTestBase):
             # Check scores. Assessments 1 and 2 should have the same score:
             # 100 + 200 = 300 (due to weighting of the measures). Assessment 3
             # should have just 200.
+            self.assertEqual([r.score for r in assessment_1.ordered_responses],
+                             [100.0, 200.0])
             self.assertEqual(list(assessment_1.rnodes)[0].score, 300)
             self.assertEqual(list(assessment_1.rnodes)[1].score, 0)
 
+            self.assertEqual([r.score for r in assessment_2.ordered_responses],
+                             [100.0, 200.0])
             self.assertEqual(list(assessment_2.rnodes)[0].score, 300)
             self.assertEqual(list(assessment_2.rnodes)[1].score, 0)
 
+            self.assertEqual([r.score for r in assessment_3.ordered_responses],
+                             [200.0])
             self.assertEqual(list(assessment_3.rnodes)[0].score, 200)
             self.assertEqual(list(assessment_3.rnodes)[1].score, 0)
 
@@ -270,3 +290,15 @@ class AssessmentTest(base.AqHttpTestBase):
                                 for r in assessment_3.responses))
             self.assertEqual(list(assessment_3.rnodes)[0].n_submitted, 0)
             self.assertEqual(list(assessment_3.rnodes)[1].n_submitted, 0)
+
+            # Check attachment duplication
+            for r1, r2 in zip(assessment_1.ordered_responses,
+                              assessment_2.ordered_responses):
+                self.assertNotEqual(str(r1.id), str(r2.id))
+                self.assertEqual(len(r1.attachments), 3)
+                self.assertEqual(len(r2.attachments), 3)
+                for a1, a2 in zip(r1.attachments, r2.attachments):
+                    self.assertNotEqual(str(a1.id), str(a2.id))
+                    self.assertEqual(a1.file_name, a2.file_name)
+                    self.assertEqual(a1.url, a2.url)
+                    self.assertEqual(a1.blob, a2.blob)

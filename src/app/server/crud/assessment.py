@@ -172,6 +172,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             if str(response.measure_id) not in measure_ids:
                 continue
 
+            attachments = list(response.attachments)
+
             # Fetch lazy-loaded fields
             response.comment
 
@@ -186,6 +188,22 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             response.approval = 'draft'
 
             session.add(response)
+            session.flush()
+
+            # Same thing for attachments
+            for attachment in attachments:
+                # Fetch lazy-loaded fields
+                attachment.blob
+
+                # Duplicate
+                session.expunge(attachment)
+                make_transient(attachment)
+                attachment.id = None
+
+                # Customise
+                attachment.response_id = response.id
+
+                session.add(attachment)
 
         session.flush()
         assessment.update_stats_descendants()

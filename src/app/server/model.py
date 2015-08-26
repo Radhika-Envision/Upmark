@@ -426,6 +426,13 @@ class Assessment(Base):
     organisation = relationship(Organisation)
 
     @property
+    def ordered_responses(self):
+        '''Returns all responses in depth-first order'''
+        for rnode in self.rnodes:
+            for response in rnode.ordered_responses:
+                yield response
+
+    @property
     def rnodes(self):
         for qnode in self.hierarchy.qnodes:
             rnode = qnode.get_rnode(self)
@@ -492,6 +499,15 @@ class ResponseNode(Base):
             rnode = child_qnode.get_rnode(self.assessment)
             if rnode is not None:
                 yield rnode
+
+    @property
+    def ordered_responses(self):
+        '''Returns all responses in depth-first order'''
+        for child in self.children:
+            for response in child.ordered_responses:
+                yield response
+        for response in self.responses:
+            yield response
 
     @property
     def responses(self):
@@ -574,7 +590,6 @@ class Response(Versioned, Base):
     comment = Column(Text, nullable=False)
     not_relevant = Column(Boolean, nullable=False)
     _response_parts = Column('response_parts', JSON, nullable=False)
-    attachments = Column(JSON, nullable=False)
     audit_reason = Column(Text)
     modified = Column(DateTime, nullable=False)
 
@@ -685,7 +700,7 @@ class Attachment(Base):
     url = Column(Text, nullable=True)
     blob = Column(Binary, nullable=True)
 
-    response = relationship(Response)
+    response = relationship(Response, backref='attachments')
     organisation = relationship(Organisation)
 
 
