@@ -253,10 +253,10 @@
     </div>
 </div>
 
-<div class="container spaced" ng-if="!edit.model && assessment">
+<div class="container spaced">
     <div class="spaced text-muted">
         <ul class="fa-ul">
-            <li ng-if="response.user.name">
+            <li ng-if="!edit.model && assessment && response.user.name">
                 <i class="fa-li fa fa-history fa-border"></i>
                 <p>
                     Version {{response.version}} -
@@ -268,7 +268,7 @@
                         {{response.user.name}}</a>
                 </p>
             </li>
-            <li>
+            <li ng-if="!edit.model && assessment">
                 <i class="fa-li fa fa-check-square-o fa-border"></i>
                 <p>
                     Responses progress through approval
@@ -304,44 +304,36 @@
                     it is not possible to reduce the state of the responses.
                 </p>
             </li>
+            <li ng-if="!edit.model && parents && checkRole('measure_edit')">
+                <i class="fa-li fa fa-sitemap fa-border"></i>
+                Measures are shared between question sets.
+                Respondents can use the following category paths to reach this
+                measure:
+                <ul ng-if="parents.length">
+                    <li ng-repeat="parent in parents">
+                        <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}&parent={{parent.qnodes[parent.qnodes.length - 1].id}}">
+                        {{parent.hierarchy.title}}
+                        <span ng-repeat="item in parent.qnodes">
+                            &raquo;
+                            <span ng-if="item.seq != null">
+                                {{item.seq + 1}}.</span>
+                            {{item.title}}
+                        </span>
+                        </a>
+                    </li>
+                </ul>
+                <p ng-if="parent">
+                    This measure can be
+                    <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}">
+                        viewed without a question set</a>,
+                    but it can not be responded to like that.
+                </p>
+                <p ng-if="!parents.length">
+                    This measure is an orphan: it belongs to no categories.
+                </p>
+            </li>
         </ul>
     </div>
-</div>
-
-<div class="spaced"
-        ng-if="!edit.model && parents && checkRole('measure_edit')">
-<div class="container text-muted">
-    <ul class="fa-ul">
-        <li>
-            <i class="fa-li fa fa-sitemap fa-border"></i>
-            Measures are shared between question sets.
-            Respondents can use the following category paths to reach this
-            measure:
-            <ul ng-if="parents.length">
-                <li ng-repeat="parent in parents">
-                    <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}&parent={{parent.qnodes[parent.qnodes.length - 1].id}}">
-                    {{parent.hierarchy.title}}
-                    <span ng-repeat="item in parent.qnodes">
-                        &raquo;
-                        <span ng-if="item.seq != null">
-                            {{item.seq + 1}}.</span>
-                        {{item.title}}
-                    </span>
-                    </a>
-                </li>
-            </ul>
-            <p ng-if="parent">
-                This measure can be
-                <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}">
-                    viewed without a question set</a>,
-                but it can not be responded to like that.
-            </p>
-            <p ng-if="!parents.length">
-                This measure is an orphan: it belongs to no categories.
-            </p>
-        </li>
-    </ul>
-</div>
 </div>
 
 </div>
