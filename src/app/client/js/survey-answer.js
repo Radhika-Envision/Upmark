@@ -57,10 +57,11 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         $scope.edit.params.surveyId = $scope.survey.id;
         $scope.edit.params.orgId = routeData.organisation.id;
         $scope.hierarchies = routeData.hierarchies;
-        if ($scope.hierarchies.length == 1) {
+        if ($scope.hierarchies.length == 1)
             $scope.assessment.hierarchy = $scope.hierarchies[0];
-        }
         $scope.duplicate = routeData.duplicate;
+        if ($scope.duplicate)
+            $scope.edit.params.duplicateId = $scope.duplicate.id;
         $scope.edit.edit();
     }
 

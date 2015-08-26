@@ -187,7 +187,7 @@ class updater:
             equal = current_value == value
 
         if not equal:
-            log.warn('Setting %s: %s -> %s', name, current_value, value)
+            log.debug('Setting %s: %s -> %s', name, current_value, value)
             setattr(self.model, name, value)
 
 

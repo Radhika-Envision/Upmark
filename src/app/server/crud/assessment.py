@@ -7,6 +7,7 @@ import tornado.web
 import sqlalchemy
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
+from sqlalchemy.orm.session import make_transient
 
 import crud.survey
 import handlers
@@ -136,6 +137,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
         if org_id == '':
             raise handlers.MethodError("Organisation ID is required")
 
+        duplicate_id = self.get_argument('duplicateId', '')
+
         try:
             with model.session_scope() as session:
                 assessment = model.Assessment(
@@ -145,9 +148,47 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 session.add(assessment)
                 session.flush()
                 assessment_id = str(assessment.id)
+
+                if duplicate_id != '':
+                    self.duplicate(assessment, duplicate_id, session)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(assessment_id)
+
+    def duplicate(self, assessment, duplicate_id, session):
+        s_assessment = (session.query(model.Assessment)
+                .filter_by(id=duplicate_id)
+                .first())
+        if s_assessment is None:
+            raise handlers.MissingDocError(
+                "Source assessment (for duplication) no found")
+
+        hierarchy_id = str(assessment.hierarchy.id)
+        measure_ids = {str(m.id) for m in assessment.survey.measures
+                       if any(str(p.hierarchy_id) == hierarchy_id
+                              for p in m.parents)}
+
+        for response in s_assessment.responses:
+            if str(response.measure_id) not in measure_ids:
+                continue
+
+            # Fetch lazy-loaded fields
+            response.comment
+
+            # Duplicate
+            session.expunge(response)
+            make_transient(response)
+            response.id = None
+
+            # Customise
+            response.survey_id = assessment.survey_id
+            response.assessment_id = assessment.id
+            response.approval = 'draft'
+
+            session.add(response)
+
+        session.flush()
+        assessment.update_stats_descendants()
 
     @tornado.web.authenticated
     def put(self, assessment_id):
@@ -211,7 +252,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                  .count())
         n_measures = (session.query(model.QnodeMeasure.measure_id)
                 .join(model.QuestionNode)
-                .filter(model.QuestionNode.hierarchy_id == assessment.hierarchy_id,
+                .filter(model.QuestionNode.hierarchy_id ==
+                            assessment.hierarchy_id,
                         model.QuestionNode.survey_id == assessment.survey_id,
                         model.QnodeMeasure.survey_id == assessment.survey_id,
                         model.QnodeMeasure.qnode_id == model.QuestionNode.id)

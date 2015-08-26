@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 import os
@@ -24,7 +25,8 @@ log = logging.getLogger('app.test_response')
 
 class ResponseTypeTest(unittest.TestCase):
     def setUp(self):
-        proj_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+        proj_dir = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), '..')
 
         with open(os.path.join(
                 proj_dir, 'server', 'aquamark_response_types.json')) as file:
@@ -117,39 +119,154 @@ class ResponseTypeTest(unittest.TestCase):
             ])
 
 
-class AssessmentModelTest(base.AqModelTestBase):
-
-    def test_response(self):
-        with model.session_scope() as session:
-            survey = session.query(model.Survey).first()
-            self.assertEqual(len(survey.hierarchies), 2)
-            h = survey.hierarchies[0]
-            self.assertEqual(h.title, "Hierarchy 1")
-            self.assertEqual(len(h.qnodes), 2)
-
-            self.assertEqual(h.qnodes[1].seq, 1)
-            q = h.qnodes[0]
-            self.assertEqual(q.title, "Function 1")
-            self.assertEqual(q.seq, 0)
-            self.assertEqual(len(q.children), 1)
-            self.assertEqual(len(q.measures), 0)
-
-            q = q.children[0]
-            self.assertEqual(q.title, "Process 1")
-            self.assertEqual(q.seq, 0)
-            self.assertEqual(len(q.children), 0)
-            self.assertEqual(len(q.measures), 2)
-
-            # Test association proxy from measure to qnode (via qnode_measure)
-            self.assertEqual(q.qnode_measures[0].seq, 0)
-            self.assertEqual(q.qnode_measures[1].seq, 1)
-            m = q.measures[0]
-            self.assertEqual(m.title, "Foo Measure")
-            self.assertIn(q, m.parents)
-
-            # Test association proxy from qnode to measure (via qnode_measure)
-            self.assertEqual(m.parents[0], q)
-
-
 class AssessmentTest(base.AqHttpTestBase):
-    pass
+    def test_duplicate(self):
+        # Respond to a survey
+        with model.session_scope() as session:
+            survey = session.query(model.Survey).one()
+            user = (session.query(model.AppUser)
+                    .filter_by(email='clerk')
+                    .one())
+            organisation = (session.query(model.Organisation)
+                    .filter_by(name='Utility')
+                    .one())
+            hierarchy_1 = (session.query(model.Hierarchy)
+                    .filter_by(title='Hierarchy 1')
+                    .one())
+            hierarchy_2 = (session.query(model.Hierarchy)
+                    .filter_by(title='Hierarchy 2')
+                    .one())
+            assessment = model.Assessment(
+                survey_id=survey.id,
+                organisation_id=organisation.id,
+                hierarchy_id=hierarchy_1.id,
+                title="First assessment",
+                approval='draft')
+            session.add(assessment)
+            session.flush()
+
+            for m in survey.measures:
+                if not any(p.hierarchy_id == hierarchy_1.id for p in m.parents):
+                    continue
+                response = model.Response(
+                    survey_id=survey.id,
+                    measure_id=m.id,
+                    assessment_id=assessment.id,
+                    user_id=user.id)
+                response.attachments = []
+                response.not_relevant = False
+                response.modified = datetime.datetime.utcnow()
+                response.approval = 'final'
+                response.comment = "Response for %s" % m.title
+                session.add(response)
+                response.response_parts = [{'index': 1, 'note': "Yes"}]
+            session.flush()
+
+            assessment.update_stats_descendants()
+            assessment.approval = 'final'
+            session.flush()
+
+            organisation_id = str(organisation.id)
+            first_assessment_id = str(assessment.id)
+            hierarchy_1_id = str(hierarchy_1.id)
+            hierarchy_2_id = str(hierarchy_2.id)
+
+        # Duplicate survey
+        with base.mock_user('author'):
+            survey_sons = self.fetch(
+                "/survey.json", method='GET',
+                expected=200, decode=True)
+            self.assertEqual(len(survey_sons), 1)
+            original_survey_id = survey_sons[0]['id']
+
+            survey_son = self.fetch(
+                "/survey/%s.json" % original_survey_id, method='GET',
+                expected=200, decode=True)
+
+            survey_son['title'] = "Duplicate survey"
+
+            survey_son = self.fetch(
+                "/survey.json?duplicateId=%s" % original_survey_id,
+                method='POST', body=json_encode(survey_son),
+                expected=200, decode=True)
+            new_survey_id = survey_son['id']
+
+        # Duplicate assessment, once for each hierarchy, in the new survey
+        with base.mock_user('org_admin'):
+            assessment_son = {'title': "Second assessment"}
+            assessment_son = self.fetch(
+                "/assessment.json?orgId=%s&surveyId=%s&"
+                "hierarchyId=%s&duplicateId=%s" %
+                (organisation_id, new_survey_id,
+                 hierarchy_1_id, first_assessment_id),
+                method='POST', body=json_encode(assessment_son),
+                expected=200, decode=True)
+            second_assessment_id = assessment_son['id']
+
+            assessment_son = {'title': "Third assessment"}
+            assessment_son = self.fetch(
+                "/assessment.json?orgId=%s&surveyId=%s&"
+                "hierarchyId=%s&duplicateId=%s" %
+                (organisation_id, new_survey_id,
+                 hierarchy_2_id, first_assessment_id),
+                method='POST', body=json_encode(assessment_son),
+                expected=200, decode=True)
+            third_assessment_id = assessment_son['id']
+
+        self.assertNotEqual(first_assessment_id, second_assessment_id)
+        self.assertNotEqual(first_assessment_id, third_assessment_id)
+        self.assertNotEqual(second_assessment_id, third_assessment_id)
+
+        # Check contents
+        with model.session_scope() as session:
+            assessment_1 = (session.query(model.Assessment)
+                .get(first_assessment_id))
+            assessment_2 = (session.query(model.Assessment)
+                .get(second_assessment_id))
+            assessment_3 = (session.query(model.Assessment)
+                .get(third_assessment_id))
+
+            self.assertEqual(assessment_1.hierarchy_id,
+                assessment_2.hierarchy_id)
+            self.assertNotEqual(assessment_1.hierarchy_id,
+                assessment_3.hierarchy_id)
+
+            # Assessment 2 uses the same hierarchy as the source assessment,
+            # so it should have the same number of responses (two).
+            # Assessment 3 uses a different hierarchy with only one common
+            # measure, so it should have a different number of responses (one).
+            self.assertEqual(len(assessment_2.responses), 2)
+            self.assertEqual(len(assessment_3.responses), 1)
+            self.assertEqual(session.query(model.Response).count(), 5)
+
+            # Check scores. Assessments 1 and 2 should have the same score:
+            # 100 + 200 = 300 (due to weighting of the measures). Assessment 3
+            # should have just 200.
+            self.assertEqual(list(assessment_1.rnodes)[0].score, 300)
+            self.assertEqual(list(assessment_1.rnodes)[1].score, 0)
+
+            self.assertEqual(list(assessment_2.rnodes)[0].score, 300)
+            self.assertEqual(list(assessment_2.rnodes)[1].score, 0)
+
+            self.assertEqual(list(assessment_3.rnodes)[0].score, 200)
+            self.assertEqual(list(assessment_3.rnodes)[1].score, 0)
+
+            # When an assessment is duplicated, all of its responses are set to
+            # 'draft'.
+            self.assertEqual(assessment_1.approval, 'final')
+            self.assertTrue(all(r.approval == 'final'
+                                for r in assessment_1.responses))
+            self.assertEqual(list(assessment_1.rnodes)[0].n_submitted, 2)
+            self.assertEqual(list(assessment_1.rnodes)[1].n_submitted, 0)
+
+            self.assertEqual(assessment_2.approval, 'draft')
+            self.assertTrue(all(r.approval == 'draft'
+                                for r in assessment_2.responses))
+            self.assertEqual(list(assessment_2.rnodes)[0].n_submitted, 0)
+            self.assertEqual(list(assessment_2.rnodes)[1].n_submitted, 0)
+
+            self.assertEqual(assessment_3.approval, 'draft')
+            self.assertTrue(all(r.approval == 'draft'
+                                for r in assessment_3.responses))
+            self.assertEqual(list(assessment_3.rnodes)[0].n_submitted, 0)
+            self.assertEqual(list(assessment_3.rnodes)[1].n_submitted, 0)

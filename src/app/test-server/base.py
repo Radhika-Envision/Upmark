@@ -1,3 +1,4 @@
+import json
 import os
 import unittest
 from unittest import mock
@@ -111,11 +112,19 @@ class AqModelTestBase(unittest.TestCase):
             session.add(user)
 
     def create_survey_structure(self):
+        proj_dir = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), '..')
+
+        with open(os.path.join(
+                proj_dir, 'client', 'default_response_types.json')) as file:
+            response_types = json.load(file)
+
         # Create survey
         with model.session_scope() as session:
             survey = entity = model.Survey(
                 title='Test Survey 1',
                 description="This is a test survey")
+            survey.response_types = response_types
             session.add(survey)
             session.flush()
             survey_id = survey.id
@@ -126,19 +135,19 @@ class AqModelTestBase(unittest.TestCase):
                 'title': "Foo Measure",
                 'intent': "Foo",
                 'weight': 100,
-                'response_type': 'A'
+                'response_type': 'yes-no'
             },
             {
                 'title': "Bar Measure",
                 'intent': "Bar",
                 'weight': 200,
-                'response_type': 'A'
+                'response_type': 'yes-no'
             },
             {
                 'title': "Baz Measure",
                 'intent': "Baz",
                 'weight': 300,
-                'response_type': 'A'
+                'response_type': 'yes-no'
             },
         ]
         measure_ids = []

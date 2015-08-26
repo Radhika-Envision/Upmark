@@ -433,7 +433,15 @@ class Assessment(Base):
                 yield rnode
 
     def update_stats_descendants(self):
-        for rnode in self.rnodes:
+        for qnode in self.hierarchy.qnodes:
+            rnode = qnode.get_rnode(self)
+            if rnode is None:
+                rnode = ResponseNode(
+                    survey_id=self.survey_id,
+                    assessment_id=self.id,
+                    qnode_id=qnode.id)
+                object_session(self).add(rnode)
+                object_session(self).flush()
             rnode.update_stats_descendants()
 
     def __repr__(self):
@@ -519,8 +527,16 @@ class ResponseNode(Base):
         self.n_submitted = n_submitted
 
     def update_stats_descendants(self):
-        for child in self.children:
-            child.update_stats_descendants()
+        for qchild in self.qnode.children:
+            rchild = qchild.get_rnode(self)
+            if rchild is None:
+                rchild = ResponseNode(
+                    survey_id=self.survey_id,
+                    assessment_id=self.assessment_id,
+                    qnode_id=qchild.id)
+                object_session(self).add(rchild)
+                object_session(self).flush()
+            rchild.update_stats_descendants()
         for response in self.responses:
             response.update_stats()
         self.update_stats()
@@ -661,7 +677,8 @@ class Response(Versioned, Base):
 class Attachment(Base):
     __tablename__ = 'attachment'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    organisation_id = Column(GUID, ForeignKey("organisation.id"), nullable=False)
+    organisation_id = Column(
+        GUID, ForeignKey("organisation.id"), nullable=False)
     response_id = Column(GUID, ForeignKey("response.id"), nullable=False)
 
     file_name = Column(Text, nullable=True)
