@@ -56,11 +56,11 @@ angular.module('wsaa.surveyQuestions', [
 
 
 .factory('Attachment', ['$resource', function($resource) {
-    return $resource('/attachment/:id.json', {id: '@id'}, {
-        // get: { method: 'GET', isArray: false, cache: false, responseType: "blob" },
-        query: { method: 'GET', url: '/assessment/:assessmentId/measure/:measureId/attachment.json',
-            isArray: true, cache: false },
-        remove: { method: 'DELETE', cache: false }
+    return $resource('/assessment/:assessmentId/measure/:measureId/attachment.json',
+            {assessmentId: '@assessmentId', measureId: '@measureId'}, {
+        saveExternals: {method: 'PUT'},
+        query: { method: 'GET', isArray: true, cache: false },
+        remove: { method: 'DELETE', url: '/attachment/:id.json', cache: false }
     });
 }])
 
@@ -1281,7 +1281,7 @@ angular.module('wsaa.surveyQuestions', [
     var headers = {};
     var xsrfName = $http.defaults.xsrfHeaderName;
     headers[xsrfName] = $cookies.get($http.defaults.xsrfCookieName);
-    $scope.externals = [{"url": ""}];
+    $scope.externals = [];
     $scope.addExternal = function() {
         $scope.externals.push({"url": ""});
     }
@@ -1297,12 +1297,35 @@ angular.module('wsaa.surveyQuestions', [
         maxFilesize: 50,
         paramName: "file",
         headers: headers,
+        // uploadMultiple: true,
         autoProcessQueue: false
     };
 
     Dropzone.autoDiscover = false;
     var dropzone = new Dropzone("#dropzone", config);
 
+    $scope.save = function() {
+        $scope.upload();
+        if ($scope.externals.length > 0) {
+            Attachment.saveExternals({
+                assessmentId: $scope.assessment.id,
+                measureId: $scope.measure.id,
+                externals: $scope.externals
+            }).$promise.then(
+                function success(attachments) {
+                    $scope.refreshAttachments();
+                    $scope.externals = [];
+                },
+                function failure(details) {
+                    if ($scope.attachments) {
+                        Notifications.set('attach', 'error',
+                            "Failed to refresh attachment list: " +
+                            details.statusText);
+                    }
+                }
+            );
+        }
+    }
     $scope.upload = function() {
         if (dropzone.files.length > 0) {
             dropzone.options.url = '/assessment/' + $scope.assessment.id +
@@ -1312,9 +1335,9 @@ angular.module('wsaa.surveyQuestions', [
         }
     };
 
-    $scope.$on('response-saved', $scope.upload);
+    $scope.$on('response-saved', $scope.save);
 
-    $scope.refeshAttachments = function() {
+    $scope.refreshAttachments = function() {
         Attachment.query({
             assessmentId: $scope.assessment.id,
             measureId: $scope.measure.id
@@ -1331,15 +1354,17 @@ angular.module('wsaa.surveyQuestions', [
             }
         );
     };
-    $scope.refeshAttachments();
+    $scope.refreshAttachments();
 
-    dropzone.on("success", function(file, response) {
+    dropzone.on("queuecomplete", function(file, response) {
         console.log('success');
-        dropzone.removeAllFiles();
         $scope.showFileDrop = false;
         Notifications.set('attach', 'success', "Attachments saved", 5000);
-        $scope.refeshAttachments();
+        dropzone.options.autoProcessQueue = false;
+        dropzone.removeAllFiles();
+        $scope.refreshAttachments();
     });
+
     dropzone.on("error", function(file, details, request) {
         var error;
         if (request) {
@@ -1348,6 +1373,7 @@ angular.module('wsaa.surveyQuestions', [
             error = details;
         }
         console.log('error');
+        dropzone.options.autoProcessQueue = false;
         dropzone.removeAllFiles();
         Notifications.set('attach', 'error', error);
     });
@@ -1357,7 +1383,7 @@ angular.module('wsaa.surveyQuestions', [
                 Notifications.set('attach', 'success',
                     "The attachment was removed, but it can not be deleted " +
                     "from the database.", 5000);
-                $scope.refeshAttachments();
+                $scope.refreshAttachments();
             },
             function failure(details) {
                 Notifications.set('attach', 'error',

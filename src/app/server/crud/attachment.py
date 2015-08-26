@@ -82,6 +82,30 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated
+    def put(self, assessment_id, measure_id):
+        son = self.request_son
+        externals = son["externals"]
+        with model.session_scope() as session:
+            for external in externals:
+                response = (session.query(model.Response)
+                        .filter_by(assessment_id=assessment_id,
+                                   measure_id=measure_id)
+                        .first())
+
+                if response is None:
+                    raise handlers.MissingDocError("No such response")
+
+                self._check_authz(response.assessment)
+
+                attachment = model.Attachment()
+                attachment.organisation_id = response.assessment.organisation_id
+                attachment.response_id = response.id
+                attachment.url = external["url"]
+                session.add(attachment)
+        self.finish()
+
+
+    @tornado.web.authenticated
     @gen.coroutine
     def post(self, assessment_id, measure_id):
         fileinfo = self.request.files['file'][0]

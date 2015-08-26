@@ -200,10 +200,15 @@
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="Upload" ng-click="showFileDrop =! showFileDrop">
                 <i class="fa fa-fw fa-cloud-upload"></i></a>
-            <a class="btn btn-default btn-round" title="External link" ng-click="showExternal =! showExternal">
+            <a class="btn btn-default btn-round" title="External link" ng-click="addExternal()">
                 <i class="fa fa-fw fa-link">
                     <i class="fa fa-badge fa-plus"></i>
                 </i></a>
+            <button class="btn btn-default btn-round"
+                title="Save response"
+                ng-click="saveResponse()">
+                <i class="fa fa-check fa-fw"></i></button>
+
         </div>
         <h3>Attachments</h3>
     </div>
@@ -212,12 +217,12 @@
             <a class="btn btn-default btn-round" title="Delete attachment"
                     ng-click="deleteAttachment(attachment)">
                 <i class="fa fa-fw fa-trash-o"></i></a>
-            <a class="btn btn-default btn-round" title="Download"
+            <!-- <a class="btn btn-default btn-round" title="Download"
                     ng-href="/attachment/{{attachment.id}}.json" download>
-                <i class="fa fa-fw fa-download"></i></a>
+                <i class="fa fa-fw fa-download"></i></a> -->
         </div>
         <span>
-            {{attachment.fileName}}
+            <a ng-href="/attachment/{{attachment.id}}.json">{{attachment.fileName}}</a><a ng-href="{{attachment.url}}">{{attachment.url}}</a>
         </span>
     </div>
     <div class="dropzone" id="dropzone" ng-show="showFileDrop">
@@ -227,8 +232,7 @@
         </div>
     </div>
     <div class="input-group ng-isolate-scope"
-            ng-repeat="external in externals"
-            ng-show="showExternal">
+            ng-repeat="external in externals">
         <label class="input-group-addon" for="searchBox" title="Search">
             <i class="fa fa-link"></i>
             <span class="sr-only">External Link</span>
@@ -238,15 +242,8 @@
                 ng-model="external.url">
         <span class="input-group-btn">
             <button class="btn btn-default" type="button"
-                    title="Add more external link"
-                    ng-click="addExternal()">
-                <i class="fa fa-plus"></i></button>
-        </span>
-        <span class="input-group-btn">
-            <button class="btn btn-default" type="button"
                     title="Delete this link"
-                    ng-click="deleteExternal($index)"
-                    ng-disabled="$index==0">
+                    ng-click="deleteExternal($index)">
                 <i class="fa fa-remove"></i></button>
         </span>
     </div>

@@ -191,7 +191,6 @@ def get_mappings():
             crud.attachment.ResponseAttachmentsHandler, {}),
         (r"/attachment/([^/]*).json",
             crud.attachment.AttachmentHandler, {}),
-        # (r"/response/attachment.json", import_handlers.ResponseAttachmentsHandler, {}),
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response.json", import_handlers.ImportResponseHandler, {}),
         (r"/import/assessment.json", import_handlers.ImportAssessmentHandler, {}),
