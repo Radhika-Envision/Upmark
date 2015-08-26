@@ -33,8 +33,9 @@ class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
             try:
                 attachment = session.query(model.Attachment)\
                     .get(attachment_id)
+
                 if attachment is None:
-                    raise ValueError("No such object")
+                    raise handlers.MissingDocError("No such attachment")
 
                 self._check_authz(attachment)
 
@@ -56,8 +57,9 @@ class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
             try:
                 attachment = session.query(model.Attachment)\
                     .get(attachment_id)
+
                 if attachment is None:
-                    raise ValueError("No such object")
+                    raise handlers.MissingDocError("No such attachment")
 
                 self._check_authz(attachment)
 
@@ -67,8 +69,6 @@ class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
                     ValueError):
                 raise handlers.MissingDocError("No such attachment")
 
-        self.set_header("Content-Type", "text/plain")
-        self.write(attachment_id)
         self.finish()
 
     def _check_authz(self, attachment):
@@ -86,25 +86,38 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
     def post(self, assessment_id, measure_id):
         fileinfo = self.request.files['file'][0]
         with model.session_scope() as session:
-            assessment = session.query(model.Assessment).filter_by(id=assessment_id).one()
+            response = (session.query(model.Response)
+                    .filter_by(assessment_id=assessment_id,
+                               measure_id=measure_id)
+                    .first())
 
-            self._check_authz(assessment)
+            if response is None:
+                raise handlers.MissingDocError("No such response")
 
-            response = session.query(model.Response).filter_by(assessment_id=assessment_id, measure_id=measure_id).one()
+            self._check_authz(response.assessment)
+
             attachment = model.Attachment()
-            attachment.organisation_id = assessment.organisation_id
+            attachment.organisation_id = response.assessment.organisation_id
             attachment.response_id = response.id
             attachment.file_name = fileinfo["filename"]
             attachment.blob = bytes(fileinfo['body'])
             session.add(attachment)
+            attachment_id = str(attachment.id)
+
         self.set_header("Content-Type", "text/plain")
-        self.write(attachment.id)
+        self.write(attachment_id)
         self.finish()
 
     @tornado.web.authenticated
     def get(self, assessment_id, measure_id):
         with model.session_scope() as session:
-            response = session.query(model.Response).filter_by(assessment_id=assessment_id, measure_id=measure_id).one()
+            response = (session.query(model.Response)
+                    .filter_by(assessment_id=assessment_id,
+                               measure_id=measure_id)
+                    .first())
+
+            if response is None:
+                raise handlers.MissingDocError("No such response")
 
             self._check_authz(response.assessment)
 

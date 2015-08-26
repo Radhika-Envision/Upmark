@@ -1081,11 +1081,11 @@ angular.module('wsaa.surveyQuestions', [
         '$scope', 'Measure', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'Survey', 'format', 'layout',
         'Structure', 'Arrays', 'Response', 'Attachment', 'hotkeys', 
-        '$http', '$cookies', '$window',
+        '$http', '$cookies',
         function($scope, Measure, routeData, Editor, authz,
                  $location, Notifications, current, Survey, format, layout,
                  Structure, Arrays, Response, Attachment, hotkeys, 
-                 $http, $cookies, $window) {
+                 $http, $cookies) {
 
     $scope.layout = layout;
     $scope.parent = routeData.parent;
@@ -1131,7 +1131,7 @@ angular.module('wsaa.surveyQuestions', [
     $scope.saveResponse = function() {
         $scope.response.$save().then(
             function success(response) {
-                $scope.upload(response.assessment.id, response.id);
+                $scope.upload(response.assessment.id, response.measure.id);
                 Notifications.set('edit', 'success', "Saved", 5000);
             },
             function failure(details) {
@@ -1276,9 +1276,9 @@ angular.module('wsaa.surveyQuestions', [
     var headers = {};
     var xsrfName = $http.defaults.xsrfHeaderName;
     headers[xsrfName] = $cookies.get($http.defaults.xsrfCookieName);
-    $scope.externals = [{"url":""}];
+    $scope.externals = [{"url": ""}];
     $scope.addExternal = function() {
-        $scope.externals.push({"url":""});
+        $scope.externals.push({"url": ""});
     }
 
     $scope.deleteExternal = function(index) {
@@ -1298,23 +1298,61 @@ angular.module('wsaa.surveyQuestions', [
     Dropzone.autoDiscover = false;
     var dropzone = new Dropzone("#dropzone", config);
 
-    $scope.upload = function(assessment, response) {
+    $scope.upload = function(assessment, measure) {
         if (dropzone.files.length > 0) {
-            measure_id = response;
-            dropzone.options.url = '/assessment/' + assessment + '/measure/' + measure_id + '/attachment.json';
+            dropzone.options.url = '/assessment/' + assessment +
+                '/measure/' + measure + '/attachment.json';
             dropzone.options.autoProcessQueue = true;
             dropzone.processQueue();
         }
     };
 
+    $scope.refeshAttachments = function() {
+        Attachment.query({
+            assessmentId: $scope.assessment.id,
+            measureId: $scope.measure.id
+        }).$promise.then(
+            function success(attachments) {
+                $scope.attachments = attachments;
+            },
+            function failure(details) {
+                Notifications.set('attach', 'error',
+                    "Failed to refresh attachment list: " + details.statusText);
+            }
+        );
+    };
+
     dropzone.on("success", function(file, response) {
+        console.log('success');
         dropzone.removeAllFiles();
+        $scope.showFileDrop = false;
+        Notifications.set('attach', 'success', "Attachments saved", 5000);
+        $scope.refeshAttachments();
+    });
+    dropzone.on("error", function(file, details, request) {
+        var error;
+        if (request) {
+            error = "Import failed: " + request.statusText;
+        } else {
+            error = details;
+        }
+        console.log('error');
+        dropzone.removeAllFiles();
+        Notifications.set('attach', 'error', error);
     });
     $scope.deleteAttachment = function(attachment) {
-        Attachment.remove({id:attachment.id});
-    }
-    $scope.downloadAttachment = function(attachment) {
-        $window.open("/attachment/" + attachment.id + ".json");
+        Attachment.remove({id: attachment.id}).$promise.then(
+            function success() {
+                Notifications.set('attach', 'warning',
+                    "The attachment was removed, but it can not be deleted " +
+                    "from the database.");
+                $scope.refeshAttachments();
+            },
+            function failure(details) {
+                Notifications.set('attach', 'error',
+                    "Could not delete attachment: " + details.statusText);
+            }
+        );
     }
 }])
 

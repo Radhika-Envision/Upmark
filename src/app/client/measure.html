@@ -199,18 +199,22 @@
 <div class="container spaced">
     <div class="section">
         <div class="toolbar">
-            <a class="btn btn-default btn-round" title="Upload" ng-click="showFileDrop=!showFileDrop">
+            <a class="btn btn-default btn-round" title="Upload" ng-click="showFileDrop =! showFileDrop">
                 <i class="fa fa-fw fa-cloud-upload"></i></a>
-            <a class="btn btn-default btn-round" title="External link" ng-click="showExternal=!showExternal">
-                <i class="fa fa-fw fa-link"></i></a>
+            <a class="btn btn-default btn-round" title="External link" ng-click="showExternal =! showExternal">
+                <i class="fa fa-fw fa-link">
+                    <i class="fa fa-badge fa-plus"></i>
+                </i></a>
         </div>
         <h2>File Attachments</h2>
     </div>
     <div class="section" ng-repeat="attachment in attachments">
         <div class="toolbar">
-<!--             <a class="btn btn-default btn-round" title="Delete attachment" ng-click="deleteAttachment(attachment)">
-                <i class="fa fa-fw fa-remove"></i></a> -->
-            <a class="btn btn-default btn-round" title="Download" ng-click="downloadAttachment(attachment)">
+            <a class="btn btn-default btn-round" title="Delete attachment"
+                    ng-click="deleteAttachment(attachment)">
+                <i class="fa fa-fw fa-trash-o"></i></a>
+            <a class="btn btn-default btn-round" title="Download"
+                    ng-href="/attachment/{{attachment.id}}.json" download>
                 <i class="fa fa-fw fa-download"></i></a>
         </div>
         <span>
@@ -223,18 +227,27 @@
             <p>Drop a file here, or click to select one</p>
         </div>
     </div>
-    <div class="input-group ng-isolate-scope" ng-repeat="external in externals" ng-show="showExternal">
+    <div class="input-group ng-isolate-scope"
+            ng-repeat="external in externals"
+            ng-show="showExternal">
         <label class="input-group-addon" for="searchBox" title="Search">
             <i class="fa fa-link"></i>
             <span class="sr-only">External Link</span>
         </label>
-        <input type="text" class="form-control btn-default search-box ng-pristine ng-valid ng-touched" ng-model="external.url">
+        <input type="text"
+                class="form-control btn-default search-box"
+                ng-model="external.url">
         <span class="input-group-btn">
-            <button class="btn btn-default" type="button" title="Add more external link" ng-click="addExternal()">
+            <button class="btn btn-default" type="button"
+                    title="Add more external link"
+                    ng-click="addExternal()">
                 <i class="fa fa-plus"></i></button>
         </span>
         <span class="input-group-btn">
-            <button class="btn btn-default" type="button" title="Delete this link" ng-click="deleteExternal($index)" ng-disabled="$index==0">
+            <button class="btn btn-default" type="button"
+                    title="Delete this link"
+                    ng-click="deleteExternal($index)"
+                    ng-disabled="$index==0">
                 <i class="fa fa-remove"></i></button>
         </span>
     </div>

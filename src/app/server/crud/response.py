@@ -83,8 +83,8 @@ class ResponseHandler(handlers.BaseHandler):
                 r'/user$',
             ], exclude=[
                 # The IDs of rnodes and responses are not part of the API
-                'r/^id$/',
-                'r/parent/id$'
+                r'^/id$',
+                r'/parent/id$'
             ])
             if response_history is None:
                 son = to_son(response)
