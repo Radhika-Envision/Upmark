@@ -1300,7 +1300,7 @@ angular.module('wsaa.surveyQuestions', [
 
     var config = {
         url: '/',
-        maxFilesize: 50,
+        maxFilesize: 10,
         paramName: "file",
         headers: headers,
         // uploadMultiple: true,
@@ -1370,13 +1370,12 @@ angular.module('wsaa.surveyQuestions', [
         return !! /^(https?|ftp):\/\//.exec(url);
     };
 
-    dropzone.on("queuecomplete", function(file, response) {
-        console.log('success');
-        $scope.showFileDrop = false;
-        Notifications.set('attach', 'success', "Attachments saved", 5000);
+    dropzone.on("queuecomplete", function() {
         dropzone.options.autoProcessQueue = false;
+        $scope.showFileDrop = false;
         dropzone.removeAllFiles();
         $scope.refreshAttachments();
+        Notifications.set('attach', 'info', "Attachments saved", 5000); 
     });
 
     dropzone.on("error", function(file, details, request) {

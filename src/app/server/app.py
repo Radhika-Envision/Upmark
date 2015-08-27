@@ -13,6 +13,7 @@ import sqlalchemy.engine.reflection
 import sqlalchemy.orm
 import tornado.options
 import tornado.web
+import tornado.httpserver
 
 import crud
 import handlers
@@ -215,7 +216,9 @@ def start_web_server():
         port = int(tornado.options.options.port)
     except ValueError:
         port = tornado.options.options.port
-    application.listen(port)
+    max_buffer_size = 10 * 1024**2 # 10MB
+    http_server = tornado.httpserver.HTTPServer(application, max_body_size=max_buffer_size)
+    http_server.listen(port)
 
     if log.isEnabledFor(logging.INFO):
         import socket
