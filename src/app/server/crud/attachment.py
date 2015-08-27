@@ -111,6 +111,8 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
                 attachment.response_id = response.id
                 attachment.url = url
                 attachment.file_name = file_name
+                attachment.storage = "external"
+
                 session.add(attachment)
         self.get(assessment_id, measure_id)
 
@@ -152,8 +154,10 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
             attachment.response_id = response.id
             attachment.file_name = fileinfo["filename"]
             if storage == 'S3':
+                attachment.storage = "aws"
                 attachment.url = s3_result.website_redirect_location
             else:
+                attachment.storage = "database"
                 attachment.blob = bytes(fileinfo['body'])
             session.add(attachment)
             session.flush()

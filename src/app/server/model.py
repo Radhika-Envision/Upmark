@@ -696,6 +696,9 @@ class Attachment(Base):
         GUID, ForeignKey("organisation.id"), nullable=False)
     response_id = Column(GUID, ForeignKey("response.id"), nullable=False)
 
+    storage = Column(
+        Enum('external', 'aws', 'database', native_enum=False),
+        nullable=False)
     file_name = Column(Text, nullable=True)
     url = Column(Text, nullable=True)
     blob = Column(LargeBinary, nullable=True)
