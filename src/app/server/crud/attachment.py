@@ -1,3 +1,4 @@
+import os
 import datetime
 import time
 import uuid
@@ -12,6 +13,7 @@ import crud.survey
 import handlers
 import model
 import logging
+import boto3
 
 from utils import reorder, ToSon, truthy, updater
 from tornado import gen
@@ -128,12 +130,35 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
 
             self._check_authz(response.assessment)
 
+            storage = os.environ.get('FILE_STORAGE', 'DATABASE')
+            if storage == 'S3':
+                aws_access_key_id = os.environ.get('AWS_ACCESS_KEY_ID', '')
+                aws_secret_access_key = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
+                region_name = os.environ.get('REGION_NAME', '')
+
+                if aws_access_key_id == '' or aws_secret_access_key == '' or region_name == '':
+                    raise handlers.MissingDocError("S3 Environment variable is missing")
+
+                boto_session = boto3.session.Session(aws_access_key_id=aws_access_key_id,
+                                                     aws_secret_access_key=aws_secret_access_key,
+                                                     region_name=region_name)
+
+                s3 = boto_session.resource('s3')
+                s3_path = "{0}/{1}/{2}".format(assessment_id, measure_id, fileinfo["filename"])
+                s3_result = s3.Bucket('aquamark').put_object(Key=s3_path, Body=bytes(fileinfo['body']))
+
             attachment = model.Attachment()
             attachment.organisation_id = response.assessment.organisation_id
             attachment.response_id = response.id
             attachment.file_name = fileinfo["filename"]
-            attachment.blob = bytes(fileinfo['body'])
+            if storage == 'S3':
+                attachment.url = s3_result.website_redirect_location
+            else:
+                attachment.blob = bytes(fileinfo['body'])
             session.add(attachment)
+            session.flush()
+
+
             attachment_id = str(attachment.id)
 
         self.set_header("Content-Type", "text/plain")
