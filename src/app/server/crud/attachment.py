@@ -3,6 +3,8 @@ import datetime
 import os
 import time
 import uuid
+import hashlib
+import tempfile
 
 from tornado.escape import json_decode, json_encode
 from tornado import gen
@@ -13,6 +15,8 @@ from concurrent.futures import ThreadPoolExecutor
 import sqlalchemy
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
+from parse import parse
+import boto3
 
 import aws
 import crud.survey
@@ -24,6 +28,7 @@ from utils import reorder, ToSon, truthy, updater
 log = logging.getLogger('app.crud.attachment')
 
 MAX_WORKERS = 4
+s3_url = "https://s3-{region}.amazonaws.com/{bucket}/{s3_path}"
 
 
 class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
@@ -41,7 +46,19 @@ class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
                 self._check_authz(attachment)
 
                 file_name = attachment.file_name
-                blob = attachment.blob
+                if attachment.storage == "aws":
+                    s3 = aws.session.client('s3')
+                    attachment_object = parse(s3_url, attachment.url)
+                    with tempfile.NamedTemporaryFile() as temp:
+                        s3.download_file(attachment_object["bucket"],
+                                               attachment_object["s3_path"],
+                                               temp.name)
+
+
+                        with open(temp.name, "rb") as file:
+                            blob = file.read()
+                else:
+                    blob = attachment.blob
             except (sqlalchemy.exc.StatementError,
                     sqlalchemy.orm.exc.NoResultFound,
                     ValueError):
@@ -133,10 +150,16 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
 
             if aws.session is not None:
                 s3 = aws.session.resource('s3')
-                s3_path = "{0}/{1}/{2}".format(
-                    assessment_id, measure_id, fileinfo["filename"])
-                s3_result = s3.Bucket('aquamark').put_object(
-                    Key=s3_path, Body=bytes(fileinfo['body']))
+                bucket = "aquamark"
+                hex_key = hashlib.sha256(bytes(fileinfo['body'])).hexdigest()
+                s3_path = "{0}/{1}".format(
+                    response.assessment.organisation_id, hex_key)
+                s3.Bucket(bucket).put_object(
+                                        Key=s3_path,
+                                        Metadata={
+                                            'filename': fileinfo["filename"]
+                                        }, 
+                                        Body=bytes(fileinfo['body']))
 
             attachment = model.Attachment()
             attachment.organisation_id = response.assessment.organisation_id
@@ -145,7 +168,11 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
 
             if aws.session is not None:
                 attachment.storage = "aws"
-                attachment.url = s3_result.website_redirect_location
+                aws_url = s3_url.format(
+                            region=aws.region_name, 
+                            bucket=bucket, 
+                            s3_path=s3_path)
+                attachment.url = aws_url
             else:
                 attachment.storage = "database"
                 attachment.blob = bytes(fileinfo['body'])
@@ -179,6 +206,7 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/id$',
                 r'/file_name$',
                 r'/url$',
+                r'/storage$',
                 # Descend
                 r'/[0-9]+$'
             ])

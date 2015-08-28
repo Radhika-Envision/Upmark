@@ -14,6 +14,7 @@ class StorageError(Exception):
 
 def initialise_session():
     global session
+    global region_name
 
     storage = os.environ.get('FILE_STORAGE', 'DATABASE')
     if storage != 'S3':

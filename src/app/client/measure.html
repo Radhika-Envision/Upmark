@@ -236,8 +236,17 @@
                     <i class="fa fa-fw fa-trash-o"></i></button>
                 {{attachment.fileName}}
             </a>
+            <a ng-href="/attachment/{{attachment.id}}.json"
+                    ng-if="attachment.url && attachment.storage=='aws'">
+                <button class="btn btn-default btn-round pull-right"
+                        title="Remove"
+                        ng-click="deleteAttachment(attachment);
+                                  $event.preventDefault()">
+                    <i class="fa fa-fw fa-trash-o"></i></button>
+                {{attachment.fileName}}
+            </a>
             <a ng-href="{{attachment.url}}"
-                    ng-if="attachment.url && safeUrl(attachment.url)">
+                    ng-if="attachment.url && attachment.storage!='aws' && safeUrl(attachment.url)">
                 <button class="btn btn-default btn-round pull-right"
                         title="Remove"
                         ng-click="deleteAttachment(attachment);
@@ -245,7 +254,7 @@
                     <i class="fa fa-fw fa-trash-o"></i></button>
                 {{attachment.fileName || attachment.url}}
             </a>
-            <span ng-if="attachment.url && !safeUrl(attachment.url)">
+            <span ng-if="attachment.url && attachment.storage!='aws' && !safeUrl(attachment.url)">
                 <button class="btn btn-default btn-round pull-right"
                         title="Remove"
                         ng-click="deleteAttachment(attachment);
