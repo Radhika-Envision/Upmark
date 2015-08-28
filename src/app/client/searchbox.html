@@ -3,24 +3,24 @@
         <i class="fa fa-search"></i>
         <span class="sr-only">Search</span>
     </label>
-    <input type="text" class="form-control btn-default search-box"
+    <input type="text" class="form-control search-box"
             id="searchBox"
             ng-model="model.term"
             ng-model-options="{ debounce: { 'default': 300, 'blur': 0 }}">
     <span class="input-group-addon text-muted">
-        {{(model.page * model.pageSize) + 1}}
+        {{result.$pageIndex + 1}}
         <span class="hidden-xs">
-            - {{(model.page * model.pageSize) + result.length}}
+            / {{result.$pageCount}}
         </span>
     </span>
     <span class="input-group-btn">
         <button class="btn btn-default" type="button" title="Previous page"
                 ng-click="model.page = model.page - 1"
-                ng-disabled="model.page <= 0">
+                ng-disabled="result.$pageIndex <= 0">
             <i class="fa fa-caret-left"></i></button>
         <button class="btn btn-default" type="button" title="Next page"
                 ng-click="model.page = model.page + 1"
-                ng-disabled="result.length < model.pageSize">
+                ng-disabled="result.$pageIndex >= result.$pageCount - 1">
             <i class="fa fa-caret-right"></i></button>
     </span>
     <span class="input-group-btn" ng-transclude></span>

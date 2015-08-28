@@ -2,6 +2,7 @@
 
 import functools
 import logging
+from math import ceil
 import os
 import re
 import time
@@ -639,6 +640,11 @@ class Paginate:
             raise handlers.ModelError("Invalid page")
         if page < 0:
             raise handlers.ModelError("Page must be non-negative")
+
+        num_items = query.count()
+        self.set_header('Page-Count', "%d" % ceil(num_items / page_size))
+        self.set_header('Page-Index', "%d" % page)
+        self.set_header('Page-Item-Count', "%d" % page_size)
 
         query = query.limit(page_size)
         query = query.offset(page * page_size)

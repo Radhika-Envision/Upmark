@@ -5,12 +5,15 @@ angular.module('wsaa.surveyQuestions', [
     'wsaa.admin'])
 
 
-.factory('Survey', ['$resource', function($resource) {
+.factory('Survey', ['$resource', 'paged', function($resource, paged) {
     return $resource('/survey/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         create: { method: 'POST' },
         save: { method: 'PUT' },
-        query: { method: 'GET', isArray: true, cache: false },
+        query: {
+            method: 'GET', isArray: true, cache: false,
+            interceptor: {response: paged}
+        },
         history: { method: 'GET', url: '/survey/:id/history.json',
             isArray: true, cache: false }
     });
@@ -42,12 +45,15 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
-.factory('Measure', ['$resource', function($resource) {
+.factory('Measure', ['$resource', 'paged', function($resource, paged) {
     return $resource('/measure/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         create: { method: 'POST' },
         save: { method: 'PUT' },
-        query: { method: 'GET', isArray: true, cache: false },
+        query: {
+            method: 'GET', isArray: true, cache: false,
+            interceptor: {response: paged}
+        },
         reorder: { method: 'PUT', isArray: true },
         history: { method: 'GET', url: '/measure/:id/survey.json',
             isArray: true, cache: false }

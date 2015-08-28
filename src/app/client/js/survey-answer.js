@@ -3,12 +3,15 @@
 angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 
 
-.factory('Assessment', ['$resource', function($resource) {
+.factory('Assessment', ['$resource', 'paged', function($resource, paged) {
     return $resource('/assessment/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         create: { method: 'POST' },
         save: { method: 'PUT' },
-        query: { method: 'GET', isArray: true, cache: false }
+        query: {
+            method: 'GET', isArray: true, cache: false,
+            interceptor: {response: paged}
+        }
     });
 }])
 

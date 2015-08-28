@@ -17,6 +17,16 @@ angular.module('vpac.utils', [])
     };
 }])
 
+.factory('paged', [function() {
+    return function(response) {
+        var data = response.resource;
+        data.$pageIndex = parseInt(response.headers('Page-Index'));
+        data.$pageItemCount = parseInt(response.headers('Page-Item-Count'));
+        data.$pageCount = parseInt(response.headers('Page-Count'));
+        return data;
+    };
+}])
+
 /*
  * Simple string interpolation. E.g.
  *

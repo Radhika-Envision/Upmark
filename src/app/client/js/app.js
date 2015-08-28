@@ -555,7 +555,7 @@ angular.module('wsaa.aquamark',
                     }
                     return config;
                 }
-            }
+            };
         }]);
     }
 ])
