@@ -227,7 +227,7 @@
     </div>
     <ul class="list-results fa-ul">
         <li ng-repeat="attachment in attachments">
-            <a ng-href="/attachment/{{attachment.id}}.json"
+            <a ng-href="/attachment/{{attachment.id}}.json" download
                     ng-if="!attachment.url || attachment.storage=='aws'">
                 <button class="btn btn-default btn-round pull-right"
                         title="Remove"
