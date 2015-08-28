@@ -103,7 +103,7 @@ def connect_db():
     alembic_cfg = Config(os.path.join(package_dir, "..", "alembic.ini"))
     alembic_cfg.set_main_option(
         "script_location", os.path.join(package_dir, "..", "alembic"))
-    if os.environ.get('DATABASE_URL') is not None:
+    if m is not None:
         alembic_cfg.set_main_option("sqlalchemy.url", os.environ.get('DATABASE_URL'))
 
     engine = model.connect_db(os.environ.get('DATABASE_URL'))
@@ -192,6 +192,8 @@ def get_mappings():
             crud.attachment.ResponseAttachmentsHandler, {}),
         (r"/attachment/([^/]*).json",
             crud.attachment.AttachmentHandler, {}),
+        (r"/statistics/([^/]*).json",
+            crud.statistics.FunctionHandler, {}),
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response.json", import_handlers.ImportResponseHandler, {}),
         (r"/import/assessment.json", import_handlers.ImportAssessmentHandler, {}),
