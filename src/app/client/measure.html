@@ -241,7 +241,7 @@
                 <p>Uploaded file</p>
             </a>
             <a ng-href="{{attachment.url}}"
-                    ng-if="attachment.url && attachment.storage!='aws' && safeUrl(attachment.url)">
+                    ng-if="attachment.url && safeUrl(attachment.url)">
                 <button class="btn btn-default btn-round pull-right"
                         title="Remove"
                         ng-click="deleteAttachment(attachment);
@@ -253,7 +253,7 @@
                 </h4>
                 <p>Web link: {{attachment.url}}</p>
             </a>
-            <a ng-if="attachment.url && attachment.storage!='aws' && !safeUrl(attachment.url)"
+            <a ng-if="attachment.url && !safeUrl(attachment.url)"
                     select-text>
                 <button class="btn btn-default btn-round pull-right"
                         title="Remove"

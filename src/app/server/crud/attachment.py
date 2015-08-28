@@ -205,12 +205,20 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
             to_son = ToSon(include=[
                 r'/id$',
                 r'/file_name$',
-                r'/url$',
-                r'/storage$',
-                # Descend
-                r'/[0-9]+$'
+                r'/url$'
             ])
-            sons = to_son(query.all())
+            # Don't send internal URLs to client
+            to_son_internal = ToSon(include=[
+                r'/id$',
+                r'/file_name$'
+            ])
+
+            sons = []
+            for attachment in query.all():
+                if attachment.storage == 'external':
+                    sons.append(to_son(attachment))
+                else:
+                    sons.append(to_son_internal(attachment))
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
