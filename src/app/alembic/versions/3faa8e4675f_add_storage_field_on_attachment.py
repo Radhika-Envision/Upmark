@@ -18,16 +18,18 @@ from sqlalchemy.sql import table, column
 
 
 def upgrade():
-    op.add_column('attachment', sa.Column('storage', sa.Enum('external', 'aws', 'database', native_enum=False), nullable=True))
+    op.add_column('attachment', sa.Column(
+        'storage', sa.Enum('external', 'aws', 'database', native_enum=False)))
 
-    attachment = table('attachment', column('storage'), column('url'), column('file_name'))
-    #attachment = table('attachment', column('storage'))
+    attachment = table(
+        'attachment', column('storage'), column('url'), column('file_name'))
 
-    op.execute(attachment.update().where(attachment.c.url==None).values(storage='external'))
-    op.execute(attachment.update().where(attachment.c.file_name==None).values(storage='database'))
+    op.execute(attachment.update().where(attachment.c.url!=None)\
+        .values(storage='external'))
+    op.execute(attachment.update().where(attachment.c.url==None)\
+        .values(storage='database'))
 
     op.alter_column('attachment', 'storage', nullable=False)
-
 
 
 def downgrade():
