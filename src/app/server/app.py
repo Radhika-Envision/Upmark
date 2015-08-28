@@ -103,7 +103,7 @@ def connect_db():
     alembic_cfg = Config(os.path.join(package_dir, "..", "alembic.ini"))
     alembic_cfg.set_main_option(
         "script_location", os.path.join(package_dir, "..", "alembic"))
-    if m is not None:
+    if os.environ.get('DATABASE_URL') is not None:
         alembic_cfg.set_main_option("sqlalchemy.url", os.environ.get('DATABASE_URL'))
 
     engine = model.connect_db(os.environ.get('DATABASE_URL'))
