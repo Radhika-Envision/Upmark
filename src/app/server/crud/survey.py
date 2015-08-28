@@ -155,7 +155,11 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 if duplicate_id != '':
                     source_survey = (session.query(model.Survey)
                         .get(duplicate_id))
+                    if source_survey is None:
+                        raise handlers.MissingDocError(
+                            "Source survey does not exist")
                     self.duplicate_structure(source_survey, survey, session)
+                    source_survey.finalised_date = datetime.datetime.utcnow()
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
@@ -271,7 +275,6 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.get(survey_id)
 
-    @handlers.authz('admin')
     def _update_state(self, survey_id, open_, editable):
         '''
         Just update the state of the survey (not title etc.)
