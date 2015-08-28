@@ -32,7 +32,7 @@
     "jqueryui-touch-punch": "#4bc009145202d9c7483ba85f3a236a8f3470354d",
     "js-expression-eval": "https://github.com/escopecz/js-expression-eval.git#d8b2a917c97926ee866927ff150611f0492e588f",
     "angular-timeago": "~0.2.2",
-    "angular-select-text": "https://github.com/z0u/angular-select-text.git#master"
+    "angular-select-text": "https://github.com/z0u/angular-select-text.git#feature-descendant"
   },
   "resolutions": {
     "angular": "~1.4.1"
