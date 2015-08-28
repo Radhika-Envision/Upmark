@@ -6,7 +6,7 @@ import boto3
 
 log = logging.getLogger('app.aws')
 session = None
-
+s3_url = "https://s3-{region}.amazonaws.com/{bucket}/{s3_path}"
 
 class StorageError(Exception):
     pass
