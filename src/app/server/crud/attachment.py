@@ -1,25 +1,24 @@
-import os
+import logging
 import datetime
+import os
 import time
 import uuid
 
 from tornado.escape import json_decode, json_encode
+from tornado import gen
 import tornado.web
+from tornado.web import asynchronous
+from tornado.concurrent import run_on_executor
+from concurrent.futures import ThreadPoolExecutor
 import sqlalchemy
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
+import aws
 import crud.survey
 import handlers
 import model
-import logging
-import boto3
-
 from utils import reorder, ToSon, truthy, updater
-from tornado import gen
-from tornado.web import asynchronous
-from tornado.concurrent import run_on_executor
-from concurrent.futures import ThreadPoolExecutor
 
 
 log = logging.getLogger('app.crud.attachment')
@@ -132,24 +131,8 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
 
             self._check_authz(response.assessment)
 
-            storage = os.environ.get('FILE_STORAGE', 'DATABASE')
-            if storage == 'S3':
-                aws_access_key_id = os.environ.get('AWS_ACCESS_KEY_ID', '')
-                aws_secret_access_key = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
-                region_name = os.environ.get('AWS_REGION_NAME', '')
-
-                if (aws_access_key_id == ''
-                        or aws_secret_access_key == ''
-                        or region_name == '':
-                    raise handlers.MissingDocError(
-                        "S3 Environment variable is missing")
-
-                boto_session = boto3.session.Session(
-                    aws_access_key_id=aws_access_key_id,
-                    aws_secret_access_key=aws_secret_access_key,
-                    region_name=region_name)
-
-                s3 = boto_session.resource('s3')
+            if aws.session is not None:
+                s3 = aws.session.resource('s3')
                 s3_path = "{0}/{1}/{2}".format(
                     assessment_id, measure_id, fileinfo["filename"])
                 s3_result = s3.Bucket('aquamark').put_object(
@@ -159,7 +142,8 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
             attachment.organisation_id = response.assessment.organisation_id
             attachment.response_id = response.id
             attachment.file_name = fileinfo["filename"]
-            if storage == 'S3':
+
+            if aws.session is not None:
                 attachment.storage = "aws"
                 attachment.url = s3_result.website_redirect_location
             else:
