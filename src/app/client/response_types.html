@@ -10,9 +10,8 @@
     </h2>
 
     <ul class="list-results">
-        <li>
-            <a ng-repeat="rt in edit.model.responseTypes" href
-                    ng-click="editRt(edit.model, $index)">
+        <li ng-repeat="rt in edit.model.responseTypes">
+            <a href ng-click="editRt(edit.model, $index)">
                 <button class="btn btn-default btn-round pull-right" title="Remove"
                         ng-click="remove(rt, edit.model.responseTypes, rt); $event.preventDefault()"
                         ng-style="{visibility: edit.model.responseTypes.length <= 1 ? 'hidden' : null}">
@@ -196,7 +195,7 @@
 </div>
 
 
-<ul class="fa-ul text-muted spaced">
+<ul class="fa-ul-big text-muted spaced">
     <li>
         <i class="fa-li fa fa-sliders fa-border"></i>
         <p>

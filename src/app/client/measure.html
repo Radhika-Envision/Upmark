@@ -225,25 +225,20 @@
         </div>
         <h3>Attachments</h3>
     </div>
-    <ul class="list-results">
+    <ul class="list-results fa-ul">
         <li ng-repeat="attachment in attachments">
             <a ng-href="/attachment/{{attachment.id}}.json"
-                    ng-if="!attachment.url">
+                    ng-if="!attachment.url || attachment.storage=='aws'">
                 <button class="btn btn-default btn-round pull-right"
                         title="Remove"
                         ng-click="deleteAttachment(attachment);
                                   $event.preventDefault()">
                     <i class="fa fa-fw fa-trash-o"></i></button>
-                {{attachment.fileName}}
-            </a>
-            <a ng-href="/attachment/{{attachment.id}}.json"
-                    ng-if="attachment.url && attachment.storage=='aws'">
-                <button class="btn btn-default btn-round pull-right"
-                        title="Remove"
-                        ng-click="deleteAttachment(attachment);
-                                  $event.preventDefault()">
-                    <i class="fa fa-fw fa-trash-o"></i></button>
-                {{attachment.fileName}}
+                <h4>
+                    <i class="fa fa-li fa-cloud-download text-muted"></i>
+                    {{attachment.fileName}}
+                </h4>
+                <p>Uploaded file</p>
             </a>
             <a ng-href="{{attachment.url}}"
                     ng-if="attachment.url && attachment.storage!='aws' && safeUrl(attachment.url)">
@@ -252,16 +247,28 @@
                         ng-click="deleteAttachment(attachment);
                                   $event.preventDefault()">
                     <i class="fa fa-fw fa-trash-o"></i></button>
-                {{attachment.fileName || attachment.url}}
+                <h4>
+                    <i class="fa fa-li fa-link text-muted"></i>
+                    {{attachment.fileName || attachment.url}}
+                </h4>
+                <p>Web link: {{attachment.url}}</p>
             </a>
-            <span ng-if="attachment.url && attachment.storage!='aws' && !safeUrl(attachment.url)">
+            <a ng-if="attachment.url && attachment.storage!='aws' && !safeUrl(attachment.url)"
+                    select-text>
                 <button class="btn btn-default btn-round pull-right"
                         title="Remove"
                         ng-click="deleteAttachment(attachment);
                                   $event.preventDefault()">
                     <i class="fa fa-fw fa-trash-o"></i></button>
-                {{attachment.fileName}} - {{attachment.url}}
-            </span>
+                <h4>
+                    <i class="fa fa-li fa-paperclip text-muted"></i>
+                    {{attachment.fileName}}
+                </h4>
+                <p>
+                    External link:
+                    <span select-text-target>{{attachment.url}}</span>
+                </p>
+            </a>
         </li>
         <li ng-if="!attachments.length" class="text-muted">
             No attachments.

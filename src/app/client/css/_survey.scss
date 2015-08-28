@@ -189,7 +189,7 @@ ul.dropdown-menu {
     }
 }
 
-ul.fa-ul {
+ul.fa-ul-big {
     > li {
         margin-top: 20px;
     }
@@ -216,6 +216,9 @@ ul.fa-ul {
             font-size: 2em;
         }
     }
+}
+.fa-li > .fa-badge {
+    left: -1.5em;
 }
 
 .nudge-right {
@@ -288,7 +291,7 @@ ul.list-results {
     padding-left: 0;
     > li {
         list-style: none;
-        > a, > div, > span {
+        > a, > div, > span, > .fa-li {
             display: block;
             padding: 8px;
         }
@@ -312,6 +315,9 @@ ul.list-results {
             }
         }
     }
+}
+.list-results h4 > .fa-li {
+    top: initial;
 }
 
 .truncate {
