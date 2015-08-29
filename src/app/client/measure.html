@@ -331,6 +331,13 @@
                         {{response.user.name}}</a>
                 </p>
             </li>
+            <li ng-if="!edit.model && assessment && response.notRelevant">
+                <i class="fa-li fa fa-ban fa-border"></i>
+                <p>
+                    This response is marked as not relevant. It does not
+                    contribute to the assessment's score.
+                </p>
+            </li>
             <li ng-if="!edit.model && assessment">
                 <i class="fa-li fa fa-check-square-o fa-border"></i>
                 <p>

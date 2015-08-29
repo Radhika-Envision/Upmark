@@ -748,10 +748,10 @@ angular.module('wsaa.surveyQuestions', [
 .controller('QuestionNodeCtrl', [
         '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'format', 'Structure',
-        'layout', 'Arrays',
+        'layout', 'Arrays', 'ResponseNode',
         function($scope, QuestionNode, routeData, Editor, authz,
                  $location, Notifications, current, format, Structure,
-                 layout, Arrays) {
+                 layout, Arrays, ResponseNode) {
 
     // routeData.parent and routeData.hierarchy will only be defined when
     // creating a new qnode.
@@ -809,6 +809,69 @@ angular.module('wsaa.surveyQuestions', [
     $scope.checkRole = authz(current, $scope.survey, $scope.assessment);
     $scope.editable = ($scope.survey.isEditable &&
         !$scope.assessment && $scope.checkRole('survey_node_edit'));
+
+    if ($scope.assessment) {
+        $scope.rnode = ResponseNode.get({
+            assessmentId: $scope.assessment.id,
+            qnodeId: $scope.qnode.id
+        });
+        $scope.rnode.$promise.catch(function failure(details) {
+            if (details.status != 404) {
+                Notifications.set('edit', 'error',
+                    "Failed to get response details: " + details.statusText);
+                return;
+            }
+            $scope.rnode = new ResponseNode({
+                qnodeId: $scope.qnode.id,
+                assessmentId: $scope.assessment.id,
+                score: 0.0,
+                nSubmitted: 0,
+                nReviewed: 0,
+                nApproved: 0,
+                nNotRelevant: 0,
+                notRelevant: false
+            });
+        });
+        $scope.$watch('rnode', function(rnode) {
+            if (!rnode)
+                return;
+            $scope.rnode = rnode;
+            $scope.stats = {
+                score: rnode.score,
+                progressItems: [
+                    {
+                        name: 'Final',
+                        value: rnode.nSubmitted,
+                        fraction: rnode.nSubmitted / $scope.qnode.nMeasures
+                    },
+                    {
+                        name: 'Reviewed',
+                        value: rnode.nReviewed,
+                        fraction: rnode.nReviewed / $scope.qnode.nMeasures
+                    },
+                    {
+                        name: 'Approved',
+                        value: rnode.nApproved,
+                        fraction: rnode.nApproved / $scope.qnode.nMeasures
+                    },
+                ]
+            };
+        }, true);
+    }
+
+    $scope.toggleNotRelevant = function() {
+        var oldValue = $scope.rnode.notRelevant;
+        $scope.rnode.notRelevant = !oldValue;
+        $scope.rnode.$save().then(
+            function success() {
+                Notifications.set('edit', 'success', "Saved", 5000);
+            },
+            function failure(details) {
+                $scope.rnode.notRelevant = oldValue;
+                Notifications.set('edit', 'error',
+                    "Could not save response node: " + details.statusText);
+            });
+    };
 }])
 
 
@@ -872,9 +935,10 @@ angular.module('wsaa.surveyQuestions', [
                     var nm = rnode.qnode.nMeasures;
                     rmap[rnode.qnode.id] = {
                         score: rnode.score,
+                        notRelevant: rnode.notRelevant,
                         progressItems: [
                             {
-                                name: 'Submitted',
+                                name: 'Final',
                                 value: rnode.nSubmitted,
                                 fraction: rnode.nSubmitted / nm
                             },
@@ -902,9 +966,10 @@ angular.module('wsaa.surveyQuestions', [
     }
     var dummyStats = {
         score: 0,
+        notRelevant: false,
         progressItems: [
             {
-                name: 'Submitted',
+                name: 'Final',
                 value: 0,
                 fraction: 0
             },
@@ -973,9 +1038,10 @@ angular.module('wsaa.surveyQuestions', [
                     var nSubmitted = r.approval == 'final' ? 1 : nReviewed;
                     rmap[r.measure.id] = {
                         score: r.score,
+                        notRelevant: r.notRelevant,
                         progressItems: [
                             {
-                                name: 'Submitted',
+                                name: 'Final',
                                 value: nSubmitted,
                                 fraction: nSubmitted
                             },
@@ -1003,9 +1069,10 @@ angular.module('wsaa.surveyQuestions', [
     }
     var dummyStats = {
         score: 0,
+        notRelevant: false,
         progressItems: [
             {
-                name: 'Submitted',
+                name: 'Final',
                 value: 0,
                 fraction: 0
             },

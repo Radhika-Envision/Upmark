@@ -152,6 +152,7 @@ class ResponseHandler(handlers.BaseHandler):
                 r'/score$',
                 r'/approval$',
                 r'/modified$',
+                r'/not_relevant$',
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/measure$',

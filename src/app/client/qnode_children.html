@@ -28,10 +28,16 @@
             <td>{{item.title}}</td>
             <td class="shrink text-muted" title="Score"
                     ng-if="assessment && checkRole('view_aggregate_score')">
-                {{getStats(item.id).score | number:0}}</td>
+                <span ng-if="!getStats(item.id).notRelevant">
+                    {{getStats(item.id).score | number:0}}
+                </span>
+                <i class="fa fa-fw fa-ban fa-lg text-muted"
+                        ng-if="getStats(item.id).notRelevant"
+                        title="Not relevant"></i>
+            </td>
             <td class="shrink" ng-if="assessment">
                 <column-progress items="getStats(item.id).progressItems">
-                    </column-progress>
+                 </column-progress>
             </td>
             <td class="shrink text-muted" title="Number of measures">
                 {{item.nMeasures}}</td>

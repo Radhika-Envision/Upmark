@@ -32,6 +32,8 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 .factory('ResponseNode', ['$resource', function($resource) {
     return $resource('/assessment/:assessmentId/rnode/:qnodeId.json',
             {assessmentId: '@assessmentId', qnodeId: '@qnodeId'}, {
+        get: { method: 'GET', cache: false },
+        save: { method: 'PUT' },
         query: { method: 'GET', isArray: true, cache: false }
     });
 }])

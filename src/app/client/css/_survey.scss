@@ -212,6 +212,9 @@ ul.fa-ul-big {
     }
     @media (min-width: 768px) {
         margin-left: 4.3em;
+        > li {
+            min-height: 43px;
+        }
         > li > i.fa-li {
             font-size: 2em;
         }
@@ -519,8 +522,8 @@ ul.list-results {
 }
 
 column-progress {
-    $column-width: 3px;
-    $column-spacing: 2px;
+    $column-width: (3 / 14) * 1em;
+    $column-spacing: (2 / 14) * 1em;
 
     display: inline-block;
     vertical-align: top;
@@ -573,23 +576,46 @@ column-progress {
             left: 0;
             bottom: 0;
             border-left: $column-width solid;
-            border-color: #FFA600;
+            border-color: $aq-bar1;
         }
         + span > [column-progress-column] {
-            border-color: #FF3E00;
+            border-color: $aq-bar2;
         }
         + span + span > [column-progress-column] {
-            border-color: #683797;;
+            border-color: $aq-bar3;
         }
     }
 
     [column-progress-column].complete:after {
         content: ' ';
         border: solid white;
-        border-width: 0 0 1px 0;
+        border-width: 0 0 2px 0;
         position: absolute;
         bottom: 2px;
         left: -$column-width;
         right: 0;
+    }
+}
+
+.stats {
+    font-size: 120%;
+    text-align: center;
+    margin-bottom: 14px;
+
+    column-progress {
+        margin-right: 0.5em;
+    }
+
+    > span {
+        margin: 0 1em;
+    }
+    .stats-bar1 {
+        color: darken($aq-bar1, 10%);
+    }
+    .stats-bar2 {
+        color: darken($aq-bar2, 10%);
+    }
+    .stats-bar3 {
+        color: darken($aq-bar3, 10%);
     }
 }

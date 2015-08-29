@@ -51,21 +51,58 @@
 </div>
 </div>
 
-<div ng-if="!edit.model && qnode.description">
+<div ng-if="!edit.model && qnode.description || rnode">
 <div class="container">
+    <div ng-if="rnode" class="stats">
+        <button class="btn btn-on-danger btn-round pull-right"
+                title="Toggle not relevant"
+                ng-click="toggleNotRelevant()"
+                ng-class="{active: rnode.notRelevant}">
+            <i class="fa fa-fw fa-ban"></i></button>
+
+        <span title="Total score">
+            {{rnode.score}}
+        </span>
+        <span title="Number of responses by approval status">
+            <column-progress items="stats.progressItems"></column-progress>
+            <span class="stats-bar1">{{rnode.nSubmitted}}</span>
+<!--            <span class="text-muted">&middot;</span>-->
+            <span class="stats-bar2">{{rnode.nReviewed}}</span>
+<!--            <span class="text-muted">&middot;</span>-->
+            <span class="stats-bar3">{{rnode.nApproved}}</span>
+            <span class="text-muted">/</span>
+            {{qnode.nMeasures}}
+        </span>
+        <span title="Number of not-relevant responses">
+            <s>{{rnode.nNotRelevant}}</s>
+        </span>
+    </div>
+
     <p class="formatted">{{qnode.description}}</p>
 </div>
 </div>
 
-
 <div class="container"
     ng-controller="QnodeChildren" ng-include="'qnode_children.html'"
-    ng-if="nextLevel && !edit.model"></div>
+    ng-if="nextLevel && !rnode.notRelevant && !edit.model"></div>
 
 
 <div class="container"
     ng-controller="QnodeMeasures" ng-include="'qnode_measures.html'"
-    ng-if="currentLevel.hasMeasures && !edit.model"></div>
+    ng-if="currentLevel.hasMeasures && !rnode.notRelevant && !edit.model"></div>
 
+<div class="container spaced">
+    <div class="spaced text-muted">
+        <ul class="fa-ul fa-ul-big">
+            <li ng-if="!edit.model && rnode.notRelevant">
+                <i class="fa-li fa fa-ban fa-border"></i>
+                <p>
+                    This category is marked as not relevant. It does not
+                    contribute to the assessment's score.
+                </p>
+            </li>
+        </ul>
+    </div>
+</div>
 
 </div>
