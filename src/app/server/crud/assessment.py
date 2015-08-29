@@ -175,9 +175,12 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.MissingDocError(
                 "Source assessment (for duplication) no found")
 
-        if s_assessment.organisation_id != assessment.organisation_id:
+        if str(s_assessment.organisation_id) != (assessment.organisation_id):
             raise handlers.ModelError(
-                "Can't duplicate an assessment across two organisations")
+                "Can't duplicate an assessment across two organisations: "
+                "'%s/%s' and '%s/%s'" % (
+                    s_assessment.organisation.name,
+                    assessment.organisation.name))
 
         hierarchy_id = str(assessment.hierarchy.id)
         measure_ids = {str(m.id) for m in assessment.survey.measures
