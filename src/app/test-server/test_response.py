@@ -164,14 +164,17 @@ class AssessmentTest(base.AqHttpTestBase):
                 response.attachments.append(model.Attachment(
                     file_name="File %s 1" % m.title,
                     url="Bar",
+                    storage='external',
                     organisation_id=organisation.id))
                 response.attachments.append(model.Attachment(
                     file_name="File %s 2" % m.title,
                     url="Baz",
+                    storage='external',
                     organisation_id=organisation.id))
                 response.attachments.append(model.Attachment(
                     file_name="File %s 3" % m.title,
                     blob=b'A blob',
+                    storage='external',
                     organisation_id=organisation.id))
 
             session.flush()
