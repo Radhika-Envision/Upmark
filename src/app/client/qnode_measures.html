@@ -28,22 +28,22 @@
         <tr ng-repeat="item in edit.model || model"
                 any-href="/measure/{{item.id}}?{{query}}"
                 ng-disabled="edit.model">
-            <td class="shrink">{{item.seq + 1}}</td>
+            <td class="shrink numeric">{{item.seq + 1}}</td>
             <td>{{item.title}}</td>
-            <td class="shrink text-muted" title="Score"
-                    ng-if="assessment && checkRole('view_aggregate_score')">
-                <span ng-if="!getStats(item.id).notRelevant">
-                    {{getStats(item.id).score | number:0}}
-                </span>
+            <td class="shrink text-muted">
                 <i class="fa fa-fw fa-ban fa-lg text-muted"
                         ng-if="getStats(item.id).notRelevant"
                         title="Not relevant"></i>
+            </td>
+            <td class="shrink text-muted numeric" title="Score"
+                    ng-if="assessment && checkRole('view_aggregate_score')">
+                {{getStats(item.id).score | number:0}}
             </td>
             <td class="shrink" ng-if="assessment">
                 <column-progress items="getStats(item.id).progressItems">
                  </column-progress>
             </td>
-            <td class="shrink text-muted" title="Number of measures">
+            <td class="shrink text-muted numeric" title="Number of measures">
                 1
             </td>
             <td class="shrink grab-handle" ng-if="edit.model">

@@ -29,6 +29,9 @@
             max-width: 0;
         }
     }
+    .numeric {
+        text-align: right;
+    }
     > tbody > tr.table-li > td:first-child:before {
         counter-increment: tabular;
         content: counter(tabular) ". ";
