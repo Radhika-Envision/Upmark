@@ -259,12 +259,16 @@ class AqHttpTestBase(AqModelTestBase, AsyncHTTPTestCase):
         app.default_settings()
 
     def get_app(self):
-        return Application(app.get_mappings(), **app.get_minimal_settings())
+        settings = app.get_minimal_settings().copy()
+        settings['serve_traceback'] = True
+        return Application(app.get_mappings(), **settings)
 
     def fetch(self, path, expected=None, decode=False, **kwargs):
         response = super().fetch(path, **kwargs)
         if expected is not None:
-            self.assertEqual(expected, response.code, msg=response.reason)
+            self.assertEqual(
+                expected, response.code,
+                msg="{}\n\n{}".format(response.reason, response.body.decode('utf8')))
         if decode:
             return denormalise(json_decode(response.body))
         else:

@@ -187,6 +187,30 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                        if any(str(p.hierarchy_id) == hierarchy_id
                               for p in m.parents)}
 
+        qnode_ids = {str(r[0]) for r in
+                session.query(model.QuestionNode.id)
+                    .filter_by(survey_id=assessment.survey_id,
+                               hierarchy_id=assessment.hierarchy_id)
+                    .all()}
+
+        s_rnodes = (session.query(model.ResponseNode)
+                .filter_by(assessment_id=s_assessment.id)
+                .filter(model.ResponseNode.qnode_id.in_(qnode_ids))
+                .all())
+
+        for rnode in s_rnodes:
+            # Duplicate
+            session.expunge(rnode)
+            make_transient(rnode)
+            rnode.id = None
+
+            # Customise
+            rnode.survey = assessment.survey
+            rnode.assessment = assessment
+            session.add(rnode)
+            session.flush()
+            # No need to flush because no dependencies
+
         for response in s_assessment.responses:
             if str(response.measure_id) not in measure_ids:
                 continue
@@ -202,8 +226,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             response.id = None
 
             # Customise
-            response.survey_id = assessment.survey_id
-            response.assessment_id = assessment.id
+            response.survey = assessment.survey
+            response.assessment = assessment
             response.approval = 'draft'
 
             session.add(response)
@@ -220,7 +244,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 attachment.id = None
 
                 # Customise
-                attachment.response_id = response.id
+                attachment.response = response
 
                 session.add(attachment)
 

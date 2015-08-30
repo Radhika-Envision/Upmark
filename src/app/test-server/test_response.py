@@ -256,6 +256,18 @@ class AssessmentTest(base.AqHttpTestBase):
             self.assertEqual(len(assessment_3.responses), 1)
             self.assertEqual(session.query(model.Response).count(), 5)
 
+            # Make sure the number of rnodes matches the number of qnodes in the
+            # hierarchy (no leftovers).
+            self.assertEqual(session.query(model.ResponseNode)
+                .filter_by(assessment_id=assessment_1.id)
+                .count(), 3)
+            self.assertEqual(session.query(model.ResponseNode)
+                .filter_by(assessment_id=assessment_2.id)
+                .count(), 3)
+            self.assertEqual(session.query(model.ResponseNode)
+                .filter_by(assessment_id=assessment_3.id)
+                .count(), 3)
+
             # Check scores. Assessments 1 and 2 should have the same score:
             # 100 + 200 = 300 (due to weighting of the measures). Assessment 3
             # should have just 200.

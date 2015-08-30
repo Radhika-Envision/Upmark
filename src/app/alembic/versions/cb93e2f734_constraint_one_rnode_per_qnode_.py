@@ -1,9 +1,22 @@
-from contextlib import contextmanager
+"""Constraint: one rnode per qnode+assessment etc.
+
+Revision ID: cb93e2f734
+Revises: 1c08038badd
+Create Date: 2015-08-30 10:50:15.783966
+
+"""
+
+# revision identifiers, used by Alembic.
+revision = 'cb93e2f734'
+down_revision = '1c08038badd'
+branch_labels = None
+depends_on = None
+
 from datetime import datetime
-import os
-import sys
 import uuid
 
+from alembic import op
+import sqlalchemy as sa
 from sqlalchemy import Boolean, create_engine, Column, DateTime, Enum, Float, \
     ForeignKey, Index, Integer, String, Text, Table, LargeBinary
 from sqlalchemy.dialects.postgresql import JSON
@@ -24,6 +37,33 @@ from voluptuous import All, Any, Coerce, Length, Optional, Range, Required, \
 from guid import GUID
 from history_meta import Versioned, versioned_session
 from response_type import ResponseTypeCache
+
+
+Session = sessionmaker()
+
+
+def upgrade():
+    op.execute(ResponseNode.__table__.delete())
+    op.create_unique_constraint(
+        'response_measure_id_assessment_id_key', 'response',
+        ['measure_id', 'assessment_id'])
+    op.create_unique_constraint(
+        'rnode_qnode_id_assessment_id_key', 'rnode',
+        ['qnode_id', 'assessment_id'])
+
+    session = Session(bind=op.get_bind())
+    for assessment in session.query(Assessment).all():
+        assessment.update_stats_descendants()
+
+
+def downgrade():
+    op.drop_constraint(
+        'rnode_qnode_id_assessment_id_key', 'rnode', type_='unique')
+    op.drop_constraint(
+        'response_measure_id_assessment_id_key', 'response', type_='unique')
+
+
+# What follows is a FROZEN copy of model.py.
 
 
 metadata = MetaData()
@@ -819,42 +859,3 @@ Response.measure = relationship(
     Measure,
     primaryjoin=and_(foreign(Response.measure_id) == Measure.id,
                      Response.survey_id == Measure.survey_id))
-
-
-Session = None
-VersionedSession = None
-
-
-@contextmanager
-def session_scope(version=False):
-    # http://docs.sqlalchemy.org/en/latest/orm/session_basics.html#when-do-i-construct-a-session-when-do-i-commit-it-and-when-do-i-close-it
-    """Provide a transactional scope around a series of operations."""
-    if version:
-        session = VersionedSession()
-    else:
-        session = Session()
-    try:
-        yield session
-        session.commit()
-    except:
-        session.rollback()
-        raise
-    finally:
-        session.close()
-
-
-def connect_db(url):
-    global Session, VersionedSession
-    engine = create_engine(url)
-    conn = engine.connect()
-    # Never drop the schema here.
-    # - For short-term testing, use psql.
-    # - For breaking changes, add migration code to the alembic scripts.
-    Session = sessionmaker(bind=engine)
-    VersionedSession = sessionmaker(bind=engine)
-    versioned_session(VersionedSession)
-    return engine
-
-
-def initialise_schema(engine):
-    Base.metadata.create_all(engine)
