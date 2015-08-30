@@ -31,7 +31,7 @@
             <td class="shrink">{{item.seq + 1}}</td>
             <td>{{item.title}}</td>
             <td class="shrink text-muted" title="Score"
-                    ng-if="assessment && checkRole('assessment_review')">
+                    ng-if="assessment && checkRole('view_aggregate_score')">
                 <span ng-if="!getStats(item.id).notRelevant">
                     {{getStats(item.id).score | number:0}}
                 </span>

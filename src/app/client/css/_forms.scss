@@ -257,6 +257,7 @@ div[textarea-label] {
 
 .btn-on-danger {
     &:hover, &.active:focus, &:focus {
+        outline: none;
         border-bottom-color: rgba($danger-col, 0.5);
     }
     &:active, &.active, &.active:focus, &:active.focus, &:active:focus {

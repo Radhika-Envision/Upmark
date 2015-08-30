@@ -104,7 +104,7 @@
 </div>
 
 <div class="container spaced" ng-if="!edit.model && assessment">
-    <response type="responseType" model="response">
+    <response type="responseType" model="response" weight="measure.weight">
         <span ng-controller="ResponseHistory" dropdown
                 on-toggle="toggled(open)" dropdown-append-to-body>
             <button class="btn btn-default btn-round" title="History"

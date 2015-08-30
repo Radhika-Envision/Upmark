@@ -248,7 +248,8 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         restrict: 'E',
         scope: {
             responseType: '=type',
-            response: '=model'
+            response: '=model',
+            weight: '='
         },
         replace: true,
         templateUrl: 'response.html',
@@ -264,6 +265,8 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
             }
             if (!$scope.response.responseParts)
                 $scope.response.responseParts = [];
+            if ($scope.weight == null)
+                $scope.weight = 100;
 
             $scope.stats = {
                 expressionVars: null,

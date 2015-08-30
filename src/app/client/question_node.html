@@ -63,18 +63,20 @@
         <span title="Total score">
             {{rnode.score}}
         </span>
-        <span title="Number of responses by approval status">
+        <span>
             <column-progress items="stats.progressItems"></column-progress>
-            <span class="stats-bar1">{{rnode.nSubmitted}}</span>
-<!--            <span class="text-muted">&middot;</span>-->
-            <span class="stats-bar2">{{rnode.nReviewed}}</span>
-<!--            <span class="text-muted">&middot;</span>-->
-            <span class="stats-bar3">{{rnode.nApproved}}</span>
-            <span class="text-muted">/</span>
-            {{qnode.nMeasures}}
+            <span class="stats-bar1" title="Number of final responses">
+                {{rnode.nSubmitted}}</span>
+            <span class="stats-bar2" title="Number of reviewed responses">
+                {{rnode.nReviewed}}</span>
+            <span class="stats-bar3" title="Number of approved responses">
+                {{rnode.nApproved}}</span>
+            <span title="Number of not-relevant responses">
+                <s>{{rnode.nNotRelevant}}</s></span>
         </span>
-        <span title="Number of not-relevant responses">
-            <s>{{rnode.nNotRelevant}}</s>
+        <span>
+            <span class="text-muted" title="Total number of measures">
+                {{qnode.nMeasures}}</span>
         </span>
     </div>
 

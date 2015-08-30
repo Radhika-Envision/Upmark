@@ -8,8 +8,8 @@
         Response
         <span ng-if="debug">Sample</span>
         <span ng-if="checkRole('view_single_score') && responseType.parts.length"
-                class="text-muted pull-right">
-            {{stats.score * 100 | number:0}}%
+                class="text-muted pull-right" title="Score (weighted)">
+            {{stats.score * weight | number:0}}
         </span>
     </h2>
 </div>
