@@ -1,0 +1,79 @@
+<div>
+
+<div class="header">
+<div class="container">
+    <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Collapse"
+                ng-click="layout.expandHeader = !layout.expandHeader">
+            <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
+            <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
+        </button>
+        <a class="btn btn-default btn-round" title="Cancel"
+                ng-href="#/survey/{{survey.id}}"
+                ng-if="edit.model && !edit.model.id">
+            <i class="fa fa-times"></i></a>
+        <button class="btn btn-default btn-round" title="Save"
+                ng-click="edit.save()"
+                ng-if="edit.model"
+                form="editor">
+            <i class="fa fa-check"></i></button>
+    </div>
+    <question-header entity="survey"></question-header>
+</div>
+</div>
+
+<div class="container">
+    <p>
+        Please choose an assessment to duplicate.
+    </p>
+
+    <search-box model="search" result="assessments">
+        <button class="btn btn-default" type="button"
+                title="{{
+                    search.approval == 'final' ?
+                        'Show finalised assessments and above' :
+                    search.approval == 'reviewed' ?
+                        'Show reviewed assessments and above' :
+                    search.approval == 'approved' ?
+                        'Show approved assessments' :
+                        'Show draft assessments and above'}}"
+                ng-click="cycleApproval()">
+            <i class="fa fa-check-square-o">
+                <b ng-if="search.approval == 'draft'"
+                    class="fa-badge fa-badge-left">D</b>
+                <b ng-if="search.approval == 'final'"
+                    class="fa-badge fa-badge-left">F</b>
+                <b ng-if="search.approval == 'reviewed'"
+                    class="fa-badge fa-badge-left">R</b>
+                <b ng-if="search.approval == 'approved'"
+                    class="fa-badge fa-badge-left">A</b>
+            </i>
+            <span class="hidden-xs">Approval</span>
+        </button>
+    </search-box>
+    <ul class="list-results">
+        <li ng-repeat="assessment in assessments">
+            <a ng-href="#/assessment/new?survey={{survey.id}}&organisation={{organisation.id}}&duplicate={{assessment.id}}">
+                <h4>{{assessment.title}}</h4>
+                <p>
+                    Created {{assessment.created * 1000 | timeAgo:'medium'}}
+                    <span class="text-muted">in survey</span>
+                    <i>{{assessment.survey.title}}</i>
+                </p>
+            </a>
+        </li>
+        <li ng-if="!assessments.length">
+            No assessments match your search.
+        </li>
+    </ul>
+
+    <p class="text-muted">
+        <span ng-if="search.approval != 'approved'">
+            Showing <i>{{search.approval}}</i> assessments and above</span>
+        <span ng-if="search.approval == 'approved'">
+            Showing only <i>{{search.approval}}</i> assessments</span>
+        that are compatible with the target survey, <i>{{survey.title}}</i>.
+    </p>
+</div>
+
+</div>

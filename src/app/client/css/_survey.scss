@@ -1,8 +1,6 @@
 @import '_utils.scss';
 @import '_defines.scss';
 
-$anim-time: 0.5s;
-
 h2, h3, h4 {
     margin-top: 4px;
     margin-bottom: 4px;
@@ -13,7 +11,7 @@ h2 {
 h3 {
     font-size: 16px;
     color: #555;
-    margin-top: 12px;
+    margin-top: 22px;
     margin-bottom: 8px;
 }
 h4 {
@@ -68,15 +66,25 @@ h2 {
     }
 }
 .stacked-header {
-    >h2:not(:last-child) {
+    > h2:not(:last-child) {
         opacity: 0.8;
+    }
+    > h2 >.toolbar {
+        margin-top: 0;
     }
 }
 
-.header-collapsed {
+.stacked-header.header-collapsed {
+    position: relative;
     h2 {
         display: inline;
+        line-height: 38px;
+        position: static;
+        padding-right: 0.2em;
         &[label]:before {
+            top: 6px;
+        }
+        &:not(:last-child)[label]:before {
             display: none;
         }
     }
@@ -120,6 +128,10 @@ h2 {
         }
     }
 
+    + div > div > h3:first-child {
+        margin-top: 0;
+    }
+
     a {
         color: inherit;
     }
@@ -150,6 +162,66 @@ ul.dropdown-menu {
             left: 0.6em;
         }
     }
+
+    span.field {
+        display: inline-block;
+        white-space: nowrap;
+    }
+    span.field-2 {
+        width: 2em;
+    }
+    span.field-4 {
+        width: 4.5em;
+    }
+    span.field-8 {
+        width: 8em;
+    }
+}
+
+.dropdown-header {
+    padding: 10px 20px;
+    .toolbar {
+        margin-top: -8px;
+        .btn {
+            font-size: 14px;
+            padding: 2px 10px;
+        }
+    }
+}
+
+ul.fa-ul-big {
+    > li {
+        margin-top: 20px;
+    }
+    > li > i.fa-li {
+        top: 0;
+        &.fa-border {
+            width: 1.54em;
+            height: 1.54em;
+            text-align: center;
+        }
+    }
+    p {
+        margin-bottom: 4px;
+    }
+    @media (max-width: 768px) {
+        margin-left: 2.1em;
+        > li > i.fa-li {
+            font-size: 1em;
+        }
+    }
+    @media (min-width: 768px) {
+        margin-left: 4.3em;
+        > li {
+            min-height: 43px;
+        }
+        > li > i.fa-li {
+            font-size: 2em;
+        }
+    }
+}
+.fa-li > .fa-badge {
+    left: -1.5em;
 }
 
 .nudge-right {
@@ -174,10 +246,16 @@ ul.dropdown-menu {
     position: relative;
     z-index: 1;
     margin-top: 4px;
+    > a {
+        vertical-align: top;
+    }
 }
 
 .grab-handle {
     cursor: move;
+}
+reorder-view:not([reorder-edit]) .grab-handle {
+    display: none;
 }
 
 /* Nested pages should have less prominent headers */
@@ -195,6 +273,14 @@ ng-include>.header, .nested>.header {
     margin-top: 20px;
     margin-bottom: 12px;
 
+    &.section-collapse {
+        margin-top: 0;
+        margin-bottom: 0;
+        > h3 {
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+    }
     .toolbar {
         margin-top: -3px;
     }
@@ -208,7 +294,7 @@ ul.list-results {
     padding-left: 0;
     > li {
         list-style: none;
-        > a, > div {
+        > a, > div, > span, > .fa-li {
             display: block;
             padding: 8px;
         }
@@ -233,6 +319,9 @@ ul.list-results {
         }
     }
 }
+.list-results h4 > .fa-li {
+    top: initial;
+}
 
 .truncate {
     white-space: nowrap;
@@ -240,7 +329,11 @@ ul.list-results {
     text-overflow: ellipsis;
 }
 
-.measure {
+.spaced {
+    margin-top: 18px;
+}
+
+.response {
     h5 {
         color: mix(black, white, 70%);
         line-height: 1.6;
@@ -251,23 +344,65 @@ ul.list-results {
 
     ol.responses {
         padding: 0;
-        display: table;
-        border-spacing: 0 $response-spacing;
-
-        li {
-            display: table-row;
-            list-style: none;
-            margin: 4px 0;
+        .btn-default[disabled] {
+            background-color: lighten($button-bg, 3%);
         }
-        li>* {
-            display: table-cell;
+
+        // Lay out options horizontally on large screens
+        @media (min-width: 992px) {
+            display: table;
+            border-spacing: 0 $response-spacing;
+            li {
+                display: table-row;
+                list-style: none;
+                margin: 4px 0;
+            }
+            li > div {
+                display: table-cell;
+                vertical-align: middle;
+                .btn-group-justified {
+                    border-spacing: initial;
+                }
+            }
+        }
+        // On medium screens, use horizontal layout but with label on its own
+        // row
+        @media (min-width: 768px) and (max-width: 992px),
+            (max-width: 768px) and (orientation: landscape) {
+            display: block;
+            li {
+                display: block;
+                list-style: none;
+                margin: 4px 0;
+            }
+            li > div {
+                display: block;
+            }
+        }
+        // On small screens, stack everything vertically
+        @media (max-width: 768px) {
+            display: block;
+            li {
+                display: block;
+                list-style: none;
+                margin: 4px 0;
+            }
+            li > div {
+                display: block;
+                /* See _forms.css for button group style */
+            }
         }
 
         label {
-            padding: 6px 30px 6px 0;
+            // Match size to buttons
+            padding: 6px 30px 3px 0;
+            border: solid transparent;
+            margin: 0;
+            border-width: 1px 0 3px 0;
             font-weight: normal;
             line-height: 1.42857143;
             position: relative;
+            white-space: nowrap;
 
             &:before {
                 @include fontawesome("\f0da");
@@ -284,7 +419,7 @@ ul.list-results {
                 }
             }
 
-            .score, label:before {
+            .index, label:before {
                 opacity: 0;
                 visibility: hidden;
                 @include transition(
@@ -292,13 +427,13 @@ ul.list-results {
                     visibility $anim-time step-end
                 );
             }
-            .score {
+            .index {
                 color: #aaa;
             }
         }
 
         li.active {
-            .btn:not([disabled]) .score, label:before {
+            .btn:not([disabled]) .index, label:before {
                 opacity: 1;
                 visibility: visible;
                 @include transition(
@@ -361,4 +496,126 @@ ul.list-results {
 
 .text-hidden {
     visibility: hidden;
+}
+
+.modalprogress {
+    padding-top: 30px;
+    padding-bottom: 20px;
+    text-align: center;
+
+    > div > i + p, .clock-progress + p {
+        margin-top: 10px;
+    }
+    /* Style clock to match fontawesome spinner */
+    .clock-progress {
+        @include transform(scale(70/(18)));
+        width: 70px;
+        height: 70px;
+    }
+    .clock-edge {
+        stroke-width: 2.5px;
+        stroke: #333;
+    }
+    .clock-fill {
+        fill: #333;
+    }
+}
+
+column-progress {
+    $column-width: (3 / 14) * 1em;
+    $column-spacing: (2 / 14) * 1em;
+
+    display: inline-block;
+    vertical-align: top;
+    height: 1.42857143em;
+    position: relative;
+    transform: skewX(-10deg);
+    /*
+     * Fix for jagged edges
+     * http://stackoverflow.com/a/6898097/320036
+     */
+    -webkit-backface-visibility: hidden;
+
+    > span {
+        height: 100%;
+        display: inline-block;
+
+        &:before {
+            position: absolute;
+            content: ' ';
+            background-color: white;
+            top: -3px;
+            left: -4px;
+            right: -5px;
+            bottom: -4px;
+            border-radius: 5px;
+            display: block;
+            pointer-events: all;
+        }
+    }
+
+    > span > span {
+        width: $column-width;
+        height: 100%;
+        display: inline-block;
+        margin-left: $column-spacing;
+        overflow: hidden;
+        position: relative;
+
+        > span:not([column-progress-column]) {
+            display: block;
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            top: 0;
+            border-left: $column-width solid #eee;
+        }
+        > span[column-progress-column] {
+            display: block;
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            border-left: $column-width solid;
+            border-color: $aq-bar1;
+        }
+        + span > [column-progress-column] {
+            border-color: $aq-bar2;
+        }
+        + span + span > [column-progress-column] {
+            border-color: $aq-bar3;
+        }
+    }
+
+    [column-progress-column].complete:after {
+        content: ' ';
+        border: solid white;
+        border-width: 0 0 2px 0;
+        position: absolute;
+        bottom: 2px;
+        left: -$column-width;
+        right: 0;
+    }
+}
+
+.stats {
+    font-size: 120%;
+    text-align: center;
+    margin-bottom: 14px;
+
+    column-progress {
+        margin-right: 0.5em;
+    }
+
+    > span {
+        margin: 0 1em;
+    }
+    .stats-bar1 {
+        color: darken($aq-bar1, 10%);
+    }
+    .stats-bar2 {
+        color: darken($aq-bar2, 10%);
+    }
+    .stats-bar3 {
+        color: darken($aq-bar3, 10%);
+    }
 }

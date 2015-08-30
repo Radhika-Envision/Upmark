@@ -19,7 +19,8 @@ log = logging.getLogger('app.crud.measure')
 
 
 class MeasureHandler(
-        handlers.Paginate, crud.survey.SurveyCentric, handlers.BaseHandler):
+        handlers.Paginate,
+        crud.survey.SurveyCentric, handlers.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, measure_id):
@@ -57,25 +58,46 @@ class MeasureHandler(
                 r'^/weight$',
                 r'^/response_type$',
                 # Descend into nested objects
-                r'^/survey$',
                 r'/parents$',
                 r'/parents/[0-9]+$',
                 r'/parent$',
                 r'/hierarchy$',
                 r'/hierarchy/survey$',
-                r'/hierarchy/structure.*$'
+                r'/hierarchy/structure.*$',
+                r'/response_types.*$'
             ])
             son = to_son(measure)
 
             if parent_id != '':
-                for i, link in enumerate(measure.qnode_measures):
+                for p, link in zip(son['parents'], measure.qnode_measures):
                     if str(link.qnode_id) == parent_id:
-                        son['parent'] = son['parents'][i]
+                        son['parent'] = p
                         son['seq'] = link.seq
                         break
                 if 'parent' not in son:
                     raise handlers.MissingDocError(
                         "That question node is not a parent of this measure")
+
+                prev = (session.query(model.QnodeMeasure)
+                    .filter(model.QnodeMeasure.qnode_id == parent_id,
+                            model.QnodeMeasure.survey_id == measure.survey_id,
+                            model.QnodeMeasure.seq < son['seq'])
+                    .order_by(model.QnodeMeasure.seq.desc())
+                    .first())
+                next_ = (session.query(model.QnodeMeasure)
+                    .filter(model.QnodeMeasure.qnode_id == parent_id,
+                            model.QnodeMeasure.survey_id == measure.survey_id,
+                            model.QnodeMeasure.seq > son['seq'])
+                    .order_by(model.QnodeMeasure.seq)
+                    .first())
+
+                if prev is not None:
+                    son['prev'] = str(prev.measure_id)
+                if next_ is not None:
+                    son['next'] = str(next_.measure_id)
+
+            else:
+                son['survey'] = to_son(measure.survey)
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -190,6 +212,7 @@ class MeasureHandler(
                         raise handlers.ModelError("No such question node")
                     qnode.measures.append(measure)
                     qnode.qnode_measures.reorder()
+                    qnode.update_stats_ancestors()
                 measure_id = str(measure.id)
                 log.info("Created measure %s", measure_id)
         except sqlalchemy.exc.IntegrityError as e:
@@ -227,6 +250,7 @@ class MeasureHandler(
                                 "Measure does not belong to that question node")
                         qnode.measures.remove(measure)
                         qnode.qnode_measures.reorder()
+                        qnode.update_stats_ancestors()
                 else:
                     if len(measure.parents) > 0:
                         raise handlers.ModelError("Measure is in use")
@@ -270,6 +294,7 @@ class MeasureHandler(
                         continue
                     qnode.measures.append(measure)
                     qnode.qnode_measures.reorder()
+                    qnode.update_stats_ancestors()
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such measure")
         except sqlalchemy.exc.IntegrityError as e:

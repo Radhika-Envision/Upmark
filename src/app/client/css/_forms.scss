@@ -55,6 +55,34 @@ $anim-time: 0.3s;
     box-shadow: none;
 }
 
+textarea.autoresize {
+    // Actual resizing is done in a script.
+    overflow: hidden;
+    resize: none;
+    min-height: 60px;
+}
+div[textarea-label] {
+    /* Hovers a label over a textarea */
+    position: relative;
+    &:before {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        content: attr(textarea-label);
+        text-align: center;
+        line-height: 80px;
+        font-size: 40px;
+        font-weight: bold;
+        opacity: 0.2;
+        pointer-events: none;
+    }
+    textarea.autoresize {
+        min-height: 80px;
+    }
+}
+
 .input-group {
     margin-bottom: 10px;
 }
@@ -74,19 +102,23 @@ $anim-time: 0.3s;
     }
 }
 
-.btn-default, .btn-default.active, .btn-default[disabled],
-.form-control, .form-control.active {
+.btn-default, .btn-default[disabled],
+.form-control, .form-control.active,
+.open > .dropdown-toggle.btn-default
+{
     color: lighten($button-fg, 30%);
     background-color: $button-bg;
     border-color: transparent;
 
     &[disabled] {
-        color: lighten($button-fg, 60%);
-        background-color: $button-bg;
+        color: darken($button-bg, 20%);
+        border-width: 1px;
+        padding-bottom: 6px - 1px;
         border-color: transparent;
     }
 
-    &:hover, &:active, &.active:focus, &:focus, &:active.focus, &:active:focus {
+    &:hover, &:active, &.active, &.active:hover, &.active:focus, &:focus,
+    &:active.focus, &:active:focus {
         outline: none;
         border-color: transparent;
     }
@@ -98,14 +130,63 @@ $anim-time: 0.3s;
         }
     }
     &:active, &.active, &.active:focus, &:active.focus, &:active:focus {
-        &:not([disabled]) {
-            box-shadow: none;
-            border-bottom-color: $primary-col;
-            color: $button-fg;
-        }
+        box-shadow: none;
+        color: $button-fg;
     }
     .fa-badge {
         @include text-shadow-outline($button-bg);
+    }
+}
+.btn-default, .btn-default.active {
+    &:active, &.active, &.active:focus, &:active.focus, &:active:focus {
+        &:not([disabled]):not(.btn-round) {
+            box-shadow: none;
+            color: $button-fg;
+            background-color: $primary-colour;
+            @include transform(scale(1.02, 1.1));
+            border-radius: 2px !important;
+        }
+    }
+}
+.btn-default.ui-select-toggle:not([disabled]):not(.btn-round) {
+    &:active, &:active:focus {
+        background-color: $button-bg;
+        @include transform(scale(1));
+        border-radius: 4px !important;
+    }
+}
+
+// On large screens, arrange horizontally
+@media (min-width: 768px) {
+    .btn-group.btn-group-justified {
+        border-spacing: initial;
+    }
+}
+// On small screens, stack vertically
+@media (max-width: 768px) {
+    .btn-group.btn-group-justified {
+        display: block;
+        > .btn-group {
+            display: block;
+            width: 100%;
+            + .btn-group {
+                margin-left: 0;
+            }
+            .btn {
+                display: block;
+                float: none;
+                width: 100%;
+            }
+            &:not(:first-child):not(:last-child) > .btn {
+                border-radius: 0 0 0 0;
+            }
+            &:first-child:not(:last-child) > .btn {
+                border-radius: 4px 4px 0 0;
+            }
+            &:last-child:not(:first-child) > .btn {
+                border-radius: 0 0 4px 4px;
+            }
+        }
     }
 }
 
@@ -114,6 +195,9 @@ $anim-time: 0.3s;
     box-shadow: none;
     border-color: transparent;
     background-color: transparent;
+}
+.ui-select-container + p {
+  margin-top: 8px;
 }
 
 .has-error {
@@ -131,7 +215,7 @@ $anim-time: 0.3s;
     }
 }
 
-:not(ng-include):not(.nested)>.header .btn-default {
+:not(ng-include):not(.nested)>.header .btn-default, .well .btn-default {
     &:not([disabled]) {
         color: lighten($button-fg, 30%);
     }
@@ -143,19 +227,37 @@ $anim-time: 0.3s;
         border-color: transparent;
     }
     &:hover, &.active:focus, &:focus {
-        background-color: lighten($button-bg, 3%);
-        color: $button-fg;
-        border-bottom-color: rgba($primary-col, 0.5);
+        &:not([disabled]) {
+            background-color: lighten($button-bg, 3%);
+            color: $button-fg;
+            border-bottom-color: rgba($primary-col, 0.5);
+        }
     }
     &:active, &.active, &.active:focus, &:active.focus, &:active:focus {
-        box-shadow: none;
-        border-bottom-color: $primary-col;
-        color: $button-fg;
+        &:not([disabled]) {
+            box-shadow: none;
+            color: $button-fg;
+        }
     }
+}
+.well {
+    border: none;
+    box-shadow: none;
+    border-radius: 4px;
+    background: #F0F0F0;
+
+    textarea, .btn-default[disabled], ul.list-results {
+        background: white;
+    }
+}
+.container.well {
+    /* Make a top-level well align with container margins and padding */
+    padding: 15px;
 }
 
 .btn-on-danger {
     &:hover, &.active:focus, &:focus {
+        outline: none;
         border-bottom-color: rgba($danger-col, 0.5);
     }
     &:active, &.active, &.active:focus, &:active.focus, &:active:focus {

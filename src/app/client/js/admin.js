@@ -3,11 +3,14 @@
 angular.module('wsaa.admin', [
     'ngResource', 'ngSanitize', 'ui.select', 'ngCookies'])
 
-.factory('User', ['$resource', function($resource) {
+.factory('User', ['$resource', 'paged', function($resource, paged) {
     return $resource('/user/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         save: { method: 'PUT', cache: false },
-        query: { method: 'GET', isArray: true, cache: false },
+        query: {
+            method: 'GET', isArray: true, cache: false,
+            interceptor: {response: paged}
+        },
         create: { method: 'POST', cache: false },
         impersonate: { method: 'PUT', url: '/login/:id', cache: false }
     });
@@ -74,11 +77,14 @@ angular.module('wsaa.admin', [
 }])
 
 
-.factory('Organisation', ['$resource', function($resource) {
+.factory('Organisation', ['$resource', 'paged', function($resource, paged) {
     return $resource('/organisation/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         save: { method: 'PUT', cache: false },
-        query: { method: 'GET', isArray: true, cache: false },
+        query: {
+            method: 'GET', isArray: true, cache: false,
+            interceptor: {response: paged}
+        },
         create: { method: 'POST', cache: false }
     });
 }])
@@ -257,7 +263,7 @@ angular.module('wsaa.admin', [
             function failure(details) {
                 console.log(details)
                 Notifications.set('get', 'error',
-                    "Could not get list: " + details.statusText, 10000);
+                    "Could not get list: " + details.statusText);
                 return $q.reject(details);
             }
         );

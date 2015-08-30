@@ -1,0 +1,20 @@
+[
+    {
+        "id": "yes-no",
+        "name": "Yes / No",
+        "parts": [
+            {
+                "id": "a",
+                "options": [
+                    {"score": 0.0, "name": "No"},
+                    {"score": 1.0, "name": "Yes"}
+                ]
+            }
+        ]
+    },
+    {
+        "id": "comment",
+        "name": "Comment Only (no score)",
+        "parts": []
+    }
+]

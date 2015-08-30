@@ -23,9 +23,11 @@ RUN pip3 install -vU setuptools
 
 # Install dependencies before copying full source directory. This speeds up
 # Docker rebuilds.
-COPY requirements.txt bower.json /tmp/
+COPY requirements.txt /tmp/
 WORKDIR /tmp
 RUN pip3 install -r requirements.txt
+
+COPY bower.json /tmp/
 RUN bower \
         --allow-root \
         --config.interactive=false \
@@ -43,6 +45,10 @@ ENV PORT=8000 \
     DEV_MODE=False \
     DATABASE_URL=postgresql://postgres:postgres@postgres/postgres \
     ANALYTICS_ID= \
+    FILE_STORAGE=DATABASE \
+    AWS_REGION_NAME=ap-southeast-2 \
+    AWS_ACCESS_KEY_ID= \
+    AWS_SECRET_ACCESS_KEY= \
     PYTHONPATH=.:/usr/share/aquamark/app/server/
 
 EXPOSE 8000

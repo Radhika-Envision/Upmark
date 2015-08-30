@@ -3,7 +3,7 @@
         <i class="fa fa-history"></i></button>
 
     <ul class="dropdown-menu dropdown-menu-right">
-        <li class="dropdown-header">Switch to survey</li>
+        <li class="dropdown-header">Related surveys</li>
         <li ng-if="!surveys.length" class="dropdown-header">Loading...</li>
         <li ng-repeat="survey in surveys"
                 ng-class="{active: isActive(survey)}">
@@ -11,9 +11,11 @@
                 {{survey.title}}
                 <span class="pull-right nudge-right text-muted">
                     <i class="fa fa-circle-o" ng-style="{
-                        visibility: survey.isOpen ? null : 'hidden' }"></i>
+                        visibility: survey.isOpen ? null : 'hidden' }"
+                        title="Open for responses"></i>
                     <i class="fa fa-pencil-square-o" ng-style="{
-                        visibility: survey.isEditable ? null : 'hidden' }"></i>
+                        visibility: survey.isEditable ? null : 'hidden' }"
+                        title="Editable"></i>
                 </span>
                 </a>
         </li>

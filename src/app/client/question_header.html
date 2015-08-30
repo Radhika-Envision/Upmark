@@ -1,23 +1,55 @@
 <div class="stacked-header"
         ng-class="layout.expandHeader ? 'header-expanded' : 'header-collapsed'">
+<div class="toolbar" ng-if="!layout.expandHeader">
+    <a ng-disabled="!currentItem.entity.prev"
+            class="btn btn-default btn-round"
+            ng-href="{{itemUrl(currentItem, 'prev')}}"
+            title="Previous">
+        <i class="fa fa-fw fa-angle-left"></i></a>
+    <a class="btn btn-default btn-round"
+            ng-href="{{itemUrl(upItem) || '#/surveys'}}"
+            title="Go up one level">
+        <i class="fa fa-fw fa-angle-up"></i></a>
+    <a ng-disabled="!currentItem.entity.next"
+            class="btn btn-default btn-round"
+            ng-href="{{itemUrl(currentItem, 'next')}}"
+            title="Next">
+        <i class="fa fa-fw fa-angle-right"></i></a>
+</div>
 <h2 ng-repeat="item in structure.hstack" label="{{item.label}}"
         class="survey-{{item.level}}">
-    <a ng-if="item.entity.title && !$last"
-            ng-href="#/{{item.path}}/{{item.entity.id}}{{
-                item.path != 'survey' ? '?survey=' + structure.survey.id : ''
-            }}">
+    <div class="toolbar" ng-if="layout.expandHeader && $last">
+        <a ng-disabled="!currentItem.entity.prev"
+                class="btn btn-default btn-round"
+                ng-href="{{itemUrl(currentItem, 'prev')}}"
+                title="Previous">
+            <i class="fa fa-fw fa-angle-left"></i></a>
+        <a class="btn btn-default btn-round"
+                ng-href="{{itemUrl(upItem) || '#/surveys'}}"
+                title="Go up one level">
+            <i class="fa fa-fw fa-angle-up"></i></a>
+        <a ng-disabled="!currentItem.entity.next"
+                class="btn btn-default btn-round"
+                ng-href="{{itemUrl(currentItem, 'next')}}"
+                title="Next">
+            <i class="fa fa-fw fa-angle-right"></i></a>
+    </div>
+    <a ng-if="item.entity.title && !$last" ng-href="{{itemUrl(item)}}">
         <span ng-if="item.entity.seq != null">
             {{item.entity.seq + 1}}.</span>
+        <span class="when-collapsed" ng-if="item.entity.seq == null">
+            {{item.label}}</span>
         <span class="when-expanded">
             {{item.entity.title}}</span>
     </a>
     <span ng-if="item.entity.title && $last">
         <span ng-if="item.entity.seq != null">
             {{item.entity.seq + 1}}.</span>
-        {{item.entity.title}}
+        <page-title>{{item.entity.title}}</page-title>
     </span>
     <span ng-if="!item.entity.title">
-        {{item.title}} - New
+        <strong>+</strong>
+        <page-title>{{item.title}} - New</page-title>
     </span>
 </h2>
 </div>

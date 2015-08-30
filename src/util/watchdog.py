@@ -123,7 +123,7 @@ def check_docker():
 
     elif state['status'] == 'running':
         log.debug("Current status is: running")
-        if started_at > state['started_at']:
+        if started_at > state['started_at'].replace(tzinfo = pytz.utc):
             # Start time is different, so the machine crashed.
             log.info("Transitioning to: crashed")
             send_email('crashed', get_container_log())
@@ -133,7 +133,7 @@ def check_docker():
     elif running:
         log.debug("Current status is: crashed")
         delta = datetime.timedelta(milliseconds=config['MINIMUM_UPTIME_MS'])
-        if get_utcnow() - delta > state['started_at']:
+        if get_utcnow() - delta > state['started_at'].replace(tzinfo = pytz.utc):
             # Instance has been running for a while. Consider it to be running
             # well again.
             log.info("Transitioning to: running")

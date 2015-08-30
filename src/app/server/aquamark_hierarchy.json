@@ -1,0 +1,23 @@
+{
+    "measure": {
+        "title": "Measures",
+        "label": "M"
+    },
+    "levels": [
+        {
+            "has_measures": false,
+            "title": "Functions",
+            "label": "F"
+        },
+        {
+            "has_measures": false,
+            "title": "Processes",
+            "label": "P"
+        },
+        {
+            "has_measures": true,
+            "title": "Sub-Processes",
+            "label": "Sp"
+        }
+    ]
+}

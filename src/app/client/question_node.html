@@ -5,8 +5,7 @@
     <div class="toolbar">
         <button class="btn btn-default btn-round" title="Delete"
                 ng-click="edit.del()"
-                ng-if="survey.isEditable && !edit.model &&
-                    checkRole('qnode_del')">
+                ng-if="editable && !edit.model && checkRole('qnode_del')">
             <i class="fa fa-trash-o"></i></button>
         <button class="btn btn-default btn-round" title="Collapse"
                 ng-click="layout.expandHeader = !layout.expandHeader">
@@ -24,17 +23,16 @@
             <i class="fa fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
-                ng-if="survey.isEditable && !edit.model &&
-                    checkRole('qnode_edit')">
+                ng-if="editable && !edit.model">
             <i class="fa fa-pencil"></i></button>
         <survey-history entity="qnode" service="QuestionNode"
                 ng-if="!edit.model"></survey-history>
     </div>
-    <question-header entity="qnode"></question-header>
+    <question-header entity="qnode" assessment="assessment"></question-header>
 </div>
 </div>
 
-<div class="measure" ng-if="edit.model">
+<div ng-if="edit.model">
 <div class="container">
     <form novalidate name="form" id="editor">
         <div class="form-group" show-errors>
@@ -46,38 +44,67 @@
         </div>
         <div class="form-group" show-errors>
             <label for="desc">Description</label>
-            <textarea id="desc" name="desc" class="form-control"
+            <textarea id="desc" name="desc" class="autoresize form-control"
                 ng-model="edit.model.description"></textarea>
         </div>
     </form>
 </div>
 </div>
 
-<div class="measure" ng-if="!edit.model && qnode.description">
+<div ng-if="!edit.model && qnode.description || rnode">
 <div class="container">
+    <div ng-if="rnode" class="stats">
+        <button class="btn btn-on-danger btn-round pull-right"
+                title="Toggle not relevant"
+                ng-click="toggleNotRelevant()"
+                ng-class="{active: rnode.notRelevant}">
+            <i class="fa fa-fw fa-ban"></i></button>
+
+        <span title="Total score">
+            {{rnode.score}}
+        </span>
+        <span>
+            <column-progress items="stats.progressItems"></column-progress>
+            <span class="stats-bar1" title="Number of final responses">
+                {{rnode.nSubmitted}}</span>
+            <span class="stats-bar2" title="Number of reviewed responses">
+                {{rnode.nReviewed}}</span>
+            <span class="stats-bar3" title="Number of approved responses">
+                {{rnode.nApproved}}</span>
+            <span title="Number of not-relevant responses">
+                <s>{{rnode.nNotRelevant}}</s></span>
+        </span>
+        <span>
+            <span class="text-muted" title="Total number of measures">
+                {{qnode.nMeasures}}</span>
+        </span>
+    </div>
+
     <p class="formatted">{{qnode.description}}</p>
 </div>
 </div>
 
-<reorderable href="/qnode/{}?survey={{survey.id}}&parent={{qnode.id}}"
-        model="children" check-role="checkRole"
-        title="{{nextLevel.title}}"
-        params="{surveyId: survey.id, parentId: qnode.id}"
-        resource="QuestionNode"
-        ng-if="nextLevel && !edit.model"
-        can-edit="survey.isEditable"></reorderable>
+<div class="container"
+    ng-controller="QnodeChildren" ng-include="'qnode_children.html'"
+    ng-if="nextLevel && !rnode.notRelevant && !edit.model"></div>
 
-<reorderable href="/measure/{}?survey={{survey.id}}&parent={{qnode.id}}"
-        model="measures" check-role="checkRole"
-        title="{{structure.hierarchy.structure.measure.title}}"
-        params="{surveyId: survey.id, qnodeId: qnode.id}"
-        resource="Measure"
-        ng-if="currentLevel.hasMeasures && !edit.model"
-        can-edit="survey.isEditable">
-    <a class="btn btn-default btn-round" title="Link to existing"
-            ng-href="#/measure-link?survey={{survey.id}}&parent={{qnode.id}}"
-            ng-if="survey.isEditable && !edit.model && checkRole('add')">
-        <i class="fa fa-fw fa-link"></i></a>
-</reorderable>
+
+<div class="container"
+    ng-controller="QnodeMeasures" ng-include="'qnode_measures.html'"
+    ng-if="currentLevel.hasMeasures && !rnode.notRelevant && !edit.model"></div>
+
+<div class="container spaced">
+    <div class="spaced text-muted">
+        <ul class="fa-ul fa-ul-big">
+            <li ng-if="!edit.model && rnode.notRelevant">
+                <i class="fa-li fa fa-ban fa-border"></i>
+                <p>
+                    This category is marked as not relevant. It does not
+                    contribute to the assessment's score.
+                </p>
+            </li>
+        </ul>
+    </div>
+</div>
 
 </div>

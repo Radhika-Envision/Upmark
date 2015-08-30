@@ -9,6 +9,8 @@ import logging
 import tempfile
 import threading
 import json
+import sqlalchemy
+import datetime
 
 from sqlalchemy.orm import joinedload
 from tornado import gen
@@ -25,43 +27,82 @@ log = logging.getLogger('app.import_handler')
 class ImportStructureHandler(handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-    # @handlers.authz('author')
+    @handlers.authz('author')
     @gen.coroutine
-    def post(self, survey_id):
+    def post(self):
         fileinfo = self.request.files['file'][0]
         fd = tempfile.NamedTemporaryFile()
-        fd.write(fileinfo['body'])
-        yield self.background_task(survey_id, fd.name)
+        try:
+            fd.write(fileinfo['body'])
+            survey_id = yield self.background_task(fd.name)
+        finally:
+            fd.close()
         self.set_header("Content-Type", "text/plain")
-        self.write("Task finished")
-        fd.close()
+        self.write(survey_id)
         self.finish()
 
     @run_on_executor
-    def background_task(self, survey_id, file_path):
+    def background_task(self, file_path):
         i = Importer()
-        i.process_structure_file(file_path, survey_id)
+        title = self.get_argument('title')
+        description = self.get_argument('description')
+        survey_id = i.process_structure_file(file_path, title, description)
+        return survey_id
 
 
 class ImportResponseHandler(handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-    # @handlers.authz('author')
+    @handlers.authz('author')
     @gen.coroutine
     def post(self, survey_id):
         fileinfo = self.request.files['file'][0]
         fd = tempfile.NamedTemporaryFile()
-        fd.write(fileinfo['body'])
-        yield self.background_task(survey_id, fd.name)
+        try:
+            fd.write(fileinfo['body'])
+            yield self.background_task(fd.name)
+        finally:
+            fd.close()
         self.set_header("Content-Type", "text/plain")
         self.write("Task finished")
-        fd.close()
         self.finish()
 
     @run_on_executor
-    def background_task(self, survey_id, file_path):
+    def background_task(self, file_path):
         i = Importer()
-        i.process_response_file(file_path, survey_id)
+        title = self.request.title
+        description = self.request.description
+        i.process_structure_file(file_path, title, description)
+
+
+class ImportAssessmentHandler(handlers.BaseHandler):
+    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
+
+    @handlers.authz('author')
+    @gen.coroutine
+    def post(self):
+        fileinfo = self.request.files['file'][0]
+        fd = tempfile.NamedTemporaryFile()
+        try:
+            fd.write(fileinfo['body'])
+            survey_id = yield self.background_task(fd.name)            
+        finally:
+            fd.close()
+
+        self.set_header("Content-Type", "text/plain")
+        self.write(survey_id)
+        self.finish()
+
+    @run_on_executor
+    def background_task(self, file_path):
+        i = Importer()
+        survey_id = self.get_argument('survey')
+        organisation_id = self.get_argument('organisation')
+        hierarchy_id = self.get_argument("hierarchy")
+        title = self.get_argument('title')
+        user_id = self.get_current_user().id
+        survey_id = i.process_assessment_file(file_path, survey_id, hierarchy_id, organisation_id, title, user_id)
+        return survey_id
 
 
 class Importer():
@@ -73,181 +114,162 @@ class Importer():
                 num = num * 26 + (ord(c.upper()) - ord('A'))
         return num
 
-    def process_structure_file(self, path, survey_id):
+    def process_structure_file(self, path, title, description):
         """
         Open and read an Excel file
         """
-        book = xlrd.open_workbook(path)
-        scoring_sheet = book.sheet_by_name("Scoring")
-
-        # read rows
         all_rows = []
-        for row_num in range(0, scoring_sheet.nrows - 1):
-            cell = scoring_sheet.row(row_num)
-            all_rows.append(cell)
-            filter = scoring_sheet.cell(row_num, self.col2num("S"))
+        with xlrd.open_workbook(path) as book:
+            scoring_sheet = book.sheet_by_name("Scoring")
+
+            for row_num in range(0, scoring_sheet.nrows - 1):
+                row = scoring_sheet.row_values(row_num)
+                all_rows.append(row)
 
         model.connect_db(os.environ.get('DATABASE_URL'))
 
         with model.session_scope() as session:
-            survey = session.query(model.Survey).get(survey_id)
-            print("survey", survey)
-            m = session.query(model.Measure).filter_by(
-                survey_id=survey_id).first()
-            if m:
-                raise Exception("Survey is not empty")
-            h = session.query(model.Hierarchy).filter_by(
-                survey_id=survey_id).first()
-            if h:
-                raise Exception("Survey is not empty")
-            q = session.query(model.QuestionNode).filter_by(
-                survey_id=survey_id).first()
-            if q:
-                raise Exception("Survey is not empty")
+
+            survey = model.Survey()
+            survey.title = title
+            survey.description = description
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'aquamark_response_types.json')) as file:
+                survey.response_types = json.load(file)
+            session.add(survey)
+            session.flush()
+            survey_id = str(survey.id)
 
             hierarchy = model.Hierarchy()
             hierarchy.survey_id = survey.id
-            hierarchy.title = "Importing Document Hierarchy"
-            hierarchy.description = "Importing Document Hierarchy"
-            hierarchy.structure = json.loads(
-                '{"measure": {"title": "Measures", "label": "M"}, "levels": [{"has_measures": false, "title": "Function", "label": "C"}, {"has_measures": false, "title": "Process", "label": "P"}, {"has_measures": true, "title": "Subprocess", "label": "SP"}]}')
+            hierarchy.title = "Aquamark (Imported)"
+            hierarchy.description = "WSAA's own 4-level hierarchy."
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'aquamark_hierarchy.json')) as data_file:
+                hierarchy.structure = json.load(data_file)
             session.add(hierarchy)
             session.flush()
 
             log.info("hierarchy: %s" % hierarchy.id)
 
-            function_title_row = [{"title": row[self.col2num("J")], "row_num": all_rows.index(
-                row)} for row in all_rows if "'Function Header" in str(row[self.col2num("S")])]
-            process_title_row = [{"title": row[self.col2num("J")], "row_num": all_rows.index(
-                row)} for row in all_rows if "'Process Header" in str(row[self.col2num("S")])]
-            subprocess_title_row = [{"title": row[self.col2num("J")], "row_num": all_rows.index(
-                row)} for row in all_rows if "'SubProcess Header" in str(row[self.col2num("S")])]
-            #function_row = [row for row in all_rows]
+            function_title_row = [{"title": row[self.col2num("J")], 
+                                   "order": row[self.col2num("C")],
+                                   "row_num": all_rows.index(row)} 
+                                   for row in all_rows if str(row[self.col2num("S")]) == "Function Header"]
+            process_title_row = [{"title": row[self.col2num("J")],
+                                  "order": row[self.col2num("D")], 
+                                  "row_num": all_rows.index(row)} 
+                                  for row in all_rows if str(row[self.col2num("S")]) == "Process Header"]
+            subprocess_title_row = [{"title": row[self.col2num("J")], 
+                                     "order": row[self.col2num("E")], 
+                                     "row_num": all_rows.index(row)} 
+                                     for row in all_rows if str(row[self.col2num("S")]) == "SubProcess Header"]
+
+
             for function in function_title_row:
-                # print("function:", str(function))
-                function_obj = self.parse_cell_title(str(function['title']))
-                function_order = function_obj['order']
-                function_title = function_obj['title']
-                # print("function order:", function_order)
-                # print("function title:", function_title)
-                # print("function:", function)
+                function_order = int(function['order'])
+                function_title = function['title'].replace("{} - ".format(
+                    function_order), "")
                 function_description = self.parse_description(
-                    scoring_sheet, function['row_num'], "empty")
-                # log.info("function description: %s" % function_description)
-                # log.info("survey_id: %s" % survey.id)
-                # log.info("heirarchy_id: %s" % hierarchy.id)
-                # log.info("function description: %s" % function_description)
-                # log.info("function description: %s" % function_description)
+                    all_rows, function['row_num'])
 
                 qnode_function = model.QuestionNode()
                 qnode_function.survey_id = survey.id
                 qnode_function.hierarchy_id = hierarchy.id
-                qnode_function.seq = int(function_order) - 1
+                qnode_function.seq = function_order - 1
                 qnode_function.title = function_title
                 qnode_function.description = function_description
 
                 session.add(qnode_function)
                 session.flush()
-                log.info("qnode_function: %s" % qnode_function)
 
-                process_row = [row for row in process_title_row if "{}.".format(
-                    function_order) in self.parse_text(row['title'])]
+                process_row = [row for row in process_title_row if "{}.".format(function_order) in row['title']]
+
                 for process in process_row:
-                    process_obj = self.parse_cell_title(str(process['title']))
-                    if process_obj:
-                        process_order = parse(
-                            "{function}.{process}", str(process_obj['order']))['process']
-                        process_title = process_obj['title']
+                    process_order = int(process['order'])
+                    process_title = process['title'].replace("{}.{} - ".format(
+                                                            function_order, process_order), "")
 
-                        # print("process order:", process_order)
-                        # print("process title:", process_title)
-                        process_description = self.parse_description(
-                            scoring_sheet, process['row_num'], "empty")
-                        log.info("process description: %s" %
-                                 process_description)
+                    # print("process order:", process_order)
+                    # print("process title:", process_title)
+                    process_description = self.parse_description(
+                        all_rows, process['row_num'], "")
 
-                        qnode_process = model.QuestionNode()
-                        qnode_process.survey_id = survey.id
-                        qnode_process.parent_id = qnode_function.id
-                        qnode_process.seq = int(process_order) - 1
-                        qnode_process.title = process_title
-                        qnode_process.description = process_description
-                        session.add(qnode_process)
+                    qnode_process = model.QuestionNode()
+                    qnode_process.survey_id = survey.id
+                    qnode_process.hierarchy_id = hierarchy.id
+                    qnode_process.parent_id = qnode_function.id
+                    qnode_process.seq = process_order - 1
+                    qnode_process.title = process_title
+                    qnode_process.description = process_description
+                    # log.info("qnode_process: %s" % qnode_process)
+                    session.add(qnode_process)
+                    session.flush()
+
+                    subprocess_row = [row for row in subprocess_title_row if "{}.{}.".format(
+                        function_order, process_order) in row['title']]
+                    for subprocess in subprocess_row:
+                        subprocess_order = int(subprocess['order'])
+                        subprocess_title = subprocess['title'].replace("{}.{}.{} - ".format(
+                                                                        function_order, process_order, subprocess_order), "")
+
+                        # print("subprocess order:", subprocess_order)
+                        # print("subprocess title:", subprocess_title)
+                        subprocess_description = self.parse_description(
+                            all_rows, subprocess['row_num'], "")
+
+                        qnode_subprocess = model.QuestionNode()
+                        qnode_subprocess.survey_id = survey.id
+                        qnode_subprocess.hierarchy_id = hierarchy.id
+                        qnode_subprocess.parent_id = qnode_process.id
+                        qnode_subprocess.seq = subprocess_order - 1
+                        qnode_subprocess.title = subprocess_title
+                        qnode_subprocess.description = subprocess_description
+
+                        session.add(qnode_subprocess)
                         session.flush()
 
-                        subprocess_row = [row for row in subprocess_title_row if "{}.{}.".format(
-                            function_order, process_order) in str(row['title'])]
-                        for subprocess in subprocess_row:
-                            subprocess_obj = self.parse_cell_title(
-                                str(subprocess['title']))
-                            if subprocess_obj:
-                                subprocess_order = parse(
-                                    "{function}.{process}.{subprocess}", str(subprocess_obj['order']))['subprocess']
-                                subprocess_title = subprocess_obj['title']
+                        measure_title_row = [{"title": row[self.col2num("k")], "row_num": all_rows.index(row), "order": row[self.col2num("F")], "weight": row[self.col2num("L")], "resp_num": row[self.col2num("F")]}
+                                             for row in all_rows
+                                             if function_order == row[self.col2num("C")] and
+                                             process_order == row[self.col2num("D")] and
+                                             subprocess_order == row[self.col2num("E")] and
+                                             row[self.col2num("F")] != 0 and
+                                             row[self.col2num("G")] == 1]
 
-                                # print("subprocess order:", subprocess_order)
-                                # print("subprocess title:", subprocess_title)
-                                subprocess_description = self.parse_description(
-                                    scoring_sheet, subprocess['row_num'], "empty")
-                                log.info("subprocess description: %s" %
-                                         subprocess_description)
+                        for measure in measure_title_row:
+                            measure_order = int(measure["order"])
+                            measure_title = measure['title'].replace("{}.{}.{}.{} - ".format(
+                                            function_order, process_order, subprocess_order, measure_order), "")
 
-                                qnode_subprocess = model.QuestionNode()
-                                qnode_subprocess.survey_id = survey.id
-                                qnode_subprocess.parent_id = qnode_process.id
-                                qnode_subprocess.seq = int(
-                                    subprocess_order) - 1
-                                qnode_subprocess.title = subprocess_title
-                                qnode_subprocess.description = subprocess_description
+                            measure_intent = self.parse_description(
+                                all_rows, measure['row_num'], "Intent")
+                            measure_inputs = self.parse_description(
+                                all_rows, measure['row_num'] + 1, "Inputs")
+                            measure_scenario = self.parse_description(
+                                all_rows, measure['row_num'] + 2, "Scenario")
+                            measure_questions = self.parse_description(
+                                all_rows, measure['row_num'] + 3, "Questions")
+                            # Comments are part of the response, so ignore that row
+                            measure_weight = measure['weight']
 
-                                session.add(qnode_subprocess)
-                                session.flush()
-
-                                # for row in all_rows:
-                                #     print("row", row[self.col2num("F")])
-                                measure_title_row = [{"title": row[self.col2num("k")], "row_num": all_rows.index(row), "weight": row[self.col2num("L")]}
-                                                     for row in all_rows
-                                                     if float(function_order) == self.parse_cell_number(row[self.col2num("C")]) and
-                                                     float(process_order) == self.parse_cell_number(row[self.col2num("D")]) and
-                                                     float(subprocess_order) == self.parse_cell_number(row[self.col2num("E")]) and
-                                                     self.parse_cell_number(str(row[self.col2num("F")])) != 0 and
-                                                     self.parse_cell_number(str(row[self.col2num("G")])) == 1]
-
-                                for measure in measure_title_row:
-                                    measure_obj = self.parse_cell_title(
-                                        str(measure['title']))
-                                    if measure_obj:
-                                        measure_order = parse("{function}.{process}.{subprocess}.{measure}", str(
-                                            measure_obj['order']))['measure']
-                                        measure_title = measure_obj['title']
-
-                                        measure_intent = self.parse_description(
-                                            scoring_sheet, measure['row_num'], "Intent")
-                                        measure_inputs = self.parse_description(
-                                            scoring_sheet, measure['row_num'] + 1, "Iputs")
-                                        measure_scenario = self.parse_description(
-                                            scoring_sheet, measure['row_num'] + 2, "Scenario")
-                                        measure_questions = self.parse_description(
-                                            scoring_sheet, measure['row_num'] + 3, "Questions")
-                                        measure_comments = self.parse_description(
-                                            scoring_sheet, measure['row_num'] + 4, "Comments")
-                                        measure_weight = self.parse_cell_number(
-                                            measure['weight'])
-
-                                        m = model.Measure()
-                                        m.survey_id = survey.id
-                                        m.title = measure_title
-                                        m.weight = measure_weight
-                                        m.intent = measure_intent
-                                        m.inputs = measure_inputs
-                                        m.scenario = measure_scenario
-                                        m.questions = measure_questions
-                                        m.response_type = "standard_1"
-                                        session.add(m)
-                                        session.flush()
-
-                                        qnode_subprocess.measures.append(m)
-                                        session.flush()
+                            m = model.Measure()
+                            m.survey_id = survey.id
+                            m.title = measure_title
+                            m.weight = measure_weight
+                            m.intent = measure_intent
+                            m.inputs = measure_inputs
+                            m.scenario = measure_scenario
+                            m.questions = measure_questions
+                            response_type = "standard"
+                            if function_order == 7:
+                                response_type = "business-support-%s" % int(measure['resp_num'])
+                            # log.info("response_type: %s", response_type)
+                            m.response_type = response_type
+                            session.add(m)
+                            session.flush()
+                            qnode_subprocess.measures.append(m)
+                            session.flush()
+            survey.update_stats_descendants()
+            return survey_id
 
     def process_response_file(self, path, survey_id):
         """
@@ -255,148 +277,159 @@ class Importer():
         """
         book = xlrd.open_workbook(path)
         scoring_sheet = book.sheet_by_name("Scoring")
+        '''
+        TODO : process response
+        '''
 
+    def process_assessment_file(self, path, survey_id, hierarchy_id, organisation_id, title, user_id):
+        """
+        Open and read an Excel file
+        """
         all_rows = []
-        for row_num in range(0, scoring_sheet.nrows - 1):
-            cell = scoring_sheet.row(row_num)
-            all_rows.append(cell)
-            filter = scoring_sheet.cell(row_num, self.col2num("S"))
+        with xlrd.open_workbook(path) as book:
+            sheet = book.sheet_by_index(0)
+
+            # read rows
+            for row_num in range(0, sheet.nrows - 1):
+                row = sheet.row_values(row_num)
+                all_rows.append(row)
 
         model.connect_db(os.environ.get('DATABASE_URL'))
 
         with model.session_scope() as session:
             survey = session.query(model.Survey).get(survey_id)
-            hierarchy = session.query(model.Hierarchy).filter_by(survey_id=survey.id).first()
+            if survey is None:
+                raise Exception("There is no Survey.")
 
-            function_title_row = [{"title": row[self.col2num("J")], "row_num": all_rows.index(
-                row)} for row in all_rows if "'Function Header" in str(row[self.col2num("S")])]
-            process_title_row = [{"title": row[self.col2num("J")], "row_num": all_rows.index(
-                row)} for row in all_rows if "'Process Header" in str(row[self.col2num("S")])]
-            subprocess_title_row = [{"title": row[self.col2num("J")], "row_num": all_rows.index(
-                row)} for row in all_rows if "'SubProcess Header" in str(row[self.col2num("S")])]
+            hierarchy = session.query(model.Hierarchy).filter_by(id=hierarchy_id).one()
+            if hierarchy is None:
+                raise Exception("There is no Hierarchy.")
 
-            for function in function_title_row:
-                function_obj = self.parse_cell_title(str(function['title']))
-                function_order = function_obj['order']
-                function_title = function_obj['title']
-                function_description = self.parse_description(scoring_sheet, function['row_num'], "empty")
+            assessment = model.Assessment()
+            assessment.survey_id = survey.id
+            assessment.hierarchy_id = hierarchy.id
+            assessment.organisation_id = organisation_id
+            assessment.title = title
+            assessment.approval = 'draft'
+            session.add(assessment)
+            session.flush()
 
-                qnode_function = session.query(model.QuestionNode).filter_by(
-                    survey_id=survey_id, hierarchy_id=hierarchy.id, seq=(int(function_order) - 1)).first()
+            all_rows = []
+            for row_num in range(1, sheet.nrows - 1):
+                cell = sheet.row_values(row_num)
+                all_rows.append(cell)
 
-                if not qnode_function:
-                    raise Exception("This file is not match with Survey.")
-                if not (qnode_function.title == function_title and qnode_function.description == function_description):
-                    raise Exception("This file is not match with Survey.")
+            function_col_num = self.col2num("A")
+            process_col_num = self.col2num("B")
+            subprocess_col_num = self.col2num("C")
+            measure_col_num = self.col2num("D")
 
-                process_row = [row for row in process_title_row if "{}.".format(
-                    function_order) in self.parse_text(row['title'])]
-                for process in process_row:
-                    process_obj = self.parse_cell_title(str(process['title']))
-                    if process_obj:
-                        process_order = parse("{function}.{process}", str(process_obj['order']))['process']
-                        process_title = process_obj['title']
+            survey_qnodes = session.query(model.QuestionNode).filter_by(survey_id=survey_id)
 
-                        process_description = self.parse_description(scoring_sheet, process['row_num'], "empty")
-                        qnode_process = session.query(model.QuestionNode).filter_by(
-                            survey_id=survey_id, parent_id=qnode_function.id, seq=(int(process_order) - 1)).first()
-                        if not qnode_process:
-                            raise Exception("This file is not match with Survey.")
-                        if not (qnode_process.title == process_title and qnode_process.description == process_description):
-                            raise Exception("This file is not match with Survey.")
-                        
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'aquamark_response_types.json')) as file:
+                response_types = json.load(file)
+            # session.expunge_all()
 
-                        subprocess_row = [row for row in subprocess_title_row if "{}.{}.".format(
-                            function_order, process_order) in str(row['title'])]
-                        for subprocess in subprocess_row:
-                            subprocess_obj = self.parse_cell_title(str(subprocess['title']))
-                            if subprocess_obj:
-                                subprocess_order = parse(
-                                    "{function}.{process}.{subprocess}", str(subprocess_obj['order']))['subprocess']
-                                subprocess_title = subprocess_obj['title']
+            try:
+                # for row_num in range(0, 1):
+                for row_num in range(0, len(all_rows)-1):
+                    order, title = self.parse_order_title(all_rows, row_num, "A", "{order} {title}")
+                    function = survey_qnodes.filter_by(parent_id=None, title=title).one()
+                    log.info("function: %s", function)
+                    function_order = order
 
-                                subprocess_description = self.parse_description(scoring_sheet, subprocess['row_num'], "empty")
+                    order, title = self.parse_order_title(all_rows, row_num, "B", "{order} {title}")
+                    process = survey_qnodes.filter_by(parent_id=function.id, title=title).one()
+                    log.info("process: %s", process)
 
-                                qnode_subprocess = session.query(model.QuestionNode).filter_by(
-                                    survey_id=survey_id, parent_id=qnode_process.id, seq=(int(subprocess_order) - 1)).first()
-                                if not qnode_subprocess:
-                                    raise Exception("This file is not match with Survey.")
-                                if not (qnode_subprocess.title == subprocess_title and qnode_subprocess.description == subprocess_description):
-                                    raise Exception("This file is not match with Survey.")
+                    order, title = self.parse_order_title(all_rows, row_num, "C", "{order} {title}")
+                    subprocess = survey_qnodes.filter_by(parent_id=process.id, title=title).one()
+                    log.info("subprocess: %s", subprocess)
 
-                                measure_title_row = [{"title": row[self.col2num("k")], "row_num": all_rows.index(row), "weight": row[self.col2num("L")]}
-                                                     for row in all_rows
-                                                     if float(function_order) == self.parse_cell_number(row[self.col2num("C")]) and
-                                                     float(process_order) == self.parse_cell_number(row[self.col2num("D")]) and
-                                                     float(subprocess_order) == self.parse_cell_number(row[self.col2num("E")]) and
-                                                     self.parse_cell_number(str(row[self.col2num("F")])) != 0 and
-                                                     self.parse_cell_number(str(row[self.col2num("G")])) == 1]
+                    order, title = self.parse_order_title(all_rows, row_num, "D", "{order} {title}")
+                    measure = [m for m in subprocess.measures if m.title == title]
 
-                                for measure in measure_title_row:
-                                    measure_obj = self.parse_cell_title(
-                                        str(measure['title']))
-                                    if measure_obj:
-                                        measure_order = parse("{function}.{process}.{subprocess}.{measure}", str(
-                                            measure_obj['order']))['measure']
-                                        measure_title = measure_obj['title']
+                    if len(measure) == 1:
+                        measure = measure[0]
+                    else:
+                        raise Exception("This survey is not matching current open survey. ")
+                    log.info("measure: %s", measure)
+        
 
-                                        measure_intent = self.parse_description(
-                                            scoring_sheet, measure['row_num'], "Intent")
-                                        measure_inputs = self.parse_description(
-                                            scoring_sheet, measure['row_num'] + 1, "Iputs")
-                                        measure_scenario = self.parse_description(
-                                            scoring_sheet, measure['row_num'] + 2, "Scenario")
-                                        measure_questions = self.parse_description(
-                                            scoring_sheet, measure['row_num'] + 3, "Questions")
-                                        measure_comments = self.parse_description(
-                                            scoring_sheet, measure['row_num'] + 4, "Comments")
-                                        measure_weight = self.parse_cell_number(
-                                            measure['weight'])
+                    log.info("measure response_type: %s", [r for r in response_types if r["id"] == measure.response_type][0])
+                    r_types = [r for r in response_types if r["id"] == measure.response_type][0]
 
-                                        m = session.query(model.Measure).join(model.QnodeMeasure).filter_by(
-                                            survey_id=survey_id, qnode_id=qnode_subprocess.id, 
-                                            seq=(int(measure_order) - 1)).first()
-                                        if not m:
-                                            raise Exception("This file is not match with Survey.")
-                                        if not (m.title == measure_title):
-                                            raise Exception("This file is not match with Survey.")
-                                        
-                                        ######## TODO : save response to the database
+                    response = model.Response()
+                    response.survey_id = survey_id
+                    response.measure_id = measure.id
+                    response.assessment_id = assessment.id
+                    response.user_id = user_id
+                    response.comment = all_rows[row_num][self.col2num("K")]
+                    response.not_relevant = False # Need to fix this hard coding
+                    response.modified = datetime.datetime.utcnow()
+                    response.approval = 'draft'
+                    response_part = []
+
+                    response_part.append(self.parse_response_type(all_rows, row_num, r_types, "E"))
+                    if function_order != "7":
+                        response_part.append(self.parse_response_type(all_rows, row_num, r_types, "F"))
+                        response_part.append(self.parse_response_type(all_rows, row_num, r_types, "G"))
+                        response_part.append(self.parse_response_type(all_rows, row_num, r_types, "H"))
+                    response.response_parts  = response_part
+                    response.audit_reason = "Import"
+                    response.attachments = None
+                    session.add(response)
+            except sqlalchemy.orm.exc.NoResultFound:
+                raise Exception("This survey is not matching current open survey. ", all_rows[row_num], title)
+
+            assessment.update_stats_descendants()
+
+        return survey_id
+
+    def parse_response_type(self, all_rows, row_num, types, col_chr):
+        response_text = all_rows[row_num][self.col2num(col_chr)]
+        index =  ord(col_chr) - ord("E")
+        response_options = [r["name"].replace(" ", "").lower() for r in types["parts"][index]["options"]]
+        response_index = response_options.index(response_text.replace(" ", "").lower())
+        return {"index": response_index, "note": response_text}
 
 
-    def parse_description(self, sheet, starting_row_num, prev_column):
+    def parse_order_title(self, all_rows, row_num, col_chr, parse_expression):
+        col_num = self.col2num(col_chr)
+        column = all_rows[row_num][col_num]
+        column_object = parse(parse_expression, column)
+        order = column_object["order"]
+        title = column_object["title"].replace("\n", chr(10))
+        return order, title        
+
+
+    def parse_description(self, all_rows, starting_row_num, prev_column = None, paragraph=None):
         # print("starting_row_num", starting_row_num, "sheet", sheet.nrows)
-        if starting_row_num + 1 >= sheet.nrows:
+        if starting_row_num + 1 >= len(all_rows):
             return ""
 
-        header_cell = str(sheet.cell(starting_row_num + 1, self.col2num("J")))
-        desc = ""
-        if prev_column in str(header_cell):
-            description_cell = sheet.cell(
-                starting_row_num + 1, self.col2num("K"))
-            # if prev_column == "Comments":
-            desc = self.parse_text(description_cell)
-            desc += self.parse_description(sheet,
-                                           starting_row_num + 1, prev_column)
-            return desc
+        if prev_column:
+            header_cell = all_rows[starting_row_num + 1][self.col2num("J")]
+
+            if prev_column == header_cell:
+                description_cell = all_rows[starting_row_num + 1][self.col2num("K")]
+                desc = description_cell
+                desc += self.parse_description(all_rows, starting_row_num + 1, prev_column)
+                return desc
+            else:
+                return ""
         else:
-            return ''
+            para = all_rows[starting_row_num + 1][self.col2num("I")]
+            description_cell = all_rows[starting_row_num + 1][self.col2num("K")]
 
-    def parse_cell_title(self, row_text):
-        return parse("{order} - {title}", self.parse_text(row_text))
-
-    def parse_text(self, row_text):
-        row_text = str(row_text)
-        if row_text[:6] == "text:'":
-            parse_obj = parse("text:'{text}'", row_text)
-        else:
-            parse_obj = parse('text:"{text}"', row_text)
-        if parse_obj:
-            return parse_obj['text']
-        return ''
-
-    def parse_cell_number(self, cell):
-        value_obj = parse("number:{value}", str(cell))
-        if value_obj is None:
-            return 0
-        return float(value_obj['value'])
+            if paragraph:
+                if para == paragraph:
+                    desc = chr(10) + chr(10) + description_cell
+                    desc += self.parse_description(all_rows, starting_row_num + 1, None, paragraph=para)
+                    return desc
+                else:
+                    return ""
+            else:
+                desc = description_cell
+                desc += self.parse_description(all_rows, starting_row_num + 1, None, paragraph=para)
+                return desc

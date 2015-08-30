@@ -1,0 +1,52 @@
+<div class="response">
+
+<div class="section">
+    <div class="toolbar">
+        <span ng-if="!edit.model" ng-transclude></span>
+    </div>
+    <h2>
+        Response
+        <span ng-if="debug">Sample</span>
+        <span ng-if="checkRole('view_single_score') && responseType.parts.length"
+                class="text-muted pull-right" title="Score (weighted)">
+            {{stats.score * weight | number:0}}
+        </span>
+    </h2>
+</div>
+
+<ol class="responses list-unstyled" ng-if="!response.notRelevant">
+    <li ng-repeat="part in responseType.parts" class="clearfix"
+            ng-class="{active: $index == state.active}">
+        <div ng-if="part.name">
+            <label ng-click="state.active = $index">{{part.name}}</label>
+        </div>
+        <div>
+            <div class="btn-group btn-group-justified"
+                    ng-init="pi = $index">
+                <div class="btn-group"
+                        ng-repeat="o in part.options">
+                <button
+                        class="btn btn-default"
+                        ng-class="{active: active(pi, $index)}"
+                        ng-click="choose(pi, $index)"
+                        ng-disabled="!enabled(pi, $index)">
+                    <span class="index">{{$index + 1}}</span>
+                    {{o.name}}
+                    <span class="text-hidden">{{$index + 1}}</span>
+                </button>
+                </div>
+            </div>
+        </div>
+    </li>
+</ol>
+
+<label for="comments" class="sr-only">Comments</label>
+<div textarea-label="{{!response.comment ? 'Comments' : ''}}">
+    <textarea id="comments" class="form-control autoresize"
+        ng-model="response.comment"
+        ng-class="{empty: response.comment == ''}"
+        focus-on="focus-comment" title="Comments"
+        blur-on="blur-comment"></textarea>
+</div>
+
+</div>

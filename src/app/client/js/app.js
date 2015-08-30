@@ -3,7 +3,9 @@
 angular.module('wsaa.aquamark',
                ['ngRoute', 'ngAnimate', 'ui.bootstrap', 'cfp.hotkeys',
                 'ui.bootstrap.showErrors', 'validation.match', 'settings',
+                'yaru22.angular-timeago', 'angular-select-text',
                 'wsaa.survey', 'wsaa.admin', 'wsaa.surveyQuestions',
+                'wsaa.surveyAnswers',
                 'vpac.utils', 'vpac.widgets'])
 
 
@@ -176,6 +178,10 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
+            .when('/survey/import', {
+                templateUrl : 'survey_import.html',
+                controller : 'SurveyImportCtrl'
+            })
             .when('/survey/:survey', {
                 templateUrl : 'survey.html',
                 controller : 'SurveyCtrl',
@@ -223,7 +229,108 @@ angular.module('wsaa.aquamark',
                             function(QuestionNode, hierarchy, survey) {
                         return QuestionNode.query({
                             hierarchyId: hierarchy.id,
+                            surveyId: survey.id,
+                            root: ''
+                        }).$promise;
+                    }]
+                })}
+            })
+
+            .when('/assessment/new', {
+                templateUrl : 'assessment.html',
+                controller : 'AssessmentCtrl',
+                resolve: {routeData: chain({
+                    survey: ['Survey', '$route', function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    organisation: ['Organisation', '$route',
+                            function(Organisation, $route) {
+                        if (!$route.current.params.organisation)
+                            return null;
+                        return Organisation.get({
+                            id: $route.current.params.organisation
+                        }).$promise;
+                    }],
+                    hierarchies: ['Hierarchy', 'survey',
+                            function(Hierarchy, survey) {
+                        return Hierarchy.query({
                             surveyId: survey.id
+                        }).$promise;
+                    }],
+                    duplicate: ['Assessment', '$route',
+                            function(Assessment, $route) {
+                        if (!$route.current.params.duplicate)
+                            return null;
+                        return Assessment.get({
+                            id: $route.current.params.duplicate
+                        }).$promise;
+                    }]
+                })}
+            })
+            .when('/assessment/duplicate', {
+                templateUrl : 'assessment_dup.html',
+                controller : 'AssessmentDuplicateCtrl',
+                resolve: {routeData: chain({
+                    survey: ['Survey', '$route', function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    organisation: ['Organisation', '$route',
+                            function(Organisation, $route) {
+                        if (!$route.current.params.organisation)
+                            return null;
+                        return Organisation.get({
+                            id: $route.current.params.organisation
+                        }).$promise;
+                    }]
+                })}
+            })
+            .when('/assessment/import', {
+                templateUrl : 'assessment_import.html',
+                controller : 'AssessmentImportCtrl',
+                resolve: {routeData: chain({
+                    survey: ['Survey', '$route', function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    organisation: ['Organisation', '$route', function(Organisation, $route) {
+                        if (!$route.current.params.organisation)
+                            return null;
+                        return Organisation.get({
+                            id: $route.current.params.organisation
+                        }).$promise;
+                    }],
+                    hierarchies: ['Hierarchy', 'survey',
+                            function(Hierarchy, survey) {
+                        return Hierarchy.query({
+                            surveyId: survey.id
+                        }).$promise;
+                    }]
+                })}
+            })
+            .when('/assessment/:assessment', {
+                templateUrl : 'assessment.html',
+                controller : 'AssessmentCtrl',
+                resolve: {routeData: chain({
+                    assessment: ['Assessment', '$route',
+                            function(Assessment, $route) {
+                        return Assessment.get({
+                            id: $route.current.params.assessment
+                        }).$promise;
+                    }],
+                    survey: ['assessment', function(assessment) {
+                        return assessment.survey;
+                    }],
+                    qnodes: ['QuestionNode', 'assessment', 'survey',
+                            function(QuestionNode, assessment, survey) {
+                        return QuestionNode.query({
+                            hierarchyId: assessment.hierarchy.id,
+                            surveyId: survey.id,
+                            root: ''
                         }).$promise;
                     }]
                 })}
@@ -259,25 +366,36 @@ angular.module('wsaa.aquamark',
                 templateUrl : 'question_node.html',
                 controller : 'QuestionNodeCtrl',
                 resolve: {routeData: chain({
-                    qnode: ['QuestionNode', '$route',
-                            function(QuestionNode, $route) {
+                    assessment: ['Assessment', '$route',
+                            function(Assessment, $route) {
+                        if (!$route.current.params.assessment)
+                            return null;
+                        return Assessment.get({
+                            id: $route.current.params.assessment
+                        }).$promise;
+                    }],
+                    qnode: ['QuestionNode', '$route', 'assessment',
+                            function(QuestionNode, $route, assessment) {
                         return QuestionNode.get({
                             id: $route.current.params.qnode,
-                            surveyId: $route.current.params.survey
+                            surveyId: assessment ? assessment.survey.id :
+                                $route.current.params.survey,
                         }).$promise;
                     }],
-                    children: ['QuestionNode', '$route',
-                            function(QuestionNode, $route) {
+                    children: ['QuestionNode', '$route', 'assessment',
+                            function(QuestionNode, $route, assessment) {
                         return QuestionNode.query({
                             parentId: $route.current.params.qnode,
-                            surveyId: $route.current.params.survey
+                            surveyId: assessment ? assessment.survey.id :
+                                $route.current.params.survey,
                         }).$promise;
                     }],
-                    measures: ['Measure', '$route',
-                            function(Measure, $route) {
+                    measures: ['Measure', '$route', 'assessment',
+                            function(Measure, $route, assessment) {
                         return Measure.query({
                             qnodeId: $route.current.params.qnode,
-                            surveyId: $route.current.params.survey
+                            surveyId: assessment ? assessment.survey.id :
+                                $route.current.params.survey,
                         }).$promise;
                     }]
                 })}
@@ -336,20 +454,30 @@ angular.module('wsaa.aquamark',
                 templateUrl : 'measure.html',
                 controller : 'MeasureCtrl',
                 resolve: {routeData: chain({
-                    parent: ['QuestionNode', '$route',
-                            function(QuestionNode, $route) {
+                    assessment: ['Assessment', '$route',
+                            function(Assessment, $route) {
+                        if (!$route.current.params.assessment)
+                            return null;
+                        return Assessment.get({
+                            id: $route.current.params.assessment
+                        }).$promise;
+                    }],
+                    parent: ['QuestionNode', '$route', 'assessment',
+                            function(QuestionNode, $route, assessment) {
                         if (!$route.current.params.parent)
                             return null;
                         return QuestionNode.get({
                             id: $route.current.params.parent,
-                            surveyId: $route.current.params.survey
+                            surveyId: assessment ? assessment.survey.id :
+                                $route.current.params.survey,
                         }).$promise;
                     }],
-                    measure: ['Measure', '$route', function(Measure, $route) {
+                    measure: ['Measure', '$route', 'assessment',
+                            function(Measure, $route, assessment) {
                         return Measure.get({
                             id: $route.current.params.measure,
-                            surveyId: $route.current.params.survey,
-                            hierarchyId: $route.current.params.hierarchy,
+                            surveyId: assessment ? assessment.survey.id :
+                                $route.current.params.survey,
                             parentId: $route.current.params.parent
                         }).$promise;
                     }]
@@ -427,7 +555,7 @@ angular.module('wsaa.aquamark',
                     }
                     return config;
                 }
-            }
+            };
         }]);
     }
 ])
@@ -438,8 +566,9 @@ angular.module('wsaa.aquamark',
 }])
 
 
-.run(['$rootScope', '$window', '$location', 'Notifications', 'log',
-        function($rootScope, $window, $location, Notifications, log) {
+.run(['$rootScope', '$window', '$location', 'Notifications', 'log', 'timeAgo',
+        function($rootScope, $window, $location, Notifications, log, timeAgo) {
+
     $rootScope.$on('$routeChangeError',
             function(event, current, previous, rejection) {
         var error;
@@ -455,12 +584,41 @@ angular.module('wsaa.aquamark',
             $location.path("/");
         }
     });
+
+    var oneDay = 60 * 60 * 24;
+    timeAgo.settings.allowFuture = true;
+    timeAgo.settings.fullDateAfterSeconds = oneDay * 3;
 }])
 
 
-.controller('RootCtrl', ['$scope', 'hotkeys',
-        function($scope, hotkeys) {
+.controller('RootCtrl', ['$scope', 'hotkeys', '$cookies', 'User',
+        'Notifications', '$window',
+        function($scope, hotkeys, $cookies, User, Notifications, $window) {
     $scope.hotkeyHelp = hotkeys.toggleCheatSheet;
+
+    try {
+        var superuser = $cookies.get('superuser');
+        if (superuser) {
+            var pastUsers = decodeURIComponent($cookies.get('past-users'));
+            $scope.pastUsers = angular.fromJson(pastUsers);
+        } else {
+            $scope.pastUsers = null;
+        }
+    } catch (e) {
+        $scope.pastUsers = null;
+    }
+
+    $scope.impersonate = function(id) {
+        User.impersonate({id: id}).$promise.then(
+            function success() {
+                $window.location.reload();
+            },
+            function error(details) {
+                Notifications.set('user', 'error',
+                    "Could not impersonate: " + details.statusText);
+            }
+        );
+    };
 }])
 .controller('HeaderCtrl', ['$scope', 'confAuthz', 'Current',
         function($scope, confAuthz, Current) {

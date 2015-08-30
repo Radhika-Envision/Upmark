@@ -1,6 +1,9 @@
 <div class="header">
     <div class="container">
         <div class="toolbar">
+            <a class="btn btn-default btn-round" title="File Import"
+                    ng-href="#/survey/import" ng-if="checkRole('survey_add')">
+                <i class="fa fa-fw fa-cloud-upload"></i></a>
             <a class="btn btn-default btn-round" title="Add new"
                     ng-href="#/survey/new" ng-if="checkRole('survey_add')">
                 <i class="fa fa-fw fa-plus"></i></a>

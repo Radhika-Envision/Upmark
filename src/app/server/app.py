@@ -13,6 +13,7 @@ import sqlalchemy.engine.reflection
 import sqlalchemy.orm
 import tornado.options
 import tornado.web
+import tornado.httpserver
 
 import crud
 import handlers
@@ -180,8 +181,20 @@ def get_mappings():
         (r"/measure/?([^/]*)/survey.json", crud.survey.SurveyHistoryHandler, {
             'mapper': model.Measure}),
 
-        (r"/import/structure/?(.*).json", import_handlers.ImportStructureHandler, {}),
-        (r"/import/response/?(.*).json", import_handlers.ImportResponseHandler, {}),
+        (r"/assessment/?([^/]*).json", crud.assessment.AssessmentHandler, {}),
+        (r"/assessment/([^/]*)/rnode/?([^/]*).json",
+            crud.rnode.ResponseNodeHandler, {}),
+        (r"/assessment/([^/]*)/response/?([^/]*).json",
+            crud.response.ResponseHandler, {}),
+        (r"/assessment/([^/]*)/response/?([^/]*)/history.json",
+            crud.response.ResponseHistoryHandler, {}),
+        (r"/assessment/([^/]*)/measure/([^/]*)/attachment.json",
+            crud.attachment.ResponseAttachmentsHandler, {}),
+        (r"/attachment/([^/]*).json",
+            crud.attachment.AttachmentHandler, {}),
+        (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
+        (r"/import/response.json", import_handlers.ImportResponseHandler, {}),
+        (r"/import/assessment.json", import_handlers.ImportAssessmentHandler, {}),
         (r"/(.*)", tornado.web.StaticFileHandler, {
             'path': os.path.join(package_dir, "..", "client")}),
     ]
@@ -203,7 +216,9 @@ def start_web_server():
         port = int(tornado.options.options.port)
     except ValueError:
         port = tornado.options.options.port
-    application.listen(port)
+    max_buffer_size = 10 * 1024**2 # 10MB
+    http_server = tornado.httpserver.HTTPServer(application, max_body_size=max_buffer_size)
+    http_server.listen(port)
 
     if log.isEnabledFor(logging.INFO):
         import socket

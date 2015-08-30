@@ -17,6 +17,16 @@ angular.module('vpac.utils', [])
     };
 }])
 
+.factory('paged', [function() {
+    return function(response) {
+        var data = response.resource;
+        data.$pageIndex = parseInt(response.headers('Page-Index'));
+        data.$pageItemCount = parseInt(response.headers('Page-Item-Count'));
+        data.$pageCount = parseInt(response.headers('Page-Count'));
+        return data;
+    };
+}])
+
 /*
  * Simple string interpolation. E.g.
  *
@@ -126,20 +136,26 @@ angular.module('vpac.utils', [])
         if (!path1 || !path2)
             throw "Missing path; can't bind.";
 
-        logger('bind: Binding {}.{} to {}.{}', scope2.$id, path2, scope1.$id, path1);
+        logger('bind: Binding {}.{} to {}.{}',
+            scope2.$id, path2, scope1.$id, path1);
+
         scope1.$watch(path1, function(value) {
             if (value === undefined)
                 return;
-            logger('bind: {}.{} = {}.{} = {}', scope2.$id, path2, scope1.$id, path1, value);
+            logger('bind: {}.{} = {}.{} = {}',
+                scope2.$id, path2, scope1.$id, path1, value);
             get2.assign(scope2, value);
         });
 
         if (twoWay) {
-            logger('bind: Binding {}.{} to {}.{}', scope1.$id, path1, scope2.$id, path2);
+            logger('bind: Binding {}.{} to {}.{}',
+                scope1.$id, path1, scope2.$id, path2);
+
             scope2.$watch(path2, function(value) {
                 if (value === undefined)
                     return;
-                logger('bind: {}.{} = {}.{} = {}', scope1.$id, path1, scope2.$id, path2, value);
+                logger('bind: {}.{} = {}.{} = {}',
+                    scope1.$id, path1, scope2.$id, path2, value);
                 get1.assign(scope1, value);
             });
         }
@@ -285,30 +301,54 @@ angular.module('vpac.utils', [])
          *    arr[i] == item.
          * @return the index of the item or -1 if it was not found.
          */
-        indexOf: function(arr, item, getter) {
-            if (angular.isFunction(getter)) {
-                var keyNeedle = getter(item);
-                for (var i = 0; i < arr.length; i++) {
-                    var keyHaystack = getter(arr[i]);
-                    if (keyHaystack == keyNeedle)
-                        return i;
+        indexOf: function(arr, item, getter, iGetter) {
+            function makeGetter(getter) {
+                var fn;
+                if (angular.isFunction(getter))
+                    fn = function(x) { return fn.getter(x); };
+                else if (angular.isString(getter))
+                    fn = function(x) { return x[fn.getter]; };
+                else
+                    fn = function(x) { return x; };
+                fn.getter = getter;
+                return fn;
+            };
+
+            var get, iGet = get = {};
+
+            try {
+                get = makeGetter(getter);
+                if (iGetter === undefined)
+                    iGet = get;
+                else
+                    iGet = makeGetter(iGetter);
+
+                var keyNeedle = iGet(item);
+
+                if (angular.isFunction(getter)) {
+                    for (var i = 0; i < arr.length; i++) {
+                        var keyHaystack = getter(arr[i]);
+                        if (keyHaystack == keyNeedle)
+                            return i;
+                    }
+                } else if (angular.isString(getter)) {
+                    for (var i = 0; i < arr.length; i++) {
+                        var keyHaystack = arr[i][getter];
+                        if (keyHaystack == keyNeedle)
+                            return i;
+                    }
+                } else {
+                    for (var i = 0; i < arr.length; i++) {
+                        var keyHaystack = arr[i];
+                        if (keyHaystack == keyNeedle)
+                            return i;
+                    }
                 }
-            } else if (angular.isString(getter)) {
-                var keyNeedle = item[getter];
-                for (var i = 0; i < arr.length; i++) {
-                    var keyHaystack = arr[i][getter];
-                    if (keyHaystack == keyNeedle)
-                        return i;
-                }
-            } else {
-                var keyNeedle = item;
-                for (var i = 0; i < arr.length; i++) {
-                    var keyHaystack = arr[i];
-                    if (keyHaystack == keyNeedle)
-                        return i;
-                }
+                return -1;
+            } finally {
+                get.getter = null;
+                iGet.getter = null;
             }
-            return -1;
         },
 
         /**
@@ -410,6 +450,14 @@ angular.module('vpac.utils', [])
             seed = ((seed + 0xfd7046c5) + (seed << 3))   & 0xffffffff;
             seed = ((seed ^ 0xb55a4f09) ^ (seed >>> 16)) & 0xffffffff;
             return (seed & 0xfffffff) / 0x10000000;
+        },
+        /**
+         * Convert an integer to a character ID - e.g. 0 -> a, 1 -> b, 25 -> z,
+         * 26 -> aa, 27 -> ab, etc.
+         */
+        idOf: function(i) {
+            return (i >= 26 ? Numbers.idOf((i / 26 >> 0) - 1) : '') +
+                'abcdefghijklmnopqrstuvwxyz'[i % 26 >> 0];
         }
     };
     return Numbers;

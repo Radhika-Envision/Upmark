@@ -1,0 +1,323 @@
+[
+    {
+        "id": "standard",
+        "name": "Standard",
+        "parts": [
+            {
+                "id": "dev",
+                "name": "Development",
+                "options": [
+                    {"score": 0.48, "name": "Informal"},
+                    {"score": 0.56, "name": "Aware"},
+                    {"score": 0.64, "name": "Formulated"},
+                    {"score": 0.74, "name": "Advanced"},
+                    {"score": 0.80, "name": "Robust"}
+                ]
+            },
+            {
+                "id": "doc",
+                "name": "Documentation",
+                "options": [
+                    {"score": 0.12, "name": "None"},
+                    {"score": 0.14, "if": "dev__i >= 1", "name": "Minimal"},
+                    {"score": 0.16, "if": "dev__i >= 2", "name": "Moderate"},
+                    {"score": 0.18, "if": "dev__i >= 3", "name": "Advanced"},
+                    {"score": 0.20, "if": "dev__i >= 4", "name": "Complete"}
+                ]
+            },
+            {
+                "id": "cov",
+                "name": "Coverage & Frequency",
+                "options": [
+                    {"score": 0.12, "name": "Sparse"},
+                    {"score": 0.24, "name": "Limited"},
+                    {"score": 0.36, "if": "dev__i >= 2", "name": "Moderate"},
+                    {"score": 0.46, "if": "dev__i >= 2", "name": "Predominant"},
+                    {"score": 0.60, "if": "dev__i >= 2", "name": "Total"}
+                ]
+            },
+            {
+                "id": "eff",
+                "name": "Effectiveness",
+                "options": [
+                    {"score": 0.08, "name": "Rarely"},
+                    {"score": 0.16, "name": "Occasionally"},
+                    {"score": 0.24, "if": "dev__i >= 2", "name": "Often"},
+                    {"score": 0.32, "if": "dev__i >= 2", "name": "Usually"},
+                    {"score": 0.40, "if": "dev__i >= 2", "name": "Always"}
+                ]
+            }
+        ],
+        "formula": "(dev + doc) * (cov + eff)"
+    },
+    {
+        "id": "business-support-1",
+        "name": "Functionality",
+        "parts": [
+            {
+                "options": [
+                    {"score": 0.2, "name": "Basic"},
+                    {"score": 0.4, "name": "Limited"},
+                    {"score": 0.6, "name": "Adequate"},
+                    {"score": 0.8, "name": "Good"},
+                    {"score": 1.0, "name": "Comprehensive"}
+                ]
+            }
+        ]
+    },
+    {
+        "id": "business-support-2",
+        "name": "Capacity",
+        "parts": [
+            {
+                "options": [
+                    {"score": 0.2, "name": "Poor"},
+                    {"score": 0.4, "name": "Limited"},
+                    {"score": 0.6, "name": "Adequate"},
+                    {"score": 0.8, "name": "Good"},
+                    {"score": 1.0, "name": "Comprehensive"}
+                ]
+            }
+        ]
+    },
+    {
+        "id": "business-support-3",
+        "name": "Data/Information Capture",
+        "parts": [
+            {
+                "options": [
+                    {"score": 0.2, "name": "Difficult"},
+                    {"score": 0.4, "name": "Limited"},
+                    {"score": 0.6, "name": "Adequate"},
+                    {"score": 0.8, "name": "Good"},
+                    {"score": 1.0, "name": "Effective"}
+                ]
+            }
+        ]
+    },
+    {
+        "id": "business-support-4",
+        "name": "Data/Information Input",
+        "parts": [
+            {
+                "options": [
+                    {"score": 0.2, "name": "Poor"},
+                    {"score": 0.4, "name": "Limited"},
+                    {"score": 0.6, "name": "Adequate"},
+                    {"score": 0.8, "name": "Good"},
+                    {"score": 1.0, "name": "Streamlined"}
+                ]
+            }
+        ]
+    },
+    {
+        "id": "business-support-5",
+        "name": "Data/Information Verification",
+        "parts": [
+            {
+                "options": [
+                    {"score": 0.2, "name": "Rare"},
+                    {"score": 0.4, "name": "Limited"},
+                    {"score": 0.6, "name": "Adequate"},
+                    {"score": 0.8, "name": "Good"},
+                    {"score": 1.0, "name": "Comprehensive"}
+                ]
+            }
+        ]
+    },
+    {
+        "id": "business-support-6",
+        "name": "Data/Information Integrity",
+        "parts": [
+            {
+                "options": [
+                    {"score": 0.2, "name": "Uncontrolled"},
+                    {"score": 0.4, "name": "Limited"},
+                    {"score": 0.6, "name": "Adequate"},
+                    {"score": 0.8, "name": "Good"},
+                    {"score": 1.0, "name": "Fully Controlled"}
+                ]
+            }
+        ]
+    },
+    {
+        "id": "business-support-7",
+        "name": "Data/Information Security",
+        "parts": [
+            {
+                "options": [
+                    {"score": 0.2, "name": "No Backup"},
+                    {"score": 0.4, "name": "Limited"},
+                    {"score": 0.6, "name": "Moderate"},
+                    {"score": 0.8, "name": "Good"},
+                    {"score": 1.0, "name": "Full Backup"}
+                ]
+            }
+        ]
+    },
+    {
+        "id": "business-support-8",
+        "name": "Data/Information Accessibility",
+        "parts": [
+            {
+                "options": [
+                    {"score": 0.2, "name": "Poor"},
+                    {"score": 0.4, "name": "Basic"},
+                    {"score": 0.6, "name": "Fair"},
+                    {"score": 0.8, "name": "Good"},
+                    {"score": 1.0, "name": "Excellent"}
+                ]
+            }
+        ]
+    },
+    {
+        "id": "business-support-9",
+        "name": "Data/Information Useable Format",
+        "parts": [
+            {
+                "options": [
+                    {"score": 0.2, "name": "Incompatible"},
+                    {"score": 0.4, "name": "Limited"},
+                    {"score": 0.6, "name": "Moderate"},
+                    {"score": 0.8, "name": "Good"},
+                    {"score": 1.0, "name": "Fully Compatible"}
+                ]
+            }
+        ]
+    },
+    {
+        "id": "business-support-10",
+        "name": "System Interconnectivity",
+        "parts": [
+            {
+                "options": [
+                    {"score": 0.2, "name": "Poor"},
+                    {"score": 0.4, "name": "Basic"},
+                    {"score": 0.6, "name": "Fair"},
+                    {"score": 0.8, "name": "Good"},
+                    {"score": 1.0, "name": "Comprehensive"}
+                ]
+            }
+        ]
+    },
+    {
+        "id": "business-support-11",
+        "name": "Ad-hoc Reporting / Search",
+        "parts": [
+            {
+                "options": [
+                    {"score": 0.2, "name": "Poor"},
+                    {"score": 0.4, "name": "Basic"},
+                    {"score": 0.6, "name": "Fair"},
+                    {"score": 0.8, "name": "Good"},
+                    {"score": 1.0, "name": "Excellent"}
+                ]
+            }
+        ]
+    },
+    {
+        "id": "business-support-12",
+        "name": "Standard Reporting",
+        "parts": [
+            {
+                "options": [
+                    {"score": 0.2, "name": "Poor"},
+                    {"score": 0.4, "name": "Basic"},
+                    {"score": 0.6, "name": "Fair"},
+                    {"score": 0.8, "name": "Good"},
+                    {"score": 1.0, "name": "Excellent"}
+                ]
+            }
+        ]
+    },
+    {
+        "id": "business-support-13",
+        "name": "User Documentation / Online Help",
+        "parts": [
+            {
+                "options": [
+                    {"score": 0.2, "name": "Poor"},
+                    {"score": 0.4, "name": "Basic"},
+                    {"score": 0.6, "name": "Fair"},
+                    {"score": 0.8, "name": "Good"},
+                    {"score": 1.0, "name": "Comprehensive"}
+                ]
+            }
+        ]
+    },
+    {
+        "id": "business-support-14",
+        "name": "Usability",
+        "parts": [
+            {
+                "options": [
+                    {"score": 0.2, "name": "Poor"},
+                    {"score": 0.4, "name": "Basic"},
+                    {"score": 0.6, "name": "Fair"},
+                    {"score": 0.8, "name": "Good"},
+                    {"score": 1.0, "name": "Excellent"}
+                ]
+            }
+        ]
+    },
+    {
+        "id": "business-support-15",
+        "name": "Functional Spec & Software Listing",
+        "parts": [
+            {
+                "options": [
+                    {"score": 0.2, "name": "Poor"},
+                    {"score": 0.4, "name": "Basic"},
+                    {"score": 0.6, "name": "Fair"},
+                    {"score": 0.8, "name": "Good"},
+                    {"score": 1.0, "name": "Comprehensive"}
+                ]
+            }
+        ]
+    },
+    {
+        "id": "business-support-16",
+        "name": "System Maintenance",
+        "parts": [
+            {
+                "options": [
+                    {"score": 0.2, "name": "Poor"},
+                    {"score": 0.4, "name": "Basic"},
+                    {"score": 0.6, "name": "Fair"},
+                    {"score": 0.8, "name": "Good"},
+                    {"score": 1.0, "name": "Comprehensive"}
+                ]
+            }
+        ]
+    },
+    {
+        "id": "business-support-17",
+        "name": "System Reliability and Availability",
+        "parts": [
+            {
+                "options": [
+                    {"score": 0.2, "name": "Poor"},
+                    {"score": 0.4, "name": "Basic"},
+                    {"score": 0.6, "name": "Fair"},
+                    {"score": 0.8, "name": "Good"},
+                    {"score": 1.0, "name": "High"}
+                ]
+            }
+        ]
+    },
+    {
+        "id": "business-support-18",
+        "name": "Delivering Outcome Requirements",
+        "parts": [
+            {
+                "options": [
+                    {"score": 0.2, "name": "None"},
+                    {"score": 0.4, "name": "Basic"},
+                    {"score": 0.6, "name": "Moderate"},
+                    {"score": 0.8, "name": "Good"},
+                    {"score": 1.0, "name": "Comprehensive"}
+                ]
+            }
+        ]
+    }
+]

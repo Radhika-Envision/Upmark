@@ -50,6 +50,21 @@
                             <span class="when-collapsed">Organisations</span>
                         </a>
                     </li>
+                    <li ng-if="pastUsers.length" dropdown dropdown-append-to-body>
+                        <a href title="Impersonate" dropdown-toggle>
+                            <i class="fa fa-fw fa-paw"></i>
+                            <span class="when-collapsed">Impersonate</span>
+                        </a>
+
+                        <ul class="dropdown-menu dropdown-menu-right">
+                            <li class="dropdown-header">Impersonate</li>
+                            <li ng-repeat="user in pastUsers">
+                                <a href ng-click="impersonate(user.id)">
+                                    {{!user.name}}
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
                     <li>
                         <a ng-href="#/user/{{user.id}}" title="Your details">
                             {{user.name}}

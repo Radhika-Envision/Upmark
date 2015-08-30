@@ -1,3 +1,4 @@
+import json
 import os
 import unittest
 from unittest import mock
@@ -111,11 +112,19 @@ class AqModelTestBase(unittest.TestCase):
             session.add(user)
 
     def create_survey_structure(self):
+        proj_dir = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), '..')
+
+        with open(os.path.join(
+                proj_dir, 'client', 'default_response_types.json')) as file:
+            response_types = json.load(file)
+
         # Create survey
         with model.session_scope() as session:
             survey = entity = model.Survey(
                 title='Test Survey 1',
                 description="This is a test survey")
+            survey.response_types = response_types
             session.add(survey)
             session.flush()
             survey_id = survey.id
@@ -126,19 +135,19 @@ class AqModelTestBase(unittest.TestCase):
                 'title': "Foo Measure",
                 'intent': "Foo",
                 'weight': 100,
-                'response_type': 'A'
+                'response_type': 'yes-no'
             },
             {
                 'title': "Bar Measure",
                 'intent': "Bar",
                 'weight': 200,
-                'response_type': 'A'
+                'response_type': 'yes-no'
             },
             {
                 'title': "Baz Measure",
                 'intent': "Baz",
                 'weight': 300,
-                'response_type': 'A'
+                'response_type': 'yes-no'
             },
         ]
         measure_ids = []
@@ -195,7 +204,7 @@ class AqModelTestBase(unittest.TestCase):
             },
         ]
 
-        def create_qnodes(qsons, session, hierarchy_id=None, parent_id=None):
+        def create_qnodes(qsons, session, hierarchy_id, parent_id=None):
             qnodes = []
             for qson in qsons:
                 qnode = model.QuestionNode(
@@ -210,7 +219,8 @@ class AqModelTestBase(unittest.TestCase):
 
                 if 'children' in qson:
                     qnode.children = create_qnodes(
-                        qson['children'], session, parent_id=qnode.id)
+                        qson['children'], session, hierarchy_id,
+                        parent_id=qnode.id)
                     qnode.children.reorder()
 
                 for i in qson.get('measures', []):
@@ -231,13 +241,15 @@ class AqModelTestBase(unittest.TestCase):
                 session.add(hierarchy)
                 session.flush()
                 hierarchy.qnodes = create_qnodes(
-                    hson['qnodes'], session, hierarchy_id=hierarchy.id)
+                    hson['qnodes'], session, hierarchy.id)
                 hierarchy.qnodes.reorder()
             session.flush()
             return hierarchies
 
         with model.session_scope() as session:
+            survey = session.query(model.Survey).first()
             create_hierarchies(hsons, session)
+            survey.update_stats_descendants()
 
 
 class AqHttpTestBase(AqModelTestBase, AsyncHTTPTestCase):
@@ -247,12 +259,16 @@ class AqHttpTestBase(AqModelTestBase, AsyncHTTPTestCase):
         app.default_settings()
 
     def get_app(self):
-        return Application(app.get_mappings(), **app.get_minimal_settings())
+        settings = app.get_minimal_settings().copy()
+        settings['serve_traceback'] = True
+        return Application(app.get_mappings(), **settings)
 
     def fetch(self, path, expected=None, decode=False, **kwargs):
         response = super().fetch(path, **kwargs)
         if expected is not None:
-            self.assertEqual(expected, response.code, msg=response.reason)
+            self.assertEqual(
+                expected, response.code,
+                msg="{}\n\n{}".format(response.reason, response.body.decode('utf8')))
         if decode:
             return denormalise(json_decode(response.body))
         else:

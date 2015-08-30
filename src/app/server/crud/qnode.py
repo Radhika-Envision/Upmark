@@ -7,7 +7,7 @@ import tornado.web
 import sqlalchemy
 from sqlalchemy.orm import joinedload
 
-import crud.survey
+import crud
 import handlers
 import model
 import logging
@@ -15,7 +15,7 @@ import logging
 from utils import reorder, ToSon, updater
 
 
-log = logging.getLogger('app.data_access')
+log = logging.getLogger('app.crud.qnode')
 
 
 class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
@@ -43,6 +43,7 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 r'/id$',
                 r'/title$',
                 r'/seq$',
+                r'/n_measures$',
                 r'/is_open$',
                 r'/is_editable$',
                 # Fields to match from only the root object
@@ -51,9 +52,30 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 r'/parent$',
                 r'/hierarchy$',
                 r'/hierarchy/structure.*$',
-                r'/hierarchy/survey$'
+                r'/hierarchy/survey$',
+                # Response types needed here when creating a new measure
+                r'/response_types.*$'
             ])
             son = to_son(qnode)
+
+            sibling_query = (session.query(model.QuestionNode)
+                .filter(model.QuestionNode.survey_id==qnode.survey_id,
+                        model.QuestionNode.parent_id==qnode.parent_id))
+
+            prev = (sibling_query
+                .filter(model.QuestionNode.seq < qnode.seq)
+                .order_by(model.QuestionNode.seq.desc())
+                .first())
+            next_ = (sibling_query
+                .filter(model.QuestionNode.seq > qnode.seq)
+                .order_by(model.QuestionNode.seq)
+                .first())
+
+            if prev is not None:
+                son['prev'] = str(prev.id)
+            if next_ is not None:
+                son['next'] = str(next_.id)
+
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
@@ -62,9 +84,14 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         '''Get list.'''
         hierarchy_id = self.get_argument('hierarchyId', '')
         parent_id = self.get_argument('parentId', '')
-        if hierarchy_id != '' and parent_id != '':
+        root = self.get_argument('root', None)
+
+        if root is not None and parent_id != '':
             raise handlers.ModelError(
-                "Can't specify both parent and hierarchy IDs")
+                "Can't specify parent ID when requesting roots")
+        if hierarchy_id == '' and parent_id == '':
+            raise handlers.ModelError(
+                "Hierarchy or parent ID required")
 
         with model.session_scope() as session:
             query = session.query(model.QuestionNode)\
@@ -72,11 +99,10 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
 
             if hierarchy_id != '':
                 query = query.filter_by(hierarchy_id=hierarchy_id)
-            elif parent_id != '':
+            if parent_id != '':
                 query = query.filter_by(parent_id=parent_id)
-            else:
-                raise handlers.ModelError(
-                    "Hierarchy or parent ID required")
+            if root is not None:
+                query = query.filter_by(parent_id=None)
 
             query = query.order_by(model.QuestionNode.seq)
 
@@ -85,6 +111,7 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 r'/id$',
                 r'/title$',
                 r'/seq$',
+                r'/n_measures$',
                 # Descend into nested objects
                 r'/[0-9]+$',
             ])
@@ -104,9 +131,6 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
 
         hierarchy_id = self.get_argument('hierarchyId', '')
         parent_id = self.get_argument('parentId', '')
-        if hierarchy_id != '' and parent_id != '':
-            raise handlers.ModelError(
-                "Can't specify both parent and hierarchy IDs")
 
         self.check_editable()
 
@@ -114,26 +138,47 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             with model.session_scope() as session:
                 qnode = model.QuestionNode(survey_id=self.survey_id)
                 self._update(session, qnode, self.request_son)
+                log.debug("new: %s", qnode)
 
                 if hierarchy_id != '':
                     hierarchy = session.query(model.Hierarchy)\
                         .get((hierarchy_id, self.survey_id))
                     if hierarchy is None:
                         raise handlers.ModelError("No such hierarchy")
-                    hierarchy.qnodes.append(qnode)
-                    hierarchy.qnodes.reorder()
-                elif parent_id != '':
+                else:
+                    hierarchy = None
+                log.debug("hierarchy: %s", hierarchy)
+
+                if parent_id != '':
                     parent = session.query(model.QuestionNode)\
                         .get((parent_id, self.survey_id))
                     if parent is None:
                         raise handlers.ModelError("Parent does not exist")
+                    if hierarchy is None:
+                        hierarchy = parent.hierarchy
+                    elif parent.hierarchy != hierarchy:
+                        raise handlers.ModelError(
+                            "Parent does not belong to that hierarchy")
+                else:
+                    parent = None
+
+                qnode.hierarchy = hierarchy
+
+                if parent is not None:
+                    log.debug("Appending to parent")
                     parent.children.append(qnode)
                     parent.children.reorder()
+                    log.debug("committing: %s", parent.children)
+                elif hierarchy is not None:
+                    log.debug("Appending to hierarchy")
+                    hierarchy.qnodes.append(qnode)
+                    hierarchy.qnodes.reorder()
+                    log.debug("committing: %s", hierarchy.qnodes)
                 else:
-                    raise handlers.ModelError(
-                        "Hierarchy or parent ID required")
+                    raise handlers.ModelError("Parent or hierarchy ID required")
 
                 session.flush()
+                qnode.update_stats_ancestors()
                 qnode_id = str(qnode.id)
 
         except sqlalchemy.exc.IntegrityError as e:
@@ -156,6 +201,10 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     .get((qnode_id, self.survey_id))
                 if qnode is None:
                     raise ValueError("No such object")
+                log.debug("deleting: %s", qnode)
+
+                if len(qnode.qnode_measures) > 0:
+                    raise handlers.ModelError("Question node is in use")
 
                 hierarchy = None
                 parent = None
@@ -168,6 +217,7 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     hierarchy.qnodes.reorder()
                 if parent is not None:
                     parent.children.reorder()
+                    parent.update_stats_ancestors()
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Question node is in use")
         except (sqlalchemy.exc.StatementError, ValueError):
@@ -190,6 +240,7 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     .get((qnode_id, self.survey_id))
                 if qnode is None:
                     raise ValueError("No such object")
+                log.debug("updating: %s", qnode)
 
                 self._update(session, qnode, self.request_son)
 
@@ -210,26 +261,40 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
 
         hierarchy_id = self.get_argument('hierarchyId', '')
         parent_id = self.get_argument('parentId', '')
-        if hierarchy_id != '' and parent_id != '':
+        root = self.get_argument('root', None)
+
+        if root is None and parent_id == '':
             raise handlers.ModelError(
-                "Can't specify both parent and hierarchy IDs")
+                "Parent ID required, or specify 'root=' for root nodes")
+        if root is not None and parent_id != '':
+            raise handlers.ModelError(
+                "Can't specify both 'root=' and parent ID")
+            if hierarchy_id == '':
+                raise handlers.ModelError(
+                    "Hierarchy ID is required for operating on root nodes")
 
         son = json_decode(self.request.body)
         try:
             with model.session_scope() as session:
-                if hierarchy_id != '':
-                    hierarchy = session.query(model.Hierarchy)\
-                        .get((hierarchy_id, self.survey_id))
-                    if hierarchy is None:
-                        raise handlers.MissingDocError("No such hierarchy")
-                    reorder(hierarchy.qnodes, son)
-                elif parent_id != '':
+                if parent_id != '':
                     parent = session.query(model.QuestionNode)\
                         .get((parent_id, self.survey_id))
                     if parent is None:
                         raise handlers.MissingDocError(
                             "Parent question node does not exist")
+                    if hierarchy_id != '':
+                        if hierarchy_id != str(parent.hierarchy_id):
+                            raise handlers.MissingDocError(
+                                "Parent does not belong to that hierarchy")
+                    log.debug("Reordering children of: %s", parent)
                     reorder(parent.children, son)
+                elif root is not None:
+                    hierarchy = session.query(model.Hierarchy)\
+                        .get((hierarchy_id, self.survey_id))
+                    if hierarchy is None:
+                        raise handlers.MissingDocError("No such hierarchy")
+                    log.debug("Reordering children of: %s", hierarchy)
+                    reorder(hierarchy.qnodes, son)
                 else:
                     raise handlers.ModelError(
                         "Hierarchy or parent ID required")

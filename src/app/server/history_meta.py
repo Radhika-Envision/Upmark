@@ -1,10 +1,10 @@
-'''
-This source came from SqlAlchemy official website.
-source : 
-http://docs.sqlalchemy.org/en/rel_1_0/_modules/examples/versioned_history/history_meta.html
-It's license is MIT on their web site mentioned.
-'''
+# This source came from SQLAlchemy official website.
+# http://docs.sqlalchemy.org/en/rel_1_0/_modules/examples/versioned_history/history_meta.html
+# According to that site, the licence is MIT.
+
 """Versioned mixin class and other utilities."""
+
+import logging
 
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import mapper, attributes, object_mapper
@@ -13,6 +13,9 @@ from sqlalchemy import Table, Column, ForeignKeyConstraint, Integer, DateTime
 from sqlalchemy import event, util
 import datetime
 from sqlalchemy.orm.properties import RelationshipProperty
+
+
+log = logging.getLogger('app.model.versioned')
 
 
 def col_references_table(col, table):
@@ -163,6 +166,28 @@ class Versioned(object):
             return mp
         return map
 
+    @property
+    def version_on_update(self):
+        try:
+            return self._version_on_update
+        except AttributeError:
+            return True
+
+    @version_on_update.setter
+    def version_on_update(self, enabled):
+        self._version_on_update = enabled
+
+    @property
+    def version_on_delete(self):
+        try:
+            return self._version_on_delete
+        except AttributeError:
+            return True
+
+    @version_on_delete.setter
+    def version_on_delete(self, enabled):
+        self._version_on_delete = enabled
+
 
 def versioned_objects(iter):
     for obj in iter:
@@ -171,6 +196,7 @@ def versioned_objects(iter):
 
 
 def create_version(obj, session, deleted=False):
+    log.debug('Versioning %s', obj)
     obj_mapper = object_mapper(obj)
     history_mapper = obj.__history_mapper__
     history_cls = history_mapper.class_
@@ -187,6 +213,8 @@ def create_version(obj, session, deleted=False):
     ):
         if hm.single:
             continue
+
+        log.debug('Working on %s and %s', om, hm)
 
         for hist_col in hm.local_table.c:
             if _is_versioning_col(hist_col):
@@ -215,14 +243,17 @@ def create_version(obj, session, deleted=False):
 
             a, u, d = attributes.get_history(obj, prop.key)
 
+            log.debug('key: %s, added: %s, unchanged: %s, deleted: %s',
+                      prop.key, a, u, d)
+
             if d:
-                attr[hist_col.key] = d[0]
+                attr[prop.key] = d[0]
                 obj_changed = True
             elif u:
-                attr[hist_col.key] = u[0]
-            else:
+                attr[prop.key] = u[0]
+            elif a:
                 # if the attribute had no value.
-                attr[hist_col.key] = a[0]
+                attr[prop.key] = a[0]
                 obj_changed = True
 
     if not obj_changed:
@@ -255,6 +286,8 @@ def versioned_session(session):
     @event.listens_for(session, 'before_flush')
     def before_flush(session, flush_context, instances):
         for obj in versioned_objects(session.dirty):
-            create_version(obj, session)
+            if obj.version_on_update:
+                create_version(obj, session)
         for obj in versioned_objects(session.deleted):
-            create_version(obj, session, deleted=True)
+            if obj.version_on_delete:
+                create_version(obj, session, deleted=True)

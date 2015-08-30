@@ -47,6 +47,7 @@ angular.module('vpac.widgets', [])
         },
         link: function(scope, elem, attrs) {
             var update = function(fraction) {
+                console.log('update', fraction);
                 var path = drawSemicircle(fraction);
                 var fillElem = elem.find(".clock-fill");
                 fillElem.attr('d', path);
@@ -63,47 +64,94 @@ angular.module('vpac.widgets', [])
 }])
 
 
-.factory('Notifications', ['log', '$timeout', function(log, $timeout) {
+.directive('columnProgress', [function() {
+    return {
+        restrict: 'E',
+        scope: {
+            items: '='
+        },
+        templateUrl: "bar-progress.html",
+        controller: ['$scope', function($scope) {
+            $scope.$watch('items', function(items) {
+                if (!items) {
+                    $scope.summary = '';
+                    return;
+                }
+                var summary = [];
+                for (var i = 0; i < items.length; i++) {
+                    var item = items[i];
+                    summary.push(item.name + ': ' + item.value);
+                }
+                $scope.summary = summary.join(', ');
+            });
+        }],
+        link: function(scope, elem, attrs) {
+            elem.on('click', function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+            });
+            scope.$on('$destroy', function() {
+                elem.off('click');
+            });
+        }
+    };
+}])
+
+
+.directive('columnProgressColumn', [function() {
+    return {
+        restrict: 'A',
+        link: function(scope, elem, attrs) {
+            scope.$watch('item.fraction', function(fraction) {
+                elem.css('height', '' + (fraction * 100) + '%');
+                elem.toggleClass('complete', fraction > 0.999999);
+            });
+        }
+    };
+}])
+
+
+.factory('Notifications', ['log', '$timeout', 'Arrays',
+        function(log, $timeout, Arrays) {
     function Notifications() {
         this.messages = [];
     };
     Notifications.prototype.set = function(id, type, body, duration) {
-        var newMessage = {
-            id: id,
-            type: type,
-            css: type == 'error' ? 'danger' : type,
-            body: body
-        };
-        this.remove(id);
-        this.messages = [newMessage].concat(this.messages);
+        var i = Arrays.indexOf(this.messages, id, 'id', null);
+        var message;
+        if (i >= 0) {
+            message = this.messages[i];
+        } else {
+            message = {};
+            this.messages.splice(0, 0, message);
+        }
+
+        message.id = id;
+        message.type = type;
+        message.css = type == 'error' ? 'danger' : type;
+        message.body = body;
+        if (message.timeout)
+            $timeout.cancel(message.timeout);
+
         if (type == 'error')
             log.error(body);
         else
             log.info(body);
 
         if (duration) {
-            $timeout(function(that, message) {
-                that.remove(message);
-            }, duration, true, this, newMessage);
+            message.timeout = $timeout(function(that, id) {
+                that.remove(id);
+            }, duration, true, this, id);
         }
-
-        return newMessage;
     };
     /**
      * Remove all messages that match the given ID or object.
      */
-    Notifications.prototype.remove = function(messageOrId) {
-        var filterFn = null;
-        if (angular.isString(messageOrId)) {
-            filterFn = function(element) {
-                return element.id != this;
-            };
-        } else {
-            filterFn = function(element) {
-                return element != this;
-            };
+    Notifications.prototype.remove = function(id) {
+        var i = Arrays.indexOf(this.messages, id, 'id', null);
+        if (i >= 0) {
+            this.messages.splice(i, 1);
         }
-        return this.messages = this.messages.filter(filterFn, messageOrId);
     };
     return new Notifications();
 }])
@@ -270,40 +318,21 @@ angular.module('vpac.widgets', [])
 }])
 
 
-.directive('reorderable', [function() {
+.directive('emptyAsNull', function() {
     return {
-        restrict: 'E',
-        scope: {
-            model: '=',
-            title: '@',
-            checkRole: '=',
-            params: '=',
-            resource: '=',
-            canEdit: '='
-        },
-        templateUrl: 'reorder.html',
-        replace: true,
-        transclude: true,
-        controller: ['$scope', 'format', 'Editor',
-                function($scope, format, Editor) {
-            $scope.edit = Editor(
-                'model', $scope, $scope.params, $scope.resource);
-            $scope.href = function(id) {
-                return format($scope.hrefSpec, id);
+        restrict: 'A',
+        require: 'ngModel',
+        link: function (scope, elem, attrs, ctrl) {
+            function emptyToNull(viewValue) {
+                if (viewValue === '')
+                    return null;
+                return viewValue;
             };
-            $scope.dragOpts = {
-                axis: 'y',
-                handle: '.grab-handle'
-            };
-            $scope.$on('EditSaved', function(event, model) {
-                event.stopPropagation();
-            });
-        }],
-        link: function(scope, elem, attrs) {
-            scope.hrefSpec = attrs.href;
+            ctrl.$parsers.push(emptyToNull);
+            ctrl.$modelValue = emptyToNull(ctrl.$viewValue);
         }
     };
-}])
+})
 
 
 .directive('anyHref', ['$location', function($location) {
@@ -311,12 +340,15 @@ angular.module('vpac.widgets', [])
         restrict: 'A',
         link: function(scope, elem, attrs) {
             elem.on('click.anyHref', function() {
+                if (attrs.disabled)
+                    return;
                 scope.$apply(function() {
                     $location.url(attrs.anyHref);
                 });
             });
             scope.$on('$destroy', function() {
                 elem.off('.anyHref');
+                scope = null;
             });
         }
     };
@@ -325,7 +357,7 @@ angular.module('vpac.widgets', [])
 
 .factory('layout', function() {
     return {
-        expandHeader: true
+        expandHeader: false
     };
 })
 
@@ -361,6 +393,31 @@ angular.module('vpac.widgets', [])
             scope.$on('$destroy', function() {
                 numTitles--;
                 $document[0].title = defaultTitle;
+            });
+        }
+    };
+}])
+
+
+.directive('autoresize', [function() {
+    return {
+        restrict: 'AC',
+        link: function(scope, elem, attrs) {
+            var resize = function() {
+                // Resize to something small first in case we should shrink -
+                // otherwise scrollHeight will be wrong.
+                elem.css('height', '10px');
+                var height = elem[0].scrollHeight;
+                height += elem.outerHeight() - elem.innerHeight();
+                elem.css('height', '' + height + 'px');
+            };
+
+            elem.on('input change', resize);
+            scope.$watch(attrs.ngModel, resize);
+
+            scope.$on('$destroy', function() {
+                elem.off();
+                elem = null;
             });
         }
     };
