@@ -423,4 +423,30 @@ angular.module('vpac.widgets', [])
     };
 }])
 
+
+.controller('WoofmarkTest', function($scope) {
+    $scope.model = {
+        contents: 'Foo *bar*'
+    };
+})
+
+
+.directive('woofmark', ['$timeout', function($timeout) { return {
+    restrict: 'E',
+    require: 'ngModel',
+    template: '<textarea></textarea>',
+    link: function(scope, elem, attrs, ngModel) {
+        console.log('linking woofmark')
+        var editor;
+        $timeout(function() {
+            editor = woofmark(elem.children()[0], {
+                parseMarkdown: megamark,
+                parseHTML: domador,
+                defaultMode: 'WYSIWYG'
+            });
+        });
+    }
+}}])
+
+
 ;
