@@ -4,6 +4,7 @@ angular.module('wsaa.aquamark',
                ['ngRoute', 'ngAnimate', 'ui.bootstrap', 'cfp.hotkeys',
                 'ui.bootstrap.showErrors', 'validation.match', 'settings',
                 'yaru22.angular-timeago', 'angular-select-text',
+                'angular-medium-editor',
                 'wsaa.survey', 'wsaa.admin', 'wsaa.surveyQuestions',
                 'wsaa.surveyAnswers',
                 'vpac.utils', 'vpac.widgets'])
