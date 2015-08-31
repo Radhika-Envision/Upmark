@@ -435,20 +435,89 @@ angular.module('vpac.widgets', [])
     return {
         restrict: 'E',
         scope: {
-            model: '='
+            markdown: '=model'
         },
         templateUrl: 'markdown_editor.html',
-        controller: ['$scope', function($scope) {
-            $scope.medium = { options: {
-                "placeholder": "Enter a description",
-                "buttons": [
+        controller: ['$scope', 'bind', function($scope, bind) {
+            $scope.model = {
+                wysiwygMode: true,
+                html: null,
+                markdown: null
+            };
+
+            bind($scope, 'markdown', $scope, 'model.markdown', true);
+
+            $scope.options = {
+                placeholder: {text: ""},
+                buttons: [
                     "bold", "italic", "underline", "anchor",
                     "header1", "header2", "quote",
                     "orderedlist", "unorderedlist"]
-            }};
+            };
+
+            $scope.$watch('model.markdown', function(markdown) {
+                if (markdown == null)
+                    return;
+                console.log('Markdown changed')
+                $scope.model.html = megamark(markdown);
+            });
+
+            $scope.$watch('model.html', function(html) {
+                if (html == null)
+                    return;
+                console.log('HTML changed')
+                $scope.model.markdown = domador(html);
+            });
         }],
-        link: function(scope, element, attrs) {
+        link: function(scope, elem, attrs) {
             console.log('Linking markdown editor')
+        }
+    };
+}])
+
+
+.directive('mediumEditor', [function() {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            options: '='
+        },
+        require: '?^markdownEditor',
+        controller: ['$scope', function($scope) {
+        }],
+        link: function(scope, elem, attrs, markdownEditor) {
+            console.log('Linking medium editor')
+            var editor = null;
+
+            scope.$watch('options', function(options) {
+                if (editor) {
+                    editor.destroy();
+                    editor = null;
+                }
+                console.log('Creating medium editor')
+                editor = new MediumEditor(elem, options);
+            });
+
+            elem.on('blur input change', function() {
+                scope.$apply(function() {
+                    console.log('medium changed', elem.html())
+                    scope.model = elem.html();
+                });
+            });
+            scope.$watch('model', function(model) {
+                elem.html(model);
+            });
+
+            scope.$on('$destroy', function() {
+                if (editor) {
+                    editor.destroy();
+                    editor = null;
+                }
+                elem.off();
+                elem = null;
+                scope = null;
+            });
         }
     };
 }])

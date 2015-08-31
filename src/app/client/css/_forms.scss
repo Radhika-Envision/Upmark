@@ -335,3 +335,20 @@ div[textarea-label] {
         margin-bottom: -3px;
     }
 }
+
+markdown-editor {
+    display: block;
+    position: relative;
+    .toolbar {
+        float: none;
+        position: absolute;
+        top: 0;
+        right: 4px;
+    }
+    textarea, [medium-editor] {
+        min-height: 60px;
+    }
+    p:last-child {
+        margin-bottom: 0;
+    }
+}

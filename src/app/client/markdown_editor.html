@@ -1,3 +1,19 @@
-<div>
-    <div medium-editor ng-model="model" bind-options="options.options"></div>
+<div class="toolbar">
+    <button class="btn btn-default btn-round"
+            ng-click="model.wysiwygMode = !model.wysiwygMode"
+            title="{{model.wysiwygMode ?
+                       'Rich text mode' :
+                       'Plain text mode (Markdown)'}}">
+        <i class="fa fa-paragraph" ng-if="!model.wysiwygMode"></i>
+        <i class="fa fa-i-cursor" ng-if="model.wysiwygMode"></i>
+    </button>
 </div>
+
+<div class="form-control spaced" ng-if="model.wysiwygMode" medium-editor
+    model="model.html" options="options"></div>
+
+<textarea ng-if="!model.wysiwygMode" autoresize class="form-control spaced"
+    ng-model="model.markdown"></textarea>
+
+<pre class="spaced">{{model.html}}</pre>
+<pre>{{model.markdown}}</pre>
