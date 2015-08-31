@@ -24,7 +24,7 @@ log = logging.getLogger('app.crud.statistics')
 MAX_WORKERS = 4
 
 
-class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
+class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated

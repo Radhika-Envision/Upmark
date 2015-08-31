@@ -1406,6 +1406,7 @@ angular.module('wsaa.surveyQuestions', [
         }
     }
     $scope.upload = function() {
+        $scope.hasError = false;
         if (dropzone.files.length > 0) {
             dropzone.options.url = '/assessment/' + $scope.assessment.id +
                 '/measure/' + $scope.measure.id + '/attachment.json';
@@ -1444,11 +1445,16 @@ angular.module('wsaa.surveyQuestions', [
     };
 
     dropzone.on("queuecomplete", function() {
-        dropzone.options.autoProcessQueue = false;
+
         $scope.showFileDrop = false;
         dropzone.removeAllFiles();
         $scope.refreshAttachments();
-        Notifications.set('attach', 'info', "Attachments saved", 5000); 
+
+        if ($scope.hasError) {
+            Notifications.set('attach', 'error', "Not all attachments are saved", 5000);
+        } else {
+            Notifications.set('attach', 'info', "Attachments saved", 5000);
+        }
     });
 
     dropzone.on("error", function(file, details, request) {
@@ -1462,6 +1468,7 @@ angular.module('wsaa.surveyQuestions', [
         dropzone.options.autoProcessQueue = false;
         dropzone.removeAllFiles();
         Notifications.set('attach', 'error', error);
+        $scope.hasError = true;
     });
     $scope.deleteAttachment = function(attachment) {
         var isExternal = attachment.url;
