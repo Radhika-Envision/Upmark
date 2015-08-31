@@ -61,7 +61,10 @@ def upgrade():
     op.drop_constraint('process_pkey', 'process', type_='primary')
     op.drop_constraint('function_pkey', 'function', type_='primary')
 
-    op.add_column('response', sa.Column('survey_id', guid.GUID, nullable=False))
+    op.add_column('response', sa.Column(
+        'survey_id', guid.GUID, nullable=False))
+    op.add_column('response_history', sa.Column(
+        'survey_id', guid.GUID, nullable=False))
 
     op.create_primary_key('function_pkey', 'function', ['id', 'survey_id'])
     op.create_primary_key('process_pkey', 'process', ['id', 'survey_id'])
@@ -143,6 +146,7 @@ def downgrade():
     op.drop_constraint('process_pkey', 'process', type_='primary')
     op.drop_constraint('function_pkey', 'function', type_='primary')
 
+    op.drop_column('response_history', 'survey_id')
     op.drop_column('response', 'survey_id')
 
     op.create_primary_key('function_pkey', 'function', ['id'])
@@ -196,4 +200,5 @@ def downgrade():
         'assessment', 'measureset',
         ['measureset_id'], ['id'])
 
-    op.add_column('measureset_measure_link', sa.Column('id', sa.INTEGER(), nullable=False))
+    op.add_column('measureset_measure_link', sa.Column(
+        'id', sa.INTEGER(), nullable=False))
