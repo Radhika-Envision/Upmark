@@ -1,0 +1,56 @@
+<div>
+<style>
+.bar {
+  fill: steelblue;
+}
+
+.bar:hover {
+  fill: brown;
+}
+
+.axis {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.x.axis path {
+  display: none;
+}
+</style>
+<div class="header">
+<div class="container">
+    <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Delete"
+                ng-click="edit.del()"
+                ng-if="!edit.model && checkRole('org_del')">
+            <i class="fa fa-trash-o"></i></button>
+        <button class="btn btn-default btn-round" title="Cancel"
+                ng-click="edit.cancel()"
+                ng-if="edit.model && edit.model.id">
+            <i class="fa fa-times"></i></button>
+        <button class="btn btn-default btn-round" title="Save"
+                ng-click="edit.save()"
+                ng-if="edit.model"
+                form="editor">
+            <i class="fa fa-check"></i></button>
+        <button class="btn btn-default btn-round" title="Edit"
+                ng-click="edit.edit()"
+                ng-if="!edit.model && checkRole('org_modify')">
+            <i class="fa fa-pencil"></i></button>
+    </div>
+    <h2 page-title>
+        <i class="fa fa-fw fa-university"></i>
+        <a href="#/orgs">Statistics</a> &raquo;
+    </h2>
+</div>
+</div>
+
+<div class="container chart" id="chart">
+</div>
+</div>

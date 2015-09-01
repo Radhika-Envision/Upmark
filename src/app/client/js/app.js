@@ -400,6 +400,31 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
+            .when('/statistics/:assessment', {
+                templateUrl : 'statistics.html',
+                controller : 'StatisticsCtrl',
+                resolve: {routeData: chain({
+                    assessment: ['Assessment', '$route',
+                            function(Assessment, $route) {
+                        if (!$route.current.params.assessment)
+                            return null;
+                        return Assessment.get({
+                            id: $route.current.params.assessment
+                        }).$promise;
+                    }],
+                    survey: ['assessment', function(assessment) {
+                        return assessment.survey;
+                    }],
+                    qnodes: ['QuestionNode', 'assessment', 'survey',
+                            function(QuestionNode, assessment, survey) {
+                        return QuestionNode.query({
+                            hierarchyId: assessment.hierarchy.id,
+                            surveyId: survey.id,
+                            root: ''
+                        }).$promise;
+                    }]
+                })}
+            })
             .when('/measure-link', {
                 templateUrl : 'measure_link.html',
                 controller : 'MeasureLinkCtrl',

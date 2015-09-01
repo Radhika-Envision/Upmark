@@ -167,7 +167,8 @@ SCRIPTS = [
             '/.bower_components/angular-ui-sortable/sortable.js',
             '/.bower_components/dropzone/dist/dropzone.js',
             '/.bower_components/jqueryui-touch-punch/jquery.ui.touch-punch.js',
-            '/.bower_components/js-expression-eval/parser.js'
+            '/.bower_components/js-expression-eval/parser.js',
+            '/.bower_components/d3/d3.min.js'
         ]
     },
     {
