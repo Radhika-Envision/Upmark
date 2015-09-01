@@ -10,9 +10,9 @@
 </div>
 
 <div class="form-control spaced" ng-if="model.wysiwygMode" medium-editor
-    model="model.html" options="options"></div>
+    ng-model="model.html" bind-options="options"></div>
 
-<textarea ng-if="!model.wysiwygMode" autoresize class="form-control spaced"
+<textarea ng-if="!model.wysiwygMode" class="form-control spaced autoresize"
     ng-model="model.markdown"></textarea>
 
 <pre class="spaced">{{model.html}}</pre>

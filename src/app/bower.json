@@ -39,7 +39,6 @@
   },
   "resolutions": {
     "angular": "~1.4.1",
-    "medium-editor": "4.4.*",
     "angular-medium-editor": "773e036fceab30e31ad6c7fb4c1795403cedfbf0"
   }
 }

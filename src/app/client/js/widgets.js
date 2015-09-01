@@ -426,7 +426,7 @@ angular.module('vpac.widgets', [])
 
 .controller('WoofmarkTest', function($scope) {
     $scope.model = {
-        contents: 'Foo *bar*'
+        contents: '### Foo\n\nbar'
     };
 })
 
@@ -450,7 +450,7 @@ angular.module('vpac.widgets', [])
             $scope.options = {
                 placeholder: {text: ""},
                 buttons: [
-                    "bold", "italic", "underline", "anchor",
+                    "bold", "italic", "anchor",
                     "header1", "header2", "quote",
                     "orderedlist", "unorderedlist"]
             };
@@ -458,66 +458,23 @@ angular.module('vpac.widgets', [])
             $scope.$watch('model.markdown', function(markdown) {
                 if (markdown == null)
                     return;
-                console.log('Markdown changed')
-                $scope.model.html = megamark(markdown);
+                if ($scope.model.html == null || !$scope.model.wysiwygMode) {
+                    console.log('Markdown changed; Updating HTML')
+                    $scope.model.html = megamark(markdown);
+                }
             });
 
             $scope.$watch('model.html', function(html) {
                 if (html == null)
                     return;
-                console.log('HTML changed')
-                $scope.model.markdown = domador(html);
+                if ($scope.model.markdown == null || $scope.model.wysiwygMode) {
+                    console.log('HTML changed; Updating Markdown')
+                    $scope.model.markdown = domador(html);
+                }
             });
         }],
         link: function(scope, elem, attrs) {
             console.log('Linking markdown editor')
-        }
-    };
-}])
-
-
-.directive('mediumEditor', [function() {
-    return {
-        restrict: 'A',
-        scope: {
-            model: '=',
-            options: '='
-        },
-        require: '?^markdownEditor',
-        controller: ['$scope', function($scope) {
-        }],
-        link: function(scope, elem, attrs, markdownEditor) {
-            console.log('Linking medium editor')
-            var editor = null;
-
-            scope.$watch('options', function(options) {
-                if (editor) {
-                    editor.destroy();
-                    editor = null;
-                }
-                console.log('Creating medium editor')
-                editor = new MediumEditor(elem, options);
-            });
-
-            elem.on('blur input change', function() {
-                scope.$apply(function() {
-                    console.log('medium changed', elem.html())
-                    scope.model = elem.html();
-                });
-            });
-            scope.$watch('model', function(model) {
-                elem.html(model);
-            });
-
-            scope.$on('$destroy', function() {
-                if (editor) {
-                    editor.destroy();
-                    editor = null;
-                }
-                elem.off();
-                elem = null;
-                scope = null;
-            });
         }
     };
 }])
