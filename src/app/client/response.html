@@ -42,11 +42,10 @@
 
 <label for="comments" class="sr-only">Comments</label>
 <div textarea-label="{{!response.comment ? 'Comments' : ''}}">
-    <textarea id="comments" class="form-control autoresize"
-        ng-model="response.comment"
-        ng-class="{empty: response.comment == ''}"
-        focus-on="focus-comment" title="Comments"
-        blur-on="blur-comment"></textarea>
+    <markdown-editor id="comments"
+        model="response.comment" placeholder="''"
+        markdown-editor-focus-on="focus-comment" title="Comments"
+        markdown-editor-blur-on="blur-comment"></markdown-editor>
 </div>
 
 </div>

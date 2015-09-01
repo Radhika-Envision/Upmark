@@ -435,7 +435,8 @@ angular.module('vpac.widgets', [])
     return {
         restrict: 'E',
         scope: {
-            markdown: '=model'
+            markdown: '=model',
+            placeholder: '='
         },
         templateUrl: 'markdown_editor.html',
         controller: ['$scope', 'bind', function($scope, bind) {
@@ -456,27 +457,40 @@ angular.module('vpac.widgets', [])
                     "removeFormat"],
                 imageDragging: false
             };
+            $scope.$watch('placeholder', function(placeholder) {
+                $scope.options.placeholder.text = placeholder;
+            });
 
             $scope.$watch('model.markdown', function(markdown) {
                 if (markdown == null)
                     return;
-                if ($scope.model.html == null || !$scope.model.wysiwygMode) {
-                    console.log('Markdown changed; Updating HTML')
+                if ($scope.model.html == null || !$scope.model.wysiwygMode)
                     $scope.model.html = megamark(markdown);
-                }
             });
 
             $scope.$watch('model.html', function(html) {
                 if (html == null)
                     return;
-                if ($scope.model.markdown == null || $scope.model.wysiwygMode) {
-                    console.log('HTML changed; Updating Markdown')
+                if ($scope.model.markdown == null || $scope.model.wysiwygMode)
                     $scope.model.markdown = domador(html);
-                }
             });
         }],
-        link: function(scope, elem, attrs) {
-            console.log('Linking markdown editor')
+        compile: function compile(tElem, tAttrs) {
+            tElem.find('> [medium-editor], > textarea')
+                .attr('focus-on', tAttrs.markdownEditorFocusOn);
+            tElem.find('> [medium-editor], > textarea')
+                .attr('blur-on', tAttrs.markdownEditorBlurOn);
+
+            return function postLink(scope, elem, attrs) {
+                attrs.$observe('markdownEditorFocusOn', function(focusOn) {
+                    elem.find('> [medium-editor], > textarea')
+                        .attr('focus-on', focusOn);
+                });
+                attrs.$observe('markdownEditorBlurOn', function(blurOn) {
+                    elem.find('> [medium-editor], > textarea')
+                        .attr('blur-on', blurOn);
+                });
+            };
         }
     };
 }])
