@@ -426,7 +426,7 @@ angular.module('vpac.widgets', [])
 
 .controller('WoofmarkTest', function($scope) {
     $scope.model = {
-        contents: '### Foo\n\nbar'
+        contents: '### Foo\n\nbar\n\n#### Baz\n\nFred'
     };
 })
 
@@ -450,9 +450,11 @@ angular.module('vpac.widgets', [])
             $scope.options = {
                 placeholder: {text: ""},
                 buttons: [
-                    "bold", "italic", "anchor",
+                    "bold", "italic", "anchor", "image",
                     "header1", "header2", "quote",
-                    "orderedlist", "unorderedlist"]
+                    "orderedlist", "unorderedlist",
+                    "removeFormat"],
+                imageDragging: false
             };
 
             $scope.$watch('model.markdown', function(markdown) {
