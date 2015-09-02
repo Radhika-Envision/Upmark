@@ -432,65 +432,90 @@ angular.module('vpac.widgets', [])
 
 
 .directive('markdownEditor', [function() {
+    function postLink(scope, elem, attrs, ngModel) {
+        scope.model = {
+            mode: 'rendered',
+            viewValue: null
+        };
+
+        scope.options = {
+            placeholder: {text: ""},
+            buttons: [
+                "bold", "italic", "anchor", "image",
+                "header1", "header2", "quote",
+                "orderedlist", "unorderedlist",
+                "removeFormat"],
+            imageDragging: false
+        };
+        scope.$watch('placeholder', function(placeholder) {
+            scope.options.placeholder.text = placeholder;
+        });
+
+        // View to model
+        ngModel.$parsers.unshift(function (inputValue) {
+            if (scope.model.mode == 'rendered')
+                return domador(inputValue);
+            else
+                return inputValue;
+        });
+
+        // Model to view
+        ngModel.$formatters.unshift(function (inputValue) {
+            if (scope.model.mode == 'rendered')
+                return megamark(inputValue);
+            else
+                return inputValue;
+        });
+
+        ngModel.$render = function render() {
+            scope.model.viewValue = ngModel.$viewValue;
+        };
+
+        scope.$watch('model.viewValue', function(viewValue) {
+            ngModel.$setViewValue(viewValue);
+        });
+
+        scope.cycleModes = function() {
+            if (scope.model.mode == 'rendered')
+                scope.model.mode = 'markdown';
+            else
+                scope.model.mode = 'rendered';
+        };
+
+        scope.$watch('model.mode', function(mode) {
+            // Undocumented hack: change the model value to anything else; this
+            // value is ignored but it runs the formatters.
+            // http://stackoverflow.com/a/28924657/320036
+            if (ngModel.$modelValue == 'bar')
+                ngModel.$modelValue = 'foo';
+            else
+                ngModel.$modelValue = 'bar';
+        });
+
+        attrs.$observe('markdownEditorFocusOn', function(focusOn) {
+            elem.find('> [medium-editor], > textarea')
+                .attr('focus-on', focusOn);
+        });
+        attrs.$observe('markdownEditorBlurOn', function(blurOn) {
+            elem.find('> [medium-editor], > textarea')
+                .attr('blur-on', blurOn);
+        });
+    };
+
     return {
         restrict: 'E',
         scope: {
-            markdown: '=model',
             placeholder: '='
         },
         templateUrl: 'markdown_editor.html',
-        controller: ['$scope', 'bind', function($scope, bind) {
-            $scope.model = {
-                wysiwygMode: true,
-                html: null,
-                markdown: null
-            };
-
-            bind($scope, 'markdown', $scope, 'model.markdown', true);
-
-            $scope.options = {
-                placeholder: {text: ""},
-                buttons: [
-                    "bold", "italic", "anchor", "image",
-                    "header1", "header2", "quote",
-                    "orderedlist", "unorderedlist",
-                    "removeFormat"],
-                imageDragging: false
-            };
-            $scope.$watch('placeholder', function(placeholder) {
-                $scope.options.placeholder.text = placeholder;
-            });
-
-            $scope.$watch('model.markdown', function(markdown) {
-                if (markdown == null)
-                    return;
-                if ($scope.model.html == null || !$scope.model.wysiwygMode)
-                    $scope.model.html = megamark(markdown);
-            });
-
-            $scope.$watch('model.html', function(html) {
-                if (html == null)
-                    return;
-                if ($scope.model.markdown == null || $scope.model.wysiwygMode)
-                    $scope.model.markdown = domador(html);
-            });
-        }],
+        require: 'ngModel',
         compile: function compile(tElem, tAttrs) {
             tElem.find('> [medium-editor], > textarea')
                 .attr('focus-on', tAttrs.markdownEditorFocusOn);
             tElem.find('> [medium-editor], > textarea')
                 .attr('blur-on', tAttrs.markdownEditorBlurOn);
 
-            return function postLink(scope, elem, attrs) {
-                attrs.$observe('markdownEditorFocusOn', function(focusOn) {
-                    elem.find('> [medium-editor], > textarea')
-                        .attr('focus-on', focusOn);
-                });
-                attrs.$observe('markdownEditorBlurOn', function(blurOn) {
-                    elem.find('> [medium-editor], > textarea')
-                        .attr('blur-on', blurOn);
-                });
-            };
+            return postLink;
         }
     };
 }])

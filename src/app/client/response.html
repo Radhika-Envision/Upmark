@@ -43,7 +43,7 @@
 <label for="comments" class="sr-only">Comments</label>
 <div textarea-label="{{!response.comment ? 'Comments' : ''}}">
     <markdown-editor id="comments"
-        model="response.comment" placeholder="''"
+        ng-model="response.comment" placeholder="''"
         markdown-editor-focus-on="focus-comment" title="Comments"
         markdown-editor-blur-on="blur-comment"></markdown-editor>
 </div>
