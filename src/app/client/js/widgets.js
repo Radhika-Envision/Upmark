@@ -424,11 +424,18 @@ angular.module('vpac.widgets', [])
 }])
 
 
-.controller('WoofmarkTest', function($scope) {
-    $scope.model = {
-        contents: '### Foo\n\nbar\n\n#### Baz\n\nFred'
+.directive('ngUncloak', ['$timeout', function($timeout) {
+    return {
+        restrict: 'A',
+        link: function(scope, elem, attrs) {
+            elem.toggleClass('ng-uncloak', true);
+            elem.toggleClass('in', false);
+            $timeout(function() {
+                elem.toggleClass('ng-hide', true);
+            }, 2000);
+        }
     };
-})
+}])
 
 
 .directive('markdownEditor', [function() {

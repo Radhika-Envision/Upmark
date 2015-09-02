@@ -3,11 +3,17 @@
 <title>Aquamark</title>
 <head>
 {% include page-style.html %}
+
+<style type="text/css">
+.ng-hide {
+    display: none !important;
+}
+</style>
 </head>
 
 <body ng-controller="RootCtrl">
 
-<div id="non-footer">
+<div id="non-footer" class="ng-hide" ng-hide>
 <header ng-controller="HeaderCtrl">
     <nav class="navbar navbar-default navbar-static-top" role="navigation"
             data-toggle="collapse" data-target=".navbar-collapse.in">
@@ -82,12 +88,12 @@
     </nav>
 </header>
 
-<div id="page-content">
+<div id="page-content" class="ng-hide" ng-hide>
     <div ng-view autoscroll="true"></div>
 </div>
 </div>
 
-<div id="footer">
+<div id="footer" class="ng-hide" ng-hide>
 <p>
     <a href="#/legal" title="Copyright information">
         <i class="fa fa-lg fa-copyright"></i> WSAA</a>
@@ -98,6 +104,49 @@
     </span>
 </p>
 </div>
+
+<style type="text/css">
+#loading-splash {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    margin-top: -90px;
+    text-align: center;
+    z-index: 10000;
+
+    opacity: 0;
+
+    -webkit-transition: opacity 0.5s ease;
+    -moz-transition: opacity 0.5s ease;
+    -o-transition: opacity 0.5s ease;
+    transition: opacity 0.5s ease;
+
+    pointer-events: none;
+}
+#loading-splash.in {
+    opacity: 1;
+    display: block;
+}
+#loading-splash #logo-droplet > path:first-child {
+    fill: #538CBC !important;
+}
+</style>
+
+<div id="loading-splash" ng-uncloak>
+    {% include images/logo-monogram.svg %}
+</div>
+
+<script>
+{
+    var ls = document.getElementById('loading-splash');
+    window.setTimeout(function() {
+        if (ls.className.search('ng-uncloak') >= 0)
+            return;
+        ls.className = "in";
+    }, 1000);
+}
+</script>
 
 <messages></messages>
 
