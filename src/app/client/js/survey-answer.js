@@ -257,12 +257,14 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         controller: ['$scope', 'hotkeys', 'Current', 'questionAuthz',
                 'Notifications',
                 function($scope, hotkeys, current, authz, Notifications) {
-            $scope.$watch('response', function(response) {
-                if (!$scope.response)
-                    $scope.response = {};
-                if (!$scope.responseParts)
-                    $scope.response.responseParts = [];
-            });
+            if (!$scope.response) {
+                $scope.response = {
+                    responseParts: [],
+                    comment: null
+                };
+            }
+            if (!$scope.response.responseParts)
+                $scope.response.responseParts = [];
             if ($scope.weight == null)
                 $scope.weight = 100;
 
