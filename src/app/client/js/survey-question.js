@@ -886,104 +886,109 @@ angular.module('wsaa.surveyQuestions', [
     $scope.assessment = routeData.assessment;
     $scope.qnode = routeData.qnode;
 
-    var data = null;
     if ($scope.assessment) {
-        // Get the responses that are associated with this qnode and assessment.
-        console.log($scope.qnode);
-        ResponseNode.query({
+        $scope.rnode = ResponseNode.query({
             assessmentId: $scope.assessment.id,
             parentId: $scope.qnode ? $scope.qnode.id : null,
             hierarchyId: $scope.hierarchy ? $scope.hierarchy.id : null,
             root: $scope.qnode ? null : ''
-        }).$promise.then(
-            function success(rnodes) {
-                data = rnodes;
-
-                var margin = {top: 20, right: 20, bottom: 30, left: 40},
-                    width = 960 - margin.left - margin.right,
-                    height = 500 - margin.top - margin.bottom;
-
-                var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
-
-                var y = d3.scale.linear()
-                    .range([height, 0]);
-
-                var color = d3.scale.category10();
-
-                var svg = d3.select("#chart").append("svg")
-                    .attr("width", width + margin.left + margin.right)
-                    .attr("height", height + margin.top + margin.bottom)
-                    .append("g")
-                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-
-                var xAxis = d3.svg.axis()
-                    .scale(x)
-                    .orient("bottom")
-                    .ticks(data.length);
-
-                var yAxis = d3.svg.axis()
-                    .scale(y)
-                    .orient("left");
-
-                x.domain(data.map(function(d) { return data.indexOf(d) + 1; }));
-                y.domain(d3.extent(data, function(d) { return d.score; })).nice();
-
-                svg.append("g")
-                    .attr("class", "x axis")
-                    .attr("transform", "translate(0," + height + ")")
-                    .call(xAxis)
-                    .append("text")
-                        .attr("class", "label")
-                        .attr("x", width)
-                        .attr("y", 26)
-                        .style("text-anchor", "middle")
-                        .text("Functions");
-
-                svg.append("g")
-                    .attr("class", "y axis")
-                    .call(yAxis)
-                    .append("text")
-                        .attr("class", "label")
-                        // .attr("transform", "rotate(-90)")
-                        .attr("x", -10)
-                        .attr("y", -20)
-                        .attr("dy", ".71em")
-                        .style("text-anchor", "middle")
-                        .text("Scores")
-
-                svg.selectAll(".dot")
-                    .data(data)
-                        .enter()
-                        .append("rect")
-                        .attr("class", "bar")
-                        .attr("x", function(d) { return x(data.indexOf(d) + 1); })
-                        .attr("width", x.rangeBand())
-                        .attr("y", function(d) { return y(d.score); })
-                        .attr("height", function(d) { return height - y(d.score); });
-
-                var legend = svg.selectAll(".legend")
-                    .data(color.domain())
-                    .enter().append("g")
-                    .attr("class", "legend")
-                    .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
-
-                legend.append("rect")
-                    .attr("x", width - 18)
-                    .attr("width", 18)
-                    .attr("height", 18)
-                    .style("fill", color);
-
-                legend.append("text")
-                    .attr("x", width - 24)
-                    .attr("y", 9)
-                    .attr("dy", ".35em")
-                    .style("text-anchor", "end")
-                    .text(function(d) { return "Function"; });
-            }
-        );
+        });
     }
 
+    $scope.$watch('rnode', function(rnode) {
+        rnode.$promise.then(function success(rnodes) {
+             d3.select("div#chart>svg").remove();
+
+             var margin = {top: 20, right: 20, bottom: 30, left: 40},
+                width = 960 - margin.left - margin.right,
+                height = 500 - margin.top - margin.bottom;
+
+            var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
+
+            var y = d3.scale.linear()
+                .range([height, 0]);
+
+            var color = d3.scale.category20();
+
+            var svg = d3.select("#chart").append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            var xAxis = d3.svg.axis()
+                .scale(x)
+                .orient("bottom")
+                .ticks(rnodes.length);
+
+            var yAxis = d3.svg.axis()
+                .scale(y)
+                .orient("left");
+
+            x.domain(rnodes.map(function(d) { return rnodes.indexOf(d) + 1; }));
+            y.domain([0, d3.max(rnodes, function(d) { return d.score; })]);
+
+            svg.append("g")
+                .attr("class", "x axis")
+                .attr("transform", "translate(0," + height + ")")
+                .call(xAxis)
+                .append("text")
+                    .attr("class", "label")
+                    .attr("x", width)
+                    .attr("y", 26)
+                    .style("text-anchor", "middle")
+                    .text("Functions");
+
+            svg.append("g")
+                .attr("class", "y axis")
+                .call(yAxis)
+                .append("text")
+                    .attr("class", "label")
+                    // .attr("transform", "rotate(-90)")
+                    .attr("x", -10)
+                    .attr("y", -20)
+                    .attr("dy", ".71em")
+                    .style("text-anchor", "middle")
+                    .text("Scores")
+
+            svg.selectAll(".dot")
+                .data(rnode)
+                    .enter()
+                    .append("rect")
+                    .attr("class", "bar")
+                    .attr("x", function(d) { return x(rnodes.indexOf(d) + 1); })
+                    .attr("width", x.rangeBand())
+                    .attr("y", function(d) { return y(d.score); })
+                    .attr("height", function(d) { return height - y(d.score); })
+                    .on("click", function(d) {
+                        console.log(d);
+                        $scope.rnode = ResponseNode.query({
+                            assessmentId: $scope.assessment.id,
+                            parentId: d.qnode.id
+                        });
+                    });
+
+            var legend = svg.selectAll(".legend")
+                .data(color.domain())
+                .enter().append("g")
+                .attr("class", "legend")
+                .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+            legend.append("rect")
+                .attr("x", width - 18)
+                .attr("width", 18)
+                .attr("height", 18)
+                .style("fill", color);
+
+            legend.append("text")
+                .attr("x", width - 24)
+                .attr("y", 9)
+                .attr("dy", ".35em")
+                .style("text-anchor", "end")
+                .text(function(d) { return "Function"; });
+        });
+
+    });
 }])
 
 
