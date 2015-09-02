@@ -423,4 +423,102 @@ angular.module('vpac.widgets', [])
     };
 }])
 
+
+.controller('WoofmarkTest', function($scope) {
+    $scope.model = {
+        contents: '### Foo\n\nbar\n\n#### Baz\n\nFred'
+    };
+})
+
+
+.directive('markdownEditor', [function() {
+    function postLink(scope, elem, attrs, ngModel) {
+        scope.model = {
+            mode: 'rendered',
+            viewValue: null
+        };
+
+        scope.options = {
+            placeholder: {text: ""},
+            buttons: [
+                "bold", "italic", "anchor", "image",
+                "header1", "header2", "quote",
+                "orderedlist", "unorderedlist",
+                "removeFormat"],
+            imageDragging: false
+        };
+        scope.$watch('placeholder', function(placeholder) {
+            scope.options.placeholder.text = placeholder;
+        });
+
+        // View to model
+        ngModel.$parsers.unshift(function (inputValue) {
+            if (scope.model.mode == 'rendered')
+                return domador(inputValue);
+            else
+                return inputValue;
+        });
+
+        // Model to view
+        ngModel.$formatters.unshift(function (inputValue) {
+            if (scope.model.mode == 'rendered')
+                return megamark(inputValue);
+            else
+                return inputValue;
+        });
+
+        ngModel.$render = function render() {
+            scope.model.viewValue = ngModel.$viewValue;
+        };
+
+        scope.$watch('model.viewValue', function(viewValue) {
+            ngModel.$setViewValue(viewValue);
+        });
+
+        scope.cycleModes = function() {
+            if (scope.model.mode == 'rendered')
+                scope.model.mode = 'markdown';
+            else
+                scope.model.mode = 'rendered';
+        };
+
+        scope.$watch('model.mode', function(mode) {
+            // Undocumented hack: change the model value to anything else; this
+            // value is ignored but it runs the formatters.
+            // http://stackoverflow.com/a/28924657/320036
+            if (ngModel.$modelValue == 'bar')
+                ngModel.$modelValue = 'foo';
+            else
+                ngModel.$modelValue = 'bar';
+        });
+
+        attrs.$observe('markdownEditorFocusOn', function(focusOn) {
+            elem.find('> [medium-editor], > textarea')
+                .attr('focus-on', focusOn);
+        });
+        attrs.$observe('markdownEditorBlurOn', function(blurOn) {
+            elem.find('> [medium-editor], > textarea')
+                .attr('blur-on', blurOn);
+        });
+    };
+
+    return {
+        restrict: 'E',
+        scope: {
+            placeholder: '='
+        },
+        templateUrl: 'markdown_editor.html',
+        require: 'ngModel',
+        compile: function compile(tElem, tAttrs) {
+            tElem.find('> [medium-editor], > textarea')
+                .attr('focus-on', tAttrs.markdownEditorFocusOn);
+            tElem.find('> [medium-editor], > textarea')
+                .attr('blur-on', tAttrs.markdownEditorBlurOn);
+
+            return postLink;
+        }
+    };
+}])
+
+
 ;

@@ -20,9 +20,6 @@ from utils import falsy, reorder, ToSon, truthy, updater
 log = logging.getLogger('app.crud.response')
 
 
-ResponseHistory = model.Response.__history_mapper__.class_
-
-
 class ResponseHandler(handlers.BaseHandler):
 
     @tornado.web.authenticated
@@ -49,7 +46,7 @@ class ResponseHandler(handlers.BaseHandler):
                     version = int(version)
                 except ValueError:
                     raise handlers.ModelError("Invalid version number")
-                response_history = (session.query(ResponseHistory)
+                response_history = (session.query(model.ResponseHistory)
                         .filter_by(id=response.id, version=version)
                         .first())
 
@@ -314,10 +311,10 @@ class ResponseHistoryHandler(handlers.Paginate, handlers.BaseHandler):
                 .all())
 
             # Other versions
-            query = (session.query(ResponseHistory)
+            query = (session.query(model.ResponseHistory)
                 .filter_by(assessment_id=assessment_id,
                            measure_id=measure_id)
-                .order_by(ResponseHistory.version.desc()))
+                .order_by(model.ResponseHistory.version.desc()))
             query = self.paginate(query)
 
             versions += query.all()

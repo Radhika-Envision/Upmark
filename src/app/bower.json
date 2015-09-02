@@ -32,9 +32,13 @@
     "jqueryui-touch-punch": "#4bc009145202d9c7483ba85f3a236a8f3470354d",
     "js-expression-eval": "https://github.com/escopecz/js-expression-eval.git#d8b2a917c97926ee866927ff150611f0492e588f",
     "angular-timeago": "~0.2.2",
-    "angular-select-text": "https://github.com/z0u/angular-select-text.git#feature-descendant"
+    "angular-select-text": "https://github.com/z0u/angular-select-text.git#feature-descendant",
+    "megamark": "~3.1.0",
+    "domador": "~2.1.1",
+    "angular-medium-editor": "https://github.com/z0u/angular-medium-editor.git#d2470b6fc47b3ca0d137d830c74cda467e1a964e"
   },
   "resolutions": {
-    "angular": "~1.4.1"
+    "angular": "~1.4.1",
+    "angular-medium-editor": "d2470b6fc47b3ca0d137d830c74cda467e1a964e"
   }
 }

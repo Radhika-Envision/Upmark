@@ -403,7 +403,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                     callback: function(event, hotkey) {
                         event.stopPropagation();
                         event.preventDefault();
-                        $scope.$emit('focus-comment');
+                        $scope.$broadcast('focus-comment');
                     }
                 })
                 .add({
@@ -411,7 +411,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                     description: "Stop editing comment",
                     allowIn: ['TEXTAREA'],
                     callback: function(event, hotkey) {
-                        $scope.$emit('blur-comment');
+                        $scope.$broadcast('blur-comment');
                     }
                 });
         }],

@@ -705,6 +705,10 @@ class Response(Versioned, Base):
             getattr(org, 'name', None))
 
 
+ResponseHistory = Response.__history_mapper__.class_
+ResponseHistory.response_parts = Response.response_parts
+
+
 class Attachment(Base):
     __tablename__ = 'attachment'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)

@@ -597,8 +597,18 @@ angular.module('vpac.utils', [])
     return {
         restrict: 'A',
         link: function(scope, element, attrs) {
-            scope.$on(attrs.focusOn, function(event) {
-                element.focus();
+            var remove = null;
+            attrs.$observe('focusOn', function(focusOn) {
+                if (remove)
+                    remove();
+                remove = scope.$on(focusOn, function(event) {
+                    console.log('event')
+                    element.focus();
+                });
+            });
+            scope.$on('$destroy', function() {
+                element = null;
+                remove = null;
             });
         }
     }
@@ -625,19 +635,25 @@ angular.module('vpac.utils', [])
             };
             angular.element($window).on('focusin', globalFocusHandler);
 
-            scope.$on(attrs.blurOn, function(event) {
-                if (!element.is(':focus'))
-                    return;
+            var remove = null;
+            attrs.$observe('blurOn', function(blurOn) {
+                if (remove)
+                    remove();
+                remove = scope.$on(attrs.blurOn, function(event) {
+                    if (!element.is(':focus'))
+                        return;
 
-                var lastElem = lastFocussedElement;
-                lastFocussedElement = null;
+                    var lastElem = lastFocussedElement;
+                    lastFocussedElement = null;
 
-                // Transfer focus to last selected element, or fall back to
-                // window if lastElem can't be focussed.
-                if (lastElem && $.contains($document[0].documentElement, lastElem[0]))
-                    lastElem.focus();
-                else
-                    element.blur();
+                    // Transfer focus to last selected element, or fall back to
+                    // window if lastElem can't be focussed.
+                    if (lastElem && $.contains($document[0].documentElement,
+                                               lastElem[0]))
+                        lastElem.focus();
+                    else
+                        element.blur();
+                });
             });
 
             scope.$on('$destroy', function() {
@@ -645,6 +661,7 @@ angular.module('vpac.utils', [])
                 scope = null;
                 element = null;
                 attrs = null;
+                remove = null;
                 angular.element($window).off('focusin', globalFocusHandler);
             });
         }
