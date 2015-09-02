@@ -1612,16 +1612,16 @@ angular.module('wsaa.surveyQuestions', [
                 page: 0,
                 pageSize: 10
             };
+        } else {
+            $scope.search = null;
         }
     };
 
     $scope.search = null;
 
     $scope.$watch('search', function(search) {
-        if (!search) {
-            $scope.versions = null;
+        if (!search)
             return;
-        }
         $scope.loading = true;
         Response.history(search).$promise.then(
             function success(versions) {

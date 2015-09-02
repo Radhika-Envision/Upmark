@@ -144,7 +144,7 @@
                         </span>
                     </a>
                 </li>
-                <li ng-if="!versions.length" class="dropdown-header">
+                <li ng-if="!versions.length && !loading" class="dropdown-header">
                     No versions.</li>
                 <li ng-if="loading" class="dropdown-header">
                     Loading...</li>
