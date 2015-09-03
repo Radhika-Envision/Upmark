@@ -496,8 +496,8 @@ angular.module('wsaa.surveyQuestions', [
             survey = stack[0];
             hstack.push({
                 path: 'survey',
-                title: 'Surveys',
-                label: 'S',
+                title: 'Program',
+                label: 'Pg',
                 entity: survey,
                 level: 's'
             });
@@ -517,8 +517,8 @@ angular.module('wsaa.surveyQuestions', [
                 hierarchy = stack[1];
                 hstack.push({
                     path: 'hierarchy',
-                    title: 'Question Sets',
-                    label: 'Qs',
+                    title: 'Surveys',
+                    label: 'S',
                     entity: hierarchy,
                     level: 'h'
                 });

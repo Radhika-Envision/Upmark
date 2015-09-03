@@ -45,8 +45,8 @@
 
 <div class="container" ng-if="edit.model && !edit.model.hierarchy">
     <p>
-        Please choose a question set. This will determine the categories that
-        are available to you when filling out your assessment.
+        Please choose a survey. This will determine the categories that
+        are available to you.
     </p>
 
     <ul class="list-results">
@@ -70,12 +70,12 @@
         </div>
     </form>
 
-    <p class="text-muted">
-        Question set: <i>{{edit.model.hierarchy.title}}</i>
+    <p class="text-muted" ng-if="duplicate">
+        Source survey: <i>{{duplicate.title}}</i>
     </p>
 
-    <p class="text-muted" ng-if="duplicate">
-        Source assessment: <i>{{duplicate.title}}</i>
+    <p class="text-muted">
+        Target survey: <i>{{edit.model.hierarchy.title}}</i>
     </p>
 
 </div>

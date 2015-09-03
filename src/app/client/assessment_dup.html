@@ -24,7 +24,7 @@
 
 <div class="container">
     <p>
-        Please choose an assessment to duplicate.
+        Please choose a survey to duplicate.
     </p>
 
     <search-box model="search" result="assessments">
@@ -57,22 +57,22 @@
                 <h4>{{assessment.title}}</h4>
                 <p>
                     Created {{assessment.created * 1000 | timeAgo:'medium'}}
-                    <span class="text-muted">in survey</span>
+                    <span class="text-muted">in program</span>
                     <i>{{assessment.survey.title}}</i>
                 </p>
             </a>
         </li>
         <li ng-if="!assessments.length">
-            No assessments match your search.
+            No surveys match your search.
         </li>
     </ul>
 
     <p class="text-muted">
         <span ng-if="search.approval != 'approved'">
-            Showing <i>{{search.approval}}</i> assessments and above</span>
+            Showing <i>{{search.approval}}</i> surveys and above</span>
         <span ng-if="search.approval == 'approved'">
-            Showing only <i>{{search.approval}}</i> assessments</span>
-        that are compatible with the target survey, <i>{{survey.title}}</i>.
+            Showing only <i>{{search.approval}}</i> surveys</span>
+        that are compatible with the target program, <i>{{survey.title}}</i>.
     </p>
 </div>
 

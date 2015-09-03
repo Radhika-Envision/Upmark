@@ -4,7 +4,7 @@
 <div class="container">
     <div class="toolbar">
         <button class="btn btn-default btn-round"
-                title="{{parent ? 'Unlink' : 'Delete'}}"
+                title="{{parent ? 'Unlink from parent' : 'Delete'}}"
                 ng-click="edit.del()"
                 ng-if="editable && !edit.model && checkRole('measure_del')">
             <i class="fa fa-trash-o"
@@ -353,7 +353,7 @@
                 <i class="fa-li fa fa-ban fa-border"></i>
                 <p>
                     This response is marked as not relevant. It does not
-                    contribute to the assessment's score.
+                    contribute to the survey's score.
                 </p>
             </li>
             <li ng-if="!edit.model && assessment">
@@ -386,15 +386,15 @@
                     again.
                 </p>
                 <p>
-                    Assessments progress through the same states. When all the
-                    responses in an assessment are <i>Final</i>, the assessment
+                    Surveys progress through the same states. When all the
+                    responses in a survey are <i>Final</i>, the survey
                     itself can be marked as <i>Final</i>, and so on. After that
                     it is not possible to reduce the state of the responses.
                 </p>
             </li>
             <li ng-if="!edit.model && parents && checkRole('measure_edit')">
                 <i class="fa-li fa fa-sitemap fa-border"></i>
-                Measures are shared between question sets.
+                A program's measures can be shared between its surveys.
                 Respondents can use the following category paths to reach this
                 measure:
                 <ul ng-if="parents.length">
@@ -413,7 +413,7 @@
                 <p ng-if="parent">
                     This measure can be
                     <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}">
-                        viewed without a question set</a>,
+                        viewed without a survey</a>,
                     but it can not be responded to like that.
                 </p>
                 <p ng-if="!parents.length">
