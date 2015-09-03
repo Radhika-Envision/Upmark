@@ -338,7 +338,7 @@ angular.module('wsaa.aquamark',
             })
 
             .when('/qnode/new', {
-                templateUrl : 'question_node.html',
+                templateUrl : 'qnode.html',
                 controller : 'QuestionNodeCtrl',
                 resolve: {routeData: chain({
                     hierarchy: ['Hierarchy', '$route',
@@ -364,7 +364,7 @@ angular.module('wsaa.aquamark',
                 })}
             })
             .when('/qnode/:qnode', {
-                templateUrl : 'question_node.html',
+                templateUrl : 'qnode.html',
                 controller : 'QuestionNodeCtrl',
                 resolve: {routeData: chain({
                     assessment: ['Assessment', '$route',
