@@ -21,11 +21,8 @@ from utils import reorder, ToSon, truthy, updater
 
 log = logging.getLogger('app.crud.statistics')
 
-MAX_WORKERS = 4
-
 
 class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
-    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated
     def get(self, assessment_id):

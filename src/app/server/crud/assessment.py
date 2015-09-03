@@ -69,7 +69,6 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
     def query(self):
         '''Get a list.'''
-
         term = self.get_argument('term', '')
         survey_id = self.get_argument('surveyId', '')
         approval = self.get_argument('approval', '')
