@@ -137,6 +137,10 @@ h2 {
     }
 }
 
+a.stealth {
+    color: inherit;
+}
+
 ul.dropdown-menu {
     border: none;
 
@@ -597,6 +601,16 @@ column-progress {
     }
 }
 
+.assessment-header {
+    > span {
+        margin: 0 1em;
+    }
+}
+
+.bg-muted {
+    background: #fafafa;
+}
+
 .stats {
     font-size: 120%;
     text-align: center;
@@ -608,6 +622,8 @@ column-progress {
 
     > span {
         margin: 0 1em;
+        position: relative;
+        display: inline-block;
     }
     .stats-bar1 {
         color: darken($aq-bar1, 10%);
@@ -618,4 +634,16 @@ column-progress {
     .stats-bar3 {
         color: darken($aq-bar3, 10%);
     }
+}
+.stats:hover > span:before {
+    content: attr(title);
+    font-size: 10px;
+    position: absolute;
+    white-space: nowrap;
+    bottom: -15px;
+    text-align: center;
+    left: -20px;
+    right: -20px;
+    display: block;
+    color: #888;
 }

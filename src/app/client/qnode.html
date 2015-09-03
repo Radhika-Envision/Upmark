@@ -1,5 +1,3 @@
-<div>
-
 <div class="header">
 <div class="container">
     <div class="toolbar">
@@ -32,6 +30,19 @@
 </div>
 </div>
 
+<div class="subheader text-center bg-muted text-muted" ng-if="assessment">
+<div class="container assessment-header">
+    <span title="Organisation">
+        <a ng-href="#/org/{{assessment.organisation.id}}" class="stealth">
+            {{assessment.organisation.name}}</a>
+    </span>
+    <span title="Assessment">
+        <a ng-href="#/assessment/{{assessment.id}}" class="stealth">
+        {{assessment.title}}</a>
+    </span>
+</div>
+</div>
+
 <div ng-if="edit.model">
 <div class="container">
     <form novalidate name="form" id="editor">
@@ -60,10 +71,10 @@
                 ng-class="{active: rnode.notRelevant}">
             <i class="fa fa-fw fa-ban"></i></button>
 
-        <span title="Total score">
+        <span title="Score">
             {{rnode.score}}
         </span>
-        <span>
+        <span title="Progress">
             <column-progress items="stats.progressItems"></column-progress>
             <span class="stats-bar1" title="Number of final responses">
                 {{rnode.nSubmitted}}</span>
@@ -74,7 +85,7 @@
             <span title="Number of not-relevant responses">
                 <s>{{rnode.nNotRelevant}}</s></span>
         </span>
-        <span>
+        <span title="Measures">
             <span class="text-muted" title="Total number of measures">
                 {{qnode.nMeasures}}</span>
         </span>
@@ -105,6 +116,4 @@
             </li>
         </ul>
     </div>
-</div>
-
 </div>

@@ -1,5 +1,3 @@
-<div>
-
 <div class="header">
 <div class="container">
     <div class="toolbar">
@@ -31,6 +29,17 @@
             <i class="fa fa-pencil"></i></button>
     </div>
     <question-header entity="survey" assessment="assessment"></question-header>
+</div>
+</div>
+
+<div class="subheader text-center bg-muted text-muted" ng-if="assessment">
+<div class="container assessment-header">
+    <span title="Organisation">
+        {{assessment.organisation.name}}
+    </span>
+    <span title="Assessment">
+        {{assessment.title}}
+    </span>
 </div>
 </div>
 
@@ -110,5 +119,3 @@
 <div class="container"
     ng-controller="QnodeChildren" ng-include="'qnode_children.html'"
     ng-if="!edit.model"></div>
-
-</div>
