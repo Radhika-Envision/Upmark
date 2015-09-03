@@ -28,7 +28,7 @@
                     <span class="icon-bar"></span>
                 </button>
                 <a href="#/" class="navbar-brand">
-                    {% include images/logo.svg %}
+                    {% include images/logo.min.svg %}
                 </a>
             </div>
             <div class="collapse navbar-collapse">
@@ -128,13 +128,10 @@
     opacity: 1;
     display: block;
 }
-#loading-splash #logo-droplet > path:first-child {
-    fill: #538CBC !important;
-}
 </style>
 
 <div id="loading-splash" ng-uncloak>
-    {% include images/logo-monogram.svg %}
+    {% include images/logo-monogram.min.svg %}
 </div>
 
 <script>
@@ -144,7 +141,7 @@
         if (ls.className.search('ng-uncloak') >= 0)
             return;
         ls.className = "in";
-    }, 500);
+    }, 1000);
 }
 </script>
 
