@@ -16,9 +16,12 @@ div.chart {
 }
 
 .box .median {
-  stroke: red;
+  stroke: blue;
 }
 
+.box .current {
+  stroke: red;
+}
 
 .box .center {
   stroke-dasharray: 3,3;
@@ -118,22 +121,22 @@ d3.box = function() {
       box.enter().append("rect")
           .attr("class", "box")
           .attr("x", 0)
-          .attr("y", function(d) { return x0(d[2]); })
+          .attr("y", function(d) { return x0(d[3]); })
           .attr("width", width)
-          .attr("height", function(d) { return x0(d[0]) - x0(d[2]); })
+          .attr("height", function(d) { return x0(d[0]) - x0(d[3]); })
         .transition()
           .duration(duration)
-          .attr("y", function(d) { return x1(d[2]); })
-          .attr("height", function(d) { return x1(d[0]) - x1(d[2]); });
+          .attr("y", function(d) { return x1(d[3]); })
+          .attr("height", function(d) { return x1(d[0]) - x1(d[3]); });
 
       box.transition()
           .duration(duration)
-          .attr("y", function(d) { return x1(d[2]); })
-          .attr("height", function(d) { return x1(d[0]) - x1(d[2]); });
+          .attr("y", function(d) { return x1(d[3]); })
+          .attr("height", function(d) { return x1(d[0]) - x1(d[3]); });
 
       // Update median line.
       var medianLine = g.selectAll("line.median")
-          .data([quartileData[1]]);
+          .data([quartileData[2]]);
 
       medianLine.enter().append("line")
           .attr("class", "median")
@@ -147,6 +150,27 @@ d3.box = function() {
           .attr("y2", x1);
 
       medianLine.transition()
+          .duration(duration)
+          .attr("y1", x1)
+          .attr("y2", x1);
+      console.log(x1);
+
+        // Update median line.
+      var currentLine = g.selectAll("line.current")
+          .data([quartileData[1]]);
+
+      currentLine.enter().append("line")
+          .attr("class", "current")
+          .attr("x1", 0)
+          .attr("y1", x0)
+          .attr("x2", width)
+          .attr("y2", x0)
+        .transition()
+          .duration(duration)
+          .attr("y1", x1)
+          .attr("y2", x1);
+
+      currentLine.transition()
           .duration(duration)
           .attr("y1", x1)
           .attr("y2", x1);
@@ -235,17 +259,6 @@ d3.box = function() {
           .attr("y", x1)
           .style("opacity", 1e-6)
           .remove();
-
-      g.selectAll("text.name")
-          .data([d.name])
-          .enter().append("text")
-          .attr("class", "whisker")
-          .attr("dy", ".3em")
-          .attr("dx", 6)
-          .attr("x", 0)
-          .attr("y", 485)
-          .text("F1");
-
     });
     d3.timer.flush();
   }
@@ -286,9 +299,7 @@ d3.box = function() {
     return box;
   };
 
-  box.whiskers = function(x) {
-    if (!arguments.length) return whiskers;
-    whiskers = x;
+  box.whiskers = function() {
     return box;
   };
 
@@ -301,14 +312,11 @@ d3.box = function() {
   return box;
 };
 
-function boxWhiskers(d) {
-  return [0, 2];
-}
-
 function boxQuartiles(d) {  
   return [
     d.org_min,
     d.current,
+    d.median,
     d.org_max
   ];
 }

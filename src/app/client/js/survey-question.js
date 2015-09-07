@@ -73,7 +73,7 @@ angular.module('wsaa.surveyQuestions', [
 
 .factory('Statistics', ['$resource', function($resource) {
     return $resource('/statistics/:id.json', {id: '@id'}, {
-        get: { method: 'GET', cache: false }
+        get: { method: 'GET', isArray: true, cache: false }
     });
 }])
 
@@ -904,55 +904,40 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.$watch('rnode', function(rnode) {
         rnode.$promise.then(function success(rnodes) {
-
             d3.select("div#chart>svg").remove();
 
             var margin = {top: 10, right: 50, bottom: 20, left: 50},
                 width = 120 - margin.left - margin.right,
                 height = 500 - margin.top - margin.bottom;
 
-
-            var iqr = function (k) {
-              return function(d, i) {
-                var q1 = d.quartiles[0],
-                    q3 = d.quartiles[2],
-                    iqr = (q3 - q1) * k,
-                    i = -1,
-                    j = d.length;
-                while (d[++i] < q1 - iqr);
-                while (d[--j] > q3 + iqr);
-                return [i, j];
-              };
-            }
-
             var chart = d3.box()
-                .whiskers(iqr(1.5))
+                .whiskers()
                 .width(width)
                 .height(height);
 
-            var data = [];
-            angular.forEach(rnodes, function(node, index) {
-                var d = {min: 0};
-                d['current'] = node.score;
-                d['max'] = 20000;
-                d['org_max'] = 17000;
-                d['org_min'] = 1000;
-                d['name'] = "F" + index;
-                data.push(d);
+            Statistics.get({id:$scope.assessment.survey.id}).$promise.then(function success(stats) {
+                var data = [];
+                angular.forEach(rnodes, function(node, index) {
+                    var d = {min: stats[index].min};
+                    d['current'] = node.score;
+                    d['max'] = stats[index].max;
+                    d['org_max'] = stats[index].org_max;
+                    d['org_min'] = stats[index].org_min;
+                    d['median'] = stats[index].org_median;
+                    d['name'] = "F" + (index + 1);
+                    data.push(d);
+                });
+
+                var svg = d3.select("#chart").selectAll("svg")
+                    .data(data)
+                    .enter().append("svg")
+                        .attr("class", "box")
+                        .attr("width", width + margin.left + margin.right)
+                        .attr("height", height + margin.bottom + margin.top)
+                    .append("g")
+                        .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+                        .call(chart);
             });
-
-
-            d3.select("#chart").selectAll("svg")
-                .data(data)
-                .enter().append("svg")
-                  .attr("class", "box")
-                  .attr("width", width + margin.left + margin.right)
-                  .attr("height", height + margin.bottom + margin.top)
-                .append("g")
-                  .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-                  .call(chart);
-
-
         });
     });
 }])
