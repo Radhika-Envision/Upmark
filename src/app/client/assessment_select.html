@@ -1,0 +1,73 @@
+<div class="container">
+    <div class="section">
+        <div class="toolbar" ng-if="showEdit">
+            <a class="btn btn-default btn-round" title="Import"
+                    ng-href="#/assessment/import?survey={{survey.id}}&organisation={{aSearch.organisation.id}}"
+                    ng-if="survey.isOpen && checkRole('assessment_add')">
+                <i class="fa fa-fw fa-cloud-upload"></i></a>
+            <a class="btn btn-default btn-round" title="Duplicate existing"
+                    ng-href="#/assessment/duplicate?survey={{survey.id}}&organisation={{aSearch.organisation.id}}"
+                    ng-if="survey.isOpen && checkRole('assessment_add')">
+                <i class="fa fa-fw fa-clone">
+                    <i class="fa fa-link fa-badge"></i>
+                </i></a>
+            <a class="btn btn-default btn-round" title="Add new"
+                    ng-href="#/assessment/new?survey={{survey.id}}&organisation={{aSearch.organisation.id}}"
+                    ng-if="survey.isOpen && checkRole('assessment_add')">
+                <i class="fa fa-fw fa-plus"></i></a>
+        </div>
+        <h2>
+            Submissions
+        </h2>
+    </div>
+
+    <ui-select ng-model="aSearch.organisation" reset-search-input="false"
+            ng-if="checkRole('assessment_review')">
+        <ui-select-match placeholder="Type to select organisation">
+            <i class="fa fa-university"></i>
+            {{aSearch.organisation.name}}</ui-select-match>
+        <ui-select-choices
+                repeat="organisation in organisations | filter: $select.search"
+                refresh="searchOrg($select.search)"
+                refresh-delay="0">
+            <div ng-bind-html="organisation.name | highlight: $select.search"></div>
+        </ui-select-choices>
+    </ui-select>
+
+    <ul class="list-results spaced">
+        <li ng-repeat="assessment in assessments">
+            <a ng-href="#{{getUrl(assessment)}}">
+                <h4>{{assessment.title}}</h4>
+                <p class="truncate">
+                    {{assessment.hierarchy.title}}
+                    - {{assessment.created * 1000 | timeAgo:'fullDate'}}
+                    - {{assessment.organisation.name}}
+                    <span class="pull-right">{{assessment.approval}}</span>
+                </p>
+            </a>
+        </li>
+    </ul>
+
+    <p ng-if="!assessments.length">
+        <i>{{aSearch.organisation.name}}</i> has no surveys for this program.
+    </p>
+    <div class="text-center">
+        <a ng-href="#/assessment/new?survey={{survey.id}}&organisation={{aSearch.organisation.id}}"
+                class="btn btn-link btn-lg"
+                ng-if="!assessments.length">
+            <i class="fa fa-plus"></i>
+            Start a new submission
+        </a>
+        <a ng-href="#{{getUrl(null)}}"
+                class="btn btn-link btn-lg">
+            <i class="fa fa-ban"></i>
+            View this survey without a submission
+        </a>
+    </div>
+    <div ng-if="survey.isOpen && checkRole('assessment_add') && showEdit">
+        <p ng-if="assessments.length" class="text-muted text-center">
+            You can start another survey by clicking the
+            <i class="fa fa-plus"></i> button above.
+        </p>
+    </div>
+</div>

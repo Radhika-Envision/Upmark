@@ -28,20 +28,13 @@
                 ng-if="!edit.model && checkRole('assessment_edit')">
             <i class="fa fa-pencil"></i></button>
     </div>
-    <question-header entity="survey" assessment="assessment"></question-header>
+    <question-header entity="assessment.hierarchy" assessment="assessment"></question-header>
 </div>
 </div>
 
-<div class="subheader text-center bg-muted text-muted" ng-if="assessment">
-<div class="container assessment-header">
-    <span title="Organisation">
-        {{assessment.organisation.name}}
-    </span>
-    <span title="Assessment">
-        {{assessment.title}}
-    </span>
-</div>
-</div>
+
+<assessment-header></assessment-header>
+
 
 <div class="container" ng-if="edit.model && !edit.model.hierarchy">
     <p>
@@ -81,6 +74,7 @@
 </div>
 
 <div ng-if="!edit.model" class="container">
+    <!-- Don't wrap the contents of this tag! -->
     <p ng-if="assessment.hierarchy.description"
             class="formatted">{{assessment.hierarchy.description}}</p>
 

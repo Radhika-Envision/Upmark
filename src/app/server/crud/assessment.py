@@ -118,6 +118,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 # Descend
                 r'/[0-9]+$',
                 r'/organisation$',
+                r'/hierarchy$',
                 r'/survey$'
             ])
             sons = to_son(query.all())

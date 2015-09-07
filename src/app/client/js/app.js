@@ -212,6 +212,22 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
+            .when('/hierarchy/:hierarchy/choice', {
+                templateUrl : 'hierarchy_choice.html',
+                controller : 'HierarchyChoiceCtrl',
+                resolve: {routeData: chain({
+                    hierarchy: ['Hierarchy', '$route',
+                            function(Hierarchy, $route) {
+                        return Hierarchy.get({
+                            id: $route.current.params.hierarchy,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    survey: ['hierarchy', function(hierarchy) {
+                        return hierarchy.survey;
+                    }]
+                })}
+            })
             .when('/hierarchy/:hierarchy', {
                 templateUrl : 'hierarchy.html',
                 controller : 'HierarchyCtrl',

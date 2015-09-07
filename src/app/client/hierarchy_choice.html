@@ -1,0 +1,21 @@
+<div class="header">
+<div class="container">
+    <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Collapse"
+                ng-click="layout.expandHeader = !layout.expandHeader">
+            <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
+            <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
+        </button>
+        <survey-history entity="hierarchy" service="Hierarchy"
+                ng-if="!edit.model"></survey-history>
+    </div>
+    <question-header entity="hierarchy"></question-header>
+</div>
+</div>
+
+<div class="container" ng-if="structure.hierarchy.description">
+    <p>{{structure.hierarchy.description}}</p>
+</div>
+
+
+<assessment-select assessment-select-show-edit="true"></assessment-select>

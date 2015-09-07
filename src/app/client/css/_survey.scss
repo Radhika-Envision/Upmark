@@ -602,9 +602,28 @@ column-progress {
 }
 
 .assessment-header {
-    > span {
+    > div {
+        display: inline-block;
         margin: 0 1em;
+
+        > span {
+            /* Pretend to be a button */
+            display: inline-block;
+            border: solid transparent;
+            border-width: 1px 1px 3px 1px;
+            padding: 6px 12px 3px;
+            vertical-align: middle;
+        }
     }
+}
+
+.atop {
+    position: absolute;
+    background-color: inherit;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    box-shadow: 0 5px 5px -5px rgba(0, 0, 0, 0.2);
 }
 
 .bg-muted {
