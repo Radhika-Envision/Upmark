@@ -38,7 +38,7 @@
 
     <ul class="list-results spaced">
         <li ng-repeat="assessment in assessments">
-            <a ng-href="#{{getUrl(assessment)}}">
+            <a ng-href="#{{getAssessmentUrl(assessment)}}">
                 <h4>{{assessment.title}}</h4>
                 <p class="truncate">
                     {{assessment.hierarchy.title}}
@@ -73,8 +73,9 @@
             <i class="fa fa-plus"></i>
             Start a new submission
         </a>
-        <a ng-href="#{{getUrl(null)}}"
-                class="btn btn-link btn-lg">
+        <a ng-href="#{{getAssessmentUrl(null)}}"
+                class="btn btn-link btn-lg"
+                ng-if="showEdit || assessment">
             <i class="fa fa-ban"></i>
             View this survey without a submission
         </a>

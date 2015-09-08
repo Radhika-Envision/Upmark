@@ -333,6 +333,9 @@ angular.module('wsaa.surveyQuestions', [
                 else
                     $scope.aSearch.organisation = current.user.organisation;
             });
+            $scope.$watch('assessment', function(assessment) {
+                $scope.search.not = assessment && assessment.id;
+            });
 
             $scope.searchOrg = function(term) {
                 Organisation.query({term: term}).$promise.then(function(orgs) {
@@ -356,6 +359,7 @@ angular.module('wsaa.surveyQuestions', [
 
             $scope.search = {
                 term: "",
+                not: null,
                 orgId: null,
                 hierarchyId: null,
                 surveyId: null,
@@ -374,58 +378,19 @@ angular.module('wsaa.surveyQuestions', [
                 );
             }, true);
 
-            var urlReparameterise = function(params) {
-                var subs = [];
-                for (var key in params) {
-                    subs.push({
-                        key: key,
-                        re: new RegExp(format('([/?&]{}[/=])([^./&?]*)', key)),
-                        value: params[key]
-                    });
-                }
-                return function(url) {
-                    for (var i = 0; i < subs.length; i++) {
-                        var sub = subs[i];
-                        if (!sub.value) {
-                            if (sub.re.exec(url))
-                                url = url.replace(sub.re, '$1');
-                        } else if (sub.re.exec(url)) {
-                            url = url.replace(sub.re, '$1' + sub.value);
-                        } else if (/\?/.exec(url)) {
-                            url += format('&{}={}', sub.key, sub.value);
-                        } else {
-                            url += format('?{}={}', sub.key, sub.value);
-                        }
-                    }
-                    return url;
+            // Allow parent controller to specify a special URL formatter - this
+            // is so one can switch between assessments without losing one's
+            // place in the hierarchy.
+            if (!$scope.getAssessmentUrl) {
+                $scope.getAssessmentUrl = function(assessment) {
+                    if (assessment)
+                        return format('/assessment/{}', assessment.id);
+                    else
+                        return format('/hierarchy/{}?survey={}',
+                            $scope.structure.hierarchy.id,
+                            $scope.structure.survey.id);
                 };
-            };
-
-            $scope.getUrl = function(assessment) {
-                var url = $location.url();
-                url = url.replace('/choice', '');
-                if (assessment) {
-                    var re = /^\/hierarchy\/([^\/]+)/;
-                    var aid = assessment.id;
-                    if (re.exec(url))
-                        return url.replace(re, '/assessment/' + aid);
-                } else {
-                    var re = /^\/assessment\/([^\/]+)/;
-                    var hid = $scope.structure.hierarchy.id;
-                    if (re.exec(url)) {
-                        url = url.replace(re, '/hierarchy/' + hid);
-                        var reparm = urlReparameterise({
-                            survey: $scope.structure.survey.id
-                        });
-                        return reparm(url);
-                    }
-                }
-
-                var reparm = urlReparameterise({
-                    assessment: assessment && assessment.id || null
-                });
-                return reparm(url);
-            };
+            }
         }],
         link: function(scope, elem, attrs) {
             scope.showEdit = attrs.assessmentSelectShowEdit !== undefined;
@@ -827,6 +792,7 @@ angular.module('wsaa.surveyQuestions', [
         $scope.children = null;
         $scope.edit.edit();
     }
+    $scope.structure = Structure($scope.hierarchy);
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
@@ -980,6 +946,16 @@ angular.module('wsaa.surveyQuestions', [
             };
         }, true);
     }
+
+    $scope.getAssessmentUrl = function(assessment) {
+        if (assessment) {
+            return format('/qnode/{}?assessment={}',
+                $scope.qnode.id, assessment.id);
+        } else {
+            return format('/qnode/{}?survey={}',
+                $scope.qnode.id, $scope.survey.id);
+        }
+    };
 
     $scope.toggleNotRelevant = function() {
         var oldValue = $scope.rnode.notRelevant;
@@ -1469,6 +1445,18 @@ angular.module('wsaa.surveyQuestions', [
                 }
             });
     }
+
+    $scope.getAssessmentUrl = function(assessment) {
+        if (assessment) {
+            return format('/measure/{}?assessment={}&parent={}',
+                $scope.measure.id, assessment.id,
+                $scope.parent && $scope.parent.id || '');
+        } else {
+            return format('/measure/{}?survey={}&parent={}',
+                $scope.measure.id, $scope.survey.id,
+                $scope.parent && $scope.parent.id || '');
+        }
+    };
 }])
 
 

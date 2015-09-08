@@ -75,6 +75,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
         hierarchy_id = self.get_argument('hierarchyId', '')
         approval = self.get_argument('approval', '')
         tracking_id = self.get_argument('trackingId', '')
+        not_ = self.get_argument('not', '')
 
         org_id = self.get_argument('orgId', '')
         if self.current_user.role in {'clerk', 'org_admin'}:
@@ -96,6 +97,9 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
 
             if hierarchy_id != '':
                 query = query.filter_by(hierarchy_id=hierarchy_id)
+
+            if not_ != '':
+                query = query.filter(model.Assessment.id != not_)
 
             if approval != '':
                 approval_set = self.approval_set(approval)
