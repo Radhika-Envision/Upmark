@@ -49,7 +49,7 @@
     </ul>
 
     <p ng-if="!assessments.length">
-        <i>{{aSearch.organisation.name}}</i> has no surveys for this program.
+        <i>{{aSearch.organisation.name}}</i> has no submissions for this program.
     </p>
     <div class="text-center">
         <a ng-href="#/assessment/new?survey={{survey.id}}&organisation={{aSearch.organisation.id}}"
@@ -66,7 +66,7 @@
     </div>
     <div ng-if="survey.isOpen && checkRole('assessment_add') && showEdit">
         <p ng-if="assessments.length" class="text-muted text-center">
-            You can start another survey by clicking the
+            You can start another submission by clicking the
             <i class="fa fa-plus"></i> button above.
         </p>
     </div>

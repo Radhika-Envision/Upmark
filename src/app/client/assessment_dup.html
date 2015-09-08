@@ -24,19 +24,19 @@
 
 <div class="container">
     <p>
-        Please choose a survey to duplicate.
+        Please choose a submission to duplicate.
     </p>
 
     <search-box model="search" result="assessments">
         <button class="btn btn-default" type="button"
                 title="{{
                     search.approval == 'final' ?
-                        'Show finalised assessments and above' :
+                        'Show finalised submissions and above' :
                     search.approval == 'reviewed' ?
-                        'Show reviewed assessments and above' :
+                        'Show reviewed submissions and above' :
                     search.approval == 'approved' ?
-                        'Show approved assessments' :
-                        'Show draft assessments and above'}}"
+                        'Show approved submissions' :
+                        'Show draft submissions and above'}}"
                 ng-click="cycleApproval()">
             <i class="fa fa-check-square-o">
                 <b ng-if="search.approval == 'draft'"
@@ -63,15 +63,15 @@
             </a>
         </li>
         <li ng-if="!assessments.length">
-            No surveys match your search.
+            No submissions match your search.
         </li>
     </ul>
 
     <p class="text-muted">
         <span ng-if="search.approval != 'approved'">
-            Showing <i>{{search.approval}}</i> surveys and above</span>
+            Showing <i>{{search.approval}}</i> submissions and above</span>
         <span ng-if="search.approval == 'approved'">
-            Showing only <i>{{search.approval}}</i> surveys</span>
+            Showing only <i>{{search.approval}}</i> submissions</span>
         that are compatible with the target program, <i>{{survey.title}}</i>.
     </p>
 </div>

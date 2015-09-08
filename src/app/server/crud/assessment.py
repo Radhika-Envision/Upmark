@@ -81,7 +81,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 org_id = str(self.organisation.id)
             elif org_id != str(self.organisation.id):
                 raise AuthzError(
-                    "You can't view another organisation's assessments")
+                    "You can't view another organisation's submissions")
 
         with model.session_scope() as session:
             query = session.query(model.Assessment)
@@ -174,11 +174,11 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 .first())
         if s_assessment is None:
             raise handlers.MissingDocError(
-                "Source assessment (for duplication) no found")
+                "Source submission (for duplication) no found")
 
         if str(s_assessment.organisation_id) != (assessment.organisation_id):
             raise handlers.ModelError(
-                "Can't duplicate an assessment across two organisations: "
+                "Can't duplicate a submission across two organisations: "
                 "'%s/%s' and '%s/%s'" % (
                     s_assessment.organisation.name,
                     assessment.organisation.name))
@@ -265,14 +265,14 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 assessment = session.query(model.Assessment)\
                     .get(assessment_id)
                 if assessment is None:
-                    raise handlers.ModelError("No such assessment")
+                    raise handlers.ModelError("No such submission")
                 self._check_modify(assessment)
                 if approval != '':
                     self._check_approval(session, assessment, approval)
                     self._set_approval(assessment, approval)
                 self._update(assessment, self.request_son)
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such assessment")
+            raise handlers.MissingDocError("No such submission")
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(assessment_id)
@@ -287,13 +287,13 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 assessment = session.query(model.Assessment)\
                     .get(assessment_id)
                 if assessment is None:
-                    raise handlers.ModelError("No such assessment")
+                    raise handlers.ModelError("No such submission")
                 self._check_delete(assessment)
                 session.delete(assessment)
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError("This assessment is in use")
+            raise handlers.ModelError("This submission is in use")
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such assessment")
+            raise handlers.MissingDocError("No such submission")
 
         self.finish()
 
@@ -335,16 +335,16 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
         if self.current_user.role == 'org_admin':
             if approval not in {'draft', 'final'}:
                 raise handlers.AuthzError(
-                    "You can't mark this assessment as %s." % approval)
+                    "You can't mark this submission as %s." % approval)
         elif self.current_user.role == 'consultant':
             if approval not in {'draft', 'final', 'reviewed'}:
                 raise handlers.AuthzError(
-                    "You can't mark this assessment as %s." % approval)
+                    "You can't mark this submission as %s." % approval)
         elif self.has_privillege('authority'):
             pass
         else:
             raise handlers.AuthzError(
-                "You can't mark this assessment as %s." % approval)
+                "You can't mark this submission as %s." % approval)
         assessment.approval = approval
 
     def _update(self, assessment, son):

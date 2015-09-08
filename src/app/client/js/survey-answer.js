@@ -161,7 +161,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
     $scope.assessment = new Assessment({
         survey: $scope.survey,
         hierarchy : null,
-        title: "Aquamark Assessment Import",
+        title: "Aquamark Submission Import",
         organisation: routeData.organisation
     });
     if ($scope.hierarchies.length == 1) {

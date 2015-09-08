@@ -84,7 +84,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 .first())
 
             if assessment is None:
-                raise handlers.MissingDocError("No such assessment")
+                raise handlers.MissingDocError("No such submission")
             self._check_authz(assessment)
 
             if root is not None:
@@ -138,7 +138,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 assessment = (session.query(model.Assessment)
                     .get(assessment_id))
                 if assessment is None:
-                    raise handlers.MissingDocError("No such assessment")
+                    raise handlers.MissingDocError("No such submission")
 
                 self._check_authz(assessment)
 

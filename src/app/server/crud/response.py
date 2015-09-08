@@ -123,7 +123,7 @@ class ResponseHandler(handlers.BaseHandler):
                 .first())
 
             if assessment is None:
-                raise handlers.MissingDocError("No such assessment")
+                raise handlers.MissingDocError("No such submission")
             self._check_authz(assessment)
 
             rnode = (session.query(model.ResponseNode)
@@ -174,7 +174,7 @@ class ResponseHandler(handlers.BaseHandler):
                 assessment = (session.query(model.Assessment)
                     .get(assessment_id))
                 if assessment is None:
-                    raise handlers.MissingDocError("No such assessment")
+                    raise handlers.MissingDocError("No such submission")
 
                 self._check_authz(assessment)
 
@@ -231,20 +231,20 @@ class ResponseHandler(handlers.BaseHandler):
         elif assessment.approval == 'final':
             if not self.has_privillege('org_admin', 'consultant'):
                 raise handlers.AuthzError(
-                    "This assessment has already been finalised")
+                    "This submission has already been finalised")
         elif assessment.approval == 'reviewed':
             if not self.has_privillege('consultant'):
                 raise handlers.AuthzError(
-                    "This assessment has already been reviewed")
+                    "This submission has already been reviewed")
         else:
             if not self.has_privillege('authority'):
                 raise handlers.AuthzError(
-                    "This assessment has already been approved")
+                    "This submission has already been approved")
 
         order = ['draft', 'final', 'reviewed', 'approved']
         if order.index(assessment.approval) > order.index(approval):
             raise handlers.ModelError(
-                "This response belongs to an assessment with a state of '%s'."
+                "This response belongs to an submission with a state of '%s'."
                 % assessment.approval)
 
         if self.current_user.role in {'org_admin', 'clerk'}:

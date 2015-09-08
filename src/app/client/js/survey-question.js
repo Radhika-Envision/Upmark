@@ -607,7 +607,7 @@ angular.module('wsaa.surveyQuestions', [
                 hstack.push({
                     path: 'hierarchy',
                     title: 'Surveys',
-                    label: 'S',
+                    label: 'Sv',
                     entity: hierarchy,
                     level: 'h'
                 });
@@ -618,8 +618,8 @@ angular.module('wsaa.surveyQuestions', [
             // Assessments slot in after hierarchy.
             hstack.splice(2, 0, {
                 path: 'assessment',
-                title: 'Assessments',
-                label: 'A',
+                title: 'Submissions',
+                label: 'Sb',
                 entity: assessment,
                 level: 'h'
             });
