@@ -1014,12 +1014,14 @@ angular.module('wsaa.surveyQuestions', [
     }
 
     $scope.$watchGroup(['hierarchy', 'structure'], function(vars) {
+        var level;
         if ($scope.assessment && !$scope.qnode)
-            $scope.title = $scope.assessment.hierarchy.structure.levels[0].title;
+            level = $scope.assessment.hierarchy.structure.levels[0];
         else if ($scope.hierarchy)
-            $scope.title = $scope.hierarchy.structure.levels[0].title;
+            level = $scope.hierarchy.structure.levels[0];
         else
-            $scope.title = $scope.nextLevel.title;
+            level = $scope.nextLevel;
+        $scope.level = level;
     });
 
     if ($scope.assessment) {
@@ -1123,7 +1125,7 @@ angular.module('wsaa.surveyQuestions', [
         qnodeId: $scope.qnode.id
     }
 
-    $scope.title = $scope.structure.hierarchy.structure.measure.title;
+    $scope.level = $scope.structure.hierarchy.structure.measure;
 
     if ($scope.assessment) {
         // Get the responses that are associated with this qnode and assessment.
