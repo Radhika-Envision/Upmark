@@ -438,6 +438,22 @@ angular.module('vpac.widgets', [])
 }])
 
 
+.directive('ifNotEmpty', function() {
+    return {
+        restrict: 'AC',
+        link: function(scope, elem, attrs) {
+            scope.$watch(
+                function isEmpty() {
+                    return elem.html().trim() == '';
+                },
+                function toggle(empty) {
+                    elem.toggleClass('ng-hide', empty);
+                });
+        }
+    };
+})
+
+
 .directive('markdownEditor', [function() {
     function postLink(scope, elem, attrs, ngModel) {
         scope.model = {

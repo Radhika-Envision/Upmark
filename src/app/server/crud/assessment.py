@@ -72,6 +72,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
 
         term = self.get_argument('term', '')
         survey_id = self.get_argument('surveyId', '')
+        hierarchy_id = self.get_argument('hierarchyId', '')
         approval = self.get_argument('approval', '')
         tracking_id = self.get_argument('trackingId', '')
 
@@ -92,6 +93,9 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
 
             if survey_id != '':
                 query = query.filter_by(survey_id=survey_id)
+
+            if hierarchy_id != '':
+                query = query.filter_by(hierarchy_id=hierarchy_id)
 
             if approval != '':
                 approval_set = self.approval_set(approval)

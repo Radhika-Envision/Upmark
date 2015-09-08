@@ -340,19 +340,39 @@ angular.module('wsaa.surveyQuestions', [
                 });
             };
             $scope.$watch('aSearch.organisation', function(organisation) {
-                Assessment.query({
-                    orgId: organisation.id,
-                    surveyId: $scope.survey.id
-                }).$promise.then(
+                if (organisation)
+                    $scope.search.orgId = organisation.id;
+                else
+                    $scope.search.orgId = null;
+            });
+
+            $scope.$watch('structure.hierarchy', function(hierarchy) {
+                $scope.search.hierarchyId = hierarchy && hierarchy.id;
+            });
+
+            $scope.$watch('structure.survey', function(survey) {
+                $scope.search.surveyId = survey && survey.id;
+            });
+
+            $scope.search = {
+                term: "",
+                orgId: null,
+                hierarchyId: null,
+                surveyId: null,
+                page: 0,
+                pageSize: 10
+            };
+            $scope.$watch('search', function(search) {
+                Assessment.query(search).$promise.then(
                     function success(assessments) {
                         $scope.assessments = assessments;
                     },
                     function failure(details) {
                         Notifications.set('survey', 'error',
-                            "Could not get assessment list: " + details.statusText);
+                            "Could not get submission list: " + details.statusText);
                     }
                 );
-            });
+            }, true);
 
             var urlReparameterise = function(params) {
                 var subs = [];
@@ -408,7 +428,7 @@ angular.module('wsaa.surveyQuestions', [
             };
         }],
         link: function(scope, elem, attrs) {
-            scope.showEdit = attrs.assessmentSelectShowEdit;
+            scope.showEdit = attrs.assessmentSelectShowEdit !== undefined;
         }
     }
 }])
