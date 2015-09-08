@@ -320,18 +320,17 @@ angular.module('wsaa.surveyQuestions', [
         templateUrl: 'assessment_select.html',
         scope: true,
         controller: ['$scope', 'Current', 'Assessment', 'Organisation',
-                '$location', 'format',
+                '$location', 'format', 'Notifications',
                 function($scope, current, Assessment, Organisation,
-                         $location, format) {
+                         $location, format, Notifications) {
             $scope.aSearch = {
-                organisation: current.user.organisation
+                organisation: null
             };
 
             $scope.$watch('assessment.organisation', function(org) {
-                if (org)
-                    $scope.aSearch.organisation = org;
-                else
-                    $scope.aSearch.organisation = current.user.organisation;
+                if (!org)
+                    org = $scope.org || current.user.organisation;
+                $scope.aSearch.organisation = org;
             });
             $scope.$watch('assessment', function(assessment) {
                 $scope.search.not = assessment && assessment.id;

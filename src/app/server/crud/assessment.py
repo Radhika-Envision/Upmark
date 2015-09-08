@@ -82,7 +82,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             if org_id == '':
                 org_id = str(self.organisation.id)
             elif org_id != str(self.organisation.id):
-                raise AuthzError(
+                raise handlers.AuthzError(
                     "You can't view another organisation's submissions")
 
         with model.session_scope() as session:
