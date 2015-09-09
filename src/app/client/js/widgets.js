@@ -431,22 +431,27 @@ angular.module('vpac.widgets', [])
 })
 
 
-.directive('woofmark', ['$timeout', function($timeout) { return {
-    restrict: 'E',
-    require: 'ngModel',
-    template: '<textarea></textarea>',
-    link: function(scope, elem, attrs, ngModel) {
-        console.log('linking woofmark')
-        var editor;
-        $timeout(function() {
-            editor = woofmark(elem.children()[0], {
-                parseMarkdown: megamark,
-                parseHTML: domador,
-                defaultMode: 'WYSIWYG'
-            });
-        });
-    }
-}}])
+.directive('markdownEditor', [function() {
+    return {
+        restrict: 'E',
+        scope: {
+            model: '='
+        },
+        templateUrl: 'markdown_editor.html',
+        controller: ['$scope', function($scope) {
+            $scope.medium = { options: {
+                "placeholder": "Enter a description",
+                "buttons": [
+                    "bold", "italic", "underline", "anchor",
+                    "header1", "header2", "quote",
+                    "orderedlist", "unorderedlist"]
+            }};
+        }],
+        link: function(scope, element, attrs) {
+            console.log('Linking markdown editor')
+        }
+    };
+}])
 
 
 ;
