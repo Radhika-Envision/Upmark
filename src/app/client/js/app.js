@@ -157,7 +157,35 @@ angular.module('wsaa.aquamark',
                 resolve: {
                     org: ['Organisation', '$route',
                             function(Organisation, $route) {
+                        return Organisation.get({
+                            id: $route.current.params.id
+                        }).$promise;
+                    }]
+                }
+            })
+            .when('/org/:id/survey/add', {
+                templateUrl : 'purchased_survey.html',
+                controller : 'PurchasedSurveyAddCtrl',
+                resolve: {
+                    org: ['Organisation', '$route',
+                            function(Organisation, $route) {
                         return Organisation.get($route.current.params).$promise;
+                    }],
+                    survey: ['Survey', '$route',
+                            function(Survey, $route) {
+                        if (!$route.current.params.survey)
+                            return null;
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    hierarchies: ['Hierarchy', '$route',
+                            function(Hierarchy, $route) {
+                        if (!$route.current.params.survey)
+                            return null;
+                        return Hierarchy.query({
+                            surveyId: $route.current.params.survey
+                        }).$promise;
                     }]
                 }
             })
@@ -225,6 +253,14 @@ angular.module('wsaa.aquamark',
                     }],
                     survey: ['hierarchy', function(hierarchy) {
                         return hierarchy.survey;
+                    }],
+                    org: ['Organisation', '$route',
+                            function(Organisation, $route) {
+                        if (!$route.current.params.organisation)
+                            return null;
+                        return Organisation.get({
+                            id: $route.current.params.organisation
+                        }).$promise;
                     }]
                 })}
             })

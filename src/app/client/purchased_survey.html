@@ -1,0 +1,71 @@
+<div class="header">
+<div class="container">
+    <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Cancel"
+                ng-click="edit.cancel()"
+                ng-if="edit.model && edit.model.id">
+            <i class="fa fa-times"></i></button>
+        <button class="btn btn-default btn-round" title="Save"
+                ng-click="edit.save()"
+                ng-if="edit.model"
+                form="editor">
+            <i class="fa fa-check"></i></button>
+    </div>
+    <h2 page-title>
+        <i class="fa fa-fw fa-university"></i>
+        <a href="#/orgs">Organisations</a> &raquo;
+        <span>{{org.name}}</span> &raquo;
+        <span>Add Survey</span>
+    </h2>
+</div>
+</div>
+
+
+<div class="container" ng-if="!survey">
+    <div class="section">
+        <h2 label="Pg">
+            Programs
+        </h2>
+    </div>
+
+    <search-box model="search" result="surveys"></search-box>
+
+    <ul class="list-results">
+        <li ng-repeat="survey in surveys">
+            <a ng-href="#/org/{{org.id}}/survey/add?survey={{survey.id}}">
+                <h4>{{survey.title}}</h4>
+                <p class="truncate">{{survey.description}}</p>
+            </a>
+        </li>
+    </ul>
+
+    <p ng-if="!surveys.length">
+        No programs.
+    </p>
+</div>
+
+
+<div class="container" ng-if="survey">
+    <div class="section">
+        <h2 label="Sv">
+            Surveys
+        </h2>
+    </div>
+
+    <ul class="list-results">
+        <li ng-repeat="hierarchy in hierarchies">
+            <a href ng-click="addHierarchy(hierarchy)">
+                <h4>{{hierarchy.title}}</h4>
+                <p class="truncate">{{hierarchy.nMeasures}} measures</p>
+            </a>
+        </li>
+    </ul>
+
+    <p ng-if="!hierarchies.length" class="text-muted">
+        No surveys in <i>{{survey.title}}</i>.
+    </p>
+    <p ng-if="hierarchies.length" class="text-muted">
+        Showing surveys in <i>{{survey.title}}</i>. Click on one to add
+        <i>{{org.name}}</i> as a participant.
+    </p>
+</div>

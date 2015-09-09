@@ -37,7 +37,7 @@
     <thead>
       <tr>
         <th>Name</th>
-        <th>Organisation</th>
+        <th ng-if="!hideOrg">Organisation</th>
       </tr>
     </thead>
     <tbody>
@@ -45,7 +45,7 @@
             ng-class="{strike: !user.enabled}"
             any-href='/user/{{user.id}}'">
         <td>{{user.name}}</td>
-        <td>{{user.organisation.name}}</td>
+        <td ng-if="!hideOrg">{{user.organisation.name}}</td>
       </tr>
     </tbody>
   </table>

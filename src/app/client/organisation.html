@@ -91,8 +91,39 @@
 </div>
 </div>
 
-<user-list class="nested" ng-if="!edit.model" org="org"></user-list>
 
-<div ng-if="checkRole('assessment_browse')" assessment-select></div>
+<div class="container" ng-controller="PurchasedSurveyCtrl">
+    <div class="section">
+        <div class="toolbar">
+            <a class="btn btn-default btn-round" title="Add new"
+                    ng-href="#/org/{{org.id}}/survey/add"
+                    ng-if="checkRole('survey_purchase')">
+                <i class="fa fa-fw fa-plus">
+                    <i class="fa fa-badge fa-link"></i>
+                </i></a>
+        </div>
+        <h2 label="Sv">
+            Surveys
+        </h2>
+    </div>
+
+    <ul class="list-results">
+        <li ng-repeat="hierarchy in hierarchies">
+            <a ng-href="#/hierarchy/{{hierarchy.id}}/choice?survey={{hierarchy.survey.id}}&organisation={{org.id}}">
+                <h4>{{hierarchy.title}}</h4>
+                <p class="truncate">In {{hierarchy.survey.title}} -
+                    {{hierarchy.nMeasures}} measures</p>
+            </a>
+        </li>
+    </ul>
+
+    <p ng-if="!hierarchies.length">
+        <i>{{org.name}}</i> is not participating in any surveys yet.
+    </p>
+</div>
+
+
+<user-list class="nested" ng-if="!edit.model" org="org" hide-org></user-list>
+
 
 </div>

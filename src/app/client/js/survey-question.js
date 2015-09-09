@@ -751,6 +751,7 @@ angular.module('wsaa.surveyQuestions', [
     $scope.layout = layout;
     $scope.survey = routeData.survey;
     $scope.hierarchy = routeData.hierarchy;
+    $scope.org = routeData.org;
     $scope.structure = Structure($scope.hierarchy);
 
     if (current.user.role == 'author')

@@ -7,6 +7,7 @@ import tornado.web
 import sqlalchemy
 from sqlalchemy.orm import joinedload
 
+import crud.survey
 import handlers
 import model
 import logging
@@ -136,3 +137,58 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
         update('url', son)
         update('number_of_customers', son)
         update('region', son)
+
+
+class PurchasedSurveyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
+    @tornado.web.authenticated
+    def get(self, org_id, hierarchy_id):
+        if not hierarchy_id:
+            self.query(org_id)
+
+        raise handlers.ModelError('Not implemented')
+
+    def query(self, org_id):
+        with model.session_scope() as session:
+            org = session.query(model.Organisation).get(org_id)
+            if not org:
+                raise handlers.MissingDocError('No such organisation')
+
+            to_son = ToSon(include=[
+                r'/id$',
+                r'/title$',
+                r'/n_measures$',
+                # Descend into list
+                r'/[0-9]+$',
+                r'/survey$'
+            ])
+            sons = to_son(org.hierarchies)
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(sons))
+        self.finish()
+
+    @handlers.authz('admin')
+    def put(self, org_id, hierarchy_id):
+        with model.session_scope() as session:
+            org = session.query(model.Organisation).get(org_id)
+            if not org:
+                raise handlers.MissingDocError('No such organisation')
+            hierarchy = (session.query(model.Hierarchy)
+                .get((hierarchy_id, self.survey_id)))
+            if not hierarchy:
+                raise handlers.MissingDocError('No such hierarchy')
+
+            org.hierarchies.append(hierarchy)
+
+    @handlers.authz('admin')
+    def delete(self, org_id, survey_id):
+        with model.session_scope() as session:
+            org = session.query(model.Organisation).get(org_id)
+            if not org:
+                raise handlers.MissingDocError('No such organisation')
+            hierarchy = (session.query(model.Hierarchy)
+                .get((hierarchy_id, self.survey_id)))
+            if not hierarchy:
+                raise handlers.MissingDocError('No such hierarchy')
+
+            org.surveys.remove(hierarchy)
