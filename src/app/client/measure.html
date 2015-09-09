@@ -170,6 +170,8 @@
                     ng-class="{active: response.approval == 'draft'}"
                     ng-click="setState('draft')"
                     title="Set as 'draft' and save">
+                <approval model="response.approval"
+                    ng-if="response.approval == 'draft'"></approval>
                 Draft
             </button>
         </div>
@@ -178,6 +180,8 @@
                     ng-class="{active: response.approval == 'final'}"
                     ng-click="setState('final')"
                     title="Set as 'final' and save">
+                <approval model="response.approval"
+                    ng-if="response.approval == 'final'"></approval>
                 Final
             </button>
         </div>
@@ -186,6 +190,8 @@
                     ng-class="{active: response.approval == 'reviewed'}"
                     ng-click="setState('reviewed')"
                     title="Set as 'reviewed' and save">
+                <approval model="response.approval"
+                    ng-if="response.approval == 'reviewed'"></approval>
                 Reviewed
             </button>
         </div>
@@ -194,6 +200,8 @@
                     ng-class="{active: response.approval == 'approved'}"
                     ng-click="setState('approved')"
                     title="Set as 'approved' and save">
+                <approval model="response.approval"
+                    ng-if="response.approval == 'approved'"></approval>
                 Approved
             </button>
         </div>

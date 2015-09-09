@@ -43,12 +43,14 @@
                 ng-class="{active: a.id == assessment.id}">
             <a ng-href="#{{getAssessmentUrl(a)}}"
                     ng-click="toggleDropdown()">
-                <h4>{{a.title}}</h4>
+                <h4>{{a.title}}
+                    <span class="pull-right">
+                        <approval model="a.approval"></approval>
+                    </span></h4>
                 <p class="truncate">
                     {{a.hierarchy.title}}
                     - {{a.created * 1000 | timeAgo:'fullDate'}}
                     - {{a.organisation.name}}
-                    <span class="pull-right">{{a.approval}}</span>
                 </p>
             </a>
         </li>

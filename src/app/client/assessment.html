@@ -83,6 +83,8 @@
             <button class="btn btn-default"
                     ng-class="{active: assessment.approval == 'draft'}"
                     ng-click="setState('draft')">
+                <approval model="assessment.approval"
+                    ng-if="assessment.approval == 'draft'"></approval>
                 Draft
             </button>
         </div>
@@ -90,6 +92,8 @@
             <button class="btn btn-default"
                     ng-class="{active: assessment.approval == 'final'}"
                     ng-click="setState('final')">
+                <approval model="assessment.approval"
+                    ng-if="assessment.approval == 'final'"></approval>
                 Final
             </button>
         </div>
@@ -97,6 +101,8 @@
             <button class="btn btn-default"
                     ng-class="{active: assessment.approval == 'reviewed'}"
                     ng-click="setState('reviewed')">
+                <approval model="assessment.approval"
+                    ng-if="assessment.approval == 'reviewed'"></approval>
                 Reviewed
             </button>
         </div>
@@ -104,6 +110,8 @@
             <button class="btn btn-default"
                     ng-class="{active: assessment.approval == 'approved'}"
                     ng-click="setState('approved')">
+                <approval model="assessment.approval"
+                    ng-if="assessment.approval == 'approved'"></approval>
                 Approved
             </button>
         </div>
