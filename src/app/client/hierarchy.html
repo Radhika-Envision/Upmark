@@ -32,6 +32,10 @@
 </div>
 </div>
 
+
+<assessment-header></assessment-header>
+
+
 <div ng-if="edit.model">
 <div class="container">
     <form novalidate name="form" id="editor">
@@ -150,22 +154,21 @@
 </div>
 
 <div ng-if="!edit.model">
+
 <div class="container">
-    <p ng-if="hierarchy.description"
-            class="formatted">{{hierarchy.description}}</p>
-</div>
+    <!-- Don't wrap this tag! -->
+    <p ng-if="structure.hierarchy.description"
+        class="formatted">{{structure.hierarchy.description}}</p>
 </div>
 
 
 <div class="container"
-    ng-controller="QnodeChildren" ng-include="'qnode_children.html'"
-    ng-if="!edit.model"></div>
+    ng-controller="QnodeChildren" ng-include="'qnode_children.html'"></div>
 
 
-<div class="spaced" ng-if="!edit.model">
 <div class="container">
     <p class="text-muted">
-        Question set structure:
+        Survey structure:
         <span ng-repeat="level in hierarchy.structure.levels">
             <span ng-if="$index > 0">&raquo;</span>
             {{level.title}}
@@ -176,4 +179,6 @@
         </span>
     </p>
 </div>
-</div>
+
+
+</div> <!-- if !edit.model -->

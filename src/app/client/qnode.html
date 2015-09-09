@@ -30,18 +30,9 @@
 </div>
 </div>
 
-<div class="subheader text-center bg-muted text-muted" ng-if="assessment">
-<div class="container assessment-header">
-    <span title="Organisation">
-        <a ng-href="#/org/{{assessment.organisation.id}}" class="stealth">
-            {{assessment.organisation.name}}</a>
-    </span>
-    <span title="Assessment">
-        <a ng-href="#/assessment/{{assessment.id}}" class="stealth">
-        {{assessment.title}}</a>
-    </span>
-</div>
-</div>
+
+<assessment-header></assessment-header>
+
 
 <div ng-if="edit.model">
 <div class="container">
@@ -91,6 +82,7 @@
         </span>
     </div>
 
+    <!-- Don't wrap the contents of this tag! -->
     <p class="formatted">{{qnode.description}}</p>
 </div>
 </div>
@@ -111,7 +103,7 @@
                 <i class="fa-li fa fa-ban fa-border"></i>
                 <p>
                     This category is marked as not relevant. It does not
-                    contribute to the assessment's score.
+                    contribute to the submission's score.
                 </p>
             </li>
         </ul>

@@ -80,6 +80,11 @@ div[textarea-label] {
     }
 }
 
+[surrogate-height] {
+    overflow: hidden;
+    @include transition(height ease 0.3s);
+}
+
 .input-group {
     margin-bottom: 10px;
 }
@@ -109,6 +114,7 @@ div[textarea-label] {
 
     &[disabled] {
         color: darken($button-bg, 20%);
+        background-color: $button-bg;
         border-width: 1px;
         padding-bottom: 6px - 1px;
         border-color: transparent;

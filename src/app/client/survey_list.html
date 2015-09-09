@@ -9,7 +9,7 @@
                 <i class="fa fa-fw fa-plus"></i></a>
         </div>
         <h2>
-            Surveys
+            Programs
         </h2>
     </div>
 </div>
@@ -54,17 +54,17 @@
             <div>
             <p class="text-muted">
                 <span ng-if="search.open && !search.editable">
-                    Displaying only <i>open</i> surveys.</span>
+                    Displaying only <i>open</i> programs.</span>
                 <span ng-if="!search.open && search.editable">
-                    Displaying only <i>editable</i> surveys.</span>
+                    Displaying only <i>editable</i> programs.</span>
                 <span ng-if="search.open && search.editable">
-                    Displaying only <i>editable and open</i> surveys.</span>
+                    Displaying only <i>editable and open</i> programs.</span>
 
                 <span ng-if="!surveys.length">
-                    No surveys match your query.</span>
+                    No programs match your query.</span>
 
                 <span ng-if="!surveys.length && checkRole('survey_add')">
-                    You can create a survey by pressing the
+                    You can create a program by pressing the
                     <i class="fa fa-fw fa-plus"></i> button above.
                 </span>
             </p>

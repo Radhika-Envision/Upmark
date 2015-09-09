@@ -4,7 +4,7 @@
 <div class="container">
     <div class="toolbar">
         <button class="btn btn-default btn-round"
-                title="{{parent ? 'Unlink' : 'Delete'}}"
+                title="{{parent ? 'Unlink from parent' : 'Delete'}}"
                 ng-click="edit.del()"
                 ng-if="editable && !edit.model && checkRole('measure_del')">
             <i class="fa fa-trash-o"
@@ -36,18 +36,7 @@
 </div>
 
 
-<div class="subheader text-center bg-muted text-muted" ng-if="assessment">
-<div class="container assessment-header">
-    <span title="Organisation">
-        <a ng-href="#/org/{{assessment.organisation.id}}" class="stealth">
-            {{assessment.organisation.name}}</a>
-    </span>
-    <span title="Assessment">
-        <a ng-href="#/assessment/{{assessment.id}}" class="stealth">
-        {{assessment.title}}</a>
-    </span>
-</div>
-</div>
+<assessment-header></assessment-header>
 
 
 <div ng-if="edit.model">
@@ -106,6 +95,7 @@
 
 <div ng-if="!edit.model">
 <div class="container">
+    <!-- Don't wrap the contents of these tags! -->
     <h3 ng-if="measure.intent">Intent</h3>
     <p ng-if="measure.intent" class="formatted">{{measure.intent}}</p>
     <h3 ng-if="measure.inputs">Inputs</h3>
@@ -353,7 +343,7 @@
                 <i class="fa-li fa fa-ban fa-border"></i>
                 <p>
                     This response is marked as not relevant. It does not
-                    contribute to the assessment's score.
+                    contribute to the submission's score.
                 </p>
             </li>
             <li ng-if="!edit.model && assessment">
@@ -386,15 +376,15 @@
                     again.
                 </p>
                 <p>
-                    Assessments progress through the same states. When all the
-                    responses in an assessment are <i>Final</i>, the assessment
-                    itself can be marked as <i>Final</i>, and so on. After that
+                    Submissions progress through the same states. When all the
+                    responses in a survey are <i>Final</i>, the submission
+                    can be marked as <i>Final</i>, and so on. After that
                     it is not possible to reduce the state of the responses.
                 </p>
             </li>
             <li ng-if="!edit.model && parents && checkRole('measure_edit')">
                 <i class="fa-li fa fa-sitemap fa-border"></i>
-                Measures are shared between question sets.
+                A program's measures can be shared between its surveys.
                 Respondents can use the following category paths to reach this
                 measure:
                 <ul ng-if="parents.length">
@@ -413,7 +403,7 @@
                 <p ng-if="parent">
                     This measure can be
                     <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}">
-                        viewed without a question set</a>,
+                        viewed without a survey</a>,
                     but it can not be responded to like that.
                 </p>
                 <p ng-if="!parents.length">
