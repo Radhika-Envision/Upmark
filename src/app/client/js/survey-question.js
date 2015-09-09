@@ -908,7 +908,7 @@ angular.module('wsaa.surveyQuestions', [
 
             var margin = {top: 10, right: 50, bottom: 20, left: 50},
                 width = 120 - margin.left - margin.right,
-                height = 500 - margin.top - margin.bottom;
+                height = 800 - margin.top - margin.bottom;
 
             var chart = d3.box()
                 .whiskers()
@@ -918,12 +918,20 @@ angular.module('wsaa.surveyQuestions', [
             Statistics.get({id:$scope.assessment.survey.id}).$promise.then(function success(stats) {
                 var data = [];
                 angular.forEach(rnodes, function(node, index) {
-                    var d = {min: stats[index].min};
+                    var stat = stats.filter(function(s) {
+                        if(s.qid == node.qnode.id) {
+                            return s;
+                        }
+                    });
+                    stat = stat[0];
+                    var d = {};
                     d['current'] = node.score;
-                    d['max'] = stats[index].max;
-                    d['org_max'] = stats[index].org_max;
-                    d['org_min'] = stats[index].org_min;
-                    d['median'] = stats[index].org_median;
+                    d['max'] = stat.max;
+                    d['min'] = stat.min;
+                    d['mean'] = stat.mean;
+                    d['median'] = stat.median;
+                    d['stddev'] = stat.std;
+                    d['quartile'] = stat.quartile;
                     d['name'] = "F" + (index + 1);
                     data.push(d);
                 });

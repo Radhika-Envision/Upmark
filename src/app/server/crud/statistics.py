@@ -18,19 +18,23 @@ import model
 import logging
 
 from utils import reorder, ToSon, truthy, updater
+import numpy
 
 
 log = logging.getLogger('app.crud.statistics')
-
 
 class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, survey_id):
+        parent_id = self.get_argument("parent_id", None)
         with model.session_scope() as session:
             try:
                 responseNodes = session.query(model.ResponseNode)\
-                    .filter(survey_id==survey_id)
+                    .join(model.ResponseNode.qnode)\
+                    .options(joinedload(model.ResponseNode.qnode))\
+                    .filter(model.ResponseNode.survey_id==survey_id)\
+                    .filter(model.QuestionNode.parent_id==parent_id)
 
                 if responseNodes is None:
                     raise ValueError("No such object")
@@ -39,44 +43,36 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             except (sqlalchemy.exc.StatementError,
                     sqlalchemy.orm.exc.NoResultFound,
                     ValueError):
-                raise handlers.MissingDocError("No such assessment")
-
+                raise handlers.MissingDocError("No such survey")
 
 
             response = []
             for responseNode in responseNodes:
-                if responseNode.qnode.parent == None:
-                    r = [res for res in response if res["seq"] == (responseNode.qnode.seq + 1)]
-                    log.info("r: %s", r)
-                    if len(r) == 0:
-                        r = {
-                            "min": 0,
-                            "max": 20000,
-                            "org_max": 0,
-                            "org_min": 20000,
-                            "org_median": 0,
-                            "count": 0,
-                            "total": 0
-                        }
-                        response.append(r)
-                    else:
-                        r = r[0]
-                    log.info("response: %s", response)
-                    log.info("r: %s", r)
+                r = [res for res in response 
+                     if res["qid"] == str(responseNode.qnode.id)]
+                if len(r) == 0:
+                    r = { "qid": str(responseNode.qnode.id),
+                        "data": [] }
+                    response.append(r)
+                else:
+                    r = r[0]
 
-                    log.info("responseNode.score: %s", responseNode.score)
-                    log.info("responseNode.seq: %s", responseNode.qnode.seq)
-                    if r["org_min"] > responseNode.score:
-                        r["org_min"] = responseNode.score
-                    if r["org_max"] < responseNode.score:
-                        r["org_max"] = responseNode.score
-                    r["count"] += 1
-                    r["total"] += responseNode.score
-                    r["seq"] = responseNode.qnode.seq + 1
-                    r["org_median"] = r["total"] / r["count"]
-                    log.info("response: %s", response)
+                r["data"].append(responseNode.score)
+
+            for r in response:
+                data = r["data"]
+                r["min"] = min(data)
+                r["max"] = max(data)
+                r["count"] = len(data)
+                r["total"] = sum(data)
+                r["mean"] = r["total"] / r["count"]
+                numpy_array = numpy.array(data)
+                r["std"] = numpy.std(numpy_array)
+                r["quartile"] = [numpy.percentile(numpy_array, 25), 
+                                numpy.percentile(numpy_array, 50),
+                                numpy.percentile(numpy_array, 75)]
+                r.pop("data", None)
 
         self.set_header("Content-Type", "application/json")
-        # self.write(json_encode(son))
         self.write(json.dumps(response))
         self.finish()

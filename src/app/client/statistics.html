@@ -15,13 +15,22 @@ div.chart {
   stroke-width: 1.5px;
 }
 
+.box rect {
+  cursor: pointer;
+}
 .box .median {
   stroke: blue;
 }
 
 .box .current {
+  stroke-width: 4px;
   stroke: red;
 }
+
+.box .current_text {
+  fill: red;
+}
+
 
 .box .center {
   stroke-dasharray: 3,3;
@@ -45,12 +54,12 @@ d3.box = function() {
       value = Number,
       // whiskers = boxWhiskers,
       quartiles = boxQuartiles,
+      detailChart = detailChart,
       tickFormat = null;
 
   // For each small multiple…
   function box(g) {
     g.each(function(d, i) {
-      // d = d.map(value).sort(d3.ascending);
       var g = d3.select(this),
           n = d.length,
           min = d.min,
@@ -124,6 +133,9 @@ d3.box = function() {
           .attr("y", function(d) { return x0(d[3]); })
           .attr("width", width)
           .attr("height", function(d) { return x0(d[0]) - x0(d[3]); })
+          .on("click", function(d){
+            d3.selectAll("div#chart>svg").style("visibility", "hidden");
+         })
         .transition()
           .duration(duration)
           .attr("y", function(d) { return x1(d[3]); })
@@ -153,9 +165,8 @@ d3.box = function() {
           .duration(duration)
           .attr("y1", x1)
           .attr("y2", x1);
-      console.log(x1);
 
-        // Update median line.
+        // Update current line.
       var currentLine = g.selectAll("line.current")
           .data([quartileData[1]]);
 
@@ -174,6 +185,19 @@ d3.box = function() {
           .duration(duration)
           .attr("y1", x1)
           .attr("y2", x1);
+
+      // Update current text
+      var currentTick = g.selectAll("current.text")
+          .data([quartileData[1]]);
+      currentTick.enter().append("text")
+          .attr("class", "current_text")
+          .attr("dy", ".3em")
+          .attr("dx", 23)
+          .attr("x", 0 )
+          .attr("y", x1)
+          .attr("text-anchor", "start")
+          .text(x1.tickFormat(8));
+
 
       // Update whiskers.
       var whisker = g.selectAll("line.whisker")
@@ -209,25 +233,25 @@ d3.box = function() {
       var format = tickFormat || x1.tickFormat(8);
 
       // Update box ticks.
-      var boxTick = g.selectAll("text.box")
-          .data(quartileData);
+      // var boxTick = g.selectAll("text.box")
+      //     .data(quartileData);
 
-      boxTick.enter().append("text")
-          .attr("class", "box")
-          .attr("dy", ".3em")
-          .attr("dx", function(d, i) { return i & 1 ? 6 : -6 })
-          .attr("x", function(d, i) { return i & 1 ? width : 0 })
-          .attr("y", x0)
-          .attr("text-anchor", function(d, i) { return i & 1 ? "start" : "end"; })
-          .text(format)
-        .transition()
-          .duration(duration)
-          .attr("y", x1);
+      // boxTick.enter().append("text")
+      //     .attr("class", "box")
+      //     .attr("dy", ".3em")
+      //     .attr("dx", function(d, i) { return i & 1 ? 6 : -6 })
+      //     .attr("x", function(d, i) { return i & 1 ? width : 0 })
+      //     .attr("y", x0)
+      //     .attr("text-anchor", function(d, i) { return i & 1 ? "start" : "end"; })
+      //     // .text(format)
+      //   .transition()
+      //     .duration(duration)
+      //     .attr("y", x1);
 
-      boxTick.transition()
-          .duration(duration)
-          .text(format)
-          .attr("y", x1);
+      // boxTick.transition()
+      //     .duration(duration)
+      //     // .text(format)
+      //     .attr("y", x1);
 
       // Update whisker ticks. These are handled separately from the box
       // ticks because they may or may not exist, and we want don't want
@@ -238,9 +262,10 @@ d3.box = function() {
       whiskerTick.enter().append("text")
           .attr("class", "whisker")
           .attr("dy", ".3em")
-          .attr("dx", 6)
+          .attr("dx", -25)
           .attr("x", width)
           .attr("y", x0)
+          .attr("text-anchor", "end")
           .text(format)
           .style("opacity", 1e-6)
         .transition()
@@ -260,6 +285,7 @@ d3.box = function() {
           .style("opacity", 1e-6)
           .remove();
     });
+
     d3.timer.flush();
   }
 
@@ -312,12 +338,13 @@ d3.box = function() {
   return box;
 };
 
-function boxQuartiles(d) {  
+function boxQuartiles(d) {
+  array = [d.min, d.max];
   return [
-    d.org_min,
+    d.quartile[0],
     d.current,
-    d.median,
-    d.org_max
+    d.quartile[1],
+    d.quartile[2]
   ];
 }
 
