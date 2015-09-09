@@ -309,6 +309,9 @@ angular.module('wsaa.surveyQuestions', [
         scope: true,
         controller: ['$scope', function($scope) {
             $scope.showAssessmentChooser = false;
+            $scope.toggleDropdown = function() {
+                $scope.showAssessmentChooser = !$scope.showAssessmentChooser;
+            };
         }]
     }
 }])
@@ -331,9 +334,6 @@ angular.module('wsaa.surveyQuestions', [
                 if (!org)
                     org = $scope.org || current.user.organisation;
                 $scope.aSearch.organisation = org;
-            });
-            $scope.$watch('assessment', function(assessment) {
-                $scope.search.not = assessment && assessment.id;
             });
 
             $scope.searchOrg = function(term) {
@@ -358,7 +358,6 @@ angular.module('wsaa.surveyQuestions', [
 
             $scope.search = {
                 term: "",
-                not: null,
                 orgId: null,
                 hierarchyId: null,
                 surveyId: null,

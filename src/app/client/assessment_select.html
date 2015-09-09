@@ -39,14 +39,16 @@
     <search-box class="spaced" model="search" result="assessments"></search-box>
 
     <ul class="list-results spaced">
-        <li ng-repeat="assessment in assessments">
-            <a ng-href="#{{getAssessmentUrl(assessment)}}">
-                <h4>{{assessment.title}}</h4>
+        <li ng-repeat="a in assessments"
+                ng-class="{active: a.id == assessment.id}">
+            <a ng-href="#{{getAssessmentUrl(a)}}"
+                    ng-click="toggleDropdown()">
+                <h4>{{a.title}}</h4>
                 <p class="truncate">
-                    {{assessment.hierarchy.title}}
-                    - {{assessment.created * 1000 | timeAgo:'fullDate'}}
-                    - {{assessment.organisation.name}}
-                    <span class="pull-right">{{assessment.approval}}</span>
+                    {{a.hierarchy.title}}
+                    - {{a.created * 1000 | timeAgo:'fullDate'}}
+                    - {{a.organisation.name}}
+                    <span class="pull-right">{{a.approval}}</span>
                 </p>
             </a>
         </li>
