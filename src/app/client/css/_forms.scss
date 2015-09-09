@@ -80,6 +80,11 @@ div[textarea-label] {
     }
 }
 
+[surrogate-height] {
+    overflow: hidden;
+    @include transition(height ease 0.3s);
+}
+
 .input-group {
     margin-bottom: 10px;
 }
