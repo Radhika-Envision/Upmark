@@ -745,13 +745,16 @@ angular.module('wsaa.surveyQuestions', [
 
 .controller('HierarchyChoiceCtrl', [
         '$scope', 'routeData', 'Structure', 'questionAuthz', 'Current',
-        'Hierarchy', 'layout',
+        'Hierarchy', 'layout', '$location', 'Roles',
         function($scope, routeData, Structure, questionAuthz, current,
-                 Hierarchy, layout) {
+                 Hierarchy, layout, $location, Roles) {
     $scope.layout = layout;
     $scope.survey = routeData.survey;
     $scope.hierarchy = routeData.hierarchy;
     $scope.structure = Structure($scope.hierarchy);
+
+    if (current.user.role == 'author')
+        $location.path('/hierarchy/' + $scope.hierarchy.id);
 
     $scope.Hierarchy = Hierarchy;
     $scope.checkRole = questionAuthz(current, $scope.survey);

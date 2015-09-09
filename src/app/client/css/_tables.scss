@@ -105,16 +105,19 @@ tr.strike {
 }
 
 .boxed {
-    width: 1.4em;
-    height: 1.4em;
-    line-height: 1.4em;
+    width: 1.3em;
+    height: 1.3em;
+    line-height: 1.3em;
+    padding: 0;
     display: inline-block;
     border: 1px solid;
-    border-radius: 3.5px;
+    border-radius: 3px;
     font-style: normal;
     font-weight: bold;
     font-size: 80%;
     text-align: center;
+    position: relative;
+    top: -0.07em;
 }
 .boxed.aq-0 {
     color: #888;
