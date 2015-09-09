@@ -33,7 +33,7 @@
 </div>
 
 
-<assessment-header></assessment-header>
+<assessment-header ng-if="!edit.model"></assessment-header>
 
 
 <div class="container" ng-if="edit.model && !edit.model.hierarchy">
