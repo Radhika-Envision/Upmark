@@ -426,7 +426,7 @@ angular.module('vpac.widgets', [])
 
 .controller('WoofmarkTest', function($scope) {
     $scope.model = {
-        contents: 'Foo *bar*'
+        contents: '### Foo\n\nbar\n\n#### Baz\n\nFred'
     };
 })
 
@@ -446,6 +446,42 @@ angular.module('vpac.widgets', [])
                     "header1", "header2", "quote",
                     "orderedlist", "unorderedlist"]
             }};
+        controller: ['$scope', 'bind', function($scope, bind) {
+            $scope.model = {
+                wysiwygMode: true,
+                html: null,
+                markdown: null
+            };
+
+            bind($scope, 'markdown', $scope, 'model.markdown', true);
+
+            $scope.options = {
+                placeholder: {text: ""},
+                buttons: [
+                    "bold", "italic", "anchor", "image",
+                    "header1", "header2", "quote",
+                    "orderedlist", "unorderedlist",
+                    "removeFormat"],
+                imageDragging: false
+            };
+
+            $scope.$watch('model.markdown', function(markdown) {
+                if (markdown == null)
+                    return;
+                if ($scope.model.html == null || !$scope.model.wysiwygMode) {
+                    console.log('Markdown changed; Updating HTML')
+                    $scope.model.html = megamark(markdown);
+                }
+            });
+
+            $scope.$watch('model.html', function(html) {
+                if (html == null)
+                    return;
+                if ($scope.model.markdown == null || $scope.model.wysiwygMode) {
+                    console.log('HTML changed; Updating Markdown')
+                    $scope.model.markdown = domador(html);
+                }
+            });
         }],
         link: function(scope, element, attrs) {
             console.log('Linking markdown editor')

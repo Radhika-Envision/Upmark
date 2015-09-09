@@ -115,7 +115,8 @@ STYLESHEETS = [
             '/.bower_components/angular-hotkeys/build/hotkeys.css',
             '/.bower_components/angular-ui-select/dist/select.css',
             '/.bower_components/angular-ui-tree/dist/angular-ui-tree.min.css',
-            '/.bower_components/medium-editor/dist/css/medium-editor.min.css'
+            '/.bower_components/medium-editor/dist/css/medium-editor.min.css',
+            '/.bower_components/medium-editor/dist/css/themes/default.min.css'
         ]
     },
 ]
