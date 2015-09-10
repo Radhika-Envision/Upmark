@@ -1001,20 +1001,32 @@ angular.module('wsaa.surveyQuestions', [
         });
     }
 
+    var margin = {top: 10, right: 50, bottom: 20, left: 50},
+        width = 120 - margin.left - margin.right,
+        height = 600 - margin.top - margin.bottom;
+
+    var detailChart = function(qnode) {
+        $scope.qnode = {'id': qnode};
+        $scope.rnode = ResponseNode.query({
+            assessmentId: $scope.assessment.id,
+            parentId: $scope.qnode ? $scope.qnode.id : null,
+            hierarchyId: $scope.hierarchy ? $scope.hierarchy.id : null,
+            root: $scope.qnode ? null : ''
+        });
+    };
+
+    var chart = d3.box()
+        .whiskers()
+        .detailChart(detailChart)
+        .width(width)
+        .height(height);
+
+    var svg = d3.select("#chart").selectAll("svg");
+
+
     $scope.$watch('rnode', function(rnode) {
         rnode.$promise.then(function success(rnodes) {
-            d3.select("div#chart>svg").remove();
-
-            var margin = {top: 10, right: 50, bottom: 20, left: 50},
-                width = 120 - margin.left - margin.right,
-                height = 800 - margin.top - margin.bottom;
-
-            var chart = d3.box()
-                .whiskers()
-                .width(width)
-                .height(height);
-
-            Statistics.get({id:$scope.assessment.survey.id}).$promise.then(function success(stats) {
+            Statistics.get({id: $scope.assessment.survey.id, parent_id: $scope.qnode ? $scope.qnode.id:null}).$promise.then(function(stats) {
                 var data = [];
                 angular.forEach(rnodes, function(node, index) {
                     var stat = stats.filter(function(s) {
@@ -1024,6 +1036,7 @@ angular.module('wsaa.surveyQuestions', [
                     });
                     stat = stat[0];
                     var d = {};
+                    d['id'] = node.qnode.id;
                     d['current'] = node.score;
                     d['max'] = stat.max;
                     d['min'] = stat.min;
@@ -1035,15 +1048,17 @@ angular.module('wsaa.surveyQuestions', [
                     data.push(d);
                 });
 
-                var svg = d3.select("#chart").selectAll("svg")
-                    .data(data)
+                d3.select("#chart").selectAll("svg").remove();
+
+                svg.data(data)
                     .enter().append("svg")
                         .attr("class", "box")
                         .attr("width", width + margin.left + margin.right)
                         .attr("height", height + margin.bottom + margin.top)
                     .append("g")
                         .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-                        .call(chart);
+                        .call(chart.duration(1000));
+
             });
         });
     });

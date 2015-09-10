@@ -133,8 +133,10 @@ d3.box = function() {
           .attr("y", function(d) { return x0(d[3]); })
           .attr("width", width)
           .attr("height", function(d) { return x0(d[0]) - x0(d[3]); })
-          .on("click", function(d){
-            d3.selectAll("div#chart>svg").style("visibility", "hidden");
+          .on("click", function(d1){
+            if (detailChart) 
+              detailChart(d.id);
+            // d3.selectAll("div#chart>svg").style("visibility", "hidden");
          })
         .transition()
           .duration(duration)
@@ -189,14 +191,34 @@ d3.box = function() {
       // Update current text
       var currentTick = g.selectAll("current.text")
           .data([quartileData[1]]);
+
       currentTick.enter().append("text")
           .attr("class", "current_text")
           .attr("dy", ".3em")
-          .attr("dx", 23)
-          .attr("x", 0 )
-          .attr("y", x1)
+          .attr("dx", 5)
+          .attr("x", width)
+          .attr("y", x0)
           .attr("text-anchor", "start")
-          .text(x1.tickFormat(8));
+          .text(x1.tickFormat(8))
+          .style("opacity", 1e-6)
+        .transition()
+          .duration(duration)
+          .attr("y", x1)
+          .style("opacity", 1);
+
+      currentTick.transition()
+          .duration(duration)
+          .text(x1.tickFormat(8))
+          .attr("y", x1)
+          .style("opacity", 1);
+
+      currentTick.exit().transition()
+          .duration(duration)
+          .attr("y", x1)
+          .style("opacity", 1e-6)
+          .remove();
+
+
 
 
       // Update whiskers.
@@ -332,6 +354,12 @@ d3.box = function() {
   box.quartiles = function(x) {
     if (!arguments.length) return quartiles;
     quartiles = x;
+    return box;
+  };
+
+  box.detailChart = function(x) {
+    if (!arguments.length) return detailChart;
+    detailChart = x;
     return box;
   };
 
