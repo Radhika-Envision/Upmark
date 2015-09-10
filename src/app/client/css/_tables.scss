@@ -104,6 +104,42 @@ tr.strike {
     left: -0.8em;
 }
 
+.boxed {
+    width: 1.3em;
+    height: 1.3em;
+    line-height: 1.3em;
+    padding: 0;
+    display: inline-block;
+    border: 1px solid;
+    border-radius: 3px;
+    font-style: normal;
+    font-weight: bold;
+    font-size: 80%;
+    text-align: center;
+    position: relative;
+    top: -0.07em;
+}
+.boxed.aq-0 {
+    color: #888;
+    background: #f5f5f5;
+}
+.boxed.aq-1 {
+    color: mix($aq-bar1, black, 75%);
+    background: mix($aq-bar1, white, 25%);
+}
+.boxed.aq-2 {
+    color: mix($aq-bar2, black, 75%);
+    background: mix($aq-bar2, white, 25%);
+}
+.boxed.aq-3 {
+    color: mix($aq-bar3, black, 75%);
+    background: mix($aq-bar3, white, 25%);
+}
+.boxed.aq-4 {
+    color: mix($aq-bar4, black, 75%);
+    background: mix($aq-bar4, white, 25%);
+}
+
 [any-href]:not([disabled]) {
     cursor: pointer;
 }

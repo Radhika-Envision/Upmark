@@ -171,3 +171,31 @@ mode, the application will automatically use CDNs for some scripts and CSS
 files, and will minify the others. If you add a dependency or change its
 version number, you **must** make sure the versions specified in `bower.json`
 and in `server/handlers.py` are the same.
+
+
+## Debugging
+
+You can debug the web server with the intereactive debugger, pudb. To do so,
+edit the file you want to debug and import the `pudb` module. Then add a call to
+`set_trace` to add a breakpoint. For example:
+
+```diff
+class ResponseHistoryHandler(handlers.Paginate, handlers.BaseHandler):
+    @tornado.web.authenticated
+    def get(self, assessment_id, measure_id):
++       import pudb
++       pudb.set_trace()
+        with model.session_scope() as session:
+            # Current version
+```
+
+Then start the container with an interactive TTY:
+
+```
+sudo docker-compose run --service-ports web
+```
+
+Or if you're not using docker-compose, add the `-it` to your Docker run command.
+
+Next time you make an appropriate web request, the breakpoint will be triggered
+and you will have an interactive debugger in your console.

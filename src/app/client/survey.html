@@ -1,5 +1,3 @@
-<div>
-
 <div class="header">
 <div class="container">
     <div class="toolbar">
@@ -55,13 +53,13 @@
         <li ng-if="!edit.model.id && duplicating">
             <i class="fa-li fa fa-clone fa-border"></i>
             <p>
-                You are creating a duplicate of an existing survey. The full
-                structure of the survey will be copied, with the lineage to the old
-                survey preserved. Assessments and responses will not be copied, but
-                they can be at a later time.
+                You are creating a duplicate of an existing program. The full
+                structure of the program will be copied, with the lineage to the old
+                program preserved. Submissions will not be copied, but they can
+                be at a later time.
             </p>
             <p>
-                If you want to create a fresh survey with no lineage,
+                If you want to create a fresh program with no lineage,
                 <a href="#/surveys">go back</a> and use the Add
                 <i class="fa fa-plus"></i> function instead.
             </p>
@@ -69,12 +67,12 @@
         <li ng-if="!edit.model.id && !duplicating">
             <i class="fa-li fa fa-plus fa-border"></i>
             <p>
-                You are creating a new survey with no survey structure. It will not
-                be possible to link responses from other surveys to this one.
+                You are creating a new program with a new structure. It will not
+                be possible to link responses from other programs to this one.
             </p>
             <p>
                 If you wish to preserve lineage, <a href="#/surveys">open an
-                existing survey</a> and use the Duplicate
+                existing program</a> and use the Duplicate
                 <i class="fa fa-clone"></i> function instead.
             </p>
         </li>
@@ -85,26 +83,27 @@
 <div ng-if="!edit.model">
 
 <div class="container" ng-if="survey.description">
+    <!-- Don't wrap the contents of this tag! -->
     <p class="formatted">{{survey.description}}</p>
 </div>
 
 <div class="container" ng-if="checkRole('survey_edit')">
     <p>
         <span ng-if="survey.isOpen && survey.isEditable">
-            This survey is open for responses and is editable.
+            This program is open for submissions and is editable.
         </span>
         <span ng-if="!survey.isOpen && survey.isEditable">
-            This survey is not open for responses but is editable.
+            This program is not open for submissions but is editable.
         </span>
         <span ng-if="survey.isOpen && !survey.isEditable">
-            This survey is open for responses but is not editable.
+            This program is open for submissions but is not editable.
         </span>
     </p>
 </div>
 
 <div class="container" ng-if="!checkRole('survey_edit') && !survey.isOpen">
     <p>
-        This survey is not open for responses. You can preview the survey
+        This program is not open for submissions. You can preview the program
         structure below.
     </p>
 </div>
@@ -116,10 +115,10 @@
         <button class="btn btn-link" ng-click="toggleOpen()">
             <span ng-if="survey.isOpen">
                 <i class="fa fa-ban"></i>
-                Un-open survey</span>
+                Un-open program</span>
             <span ng-if="!survey.isOpen">
                 <i class="fa fa-circle-o"></i>
-                Open survey</span>
+                Open program</span>
         </button>
         <button class="btn btn-link" ng-click="toggleEditable()">
             <i class="fa fa-pencil-square-o">
@@ -135,7 +134,7 @@
 </div>
 
 
-<div class="container" ng-if="!survey.isOpen || checkRole('survey_edit')">
+<div class="container">
     <div class="section">
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="Search for measures"
@@ -146,14 +145,14 @@
                     ng-if="survey.isEditable && checkRole('hierarchy_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
         </div>
-        <h2>
-            Question Sets
+        <h2 label="Sv">
+            Surveys
         </h2>
     </div>
 
     <ul class="list-results">
         <li ng-repeat="hierarchy in hierarchies">
-            <a ng-href="#/hierarchy/{{hierarchy.id}}?survey={{survey.id}}">
+            <a ng-href="#/hierarchy/{{hierarchy.id}}/choice?survey={{survey.id}}">
                 <h4>{{hierarchy.title}}</h4>
                 <p class="truncate">{{hierarchy.nMeasures}} measures</p>
             </a>
@@ -161,79 +160,9 @@
     </ul>
 
     <p ng-if="!hierarchies.length">
-        There are no question sets yet.
+        There are no surveys yet.
     </p>
 </div>
 
-
-<div class="container"
-        ng-if="checkRole('assessment_browse') && (assessments.length || survey.isOpen)">
-    <div class="section">
-        <div class="toolbar">
-            <a class="btn btn-default btn-round" title="Import"
-                    ng-href="#/assessment/import?survey={{survey.id}}&organisation={{aSearch.organisation.id}}"
-                    ng-if="survey.isOpen && checkRole('assessment_add')">
-                <i class="fa fa-fw fa-cloud-upload"></i></a>
-            <a class="btn btn-default btn-round" title="Duplicate existing"
-                    ng-href="#/assessment/duplicate?survey={{survey.id}}&organisation={{aSearch.organisation.id}}"
-                    ng-if="survey.isOpen && checkRole('assessment_add')">
-                <i class="fa fa-fw fa-clone">
-                    <i class="fa fa-link fa-badge"></i>
-                </i></a>
-            <a class="btn btn-default btn-round" title="Add new"
-                    ng-href="#/assessment/new?survey={{survey.id}}&organisation={{aSearch.organisation.id}}"
-                    ng-if="survey.isOpen && checkRole('assessment_add')">
-                <i class="fa fa-fw fa-plus"></i></a>
-        </div>
-        <h2>
-            Assessments
-        </h2>
-    </div>
-
-    <ui-select ng-model="aSearch.organisation" reset-search-input="false"
-            ng-if="checkRole('assessment_review')">
-        <ui-select-match placeholder="Type to select organisation">
-            <i class="fa fa-university"></i>
-            {{aSearch.organisation.name}}</ui-select-match>
-        <ui-select-choices
-                repeat="organisation in organisations | filter: $select.search"
-                refresh="searchOrg($select.search)"
-                refresh-delay="0">
-            <div ng-bind-html="organisation.name | highlight: $select.search"></div>
-        </ui-select-choices>
-    </ui-select>
-
-    <ul class="list-results spaced">
-        <li>
-            <a ng-repeat="assessment in assessments"
-                    ng-href="#/assessment/{{assessment.id}}">
-                <h4>{{assessment.title}}</h4>
-                <p class="truncate">
-                    Created
-                    {{assessment.created * 1000 | timeAgo:'fullDate'}}
-                    ({{assessment.approval}})</p>
-            </a>
-        </li>
-    </ul>
-
-    <p ng-if="!assessments.length">
-        <i>{{aSearch.organisation.name}}</i> has no assessments for this survey.
-    </p>
-    <div ng-if="survey.isOpen && checkRole('assessment_add')">
-        <p ng-if="!assessments.length" class="text-center">
-            <a ng-href="#/assessment/new?survey={{survey.id}}&organisation={{aSearch.organisation.id}}"
-                    class="btn btn-default btn-lg">
-                <i class="fa fa-plus"></i>
-                Start a new assessment
-            </a>
-        </p>
-        <p ng-if="assessments.length" class="text-muted">
-            You can create another assessment by clicking the
-            <i class="fa fa-plus"></i> button above.
-        </p>
-    </div>
-</div>
 
 </div><!-- !edit.model -->
-
-</div>

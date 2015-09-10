@@ -64,7 +64,7 @@ textarea.autoresize {
 div[textarea-label] {
     /* Hovers a label over a textarea */
     position: relative;
-    &:before {
+    &:after {
         position: absolute;
         top: 0;
         left: 0;
@@ -72,15 +72,17 @@ div[textarea-label] {
         bottom: 0;
         content: attr(textarea-label);
         text-align: center;
-        line-height: 80px;
+        line-height: 60px;
         font-size: 40px;
         font-weight: bold;
         opacity: 0.2;
         pointer-events: none;
     }
-    textarea.autoresize {
-        min-height: 80px;
-    }
+}
+
+[surrogate-height] {
+    overflow: hidden;
+    @include transition(height ease 0.3s);
 }
 
 .input-group {
@@ -112,6 +114,7 @@ div[textarea-label] {
 
     &[disabled] {
         color: darken($button-bg, 20%);
+        background-color: $button-bg;
         border-width: 1px;
         padding-bottom: 6px - 1px;
         border-color: transparent;
@@ -372,7 +375,17 @@ markdown-editor {
             margin-top: 4px;
         }
     }
+
+    .medium-editor-placeholder:after {
+          right: 0;
+          bottom: 0;
+          line-height: 60px;
+          text-align: center;
+          font-size: 30px;
+          font-style: normal;
+    }
 }
+
 .angular-medium-editor img {
     max-width: 100%;
 }

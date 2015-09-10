@@ -42,9 +42,10 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 .controller('AssessmentCtrl', [
         '$scope', 'Assessment', 'Hierarchy', 'routeData', 'Editor',
         'questionAuthz', 'layout', '$location', 'Current', 'format', '$filter',
-        'Notifications',
+        'Notifications', 'Structure',
         function($scope, Assessment, Hierarchy, routeData, Editor, authz,
-                 layout, $location, current, format, $filter, Notifications) {
+                 layout, $location, current, format, $filter, Notifications,
+                 Structure) {
 
     $scope.layout = layout;
     $scope.survey = routeData.survey;
@@ -69,6 +70,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
             $scope.edit.params.duplicateId = $scope.duplicate.id;
         $scope.edit.edit();
     }
+    $scope.structure = Structure($scope.assessment);
 
     $scope.$watch('edit.model.hierarchy', function(hierarchy) {
         // Generate title first time
@@ -159,7 +161,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
     $scope.assessment = new Assessment({
         survey: $scope.survey,
         hierarchy : null,
-        title: "Aquamark Assessment Import",
+        title: "Aquamark Submission Import",
         organisation: routeData.organisation
     });
     if ($scope.hierarchies.length == 1) {
@@ -401,7 +403,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                     callback: function(event, hotkey) {
                         event.stopPropagation();
                         event.preventDefault();
-                        $scope.$emit('focus-comment');
+                        $scope.$broadcast('focus-comment');
                     }
                 })
                 .add({
@@ -409,7 +411,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                     description: "Stop editing comment",
                     allowIn: ['TEXTAREA'],
                     callback: function(event, hotkey) {
-                        $scope.$emit('blur-comment');
+                        $scope.$broadcast('blur-comment');
                     }
                 });
         }],

@@ -71,6 +71,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
         '''Get a list.'''
         term = self.get_argument('term', '')
         survey_id = self.get_argument('surveyId', '')
+        hierarchy_id = self.get_argument('hierarchyId', '')
         approval = self.get_argument('approval', '')
         tracking_id = self.get_argument('trackingId', '')
 
@@ -79,8 +80,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             if org_id == '':
                 org_id = str(self.organisation.id)
             elif org_id != str(self.organisation.id):
-                raise AuthzError(
-                    "You can't view another organisation's assessments")
+                raise handlers.AuthzError(
+                    "You can't view another organisation's submissions")
 
         with model.session_scope() as session:
             query = session.query(model.Assessment)
@@ -91,6 +92,9 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
 
             if survey_id != '':
                 query = query.filter_by(survey_id=survey_id)
+
+            if hierarchy_id != '':
+                query = query.filter_by(hierarchy_id=hierarchy_id)
 
             if approval != '':
                 approval_set = self.approval_set(approval)
@@ -117,6 +121,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 # Descend
                 r'/[0-9]+$',
                 r'/organisation$',
+                r'/hierarchy$',
                 r'/survey$'
             ])
             sons = to_son(query.all())
@@ -172,11 +177,11 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 .first())
         if s_assessment is None:
             raise handlers.MissingDocError(
-                "Source assessment (for duplication) no found")
+                "Source submission (for duplication) no found")
 
         if str(s_assessment.organisation_id) != (assessment.organisation_id):
             raise handlers.ModelError(
-                "Can't duplicate an assessment across two organisations: "
+                "Can't duplicate a submission across two organisations: "
                 "'%s/%s' and '%s/%s'" % (
                     s_assessment.organisation.name,
                     assessment.organisation.name))
@@ -263,14 +268,14 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 assessment = session.query(model.Assessment)\
                     .get(assessment_id)
                 if assessment is None:
-                    raise handlers.ModelError("No such assessment")
+                    raise handlers.ModelError("No such submission")
                 self._check_modify(assessment)
                 if approval != '':
                     self._check_approval(session, assessment, approval)
                     self._set_approval(assessment, approval)
                 self._update(assessment, self.request_son)
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such assessment")
+            raise handlers.MissingDocError("No such submission")
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(assessment_id)
@@ -285,13 +290,13 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 assessment = session.query(model.Assessment)\
                     .get(assessment_id)
                 if assessment is None:
-                    raise handlers.ModelError("No such assessment")
+                    raise handlers.ModelError("No such submission")
                 self._check_delete(assessment)
                 session.delete(assessment)
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError("This assessment is in use")
+            raise handlers.ModelError("This submission is in use")
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such assessment")
+            raise handlers.MissingDocError("No such submission")
 
         self.finish()
 
@@ -333,16 +338,16 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
         if self.current_user.role == 'org_admin':
             if approval not in {'draft', 'final'}:
                 raise handlers.AuthzError(
-                    "You can't mark this assessment as %s." % approval)
+                    "You can't mark this submission as %s." % approval)
         elif self.current_user.role == 'consultant':
             if approval not in {'draft', 'final', 'reviewed'}:
                 raise handlers.AuthzError(
-                    "You can't mark this assessment as %s." % approval)
+                    "You can't mark this submission as %s." % approval)
         elif self.has_privillege('authority'):
             pass
         else:
             raise handlers.AuthzError(
-                "You can't mark this assessment as %s." % approval)
+                "You can't mark this submission as %s." % approval)
         assessment.approval = approval
 
     def _update(self, assessment, son):

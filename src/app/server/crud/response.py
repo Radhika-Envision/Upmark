@@ -20,9 +20,6 @@ from utils import falsy, reorder, ToSon, truthy, updater
 log = logging.getLogger('app.crud.response')
 
 
-ResponseHistory = model.Response.__history_mapper__.class_
-
-
 class ResponseHandler(handlers.BaseHandler):
 
     @tornado.web.authenticated
@@ -49,7 +46,7 @@ class ResponseHandler(handlers.BaseHandler):
                     version = int(version)
                 except ValueError:
                     raise handlers.ModelError("Invalid version number")
-                response_history = (session.query(ResponseHistory)
+                response_history = (session.query(model.ResponseHistory)
                         .filter_by(id=response.id, version=version)
                         .first())
 
@@ -126,7 +123,7 @@ class ResponseHandler(handlers.BaseHandler):
                 .first())
 
             if assessment is None:
-                raise handlers.MissingDocError("No such assessment")
+                raise handlers.MissingDocError("No such submission")
             self._check_authz(assessment)
 
             rnode = (session.query(model.ResponseNode)
@@ -177,7 +174,7 @@ class ResponseHandler(handlers.BaseHandler):
                 assessment = (session.query(model.Assessment)
                     .get(assessment_id))
                 if assessment is None:
-                    raise handlers.MissingDocError("No such assessment")
+                    raise handlers.MissingDocError("No such submission")
 
                 self._check_authz(assessment)
 
@@ -234,20 +231,20 @@ class ResponseHandler(handlers.BaseHandler):
         elif assessment.approval == 'final':
             if not self.has_privillege('org_admin', 'consultant'):
                 raise handlers.AuthzError(
-                    "This assessment has already been finalised")
+                    "This submission has already been finalised")
         elif assessment.approval == 'reviewed':
             if not self.has_privillege('consultant'):
                 raise handlers.AuthzError(
-                    "This assessment has already been reviewed")
+                    "This submission has already been reviewed")
         else:
             if not self.has_privillege('authority'):
                 raise handlers.AuthzError(
-                    "This assessment has already been approved")
+                    "This submission has already been approved")
 
         order = ['draft', 'final', 'reviewed', 'approved']
         if order.index(assessment.approval) > order.index(approval):
             raise handlers.ModelError(
-                "This response belongs to an assessment with a state of '%s'."
+                "This response belongs to an submission with a state of '%s'."
                 % assessment.approval)
 
         if self.current_user.role in {'org_admin', 'clerk'}:
@@ -314,10 +311,10 @@ class ResponseHistoryHandler(handlers.Paginate, handlers.BaseHandler):
                 .all())
 
             # Other versions
-            query = (session.query(ResponseHistory)
+            query = (session.query(model.ResponseHistory)
                 .filter_by(assessment_id=assessment_id,
                            measure_id=measure_id)
-                .order_by(ResponseHistory.version.desc()))
+                .order_by(model.ResponseHistory.version.desc()))
             query = self.paginate(query)
 
             versions += query.all()

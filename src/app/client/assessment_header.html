@@ -1,0 +1,35 @@
+<div class="subheader bg-muted">
+
+<div>
+<div class="container text-center text-muted assessment-header"
+         title="Switch to a different survey">
+    <div ng-if="!assessment">
+        <span>
+            Viewing questions only
+        </span>
+    </div>
+    <div title="Organisation" ng-if="assessment">
+        <a ng-href="#/org/{{assessment.organisation.id}}"
+                class="stealth btn btn-link">
+            {{assessment.organisation.name}}</a>
+    </div>
+    <div title="Submission" ng-if="assessment">
+        <a ng-href="#/assessment/{{assessment.id}}"
+                class="stealth btn btn-link">
+            {{assessment.title}}</a>
+    </div>
+    <div>
+        <button class="btn-round btn btn-default"
+                ng-click="toggleDropdown()">
+            <i class="fa fa-caret-up"
+                ng-if="showAssessmentChooser"></i>
+            <i class="fa fa-caret-down"
+                ng-if="!showAssessmentChooser"></i>
+        </button>
+    </div>
+</div>
+</div>
+
+<div class="atop" ng-if="showAssessmentChooser" assessment-select></div>
+
+</div>

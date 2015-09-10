@@ -1,4 +1,4 @@
 ## Icons - Building
 
-If you change `logo-monogram.svg`, run `build-icons.sh` to regenerate the `.png`
-files.
+If you change any of the SVG files, run `build-icons.sh` to regenerate the
+minified SVG files and bitmaps.

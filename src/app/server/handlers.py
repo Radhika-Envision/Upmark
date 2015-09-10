@@ -172,6 +172,8 @@ SCRIPTS = [
             '/.bower_components/js-expression-eval/parser.js',
             '/.bower_components/d3/d3.min.js',
             '/.bower_components/woofmark/dist/woofmark.js',
+            '/.bower_components/medium-editor/dist/js/medium-editor.js',
+            '/.bower_components/angular-medium-editor/dist/angular-medium-editor.js',
             '/.bower_components/megamark/dist/megamark.js',
             '/.bower_components/domador/dist/domador.js'
         ]

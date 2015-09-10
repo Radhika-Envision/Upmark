@@ -287,29 +287,6 @@ angular.module('wsaa.surveyQuestions', [
         );
     };
 
-    $scope.aSearch = {
-        organisation: current.user.organisation
-    };
-    $scope.searchOrg = function(term) {
-        Organisation.query({term: term}).$promise.then(function(orgs) {
-            $scope.organisations = orgs;
-        });
-    };
-    $scope.$watch('aSearch.organisation', function(organisation) {
-        Assessment.query({
-            orgId: organisation.id,
-            surveyId: $scope.survey.id
-        }).$promise.then(
-            function success(assessments) {
-                $scope.assessments = assessments;
-            },
-            function failure(details) {
-                Notifications.set('survey', 'error',
-                    "Could not get assessment list: " + details.statusText);
-            }
-        );
-    });
-
     $scope.Survey = Survey;
 
     hotkeys.bindTo($scope)
@@ -329,6 +306,101 @@ angular.module('wsaa.surveyQuestions', [
                     format("/measures?survey={{}}", $scope.survey.id));
             }
         });
+}])
+
+
+.directive('assessmentHeader', [function() {
+    return {
+        templateUrl: 'assessment_header.html',
+        replace: true,
+        scope: true,
+        controller: ['$scope', function($scope) {
+            $scope.showAssessmentChooser = false;
+            $scope.toggleDropdown = function() {
+                $scope.showAssessmentChooser = !$scope.showAssessmentChooser;
+            };
+        }]
+    }
+}])
+
+
+.directive('assessmentSelect', [function() {
+    return {
+        restrict: 'AEC',
+        templateUrl: 'assessment_select.html',
+        scope: true,
+        controller: ['$scope', 'Current', 'Assessment', 'Organisation',
+                '$location', 'format', 'Notifications',
+                function($scope, current, Assessment, Organisation,
+                         $location, format, Notifications) {
+            $scope.aSearch = {
+                organisation: null
+            };
+
+            $scope.$watch('assessment.organisation', function(org) {
+                if (!org)
+                    org = $scope.org || current.user.organisation;
+                $scope.aSearch.organisation = org;
+            });
+
+            $scope.searchOrg = function(term) {
+                Organisation.query({term: term}).$promise.then(function(orgs) {
+                    $scope.organisations = orgs;
+                });
+            };
+            $scope.$watch('aSearch.organisation', function(organisation) {
+                if (organisation)
+                    $scope.search.orgId = organisation.id;
+                else
+                    $scope.search.orgId = null;
+            });
+
+            $scope.$watch('structure.hierarchy', function(hierarchy) {
+                $scope.search.hierarchyId = hierarchy && hierarchy.id;
+            });
+
+            $scope.$watch('structure.survey', function(survey) {
+                $scope.search.surveyId = survey && survey.id;
+            });
+
+            $scope.search = {
+                term: "",
+                orgId: null,
+                hierarchyId: null,
+                surveyId: null,
+                page: 0,
+                pageSize: 10
+            };
+            $scope.$watch('search', function(search) {
+                Assessment.query(search).$promise.then(
+                    function success(assessments) {
+                        $scope.assessments = assessments;
+                    },
+                    function failure(details) {
+                        Notifications.set('survey', 'error',
+                            "Could not get submission list: " + details.statusText);
+                    }
+                );
+            }, true);
+
+            // Allow parent controller to specify a special URL formatter - this
+            // is so one can switch between assessments without losing one's
+            // place in the hierarchy.
+            if (!$scope.getAssessmentUrl) {
+                $scope.getAssessmentUrl = function(assessment) {
+                    if (assessment)
+                        return format('/assessment/{}', assessment.id);
+                    else
+                        return format('/hierarchy/{}?survey={}',
+                            $scope.structure.hierarchy.id,
+                            $scope.structure.survey.id);
+                };
+            }
+        }],
+        link: function(scope, elem, attrs) {
+            scope.showEdit = attrs.assessmentSelectShowEdit !== undefined;
+        }
+    }
 }])
 
 
@@ -503,8 +575,8 @@ angular.module('wsaa.surveyQuestions', [
             survey = stack[0];
             hstack.push({
                 path: 'survey',
-                title: 'Surveys',
-                label: 'S',
+                title: 'Program',
+                label: 'Pg',
                 entity: survey,
                 level: 's'
             });
@@ -524,8 +596,8 @@ angular.module('wsaa.surveyQuestions', [
                 hierarchy = stack[1];
                 hstack.push({
                     path: 'hierarchy',
-                    title: 'Question Sets',
-                    label: 'Qs',
+                    title: 'Surveys',
+                    label: 'Sv',
                     entity: hierarchy,
                     level: 'h'
                 });
@@ -533,14 +605,14 @@ angular.module('wsaa.surveyQuestions', [
         }
 
         if (assessment) {
-            // Assessments take the place of the hierarchy.
-            hstack[1] = {
+            // Assessments slot in after hierarchy.
+            hstack.splice(2, 0, {
                 path: 'assessment',
-                title: 'Assessments',
-                label: 'A',
+                title: 'Submissions',
+                label: 'Sb',
                 entity: assessment,
                 level: 'h'
-            };
+            });
         }
 
         var qnodes = [];
@@ -625,7 +697,10 @@ angular.module('wsaa.surveyQuestions', [
 
                 var path = format("#/{}/{}", item.path, key);
                 var query = [];
-                if (item.path != 'survey' && item.path != 'assessment') {
+                if (item.path == 'survey' || item.path == 'assessment') {
+                } else if (item.path == 'hierarchy') {
+                    query.push('survey=' + $scope.structure.survey.id);
+                } else {
                     if ($scope.assessment)
                         query.push('assessment=' + $scope.assessment.id);
                     else
@@ -675,11 +750,29 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
+.controller('HierarchyChoiceCtrl', [
+        '$scope', 'routeData', 'Structure', 'questionAuthz', 'Current',
+        'Hierarchy', 'layout', '$location', 'Roles',
+        function($scope, routeData, Structure, questionAuthz, current,
+                 Hierarchy, layout, $location, Roles) {
+    $scope.layout = layout;
+    $scope.survey = routeData.survey;
+    $scope.hierarchy = routeData.hierarchy;
+    $scope.structure = Structure($scope.hierarchy);
+
+    if (current.user.role == 'author')
+        $location.path('/hierarchy/' + $scope.hierarchy.id);
+
+    $scope.Hierarchy = Hierarchy;
+    $scope.checkRole = questionAuthz(current, $scope.survey);
+}])
+
+
 .controller('HierarchyCtrl', [
         '$scope', 'Hierarchy', 'routeData', 'Editor', 'questionAuthz', 'layout',
-        '$location', 'Current', 'format', 'QuestionNode',
+        '$location', 'Current', 'format', 'QuestionNode', 'Structure',
         function($scope, Hierarchy, routeData, Editor, authz, layout,
-                 $location, current, format, QuestionNode) {
+                 $location, current, format, QuestionNode, Structure) {
 
     $scope.layout = layout;
     $scope.survey = routeData.survey;
@@ -707,6 +800,7 @@ angular.module('wsaa.surveyQuestions', [
         $scope.children = null;
         $scope.edit.edit();
     }
+    $scope.structure = Structure($scope.hierarchy);
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
@@ -736,11 +830,6 @@ angular.module('wsaa.surveyQuestions', [
         model.structure.levels.splice(i, 1);
         if (model.structure.levels.length == 1)
             model.structure.levels[0].hasMeasures = true;
-    };
-
-    $scope.qnodeUrl = function(item, $index) {
-        return format("/qnode/{}?survey={}&hierarchy={}",
-            item.id, $scope.survey.id, $scope.hierarchy.id);
     };
 
     $scope.checkRole = authz(current, $scope.survey);
@@ -866,6 +955,16 @@ angular.module('wsaa.surveyQuestions', [
         }, true);
     }
 
+    $scope.getAssessmentUrl = function(assessment) {
+        if (assessment) {
+            return format('/qnode/{}?assessment={}',
+                $scope.qnode.id, assessment.id);
+        } else {
+            return format('/qnode/{}?survey={}',
+                $scope.qnode.id, $scope.survey.id);
+        }
+    };
+
     $scope.toggleNotRelevant = function() {
         var oldValue = $scope.rnode.notRelevant;
         $scope.rnode.notRelevant = !oldValue;
@@ -988,12 +1087,14 @@ angular.module('wsaa.surveyQuestions', [
     }
 
     $scope.$watchGroup(['hierarchy', 'structure'], function(vars) {
+        var level;
         if ($scope.assessment && !$scope.qnode)
-            $scope.title = $scope.assessment.hierarchy.structure.levels[0].title;
+            level = $scope.assessment.hierarchy.structure.levels[0];
         else if ($scope.hierarchy)
-            $scope.title = $scope.hierarchy.structure.levels[0].title;
+            level = $scope.hierarchy.structure.levels[0];
         else
-            $scope.title = $scope.nextLevel.title;
+            level = $scope.nextLevel;
+        $scope.level = level;
     });
 
     if ($scope.assessment) {
@@ -1097,7 +1198,7 @@ angular.module('wsaa.surveyQuestions', [
         qnodeId: $scope.qnode.id
     }
 
-    $scope.title = $scope.structure.hierarchy.structure.measure.title;
+    $scope.level = $scope.structure.hierarchy.structure.measure;
 
     if ($scope.assessment) {
         // Get the responses that are associated with this qnode and assessment.
@@ -1421,6 +1522,18 @@ angular.module('wsaa.surveyQuestions', [
                 }
             });
     }
+
+    $scope.getAssessmentUrl = function(assessment) {
+        if (assessment) {
+            return format('/measure/{}?assessment={}&parent={}',
+                $scope.measure.id, assessment.id,
+                $scope.parent && $scope.parent.id || '');
+        } else {
+            return format('/measure/{}?survey={}&parent={}',
+                $scope.measure.id, $scope.survey.id,
+                $scope.parent && $scope.parent.id || '');
+        }
+    };
 }])
 
 
@@ -1673,6 +1786,42 @@ angular.module('wsaa.surveyQuestions', [
     };
     $scope.isActive = function(version) {
         return version.version == $scope.response.version;
+    };
+}])
+
+
+.directive('approval', [function() {
+    return {
+        restrict: 'E',
+        scope: {
+            model: '='
+        },
+        template: '<i class="boxed" ng-class="cls" title="{{model}}">' +
+                    '{{initial}}</i>',
+        replace: true,
+        controller: ['$scope', function($scope) {
+            $scope.$watch('model', function(approval) {
+                $scope.initial = approval[0].toUpperCase();
+                switch (approval) {
+                case 'draft':
+                    $scope.initial = 'D';
+                    $scope.cls = 'aq-0';
+                    break;
+                case 'final':
+                    $scope.initial = 'F';
+                    $scope.cls = 'aq-1';
+                    break;
+                case 'reviewed':
+                    $scope.initial = 'R';
+                    $scope.cls = 'aq-2';
+                    break;
+                case 'approved':
+                    $scope.initial = 'A';
+                    $scope.cls = 'aq-3';
+                    break;
+                }
+            });
+        }]
     };
 }])
 

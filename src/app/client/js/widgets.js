@@ -402,7 +402,8 @@ angular.module('vpac.widgets', [])
 .directive('autoresize', [function() {
     return {
         restrict: 'AC',
-        link: function(scope, elem, attrs) {
+        require: '?ngModel',
+        link: function(scope, elem, attrs, ngModel) {
             var resize = function() {
                 // Resize to something small first in case we should shrink -
                 // otherwise scrollHeight will be wrong.
@@ -413,7 +414,7 @@ angular.module('vpac.widgets', [])
             };
 
             elem.on('input change', resize);
-            scope.$watch(attrs.ngModel, resize);
+            ngModel.$viewChangeListeners.push(resize);
 
             scope.$on('$destroy', function() {
                 elem.off();
@@ -424,67 +425,156 @@ angular.module('vpac.widgets', [])
 }])
 
 
-.controller('WoofmarkTest', function($scope) {
-    $scope.model = {
-        contents: '### Foo\n\nbar\n\n#### Baz\n\nFred'
+/**
+ * Takes its height from a child element. This allows CSS transitions to be used
+ * for the natural height of the element.
+ */
+.directive('surrogateHeight', [function() {
+    return {
+        restrict: 'AC',
+        controller: [function() {}],
+        require: 'surrogateHeight',
+        link: function(scope, elem, attrs, surrogateHeight) {
+            surrogateHeight.update = function(height) {
+                elem.height(height);
+            };
+            if (attrs.surrogateHeight != '')
+                elem.height(Number(attrs.surrogateHeight));
+        }
+    };
+}])
+
+
+.directive('surrogateHeightTarget', [function() {
+    return {
+        restrict: 'AC',
+        require: '^surrogateHeight',
+        link: function(scope, elem, attrs, surrogateHeight) {
+            scope.$watch(function() {
+                return elem[0].scrollHeight;
+            }, function(height) {
+                surrogateHeight.update(height);
+            });
+        }
+    };
+}])
+
+
+.directive('ngUncloak', ['$timeout', function($timeout) {
+    return {
+        restrict: 'A',
+        link: function(scope, elem, attrs) {
+            elem.toggleClass('ng-uncloak', true);
+            elem.toggleClass('in', false);
+            $timeout(function() {
+                elem.toggleClass('ng-hide', true);
+            }, 2000);
+        }
+    };
+}])
+
+
+.directive('ifNotEmpty', function() {
+    return {
+        restrict: 'AC',
+        link: function(scope, elem, attrs) {
+            scope.$watch(
+                function isEmpty() {
+                    return elem.html().trim() == '';
+                },
+                function toggle(empty) {
+                    elem.toggleClass('ng-hide', empty);
+                });
+        }
     };
 })
 
 
 .directive('markdownEditor', [function() {
+    function postLink(scope, elem, attrs, ngModel) {
+        scope.model = {
+            mode: 'rendered',
+            viewValue: null
+        };
+
+        scope.options = {
+            placeholder: {text: ""},
+            buttons: [
+                "bold", "italic", "anchor", "image",
+                "header1", "header2", "quote",
+                "orderedlist", "unorderedlist",
+                "removeFormat"],
+            imageDragging: false
+        };
+        scope.$watch('placeholder', function(placeholder) {
+            scope.options.placeholder.text = placeholder;
+        });
+
+        // View to model
+        ngModel.$parsers.unshift(function (inputValue) {
+            if (scope.model.mode == 'rendered')
+                return domador(inputValue);
+            else
+                return inputValue;
+        });
+
+        // Model to view
+        ngModel.$formatters.unshift(function (inputValue) {
+            if (scope.model.mode == 'rendered')
+                return megamark(inputValue);
+            else
+                return inputValue;
+        });
+
+        ngModel.$render = function render() {
+            scope.model.viewValue = ngModel.$viewValue;
+        };
+
+        scope.$watch('model.viewValue', function(viewValue) {
+            ngModel.$setViewValue(viewValue);
+        });
+
+        scope.cycleModes = function() {
+            if (scope.model.mode == 'rendered')
+                scope.model.mode = 'markdown';
+            else
+                scope.model.mode = 'rendered';
+        };
+
+        scope.$watch('model.mode', function(mode) {
+            // Undocumented hack: change the model value to anything else; this
+            // value is ignored but it runs the formatters.
+            // http://stackoverflow.com/a/28924657/320036
+            if (ngModel.$modelValue == 'bar')
+                ngModel.$modelValue = 'foo';
+            else
+                ngModel.$modelValue = 'bar';
+        });
+
+        attrs.$observe('markdownEditorFocusOn', function(focusOn) {
+            elem.find('> [medium-editor], > textarea')
+                .attr('focus-on', focusOn);
+        });
+        attrs.$observe('markdownEditorBlurOn', function(blurOn) {
+            elem.find('> [medium-editor], > textarea')
+                .attr('blur-on', blurOn);
+        });
+    };
+
     return {
         restrict: 'E',
         scope: {
-            model: '='
+            placeholder: '='
         },
         templateUrl: 'markdown_editor.html',
-        controller: ['$scope', function($scope) {
-            $scope.medium = { options: {
-                "placeholder": "Enter a description",
-                "buttons": [
-                    "bold", "italic", "underline", "anchor",
-                    "header1", "header2", "quote",
-                    "orderedlist", "unorderedlist"]
-            }};
-        controller: ['$scope', 'bind', function($scope, bind) {
-            $scope.model = {
-                wysiwygMode: true,
-                html: null,
-                markdown: null
-            };
+        require: 'ngModel',
+        compile: function compile(tElem, tAttrs) {
+            tElem.find('> [medium-editor], > textarea')
+                .attr('focus-on', tAttrs.markdownEditorFocusOn);
+            tElem.find('> [medium-editor], > textarea')
+                .attr('blur-on', tAttrs.markdownEditorBlurOn);
 
-            bind($scope, 'markdown', $scope, 'model.markdown', true);
-
-            $scope.options = {
-                placeholder: {text: ""},
-                buttons: [
-                    "bold", "italic", "anchor", "image",
-                    "header1", "header2", "quote",
-                    "orderedlist", "unorderedlist",
-                    "removeFormat"],
-                imageDragging: false
-            };
-
-            $scope.$watch('model.markdown', function(markdown) {
-                if (markdown == null)
-                    return;
-                if ($scope.model.html == null || !$scope.model.wysiwygMode) {
-                    console.log('Markdown changed; Updating HTML')
-                    $scope.model.html = megamark(markdown);
-                }
-            });
-
-            $scope.$watch('model.html', function(html) {
-                if (html == null)
-                    return;
-                if ($scope.model.markdown == null || $scope.model.wysiwygMode) {
-                    console.log('HTML changed; Updating Markdown')
-                    $scope.model.markdown = domador(html);
-                }
-            });
-        }],
-        link: function(scope, element, attrs) {
-            console.log('Linking markdown editor')
+            return postLink;
         }
     };
 }])

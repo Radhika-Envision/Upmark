@@ -28,25 +28,16 @@
                 ng-if="!edit.model && checkRole('assessment_edit')">
             <i class="fa fa-pencil"></i></button>
     </div>
-    <question-header entity="survey" assessment="assessment"></question-header>
+    <question-header entity="assessment.hierarchy" assessment="assessment"></question-header>
 </div>
 </div>
 
-<div class="subheader text-center bg-muted text-muted" ng-if="assessment">
-<div class="container assessment-header">
-    <span title="Organisation">
-        {{assessment.organisation.name}}
-    </span>
-    <span title="Assessment">
-        {{assessment.title}}
-    </span>
-</div>
-</div>
+<assessment-header ng-if="!edit.model"></assessment-header>
 
 <div class="container" ng-if="edit.model && !edit.model.hierarchy">
     <p>
-        Please choose a question set. This will determine the categories that
-        are available to you when filling out your assessment.
+        Please choose a survey. This will determine the categories that
+        are available to you.
     </p>
 
     <ul class="list-results">
@@ -70,17 +61,18 @@
         </div>
     </form>
 
-    <p class="text-muted">
-        Question set: <i>{{edit.model.hierarchy.title}}</i>
+    <p class="text-muted" ng-if="duplicate">
+        Source submission: <i>{{duplicate.title}}</i>
     </p>
 
-    <p class="text-muted" ng-if="duplicate">
-        Source assessment: <i>{{duplicate.title}}</i>
+    <p class="text-muted">
+        Target submission: <i>{{edit.model.hierarchy.title}}</i>
     </p>
 
 </div>
 
 <div ng-if="!edit.model" class="container">
+    <!-- Don't wrap the contents of this tag! -->
     <p ng-if="assessment.hierarchy.description"
             class="formatted">{{assessment.hierarchy.description}}</p>
 
@@ -89,6 +81,8 @@
             <button class="btn btn-default"
                     ng-class="{active: assessment.approval == 'draft'}"
                     ng-click="setState('draft')">
+                <approval model="assessment.approval"
+                    ng-if="assessment.approval == 'draft'"></approval>
                 Draft
             </button>
         </div>
@@ -96,6 +90,8 @@
             <button class="btn btn-default"
                     ng-class="{active: assessment.approval == 'final'}"
                     ng-click="setState('final')">
+                <approval model="assessment.approval"
+                    ng-if="assessment.approval == 'final'"></approval>
                 Final
             </button>
         </div>
@@ -103,6 +99,8 @@
             <button class="btn btn-default"
                     ng-class="{active: assessment.approval == 'reviewed'}"
                     ng-click="setState('reviewed')">
+                <approval model="assessment.approval"
+                    ng-if="assessment.approval == 'reviewed'"></approval>
                 Reviewed
             </button>
         </div>
@@ -110,6 +108,8 @@
             <button class="btn btn-default"
                     ng-class="{active: assessment.approval == 'approved'}"
                     ng-click="setState('approved')">
+                <approval model="assessment.approval"
+                    ng-if="assessment.approval == 'approved'"></approval>
                 Approved
             </button>
         </div>
