@@ -377,7 +377,7 @@ class Importer():
                         response_part.append(self.parse_response_type(all_rows, row_num, r_types, "H"))
                     response.response_parts  = response_part
                     response.audit_reason = "Import"
-                    response.attachments = None
+                    # response.attachments = None
                     session.add(response)
             except sqlalchemy.orm.exc.NoResultFound:
                 raise Exception("This survey is not matching current open survey. ", all_rows[row_num], title)
