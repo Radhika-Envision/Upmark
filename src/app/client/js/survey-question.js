@@ -1382,6 +1382,9 @@ angular.module('wsaa.surveyQuestions', [
                             .attr("class", "box")
                             .attr("width", width + margin.left + margin.right)
                             .attr("height", height + margin.bottom + margin.top)
+                            .on("click", function(d) {
+                                detailChart(d.id);
+                            })
                         .append("g")
                             .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
                             .call(chart.duration(1000));
