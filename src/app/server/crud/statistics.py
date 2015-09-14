@@ -71,7 +71,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
                 r["quartile"] = [numpy.percentile(numpy_array, 25), 
                                 numpy.percentile(numpy_array, 50),
                                 numpy.percentile(numpy_array, 75)]
-                r.pop("data", None)
+                # r.pop("data", None)
 
         self.set_header("Content-Type", "application/json")
         self.write(json.dumps(response))

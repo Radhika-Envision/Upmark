@@ -57,6 +57,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/n_measures$',
                 # Nested
                 r'/survey$',
+                r'/survey/tracking_id$',
                 r'/organisation$',
                 r'/hierarchy$',
                 r'/hierarchy/structure.*$'

@@ -106,7 +106,8 @@ STYLESHEETS = [
         'hrefs': [
             '/css/app.css',
             '/css/dropzone.css',
-            '/css/clock.css'
+            '/css/clock.css',
+            '/css/statistics.css'
         ]
     },
     {

@@ -1,6 +1,10 @@
 <div class="header">
 <div class="container">
     <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Statistics"
+                ng-click="statistics()"
+                ng-if="!edit.model && checkRole('assessment_admin')">
+            <i class="fa fa-bar-chart-o"></i></button>
         <button class="btn btn-default btn-round" title="Delete"
                 ng-click="edit.del()"
                 ng-if="!edit.model && checkRole('assessment_admin')">
