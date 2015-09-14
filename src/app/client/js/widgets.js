@@ -480,7 +480,11 @@ angular.module('vpac.widgets', [])
         link: function(scope, elem, attrs) {
             scope.$watch(
                 function isEmpty() {
-                    return elem.html().trim() == '';
+                    console.log(elem.html())
+                    var content = elem.html();
+                    content = content.replace(/<!--.*-->/, '');
+                    content = content.trim();
+                    return content == '';
                 },
                 function toggle(empty) {
                     elem.toggleClass('ng-hide', empty);
