@@ -102,6 +102,9 @@ div[textarea-label] {
             border-bottom-right-radius: 0;
         }
     }
+    >.btn {
+        margin-right: -0.5px;
+    }
 }
 
 .btn-default, .btn-default[disabled],

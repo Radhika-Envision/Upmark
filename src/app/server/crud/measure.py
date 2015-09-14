@@ -48,7 +48,6 @@ class MeasureHandler(
                 r'/id$',
                 r'/title$',
                 r'/seq$',
-                r'/is_open$',
                 r'/is_editable$',
                 # Fields to match from only the root object
                 r'^/intent$',

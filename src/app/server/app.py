@@ -165,7 +165,9 @@ def get_mappings():
             'root': os.path.join(package_dir, "..", "client")}),
 
         (r"/systemconfig.json", crud.config.SystemConfigHandler, {}),
-        (r"/organisation/?(.*).json", crud.org.OrgHandler, {}),
+        (r"/organisation/?([^/]*).json", crud.org.OrgHandler, {}),
+        (r"/organisation/?([^/]*)/hierarchy/?([^/]*).json",
+            crud.org.PurchasedSurveyHandler, {}),
         (r"/user/?(.*).json", crud.user.UserHandler, {}),
         (r"/password.json", crud.user.PasswordHandler, {}),
 
