@@ -47,10 +47,6 @@ class SurveyCentric:
         if not self.survey.is_editable:
             raise handlers.MethodError("This survey is closed for editing")
 
-    def check_open(self):
-        if not self.survey.is_open:
-            raise handlers.MethodError("This survey is not open for responses")
-
 
 class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
 
@@ -87,7 +83,6 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/title$',
                 r'/description$',
                 r'/created$',
-                r'/is_open$',
                 r'/is_editable$',
                 r'/response_types.*$'
             ], exclude=exclude)
@@ -103,7 +98,6 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         '''
 
         term = self.get_argument('term', '')
-        is_open = truthy(self.get_argument('open', ''))
         is_editable = truthy(self.get_argument('editable', ''))
 
         sons = []
@@ -112,9 +106,6 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
             if term != '':
                 query = query.filter(
                     model.Survey.title.ilike(r'%{}%'.format(term)))
-
-            if is_open:
-                query = query.filter(model.Survey.open_date!=None)
 
             if is_editable:
                 query = query.filter(model.Survey.finalised_date==None)
@@ -253,10 +244,9 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.MethodError(
                 "Can't use PUT for new survey (no ID).")
 
-        open_ = self.get_argument('open', '')
         editable = self.get_argument('editable', '')
-        if open_ != '' or editable != '':
-            self._update_state(survey_id, open_, editable)
+        if editable != '':
+            self._update_state(survey_id, editable)
             return
 
         try:
@@ -275,7 +265,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.get(survey_id)
 
-    def _update_state(self, survey_id, open_, editable):
+    def _update_state(self, survey_id, editable):
         '''
         Just update the state of the survey (not title etc.)
         '''
@@ -285,11 +275,6 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 if survey is None:
                     raise ValueError("No such object")
 
-                if open_ != '':
-                    if truthy(open_):
-                        survey.open_date = datetime.datetime.utcnow()
-                    else:
-                        survey.open_date = None
                 if editable != '':
                     if truthy(editable):
                         survey.finalised_date = None
@@ -336,7 +321,6 @@ class SurveyTrackingHandler(handlers.BaseHandler):
             to_son = ToSon(include=[
                 r'/id$',
                 r'/title$',
-                r'/is_open$',
                 r'/is_editable$',
                 # Descend
                 r'/[0-9]+$',
@@ -367,7 +351,6 @@ class SurveyHistoryHandler(handlers.BaseHandler):
             to_son = ToSon(include=[
                 r'/id$',
                 r'/title$',
-                r'/is_open$',
                 r'/is_editable$',
                 # Descend
                 r'/[0-9]+$',

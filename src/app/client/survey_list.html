@@ -18,17 +18,6 @@
 <div class="container">
     <search-box model="search" result="surveys">
         <button class="btn btn-default" type="button"
-                title="{{search.open ?
-                    'Only show open surveys' :
-                    'Show both open and closed surveys'}}"
-                ng-click="search.open = !search.open">
-            <i class="fa fa-clock-o">
-                <i ng-if="!search.open"
-                    class="fa fa-question-circle fa-badge"></i>
-            </i>
-            <span class="hidden-xs">Open</span>
-        </button>
-        <button class="btn btn-default" type="button"
                 title="{{search.editable ?
                     'Only show editable surveys' :
                     'Show both editable and finalised surveys'}}"
@@ -53,12 +42,8 @@
         <li>
             <div>
             <p class="text-muted">
-                <span ng-if="search.open && !search.editable">
-                    Displaying only <i>open</i> programs.</span>
-                <span ng-if="!search.open && search.editable">
+                <span ng-if="search.editable">
                     Displaying only <i>editable</i> programs.</span>
-                <span ng-if="search.open && search.editable">
-                    Displaying only <i>editable and open</i> programs.</span>
 
                 <span ng-if="!surveys.length">
                     No programs match your query.</span>

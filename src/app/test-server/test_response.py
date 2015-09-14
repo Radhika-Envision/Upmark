@@ -120,6 +120,46 @@ class ResponseTypeTest(unittest.TestCase):
 
 
 class AssessmentTest(base.AqHttpTestBase):
+    def test_create(self):
+        with model.session_scope() as session:
+            survey = session.query(model.Survey).one()
+            organisation = (session.query(model.Organisation)
+                    .filter_by(name='Utility')
+                    .one())
+            hierarchy_1 = (session.query(model.Hierarchy)
+                    .filter_by(title='Hierarchy 1')
+                    .one())
+            hierarchy_2 = (session.query(model.Hierarchy)
+                    .filter_by(title='Hierarchy 2')
+                    .one())
+
+            survey_id = str(survey.id)
+            organisation_id = str(organisation.id)
+            hierarchy_1_id = str(hierarchy_1.id)
+            hierarchy_2_id = str(hierarchy_2.id)
+
+        with base.mock_user('org_admin'):
+            assessment_son = {'title': "Assessment"}
+            assessment_son = self.fetch(
+                "/assessment.json?orgId=%s&surveyId=%s&hierarchyId=%s" %
+                (organisation_id, survey_id, hierarchy_1_id),
+                method='POST', body=json_encode(assessment_son),
+                expected=403, decode=False)
+
+        with base.mock_user('admin'):
+            self.fetch(
+                "/organisation/%s/hierarchy/%s.json?surveyId=%s" %
+                (organisation_id, hierarchy_1_id, survey_id),
+                method='PUT', body='', expected=200)
+
+        with base.mock_user('org_admin'):
+            assessment_son = {'title': "Assessment"}
+            assessment_son = self.fetch(
+                "/assessment.json?orgId=%s&surveyId=%s&hierarchyId=%s" %
+                (organisation_id, survey_id, hierarchy_1_id),
+                method='POST', body=json_encode(assessment_son),
+                expected=200, decode=True)
+
     def test_duplicate(self):
         # Respond to a survey
         with model.session_scope() as session:
@@ -207,6 +247,17 @@ class AssessmentTest(base.AqHttpTestBase):
                 method='POST', body=json_encode(survey_son),
                 expected=200, decode=True)
             new_survey_id = survey_son['id']
+
+        # Open both new hierarchies to organisation
+        with base.mock_user('admin'):
+            self.fetch(
+                "/organisation/%s/hierarchy/%s.json?surveyId=%s" %
+                (organisation_id, hierarchy_1_id, new_survey_id),
+                method='PUT', body='', expected=200)
+            self.fetch(
+                "/organisation/%s/hierarchy/%s.json?surveyId=%s" %
+                (organisation_id, hierarchy_2_id, new_survey_id),
+                method='PUT', body='', expected=200)
 
         # Duplicate assessment, once for each hierarchy, in the new survey
         with base.mock_user('org_admin'):

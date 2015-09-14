@@ -126,8 +126,6 @@ class Survey(Base):
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
     # Survey is not editable after being finalised.
     finalised_date = Column(DateTime)
-    # Survey is not open for responses until after the open_date.
-    open_date = Column(DateTime)
     title = Column(Text, nullable=False)
     description = Column(Text)
     _response_types = Column('response_types', JSON, nullable=False)
@@ -135,10 +133,6 @@ class Survey(Base):
     @property
     def is_editable(self):
         return self.finalised_date is None
-
-    @property
-    def is_open(self):
-        return self.open_date is not None
 
     _response_types_schema = Schema([
         {

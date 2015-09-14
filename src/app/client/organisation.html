@@ -92,7 +92,8 @@
 </div>
 
 
-<div class="container" ng-controller="PurchasedSurveyCtrl">
+<div class="container" ng-controller="PurchasedSurveyCtrl"
+        ng-if="checkRole('assessment_browse')">
     <div class="section">
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="Add new"

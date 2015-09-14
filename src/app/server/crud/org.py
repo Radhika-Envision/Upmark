@@ -141,13 +141,31 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
 
 class PurchasedSurveyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
     @tornado.web.authenticated
+    def head(self, org_id, hierarchy_id):
+        self._check_user(org_id)
+
+        with model.session_scope() as session:
+            purchased_survey = (session.query(model.PurchasedSurvey)
+                .filter_by(survey_id=self.survey_id,
+                           hierarchy_id=hierarchy_id,
+                           organisation_id=org_id)
+                .first())
+            if not purchased_survey:
+                raise handlers.MissingDocError(
+                    "This survey has not been purchased yet")
+
+        self.finish()
+
+    @tornado.web.authenticated
     def get(self, org_id, hierarchy_id):
         if not hierarchy_id:
             self.query(org_id)
 
-        raise handlers.ModelError('Not implemented')
+        raise handlers.ModelError("Not implemented")
 
     def query(self, org_id):
+        self._check_user(org_id)
+
         with model.session_scope() as session:
             org = session.query(model.Organisation).get(org_id)
             if not org:
@@ -192,3 +210,9 @@ class PurchasedSurveyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 raise handlers.MissingDocError('No such hierarchy')
 
             org.surveys.remove(hierarchy)
+
+    def _check_user(self, org_id):
+        if org_id != str(self.current_user.organisation_id):
+            if not self.has_privillege('consultant'):
+                raise handlers.AuthzError(
+                    "You can't access another organisation's surveys")

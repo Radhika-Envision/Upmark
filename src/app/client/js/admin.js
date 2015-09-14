@@ -95,6 +95,7 @@ angular.module('wsaa.admin', [
         id: '@orgId',
         hid: '@hierarchyId'
     }, {
+        head: { method: 'HEAD', cache: false },
         query: {
             method: 'GET', isArray: true, cache: false,
             interceptor: {response: paged}

@@ -257,17 +257,6 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.checkRole = authz(current, $scope.survey);
 
-    $scope.toggleOpen = function() {
-        $scope.survey.$save({open: !$scope.survey.isOpen},
-            function success() {
-                Notifications.set('edit', 'success', "Saved", 5000);
-            },
-            function failure(details) {
-                Notifications.set('edit', 'error',
-                    "Could not save object: " + details.statusText);
-            }
-        );
-    };
     $scope.toggleEditable = function() {
         $scope.survey.$save({editable: !$scope.survey.isEditable},
             function success() {
@@ -323,9 +312,9 @@ angular.module('wsaa.surveyQuestions', [
         templateUrl: 'assessment_select.html',
         scope: true,
         controller: ['$scope', 'Current', 'Assessment', 'Organisation',
-                '$location', 'format', 'Notifications',
+                '$location', 'format', 'Notifications', 'PurchasedSurvey',
                 function($scope, current, Assessment, Organisation,
-                         $location, format, Notifications) {
+                         $location, format, Notifications, PurchasedSurvey) {
             $scope.aSearch = {
                 organisation: null
             };
@@ -374,6 +363,21 @@ angular.module('wsaa.surveyQuestions', [
                             "Could not get submission list: " + details.statusText);
                     }
                 );
+
+                PurchasedSurvey.head({
+                    surveyId: search.surveyId,
+                    id: search.orgId,
+                    hid: search.hierarchyId
+                }, null, function success(purchasedSurvey) {
+                    $scope.purchasedSurvey = purchasedSurvey;
+                }, function failure(details) {
+                    if (details.status == 404) {
+                        $scope.purchasedSurvey = null;
+                        return;
+                    }
+                    Notifications.set('survey', 'error',
+                        "Could not get purchase status: " + details.statusText);
+                });
             }, true);
 
             // Allow parent controller to specify a special URL formatter - this
@@ -406,7 +410,6 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.search = {
         term: "",
-        open: !$scope.checkRole('survey_edit'),
         editable: $scope.checkRole('survey_edit'),
         page: 0,
         pageSize: 10
@@ -527,13 +530,13 @@ angular.module('wsaa.surveyQuestions', [
             };
 
             $scope.navigate = function(survey) {
-                if ($scope.entity.isOpen != null)
+                if ($scope.entity.isEditable != null)
                     $location.url('/survey/' + survey.id);
                 else
                     $location.search('survey', survey.id);
             };
             $scope.isActive = function(survey) {
-                if ($scope.entity.isOpen != null)
+                if ($scope.entity.isEditable != null)
                     return $location.url().indexOf('/survey/' + survey.id) >= 0;
                 else
                     return $location.search().survey == survey.id;
