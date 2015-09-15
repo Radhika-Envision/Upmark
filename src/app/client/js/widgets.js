@@ -480,9 +480,10 @@ angular.module('vpac.widgets', [])
         link: function(scope, elem, attrs) {
             scope.$watch(
                 function isEmpty() {
-                    console.log(elem.html())
                     var content = elem.html();
-                    content = content.replace(/<!--.*-->/, '');
+                    // [\s\S] matches new lines:
+                    // http://stackoverflow.com/a/1068308/320036
+                    content = content.replace(/<!--[\s\S]*-->/, '');
                     content = content.trim();
                     return content == '';
                 },
