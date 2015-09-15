@@ -32,7 +32,7 @@
     <span class="caret"></span>
   </button>
   <ul class="dropdown-menu">
-    <li ng-repeat="assessment in oldAssessments"><a href="#">{{ assessment.title }}</a></li>
+    <li ng-repeat="assessment in oldAssessments"><a ng-click="compare(assessment)">{{ assessment.title }}</a></li>
   </ul>
 </div>
 <div class="container chart" id="chart">
