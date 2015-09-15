@@ -1010,7 +1010,7 @@ angular.module('wsaa.surveyQuestions', [
 
                 // Compute the new x-scale.
                 var x1 = d3.scale.linear()
-                    .domain([0, Math.max(rangez[0], markerz[0], measurez[0])])
+                    .domain([d.min, d.max])
                     .range(reverse ? [width, 0] : [0, width]);
 
                 // Retrieve the old x-scale, if this is an update.
@@ -1244,7 +1244,7 @@ angular.module('wsaa.surveyQuestions', [
     }
 
     function bulletMeasures(d) {
-        return [d.min, d.max];
+        return [d.max / 2, d.max];
     }
 
     function bulletTranslate(x) {
@@ -1254,9 +1254,8 @@ angular.module('wsaa.surveyQuestions', [
     }
 
     function bulletWidth(x) {
-        var x0 = x(0);
         return function(d) {
-            return Math.abs(x(d) - x0);
+            return x(d);
         };
     };
 
