@@ -21,9 +21,9 @@ from utils import reorder, ToSon, truthy, updater
 import numpy
 
 
-log = logging.getLogger('app.crud.statistics')
+log = logging.getLogger('app.crud.report')
 
-class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
+class ReportHandler(handlers.Paginate, handlers.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, survey_id):
@@ -51,7 +51,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
                 r = [res for res in response 
                      if res["qid"] == str(responseNode.qnode.id)]
                 if len(r) == 0:
-                    r = { "qid": str(responseNode.qnode.id), "title": str(responseNode.qnode.title),
+                    r = { "qid": str(responseNode.qnode.id),
                         "data": [] }
                     response.append(r)
                 else:

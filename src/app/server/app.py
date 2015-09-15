@@ -194,6 +194,8 @@ def get_mappings():
             crud.attachment.AttachmentHandler, {}),
         (r"/statistics/([^/]*).json",
             crud.statistics.FunctionHandler, {}),
+        (r"/report/([^/]*).json",
+            crud.report.ReportHandler, {}),
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response.json", import_handlers.ImportResponseHandler, {}),
         (r"/import/assessment.json", import_handlers.ImportAssessmentHandler, {}),

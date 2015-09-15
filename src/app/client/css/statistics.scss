@@ -1,39 +1,11 @@
-div.chart {
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-}
-.box {
-  font: 10px sans-serif;
-  cursor: pointer;
-}
-
-.box line,
-.box rect,
-.box circle {
-  fill: #fff;
-  stroke: #000;
-  stroke-width: 1.5px;
-}
-
-.box .median {
-  stroke: blue;
-}
-
-.box .current {
-  stroke-width: 4px;
-  stroke: red;
-}
-
-.box .current_text {
-  fill: red;
-}
-
-
-.box .center {
-  stroke-dasharray: 3,3;
-  stroke: gray;
-}
-
-.box .outlier {
-  fill: none;
-  stroke: #ccc;
-}
+.bullet { font: 10px sans-serif; cursor:pointer;}
+.bullet .marker { stroke: red; stroke-width: 2px; fill:red;}
+.bullet .tick line { stroke: #666; stroke-width: .5px; }
+.bullet .range.s0 { fill: #eee; }
+.bullet .range.s1 { fill: #ddd; }
+.bullet .range.s2 { fill: #ccc; }
+.bullet .measure.s0 { fill: lightsteelblue; }
+.bullet .measure.s1 { fill: steelblue; }
+.bullet .title { font-size: 10px; font-weight: bold; }
+.bullet .markerValue { fill:red; }
+.bullet .subtitle { fill: #999; }
