@@ -16,6 +16,10 @@
                 ng-href="#/qnode/new?{{query}}&parent={{qnode.id}}"
                 ng-if="editable && !edit.model">
             <i class="fa fa-fw fa-plus"></i></a>
+        <a class="btn btn-default btn-round" title="Link to existing"
+                ng-href="#/qnode-link?{{query}}&parent={{qnode.id}}"
+                ng-if="editable && !edit.model">
+            <i class="fa fa-fw fa-link"></i></a>
     </div>
     <h2 label="{{level.label}}" ng-class="'survey-' + level.level">
         {{level.title}}</h2>

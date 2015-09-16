@@ -12,13 +12,14 @@ import handlers
 import model
 import logging
 
-from utils import reorder, ToSon, updater
+from utils import reorder, ToSon, truthy, updater
 
 
 log = logging.getLogger('app.crud.qnode')
 
 
-class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
+class QuestionNodeHandler(
+        handlers.Paginate, crud.survey.SurveyCentric, handlers.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, qnode_id):
@@ -84,6 +85,7 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         hierarchy_id = self.get_argument('hierarchyId', '')
         parent_id = self.get_argument('parentId', '')
         root = self.get_argument('root', None)
+        term = self.get_argument('term', '')
 
         if root is not None and parent_id != '':
             raise handlers.ModelError(
@@ -102,10 +104,15 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 query = query.filter_by(parent_id=parent_id)
             if root is not None:
                 query = query.filter_by(parent_id=None)
+            if term is not None:
+                query = query.filter(
+                    model.QuestionNode.title.ilike('%{}%'.format(term)))
 
             query = query.order_by(model.QuestionNode.seq)
 
-            to_son = ToSon(include=[
+            query = self.paginate(query, optional=True)
+
+            include = [
                 # Fields to match from any visited object
                 r'/id$',
                 r'/title$',
@@ -113,7 +120,11 @@ class QuestionNodeHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 r'/n_measures$',
                 # Descend into nested objects
                 r'/[0-9]+$',
-            ])
+            ]
+            if truthy(self.get_argument('desc', False)):
+                include += [r'/description$']
+
+            to_son = ToSon(include=include)
             sons = to_son(query.all())
 
         self.set_header("Content-Type", "application/json")
