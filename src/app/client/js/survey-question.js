@@ -990,12 +990,15 @@ angular.module('wsaa.surveyQuestions', [
                  layout, Arrays, ResponseNode, Statistics, Assessment) {
 
     var boxQuartiles = function(d) {
-        return [
-            d.quartile[0],
-            d.current,
-            d.quartile[1],
-            d.quartile[2]
-        ];
+        var quartiles = [];
+        angular.forEach(d.data, function(item, index) {
+            quartiles.push([
+                item.quartile[0],
+                item.quartile[1],
+                item.quartile[2]
+            ]);
+        });
+        return quartiles;
     };
 
     // Inspired by http://informationandvisualization.de/blog/box-plot
@@ -1021,7 +1024,6 @@ angular.module('wsaa.surveyQuestions', [
                 y = text.attr("y"),
                 dy = parseFloat(text.attr("dy")),
                 tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
-                console.log(text);
             while (word = words.pop()) {
               line.push(word);
               tspan.text(line.join(" "));
@@ -1043,17 +1045,16 @@ angular.module('wsaa.surveyQuestions', [
       // For each small multiple…
         function box(g) {
             g.each(function(d, i) {
-                console.log(d);
                 var g = d3.select(this),
                     n = d.length,
-                    min = d.min,
-                    max = d.max;
+                    min = d.data[0].min,
+                    max = d.data[0].max;
 
                 // Compute quartiles. Must return exactly 3 elements.
                 var quartileData = d.quartiles = quartiles(d);
 
                 // Compute whiskers. Must return exactly 2 elements, or null.
-                var whiskerData = [d.min, d.max];
+                var whiskerData = [min, max];
 
                 // Compute outliers. If no whiskers are specified, all data are "outliers".
                 // We compute the outliers as indices, so that we can join across transitions!
@@ -1078,6 +1079,7 @@ angular.module('wsaa.surveyQuestions', [
                 // elements also fade in and out.
 
                 // Update center line: the vertical line spanning the whiskers.
+                var lineWidth = d.data.length == 1 ? width : width / 2;
                 var center = g.selectAll("line.center")
                     .data([whiskerData]);
 
@@ -1109,33 +1111,64 @@ angular.module('wsaa.surveyQuestions', [
 
                 // Update innerquartile box.
                 var box = g.selectAll("rect.box")
-                    .data([quartileData]);
+                    .data([quartileData[0]]);
 
                 box.enter().append("rect")
                     .attr("class", "box")
                     .attr("x", 0)
-                    .attr("y", function(d) { return x0(d[3]); })
-                    .attr("width", width)
-                    .attr("height", function(d) { return x0(d[0]) - x0(d[3]); })
+                    .attr("y", function(d) { return x0(d[2]); })
+                    .attr("width", lineWidth)
+                    .attr("height", function(d) { return x0(d[0]) - x0(d[2]); })
                     .transition()
                         .duration(duration)
-                        .attr("y", function(d) { return x1(d[3]); })
-                        .attr("height", function(d) { return x1(d[0]) - x1(d[3]); });
+                        .attr("y", function(d) { return x1(d[2]); })
+                        .attr("height", function(d) { return x1(d[0]) - x1(d[2]); });
 
                 box.transition()
                     .duration(duration)
-                    .attr("y", function(d) { return x1(d[3]); })
-                    .attr("height", function(d) { return x1(d[0]) - x1(d[3]); });
+                    .attr("y", function(d) { return x1(d[2]); })
+                    .attr("height", function(d) { return x1(d[0]) - x1(d[2]); });
+
+                if(d.compareMode) {
+                    // Update innerquartile box.
+                    var box2 = g.selectAll("rect.box2")
+                        .data([quartileData[1]]);
+
+                    box2.enter().append("rect")
+                        .attr("class", "box")
+                        .attr("x", width / 2)
+                        .attr("y", function(d) { return x0(d[2]); })
+                        .attr("width", lineWidth)
+                        .attr("height", function(d) { return x0(d[0]) - x0(d[2]); })
+                        .transition()
+                            .duration(duration)
+                            .attr("y", function(d) { return x1(d[2]); })
+                            .attr("height", function(d) { return x1(d[0]) - x1(d[2]); });
+
+                    box2.transition()
+                        .duration(duration)
+                        .attr("y", function(d) { return x1(d[2]); })
+                        .attr("height", function(d) { return x1(d[0]) - x1(d[2]); });
+                }
+
 
                 // Update median line.
+                var medianData = [];
+                angular.forEach(d.data, function(item) {
+                    medianData.push(item.quartile[1]);
+                });
                 var medianLine = g.selectAll("line.median")
-                    .data([quartileData[2]]);
+                    .data(medianData);
 
                 medianLine.enter().append("line")
                     .attr("class", "median")
-                    .attr("x1", 0)
+                    .attr("x1", function(d, i) { if (medianData.length == 1)
+                                                    return 0;
+                                                 return i == 0 ? 0:width/2; })
                     .attr("y1", x0)
-                    .attr("x2", width)
+                    .attr("x2", function(d, i) { if (medianData.length == 1)
+                                                    return width;
+                                                 return i == 0 ? width/2:width; })
                     .attr("y2", x0)
                     .transition()
                         .duration(duration)
@@ -1148,14 +1181,22 @@ angular.module('wsaa.surveyQuestions', [
                     .attr("y2", x1);
 
                 // Update current line.
+                var currentData = [];
+                angular.forEach(d.data, function(item) {
+                    currentData.push(item.current);
+                });
                 var currentLine = g.selectAll("line.current")
-                    .data([quartileData[1]]);
+                    .data(currentData);
 
                 currentLine.enter().append("line")
                     .attr("class", "current")
-                    .attr("x1", 0)
+                    .attr("x1", function(d, i) { if (currentData.length == 1)
+                                                    return 0;
+                                                 return i == 0 ? 0:width/2; })
                     .attr("y1", x0)
-                    .attr("x2", width)
+                    .attr("x2", function(d, i) { if (currentData.length == 1)
+                                                    return width;
+                                                 return i == 0 ? width/2:width; })
                     .attr("y2", x0)
                     .transition()
                         .duration(duration)
@@ -1169,7 +1210,7 @@ angular.module('wsaa.surveyQuestions', [
 
                 // Update current text
                 var currentTick = g.selectAll("current.text")
-                    .data([quartileData[1]]);
+                    .data(currentData);
 
                 currentTick.enter().append("text")
                     .attr("class", "current_text")
@@ -1359,7 +1400,9 @@ angular.module('wsaa.surveyQuestions', [
     // Start ucustom logic here
     $scope.assessment = routeData.assessment;
     $scope.qnode = routeData.qnode;
+    $scope.compareMode = false;
     $scope.compare = function(assessment) {
+        $scope.compareMode = true; 
         ResponseNode.query({
             assessmentId: assessment.id,
             parentId: null,
@@ -1376,20 +1419,18 @@ angular.module('wsaa.surveyQuestions', [
                     }
                 });
                 var node = nodes[0];
+                var d = existing_data;
                 if (node) {
-                    var d = {};
-                    d['id'] = node.qnode.id;
-                    d['current'] = node.score;
-                    d['max'] = existing_data.max;
-                    d['min'] = existing_data.min;
-                    d['quartile'] = existing_data.quartile;
-                    // d['name'] = "F" + (index + 1);
-                    data.push(d);                    
+                    d['compareMode'] = true;
+                    d['data'].push({
+                                    'current': node.score,
+                                    'max': existing_data.data[0].max,
+                                    'min': existing_data.data[0].min,
+                                    'quartile': existing_data.data[0].quartile});
                 }
-                data.push(existing_data);
-            })
+                data.push(d);                    
+            });
             d3.select("#chart").selectAll("svg").remove();
-            console.log(data);
             svg.data(data)
                         .enter().append("svg")
                             .attr("class", "box")
@@ -1449,14 +1490,16 @@ angular.module('wsaa.surveyQuestions', [
                     stat = stat[0];
                     var d = {};
                     d['id'] = node.qnode.id;
-                    d['current'] = node.score;
-                    d['max'] = stat.max;
-                    d['min'] = stat.min;
-                    d['quartile'] = stat.quartile;
+                    d['compareMode'] = false;
                     d['title'] = stat.title;
+                    d['data'] = [];
+                    d['data'].push({
+                                    'current': node.score,
+                                    'max': stat.max,
+                                    'min': stat.min,
+                                    'quartile': stat.quartile});
                     data.push(d);
                 });
-
     
                 if (data.length > 0) {
                     d3.select("#chart").selectAll("svg").remove();
@@ -1472,9 +1515,7 @@ angular.module('wsaa.surveyQuestions', [
                         .append("g")
                             .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
                             .call(chart.duration(1000));
-
                 }
-
             });
             Assessment.query({'trackingId':$scope.assessment.survey.trackingId}).$promise.then(function(oldAssessments) {
                 $scope.oldAssessments = oldAssessments.filter(function(assessment) {
