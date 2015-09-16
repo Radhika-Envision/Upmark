@@ -1010,6 +1010,36 @@ angular.module('wsaa.surveyQuestions', [
             detailChart = detailChart,
             tickFormat = null;
 
+        function wrap(text, width) {
+          text.each(function() {
+            var text = d3.select(this),
+                words = text.text().split(/\s+/).reverse(),
+                word,
+                line = [],
+                lineNumber = 0,
+                lineHeight = 1.1, // ems
+                y = text.attr("y"),
+                dy = parseFloat(text.attr("dy")),
+                tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+                console.log(text);
+            while (word = words.pop()) {
+              line.push(word);
+              tspan.text(line.join(" "));
+              if (tspan.node().getComputedTextLength() > width) {
+                line.pop();
+                tspan.text(line.join(" "));
+                line = [word];
+                tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+              }
+            }
+          });
+        }
+
+        function type(d) {
+          d.value = +d.value;
+          return d;
+        }
+
       // For each small multiple…
         function box(g) {
             g.each(function(d, i) {
@@ -1032,7 +1062,7 @@ angular.module('wsaa.surveyQuestions', [
                 // Compute the new x-scale.
                 var x1 = d3.scale.linear()
                   .domain(domain && domain.call(this, d, i) || [min, max])
-                  .range([height, 0]);
+                  .range([height - 20, 0]);
 
                 // Retrieve the old x-scale, if this is an update.
                 var x0 = this.__chart__ || d3.scale.linear()
@@ -1255,6 +1285,17 @@ angular.module('wsaa.surveyQuestions', [
                     .attr("y", x1)
                     .style("opacity", 1e-6)
                     .remove();
+
+                var title = g.selectAll("title.textbox")
+                    .data([d]);
+
+                title.enter().append("text")
+                    .attr("x", 0)
+                    .attr("y", x0(0) - 30)
+                    .attr("dy", 5)
+                    .attr("text-anchor", "middle")
+                    .text(function(d) { return d.title; })
+                    .call(wrap, 100)
             });
             d3.timer.flush();
         }
@@ -1412,7 +1453,7 @@ angular.module('wsaa.surveyQuestions', [
                     d['max'] = stat.max;
                     d['min'] = stat.min;
                     d['quartile'] = stat.quartile;
-                    // d['name'] = "F" + (index + 1);
+                    d['title'] = stat.title;
                     data.push(d);
                 });
 
