@@ -1,17 +1,18 @@
 import datetime
+import logging
 import time
 import uuid
 
 from tornado.escape import json_decode, json_encode
 import tornado.web
 import sqlalchemy
-from sqlalchemy.orm import joinedload
+from sqlalchemy.dialects.postgresql import array
+from sqlalchemy.orm import aliased, joinedload
+from sqlalchemy.sql.expression import literal
 
 import crud
 import handlers
 import model
-import logging
-
 from utils import reorder, ToSon, truthy, updater
 
 
@@ -82,6 +83,11 @@ class QuestionNodeHandler(
 
     def query(self):
         '''Get list.'''
+        level = self.get_argument('level', '')
+        if level != '':
+            self.query_by_level(level)
+            return
+
         hierarchy_id = self.get_argument('hierarchyId', '')
         parent_id = self.get_argument('parentId', '')
         root = self.get_argument('root', None)
@@ -126,6 +132,85 @@ class QuestionNodeHandler(
 
             to_son = ToSon(include=include)
             sons = to_son(query.all())
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(sons))
+        self.finish()
+
+    def query_by_level(self, level):
+        level = int(level)
+        hierarchy_id = self.get_argument('hierarchyId', '')
+        term = self.get_argument('term', '')
+
+        if hierarchy_id == '':
+            raise handlers.ModelError("Hierarchy ID required")
+
+        with model.session_scope() as session:
+            # Use Postgres' WITH statement
+            # http://www.postgresql.org/docs/9.1/static/queries-with.html
+            # http://docs.sqlalchemy.org/en/rel_1_0/orm/query.html#sqlalchemy.orm.query.Query.cte
+            # http://stackoverflow.com/a/28084743/320036
+
+            # Start by selecting root nodes
+            QN1 = model.QuestionNode
+            start = (session.query(QN1,
+                                   literal(0).label('level'),
+                                   array([QN1.seq]).label('path'),
+                                   (QN1.seq + 1).concat('.').label('pathstr'))
+                .filter(QN1.parent_id == None,
+                        QN1.survey_id == self.survey_id,
+                        QN1.hierarchy_id == hierarchy_id)
+                .cte(name='root', recursive=True))
+
+            # Now iterate down the tree to the desired level
+            QN2 = aliased(model.QuestionNode, name='qnode2')
+            recurse = (session.query(QN2,
+                                     (start.c.level + 1).label('level'),
+                                     start.c.path.concat(QN2.seq).label('path'),
+                                     start.c.pathstr.concat(QN2.seq + 1)
+                                        .concat('.').label('pathstr'))
+                .filter(QN2.parent_id == start.c.id,
+                        QN2.survey_id == start.c.survey_id,
+                        QN2.hierarchy_id == start.c.hierarchy_id,
+                        start.c.level <= level))
+
+            # Combine iterated result with root
+            cte = start.union_all(recurse)
+
+            # Discard all but the lowest level
+            query = (session.query(cte.c.id, cte.c.pathstr)
+                .filter(cte.c.level == level)
+                .order_by(cte.c.path)
+                .subquery())
+
+            # Select again to get the actual qnodes
+            query = (session.query(model.QuestionNode, query.c.pathstr)
+                .filter(model.QuestionNode.survey_id == self.survey_id)
+                .join(query,
+                      model.QuestionNode.id == query.c.id)
+            )
+
+            if term != '':
+                query = query.filter(
+                    model.QuestionNode.title.ilike('%{}%'.format(term)))
+
+            query = self.paginate(query)
+
+            include = [
+                # Fields to match from any visited object
+                r'/id$',
+                r'/title$',
+                r'/n_measures$'
+            ]
+            if truthy(self.get_argument('desc', False)):
+                include += [r'/description$']
+
+            to_son = ToSon(include=include)
+            sons = []
+            for qnode, path in query.all():
+                son = to_son(qnode)
+                son['path'] = path
+                sons.append(son)
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
