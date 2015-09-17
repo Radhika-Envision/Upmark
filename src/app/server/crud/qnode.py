@@ -141,6 +141,7 @@ class QuestionNodeHandler(
         level = int(level)
         hierarchy_id = self.get_argument('hierarchyId', '')
         term = self.get_argument('term', '')
+        parent_not = self.get_argument('parent__not', '')
 
         if hierarchy_id == '':
             raise handlers.ModelError("Hierarchy ID required")
@@ -187,8 +188,10 @@ class QuestionNodeHandler(
             query = (session.query(model.QuestionNode, query.c.pathstr)
                 .filter(model.QuestionNode.survey_id == self.survey_id)
                 .join(query,
-                      model.QuestionNode.id == query.c.id)
-            )
+                      model.QuestionNode.id == query.c.id))
+
+            if parent_not != '':
+                query = query.filter(model.QuestionNode.parent_id != parent_not)
 
             if term != '':
                 query = query.filter(

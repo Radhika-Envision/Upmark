@@ -30,6 +30,7 @@
       <tr ng-repeat="qnode in qnodes"
             ng-click="select(qnode)">
         <td class="truncate">
+            {{qnode.path}}
             {{qnode.title}}
             <span class="text-muted" ng-if="qnode.description">
                 - {{qnode.description}}</span>

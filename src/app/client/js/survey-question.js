@@ -1246,6 +1246,8 @@ angular.module('wsaa.surveyQuestions', [
     };
 
     $scope.search = {
+        level: $scope.structure.qnodes.length - 1,
+        parent__not: $scope.parent ? $scope.parent.id : '',
         term: "",
         surveyId: $scope.survey.id,
         hierarchyId: $scope.structure.hierarchy.id,
