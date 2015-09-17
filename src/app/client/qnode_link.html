@@ -20,7 +20,8 @@
         Select a category below to make it a child of
         <em>{{parent.title || structure.hierarchy.title}}</em>. It will then
         cease to be a child of its current parent.
-        Only {{structure.hstack[structure.hstack.length - 1].title}} are shown.
+        Only {{structure.hstack[structure.hstack.length - 1].title}} are shown,
+        and only if they aren't already children of this category.
     </p>
 
     <search-box model="search" result="qnodes"></search-box>

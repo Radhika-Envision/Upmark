@@ -92,6 +92,7 @@ class QuestionNodeHandler(
         parent_id = self.get_argument('parentId', '')
         root = self.get_argument('root', None)
         term = self.get_argument('term', '')
+        parent_not = self.get_argument('parent__not', '')
 
         if root is not None and parent_id != '':
             raise handlers.ModelError(
@@ -113,6 +114,8 @@ class QuestionNodeHandler(
             if term is not None:
                 query = query.filter(
                     model.QuestionNode.title.ilike('%{}%'.format(term)))
+            if parent_not != '':
+                query = query.filter(model.QuestionNode.parent_id != parent_not)
 
             query = query.order_by(model.QuestionNode.seq)
 
@@ -141,7 +144,7 @@ class QuestionNodeHandler(
         level = int(level)
         hierarchy_id = self.get_argument('hierarchyId', '')
         term = self.get_argument('term', '')
-        parent_not = self.get_argument('parent__not', '')
+        parent_not = self.get_argument('parent__not', None)
 
         if hierarchy_id == '':
             raise handlers.ModelError("Hierarchy ID required")
@@ -190,7 +193,9 @@ class QuestionNodeHandler(
                 .join(query,
                       model.QuestionNode.id == query.c.id))
 
-            if parent_not != '':
+            if parent_not == '':
+                query = query.filter(model.QuestionNode.parent_id != None)
+            elif parent_not is not None:
                 query = query.filter(model.QuestionNode.parent_id != parent_not)
 
             if term != '':
