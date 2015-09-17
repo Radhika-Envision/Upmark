@@ -417,27 +417,38 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/statistics/:assessment', {
+            .when('/statistics', {
                 templateUrl : 'statistics.html',
                 controller : 'StatisticsCtrl',
                 resolve: {routeData: chain({
-                    assessment: ['Assessment', '$route',
+                    assessment1: ['Assessment', '$route',
                             function(Assessment, $route) {
-                        if (!$route.current.params.assessment)
+                        if (!$route.current.params.assessment1_id)
                             return null;
                         return Assessment.get({
-                            id: $route.current.params.assessment
+                            id: $route.current.params.assessment1_id
                         }).$promise;
                     }],
-                    survey: ['assessment', function(assessment) {
+                    assessment2: ['Assessment', '$route',
+                            function(Assessment, $route) {
+                        if (!$route.current.params.assessment2_id)
+                            return null;
+                        return Assessment.get({
+                            id: $route.current.params.assessment2_id
+                        }).$promise;
+                    }],
+                    survey: ['assessment1', 'assessment2', function(assessment1, assessment2) {
+                        var assessment = assessment1 || assessment1;
                         return assessment.survey;
                     }],
-                    qnodes: ['QuestionNode', 'assessment', 'survey',
-                            function(QuestionNode, assessment, survey) {
-                        return QuestionNode.query({
-                            hierarchyId: assessment.hierarchy.id,
-                            surveyId: survey.id,
-                            root: ''
+                    qnode: ['QuestionNode', '$route', 'assessment1', 'assessment2',
+                            function(QuestionNode, $route, assessment1, assessment2) {
+                        if (!$route.current.params.qnode_id)
+                            return null;
+                        var assessment = assessment1 || assessment1;
+                        return QuestionNode.get({
+                            id: $route.current.params.qnode_id,
+                            surveyId: assessment.survey.id
                         }).$promise;
                     }]
                 })}

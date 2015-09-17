@@ -984,10 +984,10 @@ angular.module('wsaa.surveyQuestions', [
 .controller('StatisticsCtrl', [
         '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'format', 'Structure',
-        'layout', 'Arrays', 'ResponseNode', 'Statistics', 'Assessment',
+        'layout', 'Arrays', 'ResponseNode', 'Statistics', 'Assessment', '$timeout',
         function($scope, QuestionNode, routeData, Editor, authz,
                  $location, Notifications, current, format, Structure,
-                 layout, Arrays, ResponseNode, Statistics, Assessment) {
+                 layout, Arrays, ResponseNode, Statistics, Assessment, $timeout) {
 
     var boxQuartiles = function(d) {
         var quartiles = [];
@@ -1046,15 +1046,21 @@ angular.module('wsaa.surveyQuestions', [
         function box(g) {
             g.each(function(d, i) {
                 var g = d3.select(this),
-                    n = d.length,
-                    min = d.data[0].min,
-                    max = d.data[0].max;
+                    n = d.length;
+                var min = Infinity;
+                angular.forEach(d.data, function(item) {
+                    min = Math.min(min, item.min);
+                });
+                var max = -Infinity;
+                angular.forEach(d.data, function(item) {
+                    max = Math.max(max, item.max);
+                });
 
                 // Compute quartiles. Must return exactly 3 elements.
                 var quartileData = d.quartiles = quartiles(d);
 
                 // Compute whiskers. Must return exactly 2 elements, or null.
-                var whiskerData = [min, max];
+                var whiskerData = [d.survey_min, d.survey_max];
 
                 // Compute outliers. If no whiskers are specified, all data are "outliers".
                 // We compute the outliers as indices, so that we can join across transitions!
@@ -1079,35 +1085,20 @@ angular.module('wsaa.surveyQuestions', [
                 // elements also fade in and out.
 
                 // Update center line: the vertical line spanning the whiskers.
-                var lineWidth = d.data.length == 1 ? width : width / 2;
+                var lineWidth = !d.compareMode ? width : width / 2;
+                var centerData = [];
+                angular.forEach(d.data, function(item) {
+                    centerData.push([item.min, item.max]);
+                });
                 var center = g.selectAll("line.center")
-                    .data([whiskerData]);
+                    .data(centerData);
 
                 center.enter().insert("line", "rect")
                     .attr("class", "center")
                     .attr("x1", width / 2)
-                    .attr("y1", function(d) { return x0(d[0]); })
+                    .attr("y1", function(item) { return x1(item[0]); })
                     .attr("x2", width / 2)
-                    .attr("y2", function(d) { return x0(d[1]); })
-                    .style("opacity", 1e-6)
-                .transition()
-                    .duration(duration)
-                    .style("opacity", 1)
-                    .attr("y1", function(d) { return x1(d[0]); })
-                    .attr("y2", function(d) { return x1(d[1]); });
-
-                center.transition()
-                    .duration(duration)
-                    .style("opacity", 1)
-                    .attr("y1", function(d) { return x1(d[0]); })
-                    .attr("y2", function(d) { return x1(d[1]); });
-
-                center.exit().transition()
-                    .duration(duration)
-                    .style("opacity", 1e-6)
-                    .attr("y1", function(d) { return x1(d[0]); })
-                    .attr("y2", function(d) { return x1(d[1]); })
-                    .remove();
+                    .attr("y2", function(item) { return x1(item[1]); });
 
                 // Update innerquartile box.
                 var box = g.selectAll("rect.box")
@@ -1116,41 +1107,9 @@ angular.module('wsaa.surveyQuestions', [
                 box.enter().append("rect")
                     .attr("class", "box")
                     .attr("x", 0)
-                    .attr("y", function(d) { return x0(d[2]); })
+                    .attr("y", function(item) { return x1(item[2]); })
                     .attr("width", lineWidth)
-                    .attr("height", function(d) { return x0(d[0]) - x0(d[2]); })
-                    .transition()
-                        .duration(duration)
-                        .attr("y", function(d) { return x1(d[2]); })
-                        .attr("height", function(d) { return x1(d[0]) - x1(d[2]); });
-
-                box.transition()
-                    .duration(duration)
-                    .attr("y", function(d) { return x1(d[2]); })
-                    .attr("height", function(d) { return x1(d[0]) - x1(d[2]); });
-
-                if(d.compareMode) {
-                    // Update innerquartile box.
-                    var box2 = g.selectAll("rect.box2")
-                        .data([quartileData[1]]);
-
-                    box2.enter().append("rect")
-                        .attr("class", "box")
-                        .attr("x", width / 2)
-                        .attr("y", function(d) { return x0(d[2]); })
-                        .attr("width", lineWidth)
-                        .attr("height", function(d) { return x0(d[0]) - x0(d[2]); })
-                        .transition()
-                            .duration(duration)
-                            .attr("y", function(d) { return x1(d[2]); })
-                            .attr("height", function(d) { return x1(d[0]) - x1(d[2]); });
-
-                    box2.transition()
-                        .duration(duration)
-                        .attr("y", function(d) { return x1(d[2]); })
-                        .attr("height", function(d) { return x1(d[0]) - x1(d[2]); });
-                }
-
+                    .attr("height", function(item) { return x1(item[0]) - x1(item[2]); });
 
                 // Update median line.
                 var medianData = [];
@@ -1162,22 +1121,13 @@ angular.module('wsaa.surveyQuestions', [
 
                 medianLine.enter().append("line")
                     .attr("class", "median")
-                    .attr("x1", function(d, i) { if (medianData.length == 1)
+                    .attr("x1", function(item, i) { if (!d.compareMode)
                                                     return 0;
                                                  return i == 0 ? 0:width/2; })
-                    .attr("y1", x0)
-                    .attr("x2", function(d, i) { if (medianData.length == 1)
+                    .attr("y1", x1)
+                    .attr("x2", function(item, i) { if (!d.compareMode)
                                                     return width;
                                                  return i == 0 ? width/2:width; })
-                    .attr("y2", x0)
-                    .transition()
-                        .duration(duration)
-                        .attr("y1", x1)
-                        .attr("y2", x1);
-
-                medianLine.transition()
-                    .duration(duration)
-                    .attr("y1", x1)
                     .attr("y2", x1);
 
                 // Update current line.
@@ -1190,11 +1140,11 @@ angular.module('wsaa.surveyQuestions', [
 
                 currentLine.enter().append("line")
                     .attr("class", "current")
-                    .attr("x1", function(d, i) { if (currentData.length == 1)
+                    .attr("x1", function(item, i) { if (!d.compareMode)
                                                     return 0;
                                                  return i == 0 ? 0:width/2; })
                     .attr("y1", x0)
-                    .attr("x2", function(d, i) { if (currentData.length == 1)
+                    .attr("x2", function(item, i) { if (!d.compareMode)
                                                     return width;
                                                  return i == 0 ? width/2:width; })
                     .attr("y2", x0)
@@ -1216,126 +1166,91 @@ angular.module('wsaa.surveyQuestions', [
                     .attr("class", "current_text")
                     .attr("dy", ".3em")
                     .attr("dx", 5)
-                    .attr("x", width)
-                    .attr("y", x0)
-                    .attr("text-anchor", "start")
-                    .text(x1.tickFormat(8))
-                    .style("opacity", 1e-6)
-                    .transition()
-                        .duration(duration)
-                        .attr("y", x1)
-                        .style("opacity", 1);
-
-                currentTick.transition()
-                    .duration(duration)
-                    .text(x1.tickFormat(8))
+                    .attr("x", function(item, i) { if (!d.compareMode) 
+                                                    return width; 
+                                                   return i == 0 ? width-30:width; })
                     .attr("y", x1)
-                    .style("opacity", 1);
-
-                currentTick.exit().transition()
-                    .duration(duration)
-                    .attr("y", x1)
-                    .style("opacity", 1e-6)
-                    .remove();
-
-
-
+                    .attr("text-anchor", function(item, i) { if (!d.compareMode) 
+                                                    return "start"; 
+                                                   return i == 0 ? "end":"start"; })
+                    .text(x1.tickFormat(8));
 
                 // Update whiskers.
+                var wisker_data = [d.data[0].min, d.data[0].max];
                 var whisker = g.selectAll("line.whisker")
-                    .data(whiskerData || []);
+                    .data(wisker_data);
 
-                whisker.enter().insert("line", "circle, text")
+                whisker.enter().insert("line", "text")
                     .attr("class", "whisker")
                     .attr("x1", 0)
-                    .attr("y1", x0)
-                    .attr("x2", width)
-                    .attr("y2", x0)
-                    .style("opacity", 1e-6)
-                    .transition()
-                    .duration(duration)
                     .attr("y1", x1)
-                    .attr("y2", x1)
-                    .style("opacity", 1);
-
-                whisker.transition()
-                    .duration(duration)
-                    .attr("y1", x1)
-                    .attr("y2", x1)
-                    .style("opacity", 1);
-
-                whisker.exit().transition()
-                    .duration(duration)
-                    .attr("y1", x1)
-                    .attr("y2", x1)
-                    .style("opacity", 1e-6)
-                    .remove();
+                    .attr("x2", lineWidth)
+                    .attr("y2", x1);
 
                 // Compute the tick format.
                 var format = tickFormat || x1.tickFormat(8);
-
-                // Update box ticks.
-                // var boxTick = g.selectAll("text.box")
-                //     .data(quartileData);
-
-                // boxTick.enter().append("text")
-                //     .attr("class", "box")
-                //     .attr("dy", ".3em")
-                //     .attr("dx", function(d, i) { return i & 1 ? 6 : -6 })
-                //     .attr("x", function(d, i) { return i & 1 ? width : 0 })
-                //     .attr("y", x0)
-                //     .attr("text-anchor", function(d, i) { return i & 1 ? "start" : "end"; })
-                //     // .text(format)
-                //   .transition()
-                //     .duration(duration)
-                //     .attr("y", x1);
-
-                // boxTick.transition()
-                //     .duration(duration)
-                //     // .text(format)
-                //     .attr("y", x1);
 
                 // Update whisker ticks. These are handled separately from the box
                 // ticks because they may or may not exist, and we want don't want
                 // to join box ticks pre-transition with whisker ticks post-.
                 var whiskerTick = g.selectAll("text.whisker")
-                    .data(whiskerData || []);
+                    .data(wisker_data);
 
                 whiskerTick.enter().append("text")
                     .attr("class", "whisker")
                     .attr("dy", ".3em")
                     .attr("dx", -25)
                     .attr("x", width)
-                    .attr("y", x0)
+                    .attr("y", x1)
                     .attr("text-anchor", "end")
-                    .text(format)
-                    .style("opacity", 1e-6)
-                    .transition()
-                        .duration(duration)
+                    .text(format);
+
+
+                if (d.compareMode) {
+                    var box2 = g.selectAll("rect.box2")
+                        .data([quartileData[1]]);
+
+                    box2.enter().append("rect")
+                        .attr("class", "box")
+                        .attr("x", width / 2)
+                        .attr("y", function(item) { return x1(item[2]); })
+                        .attr("width", lineWidth)
+                        .attr("height", function(item) { return x1(item[0]) - x1(item[2]); });
+
+                    var wisker_data2 = [d.data[1].min, d.data[1].max];
+                    var whisker2 = g.selectAll("line.whisker2")
+                        .data(wisker_data2);
+
+                    whisker2.enter().insert("line", "text")
+                        .attr("class", "whisker")
+                        .attr("x1", lineWidth)
+                        .attr("y1", x1)
+                        .attr("x2", width)
+                        .attr("y2", x1);
+
+                    var whiskerTick2 = g.selectAll("text.whisker")
+                        .data(wisker_data2);
+
+                    whiskerTick.enter().append("text")
+                        .attr("class", "whisker")
+                        .attr("dy", ".3em")
+                        .attr("dx", 5)
+                        .attr("x", width)
                         .attr("y", x1)
-                        .style("opacity", 1);
+                        .attr("text-anchor", "start")
+                        .text(format);
 
-                whiskerTick.transition()
-                    .duration(duration)
-                    .text(format)
-                    .attr("y", x1)
-                    .style("opacity", 1);
-
-                whiskerTick.exit().transition()
-                    .duration(duration)
-                    .attr("y", x1)
-                    .style("opacity", 1e-6)
-                    .remove();
+                }
 
                 var title = g.selectAll("title.textbox")
-                    .data([d]);
+                    .data([d.title]);
 
                 title.enter().append("text")
                     .attr("x", 0)
                     .attr("y", x0(0) - 30)
                     .attr("dy", 5)
                     .attr("text-anchor", "middle")
-                    .text(function(d) { return d.title; })
+                    .text(function(item) { return item; })
                     .call(wrap, 100)
             });
             d3.timer.flush();
@@ -1396,62 +1311,38 @@ angular.module('wsaa.surveyQuestions', [
         return box;
     };
 
-
     // Start ucustom logic here
-    $scope.assessment = routeData.assessment;
-    $scope.qnode = routeData.qnode;
+    $scope.assessment1 = routeData.assessment1;
+    $scope.assessment2 = routeData.assessment2;
     $scope.compareMode = false;
+    $scope.qnode = routeData.qnode;
+    $scope.assessment = $scope.assessment1 || $scope.assessment2;
+    
     $scope.compare = function(assessment) {
-        $scope.compareMode = true; 
-        ResponseNode.query({
-            assessmentId: assessment.id,
-            parentId: null,
-            hierarchyId: null,
-            root: ''
-        }).$promise.then(function(rnodes){
-            var svg_current = d3.select("#chart").selectAll("svg");
-            var data = [];
-            angular.forEach(svg_current[0], function(svg_node, index) {
-                var existing_data = svg_node.__data__;
-                var nodes = rnodes.filter(function(n) {
-                    if(n.qnode.id == existing_data.id) {
-                        return n;
-                    }
-                });
-                var node = nodes[0];
-                var d = existing_data;
-                if (node) {
-                    d['compareMode'] = true;
-                    d['data'].push({
-                                    'current': node.score,
-                                    'max': existing_data.data[0].max,
-                                    'min': existing_data.data[0].min,
-                                    'quartile': existing_data.data[0].quartile});
-                }
-                data.push(d);                    
-            });
-            d3.select("#chart").selectAll("svg").remove();
-            svg.data(data)
-                        .enter().append("svg")
-                            .attr("class", "box")
-                            .attr("width", width + margin.left + margin.right)
-                            .attr("height", height + margin.bottom + margin.top)
-                            .on("click", function(d) {
-                                detailChart(d.id);
-                            })
-                        .append("g")
-                            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-                            .call(chart.duration(1000));
-
-        });
+        $scope.assessment2 = assessment;
+        $scope.compareMode = true;
+        reloadChart();
     }
 
-    if ($scope.assessment) {
-        $scope.rnode = ResponseNode.query({
-            assessmentId: $scope.assessment.id,
+    if ($scope.assessment1) {
+        ResponseNode.query({
+            assessmentId: $scope.assessment1.id,
             parentId: $scope.qnode ? $scope.qnode.id : null,
             hierarchyId: $scope.hierarchy ? $scope.hierarchy.id : null,
             root: $scope.qnode ? null : ''
+        }).$promise.then(function success(rnodes) {
+            fillData($scope.assessment1.id, rnodes);
+        });
+    }
+
+    if ($scope.assessment2) {
+        ResponseNode.query({
+            assessmentId: $scope.assessment2.id,
+            parentId: $scope.qnode ? $scope.qnode.id : null,
+            hierarchyId: $scope.hierarchy ? $scope.hierarchy.id : null,
+            root: $scope.qnode ? null : ''
+        }).$promise.then(function success(rnodes) {
+            fillData($scope.assessment2.id, rnodes);
         });
     }
 
@@ -1459,14 +1350,22 @@ angular.module('wsaa.surveyQuestions', [
         width = 120 - margin.left - margin.right,
         height = 600 - margin.top - margin.bottom;
 
-    var detailChart = function(qnode) {
-        $scope.qnode = {'id': qnode};
-        $scope.rnode = ResponseNode.query({
-            assessmentId: $scope.assessment.id,
-            parentId: $scope.qnode ? $scope.qnode.id : null,
-            hierarchyId: $scope.hierarchy ? $scope.hierarchy.id : null,
-            root: $scope.qnode ? null : ''
-        });
+    var reloadChart = function() {
+        if ($scope.assessment1) {
+            $location.search('assessment1_id', null);
+            $location.search('assessment1_id', $scope.assessment1.id);
+        }
+        if ($scope.assessment2) {
+            $location.search('assessment2_id', null);
+            $location.search('assessment2_id', $scope.assessment2.id);
+        }
+        if ($scope.qnode) {
+            $location.search('qnode_id', null);
+            $location.search('qnode_id', $scope.qnode.id);
+        }
+        $timeout(function(){ 
+            $location.url('/statistics?' + $.param($location.search()));
+        },1);
     };
 
     var chart = d3.box()
@@ -1476,54 +1375,83 @@ angular.module('wsaa.surveyQuestions', [
 
     var svg = d3.select("#chart").selectAll("svg");
 
+    var data = [];
 
-    $scope.$watch('rnode', function(rnode) {
-        rnode.$promise.then(function success(rnodes) {
-            Statistics.get({id: $scope.assessment.survey.id, parent_id: $scope.qnode ? $scope.qnode.id:null}).$promise.then(function(stats) {
-                var data = [];
-                angular.forEach(rnodes, function(node, index) {
-                    var stat = stats.filter(function(s) {
-                        if(s.qid == node.qnode.id) {
-                            return s;
-                        }
-                    });
-                    stat = stat[0];
-                    var d = {};
-                    d['id'] = node.qnode.id;
-                    d['compareMode'] = false;
-                    d['title'] = stat.title;
-                    d['data'] = [];
-                    d['data'].push({
-                                    'current': node.score,
-                                    'max': stat.max,
-                                    'min': stat.min,
-                                    'quartile': stat.quartile});
-                    data.push(d);
-                });
-    
-                if (data.length > 0) {
-                    d3.select("#chart").selectAll("svg").remove();
+    var drawChart = function(assessment_id) {
+        if ($scope.assessment2 && assessment_id != $scope.assessment2.id)
+            return;
+        console.log(data);
 
-                    svg.data(data)
-                        .enter().append("svg")
-                            .attr("class", "box")
-                            .attr("width", width + margin.left + margin.right)
-                            .attr("height", height + margin.bottom + margin.top)
-                            .on("click", function(d) {
-                                detailChart(d.id);
-                            })
-                        .append("g")
-                            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-                            .call(chart.duration(1000));
-                }
-            });
-            Assessment.query({'trackingId':$scope.assessment.survey.trackingId}).$promise.then(function(oldAssessments) {
-                $scope.oldAssessments = oldAssessments.filter(function(assessment) {
-                    return $scope.assessment.id != assessment.id;
-                });
-            });
+        if (data.length > 0) {
+            svg.data(data)
+                .enter().append("svg")
+                    .attr("class", "box")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.bottom + margin.top)
+                    .on("click", function(d) {
+                        $scope.qnode = d;
+                        reloadChart();
+                    })
+                .append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+                    .call(chart);
+        }
+    };
+    Assessment.query({'trackingId':$scope.assessment.survey.trackingId}).$promise.then(function(oldAssessments) {
+        $scope.oldAssessments = oldAssessments.filter(function(assessment) {
+            return $scope.assessment.id != assessment.id;
         });
     });
+
+    var fillData = function(assessment_id, rnodes) {
+        if (rnodes.length == 0)
+            return;
+        Statistics.get({id: $scope.assessment.survey.id, 
+                        parent_id: $scope.qnode ? $scope.qnode.id:null})
+                  .$promise.then(function(stats) {
+
+            angular.forEach(rnodes, function(node, index) {
+                var stat = stats.filter(function(s) {
+                    if(s.qid == node.qnode.id) {
+                        return s;
+                    }
+                });
+                if (stat.length) {
+                    stat = stat[0];
+                    var d = data.filter(function(item) {
+                        if (item.id == node.qnode.id) {
+                            return item;
+                        }
+                    });
+                    var item = null;
+                    if (d.length) {
+                        item = d[0];
+                        item['compareMode'] = true;
+                        console.log(node.score)
+                        item['data'].push({
+                                        'current': node.score,
+                                        'max': 20000,
+                                        'min': 0,
+                                        'survey_max': stat.max,
+                                        'survey_min': stat.min,
+                                        'quartile': stat.quartile});
+                    } else {
+                        item = {'id': node.qnode.id, 'compareMode': false, 
+                             'data': [], 'title' : stat.title };
+                        item['data'].push({
+                                        'current': node.score,
+                                        'max': 20000,
+                                        'min': 0,
+                                        'survey_max': stat.max,
+                                        'survey_min': stat.min,
+                                        'quartile': stat.quartile});
+                        data.push(item);
+                    }
+                }
+            });
+            drawChart(assessment_id);
+        });
+    };
 }])
 
 
