@@ -1,9 +1,24 @@
-from contextlib import contextmanager
+"""Added qnode.total_weight
+
+Revision ID: 1dbcbe2a1a6
+Revises: 16ecb4a1694
+Create Date: 2015-09-17 05:59:05.234864
+
+"""
+
+# revision identifiers, used by Alembic.
+revision = '1dbcbe2a1a6'
+down_revision = '16ecb4a1694'
+branch_labels = None
+depends_on = None
+
 from datetime import datetime
 import os
 import sys
 import uuid
 
+from alembic import op
+import sqlalchemy as sa
 from sqlalchemy import Boolean, create_engine, Column, DateTime, Enum, Float, \
     ForeignKey, Index, Integer, String, Text, Table, LargeBinary
 from sqlalchemy.dialects.postgresql import JSON
@@ -25,9 +40,32 @@ from guid import GUID
 from history_meta import Versioned, versioned_session
 from response_type import ResponseTypeCache
 
-
 metadata = MetaData()
 Base = declarative_base(metadata=metadata)
+Session = sessionmaker()
+
+
+def upgrade():
+    op.add_column('qnode', sa.Column('total_weight', sa.Float))
+
+    op.execute(QuestionNode.__table__.update().values(total_weight=0))
+
+    session = Session(bind=op.get_bind())
+    query = (session.query(QuestionNode)
+            .filter(QuestionNode.parent_id == None))
+    for root in query.all():
+        root.update_stats_descendants()
+    session.flush()
+
+    op.alter_column('qnode', 'total_weight', nullable=False)
+
+
+def downgrade():
+    op.drop_column('qnode', 'total_weight')
+
+
+# What follows is a frozen copy of the model module. This is duplicated here so
+# that this script can run even if the model changes in a future commit.
 
 
 class ModelError(Exception):
@@ -862,42 +900,3 @@ Response.measure = relationship(
     Measure,
     primaryjoin=and_(foreign(Response.measure_id) == Measure.id,
                      Response.survey_id == Measure.survey_id))
-
-
-Session = None
-VersionedSession = None
-
-
-@contextmanager
-def session_scope(version=False):
-    # http://docs.sqlalchemy.org/en/latest/orm/session_basics.html#when-do-i-construct-a-session-when-do-i-commit-it-and-when-do-i-close-it
-    """Provide a transactional scope around a series of operations."""
-    if version:
-        session = VersionedSession()
-    else:
-        session = Session()
-    try:
-        yield session
-        session.commit()
-    except:
-        session.rollback()
-        raise
-    finally:
-        session.close()
-
-
-def connect_db(url):
-    global Session, VersionedSession
-    engine = create_engine(url)
-    conn = engine.connect()
-    # Never drop the schema here.
-    # - For short-term testing, use psql.
-    # - For breaking changes, add migration code to the alembic scripts.
-    Session = sessionmaker(bind=engine)
-    VersionedSession = sessionmaker(bind=engine)
-    versioned_session(VersionedSession)
-    return engine
-
-
-def initialise_schema(engine):
-    Base.metadata.create_all(engine)
