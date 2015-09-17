@@ -265,10 +265,14 @@ class AqHttpTestBase(AqModelTestBase, AsyncHTTPTestCase):
 
     def fetch(self, path, expected=None, decode=False, **kwargs):
         response = super().fetch(path, **kwargs)
+        if response.code == 599:
+            response.rethrow()
         if expected is not None:
+            body = response.body and response.body.decode('utf8') or ''
             self.assertEqual(
                 expected, response.code,
-                msg="{}\n\n{}".format(response.reason, response.body.decode('utf8')))
+                msg="{} failed: {}\n\n{}".format(
+                    path, response.reason, body))
         if decode:
             return denormalise(json_decode(response.body))
         else:

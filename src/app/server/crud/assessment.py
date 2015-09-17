@@ -140,15 +140,15 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
 
         survey_id = self.get_argument('surveyId', '')
         if survey_id == '':
-            raise handlers.MethodError("Survey ID is required")
+            raise handlers.ModelError("Survey ID is required")
 
         hierarchy_id = self.get_argument('hierarchyId', '')
         if hierarchy_id == '':
-            raise handlers.MethodError("Hierarchy ID is required")
+            raise handlers.ModelError("Hierarchy ID is required")
 
         org_id = self.get_argument('orgId', '')
         if org_id == '':
-            raise handlers.MethodError("Organisation ID is required")
+            raise handlers.ModelError("Organisation ID is required")
 
         duplicate_id = self.get_argument('duplicateId', '')
 
@@ -157,6 +157,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
 
         try:
             with model.session_scope() as session:
+                self._check_open(survey_id, hierarchy_id, org_id, session)
+
                 assessment = model.Assessment(
                     survey_id=survey_id, hierarchy_id=hierarchy_id,
                     organisation_id=org_id, approval='draft')
@@ -171,6 +173,16 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(assessment_id)
+
+    def _check_open(self, survey_id, hierarchy_id, org_id, session):
+        purchased_survey = (session.query(model.PurchasedSurvey)
+            .filter_by(survey_id=survey_id,
+                       hierarchy_id=hierarchy_id,
+                       organisation_id=org_id)
+            .first())
+        if not purchased_survey:
+            raise handlers.ModelError(
+                "Survey is not open: it needs to be purchased")
 
     def duplicate(self, assessment, duplicate_id, session):
         s_assessment = (session.query(model.Assessment)

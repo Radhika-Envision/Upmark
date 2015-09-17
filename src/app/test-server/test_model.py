@@ -203,11 +203,6 @@ class SurveyTest(base.AqHttpTestBase):
             self.assertEqual(len(survey_sons), 1)
 
             survey_sons = self.fetch(
-                "/survey.json?open=true", method='GET',
-                expected=200, decode=True)
-            self.assertEqual(len(survey_sons), 0)
-
-            survey_sons = self.fetch(
                 "/survey.json?editable=true", method='GET',
                 expected=200, decode=True)
             self.assertEqual(len(survey_sons), 1)

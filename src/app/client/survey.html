@@ -89,22 +89,12 @@
 
 <div class="container" ng-if="checkRole('survey_edit')">
     <p>
-        <span ng-if="survey.isOpen && survey.isEditable">
-            This program is open for submissions and is editable.
+        <span ng-if="survey.isEditable">
+            This program is editable.
         </span>
-        <span ng-if="!survey.isOpen && survey.isEditable">
-            This program is not open for submissions but is editable.
+        <span ng-if="!survey.isEditable">
+            This program is not editable.
         </span>
-        <span ng-if="survey.isOpen && !survey.isEditable">
-            This program is open for submissions but is not editable.
-        </span>
-    </p>
-</div>
-
-<div class="container" ng-if="!checkRole('survey_edit') && !survey.isOpen">
-    <p>
-        This program is not open for submissions. You can preview the program
-        structure below.
     </p>
 </div>
 
@@ -112,14 +102,6 @@
 <div class="container" ng-if="checkRole('survey_state')">
     <p class="text-center">
         <!-- Admin buttons -->
-        <button class="btn btn-link" ng-click="toggleOpen()">
-            <span ng-if="survey.isOpen">
-                <i class="fa fa-ban"></i>
-                Un-open program</span>
-            <span ng-if="!survey.isOpen">
-                <i class="fa fa-circle-o"></i>
-                Open program</span>
-        </button>
         <button class="btn btn-link" ng-click="toggleEditable()">
             <i class="fa fa-pencil-square-o">
                 <i ng-if="survey.isEditable"

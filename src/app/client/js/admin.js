@@ -90,6 +90,21 @@ angular.module('wsaa.admin', [
 }])
 
 
+.factory('PurchasedSurvey', ['$resource', 'paged', function($resource, paged) {
+    return $resource('/organisation/:id/hierarchy/:hid.json', {
+        id: '@orgId',
+        hid: '@hierarchyId'
+    }, {
+        head: { method: 'HEAD', cache: false },
+        query: {
+            method: 'GET', isArray: true, cache: false,
+            interceptor: {response: paged}
+        },
+        save: { method: 'PUT', cache: false }
+    });
+}])
+
+
 .factory('SystemConfig', ['$resource', function($resource) {
     return $resource('/systemconfig.json', {}, {
         get: { method: 'GET', cache: false },
@@ -292,7 +307,10 @@ angular.module('wsaa.admin', [
         scope: {
             org: '='
         },
-        controller: 'UserListCtrl'
+        controller: 'UserListCtrl',
+        link: function(scope, elem, attrs) {
+            scope.hideOrg = attrs.hideOrg !== undefined;
+        }
     }
 }])
 
@@ -322,6 +340,9 @@ angular.module('wsaa.admin', [
                     if (current.user.organisation.id == org.id)
                         return true;
                     return Roles.hasPermission(current.user.role, 'consultant');
+                    break;
+                case 'survey_purchase':
+                    return Roles.hasPermission(current.user.role, 'admin');
                     break;
             }
             return false;
@@ -354,6 +375,75 @@ angular.module('wsaa.admin', [
     });
 
     $scope.checkRole = orgAuthz(Current, $scope.org);
+}])
+
+
+.controller('PurchasedSurveyAddCtrl', [
+        '$scope', 'Survey', 'PurchasedSurvey', 'org', 'survey', 'Notifications',
+        'Hierarchy', '$location',
+        function($scope, Survey, PurchasedSurvey, org, survey, Notifications,
+            Hierarchy, $location) {
+
+    $scope.org = org;
+    $scope.survey = survey;
+
+    if (!$scope.survey) {
+        $scope.search = {
+            term: "",
+            pageSize: 10
+        };
+
+        $scope.$watch('search', function(search) {
+            Survey.query(search).$promise.then(
+                function success(surveys) {
+                    $scope.surveys = surveys;
+                },
+                function failure(details) {
+                    Notifications.set('edit', 'error',
+                        "Could not get program list: " + details.statusText);
+                }
+            );
+        }, true);
+    } else {
+        Hierarchy.query({surveyId: $scope.survey.id}).$promise.then(
+            function success(hierarchies) {
+                $scope.hierarchies = hierarchies;
+            },
+            function failure(details) {
+                    Notifications.set('edit', 'error',
+                        "Could not get hierarchy list: " + details.statusText);
+            }
+        );
+    }
+
+    $scope.addHierarchy = function(hierarchy) {
+        PurchasedSurvey.save({
+            surveyId: $scope.survey.id
+        }, {
+            orgId: $scope.org.id,
+            hierarchyId: hierarchy.id
+        }).$promise.then(
+            function success() {
+                $location.url('/org/' + $scope.org.id);
+            },
+            function failure(details) {
+                Notifications.set('edit', 'error',
+                    "Failed to add survey: " + details.statusText);
+            }
+        );
+    };
+}])
+
+
+.controller('PurchasedSurveyCtrl', [
+        '$scope', 'PurchasedSurvey',
+        function($scope, PurchasedSurvey) {
+
+    $scope.$watch('org', function(org) {
+        $scope.hierarchies = PurchasedSurvey.query({
+            id: org.id
+        });
+    });
 }])
 
 

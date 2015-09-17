@@ -157,7 +157,35 @@ angular.module('wsaa.aquamark',
                 resolve: {
                     org: ['Organisation', '$route',
                             function(Organisation, $route) {
+                        return Organisation.get({
+                            id: $route.current.params.id
+                        }).$promise;
+                    }]
+                }
+            })
+            .when('/org/:id/survey/add', {
+                templateUrl : 'purchased_survey.html',
+                controller : 'PurchasedSurveyAddCtrl',
+                resolve: {
+                    org: ['Organisation', '$route',
+                            function(Organisation, $route) {
                         return Organisation.get($route.current.params).$promise;
+                    }],
+                    survey: ['Survey', '$route',
+                            function(Survey, $route) {
+                        if (!$route.current.params.survey)
+                            return null;
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    hierarchies: ['Hierarchy', '$route',
+                            function(Hierarchy, $route) {
+                        if (!$route.current.params.survey)
+                            return null;
+                        return Hierarchy.query({
+                            surveyId: $route.current.params.survey
+                        }).$promise;
                     }]
                 }
             })
@@ -225,6 +253,14 @@ angular.module('wsaa.aquamark',
                     }],
                     survey: ['hierarchy', function(hierarchy) {
                         return hierarchy.survey;
+                    }],
+                    org: ['Organisation', '$route',
+                            function(Organisation, $route) {
+                        if (!$route.current.params.organisation)
+                            return null;
+                        return Organisation.get({
+                            id: $route.current.params.organisation
+                        }).$promise;
                     }]
                 })}
             })
@@ -417,6 +453,53 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
+            .when('/qnode-link', {
+                templateUrl : 'qnode_link.html',
+                controller : 'QnodeLinkCtrl',
+                resolve: {routeData: chain({
+                    hierarchy: ['Hierarchy', '$route',
+                            function(Hierarchy, $route) {
+                        if (!$route.current.params.hierarchy)
+                            return null;
+                        return Hierarchy.get({
+                            id: $route.current.params.hierarchy,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    parent: ['QuestionNode', '$route',
+                            function(QuestionNode, $route) {
+                        if (!$route.current.params.parent)
+                            return null;
+                        return QuestionNode.get({
+                            id: $route.current.params.parent,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    survey: ['Survey', '$route', function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
+                    }],
+                })}
+            })
+            .when('/measure-link', {
+                templateUrl : 'measure_link.html',
+                controller : 'MeasureLinkCtrl',
+                resolve: {routeData: chain({
+                    parent: ['QuestionNode', '$route',
+                            function(QuestionNode, $route) {
+                        return QuestionNode.get({
+                            id: $route.current.params.parent,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    survey: ['Survey', '$route', function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
+                    }],
+                })}
+            })
             .when('/statistics', {
                 templateUrl : 'statistics.html',
                 controller : 'StatisticsCtrl',
@@ -451,24 +534,6 @@ angular.module('wsaa.aquamark',
                             surveyId: assessment.survey.id
                         }).$promise;
                     }]
-                })}
-            })
-            .when('/measure-link', {
-                templateUrl : 'measure_link.html',
-                controller : 'MeasureLinkCtrl',
-                resolve: {routeData: chain({
-                    parent: ['QuestionNode', '$route',
-                            function(QuestionNode, $route) {
-                        return QuestionNode.get({
-                            id: $route.current.params.parent,
-                            surveyId: $route.current.params.survey
-                        }).$promise;
-                    }],
-                    survey: ['Survey', '$route', function(Survey, $route) {
-                        return Survey.get({
-                            id: $route.current.params.survey
-                        }).$promise;
-                    }],
                 })}
             })
 

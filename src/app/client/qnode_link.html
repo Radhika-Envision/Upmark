@@ -1,0 +1,53 @@
+<div class="header">
+<div class="container">
+    <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Collapse"
+                ng-click="layout.expandHeader = !layout.expandHeader">
+            <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
+            <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
+        </button>
+        <button class="btn btn-default btn-round" title="Cancel"
+                ng-click="edit.cancel()">
+            <i class="fa fa-times"></i></button>
+    </div>
+    <question-header entity="qnode"></question-header>
+</div>
+</div>
+
+
+<div class="container">
+    <p>
+        Select a category below to make it a child of
+        <em>{{parent.title || structure.hierarchy.title}}</em>. It will then
+        cease to be a child of its current parent.
+        Only {{structure.hstack[structure.hstack.length - 1].title}} are shown,
+        and only if they aren't already children of this category.
+    </p>
+
+    <search-box model="search" result="qnodes"></search-box>
+
+  <table class="table table-hover">
+    <tbody>
+      <tr ng-repeat="qnode in qnodes"
+            ng-click="select(qnode)">
+        <td class="truncate">
+            {{qnode.path}}
+            {{qnode.title}}
+            <span class="text-muted" ng-if="qnode.description">
+                - {{qnode.description}}</span>
+        </td>
+      </tr>
+      <tr ng-if="!qnodes">
+        <td>
+            Loading...
+        </td>
+      </tr>
+      <tr ng-if="qnodes && !qnodes.length">
+        <td>
+            No results.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>

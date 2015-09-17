@@ -126,8 +126,6 @@ class Survey(Base):
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
     # Survey is not editable after being finalised.
     finalised_date = Column(DateTime)
-    # Survey is not open for responses until after the open_date.
-    open_date = Column(DateTime)
     title = Column(Text, nullable=False)
     description = Column(Text)
     _response_types = Column('response_types', JSON, nullable=False)
@@ -135,10 +133,6 @@ class Survey(Base):
     @property
     def is_editable(self):
         return self.finalised_date is None
-
-    @property
-    def is_open(self):
-        return self.open_date is not None
 
     _response_types_schema = Schema([
         {
@@ -191,6 +185,41 @@ class Survey(Base):
         return "Survey(title={})".format(self.title)
 
 
+class PurchasedSurvey(Base):
+    __tablename__ = 'purchased_survey'
+    survey_id = Column(GUID, nullable=False, primary_key=True)
+    hierarchy_id = Column(GUID, nullable=False, primary_key=True)
+    organisation_id = Column(GUID, nullable=False, primary_key=True)
+    open_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['hierarchy_id', 'survey_id'],
+            ['hierarchy.id', 'hierarchy.survey_id']
+        ),
+        ForeignKeyConstraint(
+            ['survey_id'],
+            ['survey.id']
+        ),
+        ForeignKeyConstraint(
+            ['organisation_id'],
+            ['organisation.id']
+        ),
+    )
+
+    organisation = relationship(Organisation, backref='purchased_surveys')
+    hierarchy = relationship(
+        'Hierarchy', backref=backref(
+            'purchased_surveys', passive_deletes=True, order_by=open_date.desc()))
+
+    # This constructor is used by association_proxy when adding items to the
+    # colleciton.
+    def __init__(self, hierarchy=None, organisation=None, **kwargs):
+        self.hierarchy = hierarchy
+        self.organisation = organisation
+        super().__init__(**kwargs)
+
+
 class Hierarchy(Base):
     __tablename__ = 'hierarchy'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
@@ -239,6 +268,10 @@ class Hierarchy(Base):
     def __repr__(self):
         return "Hierarchy(title={}, survey={})".format(
             self.title, getattr(self.survey, 'title', None))
+
+
+Hierarchy.organisations = association_proxy('purchased_surveys', 'organisation')
+Organisation.hierarchies = association_proxy('purchased_surveys', 'hierarchy')
 
 
 class QuestionNode(Base):

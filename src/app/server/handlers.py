@@ -631,7 +631,10 @@ class Paginate:
     '''
     MAX_PAGE_SIZE = 100
 
-    def paginate(self, query):
+    def paginate(self, query, optional=False):
+        if optional and self.get_argument("page", None) is None:
+            return query
+
         page_size = self.get_argument("pageSize", str(Paginate.MAX_PAGE_SIZE))
         try:
             page_size = int(page_size)
