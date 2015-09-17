@@ -337,15 +337,29 @@ class QuestionNodeHandler(
             self.ordering()
             return
 
+        parent_id = self.get_argument('parentId', '')
+
         try:
             with model.session_scope() as session:
                 qnode = session.query(model.QuestionNode)\
                     .get((qnode_id, self.survey_id))
                 if qnode is None:
                     raise ValueError("No such object")
-                log.debug("updating: %s", qnode)
-
                 self._update(session, qnode, self.request_son)
+
+                if parent_id != '' and str(qnode.parent_id) != parent_id:
+                    # Change parent
+                    old_parent = qnode.parent
+                    new_parent = session.query(model.QuestionNode)\
+                        .get((parent_id, self.survey_id))
+                    if new_parent is None:
+                        raise handlers.ModelError("No such question node")
+                    old_parent.children.remove(qnode)
+                    old_parent.children.reorder()
+                    new_parent.children.append(qnode)
+                    new_parent.children.reorder()
+                    old_parent.update_stats_ancestors()
+                    new_parent.update_stats_ancestors()
 
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such question node")
