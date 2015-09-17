@@ -32,12 +32,15 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
-.factory('QuestionNode', ['$resource', function($resource) {
+.factory('QuestionNode', ['$resource', 'paged', function($resource, paged) {
     return $resource('/qnode/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         create: { method: 'POST' },
         save: { method: 'PUT' },
-        query: { method: 'GET', isArray: true, cache: false },
+        query: {
+            method: 'GET', isArray: true, cache: false,
+            interceptor: {response: paged}
+        },
         reorder: { method: 'PUT', isArray: true },
         history: { method: 'GET', url: '/qnode/:id/survey.json',
             isArray: true, cache: false }
@@ -1199,6 +1202,67 @@ angular.module('wsaa.surveyQuestions', [
         else
             return dummyStats;
     };
+}])
+
+
+.controller('QnodeLinkCtrl', [
+        '$scope', 'QuestionNode', 'routeData', 'questionAuthz',
+        '$location', 'Notifications', 'Current', 'format',
+        'layout', 'Structure',
+        function($scope, QuestionNode, routeData, authz,
+                 $location, Notifications, current, format,
+                 layout, Structure) {
+
+    $scope.layout = layout;
+    $scope.hierarchy = routeData.hierarchy;
+    $scope.parent = routeData.parent;
+    $scope.survey = routeData.survey;
+
+    $scope.qnode = {
+        hierarchy: $scope.parent || $scope.hierarchy,
+        parent: $scope.parent
+    };
+    $scope.structure = Structure($scope.qnode);
+
+    $scope.select = function(qnode) {
+        // postData is empty: we don't want to update the contents of the
+        // qnode; just its links to parents (giving in query string).
+        var postData = {};
+        QuestionNode.save({
+            id: qnode.id,
+            parentId: $scope.parent.id,
+            surveyId: $scope.survey.id
+        }, postData).$promise.then(
+            function success(qnode) {
+                Notifications.set('edit', 'success', "Saved", 5000);
+                $location.url(format(
+                    '/qnode/{}?survey={}', $scope.parent.id, $scope.survey.id));
+            },
+            function failure(details) {
+                Notifications.set('edit', 'error',
+                    "Could not save object: " + details.statusText);
+            }
+        );
+    };
+
+    $scope.search = {
+        level: $scope.structure.qnodes.length - 1,
+        parent__not: $scope.parent ? $scope.parent.id : '',
+        term: "",
+        surveyId: $scope.survey.id,
+        hierarchyId: $scope.structure.hierarchy.id,
+        desc: true,
+        page: 0,
+        pageSize: 10
+    };
+    $scope.$watch('search', function(search) {
+        QuestionNode.query(search).$promise.then(function(qnodes) {
+            $scope.qnodes = qnodes;
+        });
+    }, true);
+
+    $scope.checkRole = authz(current, $scope.survey);
+    $scope.QuestionNode = QuestionNode;
 }])
 
 

@@ -453,6 +453,35 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
+            .when('/qnode-link', {
+                templateUrl : 'qnode_link.html',
+                controller : 'QnodeLinkCtrl',
+                resolve: {routeData: chain({
+                    hierarchy: ['Hierarchy', '$route',
+                            function(Hierarchy, $route) {
+                        if (!$route.current.params.hierarchy)
+                            return null;
+                        return Hierarchy.get({
+                            id: $route.current.params.hierarchy,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    parent: ['QuestionNode', '$route',
+                            function(QuestionNode, $route) {
+                        if (!$route.current.params.parent)
+                            return null;
+                        return QuestionNode.get({
+                            id: $route.current.params.parent,
+                            surveyId: $route.current.params.survey
+                        }).$promise;
+                    }],
+                    survey: ['Survey', '$route', function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey
+                        }).$promise;
+                    }],
+                })}
+            })
             .when('/measure-link', {
                 templateUrl : 'measure_link.html',
                 controller : 'MeasureLinkCtrl',
