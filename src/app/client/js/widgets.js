@@ -483,7 +483,7 @@ angular.module('vpac.widgets', [])
                     var content = elem.html();
                     // [\s\S] matches new lines:
                     // http://stackoverflow.com/a/1068308/320036
-                    content = content.replace(/<!--[\s\S]*-->/, '');
+                    content = content.replace(/<!--[\s\S]*?-->/g, '');
                     content = content.trim();
                     return content == '';
                 },
