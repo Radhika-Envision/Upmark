@@ -55,6 +55,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/description$',
                 r'/approval$',
                 r'/n_measures$',
+                r'/survey/tracking_id$',
                 # Nested
                 r'/survey$',
                 r'/survey/tracking_id$',
@@ -119,6 +120,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/name$',
                 r'/approval$',
                 r'/created$',
+                r'/survey/tracking_id$',
                 # Descend
                 r'/[0-9]+$',
                 r'/organisation$',

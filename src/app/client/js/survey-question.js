@@ -352,14 +352,14 @@ angular.module('wsaa.surveyQuestions', [
             });
 
             $scope.$watch('structure.survey', function(survey) {
-                $scope.search.surveyId = survey && survey.id;
+                $scope.search.trackingId = survey && survey.trackingId;
             });
 
             $scope.search = {
                 term: "",
                 orgId: null,
                 hierarchyId: null,
-                surveyId: null,
+                trackingId: null,
                 page: 0,
                 pageSize: 10
             };
@@ -374,8 +374,10 @@ angular.module('wsaa.surveyQuestions', [
                     }
                 );
 
+                // surveyId is not part of the search object because then it
+                // would over-constrain the list of assessments returned above.
                 PurchasedSurvey.head({
-                    surveyId: search.surveyId,
+                    surveyId: $scope.survey.id,
                     id: search.orgId,
                     hid: search.hierarchyId
                 }, null, function success(purchasedSurvey) {

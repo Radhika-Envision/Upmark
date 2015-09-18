@@ -49,6 +49,7 @@ class MeasureHandler(
                 r'/title$',
                 r'/seq$',
                 r'/is_editable$',
+                r'/survey/tracking_id$',
                 # Fields to match from only the root object
                 r'^/intent$',
                 r'^/inputs$',
@@ -143,6 +144,7 @@ class MeasureHandler(
                 r'/title$',
                 r'/intent$',
                 r'/seq$',
+                r'/survey/tracking_id$',
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/survey$',
@@ -168,6 +170,7 @@ class MeasureHandler(
                 r'/id$',
                 r'/title$',
                 r'/seq$',
+                r'/survey/tracking_id$',
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/survey$',
