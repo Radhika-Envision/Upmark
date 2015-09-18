@@ -27,7 +27,7 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, survey_id):
-        parent_id = self.get_argument("parent_id", None)
+        parent_id = self.get_argument("parentId", None)
         with model.session_scope() as session:
             try:
                 responseNodes = session.query(model.ResponseNode)\

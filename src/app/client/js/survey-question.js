@@ -991,10 +991,34 @@ angular.module('wsaa.surveyQuestions', [
 .controller('StatisticsCtrl', [
         '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'format', 'Structure',
-        'layout', 'Arrays', 'ResponseNode', 'Statistics', 'Assessment', '$timeout',
+        'layout', 'Arrays', 'ResponseNode', 'Statistics', 'Assessment',
+        '$timeout',
         function($scope, QuestionNode, routeData, Editor, authz,
                  $location, Notifications, current, format, Structure,
-                 layout, Arrays, ResponseNode, Statistics, Assessment, $timeout) {
+                 layout, Arrays, ResponseNode, Statistics, Assessment,
+                 $timeout) {
+
+    $scope.layout = layout;
+
+    $scope.$watch('assessment', function(assessment) {
+        if (assessment)
+            $scope.structure = Structure(assessment);
+    });
+    $scope.structure = Structure($scope.assessment);
+    $scope.getAssessmentUrl = function(assessment) {
+        if (assessment) {
+            return format('/statistics?assessment1={}', assessment.id);
+        } else {
+            return format('/hierarchy/{}?survey={}',
+                $scope.structure.hierarchy.id,
+                $scope.structure.survey.id);
+        }
+    };
+
+    $scope.showAssessmentChooser = false;
+    $scope.toggleDropdown = function() {
+        $scope.showAssessmentChooser = !$scope.showAssessmentChooser;
+    };
 
     var boxQuartiles = function(d) {
         var quartiles = [];
@@ -1364,16 +1388,16 @@ angular.module('wsaa.surveyQuestions', [
 
     var reloadChart = function() {
         if ($scope.assessment1) {
-            $location.search('assessment1_id', null);
-            $location.search('assessment1_id', $scope.assessment1.id);
+            $location.search('assessment1', null);
+            $location.search('assessment1', $scope.assessment1.id);
         }
         if ($scope.assessment2) {
-            $location.search('assessment2_id', null);
-            $location.search('assessment2_id', $scope.assessment2.id);
+            $location.search('assessment2', null);
+            $location.search('assessment2', $scope.assessment2.id);
         }
         if ($scope.qnode) {
-            $location.search('qnode_id', null);
-            $location.search('qnode_id', $scope.qnode.id);
+            $location.search('qnode', null);
+            $location.search('qnode', $scope.qnode.id);
         }
         $timeout(function(){ 
             $location.url('/statistics?' + $.param($location.search()));
@@ -1389,8 +1413,8 @@ angular.module('wsaa.surveyQuestions', [
 
     var data = [];
 
-    var drawChart = function(assessment_id) {
-        if ($scope.assessment2 && assessment_id != $scope.assessment2.id)
+    var drawChart = function(assessmentId) {
+        if ($scope.assessment2 && assessmentId != $scope.assessment2.id)
             return;
         console.log(data);
 
@@ -1415,11 +1439,11 @@ angular.module('wsaa.surveyQuestions', [
         });
     });
 
-    var fillData = function(assessment_id, rnodes) {
+    var fillData = function(assessmentId, rnodes) {
         if (rnodes.length == 0)
             return;
         Statistics.get({id: $scope.assessment.survey.id, 
-                        parent_id: $scope.qnode ? $scope.qnode.id:null})
+                        parentId: $scope.qnode ? $scope.qnode.id:null})
                   .$promise.then(function(stats) {
 
             if (data.length == 0) {
@@ -1481,7 +1505,7 @@ angular.module('wsaa.surveyQuestions', [
                 });
             }
 
-            drawChart(assessment_id);
+            drawChart(assessmentId);
         });
     };
 }])

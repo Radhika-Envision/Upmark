@@ -506,18 +506,18 @@ angular.module('wsaa.aquamark',
                 resolve: {routeData: chain({
                     assessment1: ['Assessment', '$route',
                             function(Assessment, $route) {
-                        if (!$route.current.params.assessment1_id)
+                        if (!$route.current.params.assessment1)
                             return null;
                         return Assessment.get({
-                            id: $route.current.params.assessment1_id
+                            id: $route.current.params.assessment1
                         }).$promise;
                     }],
                     assessment2: ['Assessment', '$route',
                             function(Assessment, $route) {
-                        if (!$route.current.params.assessment2_id)
+                        if (!$route.current.params.assessment2)
                             return null;
                         return Assessment.get({
-                            id: $route.current.params.assessment2_id
+                            id: $route.current.params.assessment2
                         }).$promise;
                     }],
                     survey: ['assessment1', 'assessment2', function(assessment1, assessment2) {
@@ -526,11 +526,11 @@ angular.module('wsaa.aquamark',
                     }],
                     qnode: ['QuestionNode', '$route', 'assessment1', 'assessment2',
                             function(QuestionNode, $route, assessment1, assessment2) {
-                        if (!$route.current.params.qnode_id)
+                        if (!$route.current.params.qnode)
                             return null;
                         var assessment = assessment1 || assessment1;
                         return QuestionNode.get({
-                            id: $route.current.params.qnode_id,
+                            id: $route.current.params.qnode,
                             surveyId: assessment.survey.id
                         }).$promise;
                     }]
