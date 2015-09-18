@@ -105,10 +105,6 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
     });
 
     $scope.checkRole = authz(current, $scope.survey, $scope.assessment);
-    $scope.statistics = function() {
-        $location.url(format(
-            '/statistics/{}', $scope.assessment.id));
-    };
 }])
 
 
