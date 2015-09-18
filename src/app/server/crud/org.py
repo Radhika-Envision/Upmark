@@ -175,6 +175,7 @@ class PurchasedSurveyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 r'/id$',
                 r'/title$',
                 r'/n_measures$',
+                r'/survey/tracking_id$',
                 # Descend into list
                 r'/[0-9]+$',
                 r'/survey$'

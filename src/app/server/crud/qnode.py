@@ -47,6 +47,7 @@ class QuestionNodeHandler(
                 r'/seq$',
                 r'/n_measures$',
                 r'/is_editable$',
+                r'/survey/tracking_id$',
                 # Fields to match from only the root object
                 r'^/description$',
                 # Ascend into nested parent objects
