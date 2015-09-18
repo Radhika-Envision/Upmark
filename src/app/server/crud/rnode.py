@@ -44,11 +44,13 @@ class ResponseNodeHandler(handlers.BaseHandler):
             ]
             if self.current_user.role == 'clerk':
                 exclude.append(r'/score$')
+                exclude.append(r'/total_weight$')
 
             to_son = ToSon(include=[
                 # Fields to match from any visited object
                 r'/id$',
                 r'/score$',
+                r'/total_weight$',
                 r'/assessment_id$',
                 r'/qnode_id$',
                 r'/n_submitted$',
@@ -105,11 +107,13 @@ class ResponseNodeHandler(handlers.BaseHandler):
             ]
             if self.current_user.role == 'clerk':
                 exclude.append(r'/score$')
+                exclude.append(r'/total_weight$')
 
             to_son = ToSon(include=[
                 # Fields to match from any visited object
                 r'/id$',
                 r'/score$',
+                r'/total_weight$',
                 r'/n_submitted$',
                 r'/n_reviewed$',
                 r'/n_approved$',
