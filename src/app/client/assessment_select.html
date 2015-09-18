@@ -85,7 +85,7 @@
         </a>
         <a ng-href="#{{getAssessmentUrl(null)}}"
                 class="btn btn-link btn-lg"
-                ng-if="showEdit || assessment">
+                ng-if="!disallowNone && (showEdit || assessment)">
             <i class="fa fa-ban"></i>
             View without a submission
         </a>

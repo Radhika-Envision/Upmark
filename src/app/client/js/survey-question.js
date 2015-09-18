@@ -326,7 +326,8 @@ angular.module('wsaa.surveyQuestions', [
             survey: '=',
             track: '@',
             hierarchy: '=',
-            formatUrl: '='
+            formatUrl: '=',
+            disallowNone: '='
         },
         controller: ['$scope', 'Current', 'Assessment', 'Organisation',
                 '$location', 'format', 'Notifications', 'PurchasedSurvey',
@@ -1033,28 +1034,6 @@ angular.module('wsaa.surveyQuestions', [
                  layout, Arrays, ResponseNode, Statistics, Assessment,
                  $timeout) {
 
-    $scope.layout = layout;
-
-    $scope.$watch('assessment', function(assessment) {
-        if (assessment)
-            $scope.structure = Structure(assessment);
-    });
-    $scope.structure = Structure($scope.assessment);
-    $scope.getAssessmentUrl = function(assessment) {
-        if (assessment) {
-            return format('/statistics?assessment1={}', assessment.id);
-        } else {
-            return format('/hierarchy/{}?survey={}',
-                $scope.structure.hierarchy.id,
-                $scope.structure.survey.id);
-        }
-    };
-
-    $scope.showAssessmentChooser = false;
-    $scope.toggleDropdown = function() {
-        $scope.showAssessmentChooser = !$scope.showAssessmentChooser;
-    };
-
     var boxQuartiles = function(d) {
         var quartiles = [];
         angular.forEach(d.data, function(item, index) {
@@ -1385,59 +1364,49 @@ angular.module('wsaa.surveyQuestions', [
     // Start ucustom logic here
     $scope.assessment1 = routeData.assessment1;
     $scope.assessment2 = routeData.assessment2;
-    $scope.compareMode = false;
-    $scope.qnode = routeData.qnode;
-    $scope.assessment = $scope.assessment1 || $scope.assessment2;
-    
-    $scope.compare = function(assessment) {
-        $scope.assessment2 = assessment;
-        $scope.compareMode = true;
-        reloadChart();
-    }
+    $scope.rnodes1 = routeData.rnodes1;
+    $scope.rnodes2 = routeData.rnodes2;
+    $scope.stats1 = routeData.stats1;
+    $scope.stats2 = routeData.stats2;
 
-    if ($scope.assessment1) {
-        ResponseNode.query({
-            assessmentId: $scope.assessment1.id,
-            parentId: $scope.qnode ? $scope.qnode.id : null,
-            hierarchyId: $scope.hierarchy ? $scope.hierarchy.id : null,
-            root: $scope.qnode ? null : ''
-        }).$promise.then(function success(rnodes) {
-            fillData($scope.assessment1.id, rnodes);
-        });
-    }
+    $scope.getAssessmentUrl1 = function(assessment) {
+        var query;
+        if (assessment) {
+            query = format('assessment1={}&assessment2={}',
+                assessment.id,
+                $scope.assessment2 ? $scope.assessment2.id : '');
+        } else {
+            query = format('assessment1={}',
+                $scope.assessment2 ? $scope.assessment2.id : '');
+        }
+        return format('/statistics?{}&qnode={}',
+            query, $location.search()['qnode'] || '');
+    };
+    $scope.getAssessmentUrl2 = function(assessment) {
+        var query;
+        if (assessment) {
+            query = format('assessment1={}&assessment2={}',
+                $scope.assessment1 ? $scope.assessment1.id : '',
+                assessment.id);
+        } else {
+            query = format('assessment1={}',
+                $scope.assessment1 ? $scope.assessment1.id : '');
+        }
+        return format('/statistics?{}&qnode={}',
+            query, $location.search()['qnode'] || '');
+    };
 
-    if ($scope.assessment2) {
-        ResponseNode.query({
-            assessmentId: $scope.assessment2.id,
-            parentId: $scope.qnode ? $scope.qnode.id : null,
-            hierarchyId: $scope.hierarchy ? $scope.hierarchy.id : null,
-            root: $scope.qnode ? null : ''
-        }).$promise.then(function success(rnodes) {
-            fillData($scope.assessment2.id, rnodes);
-        });
-    }
+    $scope.chooser = false;
+    $scope.toggleDropdown = function(num) {
+        if ($scope.chooser == num)
+            $scope.chooser = null;
+        else
+            $scope.chooser = num;
+    };
 
     var margin = {top: 10, right: 50, bottom: 20, left: 50},
         width = 120 - margin.left - margin.right,
         height = 600 - margin.top - margin.bottom;
-
-    var reloadChart = function() {
-        if ($scope.assessment1) {
-            $location.search('assessment1', null);
-            $location.search('assessment1', $scope.assessment1.id);
-        }
-        if ($scope.assessment2) {
-            $location.search('assessment2', null);
-            $location.search('assessment2', $scope.assessment2.id);
-        }
-        if ($scope.qnode) {
-            $location.search('qnode', null);
-            $location.search('qnode', $scope.qnode.id);
-        }
-        $timeout(function(){ 
-            $location.url('/statistics?' + $.param($location.search()));
-        },1);
-    };
 
     var chart = d3.box()
         .whiskers()
@@ -1448,9 +1417,7 @@ angular.module('wsaa.surveyQuestions', [
 
     var data = [];
 
-    var drawChart = function(assessmentId) {
-        if ($scope.assessment2 && assessmentId != $scope.assessment2.id)
-            return;
+    var drawChart = function() {
         console.log(data);
 
         if (data.length > 0) {
@@ -1460,89 +1427,86 @@ angular.module('wsaa.surveyQuestions', [
                     .attr("width", width + margin.left + margin.right)
                     .attr("height", height + margin.bottom + margin.top)
                     .on("click", function(d) {
-                        $scope.qnode = d;
-                        reloadChart();
+                        $location.search('qnode', d.id);
                     })
                 .append("g")
-                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+                    .attr("transform",
+                          "translate(" + margin.left + "," + margin.top + ")")
                     .call(chart);
         }
     };
-    Assessment.query({'trackingId':$scope.assessment.survey.trackingId}).$promise.then(function(oldAssessments) {
-        $scope.oldAssessments = oldAssessments.filter(function(assessment) {
-            return $scope.assessment.id != assessment.id;
-        });
-    });
 
-    var fillData = function(assessmentId, rnodes) {
+    var fillData = function(assessment, rnodes, stats) {
         if (rnodes.length == 0)
             return;
-        Statistics.get({id: $scope.assessment.survey.id, 
-                        parentId: $scope.qnode ? $scope.qnode.id:null})
-                  .$promise.then(function(stats) {
 
-            if (data.length == 0) {
-
-                angular.forEach(rnodes, function(node, index) {
-                    var stat = stats.filter(function(s) {
-                        if(s.qid == node.qnode.id) {
-                            return s;
-                        }
-                    });
-                    if (stat.length) {
-                        stat = stat[0];
-                        var item = {'id': node.qnode.id, 'compareMode': false, 
-                                 'data': [], 'title' : stat.title };
-                        item['data'].push({
-                                            'current': node.score,
-                                            'max': node.qnode.totalWeight,
-                                            'min': 0,
-                                            'survey_max': stat.max,
-                                            'survey_min': stat.min,
-                                            'quartile': stat.quartile});
-                        data.push(item);
+        if (data.length == 0) {
+            for (var i = 0; i < rnodes.length; i++) {
+                var node = rnodes[i];
+                var stat = stats.filter(function(s) {
+                    if(s.qnodeId == node.qnode.id) {
+                        return s;
                     }
                 });
-            } else {
-                angular.forEach(data, function(item, index) {
-                    item["compareMode"] = true;
-                    var stat = stats.filter(function(s) {
-                        if(s.qid == item.id) {
-                            return s;
-                        }
-                    });
-                    var node = rnodes.filter(function(n) {
-                        if(n.qnode.id == item.id) {
-                            return n;
-                        }
-                    });
+                if (stat.length) {
+                    stat = stat[0];
+                    var item = {'id': node.qnode.id, 'compareMode': false, 
+                             'data': [], 'title' : stat.title };
+                    item['data'].push({
+                                        'current': node.score,
+                                        'max': node.qnode.totalWeight,
+                                        'min': 0,
+                                        'survey_max': stat.max,
+                                        'survey_min': stat.min,
+                                        'quartile': stat.quartile});
+                    data.push(item);
+                }
+            };
 
-                    if (stat.length && node.length) {
-                        stat = stat[0];
-                        node = node[0];
-                        item['data'].push({
-                                            'current': node.score,
-                                            'max': node.qnode.totalWeight,
-                                            'min': 0,
-                                            'survey_max': stat.max,
-                                            'survey_min': stat.min,
-                                            'quartile': stat.quartile});
-
-                    } else {
-                        item['data'].push({
-                                            'current': 0,
-                                            'max': 0,
-                                            'min': 0,
-                                            'survey_max': 0,
-                                            'survey_min': 0,
-                                            'quartile': [0, 0, 0]});
+        } else {
+            for (var i = 0; i < data.length; i++) {
+                var item = data[i];
+                item["compareMode"] = true;
+                var stat = stats.filter(function(s) {
+                    if(s.qnodeId == item.id) {
+                        return s;
                     }
                 });
-            }
+                var node = rnodes.filter(function(n) {
+                    if(n.qnode.id == item.id) {
+                        return n;
+                    }
+                });
 
-            drawChart(assessmentId);
-        });
+                if (stat.length && node.length) {
+                    stat = stat[0];
+                    node = node[0];
+                    item['data'].push({
+                                        'current': node.score,
+                                        'max': node.qnode.totalWeight,
+                                        'min': 0,
+                                        'survey_max': stat.max,
+                                        'survey_min': stat.min,
+                                        'quartile': stat.quartile});
+
+                } else {
+                    item['data'].push({
+                                        'current': 0,
+                                        'max': 0,
+                                        'min': 0,
+                                        'survey_max': 0,
+                                        'survey_min': 0,
+                                        'quartile': [0, 0, 0]});
+                }
+            };
+        }
     };
+
+    fillData($scope.assessment1, $scope.rnodes1, $scope.stats1);
+    if ($scope.assessment2)
+        fillData($scope.assessment2, $scope.rnodes2, $scope.stats2);
+
+    drawChart();
 }])
 
 

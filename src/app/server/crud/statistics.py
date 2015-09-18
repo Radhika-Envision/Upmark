@@ -49,9 +49,9 @@ class FunctionHandler(handlers.Paginate, handlers.BaseHandler):
             response = []
             for responseNode in responseNodes:
                 r = [res for res in response 
-                     if res["qid"] == str(responseNode.qnode.id)]
+                     if res["qnodeId"] == str(responseNode.qnode.id)]
                 if len(r) == 0:
-                    r = { "qid": str(responseNode.qnode.id),
+                    r = { "qnodeId": str(responseNode.qnode.id),
                         "title": str(responseNode.qnode.title),
                         "data": [] }
                     response.append(r)

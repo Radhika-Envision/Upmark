@@ -506,8 +506,6 @@ angular.module('wsaa.aquamark',
                 resolve: {routeData: chain({
                     assessment1: ['Assessment', '$route',
                             function(Assessment, $route) {
-                        if (!$route.current.params.assessment1)
-                            return null;
                         return Assessment.get({
                             id: $route.current.params.assessment1
                         }).$promise;
@@ -520,18 +518,44 @@ angular.module('wsaa.aquamark',
                             id: $route.current.params.assessment2
                         }).$promise;
                     }],
-                    survey: ['assessment1', 'assessment2', function(assessment1, assessment2) {
-                        var assessment = assessment1 || assessment1;
-                        return assessment.survey;
+                    rnodes1: ['ResponseNode', '$route',
+                            function(ResponseNode, $route) {
+                        var qnodeId = $route.current.params.qnode;
+                        return ResponseNode.query({
+                            assessmentId: $route.current.params.assessment1,
+                            parentId: qnodeId,
+                            root: qnodeId ? null : ''
+                        }).$promise;
                     }],
-                    qnode: ['QuestionNode', '$route', 'assessment1', 'assessment2',
-                            function(QuestionNode, $route, assessment1, assessment2) {
-                        if (!$route.current.params.qnode)
+                    rnodes2: ['ResponseNode', '$route',
+                            function(ResponseNode, $route) {
+                        if (!$route.current.params.assessment2)
                             return null;
-                        var assessment = assessment1 || assessment1;
-                        return QuestionNode.get({
-                            id: $route.current.params.qnode,
-                            surveyId: assessment.survey.id
+                        var qnodeId = $route.current.params.qnode;
+                        return ResponseNode.query({
+                            assessmentId: $route.current.params.assessment2,
+                            parentId: qnodeId,
+                            root: qnodeId ? null : ''
+                        }).$promise;
+                    }],
+                    stats1: ['Statistics', '$route', 'assessment1',
+                            function(Statistics, $route, assessment1) {
+                        return Statistics.get({
+                            id: assessment1.survey.id,
+                            parentId: $route.current.params.qnode
+                        }).$promise;
+                    }],
+                    stats2: ['Statistics', '$route', 'assessment1',
+                             'assessment2', 'stats1',
+                            function(Statistics, $route, assessment1,
+                                     assessment2, stats1) {
+                        if (!assessment2)
+                            return null;
+                        if (assessment1.survey.id == assessment2.survey.id)
+                            return stats1;
+                        return Statistics.get({
+                            id: assessment2.survey.id,
+                            parentId: $route.current.params.qnode
                         }).$promise;
                     }]
                 })}
