@@ -320,11 +320,21 @@ angular.module('wsaa.surveyQuestions', [
     return {
         restrict: 'AEC',
         templateUrl: 'assessment_select.html',
-        scope: true,
+        scope: {
+            assessment: '=assessmentSelect',
+            org: '=',
+            survey: '=',
+            track: '@',
+            hierarchy: '=',
+            formatUrl: '='
+        },
         controller: ['$scope', 'Current', 'Assessment', 'Organisation',
                 '$location', 'format', 'Notifications', 'PurchasedSurvey',
+                'Structure', 'questionAuthz',
                 function($scope, current, Assessment, Organisation,
-                         $location, format, Notifications, PurchasedSurvey) {
+                         $location, format, Notifications, PurchasedSurvey,
+                         Structure, authz) {
+
             $scope.aSearch = {
                 organisation: null
             };
@@ -347,18 +357,29 @@ angular.module('wsaa.surveyQuestions', [
                     $scope.search.orgId = null;
             });
 
-            $scope.$watch('structure.hierarchy', function(hierarchy) {
-                $scope.search.hierarchyId = hierarchy && hierarchy.id;
+            $scope.$watch('hierarchy', function(hierarchy) {
+                $scope.search.hierarchyId = hierarchy ? hierarchy.id : null;
             });
 
-            $scope.$watch('structure.survey', function(survey) {
-                $scope.search.trackingId = survey && survey.trackingId;
+            $scope.$watchGroup(['survey', 'track'], function(vars) {
+                var survey = vars[0],
+                    track = vars[1];
+
+                if (track != null) {
+                    $scope.search.trackingId = survey ? survey.trackingId : null;
+                    $scope.search.surveyId = null;
+                } else {
+                    $scope.search.trackingId = null;
+                    $scope.search.surveyId = survey ? survey.id : null;
+                }
+                $scope.showEdit = !track;
             });
 
             $scope.search = {
                 term: "",
                 orgId: null,
                 hierarchyId: null,
+                surveyId: null,
                 trackingId: null,
                 page: 0,
                 pageSize: 10
@@ -373,13 +394,25 @@ angular.module('wsaa.surveyQuestions', [
                             "Could not get submission list: " + details.statusText);
                     }
                 );
+            }, true);
 
-                // surveyId is not part of the search object because then it
-                // would over-constrain the list of assessments returned above.
+            $scope.$watchGroup(['survey', 'search.orgId', 'hierarchy', 'track'],
+                    function(vars) {
+
+                var survey = vars[0];
+                var orgId = vars[1];
+                var hierarchy = vars[2];
+                var track = vars[3];
+
+                if (!survey || !orgId || !hierarchy || track != null) {
+                    $scope.purchasedSurvey = null;
+                    return;
+                }
+
                 PurchasedSurvey.head({
-                    surveyId: $scope.survey.id,
-                    id: search.orgId,
-                    hid: search.hierarchyId
+                    surveyId: survey.id,
+                    id: orgId,
+                    hid: hierarchy.id
                 }, null, function success(purchasedSurvey) {
                     $scope.purchasedSurvey = purchasedSurvey;
                 }, function failure(details) {
@@ -390,25 +423,25 @@ angular.module('wsaa.surveyQuestions', [
                     Notifications.set('survey', 'error',
                         "Could not get purchase status: " + details.statusText);
                 });
-            }, true);
+            });
 
             // Allow parent controller to specify a special URL formatter - this
             // is so one can switch between assessments without losing one's
             // place in the hierarchy.
-            if (!$scope.getAssessmentUrl) {
-                $scope.getAssessmentUrl = function(assessment) {
-                    if (assessment)
-                        return format('/assessment/{}', assessment.id);
-                    else
-                        return format('/hierarchy/{}?survey={}',
-                            $scope.structure.hierarchy.id,
-                            $scope.structure.survey.id);
-                };
-            }
-        }],
-        link: function(scope, elem, attrs) {
-            scope.showEdit = attrs.assessmentSelectShowEdit !== undefined;
-        }
+            $scope.getAssessmentUrl = function(assessment) {
+                if ($scope.formatUrl)
+                    return $scope.formatUrl(assessment)
+
+                if (assessment) {
+                    return format('/assessment/{}', assessment.id);
+                } else {
+                    return format('/hierarchy/{}?survey={}',
+                        $scope.hierarchy.id, $scope.survey.id);
+                }
+            };
+
+            $scope.checkRole = authz(current, $scope.survey);
+        }]
     }
 }])
 

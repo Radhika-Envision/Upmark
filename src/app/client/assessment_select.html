@@ -48,7 +48,7 @@
                         <approval model="a.approval"></approval>
                     </span></h4>
                 <p class="truncate">
-                    {{a.hierarchy.title}}
+                    {{a.hierarchy.title}} in {{a.survey.title}}
                     - {{a.created * 1000 | timeAgo:'fullDate'}}
                     - {{a.organisation.name}}
                 </p>
@@ -87,7 +87,7 @@
                 class="btn btn-link btn-lg"
                 ng-if="showEdit || assessment">
             <i class="fa fa-ban"></i>
-            View this survey without a submission
+            View without a submission
         </a>
     </div>
     <div ng-if="purchasedSurvey && checkRole('assessment_add') && showEdit">

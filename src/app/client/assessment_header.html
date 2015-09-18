@@ -30,6 +30,11 @@
 </div>
 </div>
 
-<div class="atop" ng-if="showAssessmentChooser" assessment-select></div>
+<div class="atop" ng-if="showAssessmentChooser"
+        assessment-select="assessment"
+        org="org"
+        track survey="structure.survey"
+        hierarchy="structure.hierarchy"
+        format-url="getAssessmentUrl"></div>
 
 </div>
