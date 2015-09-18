@@ -1239,9 +1239,13 @@ angular.module('wsaa.surveyQuestions', [
                     box2.enter().append("rect")
                         .attr("class", "box")
                         .attr("x", width / 2)
-                        .attr("y", function(item) { return x1(item[2]); })
+                        .attr("y", function(item) {
+                            return x1(item[2]);
+                        })
                         .attr("width", lineWidth)
-                        .attr("height", function(item) { return x1(item[0]) - x1(item[2]); });
+                        .attr("height", function(item) {
+                            return x1(item[0]) - x1(item[2]);
+                        });
 
                     var currentData2 = [d.data[1].current];
                     var currentLine2 = g.selectAll("line.current2")
@@ -1254,7 +1258,12 @@ angular.module('wsaa.surveyQuestions', [
                         .attr("x2", width)
                         .attr("y2", x1);
 
-                    var wisker_data2 = [d.data[1].min, d.data[1].survey_min, d.data[1].survey_max, d.data[1].max];
+                    var wisker_data2 = [
+                        d.data[1].min,
+                        d.data[1].survey_min,
+                        d.data[1].survey_max,
+                        d.data[1].max
+                    ];
                     var whisker2 = g.selectAll("line.whisker2")
                         .data(wisker_data2);
 
@@ -1300,7 +1309,9 @@ angular.module('wsaa.surveyQuestions', [
                     .attr("y", x1(0) - 30)
                     .attr("dy", 5)
                     .attr("text-anchor", "middle")
-                    .text(function(item) { return item; })
+                    .text(function(item) {
+                        return item;
+                    })
                     .call(wrap, 100)
             });
             d3.timer.flush();
