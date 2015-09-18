@@ -1232,9 +1232,12 @@ angular.module('wsaa.surveyQuestions', [
             id: qnode.id,
             parentId: $scope.parent.id,
             surveyId: $scope.survey.id
-        }, postData).$promise.then(
-            function success(qnode) {
-                Notifications.set('edit', 'success', "Saved", 5000);
+        }, postData,
+            function success(measure, headers) {
+                var message = "Saved";
+                if (headers('Operation-Details'))
+                    message += ': ' + headers('Operation-Details');
+                Notifications.set('edit', 'success', message, 5000);
                 $location.url(format(
                     '/qnode/{}?survey={}', $scope.parent.id, $scope.survey.id));
             },
@@ -1291,9 +1294,12 @@ angular.module('wsaa.surveyQuestions', [
             id: measure.id,
             parentId: $scope.qnode.id,
             surveyId: $scope.survey.id
-        }, postData).$promise.then(
-            function success(measure) {
-                Notifications.set('edit', 'success', "Saved", 5000);
+        }, postData,
+            function success(measure, headers) {
+                var message = "Saved";
+                if (headers('Operation-Details'))
+                    message += ': ' + headers('Operation-Details');
+                Notifications.set('edit', 'success', message, 5000);
                 $location.url(format(
                     '/qnode/{}?survey={}', $scope.qnode.id, $scope.survey.id));
             },
