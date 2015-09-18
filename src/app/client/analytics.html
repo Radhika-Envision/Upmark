@@ -8,4 +8,8 @@
     ga('create', '{{analytics_id}}', 'auto');
     ga('send', 'pageview');
 </script>
+{% else %}
+<script>
+    window.ga = function() {};
+</script>
 {% end %}

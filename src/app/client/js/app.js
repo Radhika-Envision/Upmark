@@ -649,7 +649,9 @@ angular.module('wsaa.aquamark',
 
 
 .run(['$rootScope', '$window', '$location', 'Notifications', 'log', 'timeAgo',
-        function($rootScope, $window, $location, Notifications, log, timeAgo) {
+        '$route',
+        function($rootScope, $window, $location, Notifications, log, timeAgo,
+            $route) {
 
     $rootScope.$on('$routeChangeError',
             function(event, current, previous, rejection) {
@@ -665,6 +667,10 @@ angular.module('wsaa.aquamark',
         } else {
             $location.path("/");
         }
+    });
+
+    $rootScope.$on('$routeChangeSuccess', function(event) {
+        $window.ga('send', 'pageview', '/' + $route.current.loadedTemplateUrl);
     });
 
     var oneDay = 60 * 60 * 24;
