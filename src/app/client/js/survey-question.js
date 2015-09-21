@@ -1444,7 +1444,18 @@ angular.module('wsaa.surveyQuestions', [
                     .attr("transform",
                           "translate(" + margin.left + "," + margin.top + ")")
                     .call(chart);
+        } else {
+            var svgContainer = svg.data(["No Data"]).enter().append("svg")
+                    .attr("width", 1000)
+                    .attr("height", height);
+            svgContainer.append("text")
+                    .attr("x", 500)
+                    .attr("y", height / 4)
+                    .attr("text-anchor", "middle")
+                    .attr("class", "info")
+                    .text("No Data");
         }
+
     };
 
     var fillData = function(assessment, rnodes, stats) {
