@@ -11,5 +11,3 @@ from . import assessment
 from . import rnode
 from . import response
 from . import attachment
-from . import statistics
-from . import report
