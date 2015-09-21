@@ -36,6 +36,7 @@
     "d3": "~3.5.6",
     "megamark": "~3.1.0",
     "domador": "~2.1.1",
+    "angular-diff": "~1.0.1",
     "angular-medium-editor": "https://github.com/z0u/angular-medium-editor.git#d2470b6fc47b3ca0d137d830c74cda467e1a964e"
   },
   "resolutions": {
