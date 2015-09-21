@@ -1191,6 +1191,19 @@ angular.module('wsaa.surveyQuestions', [
                     .attr("x2", lineWidth)
                     .attr("y2", x1);
 
+                if(d.compareMode) {
+                    var currentData2 = [d.data[1].current];
+                    var currentLine2 = g.selectAll("line.current2")
+                        .data(currentData2);
+
+                    currentLine2.enter().append("line")
+                        .attr("class", "current")
+                        .attr("x1", width / 2)
+                        .attr("y1", x1)
+                        .attr("x2", width)
+                        .attr("y2", x1);
+                }
+
                 // Update whiskers.
                 var wisker_data = [d.data[0].min, d.data[0].survey_min, d.data[0].survey_max, d.data[0].max];
                 var whisker = g.selectAll("line.whisker")
@@ -1246,17 +1259,6 @@ angular.module('wsaa.surveyQuestions', [
                         .attr("height", function(item) {
                             return x1(item[0]) - x1(item[2]);
                         });
-
-                    var currentData2 = [d.data[1].current];
-                    var currentLine2 = g.selectAll("line.current2")
-                        .data(currentData2);
-
-                    currentLine2.enter().append("line")
-                        .attr("class", "current")
-                        .attr("x1", width / 2)
-                        .attr("y1", x1)
-                        .attr("x2", width)
-                        .attr("y2", x1);
 
                     var wisker_data2 = [
                         d.data[1].min,
