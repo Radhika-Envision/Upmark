@@ -542,7 +542,8 @@ angular.module('wsaa.aquamark',
                             function(Statistics, $route, assessment1) {
                         return Statistics.get({
                             id: assessment1.survey.id,
-                            parentId: $route.current.params.qnode
+                            parentId: $route.current.params.qnode == '' ?
+                                null : $route.current.params.qnode
                         }).$promise;
                     }],
                     stats2: ['Statistics', '$route', 'assessment1',
@@ -555,7 +556,8 @@ angular.module('wsaa.aquamark',
                             return stats1;
                         return Statistics.get({
                             id: assessment2.survey.id,
-                            parentId: $route.current.params.qnode
+                            parentId: $route.current.params.qnode == '' ?
+                                null : $route.current.params.qnode
                         }).$promise;
                     }]
                 })}

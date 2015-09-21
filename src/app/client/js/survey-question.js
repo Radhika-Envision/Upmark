@@ -1429,8 +1429,6 @@ angular.module('wsaa.surveyQuestions', [
     var data = [];
 
     var drawChart = function() {
-        console.log(data);
-
         if (data.length > 0) {
             svg.data(data)
                 .enter().append("svg")
