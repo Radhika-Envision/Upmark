@@ -18,6 +18,7 @@ import tornado.httpserver
 import crud
 import handlers
 import import_handlers
+import export_handlers
 import statistics_handlers
 import report_handlers
 import model
@@ -203,6 +204,7 @@ def get_mappings():
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response.json", import_handlers.ImportResponseHandler, {}),
         (r"/import/assessment.json", import_handlers.ImportAssessmentHandler, {}),
+        (r"/export/structure/([^/]*).json", export_handlers.ExportStructureHandler, {}),
         (r"/(.*)", tornado.web.StaticFileHandler, {
             'path': os.path.join(package_dir, "..", "client")}),
     ]
