@@ -7,7 +7,7 @@ angular.module('wsaa.aquamark',
                 'angular-medium-editor',
                 'wsaa.survey', 'wsaa.admin', 'wsaa.surveyQuestions',
                 'wsaa.surveyAnswers',
-                'vpac.utils', 'vpac.widgets'])
+                'vpac.utils', 'vpac.widgets', 'diff'])
 
 
 /**
@@ -556,6 +556,38 @@ angular.module('wsaa.aquamark',
                             return stats1;
                         return Statistics.get({
                             id: assessment2.survey.id,
+                            parentId: $route.current.params.qnode == '' ?
+                                null : $route.current.params.qnode
+                        }).$promise;
+                    }]
+                })}
+            })
+            .when('/report', {
+                templateUrl : 'report.html',
+                controller : 'ReportCtrl',
+                resolve: {routeData: chain({
+                    assessment1: ['Assessment', '$route',
+                            function(Assessment, $route) {
+                        return Assessment.get({
+                            id: $route.current.params.assessment1
+                        }).$promise;
+                    }],
+                    assessment2: ['Assessment', '$route',
+                            function(Assessment, $route) {
+                        if (!$route.current.params.assessment2)
+                            return null;
+                        return Assessment.get({
+                            id: $route.current.params.assessment2
+                        }).$promise;
+                    }],
+                    report: ['Report', '$route', 'assessment1', 'assessment2',
+                            function(Report, $route, assessment1, assessment2) {
+                        if (!assessment1 || !assessment2)
+                            return null;
+
+                        return Report.get({
+                            assessment1: assessment1.id,
+                            assessment2: assessment2.id,
                             parentId: $route.current.params.qnode == '' ?
                                 null : $route.current.params.qnode
                         }).$promise;

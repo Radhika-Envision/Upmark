@@ -81,6 +81,13 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
+.factory('Report', ['$resource', function($resource) {
+    return $resource('/report/:id.json', {id: '@id'}, {
+        get: { method: 'GET', isArray: true, cache: false }
+    });
+}])
+
+
 .factory('questionAuthz', ['Roles', function(Roles) {
     return function(current, survey, assessment) {
         var ownOrg = false;
@@ -1753,6 +1760,75 @@ angular.module('wsaa.surveyQuestions', [
         else
             return dummyStats;
     };
+}])
+
+
+.controller('ReportCtrl', [
+        '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
+        '$location', 'Notifications', 'Current', 'format', 'Structure',
+        'layout', 'Arrays', 'ResponseNode', 'Statistics', 'Assessment',
+        '$timeout',
+        function($scope, QuestionNode, routeData, Editor, authz,
+                 $location, Notifications, current, format, Structure,
+                 layout, Arrays, ResponseNode, Statistics, Assessment,
+                 $timeout) {
+
+    // Start ucustom logic here
+    $scope.assessment1 = routeData.assessment1;
+    $scope.assessment2 = routeData.assessment2;
+    if($scope.assessment1 && $scope.assessment2) {
+        $scope.measure1 = $scope.report = routeData.report;
+    }
+
+    console.log($scope.assessment1);
+
+
+    $scope.getAssessmentUrl1 = function(assessment) {
+        var query;
+        if (assessment) {
+            query = format('assessment1={}&assessment2={}',
+                assessment.id,
+                $scope.assessment2 ? $scope.assessment2.id : '');
+        } else {
+            query = format('assessment1={}',
+                $scope.assessment2 ? $scope.assessment2.id : '');
+        }
+        return format('/report?{}&qnode={}',
+            query, $location.search()['qnode'] || '');
+    };
+    $scope.getAssessmentUrl2 = function(assessment) {
+        var query;
+        if (assessment) {
+            query = format('assessment1={}&assessment2={}',
+                $scope.assessment1 ? $scope.assessment1.id : '',
+                assessment.id);
+        } else {
+            query = format('assessment1={}',
+                $scope.assessment1 ? $scope.assessment1.id : '');
+        }
+        return format('/report?{}&qnode={}',
+            query, $location.search()['qnode'] || '');
+    };
+
+    $scope.chooser = false;
+    $scope.toggleDropdown = function(num) {
+        if ($scope.chooser == num)
+            $scope.chooser = null;
+        else
+            $scope.chooser = num;
+    };
+
+    $scope.getCompareMeasure = function(measure) {
+        console.log(measure);
+        // var find = $scope.measure2.filter(function(item, index) {
+        //     return item.id == measure.id;
+        // });
+        // if(find)
+        //     return find;
+        // return null;
+        return "Test";
+    };
+
 }])
 
 

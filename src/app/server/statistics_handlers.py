@@ -12,7 +12,6 @@ from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import make_transient
 
-import crud.survey
 import handlers
 import model
 import logging

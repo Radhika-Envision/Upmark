@@ -18,6 +18,8 @@ import tornado.httpserver
 import crud
 import handlers
 import import_handlers
+import statistics_handlers
+import report_handlers
 import model
 from utils import truthy
 
@@ -195,9 +197,9 @@ def get_mappings():
         (r"/attachment/([^/]*).json",
             crud.attachment.AttachmentHandler, {}),
         (r"/statistics/([^/]*).json",
-            statistics_handler.StatisticsHandler, {}),
-        (r"/report/([^/]*).json",
-            report_handler.ReportHandler, {}),
+            statistics_handlers.StatisticsHandler, {}),
+        (r"/report.json",
+            report_handlers.ReportHandler, {}),
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response.json", import_handlers.ImportResponseHandler, {}),
         (r"/import/assessment.json", import_handlers.ImportAssessmentHandler, {}),
