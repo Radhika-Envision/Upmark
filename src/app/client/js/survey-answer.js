@@ -207,7 +207,6 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
     });
 
     dropzone.on('uploadprogress', function(file, progress) {
-        console.log(progress);
         $scope.progress.uploadFraction = progress / 100;
         $scope.$apply();
     });

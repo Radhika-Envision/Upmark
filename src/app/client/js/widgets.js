@@ -47,7 +47,6 @@ angular.module('vpac.widgets', [])
         },
         link: function(scope, elem, attrs) {
             var update = function(fraction) {
-                console.log('update', fraction);
                 var path = drawSemicircle(fraction);
                 var fillElem = elem.find(".clock-fill");
                 fillElem.attr('d', path);

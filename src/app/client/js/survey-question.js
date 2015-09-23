@@ -477,7 +477,6 @@ angular.module('wsaa.surveyQuestions', [
     });
 
     dropzone.on('uploadprogress', function(file, progress) {
-        console.log(progress);
         $scope.progress.uploadFraction = progress / 100;
         $scope.$apply();
     });
@@ -1647,7 +1646,6 @@ angular.module('wsaa.surveyQuestions', [
         } else {
             error = details;
         }
-        console.log('error');
         dropzone.options.autoProcessQueue = false;
         dropzone.removeAllFiles();
         Notifications.set('attach', 'error', error);
