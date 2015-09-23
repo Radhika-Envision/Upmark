@@ -192,6 +192,13 @@ SCRIPTS = [
 
 
 class BaseHandler(tornado.web.RequestHandler):
+
+    def prepare(self):
+        if (truthy(tornado.options.options.force_https) and
+            'X-Forwarded-Proto' in self.request.headers and
+            self.request.headers['X-Forwarded-Proto'] != 'https'):
+            self.redirect(re.sub(r'^([^:]+)', 'https', self.request.full_url()))
+
     def get_current_user(self):
         # Cached value is available in current_user property.
         # http://tornado.readthedocs.org/en/latest/web.html#tornado.web.RequestHandler.current_user
