@@ -46,7 +46,7 @@ class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
 
                 file_name = attachment.file_name
                 if attachment.storage == "aws":
-                    s3 = aws.session.client('s3')
+                    s3 = aws.session.client('s3', verify=False)
                     attachment_object = parse(aws.s3_url, attachment.url)
                     with tempfile.NamedTemporaryFile() as temp:
 
@@ -148,7 +148,7 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
             self._check_authz(response.assessment)
 
             if aws.session is not None:
-                s3 = aws.session.resource('s3')
+                s3 = aws.session.resource('s3', verify=False)
                 bucket = "aquamark"
                 hex_key = hashlib.sha256(bytes(fileinfo['body'])).hexdigest()
                 s3_path = "{0}/{1}".format(
