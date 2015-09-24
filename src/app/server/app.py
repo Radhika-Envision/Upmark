@@ -158,6 +158,7 @@ def get_mappings():
         (r"/logout/?", handlers.AuthLogoutHandler),
         (r"/()", handlers.MainHandler, {
             'path': '../client/index.html'}),
+        (r"/ping.*", handlers.PingHandler, {}),
 
         (r"/bower_components/(.*)", tornado.web.StaticFileHandler, {
             'path': os.path.join(

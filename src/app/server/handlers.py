@@ -263,6 +263,22 @@ class BaseHandler(tornado.web.RequestHandler):
             self.set_header("Operation-Details", '; '.join(self.reasons))
 
 
+class PingHandler(BaseHandler):
+    '''
+    Handler for load balancer health checks. For configuring AWS ELB, see:
+    https://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-healthchecks.html
+    '''
+
+    def get(self):
+        # Check that the connection to the database works
+        with model.session_scope() as session:
+            session.query(model.SystemConfig).count()
+
+        self.set_header("Content-Type", "text/plain")
+        self.write("Web services are UP")
+        self.finish()
+
+
 def authz(*roles):
     '''
     Decorator to check whether a user is authorised. This only checks whether
