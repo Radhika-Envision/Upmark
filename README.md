@@ -59,15 +59,23 @@ nano /home/ubuntu/aquamark/src/util/watchdog.config
 /home/ubuntu/aquamark/src/util/watchdog.py --test
 ```
 
-Start the container with restart option, and the watchdog task.
+Create a file `/home/ubuntu/aq.conf` to contain environment variables so they
+can be easily reused for future deployments. The file should contain the
+following data:
+
+```bash
+ANALYTICS_ID=<your analytics ID> \
+DATABASE_URL=<as specified by AWS RDS> \
+AWS_ACCESS_KEY_ID=<KEY ID> \
+AWS_SECRET_ACCESS_KEY=<ACCESS KEY> \
+```
+
+Now start the container with restart option, and install the watchdog task.
 
 ```bash
 sudo docker run -d --name aquamark \
     --restart=always \
-    -e ANALYTICS_ID=<your analytics ID> \
-    -e DATABASE_URL=<as specified by AWS RDS> \
-    -e AWS_ACCESS_KEY_ID=<KEY ID> \
-    -e AWS_SECRET_ACCESS_KEY=<ACCESS KEY> \
+    --env-file=/home/ubuntu/aq.conf \
     -p 80:8000 \
     vpac/aquamark
 crontab /home/ubuntu/aquamark/src/util/watchdog
@@ -75,6 +83,13 @@ crontab /home/ubuntu/aquamark/src/util/watchdog
 
 The database URL will be something like
 `postgresql://postgres:PASSWORD@postgres.foo.ap-southeast-2.rds.amazonaws.com:5432/postgres`.
+
+Check that it's running:
+
+```
+curl http://localhost/ping
+# Should print "Web services are UP"
+```
 
 Now create an AMI of the instance from the AWS console. This AMI will be used by
 the scaling group to start new instances. You can now delete the instance that
@@ -191,14 +206,14 @@ sudo docker rm -fv aquamark
 ```
 
 Update the source code, and check out the branch you're interested in. Discard
-local changes. Replace `origin/master` with the branch, tag or ref you're
+local changes. Replace `v1.0.1` with the branch, tag or ref you're
 interested in.
 
 ```
 cd aquamark
 git fetch
 git reset --hard HEAD
-git checkout origin/master
+git checkout v1.0.1
 ```
 
 Now build the Docker image and start a fresh `aquamark` instance as described
