@@ -95,6 +95,15 @@ First create a load balancer. This will be reused for all deployments.
     1. Ensure HTTP and HTTPS are enabled. Both should forward to port 80 on the
        instances. Don't worry, HTTP will be redirected to HTTPS by the web app.
        For HTTPS, install your SSL certificate.
+    1. Under *Configure Health Check*, make sure the following settings are
+       used:
+
+        - Ping Protocol: `HTTP`
+        - Ping Port: `80`
+        - Ping Path: `/ping`
+
+       The default ping path of `/index.html` can't be used because that page
+       requires authentication. `/ping` is serviced by a special handler.
 
 1. DNS
     1. Assign the domain name to the load balancer IP (use your domain registrar
@@ -138,6 +147,7 @@ Here are the steps of the creating auto-scaling group.
                created
         1. Configure scaling policies - You can specify condition of scale up or
            scale down of the instances
+
        This scaling group will create instances that are not accessible from the
        public Internet. To connect to the machine, either go via the load
        balancer (HTTP, HTTPS) or hop via another EC2 machine for SSH. For
