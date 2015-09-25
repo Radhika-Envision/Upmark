@@ -87,7 +87,7 @@ The database URL will be something like
 Check that it's running:
 
 ```
-curl http://localhost/ping
+curl -w "\n" http://localhost/ping
 # Should print "Web services are UP"
 ```
 
@@ -141,20 +141,20 @@ Here are the steps of the creating auto-scaling group.
 
     1. AUTO SCALING > Launch Configurations > Create launch configuration
         1. Choose the AMI you created in the previous step.
-        1. Under *Configuration Details*, give this new configuration a similar
+        1. Under *Configure Details*, give this new configuration a similar
            name to the AMI.
             1. No IAM role is required because the AWS API key is set in the AMI.
             1. Under *Advanced Details > IP Address Type*, select *Do not assign
                a public IP address to any instances.*
         1. Under *Add Storage*, change the hard drive type to *Magnetic*. The
-           default size of 8GB should be fine.
+           default size of 20GB should be fine.
         1. Under *Configure Security Group*, choose a group that allows web and
            SSH traffic (ports 80 and 22). HTTPS is not required because that is
            handled by the load balancer.
 
     1. AUTO SCALING > Launch Configurations > Create Auto Scaling Group
         1. Configure Auto Scaling group details
-            1. Put in how many instance you need to prepare for scaling, Select
+            1. Put in how many instances you need to prepare for scaling, Select
                a subnet that is not visible from the outside world, but which
                can be accessed from the load balancer.
             1. On advanced tab - check `Receive traffic from Elastic Load
