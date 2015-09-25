@@ -301,7 +301,9 @@ class Importer():
             if survey is None:
                 raise Exception("There is no Survey.")
 
-            hierarchy = session.query(model.Hierarchy).filter_by(id=hierarchy_id).one()
+            hierarchy = (session.query(model.Hierarchy)
+                .filter_by(id=hierarchy_id, survey_id=survey.id)
+                .one())
             if hierarchy is None:
                 raise Exception("There is no Hierarchy.")
 
@@ -324,7 +326,8 @@ class Importer():
             subprocess_col_num = self.col2num("C")
             measure_col_num = self.col2num("D")
 
-            survey_qnodes = session.query(model.QuestionNode).filter_by(survey_id=survey_id)
+            survey_qnodes = (session.query(model.QuestionNode)
+                .filter_by(survey_id=survey_id))
 
             with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'aquamark_response_types.json')) as file:
                 response_types = json.load(file)
