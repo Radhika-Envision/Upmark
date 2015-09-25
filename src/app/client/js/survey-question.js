@@ -1636,13 +1636,12 @@ angular.module('wsaa.surveyQuestions', [
         $scope.showFileDrop = false;
         dropzone.removeAllFiles();
         $scope.refreshAttachments();
-        Notifications.set('attach', 'info', "Attachments saved", 5000); 
     });
 
     dropzone.on("error", function(file, details, request) {
         var error;
         if (request) {
-            error = "Import failed: " + request.statusText;
+            error = "Upload failed: " + request.statusText;
         } else {
             error = details;
         }

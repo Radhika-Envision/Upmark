@@ -6,6 +6,8 @@ import uuid
 import hashlib
 import tempfile
 
+import boto3
+import botocore
 from tornado.escape import json_decode, json_encode
 from tornado import gen
 import tornado.web
@@ -16,7 +18,6 @@ import sqlalchemy
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from parse import parse
-import boto3
 
 import aws
 import crud.survey
@@ -154,12 +155,16 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
                 hex_key = hashlib.sha256(bytes(fileinfo['body'])).hexdigest()
                 s3_path = "{0}/{1}".format(
                     response.assessment.organisation_id, hex_key)
-                s3.Bucket(bucket).put_object(
+                try:
+                    s3.Bucket(bucket).put_object(
                                         Key=s3_path,
                                         Metadata={
                                             'filename': fileinfo["filename"]
                                         }, 
                                         Body=bytes(fileinfo['body']))
+                except botocore.exceptions.ClientError as e:
+                    raise handlers.InternalModelError(
+                        "Failed to write to data store", log_message=str(e))
 
             attachment = model.Attachment()
             attachment.organisation_id = response.assessment.organisation_id
