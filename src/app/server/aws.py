@@ -2,6 +2,7 @@ import logging
 import os
 
 import boto3
+import certifi
 
 
 log = logging.getLogger('app.aws')
@@ -42,4 +43,50 @@ def initialise_session():
     session.resource('s3').Bucket('aquamark').load()
 
 
+def monkeypatch_method(cls):
+    '''
+    Guido's mokeypatching decorator:
+    https://mail.python.org/pipermail/python-dev/2008-January/076194.html
+    '''
+    def decorator(func):
+        setattr(cls, func.__name__, func)
+        return func
+    return decorator
+
+
+def patch_session_certifi():
+    '''
+    Recent versions of certifi (dependency of Tornado) do not allow
+    cross-signed certificates, which causes boto to fail with
+
+        botocore.vendored.requests.exceptions.SSLError:
+        [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed
+
+    We pass a special verification method that uses the old behaviour. The
+    old_where function is deprecated; when it is removed we will need to
+    upgrade OpenSSL to 1.0.2, probably by upgrading the operating system used
+    in the Dockerfile.
+
+    For discussion, see:
+    https://github.com/certifi/python-certifi/issues/26
+    https://github.com/aws/aws-cli/issues/1499
+    '''
+
+    old_client = boto3.session.Session.client
+    old_resource = boto3.session.Session.resource
+
+    @monkeypatch_method(boto3.session.Session)
+    def client(*args, **kwargs):
+        if 'verify' not in kwargs:
+            kwargs['verify'] = certifi.old_where()
+        return old_client(*args, **kwargs)
+
+    @monkeypatch_method(boto3.session.Session)
+    def resource(*args, **kwargs):
+        if 'verify' not in kwargs:
+            kwargs['verify'] = certifi.old_where()
+        return old_resource(*args, **kwargs)
+
+
+patch_session_certifi()
 initialise_session()
