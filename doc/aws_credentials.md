@@ -63,7 +63,12 @@ Here is the steps to do.
                     ],
                     "Resource": [
                         "*"
-                    ]
+                    ],
+                    "Condition": {
+                        "IpAddress": {
+                            "aws:SourceIp": "172.31.0.0/16"
+                        }
+                    }
                 }
             ]
         }
