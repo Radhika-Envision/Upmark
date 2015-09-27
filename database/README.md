@@ -66,6 +66,28 @@ These are the steps of create job on web instance.
 [ac]: ../doc/aws_credentials.md
 
 
+## Restoring from Backup
+
+In the event that the database is corrupted or erased, one of the backups should
+be restored. To do that:
+
+1. Go to the [AWS RDS console].
+1. Shut down the current instance.
+    1. Choose Instances on the left.
+    1. Right-click on the `postgres` instance and choose *Delete*. Confirm.
+1. Start a new instance with the same name.
+    1. Choose *Snapshots* on the left.
+    1. Select a snapshot.
+    1. Click *Restore snapshot*.
+    1. Give the new instance the same *DB Instance Identifier* - `postgres`.
+    1. Set *Publicly accessible* to `No`.
+
+Since the new instance has the same name, you don't need to reconfigure the web
+services. However, if you have restored to a snapshot that was taken before the
+last database scema upgrade, you will need to restart at least one of the web
+servers to trigger a fresh schema upgrade (alembic).
+
+
 ## Downloading Backups
 
 The backups stored in RDS are not accessible for download. To get a copy of a
@@ -107,6 +129,7 @@ a file. So a special policy is created that does not allow the
 details.
 
 
+[AWS RDS console]: https://ap-southeast-2.console.aws.amazon.com/rds/home
 [pricing policy]: http://aws.amazon.com/rds/pricing/
 [deployment key]: https://github.com/blog/2024-read-only-deploy-keys
 [AWS help]: https://console.aws.amazon.com/iam/home?nc2=h_m_sc#security_credential
