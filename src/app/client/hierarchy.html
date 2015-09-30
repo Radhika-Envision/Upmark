@@ -12,9 +12,8 @@
                     checkRole('hierarchy_del')">
             <i class="fa fa-trash-o"></i></button>
         <a class="btn btn-default btn-round" title="Export survey structure"
-                ng-href="/export/structure/{{survey.id}}.xlsx?hierarchyId={{hierarchy.id}}"
-                download
-                ng-if="!edit.model">
+                ng-href="/export/survey/{{survey.id}}/hierarchy/{{hierarchy.id}}.xlsx"
+                download ng-if="!edit.model">
             <i class="fa fa-file-excel-o"></i></a>
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"

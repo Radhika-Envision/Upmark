@@ -2,8 +2,8 @@
 <div class="container">
     <div class="toolbar">
         <a class="btn btn-default btn-round" title="Export"
-                ng-href="/export/structure/{{survey.id}}.xlsx?assessmentId={{assessment.id}}"
-                ng-if="!structure.hierarchy && !survey && !assessment">
+                ng-href="/export/assessment/{{assessment.id}}.xlsx"
+                download ng-if="!edit.model">
             <i class="fa fa-file-excel-o"></i></a>
         <a class="btn btn-default btn-round" title="Statistics"
                 ng-href="#/statistics?assessment1={{assessment.id}}"
