@@ -14,11 +14,12 @@ import xlsxwriter
 
 from sqlalchemy.orm import joinedload
 from tornado import gen
-from tornado.web import asynchronous
+import tornado.web
 from tornado.concurrent import run_on_executor
 from concurrent.futures import ThreadPoolExecutor
 
 
+BUF_SIZE = 4096
 MAX_WORKERS = 4
 
 log = logging.getLogger('app.export_handler')
@@ -27,36 +28,68 @@ log = logging.getLogger('app.export_handler')
 class ExportStructureHandler(handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-    @handlers.authz('author')
-    def get(self, survey_id):
-        hierarchy_id = self.get_argument("hierarchyId", None)
-        if hierarchy_id is None:
-            raise Exception("Parameter hierarchyId is missing.")
-        output_file = 'export_{0}_{1}.xlsx'.format(survey_id, hierarchy_id)
-        if os.path.exists(output_file):
-            os.remove(output_file)
+    @tornado.web.authenticated
+    @gen.coroutine
+    def get(self, survey_id, extension):
+        if extension != 'xlsx':
+            raise handlers.MissingDocError(
+                "File type not supported: %s" % extension)
 
-        assessment_id = self.get_argument("assessmentId", None)
+        assessment_id = self.get_argument('assessmentId', '')
+        hierarchy_id = self.get_argument("hierarchyId", '')
 
-        self.background_task(survey_id, hierarchy_id, assessment_id)
-        buf_size = 4096
-        self.set_header('Content-Type', 'application/octet-stream')
-        self.set_header('Content-Disposition', 'attachment; filename=' 
-            + output_file)
-        with open(output_file, 'rb') as f:
-            while True:
-                data = f.read(buf_size)
-                if not data:
-                    break
-                self.write(data)
-        os.remove(output_file)
+        if assessment_id == '' and hierarchy_id == '':
+            raise handlers.ModelError("hierarchyId or assessmentId required.")
+
+        with model.session_scope() as session:
+            if assessment_id != '':
+                assessment = (session.query(model.Assessment)
+                        .get(assessment_id))
+                if (hierarchy_id != '' and
+                    str(assessment.hierarchy_id) != hierarchy_id):
+                    raise handlers.ModelError(
+                        "Submission does not belong to specified survey.")
+                hierarchy_id = str(assessment.hierarchy_id)
+                if assessment.organisation.id != self.organisation.id:
+                    self.check_privillege('consultant')
+            else:
+                assessment = None
+
+            hierarchy = (session.query(model.Hierarchy)
+                    .get((hierarchy_id, survey_id)))
+            if survey_id != str(hierarchy.survey_id):
+                raise handlers.ModelError(
+                    "Survey does not belong to specified program.")
+
+        if assessment_id != '':
+            output_file = 'submission_{1}.xlsx'.format(assessment_id)
+        else:
+            output_file = 'program_{0}_survey_{1}.xlsx'.format(
+                survey_id, hierarchy_id)
+
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            output_path = os.path.join(tmpdirname, output_file)
+            yield self.background_task(
+                output_path, survey_id, hierarchy_id, assessment_id)
+            self.set_header('Content-Type', 'application/octet-stream')
+            self.set_header('Content-Disposition', 'attachment; filename='
+                + output_file)
+
+            with open(output_path, 'rb') as f:
+                while True:
+                    data = f.read(BUF_SIZE)
+                    if not data:
+                        break
+                    self.write(data)
+
         self.finish()
 
-    def background_task(self, survey_id, hierarchy_id, assessment_id):
+    @run_on_executor
+    def background_task(self, output_file, survey_id, hierarchy_id,
+            assessment_id):
         e = Exporter()
-        survey_id = e.process_structure_file(survey_id, 
-                                             hierarchy_id, 
-                                             assessment_id)
+        survey_id = e.process_structure_file(
+            output_file, survey_id, hierarchy_id, assessment_id)
 
 
 class Exporter():
@@ -70,13 +103,12 @@ class Exporter():
                 num = num * 26 + (ord(c.upper()) - ord('A'))
         return num
 
-    def process_structure_file(self, survey_id, hierarchy_id, assessment_id):
+    def process_structure_file(self, file_name, survey_id, hierarchy_id, assessment_id):
         """
         Open and read an Excel file
         """
         model.connect_db(os.environ.get('DATABASE_URL'))
-        workbook = xlsxwriter.Workbook('export_{0}_{1}.xlsx'
-            .format(survey_id, hierarchy_id))
+        workbook = xlsxwriter.Workbook(file_name)
         worksheet = workbook.add_worksheet('Scoring')
         worksheet.set_column(0, 0, 12) 
         worksheet.set_column(1, 1, 100)
@@ -126,7 +158,7 @@ class Exporter():
                              for item in list2]
 
             response_list = []
-            if assessment_id is not None:
+            if assessment_id != '':
                 responses = session.query(model.Response)\
                     .filter(model.Response.assessment_id==assessment_id,
                         model.Response.survey_id==survey_id).all()

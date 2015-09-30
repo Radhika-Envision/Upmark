@@ -15,10 +15,6 @@
             ng-href="{{itemUrl(currentItem, 'next')}}"
             title="Next">
         <i class="fa fa-fw fa-angle-right"></i></a>
-    <a class="btn btn-default btn-round" title="Export"
-        ng-if="!assessment && structure.hierarchy"
-        ng-href="/export/structure/{{structure.hierarchy.survey.id}}.json?hierarchyId={{structure.hierarchy.id}}">
-        <i class="fa fa-file-excel-o"></i></a>
 </div>
 <h2 ng-repeat="item in structure.hstack" label="{{item.label}}"
         class="survey-{{item.level}}">

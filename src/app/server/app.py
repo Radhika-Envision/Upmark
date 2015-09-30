@@ -209,7 +209,7 @@ def get_mappings():
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response.json", import_handlers.ImportResponseHandler, {}),
         (r"/import/assessment.json", import_handlers.ImportAssessmentHandler, {}),
-        (r"/export/structure/([^/]*).json", export_handlers.ExportStructureHandler, {}),
+        (r"/export/structure/([^/]*)\.(.+)", export_handlers.ExportStructureHandler, {}),
         (r"/(.*)", tornado.web.StaticFileHandler, {
             'path': os.path.join(package_dir, "..", "client")}),
     ]
