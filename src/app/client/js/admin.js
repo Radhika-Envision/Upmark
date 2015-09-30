@@ -276,7 +276,6 @@ angular.module('wsaa.admin', [
                 $scope.users = users;
             },
             function failure(details) {
-                console.log(details)
                 Notifications.set('get', 'error',
                     "Could not get list: " + details.statusText);
                 return $q.reject(details);

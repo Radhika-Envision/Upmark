@@ -195,6 +195,13 @@ SCRIPTS = [
 
 
 class BaseHandler(tornado.web.RequestHandler):
+
+    def prepare(self):
+        if (truthy(tornado.options.options.force_https) and
+            'X-Forwarded-Proto' in self.request.headers and
+            self.request.headers['X-Forwarded-Proto'] != 'https'):
+            self.redirect(re.sub(r'^([^:]+)', 'https', self.request.full_url()))
+
     def get_current_user(self):
         # Cached value is available in current_user property.
         # http://tornado.readthedocs.org/en/latest/web.html#tornado.web.RequestHandler.current_user
@@ -244,6 +251,35 @@ class BaseHandler(tornado.web.RequestHandler):
                     "Could not decode request body: %s. Body started with %s" %
                     (str(e), self.request.body[0:30]))
             return self._request_son
+
+    @property
+    def reasons(self):
+        if not hasattr(self, '_reasons'):
+            self._reasons = []
+        return self._reasons
+
+    def reason(self, message):
+        self.reasons.append(message)
+
+    def write_reasons(self):
+        if len(self.reasons) > 0:
+            self.set_header("Operation-Details", '; '.join(self.reasons))
+
+
+class PingHandler(BaseHandler):
+    '''
+    Handler for load balancer health checks. For configuring AWS ELB, see:
+    https://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-healthchecks.html
+    '''
+
+    def get(self):
+        # Check that the connection to the database works
+        with model.session_scope() as session:
+            session.query(model.SystemConfig).count()
+
+        self.set_header("Content-Type", "text/plain")
+        self.write("Web services are UP")
+        self.finish()
 
 
 def authz(*roles):

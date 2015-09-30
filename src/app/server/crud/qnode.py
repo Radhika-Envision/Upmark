@@ -84,6 +84,7 @@ class QuestionNodeHandler(
                 son['next'] = str(next_.id)
 
         self.set_header("Content-Type", "application/json")
+        self.write_reasons()
         self.write(json_encode(son))
         self.finish()
 
@@ -148,6 +149,7 @@ class QuestionNodeHandler(
             sons = to_son(query.all())
 
         self.set_header("Content-Type", "application/json")
+        self.write_reasons()
         self.write(json_encode(sons))
         self.finish()
 
@@ -236,6 +238,7 @@ class QuestionNodeHandler(
                 sons.append(son)
 
         self.set_header("Content-Type", "application/json")
+        self.write_reasons()
         self.write(json_encode(sons))
         self.finish()
 
@@ -375,6 +378,8 @@ class QuestionNodeHandler(
                     new_parent.children.reorder()
                     old_parent.update_stats_ancestors()
                     new_parent.update_stats_ancestors()
+                    self.reason("Moved from %s to %s" % (
+                        old_parent.title, new_parent.title))
 
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such question node")

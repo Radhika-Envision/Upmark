@@ -39,7 +39,9 @@ organisation.
 
 ## Deployment on AWS
 
-Clone the repository and build the image.
+Create an instance (e.g. t1.micro). Choose *ubuntu-trusty-14.04* as the base
+image (AMI). Then log in to the new machine, clone the repository and build the
+Docker image:
 
 ```bash
 cd /home/ubuntu
@@ -57,16 +59,41 @@ nano /home/ubuntu/aquamark/src/util/watchdog.config
 /home/ubuntu/aquamark/src/util/watchdog.py --test
 ```
 
-Start the container with restart option, and the watchdog task.
+Create a file `/home/ubuntu/aq.conf` to contain environment variables so they
+can be easily reused for future deployments. The file should contain the
+following data:
+
+```bash
+ANALYTICS_ID=<your analytics ID> \
+DATABASE_URL=<as specified by AWS RDS> \
+AWS_ACCESS_KEY_ID=<KEY ID> \
+AWS_SECRET_ACCESS_KEY=<ACCESS KEY> \
+```
+
+Now start the container with restart option, and install the watchdog task.
 
 ```bash
 sudo docker run -d --name aquamark \
     --restart=always \
-    -e ANALYTICS_ID=<your analytics ID> \
-    -e DATABASE_URL=<as specified by AWS RDS> \
+    --env-file=/home/ubuntu/aq.conf \
+    -p 80:8000 \
     vpac/aquamark
 crontab /home/ubuntu/aquamark/src/util/watchdog
 ```
+
+The database URL will be something like
+`postgresql://postgres:PASSWORD@postgres.foo.ap-southeast-2.rds.amazonaws.com:5432/postgres`.
+
+Check that it's running:
+
+```
+curl -w "\n" http://localhost/ping
+# Should print "Web services are UP"
+```
+
+Now create an AMI of the instance from the AWS console. This AMI will be used by
+the scaling group to start new instances. You can now delete the instance that
+was used to make the AMI.
 
 ### AWS Auto scaling group
 
@@ -80,8 +107,18 @@ First create a load balancer. This will be reused for all deployments.
 
 1. Create Load Balacer
     1. LOAD BALANCING > Load Balancers > Create Load Balancer
-    1. Ensure HTTP and HTTPS are enabled
-    1. Process with default option and proper names
+    1. Ensure HTTP and HTTPS are enabled. Both should forward to port 80 on the
+       instances. Don't worry, HTTP will be redirected to HTTPS by the web app.
+       For HTTPS, install your SSL certificate.
+    1. Under *Configure Health Check*, make sure the following settings are
+       used:
+
+        - Ping Protocol: `HTTP`
+        - Ping Port: `80`
+        - Ping Path: `/ping`
+
+       The default ping path of `/index.html` can't be used because that page
+       requires authentication. `/ping` is serviced by a special handler.
 
 1. DNS
     1. Assign the domain name to the load balancer IP (use your domain registrar
@@ -94,14 +131,30 @@ Here are the steps of the creating auto-scaling group.
 
 1. Create AMI images for current running instance.
     1. Select the image in the AWS console under EC2 > Instances.
-    1. Click Actions > Image > Create Image button.
+    1. Click Actions > Image > Create Image button. Give the AMI a name like
+       `aq-web-v1.0.1`. Allow the process to reboot the instance so a good copy
+       of the hard drive is taken.
     1. Create the image. This process takes a while. You can check the process
        in the IMAGES > AMIs screen.
 
 1. Create Autoscaling Group
+
+    1. AUTO SCALING > Launch Configurations > Create launch configuration
+        1. Choose the AMI you created in the previous step.
+        1. Under *Configure Details*, give this new configuration a similar
+           name to the AMI.
+            1. No IAM role is required because the AWS API key is set in the AMI.
+            1. Under *Advanced Details > IP Address Type*, select *Do not assign
+               a public IP address to any instances.*
+        1. Under *Add Storage*, change the hard drive type to *Magnetic*. The
+           default size of 20GB should be fine.
+        1. Under *Configure Security Group*, choose a group that allows web and
+           SSH traffic (ports 80 and 22). HTTPS is not required because that is
+           handled by the load balancer.
+
     1. AUTO SCALING > Launch Configurations > Create Auto Scaling Group
         1. Configure Auto Scaling group details
-            1. Put in how many instance you need to prepare for scaling, Select
+            1. Put in how many instances you need to prepare for scaling, Select
                a subnet that is not visible from the outside world, but which
                can be accessed from the load balancer.
             1. On advanced tab - check `Receive traffic from Elastic Load
@@ -109,13 +162,75 @@ Here are the steps of the creating auto-scaling group.
                created
         1. Configure scaling policies - You can specify condition of scale up or
            scale down of the instances
-    1. AUTO SCALING > Auto Scaling Groups
-        1. Create Launch Configuration > My AMIs 
-        1. Select AMI which created before
-        1. Choose same instance type (default)
-        1. At `Configure details`, you need to expand `Advanced details` field
-           and type in `docker restart aq` on User data
-        1. Choose the same storage size as specified by the image (default)
+
+       This scaling group will create instances that are not accessible from the
+       public Internet. To connect to the machine, either go via the load
+       balancer (HTTP, HTTPS) or hop via another EC2 machine for SSH. For
+       example:
+
+       ```
+       ssh ubuntu@<internal IP> -i <key file.pem> \
+           -o ProxyCommand="ssh  -q -W %h:%p ubuntu@<public IP> -i <key file.pem>"
+       ```
+
+       The key file does *not* need to be copied to the hop computer.
+
+
+### Upgrading
+
+Create an instance from the former Aquamark AMI: in the AWS console, choose
+*EC2 > IMAGES > AMIs*, then select the image and choose *Actions > Launch*. A
+*t1.micro* machine should be sufficient.
+
+Under *Configure Security Group*, choose a security group that allows SSH (but
+probably not anything else). If you want to test the web services, open an [SSH
+tunnel]. This is important because the machine may have access to confidential
+data but the connection may not be encrypted.
+
+Launch the instance. When you do so, you will be prompted to choose an SSH key.
+Make sure you choose one that you have access to. You can create a new one if
+you need to; when you download it, save it to `~/.ssh/` and give it permissions
+of `400`. Then connect to the machine:
+
+```
+ssh ubuntu@<host> -i <key file.pem>
+```
+
+Check the current configuration (you may need to reuse some of it), then delete
+the current Docker instance. Remember to delete the volumes with the `-v`
+switch:
+
+```
+sudo docker inspect aquamark
+sudo docker rm -fv aquamark
+```
+
+Update the source code, and check out the branch you're interested in. Discard
+local changes. Replace `v1.0.1` with the branch, tag or ref you're
+interested in.
+
+```
+cd aquamark
+git fetch
+git reset --hard HEAD
+git checkout v1.0.1
+```
+
+Now build the Docker image and start a fresh `aquamark` instance as described
+above. There is no need to reinstall the watchdog crontab if it was installed
+previously, because it will automatically refer to the new file (provided the
+path in the source code has not changed).
+
+Finally, follow the process for creating a new AWS launch configuration and
+scaling group using the new instance to create the AMI. Add it to the existing
+load balancer. After the new scaling group is active, delete the old one and
+ensure the old instances have stopped.
+
+**Important:** The old scaling group must be deleted, or some users will see the
+old site.
+
+
+[SSH tunnel]: http://blog.trackets.com/2014/05/17/ssh-tunnel-local-and-remote-port-forwarding-explained-with-examples.html
 
 
 ## Development

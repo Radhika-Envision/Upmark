@@ -34,6 +34,11 @@ $anim-time: 0.3s;
     }
 }
 
+.btn.pull-right {
+    position: relative;
+    z-index: 1;
+}
+
 .input-group-addon {
     border-color: transparent;
     &.text-muted {

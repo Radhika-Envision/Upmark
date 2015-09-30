@@ -56,6 +56,10 @@ def parse_options():
         help="Development mode (default: True)")
 
     tornado.options.define(
+        "force_https", default=os.environ.get('FORCE_HTTPS', 'True'),
+        help="Redirect to HTTPS when running on AWS (default: True)")
+
+    tornado.options.define(
         "analytics_id", default=os.environ.get('ANALYTICS_ID', ''),
         help="Google Analytics ID, leave blank to disable (default: '')")
 
@@ -157,6 +161,7 @@ def get_mappings():
         (r"/logout/?", handlers.AuthLogoutHandler),
         (r"/()", handlers.MainHandler, {
             'path': '../client/index.html'}),
+        (r"/ping.*", handlers.PingHandler, {}),
 
         (r"/bower_components/(.*)", tornado.web.StaticFileHandler, {
             'path': os.path.join(
