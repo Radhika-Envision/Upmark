@@ -1074,7 +1074,8 @@ angular.module('wsaa.surveyQuestions', [
                 lineHeight = 1.1, // ems
                 y = text.attr("y"),
                 dy = parseFloat(text.attr("dy")),
-                tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+                tspan = text.text(null).append("tspan")
+                    .attr("x", 0).attr("y", y).attr("dy", dy + "em");
             while (word = words.pop()) {
               line.push(word);
               tspan.text(line.join(" "));
@@ -1082,7 +1083,10 @@ angular.module('wsaa.surveyQuestions', [
                 line.pop();
                 tspan.text(line.join(" "));
                 line = [word];
-                tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+                tspan = text.append("tspan")
+                    .attr("x", 0).attr("y", y)
+                    .attr("dy", ++lineNumber * lineHeight + dy + "em")
+                    .text(word);
               }
             }
           });
@@ -1113,8 +1117,10 @@ angular.module('wsaa.surveyQuestions', [
                 // Compute whiskers. Must return exactly 2 elements, or null.
                 var whiskerData = [d.survey_min, d.survey_max];
 
-                // Compute outliers. If no whiskers are specified, all data are "outliers".
-                // We compute the outliers as indices, so that we can join across transitions!
+                // Compute outliers. If no whiskers are specified, all data are
+                // "outliers".
+                // We compute the outliers as indices, so that we can join
+                // across transitions!
                 var outlierIndices = d3.range(n);
 
                 // Compute the new x-scale.
@@ -1162,9 +1168,13 @@ angular.module('wsaa.surveyQuestions', [
                 box.enter().append("rect")
                     .attr("class", "box")
                     .attr("x", 0)
-                    .attr("y", function(item) { return x1(item[2]); })
+                    .attr("y", function(item) {
+                        return x1(item[2]);
+                    })
                     .attr("width", lineWidth)
-                    .attr("height", function(item) { return x1(item[0]) - x1(item[2]); });
+                    .attr("height", function(item) {
+                        return x1(item[0]) - x1(item[2]);
+                    });
 
                 // Update median line.
                 var medianData = [];
@@ -1176,13 +1186,17 @@ angular.module('wsaa.surveyQuestions', [
 
                 medianLine.enter().append("line")
                     .attr("class", "median")
-                    .attr("x1", function(item, i) { if (!d.compareMode)
-                                                    return 0;
-                                                 return i == 0 ? 0:width/2; })
+                    .attr("x1", function(item, i) {
+                        if (!d.compareMode)
+                            return 0;
+                        return i == 0 ? 0 : width / 2;
+                    })
                     .attr("y1", x1)
-                    .attr("x2", function(item, i) { if (!d.compareMode)
-                                                    return width;
-                                                 return i == 0 ? width/2:width; })
+                    .attr("x2", function(item, i) {
+                        if (!d.compareMode)
+                            return width;
+                        return i == 0 ? width / 2 : width;
+                    })
                     .attr("y2", x1);
 
                 // Update current line.
@@ -1211,7 +1225,8 @@ angular.module('wsaa.surveyQuestions', [
                 }
 
                 // Update whiskers.
-                var wisker_data = [d.data[0].min, d.data[0].survey_min, d.data[0].survey_max, d.data[0].max];
+                var wisker_data = [d.data[0].min, d.data[0].survey_min,
+                        d.data[0].survey_max, d.data[0].max];
                 var whisker = g.selectAll("line.whisker")
                     .data(wisker_data);
 
