@@ -29,25 +29,34 @@ class ExportStructureHandler(handlers.BaseHandler):
 
     @handlers.authz('author')
     def get(self, survey_id):
-        output_file = 'export_{}.xlsx'.format(survey_id)
+        hierarchy_id = self.get_argument("hierarchyId", None)
+        if hierarchy_id is None:
+            raise Exception("Parameter hierarchyId is missing.")
+        output_file = 'export_{0}_{1}.xlsx'.format(survey_id, hierarchy_id)
         if os.path.exists(output_file):
             os.remove(output_file)
 
-        self.background_task(survey_id)
+        assessment_id = self.get_argument("assessmentId", None)
+
+        self.background_task(survey_id, hierarchy_id, assessment_id)
         buf_size = 4096
         self.set_header('Content-Type', 'application/octet-stream')
-        self.set_header('Content-Disposition', 'attachment; filename=' + output_file)
+        self.set_header('Content-Disposition', 'attachment; filename=' 
+            + output_file)
         with open(output_file, 'rb') as f:
             while True:
                 data = f.read(buf_size)
                 if not data:
                     break
                 self.write(data)
+        os.remove(output_file)
         self.finish()
 
-    def background_task(self, survey_id):
+    def background_task(self, survey_id, hierarchy_id, assessment_id):
         e = Exporter()
-        survey_id = e.process_structure_file(survey_id)
+        survey_id = e.process_structure_file(survey_id, 
+                                             hierarchy_id, 
+                                             assessment_id)
 
 
 class Exporter():
@@ -61,18 +70,18 @@ class Exporter():
                 num = num * 26 + (ord(c.upper()) - ord('A'))
         return num
 
-    def process_structure_file(self, survey_id):
+    def process_structure_file(self, survey_id, hierarchy_id, assessment_id):
         """
         Open and read an Excel file
         """
         model.connect_db(os.environ.get('DATABASE_URL'))
-        workbook = xlsxwriter.Workbook("export_{}.xlsx".format(survey_id))
+        workbook = xlsxwriter.Workbook('export_{0}_{1}.xlsx'
+            .format(survey_id, hierarchy_id))
         worksheet = workbook.add_worksheet('Scoring')
-        worksheet.set_column(0, 0, 20) 
-        worksheet.set_column(1, 1, 220)
-        worksheet.set_column(2, 2, 10) 
+        worksheet.set_column(0, 0, 12) 
+        worksheet.set_column(1, 1, 100)
+        worksheet.set_column(2, 2, 18) 
         worksheet.set_column(3, 3, 25)
-        worksheet.set_column(4, 4, 25) 
 
         with model.session_scope() as session:
             survey = session.query(model.Survey).get(survey_id)
@@ -80,7 +89,7 @@ class Exporter():
                 raise Exception("There is no Survey.")
 
             hierarchy = session.query(model.Hierarchy).get((
-                survey.hierarchies[0].id, survey_id))
+                hierarchy_id, survey_id))
             if hierarchy is None:
                 raise Exception("There is no Hierarchy.")
 
@@ -88,7 +97,7 @@ class Exporter():
 
             prefix = ""
 
-            list = session.query(model.QuestionNode).filter(
+            list1 = session.query(model.QuestionNode).filter(
                         model.QuestionNode.survey_id==survey_id,
                         model.QuestionNode.hierarchy_id==hierarchy.id).all()
 
@@ -98,13 +107,14 @@ class Exporter():
                                    "description" : item.description, 
                                    "seq" : item.seq, 
                                    "total_weight" : item.total_weight}
-                             for item in list]
+                             for item in list1]
 
             list2 = session.query(model.QnodeMeasure).filter(
                         model.QnodeMeasure.survey_id==survey_id).all()
 
 
-            measure_list = [{"qnode_id" : str(item.qnode_id), 
+            measure_list = [{"measure_id": str(item.measure.id),
+                                   "qnode_id" : str(item.qnode_id), 
                                    "title" : item.measure.title, 
                                    "intent" : item.measure.intent, 
                                    "inputs" : item.measure.inputs, 
@@ -115,14 +125,28 @@ class Exporter():
                                    "seq" : item.seq}
                              for item in list2]
 
+            response_list = []
+            if assessment_id is not None:
+                responses = session.query(model.Response)\
+                    .filter(model.Response.assessment_id==assessment_id,
+                        model.Response.survey_id==survey_id).all()
+
+                if responses:
+                    response_list = [{"measure_id" : str(item.measure.id),
+                                      "response_parts": item.response_parts,
+                                      "weight": item.parent_qnode.total_weight,
+                                      "score" : item.score }
+                                    for item in responses]
+                log.info("response_list: %s", response_list)
  
             self.write_qnode_to_worksheet(session, workbook, worksheet, 
-                qnode_list, measure_list, 'None', prefix, 0)
+                qnode_list, measure_list, response_list, 'None', prefix, 0)
 
         workbook.close()
 
     def write_qnode_to_worksheet(self, session, workbook, worksheet, 
-                qnode_list, measure_list, parent_id, prefix, depth):
+                qnode_list, measure_list, response_list, 
+                parent_id, prefix, depth):
 
         filtered = [node for node in qnode_list 
                          if node["parent_id"] == parent_id]
@@ -132,14 +156,13 @@ class Exporter():
 
         format = workbook.add_format()
         format.set_text_wrap()
-        format.set_top_color('black')
+        format.set_border_color('white')
         format.set_top(1)
         format2 = workbook.add_format()
         format2.set_font_size(12)
         format2.set_text_wrap()
-        format2.set_top_color('black')
+        format2.set_border_color('white')
         format2.set_bottom(1)
-
 
         depth_colors = ["#4F81BD", "#C0504D", "#9BBB59", "#FABF8F"]
         if depth == 0:
@@ -157,26 +180,27 @@ class Exporter():
         format2.set_bg_color(depth_colors[depth])
 
         for qnode in filtered_list:
+            response_score = [r for r in response_list
+                                if r["qnode_id"] == qnode["id"]]
             numbering = prefix + str(qnode["seq"] + 1) + ". "
             worksheet.merge_range("A{0}:B{0}".format(self.line + 1), 
                 numbering + qnode["title"], format)
             worksheet.write(self.line, 2, qnode["total_weight"], format)
-            worksheet.write(self.line, 3, '0%', format)
-            worksheet.write(self.line, 4, '', format)
+            worksheet.write(self.line, 3, 0, format)
             self.line = self.line + 1
             worksheet.write(self.line, 0, '', format2)
             worksheet.write(self.line, 1, qnode["description"], format2)
             worksheet.write(self.line, 2, '', format2)
             worksheet.write(self.line, 3, '', format2)
-            worksheet.write(self.line, 4, '', format2)
             self.line = self.line + 1
             self.write_qnode_to_worksheet(session, workbook, worksheet, 
-                qnode_list, measure_list, qnode["id"], numbering, depth + 1)
+                qnode_list, measure_list, response_list, qnode["id"], numbering, 
+                depth + 1)
             self.write_measure_to_worksheet(session, workbook, worksheet, 
-                measure_list, qnode["id"], numbering)
+                measure_list, response_list, qnode["id"], numbering)
 
     def write_measure_to_worksheet(self, session, workbook, worksheet, 
-                measure_list, qnode_id, prefix):
+                measure_list, response_list, qnode_id, prefix):
 
         filtered = [node for node in measure_list 
                          if node["qnode_id"] == qnode_id]
@@ -189,25 +213,28 @@ class Exporter():
         format.set_bottom(1)
         format_header = workbook.add_format()
         format_header.set_bg_color("#FFE4E1")
+        format_header.set_text_wrap()
         format_header.set_bottom_color('white')
         format_header.set_bottom(1)
         format_end = workbook.add_format()
         format_end.set_text_wrap()
         format_end.set_bg_color("#FABF8F")
-        format_end.set_bottom_color('black')
+        format_end.set_bottom_color('white')
         format_end.set_bottom(1)
         format_header_end = workbook.add_format()
         format_header_end.set_bg_color("#FFE4E1")
-        format_header_end.set_bottom_color('black')
+        format_header_end.set_bottom_color('white')
         format_header_end.set_bottom(1)
         format_part = workbook.add_format()
         format_part.set_text_wrap()
         format_part.set_bg_color("#CCC0DA")
         format_part.set_bottom_color('white')
+        format_part.set_bottom(1)
         format_part_answer = workbook.add_format()
         format_part_answer.set_text_wrap()
         format_part_answer.set_bg_color("#B1A0C7")
         format_part_answer.set_bottom_color('white')
+        format_part_answer.set_bottom(1)
 
         for qnode_measure in filtered_list:
             response_types = [type for type in self.response_types 
@@ -218,7 +245,6 @@ class Exporter():
             worksheet.write(self.line, 1, numbering + qnode_measure["title"], format)
             worksheet.write(self.line, 2, qnode_measure["weight"], format)
             worksheet.write(self.line, 3, '', format)
-            worksheet.write(self.line, 4, '', format)
             self.line = self.line + 1
             worksheet.write(self.line, 0, "intent", format_header)
             worksheet.write(self.line, 1, qnode_measure["intent"], format)
@@ -240,15 +266,29 @@ class Exporter():
             worksheet.write(self.line, 1, qnode_measure["questions"], format_end)
             worksheet.write(self.line, 2, '', format_end)
             worksheet.write(self.line, 3, '', format_end)
-            worksheet.write(self.line, 4, '', format_end)
             ## answer option
             parts_len = len(response_types[0]["parts"])
             index = 0
             for part in response_types[0]["parts"]:
-                worksheet.write(self.line - parts_len + index, 3,
+                worksheet.write(self.line - parts_len + index, 2,
                     part["name"], format_part)
-                worksheet.write(self.line - parts_len + index, 4,
-                    '', format_part_answer)
                 index = index + 1
+
+            measure_response = [r for r in response_list 
+                        if r["measure_id"] == qnode_measure["measure_id"]]
+
+            index = 0
+            if measure_response:
+                log.info("measure_response: %s", measure_response[0])
+                for part in measure_response[0]["response_parts"]:
+                    worksheet.write(self.line - parts_len + index, 3,
+                        part["note"], format_part_answer)
+                    index = index + 1
+            else:
+                for i in range(0, parts_len):
+                    worksheet.write(self.line - parts_len + index, 3,
+                        '', format_part_answer)
+                    index = index + 1
+
 
             self.line = self.line + 1

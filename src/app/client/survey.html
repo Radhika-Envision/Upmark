@@ -5,10 +5,6 @@
                 ng-href="#/survey/new?duplicate={{survey.id}}"
                 ng-if="!edit.model && checkRole('survey_dup')">
             <small><i class="fa fa-clone"></i></small></button></a>
-        <a class="btn btn-default btn-round" title="Export"
-                ng-href="/export/structure/{{survey.id}}.json"
-                ng-if="!edit.model && checkRole('survey_dup')">
-            <small><i class="fa fa-file-excel-o"></i></small></button></a>
         <button class="btn btn-default btn-round" title="Delete"
                 ng-click="edit.del()"
                 ng-if="survey.isEditable && !edit.model &&

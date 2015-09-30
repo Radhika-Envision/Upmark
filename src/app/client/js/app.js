@@ -500,6 +500,7 @@ angular.module('wsaa.aquamark',
                     }],
                 })}
             })
+
             .when('/statistics', {
                 templateUrl : 'statistics.html',
                 controller : 'StatisticsCtrl',
