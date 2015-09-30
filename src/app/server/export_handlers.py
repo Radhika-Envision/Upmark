@@ -180,8 +180,8 @@ class Exporter():
         format2.set_bg_color(depth_colors[depth])
 
         for qnode in filtered_list:
-            response_score = [r for r in response_list
-                                if r["qnode_id"] == qnode["id"]]
+            # response_score = [r for r in response_list
+            #                     if r["qnode_id"] == qnode["id"]]
             numbering = prefix + str(qnode["seq"] + 1) + ". "
             worksheet.merge_range("A{0}:B{0}".format(self.line + 1), 
                 numbering + qnode["title"], format)
