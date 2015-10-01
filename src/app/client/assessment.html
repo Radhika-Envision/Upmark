@@ -2,8 +2,13 @@
 <div class="container">
     <div class="toolbar">
         <a class="btn btn-default btn-round" title="Export"
+<<<<<<< HEAD
                 ng-href="/export/assessment/{{assessment.id}}.xlsx"
                 download ng-if="!edit.model">
+=======
+                ng-href="/export/structure/{{survey.id}}.json?hierarchyId={{structure.hierarchy.id}}&assessmentId={{assessment.id}}"
+                ng-if="structure.hierarchy && survey && assessment">
+>>>>>>> add score and percentage of progress
             <i class="fa fa-file-excel-o"></i></a>
         <a class="btn btn-default btn-round" title="Statistics"
                 ng-href="#/statistics?assessment1={{assessment.id}}"

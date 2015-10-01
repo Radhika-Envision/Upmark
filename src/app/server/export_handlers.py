@@ -167,19 +167,24 @@ class Exporter():
 
 
             measure_list = [{"measure_id": str(item.measure.id),
-                                   "qnode_id" : str(item.qnode_id), 
-                                   "title" : item.measure.title, 
-                                   "intent" : item.measure.intent, 
-                                   "inputs" : item.measure.inputs, 
-                                   "scenario" : item.measure.scenario, 
-                                   "questions" : item.measure.questions,
-                                   "weight" : item.measure.weight,
+                                   "qnode_id": str(item.qnode_id), 
+                                   "title": item.measure.title, 
+                                   "intent": item.measure.intent, 
+                                   "inputs": item.measure.inputs, 
+                                   "scenario": item.measure.scenario, 
+                                   "questions": item.measure.questions,
+                                   "weight": item.measure.weight,
                                    "response_type" : item.measure.response_type,
                                    "seq" : item.seq}
                              for item in list2]
 
             response_list = []
+<<<<<<< HEAD
             if assessment_id != '':
+=======
+            response_qnode_list = []
+            if assessment_id is not None:
+>>>>>>> add score and percentage of progress
                 responses = session.query(model.Response)\
                     .filter(model.Response.assessment_id==assessment_id,
                         model.Response.survey_id==survey_id).all()
@@ -187,18 +192,26 @@ class Exporter():
                 if responses:
                     response_list = [{"measure_id" : str(item.measure.id),
                                       "response_parts": item.response_parts,
-                                      "weight": item.parent_qnode.total_weight,
+                                      "weight": item.measure.weight,
                                       "score" : item.score }
                                     for item in responses]
-                log.info("response_list: %s", response_list)
- 
+                response_nodes = session.query(model.ResponseNode)\
+                    .filter(model.ResponseNode.assessment_id==assessment_id,
+                        model.ResponseNode.survey_id==survey_id).all()
+                if response_nodes:
+                    response_qnode_list = [{"qnode_id" : str(item.qnode.id),
+                                      "weight": item.qnode.total_weight,
+                                      "score" : item.score }
+                                    for item in response_nodes]
+
             self.write_qnode_to_worksheet(session, workbook, worksheet, 
-                qnode_list, measure_list, response_list, 'None', prefix, 0)
+                qnode_list, response_qnode_list, measure_list, response_list, 
+                'None', prefix, 0)
 
         workbook.close()
 
     def write_qnode_to_worksheet(self, session, workbook, worksheet, 
-                qnode_list, measure_list, response_list, 
+                qnode_list, response_qnode_list, measure_list, response_list, 
                 parent_id, prefix, depth):
 
         filtered = [node for node in qnode_list 
@@ -211,6 +224,11 @@ class Exporter():
         format.set_text_wrap()
         format.set_border_color('white')
         format.set_top(1)
+        format_percent = workbook.add_format()
+        format_percent.set_text_wrap()
+        format_percent.set_border_color('white')
+        format_percent.set_top(1)
+        format_percent.set_num_format(10)
         format2 = workbook.add_format()
         format2.set_font_size(12)
         format2.set_text_wrap()
@@ -231,15 +249,21 @@ class Exporter():
 
         format.set_bg_color(depth_colors[depth])
         format2.set_bg_color(depth_colors[depth])
+        format_percent.set_bg_color(depth_colors[depth])
 
         for qnode in filtered_list:
-            # response_score = [r for r in response_list
-            #                     if r["qnode_id"] == qnode["id"]]
+            response_score = [r for r in response_qnode_list
+                                if r["qnode_id"] == qnode["id"]]
+            percent = None
+            if response_score:
+                percent = response_score[0]["score"] / response_score[0]["weight"]
+
+
             numbering = prefix + str(qnode["seq"] + 1) + ". "
             worksheet.merge_range("A{0}:B{0}".format(self.line + 1), 
                 numbering + qnode["title"], format)
             worksheet.write(self.line, 2, qnode["total_weight"], format)
-            worksheet.write(self.line, 3, 0, format)
+            worksheet.write(self.line, 3, percent, format_percent)
             self.line = self.line + 1
             worksheet.write(self.line, 0, '', format2)
             worksheet.write(self.line, 1, qnode["description"], format2)
@@ -247,8 +271,8 @@ class Exporter():
             worksheet.write(self.line, 3, '', format2)
             self.line = self.line + 1
             self.write_qnode_to_worksheet(session, workbook, worksheet, 
-                qnode_list, measure_list, response_list, qnode["id"], numbering, 
-                depth + 1)
+                qnode_list, response_qnode_list, measure_list, response_list, 
+                qnode["id"], numbering, depth + 1)
             self.write_measure_to_worksheet(session, workbook, worksheet, 
                 measure_list, response_list, qnode["id"], numbering)
 
@@ -264,6 +288,12 @@ class Exporter():
         format.set_bg_color("#FABF8F")
         format.set_bottom_color('white')
         format.set_bottom(1)
+        format_percent = workbook.add_format()
+        format_percent.set_text_wrap()
+        format_percent.set_bg_color("#FABF8F")
+        format_percent.set_bottom_color('white')
+        format_percent.set_bottom(1)
+        format_percent.set_num_format(10)
         format_header = workbook.add_format()
         format_header.set_bg_color("#FFE4E1")
         format_header.set_text_wrap()
@@ -293,11 +323,17 @@ class Exporter():
             response_types = [type for type in self.response_types 
                                 if type["id"] == qnode_measure["response_type"]]
 
+            response = [r for r in response_list
+                            if r["measure_id"] == qnode_measure["measure_id"]]
+            percentage = None
+            if response:
+                percentage = response[0]["score"] / response[0]["weight"]
+
             numbering = prefix + str(qnode_measure["seq"] + 1) + ". "
             worksheet.write(self.line, 0, '', format_header)
             worksheet.write(self.line, 1, numbering + qnode_measure["title"], format)
             worksheet.write(self.line, 2, qnode_measure["weight"], format)
-            worksheet.write(self.line, 3, '', format)
+            worksheet.write(self.line, 3, percentage, format_percent)
             self.line = self.line + 1
             worksheet.write(self.line, 0, "intent", format_header)
             worksheet.write(self.line, 1, qnode_measure["intent"], format)
