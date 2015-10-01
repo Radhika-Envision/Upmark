@@ -1176,28 +1176,22 @@ angular.module('wsaa.surveyQuestions', [
                         return x1(item[0]) - x1(item[2]);
                     });
 
-                // Update median line.
-                var medianData = [];
-                angular.forEach(d.data, function(item) {
-                    medianData.push(item.quartile[1]);
-                });
-                var medianLine = g.selectAll("line.median")
-                    .data(medianData);
+                if (d.compareMode) {
+                    var box2 = g.selectAll("rect.box2")
+                        .data([quartileData[1]]);
 
-                medianLine.enter().append("line")
-                    .attr("class", "median")
-                    .attr("x1", function(item, i) {
-                        if (!d.compareMode)
-                            return 0;
-                        return i == 0 ? 0 : width / 2;
-                    })
-                    .attr("y1", x1)
-                    .attr("x2", function(item, i) {
-                        if (!d.compareMode)
-                            return width;
-                        return i == 0 ? width / 2 : width;
-                    })
-                    .attr("y2", x1);
+                    box2.enter().append("rect")
+                        .attr("class", "box")
+                        .attr("x", width / 2)
+                        .attr("y", function(item) {
+                            return x1(item[2]);
+                        })
+                        .attr("width", lineWidth)
+                        .attr("height", function(item) {
+                            return x1(item[0]) - x1(item[2]);
+                        });
+                }
+
 
                 // Update current line.
                 var currentData = [d.data[0].current];
@@ -1265,22 +1259,7 @@ angular.module('wsaa.surveyQuestions', [
                     .attr("text-anchor", "end")
                     .text(format);
 
-                console.log(d);
                 if (d.compareMode) {
-                    var box2 = g.selectAll("rect.box2")
-                        .data([quartileData[1]]);
-
-                    box2.enter().append("rect")
-                        .attr("class", "box")
-                        .attr("x", width / 2)
-                        .attr("y", function(item) {
-                            return x1(item[2]);
-                        })
-                        .attr("width", lineWidth)
-                        .attr("height", function(item) {
-                            return x1(item[0]) - x1(item[2]);
-                        });
-
                     var wisker_data2 = [
                         d.data[1].min,
                         d.data[1].survey_min,
@@ -1320,9 +1299,33 @@ angular.module('wsaa.surveyQuestions', [
                         .attr("x", width)
                         .attr("y", x1)
                         .attr("text-anchor", "start")
-                        .text(x1.tickFormat(8));
+                        .text(format);
 
                 }
+
+                // Update median line.
+                var medianData = [];
+                angular.forEach(d.data, function(item) {
+                    medianData.push(item.quartile[1]);
+                });
+                var medianLine = g.selectAll("line.median")
+                    .data(medianData);
+
+                medianLine.enter().append("line")
+                    .attr("class", "median")
+                    .attr("x1", function(item, i) {
+                        if (!d.compareMode)
+                            return 0;
+                        return i == 0 ? 0 : width / 2;
+                    })
+                    .attr("y1", x1)
+                    .attr("x2", function(item, i) {
+                        if (!d.compareMode)
+                            return width;
+                        return i == 0 ? width / 2 : width;
+                    })
+                    .attr("y2", x1);
+
 
                 var title = g.selectAll("title.textbox")
                     .data([d.title]);
