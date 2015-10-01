@@ -214,6 +214,8 @@ def get_mappings():
             export_handlers.ExportSurveyHandler, {}),
         (r"/export/assessment/([^/]*)\.(.+)",
             export_handlers.ExportAssessmentHandler, {}),
+        (r"/export/response/([^/]*)\.(.+)",
+            export_handlers.ExportResponseHandler, {}),
 
         (r"/(.*)", tornado.web.StaticFileHandler, {
             'path': os.path.join(package_dir, "..", "client")}),

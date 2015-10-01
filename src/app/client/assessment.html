@@ -5,6 +5,10 @@
                 ng-href="/export/assessment/{{assessment.id}}.xlsx"
                 download ng-if="!edit.model">
             <i class="fa fa-file-excel-o"></i></a>
+        <a class="btn btn-default btn-round" title="Export2"
+                ng-href="/export/response/{{assessment.id}}.xlsx"
+                download ng-if="!edit.model">
+            <i class="fa fa-file-excel-o"></i></a>
         <a class="btn btn-default btn-round" title="Statistics"
                 ng-href="#/statistics?assessment1={{assessment.id}}"
                 ng-if="!edit.model && checkRole('assessment_admin')">

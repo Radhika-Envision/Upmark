@@ -112,6 +112,50 @@ class ExportAssessmentHandler(handlers.BaseHandler):
         survey_id = e.process_structure_file(
             path, survey_id, hierarchy_id, assessment_id)
 
+
+class ExportResponseHandler(handlers.BaseHandler):
+    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
+
+    @tornado.web.authenticated
+    @gen.coroutine
+    def get(self, assessment_id, extension):
+        if extension != 'xlsx':
+            raise handlers.MissingDocError(
+                "File type not supported: %s" % extension)
+
+        with model.session_scope() as session:
+            assessment = (session.query(model.Assessment)
+                    .get(assessment_id))
+            if assessment.organisation.id != self.organisation.id:
+                self.check_privillege('consultant')
+            hierarchy_id = str(assessment.hierarchy_id)
+            survey_id = str(assessment.survey_id)
+
+        output_file = 'submission_response_{0}.xlsx'.format(assessment_id)
+
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            output_path = os.path.join(tmpdirname, output_file)
+            yield self.background_task(
+                output_path, survey_id, hierarchy_id, assessment_id)
+            self.set_header('Content-Type', 'application/octet-stream')
+            self.set_header('Content-Disposition', 'attachment; filename='
+                + output_file)
+
+            with open(output_path, 'rb') as f:
+                while True:
+                    data = f.read(BUF_SIZE)
+                    if not data:
+                        break
+                    self.write(data)
+
+        self.finish()
+
+    @run_on_executor
+    def background_task(self, path, survey_id, hierarchy_id,
+            assessment_id):
+        e = Exporter()
+        survey_id = e.process_response_file(path, survey_id, assessment_id)
+
 class Exporter():
 
     line = 0
@@ -377,3 +421,55 @@ class Exporter():
 
 
             self.line = self.line + 1
+
+    def process_response_file(self, file_name, survey_id, assessment_id):
+
+        """
+        Open and write an Excel file
+        """
+        model.connect_db(os.environ.get('DATABASE_URL'))
+        workbook = xlsxwriter.Workbook(file_name)
+        worksheet = workbook.add_worksheet('Response')
+
+        format = workbook.add_format()
+        format.set_text_wrap()
+        format_comment = workbook.add_format()
+        format_percent = workbook.add_format()
+        format_percent.set_num_format(10)
+
+        line = 0
+
+        with model.session_scope() as session:
+            assessment = session.query(model.Assessment)\
+                .get(assessment_id)
+
+            if assessment:
+                levels = len(assessment.hierarchy.structure["levels"])
+                worksheet.set_column(0, levels, 50) 
+
+                for response in assessment.ordered_responses:
+                    qnode = response.measure.get_parent(assessment.hierarchy_id)
+                    self.write_qnode(worksheet, qnode, line, format, levels - 1)
+                    worksheet.write(line, levels, response.measure.title, format)
+                    last_col = self.write_response_parts(worksheet, response.response_parts, line, format, levels + 1)
+                    worksheet.write(line, last_col, response.score / response.measure.weight, format_percent)
+                    worksheet.write(line, last_col+1, response.score, format)
+                    worksheet.write(line, last_col+2, response.comment, format_comment)
+                    line = line + 1
+
+        workbook.close()
+
+    def write_qnode(self, sheet, qnode, line, format, col):
+        if qnode.parent != None:
+            self.write_qnode(sheet, qnode.parent, line, format, col - 1)
+        sheet.write(line, col, qnode.title, format)
+
+
+    def write_response_parts(self, sheet, parts, line, format, col):
+        if parts != None:
+            for part in parts:
+                log.info("part:%s", part)
+                sheet.write(line, col, part["note"], format)
+                col = col + 1
+        return col
+
