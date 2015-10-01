@@ -179,12 +179,8 @@ class Exporter():
                              for item in list2]
 
             response_list = []
-<<<<<<< HEAD
-            if assessment_id != '':
-=======
             response_qnode_list = []
             if assessment_id is not None:
->>>>>>> add score and percentage of progress
                 responses = session.query(model.Response)\
                     .filter(model.Response.assessment_id==assessment_id,
                         model.Response.survey_id==survey_id).all()
