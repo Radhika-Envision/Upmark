@@ -364,6 +364,8 @@ class MainHandler(BaseHandler):
 
 
 class AuthLoginHandler(MainHandler):
+    EXPIRE_DAYS = 30
+
     def get(self, user_id):
         '''
         Log in page (form).
@@ -408,10 +410,28 @@ class AuthLoginHandler(MainHandler):
             self.redirect("/login/" + error_msg)
             return
 
-        self.set_secure_cookie("user", str(user.id).encode('utf8'))
+        self.set_secure_cookie(
+            "user", str(user.id).encode('utf8'),
+            expires_days=AuthLoginHandler.EXPIRE_DAYS)
         if model.has_privillege(user.role, 'admin'):
-            self.set_secure_cookie("superuser", str(user.id).encode('utf8'))
+            self.set_secure_cookie(
+                "superuser", str(user.id).encode('utf8'),
+                expires_days=AuthLoginHandler.EXPIRE_DAYS)
+
         self.redirect(self.get_argument("next", "/"))
+
+    @property
+    def xsrf_token(self):
+        # Workaround for XSRF cookie that expires too soon: because
+        # _current_user is not defined yet, the default implementation of
+        # xsrf_token does not set the cookie's expiration. The mismatch
+        # between the _xsrf and user cookie expiration causes POST requests
+        # to fail even when the user thinks they are still logged in.
+        token = super().xsrf_token
+        self.set_cookie(
+            '_xsrf', token,
+            expires_days=AuthLoginHandler.EXPIRE_DAYS)
+        return token
 
     @tornado.web.authenticated
     def put(self, user_id):
@@ -439,7 +459,11 @@ class AuthLoginHandler(MainHandler):
 
             name = user.name
             log.warn('User %s is impersonating %s', superuser.email, user.email)
-            self.set_secure_cookie("user", str(user.id).encode('utf8'))
+            self.set_secure_cookie(
+                "user", str(user.id).encode('utf8'),
+                expires_days=AuthLoginHandler.EXPIRE_DAYS)
+            # Make sure the XSRF token expires at the same time
+            self.xsrf_token
 
         self.set_header("Content-Type", "text/plain")
         self.write("Impersonating %s" % name)
