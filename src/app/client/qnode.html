@@ -61,7 +61,7 @@
             <i class="fa fa-fw fa-ban"></i></button>
 
         <span title="Score">
-            {{rnode.score}}
+            {{rnode.score | number:0}}
         </span>
         <span title="Progress">
             <column-progress items="stats.progressItems"></column-progress>
