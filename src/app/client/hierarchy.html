@@ -11,10 +11,25 @@
                 ng-if="survey.isEditable && !edit.model &&
                     checkRole('hierarchy_del')">
             <i class="fa fa-trash-o"></i></button>
-        <a class="btn btn-default btn-round" title="Export survey structure"
-                ng-href="/export/survey/{{survey.id}}/hierarchy/{{hierarchy.id}}.xlsx"
-                download ng-if="!edit.model">
-            <i class="fa fa-file-excel-o"></i></a>
+
+        <span dropdown dropdown-append-to-body ng-if="!edit.model">
+            <button class="btn btn-default btn-round"
+                    title="Export" dropdown-toggle>
+                <i class="fa fa-cloud-download"></i></button>
+
+            <ul class="dropdown-menu dropdown-menu-right">
+                <li class="dropdown-header">Export survey structure</li>
+                <li>
+                    <a title="Download Excel file"
+                            ng-href="/export/survey/{{survey.id}}/hierarchy/{{hierarchy.id}}.xlsx"
+                            download>
+                        <i class="fa fa-th-list"></i>
+                        Colourful spreadsheet
+                    </a>
+                </li>
+            </ul>
+        </span>
+
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
                 ng-if="edit.model && edit.model.id">

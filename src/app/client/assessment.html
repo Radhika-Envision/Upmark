@@ -1,14 +1,33 @@
 <div class="header">
 <div class="container">
     <div class="toolbar">
-        <a class="btn btn-default btn-round" title="Export"
-                ng-href="/export/assessment/{{assessment.id}}.xlsx"
-                download ng-if="!edit.model">
-            <i class="fa fa-file-excel-o"></i></a>
-        <a class="btn btn-default btn-round" title="Export2"
-                ng-href="/export/response/{{assessment.id}}.xlsx"
-                download ng-if="!edit.model">
-            <i class="fa fa-file-excel-o"></i></a>
+
+        <span dropdown dropdown-append-to-body ng-if="!edit.model">
+            <button class="btn btn-default btn-round"
+                    title="Export" dropdown-toggle>
+                <i class="fa fa-cloud-download"></i></button>
+
+            <ul class="dropdown-menu dropdown-menu-right">
+                <li class="dropdown-header">Export submission</li>
+                <li>
+                    <a title="Download Excel file"
+                            ng-href="/export/assessment/{{assessment.id}}.xlsx"
+                            download>
+                        <i class="fa fa-th-list"></i>
+                        Colourful spreadsheet
+                    </a>
+                </li>
+                <li>
+                    <a title="Download Excel file"
+                            ng-href="/export/response/{{assessment.id}}.xlsx"
+                            download>
+                        <i class="fa fa-list-ol"></i>
+                        One measure per row
+                    </a>
+                </li>
+            </ul>
+        </span>
+
         <a class="btn btn-default btn-round" title="Statistics"
                 ng-href="#/statistics?assessment1={{assessment.id}}"
                 ng-if="!edit.model && checkRole('assessment_admin')">
