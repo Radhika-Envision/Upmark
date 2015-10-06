@@ -1105,7 +1105,8 @@ angular.module('wsaa.surveyQuestions', [
 
                 var lineWidth = !d.compareMode ? width : width / 2;
 
-                var displayChart = function (data, index, compareMode) {
+                var displayChart = function (object, index, compareMode) {
+                    var data = object.data[index];
                     // Compute the new x-scale.
                     var yAxis = d3.scale.linear()
                       .domain([data.min, data.max])
@@ -1140,10 +1141,7 @@ angular.module('wsaa.surveyQuestions', [
                         .attr("opacity", 0)
                         .text(format);
 
-                    var center = g.selectAll("line.center" + index)
-                        .data([1]);
-
-                    center.enter().insert("line", "rect")
+                    g.append("line", "rect")
                         .attr("class", "center")
                         .attr("x1", width / 2)
                         .attr("y1", yAxis(data.survey_min))
@@ -1151,11 +1149,7 @@ angular.module('wsaa.surveyQuestions', [
                         .attr("y2", yAxis(data.survey_max));
 
                     // Update innerquartile box.
-                    var box = g.selectAll("rect.box" + index)
-                        .data([1]);
-
-                    console.log(index, data);
-                    box.enter().append("rect")
+                    g.append("rect")
                         .attr("class", "box")
                         .attr("x", index==0 ? 0: width/2) 
                         .attr("y", yAxis(data.quartile[2]))
@@ -1164,22 +1158,16 @@ angular.module('wsaa.surveyQuestions', [
                                 - yAxis(data.quartile[2]));
 
                     // Update current line.
-                    var currentData = [data.current];
-                    var currentLine = g.selectAll("line.current" + index)
-                        .data(currentData);
-
-                    currentLine.enter().append("line")
+                    g.append("line")
                         .attr("class", "current")
                         .attr("x1", index==0?-4:width/2)
-                        .attr("y1", yAxis)
-                        .attr("x2", function(item, index) { if (compareMode) {
-                                                    return index==0?width/2
-                                                        :width+4;
-                                                  } else {
-                                                    return width+4; 
-                                                  }
-                                                })
-                        .attr("y2", yAxis);
+                        .attr("y1", yAxis(data.current))
+                        .attr("x2", function(item) {
+                            if (index==0)
+                                return compareMode ? width/2:width+4;
+                            return width+4; 
+                        })
+                        .attr("y2", yAxis(data.current));
 
                     // Update whiskers.
                     var wisker_data = [data.survey_min,
@@ -1211,61 +1199,51 @@ angular.module('wsaa.surveyQuestions', [
                         .text(format);
 
                     // Update current text
-                    var currentTick = g.selectAll("text.current")
-                        .data(currentData);
-
-                    currentTick.enter().append("text")
+                    g.append("text")
                         .attr("class", "current_text")
                         .attr("dy", ".3em")
                         .attr("dx", index==0?-25:5)
                         .attr("x", width)
-                        .attr("y", yAxis)
+                        .attr("y", yAxis(data.current))
                         .attr("text-anchor", index==0?"end":"start")
-                        .text(format);
+                        .text(format(data.current));
 
-                    var medianData = [data.quartile[1]];
-                    g.selectAll("line.median" + index)
-                        .data(medianData).enter().append("line")
+                    var medianData = data.quartile[1];
+                    g.append("line")
                         .attr("class", "median")
                         .attr("x1", index==0?0:width/2)
-                        .attr("y1", yAxis)
+                        .attr("y1", yAxis(medianData))
                         .attr("x2", index==0?lineWidth:width)
-                        .attr("y2", yAxis);
-
-                    g.selectAll("text.whisker" + index)
-                        .data(medianData).enter().append("text")
+                        .attr("y2", yAxis(medianData));
+                    
+                    g.append("text")
                             .attr("class", "median_text")
                             .attr("dy", ".3em")
                             .attr("dx", index==0?-25:5)
                             .attr("x", width)
-                            .attr("y", yAxis)
+                            .attr("y", yAxis(medianData))
                             .attr("text-anchor", index==0?"end":"start")
                             .attr("opacity", 0)
-                            .text(format);
+                            .text(format(medianData));
 
                     if (index == 0) {
-                        var title = g.selectAll("text.title")
-                            .data([d.title]);
-
-                        title.enter().append("text")
+                        g.append("text")
                             .attr("class", "title")
                             .attr("x", 0)
                             .attr("y", yAxis(0) - 20)
                             .attr("dy", 5)
                             .attr("text-anchor", "middle")
-                            .text(function(item) {
-                                return item;
-                            })
+                            .text(d.title)
                             .call(wrap, 100);
                     }
                 };
 
                 // min and max line
-                displayChart(d.data[0], 0, d.compareMode);
+                displayChart(d, 0, d.compareMode);
 
 
                 if (d.compareMode) {
-                    displayChart(d.data[1], 1, d.compareMode);
+                    displayChart(d, 1, d.compareMode);
                 }
             });
             d3.timer.flush();
