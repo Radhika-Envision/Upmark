@@ -1,17 +1,24 @@
 div.chart {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
+
 .box {
   font: 10px sans-serif;
   cursor: pointer;
+  background-color: #E6E6E6;
 }
 
-.box line,
-.box rect,
+.box line, .box title, 
 .box circle {
   fill: #fff;
-  stroke: #000;
-  stroke-width: 1.5px;
+  stroke: gray;
+  stroke-width: 2px;
+}
+
+.box rect {
+  fill: #DDDDDD;
+  stroke: gray;
+  stroke-width: 2px;  
 }
 
 .box .median {
@@ -20,16 +27,14 @@ div.chart {
 
 .box .current {
   stroke-width: 4px;
-  stroke: red;
+  stroke: #A95252;
 }
 
 .box .current_text {
-  fill: red;
+  fill: #A95252;
 }
 
-
 .box .center {
-  stroke-dasharray: 3,3;
   stroke: gray;
 }
 

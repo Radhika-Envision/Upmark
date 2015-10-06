@@ -1102,15 +1102,6 @@ angular.module('wsaa.surveyQuestions', [
             g.each(function(d, i) {
                 var g = d3.select(this),
                     n = d.length;
-                var min = Infinity;
-                angular.forEach(d.data, function(item) {
-                    min = Math.min(min, item.min);
-                });
-                var max = -Infinity;
-                angular.forEach(d.data, function(item) {
-                    max = Math.max(max, item.max);
-                });
-
                 // Compute quartiles. Must return exactly 3 elements.
                 var quartileData = d.quartiles = quartiles(d);
 
@@ -1124,42 +1115,103 @@ angular.module('wsaa.surveyQuestions', [
                 var outlierIndices = d3.range(n);
 
                 // Compute the new x-scale.
-                var x1 = d3.scale.linear()
-                  .domain([min, max])
-                  .range([height - 20, 0]);
-
-                // Retrieve the old x-scale, if this is an update.
-                var x0 = this.__chart__ || d3.scale.linear()
-                  .domain([d.survey_min, d.survey_max])
-                  .range(x1.range());
-
-                // Stash the new scale.
-                this.__chart__ = x1;
+                var x0 = d3.scale.linear()
+                  .domain([d.data[0].min, d.data[0].max])
+                  .range([height - 40, 20]);
 
                 // Compute the tick format.
-                var format = tickFormat || x1.tickFormat(8);
+                var format = tickFormat || x0.tickFormat(8);
+
+                if (d.compareMode) {
+                    var x1 = d3.scale.linear()
+                      .domain([d.data[1].min, d.data[1].max])
+                      .range([height - 40, 20]);
+                    var format2 = tickFormat || x1.tickFormat(8);
+                }
+
+                // var x0 = this.__chart__ || d3.scale.linear()
+                //   .domain([d.survey_min, d.survey_max])
+                //   .range(x1.range());
+
+                // Stash the new scale.
+                this.__chart__ = x0;
 
                 // Note: the box, median, and box tick elements are fixed in number,
                 // so we only have to handle enter and update. In contrast, the outliers
                 // and other elements are variable, so we need to exit them! Variable
                 // elements also fade in and out.
 
+                // min and max line 
+                var border_data = [d.data[0].min, d.data[0].max];
+                var border = g.selectAll("line.border")
+                    .data(border_data);
+
+                border.enter().insert("line")
+                    .attr("class", "border")
+                    .attr("x1", -50)
+                    .attr("y1", x0)
+                    .attr("x2", 70)
+                    .attr("y2", x0);
+
+                var borderTick = g.selectAll("text.border")
+                    .data(border_data);
+
+                borderTick.enter().append("text")
+                    .attr("class", "border")
+                    .attr("x", width-20)
+                    .attr("y", function(item, i) { 
+                        return i==0 ? x0(item)+15:x0(item)-5; 
+                    })
+                    .attr("text-anchor", "end")
+                    .attr("opacity", 0)
+                    .text(format);
+
+                if (d.compareMode) {
+                    var border_data2 = [d.data[1].min, d.data[1].max];
+
+                    var borderTick2 = g.selectAll("text.border2")
+                        .data(border_data2);
+
+                    borderTick2.enter().append("text")
+                        .attr("class", "border")
+                        .attr("x", width)
+                        .attr("y", function(item, i) {
+                            console.log(item);
+                            if (d.data[1].min == d.data[1].max)
+                                return x1(item)+15;
+                            return i==0 ? x1(item)+15:x1(item)-5; 
+                        })
+                        .attr("text-anchor", "start")
+                        .attr("opacity", 0)
+                        .text(format);
+                }
+
                 // Update center line: the vertical line spanning the whiskers.
                 var lineWidth = !d.compareMode ? width : width / 2;
-                var centerData = [Infinity, -Infinity];
-                angular.forEach(d.data, function(item) {
-                    centerData[0] = Math.min(centerData[0], item.survey_min);
-                    centerData[1] = Math.max(centerData[1], item.survey_max);
-                });
+                var centerData = [d.data[0].survey_min, d.data[0].survey_max];
                 var center = g.selectAll("line.center")
                     .data([centerData]);
 
                 center.enter().insert("line", "rect")
                     .attr("class", "center")
                     .attr("x1", width / 2)
-                    .attr("y1", function(item) { return x1(item[0]); })
+                    .attr("y1", function(item) { return x0(item[0]); })
                     .attr("x2", width / 2)
-                    .attr("y2", function(item) { return x1(item[1]); });
+                    .attr("y2", function(item) { return x0(item[1]); });
+
+                if (d.compareMode) {
+                    var centerData2 = [d.data[1].survey_min, d.data[1].survey_max];
+                    var center2 = g.selectAll("line.center")
+                        .data([centerData2]);
+
+                    center2.enter().insert("line", "rect")
+                        .attr("class", "center")
+                        .attr("x1", width / 2)
+                        .attr("y1", function(item) { return x1(item[0]); })
+                        .attr("x2", width / 2)
+                        .attr("y2", function(item) { return x1(item[1]); });
+                }
+
 
                 // Update innerquartile box.
                 var box = g.selectAll("rect.box")
@@ -1169,11 +1221,11 @@ angular.module('wsaa.surveyQuestions', [
                     .attr("class", "box")
                     .attr("x", 0)
                     .attr("y", function(item) {
-                        return x1(item[2]);
+                        return x0(item[2]);
                     })
                     .attr("width", lineWidth)
                     .attr("height", function(item) {
-                        return x1(item[0]) - x1(item[2]);
+                        return x0(item[0]) - x0(item[2]);
                     });
 
                 if (d.compareMode) {
@@ -1200,10 +1252,10 @@ angular.module('wsaa.surveyQuestions', [
 
                 currentLine.enter().append("line")
                     .attr("class", "current")
-                    .attr("x1", 0)
-                    .attr("y1", x1)
+                    .attr("x1", -4)
+                    .attr("y1", x0)
                     .attr("x2", lineWidth)
-                    .attr("y2", x1);
+                    .attr("y2", x0);
 
                 if(d.compareMode) {
                     var currentData2 = [d.data[1].current];
@@ -1214,22 +1266,22 @@ angular.module('wsaa.surveyQuestions', [
                         .attr("class", "current")
                         .attr("x1", width / 2)
                         .attr("y1", x1)
-                        .attr("x2", width)
+                        .attr("x2", width + 4)
                         .attr("y2", x1);
                 }
 
                 // Update whiskers.
-                var wisker_data = [d.data[0].min, d.data[0].survey_min,
-                        d.data[0].survey_max, d.data[0].max];
+                var wisker_data = [d.data[0].survey_min,
+                                   d.data[0].survey_max];
                 var whisker = g.selectAll("line.whisker")
                     .data(wisker_data);
 
                 whisker.enter().insert("line", "text")
                     .attr("class", "whisker")
                     .attr("x1", 0)
-                    .attr("y1", x1) // x1
+                    .attr("y1", x0) // x1
                     .attr("x2", lineWidth)
-                    .attr("y2", x1);
+                    .attr("y2", x0);
 
                 // Update whisker ticks. These are handled separately from the box
                 // ticks because they may or may not exist, and we want don't want
@@ -1242,8 +1294,9 @@ angular.module('wsaa.surveyQuestions', [
                     .attr("dy", ".3em")
                     .attr("dx", -25)
                     .attr("x", width)
-                    .attr("y", x1)
+                    .attr("y", x0)
                     .attr("text-anchor", "end")
+                    .attr("opacity", 0)
                     .text(format);
 
                 // Update current text
@@ -1255,16 +1308,14 @@ angular.module('wsaa.surveyQuestions', [
                     .attr("dy", ".3em")
                     .attr("dx", -5)
                     .attr("x", 0)
-                    .attr("y", x1)
+                    .attr("y", x0)
                     .attr("text-anchor", "end")
                     .text(format);
 
                 if (d.compareMode) {
                     var wisker_data2 = [
-                        d.data[1].min,
                         d.data[1].survey_min,
-                        d.data[1].survey_max,
-                        d.data[1].max
+                        d.data[1].survey_max
                     ];
                     var whisker2 = g.selectAll("line.whisker2")
                         .data(wisker_data2);
@@ -1286,7 +1337,8 @@ angular.module('wsaa.surveyQuestions', [
                         .attr("x", width)
                         .attr("y", x1)
                         .attr("text-anchor", "start")
-                        .text(format);
+                        .attr("opacity", 0)
+                        .text(format2);
 
                     // Update current text
                     var currentTick2 = g.selectAll("text.current2")
@@ -1299,7 +1351,7 @@ angular.module('wsaa.surveyQuestions', [
                         .attr("x", width)
                         .attr("y", x1)
                         .attr("text-anchor", "start")
-                        .text(format);
+                        .text(format2);
 
                 }
 
@@ -1318,21 +1370,22 @@ angular.module('wsaa.surveyQuestions', [
                             return 0;
                         return i == 0 ? 0 : width / 2;
                     })
-                    .attr("y1", x1)
+                    .attr("y1", x0)
                     .attr("x2", function(item, i) {
                         if (!d.compareMode)
                             return width;
                         return i == 0 ? width / 2 : width;
                     })
-                    .attr("y2", x1);
+                    .attr("y2", x0);
 
 
-                var title = g.selectAll("title.textbox")
+                var title = g.selectAll("text.title")
                     .data([d.title]);
 
                 title.enter().append("text")
+                    .attr("class", "title")
                     .attr("x", 0)
-                    .attr("y", x1(0) - 30)
+                    .attr("y", x0(0) - 20)
                     .attr("dy", 5)
                     .attr("text-anchor", "middle")
                     .text(function(item) {
@@ -1463,6 +1516,17 @@ angular.module('wsaa.surveyQuestions', [
                     .attr("height", height + margin.bottom + margin.top)
                     .on("click", function(d) {
                         $location.search('qnode', d.id);
+                    })
+                    .on("mouseover", function(d) {
+                        d3.select(this).style("background-color","whitesmoke");
+                        d3.select(this).selectAll("text").style("opacity", 1);
+                    })
+                    .on("mouseout", function(d) {
+                        d3.select(this).style("background-color","E6E6E6");
+                        d3.select(this).selectAll("text").style("opacity", 0);
+                        d3.selectAll("text.current_text").style("opacity", 1);
+                        d3.selectAll("text.current_text2").style("opacity", 1);
+                        d3.selectAll("text.title").style("opacity", 1);
                     })
                 .append("g")
                     .attr("transform",
