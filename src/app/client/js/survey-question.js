@@ -1105,9 +1105,6 @@ angular.module('wsaa.surveyQuestions', [
                 // Compute quartiles. Must return exactly 3 elements.
                 var quartileData = d.quartiles = quartiles(d);
 
-                // Compute whiskers. Must return exactly 2 elements, or null.
-                var whiskerData = [d.survey_min, d.survey_max];
-
                 // Compute outliers. If no whiskers are specified, all data are
                 // "outliers".
                 // We compute the outliers as indices, so that we can join
@@ -1121,17 +1118,6 @@ angular.module('wsaa.surveyQuestions', [
 
                 // Compute the tick format.
                 var format = tickFormat || x0.tickFormat(8);
-
-                if (d.compareMode) {
-                    var x1 = d3.scale.linear()
-                      .domain([d.data[1].min, d.data[1].max])
-                      .range([height - 40, 20]);
-                    var format2 = tickFormat || x1.tickFormat(8);
-                }
-
-                // var x0 = this.__chart__ || d3.scale.linear()
-                //   .domain([d.survey_min, d.survey_max])
-                //   .range(x1.range());
 
                 // Stash the new scale.
                 this.__chart__ = x0;
@@ -1166,26 +1152,6 @@ angular.module('wsaa.surveyQuestions', [
                     .attr("opacity", 0)
                     .text(format);
 
-                if (d.compareMode) {
-                    var border_data2 = [d.data[1].min, d.data[1].max];
-
-                    var borderTick2 = g.selectAll("text.border2")
-                        .data(border_data2);
-
-                    borderTick2.enter().append("text")
-                        .attr("class", "border")
-                        .attr("x", width)
-                        .attr("y", function(item, i) {
-                            console.log(item);
-                            if (d.data[1].min == d.data[1].max)
-                                return x1(item)+15;
-                            return i==0 ? x1(item)+15:x1(item)-5; 
-                        })
-                        .attr("text-anchor", "start")
-                        .attr("opacity", 0)
-                        .text(format);
-                }
-
                 // Update center line: the vertical line spanning the whiskers.
                 var lineWidth = !d.compareMode ? width : width / 2;
                 var centerData = [d.data[0].survey_min, d.data[0].survey_max];
@@ -1198,20 +1164,6 @@ angular.module('wsaa.surveyQuestions', [
                     .attr("y1", function(item) { return x0(item[0]); })
                     .attr("x2", width / 2)
                     .attr("y2", function(item) { return x0(item[1]); });
-
-                if (d.compareMode) {
-                    var centerData2 = [d.data[1].survey_min, d.data[1].survey_max];
-                    var center2 = g.selectAll("line.center")
-                        .data([centerData2]);
-
-                    center2.enter().insert("line", "rect")
-                        .attr("class", "center")
-                        .attr("x1", width / 2)
-                        .attr("y1", function(item) { return x1(item[0]); })
-                        .attr("x2", width / 2)
-                        .attr("y2", function(item) { return x1(item[1]); });
-                }
-
 
                 // Update innerquartile box.
                 var box = g.selectAll("rect.box")
@@ -1228,23 +1180,6 @@ angular.module('wsaa.surveyQuestions', [
                         return x0(item[0]) - x0(item[2]);
                     });
 
-                if (d.compareMode) {
-                    var box2 = g.selectAll("rect.box2")
-                        .data([quartileData[1]]);
-
-                    box2.enter().append("rect")
-                        .attr("class", "box")
-                        .attr("x", width / 2)
-                        .attr("y", function(item) {
-                            return x1(item[2]);
-                        })
-                        .attr("width", lineWidth)
-                        .attr("height", function(item) {
-                            return x1(item[0]) - x1(item[2]);
-                        });
-                }
-
-
                 // Update current line.
                 var currentData = [d.data[0].current];
                 var currentLine = g.selectAll("line.current")
@@ -1256,19 +1191,6 @@ angular.module('wsaa.surveyQuestions', [
                     .attr("y1", x0)
                     .attr("x2", lineWidth)
                     .attr("y2", x0);
-
-                if(d.compareMode) {
-                    var currentData2 = [d.data[1].current];
-                    var currentLine2 = g.selectAll("line.current2")
-                        .data(currentData2);
-
-                    currentLine2.enter().append("line")
-                        .attr("class", "current")
-                        .attr("x1", width / 2)
-                        .attr("y1", x1)
-                        .attr("x2", width + 4)
-                        .attr("y2", x1);
-                }
 
                 // Update whiskers.
                 var wisker_data = [d.data[0].survey_min,
@@ -1312,7 +1234,86 @@ angular.module('wsaa.surveyQuestions', [
                     .attr("text-anchor", "end")
                     .text(format);
 
+                var medianData = [d.data[0].quartile[1]];
+                g.selectAll("line.median1")
+                    .data(medianData).enter().append("line")
+                    .attr("class", "median")
+                    .attr("x1", 0)
+                    .attr("y1", x0)
+                    .attr("x2", lineWidth)
+                    .attr("y2", x0);
+
+                g.selectAll("text.whisker2")
+                    .data(medianData).enter().append("text")
+                        .attr("class", "median_text")
+                        .attr("dy", ".3em")
+                        .attr("dx", -5)
+                        .attr("x", 0)
+                        .attr("y", x0)
+                        .attr("text-anchor", "end")
+                        .attr("opacity", 0)
+                        .text(format);
+
+
                 if (d.compareMode) {
+                    var x1 = d3.scale.linear()
+                      .domain([d.data[1].min, d.data[1].max])
+                      .range([height - 40, 20]);
+                    var format2 = tickFormat || x1.tickFormat(8);
+
+                    var border_data2 = [d.data[1].min, d.data[1].max];
+                    var borderTick2 = g.selectAll("text.border2")
+                        .data(border_data2);
+
+                    borderTick2.enter().append("text")
+                        .attr("class", "border")
+                        .attr("x", width)
+                        .attr("y", function(item, i) {
+                            console.log(item);
+                            if (d.data[1].min == d.data[1].max)
+                                return x1(item)+15;
+                            return i==0 ? x1(item)+15:x1(item)-5; 
+                        })
+                        .attr("text-anchor", "start")
+                        .attr("opacity", 0)
+                        .text(format);
+
+                    var centerData2 = [d.data[1].survey_min, d.data[1].survey_max];
+                    var center2 = g.selectAll("line.center")
+                        .data([centerData2]);
+
+                    center2.enter().insert("line", "rect")
+                        .attr("class", "center")
+                        .attr("x1", width / 2)
+                        .attr("y1", function(item) { return x1(item[0]); })
+                        .attr("x2", width / 2)
+                        .attr("y2", function(item) { return x1(item[1]); });
+
+                    var box2 = g.selectAll("rect.box2")
+                        .data([quartileData[1]]);
+
+                    box2.enter().append("rect")
+                        .attr("class", "box")
+                        .attr("x", width / 2)
+                        .attr("y", function(item) {
+                            return x1(item[2]);
+                        })
+                        .attr("width", lineWidth)
+                        .attr("height", function(item) {
+                            return x1(item[0]) - x1(item[2]);
+                        });
+
+                    var currentData2 = [d.data[1].current];
+                    var currentLine2 = g.selectAll("line.current2")
+                        .data(currentData2);
+
+                    currentLine2.enter().append("line")
+                        .attr("class", "current")
+                        .attr("x1", width / 2)
+                        .attr("y1", x1)
+                        .attr("x2", width + 4)
+                        .attr("y2", x1);
+
                     var wisker_data2 = [
                         d.data[1].survey_min,
                         d.data[1].survey_max
@@ -1353,32 +1354,34 @@ angular.module('wsaa.surveyQuestions', [
                         .attr("text-anchor", "start")
                         .text(format2);
 
+                    g.selectAll("line.median2")
+                        .data([d.data[1].quartile[1]]).enter().append("line")
+                        .attr("class", "median")
+                        .attr("x1", lineWidth)
+                        .attr("y1", x0)
+                        .attr("x2", width)
+                        .attr("y2", x0);
+
+                    var medianData2 = [d.data[1].quartile[1]];
+                    g.selectAll("line.median2")
+                        .data(medianData2).enter().append("line")
+                        .attr("class", "median")
+                        .attr("x1", 0)
+                        .attr("y1", x0)
+                        .attr("x2", lineWidth)
+                        .attr("y2", x0);
+
+                    g.selectAll("text.whisker2")
+                        .data(medianData2).enter().append("text")
+                            .attr("class", "median_text")
+                            .attr("dy", ".3em")
+                            .attr("dx", 5)
+                            .attr("x", width)
+                            .attr("y", x1)
+                            .attr("text-anchor", "start")
+                            .attr("opacity", 0)
+                            .text(format2);
                 }
-
-                // Update median line.
-                var medianData = [];
-                angular.forEach(d.data, function(item) {
-                    medianData.push(item.quartile[1]);
-                });
-                var medianLine = g.selectAll("line.median")
-                    .data(medianData);
-
-                medianLine.enter().append("line")
-                    .attr("class", "median")
-                    .attr("x1", function(item, i) {
-                        if (!d.compareMode)
-                            return 0;
-                        return i == 0 ? 0 : width / 2;
-                    })
-                    .attr("y1", x0)
-                    .attr("x2", function(item, i) {
-                        if (!d.compareMode)
-                            return width;
-                        return i == 0 ? width / 2 : width;
-                    })
-                    .attr("y2", x0);
-
-
                 var title = g.selectAll("text.title")
                     .data([d.title]);
 

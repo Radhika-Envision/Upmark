@@ -65,11 +65,11 @@ class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
                 r["max"] = max(data)
                 r["count"] = len(data)
                 numpy_array = numpy.array(data)
-                r["std"] = numpy.std(numpy_array)
+                # r["std"] = numpy.std(numpy_array)
                 r["quartile"] = [numpy.percentile(numpy_array, 25), 
                                 numpy.percentile(numpy_array, 50),
                                 numpy.percentile(numpy_array, 75)]
-                r.pop("data", None)
+                # r.pop("data", None)
 
         self.set_header("Content-Type", "application/json")
         self.write(json.dumps(response))
