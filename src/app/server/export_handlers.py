@@ -224,10 +224,12 @@ class Exporter():
 
             response_list = []
             response_qnode_list = []
-            if assessment_id is not None:
-                responses = session.query(model.Response)\
-                    .filter(model.Response.assessment_id==assessment_id,
-                        model.Response.survey_id==survey_id).all()
+            log.error('%s %s', assessment_id, survey_id)
+            if assessment_id != '':
+                responses = (session.query(model.Response)
+                    .filter(model.Response.assessment_id == assessment_id,
+                            model.Response.survey_id == survey_id)
+                    .all())
 
                 if responses:
                     response_list = [{"measure_id" : str(item.measure.id),
