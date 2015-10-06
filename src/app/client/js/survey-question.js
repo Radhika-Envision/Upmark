@@ -81,9 +81,9 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
-.factory('Report', ['$resource', function($resource) {
-    return $resource('/report/:id.json', {id: '@id'}, {
-        get: { method: 'GET', isArray: true, cache: false }
+.factory('Diff', ['$resource', function($resource) {
+    return $resource('/diff.json', {}, {
+        get: { method: 'GET', isArray: false, cache: false }
     });
 }])
 
@@ -572,7 +572,13 @@ angular.module('wsaa.surveyQuestions', [
             entity: '=',
             service: '='
         },
-        controller: ['$scope', '$location', function($scope, $location) {
+        controller: ['$scope', '$location', 'format', 'Structure',
+                    function($scope, $location, format, Structure) {
+
+            $scope.$watch('entity', function(entity) {
+                $scope.structure = Structure($scope.entity);
+            });
+
             $scope.toggled = function(open) {
                 if (open) {
                     $scope.surveys = $scope.service.history({
@@ -582,16 +588,26 @@ angular.module('wsaa.surveyQuestions', [
             };
 
             $scope.navigate = function(survey) {
-                if ($scope.entity.isEditable != null)
+                if ($scope.entity == $scope.structure.survey)
                     $location.url('/survey/' + survey.id);
                 else
                     $location.search('survey', survey.id);
             };
             $scope.isActive = function(survey) {
-                if ($scope.entity.isEditable != null)
+                if ($scope.entity == $scope.structure.survey)
                     return $location.url().indexOf('/survey/' + survey.id) >= 0;
                 else
                     return $location.search().survey == survey.id;
+            };
+
+            $scope.compare = function(survey, event) {
+                var url = format('/diff?survey1={}&survey2={}&hierarchy={}',
+                    $scope.structure.survey.id,
+                    survey.id,
+                    $scope.structure.hierarchy.id);
+                $location.url(url);
+                event.preventDefault();
+                event.stopPropagation();
             };
         }]
     };
@@ -1777,51 +1793,30 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
-.controller('ReportCtrl', [
+.controller('DiffCtrl', [
         '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'format', 'Structure',
-        'layout', 'Arrays', 'ResponseNode', 'Statistics', 'Assessment',
-        '$timeout',
         function($scope, QuestionNode, routeData, Editor, authz,
-                 $location, Notifications, current, format, Structure,
-                 layout, Arrays, ResponseNode, Statistics, Assessment,
-                 $timeout) {
+                 $location, Notifications, current, format, Structure) {
 
-    // Start ucustom logic here
-    $scope.assessment1 = routeData.assessment1;
-    $scope.assessment2 = routeData.assessment2;
-    if($scope.assessment1 && $scope.assessment2) {
-        $scope.measure1 = $scope.report = routeData.report;
-    }
+    $scope.hierarchy1 = routeData.hierarchy1;
+    $scope.hierarchy2 = routeData.hierarchy2;
+    $scope.survey1 = $scope.hierarchy1.survey;
+    $scope.survey2 = $scope.hierarchy2.survey;
 
-    console.log($scope.assessment1);
+    $scope.diff = routeData.diff;
 
-
-    $scope.getAssessmentUrl1 = function(assessment) {
-        var query;
-        if (assessment) {
-            query = format('assessment1={}&assessment2={}',
-                assessment.id,
-                $scope.assessment2 ? $scope.assessment2.id : '');
-        } else {
-            query = format('assessment1={}',
-                $scope.assessment2 ? $scope.assessment2.id : '');
-        }
-        return format('/report?{}&qnode={}',
-            query, $location.search()['qnode'] || '');
+    $scope.getAssessmentUrl1 = function(survey) {
+        return format('/diff?survey1={}&survey2={}&hierarchy={}',
+                survey.id,
+                $scope.survey2.id,
+                $scope.hierarchy1.id);
     };
-    $scope.getAssessmentUrl2 = function(assessment) {
-        var query;
-        if (assessment) {
-            query = format('assessment1={}&assessment2={}',
-                $scope.assessment1 ? $scope.assessment1.id : '',
-                assessment.id);
-        } else {
-            query = format('assessment1={}',
-                $scope.assessment1 ? $scope.assessment1.id : '');
-        }
-        return format('/report?{}&qnode={}',
-            query, $location.search()['qnode'] || '');
+    $scope.getAssessmentUrl2 = function(survey) {
+        return format('/diff?survey1={}&survey2={}&hierarchy={}',
+                $scope.survey1.id,
+                survey.id,
+                $scope.hierarchy1.id);
     };
 
     $scope.chooser = false;
@@ -1830,17 +1825,6 @@ angular.module('wsaa.surveyQuestions', [
             $scope.chooser = null;
         else
             $scope.chooser = num;
-    };
-
-    $scope.getCompareMeasure = function(measure) {
-        console.log(measure);
-        // var find = $scope.measure2.filter(function(item, index) {
-        //     return item.id == measure.id;
-        // });
-        // if(find)
-        //     return find;
-        // return null;
-        return "Test";
     };
 
 }])

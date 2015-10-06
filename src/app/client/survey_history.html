@@ -9,12 +9,13 @@
                 ng-class="{active: isActive(survey)}">
             <a href ng-click="navigate(survey)">
                 {{survey.title}}
-                <span class="pull-right nudge-right text-muted">
-                    <i class="fa fa-pencil-square-o" ng-style="{
-                        visibility: survey.isEditable ? null : 'hidden' }"
-                        title="Editable"></i>
+                <span class="pull-right nudge-right text-muted"
+                        ng-click="compare(survey, $event)"
+                        ng-if="structure.hierarchy && !isActive(survey)">
+                    <i class="fa fa-exchange"
+                        title="Compare"></i>
                 </span>
-                </a>
+            </a>
         </li>
     </ul>
 </span>

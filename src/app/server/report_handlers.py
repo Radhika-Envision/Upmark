@@ -54,7 +54,8 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
                 # Filter for modified objects
                 .filter((QA.title != QB.title) |
                         (QA.description != QB.description) |
-                        (QA.parent_id != QB.parent_id))
+                        (QA.parent_id != QB.parent_id) |
+                        (QA.seq != QB.seq))
             )
 
             # Find deleted qnodes
@@ -102,7 +103,8 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
                         (MA.questions != MB.questions) |
                         (MA.response_type != MB.response_type) |
                         (MA.weight != MB.weight) |
-                        (QMA.qnode_id != QMB.qnode_id))
+                        (QMA.qnode_id != QMB.qnode_id) |
+                        (QMA.seq != QMB.seq))
             )
 
             # Find deleted measures
@@ -132,13 +134,36 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
             )
 
             #log.error('Query: %s', qnode_query)
-            log.error('Query: %s', qnode_del_query)
+            #log.error('Query: %s', qnode_del_query)
             #log.error('Query: %s', qnode_measure_query)
 
             qnode_query = self.paginate(qnode_query)
             qnode_measure_query = self.paginate(qnode_measure_query)
             import pprint
-            rs = pprint.pformat(
+            log.error('%s', pprint.pformat(
+                qnode_query.all()
+                + qnode_del_query.all()
+                + qnode_add_query.all()
+                + qnode_measure_query.all()
+                + qnode_measure_del_query.all()
+                + qnode_measure_add_query.all()
+            ))
+            to_son = ToSon(include=[
+                r'/id$',
+                r'/title$',
+                r'/description$',
+                r'/intent$',
+                r'/inputs$',
+                r'/scenario$',
+                r'/question$',
+                r'/weight$',
+                r'/seq$',
+                # Descend
+                r'/[0-9]+$',
+                r'^/[0-9]+/[^/]+$',
+            ])
+            son = {}
+            son['diff'] = to_son(
                 qnode_query.all()
                 + qnode_del_query.all()
                 + qnode_add_query.all()
@@ -147,7 +172,6 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
                 + qnode_measure_add_query.all()
             )
 
-        #self.set_header("Content-Type", "application/json")
-        self.set_header("Content-Type", "text/plain")
-        self.write(tornado.escape.utf8(rs))
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(son))
         self.finish()

@@ -563,34 +563,30 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/report', {
-                templateUrl : 'report.html',
-                controller : 'ReportCtrl',
+            .when('/diff', {
+                templateUrl : 'diff.html',
+                controller : 'DiffCtrl',
                 resolve: {routeData: chain({
-                    assessment1: ['Assessment', '$route',
-                            function(Assessment, $route) {
-                        return Assessment.get({
-                            id: $route.current.params.assessment1
+                    hierarchy1: ['Hierarchy', '$route',
+                            function(Hierarchy, $route) {
+                        return Hierarchy.get({
+                            id: $route.current.params.hierarchy,
+                            surveyId: $route.current.params.survey1
                         }).$promise;
                     }],
-                    assessment2: ['Assessment', '$route',
-                            function(Assessment, $route) {
-                        if (!$route.current.params.assessment2)
-                            return null;
-                        return Assessment.get({
-                            id: $route.current.params.assessment2
+                    hierarchy2: ['Hierarchy', '$route',
+                            function(Hierarchy, $route) {
+                        return Hierarchy.get({
+                            id: $route.current.params.hierarchy,
+                            surveyId: $route.current.params.survey2
                         }).$promise;
                     }],
-                    report: ['Report', '$route', 'assessment1', 'assessment2',
-                            function(Report, $route, assessment1, assessment2) {
-                        if (!assessment1 || !assessment2)
-                            return null;
-
-                        return Report.get({
-                            assessment1: assessment1.id,
-                            assessment2: assessment2.id,
-                            parentId: $route.current.params.qnode == '' ?
-                                null : $route.current.params.qnode
+                    diff: ['Diff', '$route',
+                            function(Diff, $route) {
+                        return Diff.get({
+                            surveyId1: $route.current.params.survey1,
+                            surveyId2: $route.current.params.survey2,
+                            hierarchyId: $route.current.params.hierarchy
                         }).$promise;
                     }]
                 })}

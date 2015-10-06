@@ -18,20 +18,10 @@
 <div>
 <div class="container text-center text-muted assessment-header"
          title="Switch to a different survey">
-    <div title="Organisation 1">
-        <a ng-href="#/org/{{assessment1.organisation.id}}"
+    <div title="Program">
+        <a ng-href="#/survey/{{survey1.id}}"
                 class="stealth btn btn-link">
-            {{assessment1.organisation.name}}</a>
-    </div>
-    <div title="Submission">
-        <a ng-href="#/assessment/{{assessment1.id}}"
-                class="stealth btn btn-link">
-            {{assessment1.title}}</a>
-    </div>
-    <div title="Submission" ng-if="!assessment1">
-        <span>
-            No first submission
-        </span>
+            {{survey1.title}}</a>
     </div>
     <div>
         <button class="btn-round btn btn-default"
@@ -43,22 +33,10 @@
         </button>
     </div>
 
-    <div title="Organisation 2"
-            ng-if="assessment2 &&
-                   assessment2.organisation.id != assessment1.organisation.id">
-        <a ng-href="#/org/{{assessment2.organisation.id}}"
+    <div title="Program" ng-if="survey2">
+        <a ng-href="#/survey/{{survey2.id}}"
                 class="stealth btn btn-link">
-            {{assessment2.organisation.name}}</a>
-    </div>
-    <div title="Submission" ng-if="assessment2">
-        <a ng-href="#/assessment/{{assessment2.id}}"
-                class="stealth btn btn-link">
-            {{assessment2.title}}</a>
-    </div>
-    <div title="Submission" ng-if="!assessment2">
-        <span>
-            No second submission
-        </span>
+            {{survey2.title}}</a>
     </div>
     <div>
         <button class="btn-round btn btn-default"
@@ -93,3 +71,5 @@
         <li ng-repeat="measure in report">{{ measure.title }}-<span ng-bind-html="measure.title|diff:getCompareMeasure(measure)"></span></li>
     </ul>
 </div>
+
+<pre>{{diff.diff | json}}</pre>
