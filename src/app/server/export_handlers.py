@@ -236,6 +236,7 @@ class Exporter():
                                       "response_parts": item.response_parts,
                                       "weight": item.measure.weight,
                                       "comment": item.comment,
+                                      "not_relevant": item.not_relevant,
                                       "score": item.score}
                                      for item in responses]
                 response_nodes = session.query(model.ResponseNode)\
@@ -370,6 +371,17 @@ class Exporter():
         format_part_answer.set_bg_color("#B1A0C7")
         format_part_answer.set_bottom_color('white')
         format_part_answer.set_bottom(1)
+        format_end1 = workbook.add_format()
+        format_end1.set_text_wrap()
+        format_end1.set_bg_color("#554529")
+        format_end1.set_bottom_color('white')
+        format_end1.set_bottom(1)
+        format_end2 = workbook.add_format()
+        format_end2.set_text_wrap()
+        format_end2.set_bg_color("#C4BD97")
+        format_end2.set_bottom_color('white')
+        format_end2.set_bottom(1)
+
 
         for qnode_measure in filtered_list:
             response_types = [type for type in self.response_types
@@ -381,6 +393,10 @@ class Exporter():
             if response:
                 percentage = response[0]["score"] / response[0]["weight"]
                 comment = response[0]["comment"]
+                if response[0]["not_relevant"]:
+                    not_relevant = "Yes"
+                else:
+                    not_relevant = "No"
 
             numbering = prefix + str(qnode_measure["seq"] + 1) + ". "
             worksheet.write(self.line, 0, '', format_header)
@@ -408,8 +424,8 @@ class Exporter():
             worksheet.write(self.line, 0, "Comments", format_header_end)
             worksheet.write(
                 self.line, 1, comment, format_end)
-            worksheet.write(self.line, 2, '', format_end)
-            worksheet.write(self.line, 3, '', format_end)
+            worksheet.write(self.line, 2, "Not Relavant", format_end1)
+            worksheet.write(self.line, 3, not_relevant, format_end2)
             # answer option
             parts_len = len(response_types[0]["parts"])
             index = 0
