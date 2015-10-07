@@ -464,18 +464,22 @@ class Exporter():
                         assessment.hierarchy_id)
                     self.write_qnode(
                         worksheet, qnode, line, format, level_length - 1)
+
+                    qnode_measure = [qm for qm in response.measure.qnode_measures]
+
                     worksheet.write(
-                        line, level_length, response.measure.title, format)
+                        line, level_length, str(qnode_measure[0].seq + 1)
+                            + ". " + response.measure.title, format)
                     self.write_response_parts(
                         worksheet, response.response_parts, line, format, 
                             level_length + 1)
-                    worksheet.write(
-                        line, level_length + max_len_of_response + 1, response.score / response.measure.weight, 
+                    worksheet.write(line, level_length + max_len_of_response + 1, 
+                            response.score / response.measure.weight, 
                             format_percent)
-                    worksheet.write(
-                        line, level_length + max_len_of_response + 2, qnode.total_weight, format)
-                    worksheet.write(
-                        line, level_length + max_len_of_response + 3, response.comment, format_comment)
+                    worksheet.write(line, level_length + max_len_of_response + 2, 
+                            qnode.total_weight, format)
+                    worksheet.write(line, level_length + max_len_of_response + 3, 
+                            response.comment, format_comment)
                     line = line + 1
 
         workbook.close()
@@ -499,7 +503,7 @@ class Exporter():
     def write_qnode(self, sheet, qnode, line, format, col):
         if qnode.parent != None:
             self.write_qnode(sheet, qnode.parent, line, format, col - 1)
-        sheet.write(line, col, qnode.title, format)
+        sheet.write(line, col, str(qnode.seq + 1) + ". " + qnode.title, format)
 
     def write_response_parts(self, sheet, parts, line, format, col):
         if parts != None:
