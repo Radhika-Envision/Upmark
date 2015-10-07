@@ -373,6 +373,7 @@ class Exporter():
         format_part_answer.set_bottom(1)
         format_end1 = workbook.add_format()
         format_end1.set_text_wrap()
+        format_end1.set_font_color("white")
         format_end1.set_bg_color("#554529")
         format_end1.set_bottom_color('white')
         format_end1.set_bottom(1)
@@ -390,6 +391,8 @@ class Exporter():
             response = [r for r in response_list
                         if r["measure_id"] == qnode_measure["measure_id"]]
             percentage = None
+            comment = None
+            not_relevant = None
             if response:
                 percentage = response[0]["score"] / response[0]["weight"]
                 comment = response[0]["comment"]
