@@ -247,7 +247,8 @@ class Exporter():
                                            for item in response_nodes]
 
             self.write_qnode_to_worksheet(session, workbook, worksheet,
-                                          qnode_list, response_qnode_list, measure_list, response_list,
+                                          qnode_list, response_qnode_list, 
+                                          measure_list, response_list,
                                           'None', prefix, 0)
 
         workbook.close()
@@ -313,10 +314,12 @@ class Exporter():
             worksheet.write(self.line, 3, '', format2)
             self.line = self.line + 1
             self.write_qnode_to_worksheet(session, workbook, worksheet,
-                                          qnode_list, response_qnode_list, measure_list, response_list,
+                                          qnode_list, response_qnode_list, 
+                                          measure_list, response_list,
                                           qnode["id"], numbering, depth + 1)
             self.write_measure_to_worksheet(session, workbook, worksheet,
-                                            measure_list, response_list, qnode["id"], numbering)
+                                            measure_list, response_list, 
+                                            qnode["id"], numbering)
 
     def write_measure_to_worksheet(self, session, workbook, worksheet,
                                    measure_list, response_list, qnode_id, prefix):
