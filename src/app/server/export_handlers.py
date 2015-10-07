@@ -422,9 +422,8 @@ class Exporter():
             worksheet.write(self.line, 2, '', format)
             self.line = self.line + 1
             worksheet.write(self.line, 0, "Comments", format_header_end)
-            worksheet.write(
-                self.line, 1, comment, format_end)
-            worksheet.write(self.line, 2, "Not Relavant", format_end1)
+            worksheet.write(self.line, 1, comment, format_end)
+            worksheet.write(self.line, 2, "Not Relevant", format_end1)
             worksheet.write(self.line, 3, not_relevant, format_end2)
             # answer option
             parts_len = len(response_types[0]["parts"])
