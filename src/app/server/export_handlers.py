@@ -10,7 +10,7 @@ import threading
 import json
 import sqlalchemy
 import datetime
-import xlsxwriter 
+import xlsxwriter
 
 from sqlalchemy.orm import joinedload
 from tornado import gen
@@ -37,13 +37,13 @@ class ExportSurveyHandler(handlers.BaseHandler):
 
         with model.session_scope() as session:
             hierarchy = (session.query(model.Hierarchy)
-                    .get((hierarchy_id, survey_id)))
+                         .get((hierarchy_id, survey_id)))
             if survey_id != str(hierarchy.survey_id):
                 raise handlers.ModelError(
                     "Survey does not belong to specified program.")
 
         output_file = 'program_{0}_survey_{1}.xlsx'.format(
-                survey_id, hierarchy_id)
+            survey_id, hierarchy_id)
 
         with tempfile.TemporaryDirectory() as tmpdirname:
             output_path = os.path.join(tmpdirname, output_file)
@@ -51,7 +51,7 @@ class ExportSurveyHandler(handlers.BaseHandler):
                 output_path, survey_id, hierarchy_id)
             self.set_header('Content-Type', 'application/octet-stream')
             self.set_header('Content-Disposition', 'attachment; filename='
-                + output_file)
+                            + output_file)
 
             with open(output_path, 'rb') as f:
                 while True:
@@ -80,7 +80,7 @@ class ExportAssessmentHandler(handlers.BaseHandler):
 
         with model.session_scope() as session:
             assessment = (session.query(model.Assessment)
-                    .get(assessment_id))
+                          .get(assessment_id))
             if assessment.organisation.id != self.organisation.id:
                 self.check_privillege('consultant')
             hierarchy_id = str(assessment.hierarchy_id)
@@ -94,7 +94,7 @@ class ExportAssessmentHandler(handlers.BaseHandler):
                 output_path, survey_id, hierarchy_id, assessment_id)
             self.set_header('Content-Type', 'application/octet-stream')
             self.set_header('Content-Disposition', 'attachment; filename='
-                + output_file)
+                            + output_file)
 
             with open(output_path, 'rb') as f:
                 while True:
@@ -107,7 +107,7 @@ class ExportAssessmentHandler(handlers.BaseHandler):
 
     @run_on_executor
     def background_task(self, path, survey_id, hierarchy_id,
-            assessment_id):
+                        assessment_id):
         e = Exporter()
         survey_id = e.process_structure_file(
             path, survey_id, hierarchy_id, assessment_id)
@@ -125,7 +125,7 @@ class ExportResponseHandler(handlers.BaseHandler):
 
         with model.session_scope() as session:
             assessment = (session.query(model.Assessment)
-                    .get(assessment_id))
+                          .get(assessment_id))
             if assessment.organisation.id != self.organisation.id:
                 self.check_privillege('consultant')
             hierarchy_id = str(assessment.hierarchy_id)
@@ -139,7 +139,7 @@ class ExportResponseHandler(handlers.BaseHandler):
                 output_path, survey_id, hierarchy_id, assessment_id)
             self.set_header('Content-Type', 'application/octet-stream')
             self.set_header('Content-Disposition', 'attachment; filename='
-                + output_file)
+                            + output_file)
 
             with open(output_path, 'rb') as f:
                 while True:
@@ -152,9 +152,10 @@ class ExportResponseHandler(handlers.BaseHandler):
 
     @run_on_executor
     def background_task(self, path, survey_id, hierarchy_id,
-            assessment_id):
+                        assessment_id):
         e = Exporter()
         survey_id = e.process_response_file(path, survey_id, assessment_id)
+
 
 class Exporter():
 
@@ -168,16 +169,16 @@ class Exporter():
         return num
 
     def process_structure_file(self, file_name, survey_id, hierarchy_id,
-            assessment_id=''):
+                               assessment_id=''):
         """
         Open and write an Excel file
         """
         model.connect_db(os.environ.get('DATABASE_URL'))
         workbook = xlsxwriter.Workbook(file_name)
         worksheet = workbook.add_worksheet('Scoring')
-        worksheet.set_column(0, 0, 12) 
+        worksheet.set_column(0, 0, 12)
         worksheet.set_column(1, 1, 100)
-        worksheet.set_column(2, 2, 18) 
+        worksheet.set_column(2, 2, 18)
         worksheet.set_column(3, 3, 25)
 
         with model.session_scope() as session:
@@ -195,72 +196,70 @@ class Exporter():
             prefix = ""
 
             list1 = session.query(model.QuestionNode).filter(
-                        model.QuestionNode.survey_id==survey_id,
-                        model.QuestionNode.hierarchy_id==hierarchy.id).all()
+                model.QuestionNode.survey_id == survey_id,
+                model.QuestionNode.hierarchy_id == hierarchy.id).all()
 
-            qnode_list = [{"id" : str(item.id),
-                                   "parent_id" : str(item.parent_id), 
-                                   "title" : item.title, 
-                                   "description" : item.description, 
-                                   "seq" : item.seq, 
-                                   "total_weight" : item.total_weight}
-                             for item in list1]
+            qnode_list = [{"id": str(item.id),
+                           "parent_id": str(item.parent_id),
+                           "title": item.title,
+                           "description": item.description,
+                           "seq": item.seq,
+                           "total_weight": item.total_weight}
+                          for item in list1]
 
             list2 = session.query(model.QnodeMeasure).filter(
-                        model.QnodeMeasure.survey_id==survey_id).all()
-
+                model.QnodeMeasure.survey_id == survey_id).all()
 
             measure_list = [{"measure_id": str(item.measure.id),
-                                   "qnode_id": str(item.qnode_id), 
-                                   "title": item.measure.title, 
-                                   "intent": item.measure.intent, 
-                                   "inputs": item.measure.inputs, 
-                                   "scenario": item.measure.scenario, 
-                                   "questions": item.measure.questions,
-                                   "weight": item.measure.weight,
-                                   "response_type" : item.measure.response_type,
-                                   "seq" : item.seq}
-                             for item in list2]
+                             "qnode_id": str(item.qnode_id),
+                             "title": item.measure.title,
+                             "intent": item.measure.intent,
+                             "inputs": item.measure.inputs,
+                             "scenario": item.measure.scenario,
+                             "questions": item.measure.questions,
+                             "weight": item.measure.weight,
+                             "response_type": item.measure.response_type,
+                             "seq": item.seq}
+                            for item in list2]
 
             response_list = []
             response_qnode_list = []
             log.error('%s %s', assessment_id, survey_id)
             if assessment_id != '':
                 responses = (session.query(model.Response)
-                    .filter(model.Response.assessment_id == assessment_id,
-                            model.Response.survey_id == survey_id)
-                    .all())
+                             .filter(model.Response.assessment_id == assessment_id,
+                                     model.Response.survey_id == survey_id)
+                             .all())
 
                 if responses:
-                    response_list = [{"measure_id" : str(item.measure.id),
+                    response_list = [{"measure_id": str(item.measure.id),
                                       "response_parts": item.response_parts,
                                       "weight": item.measure.weight,
-                                      "score" : item.score }
-                                    for item in responses]
+                                      "score": item.score}
+                                     for item in responses]
                 response_nodes = session.query(model.ResponseNode)\
-                    .filter(model.ResponseNode.assessment_id==assessment_id,
-                        model.ResponseNode.survey_id==survey_id).all()
+                    .filter(model.ResponseNode.assessment_id == assessment_id,
+                            model.ResponseNode.survey_id == survey_id).all()
                 if response_nodes:
-                    response_qnode_list = [{"qnode_id" : str(item.qnode.id),
-                                      "weight": item.qnode.total_weight,
-                                      "score" : item.score }
-                                    for item in response_nodes]
+                    response_qnode_list = [{"qnode_id": str(item.qnode.id),
+                                            "weight": item.qnode.total_weight,
+                                            "score": item.score}
+                                           for item in response_nodes]
 
-            self.write_qnode_to_worksheet(session, workbook, worksheet, 
-                qnode_list, response_qnode_list, measure_list, response_list, 
-                'None', prefix, 0)
+            self.write_qnode_to_worksheet(session, workbook, worksheet,
+                                          qnode_list, response_qnode_list, measure_list, response_list,
+                                          'None', prefix, 0)
 
         workbook.close()
 
-    def write_qnode_to_worksheet(self, session, workbook, worksheet, 
-                qnode_list, response_qnode_list, measure_list, response_list, 
-                parent_id, prefix, depth):
+    def write_qnode_to_worksheet(self, session, workbook, worksheet,
+                                 qnode_list, response_qnode_list, measure_list, response_list,
+                                 parent_id, prefix, depth):
 
-        filtered = [node for node in qnode_list 
-                         if node["parent_id"] == parent_id]
+        filtered = [node for node in qnode_list
+                    if node["parent_id"] == parent_id]
 
         filtered_list = sorted(filtered, key=lambda node: node["seq"])
-
 
         format = workbook.add_format()
         format.set_text_wrap()
@@ -296,15 +295,15 @@ class Exporter():
 
         for qnode in filtered_list:
             response_score = [r for r in response_qnode_list
-                                if r["qnode_id"] == qnode["id"]]
+                              if r["qnode_id"] == qnode["id"]]
             percent = None
             if response_score:
-                percent = response_score[0]["score"] / response_score[0]["weight"]
-
+                percent = response_score[0][
+                    "score"] / response_score[0]["weight"]
 
             numbering = prefix + str(qnode["seq"] + 1) + ". "
-            worksheet.merge_range("A{0}:B{0}".format(self.line + 1), 
-                numbering + qnode["title"], format)
+            worksheet.merge_range("A{0}:B{0}".format(self.line + 1),
+                                  numbering + qnode["title"], format)
             worksheet.write(self.line, 2, qnode["total_weight"], format)
             worksheet.write(self.line, 3, percent, format_percent)
             self.line = self.line + 1
@@ -313,17 +312,17 @@ class Exporter():
             worksheet.write(self.line, 2, '', format2)
             worksheet.write(self.line, 3, '', format2)
             self.line = self.line + 1
-            self.write_qnode_to_worksheet(session, workbook, worksheet, 
-                qnode_list, response_qnode_list, measure_list, response_list, 
-                qnode["id"], numbering, depth + 1)
-            self.write_measure_to_worksheet(session, workbook, worksheet, 
-                measure_list, response_list, qnode["id"], numbering)
+            self.write_qnode_to_worksheet(session, workbook, worksheet,
+                                          qnode_list, response_qnode_list, measure_list, response_list,
+                                          qnode["id"], numbering, depth + 1)
+            self.write_measure_to_worksheet(session, workbook, worksheet,
+                                            measure_list, response_list, qnode["id"], numbering)
 
-    def write_measure_to_worksheet(self, session, workbook, worksheet, 
-                measure_list, response_list, qnode_id, prefix):
+    def write_measure_to_worksheet(self, session, workbook, worksheet,
+                                   measure_list, response_list, qnode_id, prefix):
 
-        filtered = [node for node in measure_list 
-                         if node["qnode_id"] == qnode_id]
+        filtered = [node for node in measure_list
+                    if node["qnode_id"] == qnode_id]
         filtered_list = sorted(filtered, key=lambda node: node["seq"])
 
         format = workbook.add_format()
@@ -364,18 +363,19 @@ class Exporter():
         format_part_answer.set_bottom(1)
 
         for qnode_measure in filtered_list:
-            response_types = [type for type in self.response_types 
-                                if type["id"] == qnode_measure["response_type"]]
+            response_types = [type for type in self.response_types
+                              if type["id"] == qnode_measure["response_type"]]
 
             response = [r for r in response_list
-                            if r["measure_id"] == qnode_measure["measure_id"]]
+                        if r["measure_id"] == qnode_measure["measure_id"]]
             percentage = None
             if response:
                 percentage = response[0]["score"] / response[0]["weight"]
 
             numbering = prefix + str(qnode_measure["seq"] + 1) + ". "
             worksheet.write(self.line, 0, '', format_header)
-            worksheet.write(self.line, 1, numbering + qnode_measure["title"], format)
+            worksheet.write(
+                self.line, 1, numbering + qnode_measure["title"], format)
             worksheet.write(self.line, 2, qnode_measure["weight"], format)
             worksheet.write(self.line, 3, percentage, format_percent)
             self.line = self.line + 1
@@ -396,38 +396,37 @@ class Exporter():
             worksheet.write(self.line, 2, '', format)
             self.line = self.line + 1
             worksheet.write(self.line, 0, "Comments", format_header_end)
-            worksheet.write(self.line, 1, qnode_measure["questions"], format_end)
+            worksheet.write(
+                self.line, 1, qnode_measure["questions"], format_end)
             worksheet.write(self.line, 2, '', format_end)
             worksheet.write(self.line, 3, '', format_end)
-            ## answer option
+            # answer option
             parts_len = len(response_types[0]["parts"])
             index = 0
             for part in response_types[0]["parts"]:
                 worksheet.write(self.line - parts_len + index, 2,
-                    part["name"], format_part)
+                                part["name"], format_part)
                 index = index + 1
 
-            measure_response = [r for r in response_list 
-                        if r["measure_id"] == qnode_measure["measure_id"]]
+            measure_response = [r for r in response_list
+                                if r["measure_id"] == qnode_measure["measure_id"]]
 
             index = 0
             if measure_response:
                 log.info("measure_response: %s", measure_response[0])
                 for part in measure_response[0]["response_parts"]:
                     worksheet.write(self.line - parts_len + index, 3,
-                        part["note"], format_part_answer)
+                                    part["note"], format_part_answer)
                     index = index + 1
             else:
                 for i in range(0, parts_len):
                     worksheet.write(self.line - parts_len + index, 3,
-                        '', format_part_answer)
+                                    '', format_part_answer)
                     index = index + 1
-
 
             self.line = self.line + 1
 
     def process_response_file(self, file_name, survey_id, assessment_id):
-
         """
         Open and write an Excel file
         """
@@ -441,39 +440,72 @@ class Exporter():
         format_percent = workbook.add_format()
         format_percent.set_num_format(10)
 
-        line = 0
-
+        line = 1
         with model.session_scope() as session:
             assessment = session.query(model.Assessment)\
                 .get(assessment_id)
 
             if assessment:
-                levels = len(assessment.hierarchy.structure["levels"])
-                worksheet.set_column(0, levels, 50) 
+                levels = assessment.hierarchy.structure["levels"]
+                level_length = len(levels)
+                worksheet.set_column(0, level_length, 50)
+                # Find max response number and write to header
+                max_len_of_response = max(
+                    [len(response.response_parts) 
+                        for response in assessment.ordered_responses])
+                worksheet.set_column(level_length + 1, 
+                    level_length + max_len_of_response, 10)
+                # Header from heirarchy levels
+                self.write_response_header(
+                    workbook, worksheet, levels, max_len_of_response)
 
                 for response in assessment.ordered_responses:
-                    qnode = response.measure.get_parent(assessment.hierarchy_id)
-                    self.write_qnode(worksheet, qnode, line, format, levels - 1)
-                    worksheet.write(line, levels, response.measure.title, format)
-                    last_col = self.write_response_parts(worksheet, response.response_parts, line, format, levels + 1)
-                    worksheet.write(line, last_col, response.score / response.measure.weight, format_percent)
-                    worksheet.write(line, last_col+1, response.score, format)
-                    worksheet.write(line, last_col+2, response.comment, format_comment)
+                    qnode = response.measure.get_parent(
+                        assessment.hierarchy_id)
+                    self.write_qnode(
+                        worksheet, qnode, line, format, level_length - 1)
+                    worksheet.write(
+                        line, level_length, response.measure.title, format)
+                    self.write_response_parts(
+                        worksheet, response.response_parts, line, format, 
+                            level_length + 1)
+                    worksheet.write(
+                        line, level_length + max_len_of_response + 1, response.score / response.measure.weight, 
+                            format_percent)
+                    worksheet.write(
+                        line, level_length + max_len_of_response + 2, qnode.total_weight, format)
+                    worksheet.write(
+                        line, level_length + max_len_of_response + 3, response.comment, format_comment)
                     line = line + 1
 
         workbook.close()
+
+    def write_response_header(self, workbook, sheet, levels, max_response):
+        format = workbook.add_format()
+        format.set_text_wrap()
+        format.set_bold()
+
+        for level in levels:
+            log.info(levels.index(level))
+            sheet.write(0, levels.index(level), level["title"], format)
+        sheet.write(0, len(levels), "Measure", format)
+        for index in range(max_response):
+            sheet.write(0, len(levels) + index + 1, "Response " + str(index + 1), 
+                format)
+        sheet.write(0, len(levels) + max_response + 1, "Percent", format)
+        sheet.write(0, len(levels) + max_response + 2, "Weight", format)
+        sheet.write(0, len(levels) + max_response + 3, "Comment", format)
 
     def write_qnode(self, sheet, qnode, line, format, col):
         if qnode.parent != None:
             self.write_qnode(sheet, qnode.parent, line, format, col - 1)
         sheet.write(line, col, qnode.title, format)
 
-
     def write_response_parts(self, sheet, parts, line, format, col):
         if parts != None:
             for part in parts:
-                log.info("part:%s", part)
-                sheet.write(line, col, part["note"], format)
+
+                sheet.write(
+                    line, col, str(part["index"]) + " - " + part["note"], format)
                 col = col + 1
         return col
-
