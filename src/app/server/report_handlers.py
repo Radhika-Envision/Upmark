@@ -34,17 +34,18 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError("Hierarchy ID required")
 
         with model.session_scope() as session:
-            qnode_query = self.construct_qnode_query(
+            qnode_pairs = self.get_qnodes(
                 session, survey_id_a, survey_id_b, hierarchy_id)
-            measure_query = self.construct_measure_query(
+            measure_pairs = self.get_measures(
                 session, survey_id_a, survey_id_b, hierarchy_id)
 
-            qnode_query = self.paginate(qnode_query)
-            measure_query = self.paginate(measure_query)
+            #qnode_query = self.paginate(qnode_query)
+            #measure_query = self.paginate(measure_query)
+
             import pprint
             log.error('%s', pprint.pformat(
-                qnode_query.all()
-                + measure_query.all()
+                qnode_pairs
+                + measure_pairs
             ))
             to_son = ToSon(include=[
                 r'/id$',
@@ -60,23 +61,51 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/[0-9]+$',
                 r'^/[0-9]+/[^/]+$',
             ])
+
+            qnode_diff = to_son(qnode_pairs)
+            for (a, b), (a_son, b_son) in zip(qnode_pairs, qnode_diff):
+                if a:
+                    a_son['path'] = a.get_path()
+                    a_son['type'] = 'qnode'
+                if b:
+                    b_son['path'] = b.get_path()
+                    b_son['type'] = 'qnode'
+
+            measure_diff = to_son(measure_pairs)
+            for (a, b), (a_son, b_son) in zip(measure_pairs, measure_diff):
+                if a:
+                    a_son['path'] = a.get_path(hierarchy_id)
+                    a_son['type'] = 'measure'
+                if b:
+                    b_son['path'] = b.get_path(hierarchy_id)
+                    b_son['type'] = 'measure'
+
             son = {}
-            son['diff'] = to_son(
-                qnode_query.all()
-                + measure_query.all()
-            )
+            son['diff'] = qnode_diff + measure_diff
+
+            def path_key(pair):
+                a, b = pair
+                if a and b:
+                    return 0, b['path'].split('.')
+                elif b:
+                    return 0, b['path'].split('.')
+                elif a:
+                    return 1, a['path'].split('.')
+                else:
+                    return 2
+            son['diff'].sort(key=path_key)
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
 
-    def construct_qnode_query(
+    def get_qnodes(
             self, session, survey_id_a, survey_id_b, hierarchy_id):
         QA = model.QuestionNode
         QB = aliased(model.QuestionNode, name='qnode_b')
 
         # Find modified / relocated qnodes
-        qnode_mod_query = (session.query(QA.id, QB.id)
+        qnode_mod_query = (session.query(QA, QB)
             .join(QB, QA.id == QB.id)
 
             # Basic survey membership
@@ -93,7 +122,7 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
         )
 
         # Find deleted qnodes
-        qnode_del_query = (session.query(QA.id, literal(None))
+        qnode_del_query = (session.query(QA, literal(None))
             .select_from(QA)
             .filter(QA.survey_id == survey_id_a,
                     QA.hierarchy_id == hierarchy_id,
@@ -104,7 +133,7 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
         )
 
         # Find added qnodes
-        qnode_add_query = (session.query(literal(None), QB.id)
+        qnode_add_query = (session.query(literal(None), QB)
             .select_from(QB)
             .filter(QB.survey_id == survey_id_b,
                     QB.hierarchy_id == hierarchy_id,
@@ -114,12 +143,11 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
                                     QA.hierarchy_id == hierarchy_id)))
         )
 
-        qnode_query = (qnode_mod_query
-                       .union_all(qnode_add_query)
-                       .union_all(qnode_del_query))
-        return qnode_query
+        return list(qnode_mod_query.all()
+                    + qnode_add_query.all()
+                    + qnode_del_query.all())
 
-    def construct_measure_query(
+    def get_measures(
             self, session, survey_id_a, survey_id_b, hierarchy_id):
         QA = model.QuestionNode
         QB = aliased(model.QuestionNode, name='qnode_b')
@@ -129,7 +157,7 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
         QMB = aliased(model.QnodeMeasure, name='qnode_measure_link_b')
 
         # Find modified / relocated measures
-        measure_mod_query = (session.query(MA.id, MB.id)
+        measure_mod_query = (session.query(MA, MB)
 
             .join(MB, MA.id == MB.id)
 
@@ -156,8 +184,10 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
                     (QMA.seq != QMB.seq))
         )
 
+        ncols = len(MA.__table__.c)
+
         # Find deleted measures
-        measure_del_query = (session.query(MA.id, literal(None))
+        measure_del_query = (session.query(MA, literal(None))
             .select_from(MA)
             .join(QMA, (QMA.survey_id == MA.survey_id) & (QMA.measure_id == MA.id))
             .join(QA, (QMA.survey_id == QA.survey_id) & (QMA.qnode_id == QA.id))
@@ -171,7 +201,7 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
         )
 
         # Find added measures
-        measure_add_query = (session.query(literal(None), MB.id)
+        measure_add_query = (session.query(literal(None), MB)
             .select_from(MB)
             .join(QMB, (QMB.survey_id == MB.survey_id) & (QMB.measure_id == MB.id))
             .join(QB, (QMB.survey_id == QB.survey_id) & (QMB.qnode_id == QB.id))
@@ -184,7 +214,6 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
                                     QA.hierarchy_id == hierarchy_id)))
         )
 
-        measure_query = (measure_mod_query
-                         .union_all(measure_add_query)
-                         .union_all(measure_del_query))
-        return measure_query
+        return list(measure_mod_query.all()
+                    + measure_add_query.all()
+                    + measure_del_query.all())
