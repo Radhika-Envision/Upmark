@@ -235,6 +235,7 @@ class Exporter():
                     response_list = [{"measure_id": str(item.measure.id),
                                       "response_parts": item.response_parts,
                                       "weight": item.measure.weight,
+                                      "comment": item.comment,
                                       "score": item.score}
                                      for item in responses]
                 response_nodes = session.query(model.ResponseNode)\
@@ -333,7 +334,12 @@ class Exporter():
         format.set_bg_color("#FABF8F")
         format.set_bottom_color('white')
         format.set_bottom(1)
-        format.set_bold()
+        format_bold_header = workbook.add_format()
+        format_bold_header.set_text_wrap()
+        format_bold_header.set_bg_color("#FABF8F")
+        format_bold_header.set_bottom_color('white')
+        format_bold_header.set_bottom(1)
+        format_bold_header.set_bold()
         format_percent = workbook.add_format()
         format_percent.set_text_wrap()
         format_percent.set_bg_color("#FABF8F")
@@ -374,11 +380,12 @@ class Exporter():
             percentage = None
             if response:
                 percentage = response[0]["score"] / response[0]["weight"]
+                comment = response[0]["comment"]
 
             numbering = prefix + str(qnode_measure["seq"] + 1) + ". "
             worksheet.write(self.line, 0, '', format_header)
             worksheet.write(
-                self.line, 1, numbering + qnode_measure["title"], format)
+                self.line, 1, numbering + qnode_measure["title"], format_bold_header)
             worksheet.write(self.line, 2, qnode_measure["weight"], format)
             worksheet.write(self.line, 3, percentage, format_percent)
             self.line = self.line + 1
@@ -400,7 +407,7 @@ class Exporter():
             self.line = self.line + 1
             worksheet.write(self.line, 0, "Comments", format_header_end)
             worksheet.write(
-                self.line, 1, qnode_measure["questions"], format_end)
+                self.line, 1, comment, format_end)
             worksheet.write(self.line, 2, '', format_end)
             worksheet.write(self.line, 3, '', format_end)
             # answer option
@@ -493,7 +500,6 @@ class Exporter():
         format.set_bold()
 
         for level in levels:
-            log.info(levels.index(level))
             sheet.write(0, levels.index(level), level["title"], format)
         sheet.write(0, len(levels), "Measure", format)
         for index in range(max_response):
