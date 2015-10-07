@@ -754,14 +754,10 @@ angular.module('wsaa.aquamark',
         log.error("Failed to navigate to {}", $location.url());
         Notifications.set('route', 'error', error, 10000);
 
-        console.log(rejection);
         checkLogin().then(
             function sessionStillValid() {
-                if (previous) {
+                if (previous)
                     $window.history.back();
-                } else {
-                    $location.path("/");
-                }
             },
             function sessionInvalid() {
                 Notifications.set('route', 'error',
