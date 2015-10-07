@@ -81,11 +81,12 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
             )
 
             # Find modified / relocated measures
-            qnode_measure_query = (session.query(QMA, QMB)
-                .join(QMB, QMA.measure_id == QMB.measure_id)
+            qnode_measure_query = (session.query(MA, MB)
 
-                .join(MA, (QMA.survey_id == MA.survey_id) & (QMA.measure_id == MA.id))
-                .join(MB, (QMB.survey_id == MB.survey_id) & (QMB.measure_id == MB.id))
+                .join(MB, MA.id == MB.id)
+
+                .join(QMA, (QMA.survey_id == MA.survey_id) & (QMA.measure_id == MA.id))
+                .join(QMB, (QMB.survey_id == MB.survey_id) & (QMB.measure_id == MB.id))
                 .join(QA, (QMA.survey_id == QA.survey_id) & (QMA.qnode_id == QA.id))
                 .join(QB, (QMB.survey_id == QB.survey_id) & (QMB.qnode_id == QB.id))
 
@@ -108,8 +109,9 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
             )
 
             # Find deleted measures
-            qnode_measure_del_query = (session.query(QMA, literal(None))
-                .select_from(QMA)
+            qnode_measure_del_query = (session.query(MA, literal(None))
+                .select_from(MA)
+                .join(QMA, (QMA.survey_id == MA.survey_id) & (QMA.measure_id == MA.id))
                 .join(QA, (QMA.survey_id == QA.survey_id) & (QMA.qnode_id == QA.id))
                 .filter(QA.survey_id == survey_id_a,
                         QA.hierarchy_id == hierarchy_id,
@@ -121,8 +123,9 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
             )
 
             # Find added measures
-            qnode_measure_add_query = (session.query(literal(None), QMB)
-                .select_from(QMB)
+            qnode_measure_add_query = (session.query(literal(None), MB)
+                .select_from(MB)
+                .join(QMB, (QMB.survey_id == MB.survey_id) & (QMB.measure_id == MB.id))
                 .join(QB, (QMB.survey_id == QB.survey_id) & (QMB.qnode_id == QB.id))
                 .filter(QB.survey_id == survey_id_b,
                         QB.hierarchy_id == hierarchy_id,
@@ -155,7 +158,7 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/intent$',
                 r'/inputs$',
                 r'/scenario$',
-                r'/question$',
+                r'/questions$',
                 r'/weight$',
                 r'/seq$',
                 # Descend
