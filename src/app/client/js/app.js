@@ -740,9 +740,9 @@ angular.module('wsaa.aquamark',
 
 
 .run(['$rootScope', '$window', '$location', 'Notifications', 'log', 'timeAgo',
-        '$route',
+        '$route', 'checkLogin',
         function($rootScope, $window, $location, Notifications, log, timeAgo,
-            $route) {
+            $route, checkLogin) {
 
     $rootScope.$on('$routeChangeError',
             function(event, current, previous, rejection) {
@@ -753,11 +753,21 @@ angular.module('wsaa.aquamark',
             error = "Object not found";
         log.error("Failed to navigate to {}", $location.url());
         Notifications.set('route', 'error', error, 10000);
-        if (previous) {
-            $window.history.back();
-        } else {
-            $location.path("/");
-        }
+
+        console.log(rejection);
+        checkLogin().then(
+            function sessionStillValid() {
+                if (previous) {
+                    $window.history.back();
+                } else {
+                    $location.path("/");
+                }
+            },
+            function sessionInvalid() {
+                Notifications.set('route', 'error',
+                    "Your session has expired. Please log in again.");
+            }
+        );
     });
 
     $rootScope.$on('$routeChangeSuccess', function(event) {

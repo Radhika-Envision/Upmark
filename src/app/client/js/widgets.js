@@ -198,12 +198,25 @@ angular.module('vpac.widgets', [])
 }])
 
 
+.factory('checkLogin', ['$q', 'User', '$cookies', '$http',
+         function($q, User, $cookies, $http) {
+    return function checkLogin() {
+        var user = $cookies.get('user');
+        var xsrf = $cookies.get($http.defaults.xsrfCookieName);
+        if (!user || !xsrf)
+            return $q.reject("Session cookies are not defined");
+
+        return User.get({id: 'current'}).$promise;
+    };
+}])
+
+
 /**
  * Manages state for a modal editing session.
  */
 .factory('Editor', [
-        '$parse', 'log', 'Notifications', '$q',
-         function($parse, log, Notifications, $q) {
+        '$parse', 'log', 'Notifications', '$q', 'checkLogin',
+         function($parse, log, Notifications, $q, checkLogin) {
 
     function Editor(targetPath, scope, params, resource) {
         this.model = null;
@@ -241,10 +254,21 @@ angular.module('vpac.widgets', [])
             }
         };
         var failure = function(details) {
-            try {
-                that.scope.$emit('EditError');
+            var normalError = function() {
                 Notifications.set('edit', 'error',
                     "Could not save object: " + details.statusText);
+            };
+            var loginError = function() {
+                Notifications.set('edit', 'error',
+                    "Could not save object: your session has expired.");
+            };
+            try {
+                that.scope.$emit('EditError');
+                if (details.status == 403) {
+                    checkLogin().then(normalError, loginError);
+                } else {
+                    normalError();
+                }
             } finally {
                 that.saving = false;
                 that = null;
@@ -280,10 +304,21 @@ angular.module('vpac.widgets', [])
             }
         };
         var failure = function(details) {
-            try {
-                that.scope.$emit('EditError');
+            var normalError = function() {
                 Notifications.set('edit', 'error',
                     "Could not delete object: " + details.statusText);
+            };
+            var loginError = function() {
+                Notifications.set('edit', 'error',
+                    "Could not delete object: your session has expired.");
+            };
+            try {
+                that.scope.$emit('EditError');
+                if (details.status == 403) {
+                    checkLogin().then(normalError, loginError);
+                } else {
+                    normalError();
+                }
             } finally {
                 that.saving = false;
                 that = null;
