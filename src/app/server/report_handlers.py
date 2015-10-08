@@ -18,7 +18,7 @@ from utils import reorder, ToSon, truthy, updater
 log = logging.getLogger('app.report_handler')
 
 
-class DiffHandler(handlers.Paginate, handlers.BaseHandler):
+class DiffHandler(handlers.BaseHandler):
 
     @tornado.web.authenticated
     def get(self):
@@ -34,89 +34,80 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError("Hierarchy ID required")
 
         with model.session_scope() as session:
-            qnode_pairs = self.get_qnodes(
-                session, survey_id_a, survey_id_b, hierarchy_id)
-            measure_pairs = self.get_measures(
-                session, survey_id_a, survey_id_b, hierarchy_id)
-
-            #qnode_query = self.paginate(qnode_query)
-            #measure_query = self.paginate(measure_query)
-
-            import pprint
-            log.error('%s', pprint.pformat(
-                qnode_pairs
-                + measure_pairs
-            ))
-            to_son = ToSon(include=[
-                r'/id$',
-                r'/title$',
-                r'/description$',
-                r'/intent$',
-                r'/inputs$',
-                r'/scenario$',
-                r'/questions$',
-                r'/weight$',
-                r'/seq$',
-                # Descend
-                r'/[0-9]+$',
-                r'^/[0-9]+/[^/]+$',
-            ])
-
-            qnode_diff = to_son(qnode_pairs)
-            for (a, b), (a_son, b_son) in zip(qnode_pairs, qnode_diff):
-                if a:
-                    a_son['path'] = a.get_path()
-                    a_son['type'] = 'qnode'
-                if b:
-                    b_son['path'] = b.get_path()
-                    b_son['type'] = 'qnode'
-            self.remove_unchanged_fields(qnode_diff)
-
-            measure_diff = to_son(measure_pairs)
-            for (a, b), (a_son, b_son) in zip(measure_pairs, measure_diff):
-                if a:
-                    a_son['path'] = a.get_path(hierarchy_id)
-                    a_son['parentId'] = str(a.get_parent(hierarchy_id).id)
-                    a_son['type'] = 'measure'
-                if b:
-                    b_son['path'] = b.get_path(hierarchy_id)
-                    b_son['parentId'] = str(b.get_parent(hierarchy_id).id)
-                    b_son['type'] = 'measure'
-            self.remove_unchanged_fields(measure_diff)
-
-            son = {}
-            son['diff'] = qnode_diff + measure_diff
-
-            def path_key(pair):
-                a, b = pair
-                if a and b:
-                    return 0, b['path'].split('.')
-                elif b:
-                    return 0, b['path'].split('.')
-                elif a:
-                    return 1, a['path'].split('.')
-                else:
-                    return 2
-            son['diff'].sort(key=path_key)
+            diff_engine = DiffEngine(session, survey_id_a, survey_id_b, hierarchy_id)
+            son = {
+                'diff': diff_engine.execute()
+            }
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
 
-    def get_qnodes(
-            self, session, survey_id_a, survey_id_b, hierarchy_id):
+
+class DiffEngine:
+    def __init__(self, session, survey_id_a, survey_id_b, hierarchy_id):
+        self.session = session
+        self.survey_id_a = survey_id_a
+        self.survey_id_b = survey_id_b
+        self.hierarchy_id = hierarchy_id
+
+    def execute(self):
+        qnode_pairs = self.get_qnodes()
+        measure_pairs = self.get_measures()
+
+        to_son = ToSon(include=[
+            r'/id$',
+            r'/parent_id$',
+            r'/title$',
+            r'/description$',
+            r'/intent$',
+            r'/inputs$',
+            r'/scenario$',
+            r'/questions$',
+            r'/weight$',
+            r'/seq$',
+            # Descend
+            r'/[0-9]+$',
+            r'^/[0-9]+/[^/]+$',
+        ])
+
+        qnode_diff = to_son(qnode_pairs)
+        self.add_qnode_metadata(qnode_pairs, qnode_diff)
+        self.remove_unchanged_fields(qnode_diff)
+
+        measure_diff = to_son(measure_pairs)
+        self.add_measure_metadata(measure_pairs, measure_diff)
+        self.remove_unchanged_fields(measure_diff)
+
+        diff = qnode_diff + measure_diff
+
+        def path_key(pair):
+            a, b = pair
+            if a and b:
+                return 0, b['path'].split('.')
+            elif b:
+                return 0, b['path'].split('.')
+            elif a:
+                return 1, a['path'].split('.')
+            else:
+                return 2
+        diff.sort(key=path_key)
+
+        return diff
+
+    def get_qnodes(self):
         QA = model.QuestionNode
         QB = aliased(model.QuestionNode, name='qnode_b')
 
         # Find modified / relocated qnodes
-        qnode_mod_query = (session.query(QA, QB)
+        qnode_mod_query = (self.session.query(QA, QB)
             .join(QB, QA.id == QB.id)
 
             # Basic survey membership
-            .filter(QA.survey_id == survey_id_a,
-                    QB.survey_id == survey_id_b,
-                    QA.hierarchy_id == hierarchy_id,
-                    QB.hierarchy_id == hierarchy_id)
+            .filter(QA.survey_id == self.survey_id_a,
+                    QB.survey_id == self.survey_id_b,
+                    QA.hierarchy_id == self.hierarchy_id,
+                    QB.hierarchy_id == self.hierarchy_id)
 
             # Filter for modified objects
             .filter((QA.title != QB.title) |
@@ -126,33 +117,32 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
         )
 
         # Find deleted qnodes
-        qnode_del_query = (session.query(QA, literal(None))
+        qnode_del_query = (self.session.query(QA, literal(None))
             .select_from(QA)
-            .filter(QA.survey_id == survey_id_a,
-                    QA.hierarchy_id == hierarchy_id,
+            .filter(QA.survey_id == self.survey_id_a,
+                    QA.hierarchy_id == self.hierarchy_id,
                     ~QA.id.in_(
-                        session.query(QB.id)
-                            .filter(QB.survey_id == survey_id_b,
-                                    QB.hierarchy_id == hierarchy_id)))
+                        self.session.query(QB.id)
+                            .filter(QB.survey_id == self.survey_id_b,
+                                    QB.hierarchy_id == self.hierarchy_id)))
         )
 
         # Find added qnodes
-        qnode_add_query = (session.query(literal(None), QB)
+        qnode_add_query = (self.session.query(literal(None), QB)
             .select_from(QB)
-            .filter(QB.survey_id == survey_id_b,
-                    QB.hierarchy_id == hierarchy_id,
+            .filter(QB.survey_id == self.survey_id_b,
+                    QB.hierarchy_id == self.hierarchy_id,
                     ~QB.id.in_(
-                        session.query(QA.id)
-                            .filter(QA.survey_id == survey_id_a,
-                                    QA.hierarchy_id == hierarchy_id)))
+                        self.session.query(QA.id)
+                            .filter(QA.survey_id == self.survey_id_a,
+                                    QA.hierarchy_id == self.hierarchy_id)))
         )
 
         return list(qnode_mod_query.all()
                     + qnode_add_query.all()
                     + qnode_del_query.all())
 
-    def get_measures(
-            self, session, survey_id_a, survey_id_b, hierarchy_id):
+    def get_measures(self):
         QA = model.QuestionNode
         QB = aliased(model.QuestionNode, name='qnode_b')
         MA = model.Measure
@@ -161,7 +151,7 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
         QMB = aliased(model.QnodeMeasure, name='qnode_measure_link_b')
 
         # Find modified / relocated measures
-        measure_mod_query = (session.query(MA, MB)
+        measure_mod_query = (self.session.query(MA, MB)
 
             .join(MB, MA.id == MB.id)
 
@@ -179,10 +169,10 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
                   (QMB.qnode_id == QB.id))
 
             # Basic survey membership
-            .filter(QA.survey_id == survey_id_a,
-                    QB.survey_id == survey_id_b,
-                    QA.hierarchy_id == hierarchy_id,
-                    QB.hierarchy_id == hierarchy_id)
+            .filter(QA.survey_id == self.survey_id_a,
+                    QB.survey_id == self.survey_id_b,
+                    QA.hierarchy_id == self.hierarchy_id,
+                    QB.hierarchy_id == self.hierarchy_id)
 
             # Filter for modified objects
             .filter((MA.title != MB.title) |
@@ -199,7 +189,7 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
         ncols = len(MA.__table__.c)
 
         # Find deleted measures
-        measure_del_query = (session.query(MA, literal(None))
+        measure_del_query = (self.session.query(MA, literal(None))
             .select_from(MA)
             .join(QMA,
                   (QMA.survey_id == MA.survey_id) &
@@ -207,19 +197,19 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
             .join(QA,
                   (QMA.survey_id == QA.survey_id) &
                   (QMA.qnode_id == QA.id))
-            .filter(QA.survey_id == survey_id_a,
-                    QA.hierarchy_id == hierarchy_id,
+            .filter(QA.survey_id == self.survey_id_a,
+                    QA.hierarchy_id == self.hierarchy_id,
                     ~QMA.measure_id.in_(
-                        session.query(QMB.measure_id)
+                        self.session.query(QMB.measure_id)
                             .join(QB,
                                   (QMB.survey_id == QB.survey_id) &
                                   (QMB.qnode_id == QB.id))
-                            .filter(QB.survey_id == survey_id_b,
-                                    QB.hierarchy_id == hierarchy_id)))
+                            .filter(QB.survey_id == self.survey_id_b,
+                                    QB.hierarchy_id == self.hierarchy_id)))
         )
 
         # Find added measures
-        measure_add_query = (session.query(literal(None), MB)
+        measure_add_query = (self.session.query(literal(None), MB)
             .select_from(MB)
             .join(QMB,
                   (QMB.survey_id == MB.survey_id) &
@@ -227,20 +217,40 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
             .join(QB,
                   (QMB.survey_id == QB.survey_id) &
                   (QMB.qnode_id == QB.id))
-            .filter(QB.survey_id == survey_id_b,
-                    QB.hierarchy_id == hierarchy_id,
+            .filter(QB.survey_id == self.survey_id_b,
+                    QB.hierarchy_id == self.hierarchy_id,
                     ~QMB.measure_id.in_(
-                        session.query(QMA.measure_id)
+                        self.session.query(QMA.measure_id)
                             .join(QA,
                                   (QMA.survey_id == QA.survey_id) &
                                   (QMA.qnode_id == QA.id))
-                            .filter(QA.survey_id == survey_id_a,
-                                    QA.hierarchy_id == hierarchy_id)))
+                            .filter(QA.survey_id == self.survey_id_a,
+                                    QA.hierarchy_id == self.hierarchy_id)))
         )
 
         return list(measure_mod_query.all()
                     + measure_add_query.all()
                     + measure_del_query.all())
+
+    def add_qnode_metadata(self, qnode_pairs, qnode_diff):
+        for (a, b), (a_son, b_son) in zip(qnode_pairs, qnode_diff):
+            if a:
+                a_son['path'] = a.get_path()
+                a_son['type'] = 'qnode'
+            if b:
+                b_son['path'] = b.get_path()
+                b_son['type'] = 'qnode'
+
+    def add_measure_metadata(self, measure_pairs, measure_diff):
+        for (a, b), (a_son, b_son) in zip(measure_pairs, measure_diff):
+            if a:
+                a_son['path'] = a.get_path(self.hierarchy_id)
+                a_son['parentId'] = str(a.get_parent(self.hierarchy_id).id)
+                a_son['type'] = 'measure'
+            if b:
+                b_son['path'] = b.get_path(self.hierarchy_id)
+                b_son['parentId'] = str(b.get_parent(self.hierarchy_id).id)
+                b_son['type'] = 'measure'
 
     def remove_unchanged_fields(self, son_pairs, ignore=None):
         if ignore is None:
