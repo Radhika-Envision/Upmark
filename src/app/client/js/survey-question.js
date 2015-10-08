@@ -1103,19 +1103,19 @@ angular.module('wsaa.surveyQuestions', [
                 var g = d3.select(this),
                     n = d.length;
 
-                var lineWidth = !d.compareMode ? width : width / 2;
 
-                var displayChart = function (object, index, compareMode) {
-                    var data = object.data[index];
+                var displayChart = function (object, dataIndex, compareMode) {
+                    var lineWidth = !object.compareMode ? width : width / 2;
+                    var data = object.data[dataIndex];
                     // Compute the new x-scale.
                     var yAxis = d3.scale.linear()
                       .domain([data.min, data.max])
                       .range([height - 40, 20]);
 
-                    // Compute the tick format.
+                     // Compute the tick format.
                     var format = tickFormat || yAxis.tickFormat(8);
                     var borderData = [data.min, data.max];
-                    if (index==0) {
+                    if (dataIndex==0) {
                         var border = g.selectAll("line.border")
                             .data(borderData);
 
@@ -1127,20 +1127,6 @@ angular.module('wsaa.surveyQuestions', [
                             .attr("y2", yAxis);
                     }
 
-                    var borderTick = g.selectAll("text.border" + index)
-                        .data(borderData);
-
-                    var borderStart = index==0 ? width-20:width;
-                    borderTick.enter().append("text")
-                        .attr("class", "border")
-                        .attr("x", borderStart)
-                        .attr("y", function(item, i) { 
-                            return i==0 ? yAxis(item)+15:yAxis(item)-5; 
-                        })
-                        .attr("text-anchor", index==0 ? "end":"start")
-                        .attr("opacity", 0)
-                        .text(format);
-
                     g.append("line", "rect")
                         .attr("class", "center")
                         .attr("x1", width / 2)
@@ -1151,82 +1137,91 @@ angular.module('wsaa.surveyQuestions', [
                     // Update innerquartile box.
                     g.append("rect")
                         .attr("class", "box")
-                        .attr("x", index==0 ? 0: width/2) 
+                        .attr("x", dataIndex==0 ? 0: width/2) 
                         .attr("y", yAxis(data.quartile[2]))
                         .attr("width", lineWidth)
                         .attr("height", yAxis(data.quartile[0]) 
                                 - yAxis(data.quartile[2]));
 
-                    // Update current line.
-                    g.append("line")
-                        .attr("class", "current")
-                        .attr("x1", index==0?-4:width/2)
-                        .attr("y1", yAxis(data.current))
-                        .attr("x2", function(item) {
-                            if (index==0)
-                                return compareMode ? width/2:width+4;
-                            return width+4; 
-                        })
-                        .attr("y2", yAxis(data.current));
-
-                    // Update whiskers.
-                    var wisker_data = [data.survey_min,
-                                       data.survey_max];
-                    var whisker = g.selectAll("line.whisker" + index)
-                        .data(wisker_data);
-
-                    whisker.enter().insert("line", "text")
-                        .attr("class", "whisker")
-                        .attr("x1", index==0?0:width/2)
-                        .attr("y1", yAxis) // x1
-                        .attr("x2", index==0?lineWidth:width)
-                        .attr("y2", yAxis);
-
                     // Update whisker ticks. These are handled separately from the box
                     // ticks because they may or may not exist, and we want don't want
                     // to join box ticks pre-transition with whisker ticks post-.
-                    var whiskerTick = g.selectAll("text.whisker" + index)
-                        .data(wisker_data);
+                    var tickData = [data.min,                   // 0
+                                    data.survey_min,            // 1
+                                    data.quartile[1],           // 2
+                                    data.current,               // 3
+                                    data.survey_max,            // 4
+                                    data.max];                  // 5
 
-                    whiskerTick.enter().append("text")
-                        .attr("class", "whisker")
+                    var tickClass = ["wisker",
+                                     "wisker",
+                                     "median_text",
+                                     "current_text",
+                                     "wisker",
+                                     "wisker"];
+
+                    // text tick
+                    g.selectAll("text.whisker" + dataIndex)
+                        .data(tickData)
+                        .enter().append("text")
+                        .attr("class", function(item, index) { 
+                            return tickClass[index]; 
+                        })
                         .attr("dy", ".3em")
-                        .attr("dx", index==0?-25:5)
+                        .attr("dx", dataIndex==0 ? -30:5)
                         .attr("x", width)
-                        .attr("y", yAxis)
-                        .attr("text-anchor", index==0?"end":"start")
-                        .attr("opacity", 0)
+                        .attr("y", function(item, index) { 
+                            if (index==0) 
+                                return yAxis(item)+13;
+                            if (index==5) 
+                                return yAxis(item)-10;
+                            return yAxis(item);
+ 
+                        })
+                        .attr("opacity", function(item, index) {
+                            if (index == 3) // this means current data
+                                return 1;
+                            return 0;
+                        })
+                        .attr("text-anchor", dataIndex==0 ? "end":"start")
                         .text(format);
 
-                    // Update current text
-                    g.append("text")
-                        .attr("class", "current_text")
-                        .attr("dy", ".3em")
-                        .attr("dx", index==0?-25:5)
-                        .attr("x", width)
-                        .attr("y", yAxis(data.current))
-                        .attr("text-anchor", index==0?"end":"start")
-                        .text(format(data.current));
+                    var lineData = [data.current,               // 0
+                                    data.survey_min,            // 1
+                                    data.survey_max,            // 2
+                                    data.quartile[1]];          // 3
 
-                    var medianData = data.quartile[1];
-                    g.append("line")
-                        .attr("class", "median")
-                        .attr("x1", index==0?0:width/2)
-                        .attr("y1", yAxis(medianData))
-                        .attr("x2", index==0?lineWidth:width)
-                        .attr("y2", yAxis(medianData));
-                    
-                    g.append("text")
-                            .attr("class", "median_text")
-                            .attr("dy", ".3em")
-                            .attr("dx", index==0?-25:5)
-                            .attr("x", width)
-                            .attr("y", yAxis(medianData))
-                            .attr("text-anchor", index==0?"end":"start")
-                            .attr("opacity", 0)
-                            .text(format(medianData));
+                    var lineClass = ["current",
+                                     "whisker",
+                                     "whisker",
+                                     "median"];
 
-                    if (index == 0) {
+                    g.selectAll("line.whisker" + dataIndex)
+                        .data(lineData)
+                        .enter().append("line")
+                        .attr("class", function(item, index) {
+                            return lineClass[index]; 
+                        })
+                        .attr("x1", function(item, index) {
+                            if(index == 0)
+                                return dataIndex==0 ? -4:width/2;
+                            return dataIndex==0 ? 0:width/2; 
+                        })
+                        .attr("y1", yAxis)
+                        .attr("x2", function(item, index) {
+                            if(compareMode) {
+                                if(index == 0)
+                                    return dataIndex==0 ? width/2:width+4;
+                                return dataIndex==0 ? width/2:width;                                 
+                            } else {
+                                if(index == 0)
+                                    return width+4;
+                                return width;
+                            }
+                        })
+                        .attr("y2", yAxis);
+
+                    if (dataIndex == 0) {
                         g.append("text")
                             .attr("class", "title")
                             .attr("x", 0)
