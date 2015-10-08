@@ -224,7 +224,7 @@ class Exporter():
 
             response_list = []
             response_qnode_list = []
-            log.error('%s %s', assessment_id, survey_id)
+            log.debug('Exporting assessment %s of survey %s', assessment_id, survey_id)
             if assessment_id != '':
                 responses = (session.query(model.Response)
                              .filter(model.Response.assessment_id == assessment_id,
@@ -300,9 +300,8 @@ class Exporter():
             response_score = [r for r in response_qnode_list
                               if r["qnode_id"] == qnode["id"]]
             percent = None
-            if response_score:
-                percent = response_score[0][
-                    "score"] / response_score[0]["weight"]
+            if response_score and response_score[0]["weight"] != 0:
+                percent = response_score[0]["score"] / response_score[0]["weight"]
 
             numbering = prefix + str(qnode["seq"] + 1) + ". "
             worksheet.merge_range("A{0}:B{0}".format(self.line + 1),
@@ -393,7 +392,7 @@ class Exporter():
             percentage = None
             comment = None
             not_relevant = None
-            if response:
+            if response and response[0]["weight"] != 0:
                 percentage = response[0]["score"] / response[0]["weight"]
                 comment = response[0]["comment"]
                 if response[0]["not_relevant"]:
@@ -441,10 +440,11 @@ class Exporter():
 
             index = 0
             if measure_response:
-                log.info("measure_response: %s", measure_response[0])
+                log.debug("measure_response: %s", measure_response[0])
                 for part in measure_response[0]["response_parts"]:
                     worksheet.write(self.line - parts_len + index, 3,
-                                    part["note"], format_part_answer)
+                                    "%d - %s" % (part["index"] + 1, part["note"]),
+                                    format_part_answer)
                     index = index + 1
             else:
                 for i in range(0, parts_len):
@@ -501,9 +501,11 @@ class Exporter():
                     self.write_response_parts(
                         worksheet, response.response_parts, line, format, 
                             level_length + 1)
+                    score = 0
+                    if response.measure.weight != 0:
+                        score = response.score / response.measure.weight
                     worksheet.write(line, level_length + max_len_of_response + 1, 
-                            response.score / response.measure.weight, 
-                            format_percent)
+                            score, format_percent)
                     worksheet.write(line, level_length + max_len_of_response + 2, 
                             qnode.total_weight, format)
                     worksheet.write(line, level_length + max_len_of_response + 3, 
@@ -537,6 +539,7 @@ class Exporter():
             for part in parts:
 
                 sheet.write(
-                    line, col, str(part["index"]) + " - " + part["note"], format)
+                    line, col, "%d - %s" % (part["index"] + 1, part["note"]),
+                    format)
                 col = col + 1
         return col
