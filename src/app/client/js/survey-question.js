@@ -1103,6 +1103,17 @@ angular.module('wsaa.surveyQuestions', [
                 var g = d3.select(this),
                     n = d.length;
 
+                var checkOverlapping = 
+                    function(tickValues, itemValue, itemIndex, yAxis) {
+                        var gap = 0;
+                        angular.forEach(tickValues, function(tick) {
+                            if (tickValues.indexOf(tick) != itemIndex && 
+                                Math.abs(yAxis(itemValue)-yAxis(tick)) < 7)
+                                gap = 10;
+                        });
+                        console.log("gap", gap);
+                        return gap;
+                };
 
                 var displayChart = function (object, dataIndex, compareMode) {
                     var lineWidth = !object.compareMode ? width : width / 2;
@@ -1153,12 +1164,12 @@ angular.module('wsaa.surveyQuestions', [
                                     data.survey_max,            // 4
                                     data.max];                  // 5
 
-                    var tickClass = ["wisker",
-                                     "wisker",
+                    var tickClass = ["whisker_text",
+                                     "whisker_text",
                                      "median_text",
                                      "current_text",
-                                     "wisker",
-                                     "wisker"];
+                                     "whisker_text",
+                                     "whisker_text"];
 
                     // text tick
                     g.selectAll("text.whisker" + dataIndex)
@@ -1170,12 +1181,17 @@ angular.module('wsaa.surveyQuestions', [
                         .attr("dy", ".3em")
                         .attr("dx", dataIndex==0 ? -30:5)
                         .attr("x", width)
-                        .attr("y", function(item, index) { 
+                        .attr("y", function(item, index) {
+                            // top and bottom value display
                             if (index==0) 
                                 return yAxis(item)+13;
                             if (index==5) 
                                 return yAxis(item)-10;
-                            return yAxis(item);
+                            var gap = 0;
+                            if (index != 3)
+                                gap = checkOverlapping(tickData, item, index, 
+                                    yAxis);
+                            return yAxis(item) + gap;
  
                         })
                         .attr("opacity", function(item, index) {
@@ -1373,7 +1389,6 @@ angular.module('wsaa.surveyQuestions', [
                         d3.select(this).style("background-color","E6E6E6");
                         d3.select(this).selectAll("text").style("opacity", 0);
                         d3.selectAll("text.current_text").style("opacity", 1);
-                        d3.selectAll("text.current_text2").style("opacity", 1);
                         d3.selectAll("text.title").style("opacity", 1);
                     })
                 .append("g")
