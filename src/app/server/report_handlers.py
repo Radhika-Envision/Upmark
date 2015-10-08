@@ -161,10 +161,18 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
 
             .join(MB, MA.id == MB.id)
 
-            .join(QMA, (QMA.survey_id == MA.survey_id) & (QMA.measure_id == MA.id))
-            .join(QMB, (QMB.survey_id == MB.survey_id) & (QMB.measure_id == MB.id))
-            .join(QA, (QMA.survey_id == QA.survey_id) & (QMA.qnode_id == QA.id))
-            .join(QB, (QMB.survey_id == QB.survey_id) & (QMB.qnode_id == QB.id))
+            .join(QMA,
+                  (QMA.survey_id == MA.survey_id) &
+                  (QMA.measure_id == MA.id))
+            .join(QMB,
+                  (QMB.survey_id == MB.survey_id) &
+                  (QMB.measure_id == MB.id))
+            .join(QA,
+                  (QMA.survey_id == QA.survey_id) &
+                  (QMA.qnode_id == QA.id))
+            .join(QB,
+                  (QMB.survey_id == QB.survey_id) &
+                  (QMB.qnode_id == QB.id))
 
             # Basic survey membership
             .filter(QA.survey_id == survey_id_a,
@@ -189,13 +197,19 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
         # Find deleted measures
         measure_del_query = (session.query(MA, literal(None))
             .select_from(MA)
-            .join(QMA, (QMA.survey_id == MA.survey_id) & (QMA.measure_id == MA.id))
-            .join(QA, (QMA.survey_id == QA.survey_id) & (QMA.qnode_id == QA.id))
+            .join(QMA,
+                  (QMA.survey_id == MA.survey_id) &
+                  (QMA.measure_id == MA.id))
+            .join(QA,
+                  (QMA.survey_id == QA.survey_id) &
+                  (QMA.qnode_id == QA.id))
             .filter(QA.survey_id == survey_id_a,
                     QA.hierarchy_id == hierarchy_id,
                     ~QMA.measure_id.in_(
                         session.query(QMB.measure_id)
-                            .join(QB, (QMB.survey_id == QB.survey_id) & (QMB.qnode_id == QB.id))
+                            .join(QB,
+                                  (QMB.survey_id == QB.survey_id) &
+                                  (QMB.qnode_id == QB.id))
                             .filter(QB.survey_id == survey_id_b,
                                     QB.hierarchy_id == hierarchy_id)))
         )
@@ -203,13 +217,19 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
         # Find added measures
         measure_add_query = (session.query(literal(None), MB)
             .select_from(MB)
-            .join(QMB, (QMB.survey_id == MB.survey_id) & (QMB.measure_id == MB.id))
-            .join(QB, (QMB.survey_id == QB.survey_id) & (QMB.qnode_id == QB.id))
+            .join(QMB,
+                  (QMB.survey_id == MB.survey_id) &
+                  (QMB.measure_id == MB.id))
+            .join(QB,
+                  (QMB.survey_id == QB.survey_id) &
+                  (QMB.qnode_id == QB.id))
             .filter(QB.survey_id == survey_id_b,
                     QB.hierarchy_id == hierarchy_id,
                     ~QMB.measure_id.in_(
                         session.query(QMA.measure_id)
-                            .join(QA, (QMA.survey_id == QA.survey_id) & (QMA.qnode_id == QA.id))
+                            .join(QA,
+                                  (QMA.survey_id == QA.survey_id) &
+                                  (QMA.qnode_id == QA.id))
                             .filter(QA.survey_id == survey_id_a,
                                     QA.hierarchy_id == hierarchy_id)))
         )
