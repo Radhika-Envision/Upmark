@@ -683,3 +683,23 @@ column-progress {
     display: block;
     color: #888;
 }
+
+[left-obj][right-obj] {
+    del {
+        background: #fdd;
+        color: #400;
+    }
+    ins {
+        background: #dfd;
+        color: #040;
+    }
+    &.only-old ins,
+    &.only-new del {
+        display: none;
+    }
+}
+
+.cardlist li {
+    padding: 12px 4px;
+    list-style: none;
+}

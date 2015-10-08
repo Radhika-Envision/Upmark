@@ -67,9 +67,61 @@
 </div>
 
 <div class="container">
-    <ul>
-        <li ng-repeat="measure in report">{{ measure.title }}-<span ng-bind-html="measure.title|diff:getCompareMeasure(measure)"></span></li>
+    <ul class="cardlist">
+        <li ng-repeat="item in diff.diff">
+            <h2>
+                <span semantic-diff
+                    left-obj="item[0].title || ''"
+                    right-obj="item[1].title || ''"></span>
+            </h2>
+            <p class="clearfix">
+                <span class="only-new pull-right"
+                    ng-if="item[1].path"
+                    semantic-diff
+                    left-obj="item[0].path || ''"
+                    right-obj="item[1].path || ''"></span>
+                <span class="pull-right"
+                    ng-if="!item[1].path">Deleted</span>
+
+                <span class="only-old pull-left"
+                    ng-if="item[0].path"
+                    semantic-diff
+                    left-obj="item[0].path || ''"
+                    right-obj="item[1].path || ''"></span>
+                <span class="pull-left"
+                    ng-if="!item[0].path">New</span>
+            </p>
+
+            <p ng-if="item[0].description || item[1].description">
+                <span class="text-muted">Description:</span>
+                <span semantic-diff
+                    left-obj="item[0].description || ''"
+                    right-obj="item[1].description || ''"></span>
+            </p>
+            <p ng-if="item[0].intent || item[1].intent">
+                <span class="text-muted">Intent:</span>
+                <span semantic-diff
+                    left-obj="item[0].intent || ''"
+                    right-obj="item[1].intent || ''"></span>
+            </p>
+            <p ng-if="item[0].inputs || item[1].inputs">
+                <span class="text-muted">Inputs:</span>
+                <span semantic-diff
+                    left-obj="item[0].inputs || ''"
+                    right-obj="item[1].inputs || ''"></span>
+            </p>
+            <p ng-if="item[0].scenario || item[1].scenario">
+                <span class="text-muted">Scenario:</span>
+                <span semantic-diff
+                    left-obj="item[0].scenario || ''"
+                    right-obj="item[1].scenario || ''"></span>
+            </p>
+            <p ng-if="item[0].questions || item[1].questions">
+                <span class="text-muted">Questions:</span>
+                <span semantic-diff
+                    left-obj="item[0].questions || ''"
+                    right-obj="item[1].questions || ''"></span>
+            </p>
+        </li>
     </ul>
 </div>
-
-<pre>{{diff.diff | json}}</pre>

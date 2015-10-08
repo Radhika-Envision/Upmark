@@ -7,7 +7,7 @@ angular.module('wsaa.aquamark',
                 'angular-medium-editor',
                 'wsaa.survey', 'wsaa.admin', 'wsaa.surveyQuestions',
                 'wsaa.surveyAnswers',
-                'vpac.utils', 'vpac.widgets', 'diff'])
+                'vpac.utils', 'vpac.widgets', 'diff-match-patch'])
 
 
 /**

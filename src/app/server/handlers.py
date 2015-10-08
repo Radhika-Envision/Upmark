@@ -175,7 +175,8 @@ SCRIPTS = [
             '/.bower_components/medium-editor/dist/js/medium-editor.js',
             '/.bower_components/angular-medium-editor/dist/angular-medium-editor.js',
             '/.bower_components/megamark/dist/megamark.js',
-            '/.bower_components/angular-diff/angular-diff.min.js',
+            '/.bower_components/angular-diff-match-patch/angular-diff-match-patch.js',
+            '/.bower_components/google-diff-match-patch/diff_match_patch.js',
             '/.bower_components/domador/dist/domador.js'
         ]
     },

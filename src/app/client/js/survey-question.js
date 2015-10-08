@@ -601,9 +601,17 @@ angular.module('wsaa.surveyQuestions', [
             };
 
             $scope.compare = function(survey, event) {
+                var s1, s2;
+                if (survey.created < $scope.structure.survey.created) {
+                    s1 = survey;
+                    s2 = $scope.structure.survey;
+                } else {
+                    s1 = $scope.structure.survey;
+                    s2 = survey;
+                }
                 var url = format('/diff?survey1={}&survey2={}&hierarchy={}',
-                    $scope.structure.survey.id,
-                    survey.id,
+                    s1.id,
+                    s2.id,
                     $scope.structure.hierarchy.id);
                 $location.url(url);
                 event.preventDefault();
