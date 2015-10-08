@@ -75,20 +75,24 @@
                     right-obj="item[1].title || ''"></span>
             </h2>
             <p class="clearfix">
-                <span class="only-new pull-right"
+                <a class="only-new pull-right"
+                    ng-href="#{{getItemUrl(item[1], survey2)}}"
+                    title="View in second survey"
                     ng-if="item[1].path"
                     semantic-diff
                     left-obj="item[0].path || ''"
-                    right-obj="item[1].path || ''"></span>
-                <span class="pull-right"
+                    right-obj="item[1].path || ''"></a>
+                <span class="pull-right text-muted"
                     ng-if="!item[1].path">Deleted</span>
 
-                <span class="only-old pull-left"
+                <a class="only-old pull-left"
+                    ng-href="#{{getItemUrl(item[0], survey1)}}"
+                    title="View in first survey"
                     ng-if="item[0].path"
                     semantic-diff
                     left-obj="item[0].path || ''"
-                    right-obj="item[1].path || ''"></span>
-                <span class="pull-left"
+                    right-obj="item[1].path || ''"></a>
+                <span class="pull-left text-muted"
                     ng-if="!item[0].path">New</span>
             </p>
 

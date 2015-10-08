@@ -76,9 +76,11 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
             for (a, b), (a_son, b_son) in zip(measure_pairs, measure_diff):
                 if a:
                     a_son['path'] = a.get_path(hierarchy_id)
+                    a_son['parentId'] = str(a.get_parent(hierarchy_id).id)
                     a_son['type'] = 'measure'
                 if b:
                     b_son['path'] = b.get_path(hierarchy_id)
+                    b_son['parentId'] = str(b.get_parent(hierarchy_id).id)
                     b_son['type'] = 'measure'
             self.remove_unchanged_fields(measure_diff)
 
@@ -242,7 +244,7 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
 
     def remove_unchanged_fields(self, son_pairs, ignore=None):
         if ignore is None:
-            ignore = {'path', 'title', 'type'}
+            ignore = {'id', 'parentId', 'path', 'title', 'type'}
         for a, b in son_pairs:
             keys = a is not None and a.keys() or b.keys()
             for name in list(keys):
