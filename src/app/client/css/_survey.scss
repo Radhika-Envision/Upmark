@@ -684,22 +684,20 @@ column-progress {
     color: #888;
 }
 
-[left-obj][right-obj] {
-    del {
-        background: #fdd;
-        color: #400;
-    }
-    ins {
-        background: #dfd;
-        color: #040;
-    }
-    &.only-old ins,
-    &.only-new del {
-        display: none;
-    }
+del {
+    background: #fdd;
+    color: #400;
+}
+ins {
+    background: #dfd;
+    color: #040;
+}
+.only-old ins,
+.only-new del {
+    display: none;
 }
 
 .cardlist li {
-    padding: 12px 4px;
+    padding: 18px 0;
     list-style: none;
 }

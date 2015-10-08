@@ -98,6 +98,12 @@
                     left-obj="item[0].description || ''"
                     right-obj="item[1].description || ''"></span>
             </p>
+            <p ng-if="item[0].weight != null || item[1].weight != null">
+                <span class="text-muted">Weight:</span>
+                <span>
+                    <del>{{item[0].weight}}</del><ins>{{item[1].weight}}</ins>
+                </span>
+            </p>
             <p ng-if="item[0].intent || item[1].intent">
                 <span class="text-muted">Intent:</span>
                 <span semantic-diff

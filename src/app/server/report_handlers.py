@@ -70,6 +70,7 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
                 if b:
                     b_son['path'] = b.get_path()
                     b_son['type'] = 'qnode'
+            self.remove_unchanged_fields(qnode_diff)
 
             measure_diff = to_son(measure_pairs)
             for (a, b), (a_son, b_son) in zip(measure_pairs, measure_diff):
@@ -79,6 +80,7 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
                 if b:
                     b_son['path'] = b.get_path(hierarchy_id)
                     b_son['type'] = 'measure'
+            self.remove_unchanged_fields(measure_diff)
 
             son = {}
             son['diff'] = qnode_diff + measure_diff
@@ -237,3 +239,19 @@ class DiffHandler(handlers.Paginate, handlers.BaseHandler):
         return list(measure_mod_query.all()
                     + measure_add_query.all()
                     + measure_del_query.all())
+
+    def remove_unchanged_fields(self, son_pairs, ignore=None):
+        if ignore is None:
+            ignore = {'path', 'title', 'type'}
+        for a, b in son_pairs:
+            keys = a is not None and a.keys() or b.keys()
+            for name in list(keys):
+                if name in ignore:
+                    continue
+                if a is None:
+                    del b[name]
+                elif b is None:
+                    del a[name]
+                elif a[name] == b[name]:
+                    del a[name]
+                    del b[name]
