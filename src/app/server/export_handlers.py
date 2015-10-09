@@ -372,15 +372,20 @@ class Exporter():
         format_part_answer.set_bottom(1)
         format_end1 = workbook.add_format()
         format_end1.set_text_wrap()
-        format_end1.set_font_color("white")
-        format_end1.set_bg_color("#554529")
+        format_end1.set_bg_color("#FFFFCC")
         format_end1.set_bottom_color('white')
         format_end1.set_bottom(1)
         format_end2 = workbook.add_format()
         format_end2.set_text_wrap()
-        format_end2.set_bg_color("#C4BD97")
+        format_end2.set_font_color("white")
+        format_end2.set_bg_color("#554529")
         format_end2.set_bottom_color('white')
         format_end2.set_bottom(1)
+        format_end3 = workbook.add_format()
+        format_end3.set_text_wrap()
+        format_end3.set_bg_color("#C4BD97")
+        format_end3.set_bottom_color('white')
+        format_end3.set_bottom(1)
 
 
         for qnode_measure in filtered_list:
@@ -424,9 +429,9 @@ class Exporter():
             worksheet.write(self.line, 2, '', format)
             self.line = self.line + 1
             worksheet.write(self.line, 0, "Comments", format_header_end)
-            worksheet.write(self.line, 1, comment, format_end)
-            worksheet.write(self.line, 2, "Not Relevant", format_end1)
-            worksheet.write(self.line, 3, not_relevant, format_end2)
+            worksheet.write(self.line, 1, comment, format_end1)
+            worksheet.write(self.line, 2, "Not Relevant", format_end2)
+            worksheet.write(self.line, 3, not_relevant, format_end3)
             # answer option
             parts_len = len(response_types[0]["parts"])
             index = 0

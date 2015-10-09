@@ -1110,9 +1110,6 @@ angular.module('wsaa.surveyQuestions', [
                             if (index != itemIndex && 
                                 Math.abs(yAxis(itemValue)-yAxis(tick)) < 7)
                                 gap = 10;
-                            // if(tickValues.indexOf(tick) != itemIndex && itemIndex == 1) {
-                                // console.log("itemIndex", itemIndex, "itemValue", itemValue, "tick", tick, "index", tickValues.indexOf(tick), "abs", Math.abs(yAxis(itemValue)-yAxis(tick)), "gap", gap);
-                            // }
                         });
                         return gap;
                 };
@@ -1127,13 +1124,28 @@ angular.module('wsaa.surveyQuestions', [
 
                      // Compute the tick format.
                     var format = tickFormat || yAxis.tickFormat(8);
-                    var borderData = [data.min, data.max];
+                    var line20 = (data.max - data.min) * 0.2;
+                    var borderData = [data.min, 
+                                      data.min + line20, 
+                                      data.min + line20 * 2, 
+                                      data.min + line20 * 3, 
+                                      data.min + line20 * 4, 
+                                      data.max];
+                    var borderClass = ["border", 
+                                       "border20",
+                                       "border20",
+                                       "border20",
+                                       "border20",
+                                       "border"]
+
                     if (dataIndex==0) {
                         var border = g.selectAll("line.border")
                             .data(borderData);
 
                         border.enter().insert("line")
-                            .attr("class", "border")
+                            .attr("class", function(item, i) { 
+                                return borderClass[i]; 
+                            })
                             .attr("x1", -50)
                             .attr("y1", yAxis)
                             .attr("x2", 70)
@@ -1190,10 +1202,10 @@ angular.module('wsaa.surveyQuestions', [
                             if (index==5) 
                                 return yAxis(item)-10;
                             var gap = 0;
-                            if (index != 3) {
+                            if (index != 3)
                                 gap = checkOverlapping(tickData, item, index, 
                                     yAxis);
-                            }
+
                             return yAxis(item) + gap;
  
                         })
@@ -1383,11 +1395,9 @@ angular.module('wsaa.surveyQuestions', [
                         $location.search('qnode', d.id);
                     })
                     .on("mouseover", function(d) {
-                        d3.select(this).style("background-color","whitesmoke");
                         d3.select(this).selectAll("text").attr("opacity", 1);
                     })
                     .on("mouseout", function(d) {
-                        d3.select(this).attr("background-color","E6E6E6");
                         d3.select(this).selectAll("text").attr("opacity", 0);
                         d3.selectAll("text.current_text").attr("opacity", 1);
                         d3.selectAll("text.title").attr("opacity", 1);
@@ -1398,14 +1408,14 @@ angular.module('wsaa.surveyQuestions', [
                     .call(chart);
         } else {
             var svgContainer = svg.data(["No Data"]).enter().append("svg")
-                    .attr("width", 1000)
-                    .attr("height", height);
+                .attr("width", 1000)
+                .attr("height", height);
             svgContainer.append("text")
-                    .attr("x", 500)
-                    .attr("y", height / 4)
-                    .attr("text-anchor", "middle")
-                    .attr("class", "info")
-                    .text("No Data");
+                .attr("x", 500)
+                .attr("y", height / 4)
+                .attr("text-anchor", "middle")
+                .attr("class", "info")
+                .text("No Data");
         }
 
     };

@@ -8,8 +8,19 @@ div.chart {
   background-color: #E6E6E6;
 }
 
-.box line, .box title, 
-.box circle {
+.box odd {
+  background-color: #FBFBFB;
+}
+
+.box even {
+  background-color: #FFFFFF;
+}
+
+.box:hover {
+  background-color: white;
+}
+
+.box line, .box title {
   fill: #fff;
   stroke: gray;
   stroke-width: 2px;
@@ -18,12 +29,21 @@ div.chart {
 .box rect {
   fill: #DDDDDD;
   stroke: gray;
-  stroke-width: 2px;  
+  stroke-width: 1px;  
+}
+
+.box:hover rect {
+  fill: #BFBFBF;
 }
 
 .box .median {
   stroke: blue;
 }
+
+.box:hover .whisker {
+  stroke: black;
+}
+
 
 .box .current {
   stroke-width: 4px;
@@ -46,6 +66,10 @@ div.chart {
 .box .outlier {
   fill: none;
   stroke: #ccc;
+}
+
+.box .border20 {
+  stroke: white;
 }
 
 .info {
