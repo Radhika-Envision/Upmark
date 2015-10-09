@@ -1162,11 +1162,11 @@ angular.module('wsaa.surveyQuestions', [
                     // Update innerquartile box.
                     g.append("rect")
                         .attr("class", "box")
-                        .attr("x", dataIndex==0 ? 0: width/2) 
-                        .attr("y", yAxis(data.quartile[2]))
+                        .attr("x", (dataIndex==0 ? 0: width/2) + 0.5)
+                        .attr("y", Math.round(yAxis(data.quartile[2])) + 0.5)
                         .attr("width", lineWidth)
-                        .attr("height", yAxis(data.quartile[0]) 
-                                - yAxis(data.quartile[2]));
+                        .attr("height", Math.round(yAxis(data.quartile[0])
+                                - yAxis(data.quartile[2])) - 1);
 
                     // Update whisker ticks. These are handled separately from the box
                     // ticks because they may or may not exist, and we want don't want
@@ -1189,8 +1189,8 @@ angular.module('wsaa.surveyQuestions', [
                     g.selectAll("text.whisker" + dataIndex)
                         .data(tickData)
                         .enter().append("text")
-                        .attr("class", function(item, index) { 
-                            return tickClass[index]; 
+                        .attr("class", function(item, index) {
+                            return "tick " + tickClass[index];
                         })
                         .attr("dy", ".3em")
                         .attr("dx", dataIndex==0 ? -30:5)
@@ -1208,11 +1208,6 @@ angular.module('wsaa.surveyQuestions', [
 
                             return yAxis(item) + gap;
  
-                        })
-                        .attr("opacity", function(item, index) {
-                            if (index == 3) // this means current data
-                                return 1;
-                            return 0;
                         })
                         .attr("text-anchor", dataIndex==0 ? "end":"start")
                         .text(format);
@@ -1238,19 +1233,23 @@ angular.module('wsaa.surveyQuestions', [
                                 return dataIndex==0 ? -4:width/2;
                             return dataIndex==0 ? 0:width/2; 
                         })
-                        .attr("y1", yAxis)
+                        .attr("y1", function(item, index) {
+                            return Math.round(yAxis(item));
+                        })
                         .attr("x2", function(item, index) {
                             if(compareMode) {
                                 if(index == 3)
-                                    return dataIndex==0 ? width/2:width+4;
-                                return dataIndex==0 ? width/2:width;                                 
+                                    return dataIndex==0 ? width/2:width+5;
+                                return dataIndex==0 ? width/2:width + 1;
                             } else {
                                 if(index == 3)
-                                    return width+4;
-                                return width;
+                                    return width+5;
+                                return width + 1;
                             }
                         })
-                        .attr("y2", yAxis);
+                        .attr("y2", function(item, index) {
+                            return Math.round(yAxis(item));
+                        });
 
                     if (dataIndex == 0) {
                         g.append("text")
@@ -1393,14 +1392,6 @@ angular.module('wsaa.surveyQuestions', [
                     .attr("height", height + margin.bottom + margin.top)
                     .on("click", function(d) {
                         $location.search('qnode', d.id);
-                    })
-                    .on("mouseover", function(d) {
-                        d3.select(this).selectAll("text").attr("opacity", 1);
-                    })
-                    .on("mouseout", function(d) {
-                        d3.select(this).selectAll("text").attr("opacity", 0);
-                        d3.selectAll("text.current_text").attr("opacity", 1);
-                        d3.selectAll("text.title").attr("opacity", 1);
                     })
                 .append("g")
                     .attr("transform",

@@ -14,7 +14,9 @@
             stroke: white;
         }
     }
-
+    .box .tick:not(.current_text) {
+        display: none;
+    }
 
     >div {
         display: inline;
@@ -25,6 +27,9 @@
             background-color: #fff;
             .border20 {
                 stroke: #eee;
+            }
+            .tick {
+                display: block;
             }
         }
     }
@@ -62,11 +67,11 @@
 
 .box .current {
   stroke-width: 4px;
-  stroke: #A95252;
+  stroke: #c22;
 }
 
 .box .current_text {
-  fill: #A95252;
+  fill: #900;
 }
 
 .box .median_text {
@@ -86,4 +91,26 @@
 .info {
   font: 20px sans-serif;
   fill: red;
+}
+
+@media print {
+    .chart rect {
+        fill: white !important;
+        stroke: black !important;
+    }
+    .chart line {
+        stroke: black !important;
+    }
+    .chart line.current {
+        stroke: #a00 !important;
+    }
+    .chart line.border20 {
+        stroke: #ccc !important;
+    }
+    .chart line.median {
+        stroke: #00a !important;
+    }
+    .chart .tick {
+        display: block !important;
+    }
 }
