@@ -1,22 +1,38 @@
-div.chart {
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+.chart {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    text-align: center;
+
+    .box:nth-child(odd) {
+        background-color: #FBFBFB;
+        .border20 {
+            stroke: white;
+        }
+    }
+    .box:nth-child(even) {
+        background-color: #FFFFFF;
+        .border20 {
+            stroke: white;
+        }
+    }
+
+
+    >div {
+        display: inline;
+    }
+    >div:hover .box {
+        background-color: #eee;
+        &:hover {
+            background-color: #fff;
+            .border20 {
+                stroke: #eee;
+            }
+        }
+    }
 }
 
 .box {
   font: 10px sans-serif;
   cursor: pointer;
-}
-
-.box.odd {
-  background-color: #FBFBFB;
-}
-
-.box.even {
-  background-color: #FFFFFF;
-}
-
-.box:hover {
-  background-color: #E6E6E6;
 }
 
 .box line, .box title {
@@ -27,7 +43,7 @@ div.chart {
 
 .box rect {
   fill: #DDDDDD;
-  stroke: gray;
+  stroke: #C8C8C8;
   stroke-width: 1px;  
 }
 
@@ -59,16 +75,12 @@ div.chart {
 }
 
 .box .center {
-  stroke: gray;
+  stroke: #ccc;
 }
 
 .box .outlier {
   fill: none;
   stroke: #ccc;
-}
-
-.box .border20 {
-  stroke: white;
 }
 
 .info {

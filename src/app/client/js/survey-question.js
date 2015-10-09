@@ -1217,15 +1217,15 @@ angular.module('wsaa.surveyQuestions', [
                         .attr("text-anchor", dataIndex==0 ? "end":"start")
                         .text(format);
 
-                    var lineData = [data.current,               // 0
-                                    data.survey_min,            // 1
-                                    data.survey_max,            // 2
-                                    data.quartile[1]];          // 3
+                    var lineData = [data.survey_min,            // 0
+                                    data.survey_max,            // 1
+                                    data.quartile[1],           // 2
+                                    data.current];              // 3
 
-                    var lineClass = ["current",
+                    var lineClass = ["whisker",
                                      "whisker",
-                                     "whisker",
-                                     "median"];
+                                     "median",
+                                     "current"];
 
                     g.selectAll("line.whisker" + dataIndex)
                         .data(lineData)
@@ -1234,18 +1234,18 @@ angular.module('wsaa.surveyQuestions', [
                             return lineClass[index]; 
                         })
                         .attr("x1", function(item, index) {
-                            if(index == 0)
+                            if(index == 3)
                                 return dataIndex==0 ? -4:width/2;
                             return dataIndex==0 ? 0:width/2; 
                         })
                         .attr("y1", yAxis)
                         .attr("x2", function(item, index) {
                             if(compareMode) {
-                                if(index == 0)
+                                if(index == 3)
                                     return dataIndex==0 ? width/2:width+4;
                                 return dataIndex==0 ? width/2:width;                                 
                             } else {
-                                if(index == 0)
+                                if(index == 3)
                                     return width+4;
                                 return width;
                             }
@@ -1388,10 +1388,7 @@ angular.module('wsaa.surveyQuestions', [
         if (data.length > 0) {
             svg.data(data)
                 .enter().append("svg")
-                    .attr("class", function(d, i) { 
-                        console.log(i % 2 ? "box odd":"box even");
-                        return i % 2 ? "box odd":"box even"; 
-                    })
+                    .attr("class", "box")
                     .attr("width", width + margin.left + margin.right)
                     .attr("height", height + margin.bottom + margin.top)
                     .on("click", function(d) {
