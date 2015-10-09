@@ -74,6 +74,11 @@
                     left-obj="item.pair[0].title || ''"
                     right-obj="item.pair[1].title || ''"></span>
             </h2>
+            <p>
+                <span class="label"
+                    ng-repeat="tag in item.tags"
+                    ng-class="'label-' + tag.toLowerCase().replace(' ', '-')">{{tag}}</span>
+            </p>
             <p class="clearfix">
                 <a class="only-new pull-right"
                     ng-href="#{{getItemUrl(item, item.pair[1], survey2)}}"
@@ -83,7 +88,7 @@
                     left-obj="item.pair[0].path || ''"
                     right-obj="item.pair[1].path || ''"></a>
                 <span class="pull-right text-muted"
-                    ng-if="!item.pair[1].path">Deleted</span>
+                    ng-if="!item.pair[1].path">-</span>
 
                 <a class="only-old pull-left"
                     ng-href="#{{getItemUrl(item, item.pair[0], survey1)}}"
@@ -93,7 +98,7 @@
                     left-obj="item.pair[0].path || ''"
                     right-obj="item.pair[1].path || ''"></a>
                 <span class="pull-left text-muted"
-                    ng-if="!item.pair[0].path">New</span>
+                    ng-if="!item.pair[0].path">-</span>
             </p>
 
             <p ng-if="item.pair[0].description || item.pair[1].description">

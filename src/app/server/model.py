@@ -375,15 +375,27 @@ class Measure(Base):
                 return p
         return None
 
-    def get_path(self, hierarchy):
+    def get_qnode_measure(self, hierarchy):
         if isinstance(hierarchy, (str, uuid.UUID)):
             hierarchy_id = hierarchy
         else:
             hierarchy_id = hierarchy.id
         for qm in self.qnode_measures:
             if str(qm.qnode.hierarchy_id) == str(hierarchy_id):
-                return qm.get_path()
-        return ""
+                return qm
+        return None
+
+    def get_seq(self, hierarchy):
+        qm = self.get_qnode_measure(hierarchy)
+        if qm:
+            return qm.seq
+        return None
+
+    def get_path(self, hierarchy):
+        qm = self.get_qnode_measure(hierarchy)
+        if qm:
+            return qm.get_path()
+        return None
 
     def get_response(self, assessment):
         if isinstance(assessment, str):

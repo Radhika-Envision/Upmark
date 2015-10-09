@@ -77,6 +77,7 @@ class DiffEngine:
                 'pair': pair,
             } for pair in to_son(qnode_pairs)]
         self.add_qnode_metadata(qnode_pairs, qnode_diff)
+        self.add_metadata(qnode_pairs, qnode_diff)
         self.remove_unchanged_fields(qnode_diff)
 
         measure_diff = [{
@@ -85,6 +86,7 @@ class DiffEngine:
                 'pair': pair,
             } for pair in to_son(measure_pairs)]
         self.add_measure_metadata(measure_pairs, measure_diff)
+        self.add_metadata(measure_pairs, measure_diff)
         self.remove_unchanged_fields(measure_diff)
 
         diff = qnode_diff + measure_diff
@@ -254,13 +256,28 @@ class DiffEngine:
             if a:
                 a_son['path'] = a.get_path(self.hierarchy_id)
                 a_son['parentId'] = str(a.get_parent(self.hierarchy_id).id)
+                a_son['seq'] = a.get_seq(self.hierarchy_id)
             if b:
                 b_son['path'] = b.get_path(self.hierarchy_id)
                 b_son['parentId'] = str(b.get_parent(self.hierarchy_id).id)
+                b_son['seq'] = b.get_seq(self.hierarchy_id)
+
+    def add_metadata(self, pairs, diff):
+        for (a, b), diff_item in zip(pairs, diff):
+            a_son, b_son = diff_item['pair']
+            if a and b:
+                if a_son['parentId'] != b_son['parentId']:
+                    diff_item['tags'].append('relocated')
+                elif a_son['seq'] != b_son['seq']:
+                    diff_item['tags'].append('list index')
+            elif a and not b:
+                diff_item['tags'].append('deleted')
+            elif b and not a:
+                diff_item['tags'].append('added')
 
     def remove_unchanged_fields(self, diff, ignore=None):
         if ignore is None:
-            ignore = {'id', 'parentId', 'path', 'title', 'type'}
+            ignore = {'id', 'parentId', 'path', 'title', 'type', 'seq'}
         for diff_item in diff:
             a, b = diff_item['pair']
             keys = a is not None and a.keys() or b.keys()

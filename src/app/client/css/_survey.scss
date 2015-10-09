@@ -684,6 +684,24 @@ column-progress {
     color: #888;
 }
 
+.label:not(:first-child) {
+    margin-left: 0.6ex;
+}
+.label-added {
+    background: #337ab7;
+}
+.label-deleted {
+    background: #d9534f;
+}
+.label-modified {
+    background: #5cb85c;
+}
+.label-list-index, .label-reorder {
+    background: #5bc0de;
+}
+.label-relocated {
+    background: #f0ad4e;
+}
 del {
     background: #fcc;
     color: #400;
