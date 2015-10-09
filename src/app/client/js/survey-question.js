@@ -1388,7 +1388,10 @@ angular.module('wsaa.surveyQuestions', [
         if (data.length > 0) {
             svg.data(data)
                 .enter().append("svg")
-                    .attr("class", "box")
+                    .attr("class", function(d, i) { 
+                        console.log(i % 2 ? "box odd":"box even");
+                        return i % 2 ? "box odd":"box even"; 
+                    })
                     .attr("width", width + margin.left + margin.right)
                     .attr("height", height + margin.bottom + margin.top)
                     .on("click", function(d) {

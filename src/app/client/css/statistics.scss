@@ -5,19 +5,18 @@ div.chart {
 .box {
   font: 10px sans-serif;
   cursor: pointer;
-  background-color: #E6E6E6;
 }
 
-.box odd {
+.box.odd {
   background-color: #FBFBFB;
 }
 
-.box even {
+.box.even {
   background-color: #FFFFFF;
 }
 
 .box:hover {
-  background-color: white;
+  background-color: #E6E6E6;
 }
 
 .box line, .box title {
