@@ -1106,12 +1106,14 @@ angular.module('wsaa.surveyQuestions', [
                 var checkOverlapping = 
                     function(tickValues, itemValue, itemIndex, yAxis) {
                         var gap = 0;
-                        angular.forEach(tickValues, function(tick) {
-                            if (tickValues.indexOf(tick) != itemIndex && 
+                        angular.forEach(tickValues, function(tick, index) {
+                            if (index != itemIndex && 
                                 Math.abs(yAxis(itemValue)-yAxis(tick)) < 7)
                                 gap = 10;
+                            // if(tickValues.indexOf(tick) != itemIndex && itemIndex == 1) {
+                                // console.log("itemIndex", itemIndex, "itemValue", itemValue, "tick", tick, "index", tickValues.indexOf(tick), "abs", Math.abs(yAxis(itemValue)-yAxis(tick)), "gap", gap);
+                            // }
                         });
-                        console.log("gap", gap);
                         return gap;
                 };
 
@@ -1188,9 +1190,10 @@ angular.module('wsaa.surveyQuestions', [
                             if (index==5) 
                                 return yAxis(item)-10;
                             var gap = 0;
-                            if (index != 3)
+                            if (index != 3) {
                                 gap = checkOverlapping(tickData, item, index, 
                                     yAxis);
+                            }
                             return yAxis(item) + gap;
  
                         })
@@ -1249,9 +1252,7 @@ angular.module('wsaa.surveyQuestions', [
                     }
                 };
 
-                // min and max line
                 displayChart(d, 0, d.compareMode);
-
 
                 if (d.compareMode) {
                     displayChart(d, 1, d.compareMode);
@@ -1383,13 +1384,13 @@ angular.module('wsaa.surveyQuestions', [
                     })
                     .on("mouseover", function(d) {
                         d3.select(this).style("background-color","whitesmoke");
-                        d3.select(this).selectAll("text").style("opacity", 1);
+                        d3.select(this).selectAll("text").attr("opacity", 1);
                     })
                     .on("mouseout", function(d) {
-                        d3.select(this).style("background-color","E6E6E6");
-                        d3.select(this).selectAll("text").style("opacity", 0);
-                        d3.selectAll("text.current_text").style("opacity", 1);
-                        d3.selectAll("text.title").style("opacity", 1);
+                        d3.select(this).attr("background-color","E6E6E6");
+                        d3.select(this).selectAll("text").attr("opacity", 0);
+                        d3.selectAll("text.current_text").attr("opacity", 1);
+                        d3.selectAll("text.title").attr("opacity", 1);
                     })
                 .append("g")
                     .attr("transform",
