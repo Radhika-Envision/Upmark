@@ -13,7 +13,7 @@ import handlers
 import model
 import logging
 
-from utils import reorder, ToSon, truthy, updater
+from utils import falsy, ToSon, truthy
 
 
 log = logging.getLogger('app.report_handler')
@@ -27,6 +27,8 @@ class DiffHandler(handlers.BaseHandler):
         survey_id_b = self.get_argument("surveyId2", '')
         hierarchy_id = self.get_argument("hierarchyId", '')
 
+        ignore_tags = set().union(self.get_arguments("ignoreTag"))
+
         if survey_id_a == '':
             raise handlers.ModelError("Survey ID 1 required")
         if survey_id_b == '':
@@ -36,8 +38,11 @@ class DiffHandler(handlers.BaseHandler):
 
         with model.session_scope() as session:
             diff_engine = DiffEngine(session, survey_id_a, survey_id_b, hierarchy_id)
+            diff = diff_engine.execute()
+            diff = [di for di in diff
+                    if len(ignore_tags.symmetric_difference(di['tags'])) > 0]
             son = {
-                'diff': diff_engine.execute()
+                'diff': diff
             }
 
         self.set_header("Content-Type", "application/json")

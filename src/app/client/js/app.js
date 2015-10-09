@@ -586,7 +586,8 @@ angular.module('wsaa.aquamark',
                         return Diff.get({
                             surveyId1: $route.current.params.survey1,
                             surveyId2: $route.current.params.survey2,
-                            hierarchyId: $route.current.params.hierarchy
+                            hierarchyId: $route.current.params.hierarchy,
+                            ignoreTag: 'list index'
                         }).$promise;
                     }]
                 })}
