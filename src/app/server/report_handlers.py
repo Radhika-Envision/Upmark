@@ -260,12 +260,21 @@ class DiffEngine:
                 a_son['path'] = a.get_path()
             if b:
                 b_son['path'] = b.get_path()
-            id_ = a and a.id or b.id
-            if a and b and a.parent and str(a.parent_id) == str(b.parent_id):
+            if a and b and str(a.parent_id) == str(b.parent_id):
                 if self.qnode_was_reordered(a, b, reorder_ignore):
                    diff_item['tags'].append('reordered')
 
     def add_measure_metadata(self, measure_pairs, measure_diff):
+        # Create sets of ids; group by transform type
+        deleted = {str(a.id) for a, b in measure_pairs if b is None}
+        added = {str(b.id) for a, b in measure_pairs if a is None}
+        relocated = {str(a.id) for a, b in measure_pairs
+                     if a and b and a.get_parent(self.hierarchy_id).id != b.get_parent(self.hierarchy_id).id}
+        item_index = {str(a.id) for a, b in measure_pairs
+                      if a and b and a.get_seq(self.hierarchy_id) != b.get_seq(self.hierarchy_id)}
+
+        reorder_ignore = set().union(deleted, added, relocated)
+
         for (a, b), diff_item in zip(measure_pairs, measure_diff):
             a_son, b_son = diff_item['pair']
             if a:
@@ -276,6 +285,9 @@ class DiffEngine:
                 b_son['path'] = b.get_path(self.hierarchy_id)
                 b_son['parentId'] = str(b.get_parent(self.hierarchy_id).id)
                 b_son['seq'] = b.get_seq(self.hierarchy_id)
+            if a and b and a_son['parentId'] == b_son['parentId']:
+                if self.measure_was_reordered(a, b, reorder_ignore):
+                   diff_item['tags'].append('reordered')
 
     def qnode_was_reordered(self, a, b, reorder_ignore):
         a_siblings = (self.session.query(model.QuestionNode.id)
@@ -294,6 +306,40 @@ class DiffEngine:
                 .all())
         a_siblings = [str(id_) for (id_,) in a_siblings]
         b_siblings = [str(id_) for (id_,) in b_siblings]
+        if not str(a.id) in a_siblings or not str(b.id) in b_siblings:
+            return False
+        a_index = a_siblings.index(str(a.id))
+        a_siblings = a_siblings[max(a_index - 1, 0):
+                                min(a_index + 1, len(a_siblings))]
+        b_index = b_siblings.index(str(b.id))
+        b_siblings = b_siblings[max(b_index - 1, 0):
+                                min(b_index + 1, len(b_siblings))]
+        return a_siblings != b_siblings
+
+    def measure_was_reordered(self, a, b, reorder_ignore):
+        a_siblings = (self.session.query(model.Measure.id)
+                .join(model.QnodeMeasure,
+                      (model.QnodeMeasure.survey_id == model.Measure.survey_id) &
+                      (model.QnodeMeasure.measure_id == model.Measure.id))
+                .filter(model.QnodeMeasure.qnode_id == a.get_parent(self.hierarchy_id).id,
+                        model.QnodeMeasure.survey_id == self.survey_id_a,
+                        ~model.Measure.id.in_(reorder_ignore))
+                .order_by(model.QnodeMeasure.seq)
+                .all())
+        b_siblings = (self.session.query(model.Measure.id)
+                .join(model.QnodeMeasure,
+                      (model.QnodeMeasure.survey_id == model.Measure.survey_id) &
+                      (model.QnodeMeasure.measure_id == model.Measure.id))
+                .filter(model.QnodeMeasure.qnode_id == b.get_parent(self.hierarchy_id).id,
+                        model.QnodeMeasure.survey_id == self.survey_id_b,
+                        ~model.Measure.id.in_(reorder_ignore))
+                .order_by(model.QnodeMeasure.seq)
+                .all())
+
+        a_siblings = [str(id_) for (id_,) in a_siblings]
+        b_siblings = [str(id_) for (id_,) in b_siblings]
+        #log.error('Siblings A %s', a_siblings)
+        #log.error('Siblings B %s', b_siblings)
         if not str(a.id) in a_siblings or not str(b.id) in b_siblings:
             return False
         a_index = a_siblings.index(str(a.id))
