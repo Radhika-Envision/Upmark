@@ -339,7 +339,7 @@ class QuestionNode(Base):
 
     def get_path(self):
         if self.parent_id:
-            return "%s%d." % (self.parent.get_path(), self.seq + 1)
+            return "%s %d." % (self.parent.get_path(), self.seq + 1)
         else:
             return "%d." % (self.seq + 1)
 
@@ -455,10 +455,7 @@ class QnodeMeasure(Base):
         super().__init__(**kwargs)
 
     def get_path(self):
-        if self.qnode_id:
-            return "%s%d." % (self.qnode.get_path(), self.seq + 1)
-        else:
-            return "%d." % (self.seq + 1)
+        return "%s %d." % (self.qnode.get_path(), self.seq + 1)
 
     def __repr__(self):
         return "QnodeMeasure(qnode={}, measure={}, survey={})".format(

@@ -84,7 +84,7 @@
                     ng-href="#{{getItemUrl(item, item.pair[1], survey2)}}"
                     title="View in second survey"
                     ng-if="item.pair[1].path"
-                    semantic-diff
+                    path-diff
                     left-obj="item.pair[0].path || ''"
                     right-obj="item.pair[1].path || ''"></a>
                 <span class="pull-right text-muted"
@@ -94,7 +94,7 @@
                     ng-href="#{{getItemUrl(item, item.pair[0], survey1)}}"
                     title="View in first survey"
                     ng-if="item.pair[0].path"
-                    semantic-diff
+                    path-diff
                     left-obj="item.pair[0].path || ''"
                     right-obj="item.pair[1].path || ''"></a>
                 <span class="pull-left text-muted"
