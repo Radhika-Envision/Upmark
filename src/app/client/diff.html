@@ -71,66 +71,66 @@
         <li ng-repeat="item in diff.diff">
             <h2>
                 <span semantic-diff
-                    left-obj="item[0].title || ''"
-                    right-obj="item[1].title || ''"></span>
+                    left-obj="item.pair[0].title || ''"
+                    right-obj="item.pair[1].title || ''"></span>
             </h2>
             <p class="clearfix">
                 <a class="only-new pull-right"
-                    ng-href="#{{getItemUrl(item[1], survey2)}}"
+                    ng-href="#{{getItemUrl(item, item.pair[1], survey2)}}"
                     title="View in second survey"
-                    ng-if="item[1].path"
+                    ng-if="item.pair[1].path"
                     semantic-diff
-                    left-obj="item[0].path || ''"
-                    right-obj="item[1].path || ''"></a>
+                    left-obj="item.pair[0].path || ''"
+                    right-obj="item.pair[1].path || ''"></a>
                 <span class="pull-right text-muted"
-                    ng-if="!item[1].path">Deleted</span>
+                    ng-if="!item.pair[1].path">Deleted</span>
 
                 <a class="only-old pull-left"
-                    ng-href="#{{getItemUrl(item[0], survey1)}}"
+                    ng-href="#{{getItemUrl(item, item.pair[0], survey1)}}"
                     title="View in first survey"
-                    ng-if="item[0].path"
+                    ng-if="item.pair[0].path"
                     semantic-diff
-                    left-obj="item[0].path || ''"
-                    right-obj="item[1].path || ''"></a>
+                    left-obj="item.pair[0].path || ''"
+                    right-obj="item.pair[1].path || ''"></a>
                 <span class="pull-left text-muted"
-                    ng-if="!item[0].path">New</span>
+                    ng-if="!item.pair[0].path">New</span>
             </p>
 
-            <p ng-if="item[0].description || item[1].description">
+            <p ng-if="item.pair[0].description || item.pair[1].description">
                 <span class="text-muted">Description:</span>
                 <span semantic-diff
-                    left-obj="item[0].description || ''"
-                    right-obj="item[1].description || ''"></span>
+                    left-obj="item.pair[0].description || ''"
+                    right-obj="item.pair[1].description || ''"></span>
             </p>
-            <p ng-if="item[0].weight != null || item[1].weight != null">
+            <p ng-if="item.pair[0].weight != null || item.pair[1].weight != null">
                 <span class="text-muted">Weight:</span>
                 <span>
-                    <del>{{item[0].weight}}</del><ins>{{item[1].weight}}</ins>
+                    <del>{{item.pair[0].weight}}</del><ins>{{item.pair[1].weight}}</ins>
                 </span>
             </p>
-            <p ng-if="item[0].intent || item[1].intent">
+            <p ng-if="item.pair[0].intent || item.pair[1].intent">
                 <span class="text-muted">Intent:</span>
                 <span semantic-diff
-                    left-obj="item[0].intent || ''"
-                    right-obj="item[1].intent || ''"></span>
+                    left-obj="item.pair[0].intent || ''"
+                    right-obj="item.pair[1].intent || ''"></span>
             </p>
-            <p ng-if="item[0].inputs || item[1].inputs">
+            <p ng-if="item.pair[0].inputs || item.pair[1].inputs">
                 <span class="text-muted">Inputs:</span>
                 <span semantic-diff
-                    left-obj="item[0].inputs || ''"
-                    right-obj="item[1].inputs || ''"></span>
+                    left-obj="item.pair[0].inputs || ''"
+                    right-obj="item.pair[1].inputs || ''"></span>
             </p>
-            <p ng-if="item[0].scenario || item[1].scenario">
+            <p ng-if="item.pair[0].scenario || item.pair[1].scenario">
                 <span class="text-muted">Scenario:</span>
                 <span semantic-diff
-                    left-obj="item[0].scenario || ''"
-                    right-obj="item[1].scenario || ''"></span>
+                    left-obj="item.pair[0].scenario || ''"
+                    right-obj="item.pair[1].scenario || ''"></span>
             </p>
-            <p ng-if="item[0].questions || item[1].questions">
+            <p ng-if="item.pair[0].questions || item.pair[1].questions">
                 <span class="text-muted">Questions:</span>
                 <span semantic-diff
-                    left-obj="item[0].questions || ''"
-                    right-obj="item[1].questions || ''"></span>
+                    left-obj="item.pair[0].questions || ''"
+                    right-obj="item.pair[1].questions || ''"></span>
             </p>
         </li>
     </ul>

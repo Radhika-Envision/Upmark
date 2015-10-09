@@ -1814,12 +1814,12 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.diff = routeData.diff;
 
-    $scope.getItemUrl = function(item, survey) {
+    $scope.getItemUrl = function(item, entity, survey) {
         if (item.type == 'qnode')
-            return format("/qnode/{}?survey={}", item.id, survey.id);
+            return format("/qnode/{}?survey={}", entity.id, survey.id);
         else
             return format("/measure/{}?survey={}&parent={}",
-                item.id, survey.id, item.parentId);
+                entity.id, survey.id, entity.parentId);
     };
 
     $scope.getAssessmentUrl1 = function(survey) {

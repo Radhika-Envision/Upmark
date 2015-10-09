@@ -71,18 +71,26 @@ class DiffEngine:
             r'^/[0-9]+/[^/]+$',
         ])
 
-        qnode_diff = to_son(qnode_pairs)
+        qnode_diff = [{
+                'type': 'qnode',
+                'tags': [],
+                'pair': pair,
+            } for pair in to_son(qnode_pairs)]
         self.add_qnode_metadata(qnode_pairs, qnode_diff)
         self.remove_unchanged_fields(qnode_diff)
 
-        measure_diff = to_son(measure_pairs)
+        measure_diff = [{
+                'type': 'measure',
+                'tags': [],
+                'pair': pair,
+            } for pair in to_son(measure_pairs)]
         self.add_measure_metadata(measure_pairs, measure_diff)
         self.remove_unchanged_fields(measure_diff)
 
         diff = qnode_diff + measure_diff
 
-        def path_key(pair):
-            a, b = pair
+        def path_key(diff_item):
+            a, b = diff_item['pair']
             if a and b:
                 return 0, b['path'].split('.')
             elif b:
@@ -233,30 +241,30 @@ class DiffEngine:
                     + measure_del_query.all())
 
     def add_qnode_metadata(self, qnode_pairs, qnode_diff):
-        for (a, b), (a_son, b_son) in zip(qnode_pairs, qnode_diff):
+        for (a, b), diff_item in zip(qnode_pairs, qnode_diff):
+            a_son, b_son = diff_item['pair']
             if a:
                 a_son['path'] = a.get_path()
-                a_son['type'] = 'qnode'
             if b:
                 b_son['path'] = b.get_path()
-                b_son['type'] = 'qnode'
 
     def add_measure_metadata(self, measure_pairs, measure_diff):
-        for (a, b), (a_son, b_son) in zip(measure_pairs, measure_diff):
+        for (a, b), diff_item in zip(measure_pairs, measure_diff):
+            a_son, b_son = diff_item['pair']
             if a:
                 a_son['path'] = a.get_path(self.hierarchy_id)
                 a_son['parentId'] = str(a.get_parent(self.hierarchy_id).id)
-                a_son['type'] = 'measure'
             if b:
                 b_son['path'] = b.get_path(self.hierarchy_id)
                 b_son['parentId'] = str(b.get_parent(self.hierarchy_id).id)
-                b_son['type'] = 'measure'
 
-    def remove_unchanged_fields(self, son_pairs, ignore=None):
+    def remove_unchanged_fields(self, diff, ignore=None):
         if ignore is None:
             ignore = {'id', 'parentId', 'path', 'title', 'type'}
-        for a, b in son_pairs:
+        for diff_item in diff:
+            a, b = diff_item['pair']
             keys = a is not None and a.keys() or b.keys()
+            changes = 0
             for name in list(keys):
                 if name in ignore:
                     continue
@@ -267,3 +275,7 @@ class DiffEngine:
                 elif a[name] == b[name]:
                     del a[name]
                     del b[name]
+                else:
+                    changes += 1
+            if changes > 0:
+                diff_item['tags'].append('modified')
