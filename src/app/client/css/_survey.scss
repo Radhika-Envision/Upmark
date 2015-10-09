@@ -696,8 +696,11 @@ column-progress {
 .label-modified {
     background: #5cb85c;
 }
-.label-list-index, .label-reorder {
+.label-reordered {
     background: #5bc0de;
+}
+.label-list-index {
+    background: #777;
 }
 .label-relocated {
     background: #f0ad4e;

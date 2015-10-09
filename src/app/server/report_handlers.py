@@ -2,8 +2,9 @@ import uuid
 import json
 
 import sqlalchemy
+from sqlalchemy import String
 from sqlalchemy.orm import aliased
-from sqlalchemy.sql.expression import literal
+from sqlalchemy.sql.expression import cast, literal
 from tornado import gen
 from tornado.escape import json_decode, json_encode, utf8
 import tornado.web
@@ -243,12 +244,26 @@ class DiffEngine:
                     + measure_del_query.all())
 
     def add_qnode_metadata(self, qnode_pairs, qnode_diff):
+        # Create sets of ids; group by transform type
+        deleted = {str(a.id) for a, b in qnode_pairs if b is None}
+        added = {str(b.id) for a, b in qnode_pairs if a is None}
+        relocated = {str(a.id) for a, b in qnode_pairs
+                     if a and b and a.parent_id != b.parent_id}
+        item_index = {str(a.id) for a, b in qnode_pairs
+                      if a and b and a.seq != b.seq}
+
+        reorder_ignore = set().union(deleted, added, relocated)
+
         for (a, b), diff_item in zip(qnode_pairs, qnode_diff):
             a_son, b_son = diff_item['pair']
             if a:
                 a_son['path'] = a.get_path()
             if b:
                 b_son['path'] = b.get_path()
+            id_ = a and a.id or b.id
+            if a and b and a.parent and str(a.parent_id) == str(b.parent_id):
+                if self.qnode_was_reordered(a, b, reorder_ignore):
+                   diff_item['tags'].append('reordered')
 
     def add_measure_metadata(self, measure_pairs, measure_diff):
         for (a, b), diff_item in zip(measure_pairs, measure_diff):
@@ -261,6 +276,33 @@ class DiffEngine:
                 b_son['path'] = b.get_path(self.hierarchy_id)
                 b_son['parentId'] = str(b.get_parent(self.hierarchy_id).id)
                 b_son['seq'] = b.get_seq(self.hierarchy_id)
+
+    def qnode_was_reordered(self, a, b, reorder_ignore):
+        a_siblings = (self.session.query(model.QuestionNode.id)
+                .filter(model.QuestionNode.parent_id == a.parent_id,
+                        model.QuestionNode.survey_id == self.survey_id_a,
+                        ~model.QuestionNode.id.in_(reorder_ignore)
+                        )
+                .order_by(model.QuestionNode.seq)
+                .all())
+        b_siblings = (self.session.query(model.QuestionNode.id)
+                .filter(model.QuestionNode.parent_id == b.parent_id,
+                        model.QuestionNode.survey_id == self.survey_id_b,
+                        ~model.QuestionNode.id.in_(reorder_ignore)
+                        )
+                .order_by(model.QuestionNode.seq)
+                .all())
+        a_siblings = [str(id_) for (id_,) in a_siblings]
+        b_siblings = [str(id_) for (id_,) in b_siblings]
+        if not str(a.id) in a_siblings or not str(b.id) in b_siblings:
+            return False
+        a_index = a_siblings.index(str(a.id))
+        a_siblings = a_siblings[max(a_index - 1, 0):
+                                min(a_index + 1, len(a_siblings))]
+        b_index = b_siblings.index(str(b.id))
+        b_siblings = b_siblings[max(b_index - 1, 0):
+                                min(b_index + 1, len(b_siblings))]
+        return a_siblings != b_siblings
 
     def add_metadata(self, pairs, diff):
         for (a, b), diff_item in zip(pairs, diff):
