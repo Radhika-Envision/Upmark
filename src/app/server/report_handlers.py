@@ -71,6 +71,7 @@ class DiffEngine:
             r'/scenario$',
             r'/questions$',
             r'/weight$',
+            r'/response_type$',
             r'/seq$',
             # Descend
             r'/[0-9]+$',
@@ -109,7 +110,34 @@ class DiffEngine:
                 return 2
         diff.sort(key=path_key)
 
-        return diff
+        HA = model.Hierarchy
+        HB = aliased(model.Hierarchy, name='hierarchy_b')
+        hierarchy_a, hierarchy_b = (self.session.query(HA, HB)
+            .join(HB, (HA.id == HB.id))
+            .filter(HA.survey_id == self.survey_id_a,
+                    HB.survey_id == self.survey_id_b,
+                    HA.id == self.hierarchy_id)
+            .first())
+        to_son = ToSon(include=[
+            r'/id$',
+            r'/title$',
+            r'/description$'
+        ])
+        top_level_diff = [
+            {
+                'type': 'survey',
+                'tags': [],
+                'pair': [to_son(hierarchy_a.survey), to_son(hierarchy_b.survey)]
+            },
+            {
+                'type': 'hierarchy',
+                'tags': [],
+                'pair': [to_son(hierarchy_a), to_son(hierarchy_b)]
+            }
+        ]
+        self.remove_unchanged_fields(top_level_diff)
+
+        return top_level_diff + diff
 
     def get_qnodes(self):
         QA = model.QuestionNode
@@ -370,24 +398,23 @@ class DiffEngine:
             elif b and not a:
                 diff_item['tags'].append('added')
 
-    def remove_unchanged_fields(self, diff, ignore=None):
+    def remove_unchanged_fields(self, diff, ignore=None, protect=None):
+        if protect is None:
+            protect = {'id', 'parentId', 'title', 'path'}
         if ignore is None:
-            ignore = {'id', 'parentId', 'path', 'title', 'type', 'seq'}
+            ignore = {'id', 'parentId', 'path', 'seq'}
         for diff_item in diff:
             a, b = diff_item['pair']
             keys = a is not None and a.keys() or b.keys()
             changes = 0
             for name in list(keys):
-                if name in ignore:
-                    continue
-                if a is None:
-                    del b[name]
-                elif b is None:
-                    del a[name]
-                elif a[name] == b[name]:
-                    del a[name]
-                    del b[name]
-                else:
+                changed = a and b and a[name] != b[name]
+                if not changed and not name in protect:
+                    if a:
+                        del a[name]
+                    if b:
+                        del b[name]
+                if changed and not name in ignore:
                     changes += 1
             if changes > 0:
                 diff_item['tags'].append('modified')

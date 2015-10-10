@@ -1817,9 +1817,13 @@ angular.module('wsaa.surveyQuestions', [
     $scope.getItemUrl = function(item, entity, survey) {
         if (item.type == 'qnode')
             return format("/qnode/{}?survey={}", entity.id, survey.id);
-        else
+        else if (item.type == 'measure')
             return format("/measure/{}?survey={}&parent={}",
                 entity.id, survey.id, entity.parentId);
+        else if (item.type == 'survey')
+            return format("/survey/{}", survey.id);
+        else if (item.type == 'hierarchy')
+            return format("/hierarchy/{}?survey={}", entity.id, survey.id);
     };
 
     $scope.getAssessmentUrl1 = function(survey) {
