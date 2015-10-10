@@ -1,79 +1,19 @@
 <div class="header">
 <div class="container">
-    <div class="toolbar">
-        <button class="btn btn-default btn-round" title="Collapse"
-                ng-click="layout.expandHeader = !layout.expandHeader">
-            <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
-            <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
-        </button>
-    </div>
     <h2 page-title>
-        Comparison Report
+        Survey Comparison Report
     </h2>
 </div>
-</div>
-
-<div class="subheader bg-muted">
-
-<div>
-<div class="container text-center text-muted assessment-header"
-         title="Switch to a different survey">
-    <div title="Program">
-        <a ng-href="#/survey/{{survey1.id}}"
-                class="stealth btn btn-link">
-            {{survey1.title}}</a>
-    </div>
-    <div>
-        <button class="btn-round btn btn-default"
-                ng-click="toggleDropdown(1)">
-            <i class="fa fa-caret-up"
-                ng-if="chooser == 1"></i>
-            <i class="fa fa-caret-down"
-                ng-if="chooser != 1"></i>
-        </button>
-    </div>
-
-    <div title="Program" ng-if="survey2">
-        <a ng-href="#/survey/{{survey2.id}}"
-                class="stealth btn btn-link">
-            {{survey2.title}}</a>
-    </div>
-    <div>
-        <button class="btn-round btn btn-default"
-                ng-click="toggleDropdown(2)">
-            <i class="fa fa-caret-up"
-                ng-if="chooser == 2"></i>
-            <i class="fa fa-caret-down"
-                ng-if="chooser != 2"></i>
-        </button>
-    </div>
-</div>
-</div>
-
-<div class="atop" ng-if="chooser == 1"
-        assessment-select="assessment1"
-        track survey="assessment1.survey"
-        org="org1"
-        format-url="getAssessmentUrl1"
-        disallow-none="assessment2 == null"></div>
-
-<div class="atop" ng-if="chooser == 2"
-        assessment-select="assessment2"
-        track survey="assessment1.survey"
-        org="org2"
-        format-url="getAssessmentUrl2"
-        disallow-none="assessment1 == null"></div>
-
 </div>
 
 <div class="container">
     <ul class="cardlist">
         <li ng-repeat="item in diff.diff">
-            <h2>
+            <h3>
                 <span semantic-diff
                     left-obj="item.pair[0].title || ''"
                     right-obj="item.pair[1].title || ''"></span>
-            </h2>
+            </h3>
             <p>
                 <span class="label"
                     ng-repeat="tag in item.tags"
