@@ -274,9 +274,11 @@ class DiffEngine:
         deleted = {str(a.id) for a, b in measure_pairs if b is None}
         added = {str(b.id) for a, b in measure_pairs if a is None}
         relocated = {str(a.id) for a, b in measure_pairs
-                     if a and b and a.get_parent(self.hierarchy_id).id != b.get_parent(self.hierarchy_id).id}
+                     if a and b and (a.get_parent(self.hierarchy_id).id !=
+                                     b.get_parent(self.hierarchy_id).id)}
         item_index = {str(a.id) for a, b in measure_pairs
-                      if a and b and a.get_seq(self.hierarchy_id) != b.get_seq(self.hierarchy_id)}
+                      if a and b and (a.get_seq(self.hierarchy_id) !=
+                                      b.get_seq(self.hierarchy_id))}
 
         reorder_ignore = set().union(deleted, added, relocated)
 
@@ -296,19 +298,17 @@ class DiffEngine:
 
     def qnode_was_reordered(self, a, b, reorder_ignore):
         a_siblings = (self.session.query(model.QuestionNode.id)
-                .filter(model.QuestionNode.parent_id == a.parent_id,
-                        model.QuestionNode.survey_id == self.survey_id_a,
-                        ~model.QuestionNode.id.in_(reorder_ignore)
-                        )
-                .order_by(model.QuestionNode.seq)
-                .all())
+            .filter(model.QuestionNode.parent_id == a.parent_id,
+                    model.QuestionNode.survey_id == self.survey_id_a,
+                    ~model.QuestionNode.id.in_(reorder_ignore))
+            .order_by(model.QuestionNode.seq)
+            .all())
         b_siblings = (self.session.query(model.QuestionNode.id)
-                .filter(model.QuestionNode.parent_id == b.parent_id,
-                        model.QuestionNode.survey_id == self.survey_id_b,
-                        ~model.QuestionNode.id.in_(reorder_ignore)
-                        )
-                .order_by(model.QuestionNode.seq)
-                .all())
+            .filter(model.QuestionNode.parent_id == b.parent_id,
+                    model.QuestionNode.survey_id == self.survey_id_b,
+                    ~model.QuestionNode.id.in_(reorder_ignore))
+            .order_by(model.QuestionNode.seq)
+            .all())
         a_siblings = [str(id_) for (id_,) in a_siblings]
         b_siblings = [str(id_) for (id_,) in b_siblings]
         if not str(a.id) in a_siblings or not str(b.id) in b_siblings:
@@ -322,24 +322,26 @@ class DiffEngine:
         return a_siblings != b_siblings
 
     def measure_was_reordered(self, a, b, reorder_ignore):
+        a_parent = a.get_parent(self.hierarchy_id)
+        b_parent = b.get_parent(self.hierarchy_id)
         a_siblings = (self.session.query(model.Measure.id)
-                .join(model.QnodeMeasure,
-                      (model.QnodeMeasure.survey_id == model.Measure.survey_id) &
-                      (model.QnodeMeasure.measure_id == model.Measure.id))
-                .filter(model.QnodeMeasure.qnode_id == a.get_parent(self.hierarchy_id).id,
-                        model.QnodeMeasure.survey_id == self.survey_id_a,
-                        ~model.Measure.id.in_(reorder_ignore))
-                .order_by(model.QnodeMeasure.seq)
-                .all())
+            .join(model.QnodeMeasure,
+                  (model.QnodeMeasure.survey_id == model.Measure.survey_id) &
+                  (model.QnodeMeasure.measure_id == model.Measure.id))
+            .filter(model.QnodeMeasure.qnode_id == a_parent.id,
+                    model.QnodeMeasure.survey_id == self.survey_id_a,
+                    ~model.Measure.id.in_(reorder_ignore))
+            .order_by(model.QnodeMeasure.seq)
+            .all())
         b_siblings = (self.session.query(model.Measure.id)
-                .join(model.QnodeMeasure,
-                      (model.QnodeMeasure.survey_id == model.Measure.survey_id) &
-                      (model.QnodeMeasure.measure_id == model.Measure.id))
-                .filter(model.QnodeMeasure.qnode_id == b.get_parent(self.hierarchy_id).id,
-                        model.QnodeMeasure.survey_id == self.survey_id_b,
-                        ~model.Measure.id.in_(reorder_ignore))
-                .order_by(model.QnodeMeasure.seq)
-                .all())
+            .join(model.QnodeMeasure,
+                  (model.QnodeMeasure.survey_id == model.Measure.survey_id) &
+                  (model.QnodeMeasure.measure_id == model.Measure.id))
+            .filter(model.QnodeMeasure.qnode_id == b_parent.id,
+                    model.QnodeMeasure.survey_id == self.survey_id_b,
+                    ~model.Measure.id.in_(reorder_ignore))
+            .order_by(model.QnodeMeasure.seq)
+            .all())
 
         a_siblings = [str(id_) for (id_,) in a_siblings]
         b_siblings = [str(id_) for (id_,) in b_siblings]
