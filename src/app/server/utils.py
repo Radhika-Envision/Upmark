@@ -78,7 +78,7 @@ class ToSon:
             son = time.mktime(value.timetuple())
         elif isinstance(value, uuid.UUID):
             son = str(value)
-        elif hasattr(value, '__getitem__') and hasattr(value, 'keys'):
+        elif hasattr(value, '__getitem__') and hasattr(value, 'keys') and hasattr(value, 'values'):
             # Dictionaries
             son = {}
             for name in value.keys():

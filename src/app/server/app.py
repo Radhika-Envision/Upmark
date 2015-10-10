@@ -202,20 +202,21 @@ def get_mappings():
             crud.attachment.ResponseAttachmentsHandler, {}),
         (r"/attachment/([^/]*).json",
             crud.attachment.AttachmentHandler, {}),
+
         (r"/statistics/([^/]*).json",
             statistics_handlers.StatisticsHandler, {}),
-        (r"/report.json",
-            report_handlers.ReportHandler, {}),
-
-        (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
-        (r"/import/response.json", import_handlers.ImportResponseHandler, {}),
-        (r"/import/assessment.json", import_handlers.ImportAssessmentHandler, {}),
+        (r"/diff.json",
+            report_handlers.DiffHandler, {}),
         (r"/export/survey/([^/]*)/hierarchy/([^/]*)\.(.+)",
             export_handlers.ExportSurveyHandler, {}),
         (r"/export/assessment/([^/]*)\.(.+)",
             export_handlers.ExportAssessmentHandler, {}),
         (r"/export/response/([^/]*)\.(.+)",
             export_handlers.ExportResponseHandler, {}),
+
+        (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
+        (r"/import/response.json", import_handlers.ImportResponseHandler, {}),
+        (r"/import/assessment.json", import_handlers.ImportAssessmentHandler, {}),
 
         (r"/(.*)", tornado.web.StaticFileHandler, {
             'path': os.path.join(package_dir, "..", "client")}),

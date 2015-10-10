@@ -352,6 +352,7 @@ class SurveyHistoryHandler(handlers.BaseHandler):
                 r'/id$',
                 r'/title$',
                 r'/is_editable$',
+                r'/created$',
                 # Descend
                 r'/[0-9]+$',
             ])

@@ -337,6 +337,12 @@ class QuestionNode(Base):
         self.total_weight = total_weight
         self.n_measures = n_measures
 
+    def get_path(self):
+        if self.parent_id:
+            return "%s %d." % (self.parent.get_path(), self.seq + 1)
+        else:
+            return "%d." % (self.seq + 1)
+
     def __repr__(self):
         return "QuestionNode(title={}, survey={})".format(
             self.title, getattr(self.survey, 'title', None))
@@ -365,8 +371,30 @@ class Measure(Base):
         else:
             hierarchy_id = hierarchy.id
         for p in self.parents:
-            if p.hierarchy_id == hierarchy_id:
+            if str(p.hierarchy_id) == str(hierarchy_id):
                 return p
+        return None
+
+    def get_qnode_measure(self, hierarchy):
+        if isinstance(hierarchy, (str, uuid.UUID)):
+            hierarchy_id = hierarchy
+        else:
+            hierarchy_id = hierarchy.id
+        for qm in self.qnode_measures:
+            if str(qm.qnode.hierarchy_id) == str(hierarchy_id):
+                return qm
+        return None
+
+    def get_seq(self, hierarchy):
+        qm = self.get_qnode_measure(hierarchy)
+        if qm:
+            return qm.seq
+        return None
+
+    def get_path(self, hierarchy):
+        qm = self.get_qnode_measure(hierarchy)
+        if qm:
+            return qm.get_path()
         return None
 
     def get_response(self, assessment):
@@ -425,6 +453,9 @@ class QnodeMeasure(Base):
         elif qnode is not None:
             self.survey_id = qnode.survey_id
         super().__init__(**kwargs)
+
+    def get_path(self):
+        return "%s %d." % (self.qnode.get_path(), self.seq + 1)
 
     def __repr__(self):
         return "QnodeMeasure(qnode={}, measure={}, survey={})".format(

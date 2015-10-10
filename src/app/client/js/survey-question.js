@@ -81,9 +81,9 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
-.factory('Report', ['$resource', function($resource) {
-    return $resource('/report/:id.json', {id: '@id'}, {
-        get: { method: 'GET', isArray: true, cache: false }
+.factory('Diff', ['$resource', function($resource) {
+    return $resource('/diff.json', {}, {
+        get: { method: 'GET', isArray: false, cache: false }
     });
 }])
 
@@ -572,7 +572,13 @@ angular.module('wsaa.surveyQuestions', [
             entity: '=',
             service: '='
         },
-        controller: ['$scope', '$location', function($scope, $location) {
+        controller: ['$scope', '$location', 'format', 'Structure',
+                    function($scope, $location, format, Structure) {
+
+            $scope.$watch('entity', function(entity) {
+                $scope.structure = Structure($scope.entity);
+            });
+
             $scope.toggled = function(open) {
                 if (open) {
                     $scope.surveys = $scope.service.history({
@@ -582,16 +588,35 @@ angular.module('wsaa.surveyQuestions', [
             };
 
             $scope.navigate = function(survey) {
-                if ($scope.entity.isEditable != null)
+                if ($scope.entity == $scope.structure.survey)
                     $location.url('/survey/' + survey.id);
                 else
                     $location.search('survey', survey.id);
             };
             $scope.isActive = function(survey) {
-                if ($scope.entity.isEditable != null)
+                if ($scope.entity == $scope.structure.survey)
                     return $location.url().indexOf('/survey/' + survey.id) >= 0;
                 else
                     return $location.search().survey == survey.id;
+            };
+
+            $scope.compare = function(survey, event) {
+                var s1, s2;
+                if (survey.created < $scope.structure.survey.created) {
+                    s1 = survey;
+                    s2 = $scope.structure.survey;
+                } else {
+                    s1 = $scope.structure.survey;
+                    s2 = survey;
+                }
+                var url = format(
+                    '/diff?survey1={}&survey2={}&hierarchy={}&ignoreTags=list+index',
+                    s1.id,
+                    s2.id,
+                    $scope.structure.hierarchy.id);
+                $location.url(url);
+                event.preventDefault();
+                event.stopPropagation();
             };
         }]
     };
@@ -1709,48 +1734,51 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
-.controller('ReportCtrl', [
+.controller('DiffCtrl', [
         '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'format', 'Structure',
-        'layout', 'Arrays', 'ResponseNode', 'Statistics', 'Assessment',
-        '$timeout',
         function($scope, QuestionNode, routeData, Editor, authz,
-                 $location, Notifications, current, format, Structure,
-                 layout, Arrays, ResponseNode, Statistics, Assessment,
-                 $timeout) {
+                 $location, Notifications, current, format, Structure) {
 
-    // Start ucustom logic here
-    $scope.assessment1 = routeData.assessment1;
-    $scope.assessment2 = routeData.assessment2;
-    if($scope.assessment1 && $scope.assessment2) {
-        $scope.measure1 = $scope.report = routeData.report;
-    }
+    $scope.hierarchy1 = routeData.hierarchy1;
+    $scope.hierarchy2 = routeData.hierarchy2;
+    $scope.survey1 = $scope.hierarchy1.survey;
+    $scope.survey2 = $scope.hierarchy2.survey;
 
-    $scope.getAssessmentUrl1 = function(assessment) {
-        var query;
-        if (assessment) {
-            query = format('assessment1={}&assessment2={}',
-                assessment.id,
-                $scope.assessment2 ? $scope.assessment2.id : '');
-        } else {
-            query = format('assessment1={}',
-                $scope.assessment2 ? $scope.assessment2.id : '');
-        }
-        return format('/report?{}&qnode={}',
-            query, $location.search()['qnode'] || '');
+    $scope.diff = routeData.diff;
+
+    $scope.tags = [
+        'context', 'added', 'deleted', 'modified',
+        'reordered', 'relocated', 'list index'];
+
+    $scope.ignoreTags = $location.search()['ignoreTags'];
+    if (angular.isString($scope.ignoreTags))
+        $scope.ignoreTags = [$scope.ignoreTags];
+    else if ($scope.ignoreTags == null)
+        $scope.ignoreTags = [];
+
+    $scope.toggleTag = function(tag) {
+        var i = $scope.ignoreTags.indexOf(tag);
+        if (i >= 0)
+            $scope.ignoreTags.splice(i, 1);
+        else
+            $scope.ignoreTags.push(tag);
+        $location.search('ignoreTags', $scope.ignoreTags);
     };
-    $scope.getAssessmentUrl2 = function(assessment) {
-        var query;
-        if (assessment) {
-            query = format('assessment1={}&assessment2={}',
-                $scope.assessment1 ? $scope.assessment1.id : '',
-                assessment.id);
-        } else {
-            query = format('assessment1={}',
-                $scope.assessment1 ? $scope.assessment1.id : '');
-        }
-        return format('/report?{}&qnode={}',
-            query, $location.search()['qnode'] || '');
+    $scope.tagEnabled = function(tag) {
+        return $scope.ignoreTags.indexOf(tag) < 0;
+    };
+
+    $scope.getItemUrl = function(item, entity, survey) {
+        if (item.type == 'qnode')
+            return format("/qnode/{}?survey={}", entity.id, survey.id);
+        else if (item.type == 'measure')
+            return format("/measure/{}?survey={}&parent={}",
+                entity.id, survey.id, entity.parentId);
+        else if (item.type == 'survey')
+            return format("/survey/{}", survey.id);
+        else if (item.type == 'hierarchy')
+            return format("/hierarchy/{}?survey={}", entity.id, survey.id);
     };
 
     $scope.chooser = false;
@@ -1759,17 +1787,6 @@ angular.module('wsaa.surveyQuestions', [
             $scope.chooser = null;
         else
             $scope.chooser = num;
-    };
-
-    $scope.getCompareMeasure = function(measure) {
-        console.log(measure);
-        // var find = $scope.measure2.filter(function(item, index) {
-        //     return item.id == measure.id;
-        // });
-        // if(find)
-        //     return find;
-        // return null;
-        return "Test";
     };
 
 }])

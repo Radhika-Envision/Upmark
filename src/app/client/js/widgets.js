@@ -198,12 +198,25 @@ angular.module('vpac.widgets', [])
 }])
 
 
+.factory('checkLogin', ['$q', 'User', '$cookies', '$http',
+         function($q, User, $cookies, $http) {
+    return function checkLogin() {
+        var user = $cookies.get('user');
+        var xsrf = $cookies.get($http.defaults.xsrfCookieName);
+        if (!user || !xsrf)
+            return $q.reject("Session cookies are not defined");
+
+        return User.get({id: 'current'}).$promise;
+    };
+}])
+
+
 /**
  * Manages state for a modal editing session.
  */
 .factory('Editor', [
-        '$parse', 'log', 'Notifications', '$q',
-         function($parse, log, Notifications, $q) {
+        '$parse', 'log', 'Notifications', '$q', 'checkLogin',
+         function($parse, log, Notifications, $q, checkLogin) {
 
     function Editor(targetPath, scope, params, resource) {
         this.model = null;
@@ -241,10 +254,21 @@ angular.module('vpac.widgets', [])
             }
         };
         var failure = function(details) {
-            try {
-                that.scope.$emit('EditError');
+            var normalError = function() {
                 Notifications.set('edit', 'error',
                     "Could not save object: " + details.statusText);
+            };
+            var loginError = function() {
+                Notifications.set('edit', 'error',
+                    "Could not save object: your session has expired.");
+            };
+            try {
+                that.scope.$emit('EditError');
+                if (details.status == 403) {
+                    checkLogin().then(normalError, loginError);
+                } else {
+                    normalError();
+                }
             } finally {
                 that.saving = false;
                 that = null;
@@ -280,10 +304,21 @@ angular.module('vpac.widgets', [])
             }
         };
         var failure = function(details) {
-            try {
-                that.scope.$emit('EditError');
+            var normalError = function() {
                 Notifications.set('edit', 'error',
                     "Could not delete object: " + details.statusText);
+            };
+            var loginError = function() {
+                Notifications.set('edit', 'error',
+                    "Could not delete object: your session has expired.");
+            };
+            try {
+                that.scope.$emit('EditError');
+                if (details.status == 403) {
+                    checkLogin().then(normalError, loginError);
+                } else {
+                    normalError();
+                }
             } finally {
                 that.saving = false;
                 that = null;
@@ -489,6 +524,68 @@ angular.module('vpac.widgets', [])
                 function toggle(empty) {
                     elem.toggleClass('ng-hide', empty);
                 });
+        }
+    };
+})
+
+
+/**
+ * Specialisation of angular-list-match-patch for lists of numbers.
+ */
+.directive('pathDiff', function() {
+    return {
+        restrict: 'AC',
+        scope: {
+            left: '=leftObj',
+            right: '=rightObj'
+        },
+        link: function(scope, elem, attrs) {
+            var sanitise = function(text) {
+                var pattern_amp = /&/g;
+                var pattern_lt = /</g;
+                var pattern_gt = />/g;
+                return text.replace(pattern_amp, '&amp;')
+                        .replace(pattern_lt, '&lt;')
+                        .replace(pattern_gt, '&gt;');
+            };
+
+            var createHtml = function(left, right) {
+                if (!angular.isString(left))
+                    left = '';
+                if (!angular.isString(right))
+                    right = '';
+                var left = sanitise(left);
+                var right = sanitise(right);
+
+                var leftArr = left.split('.');
+                var rightArr = right.split('.');
+                var nitems = Math.max(leftArr.length, rightArr.length);
+                var html = '';
+                for (var i = 0; i < nitems; i++) {
+                    var leftComponent = leftArr[i];
+                    var rightComponent = rightArr[i];
+                    var pad = i > 0 ? ' ' : '';
+                    if (!leftComponent && !rightComponent) {
+                        // Skip empty path element.
+                    } else if (!leftComponent) {
+                        html += '<ins>' + pad + rightComponent + '.</ins>';
+                    } else if (!rightComponent) {
+                        html += '<del>' + pad + leftComponent + '.</del>';
+                    } else if (leftComponent != rightComponent) {
+                        html += '<del>' + pad + leftComponent + '.</del>';
+                        html += '<ins>' + pad + rightComponent + '.</ins>';
+                    } else {
+                        html += pad + rightComponent + '.';
+                    }
+                }
+                return html;
+            };
+
+            var listener = function(vals) {
+                elem.html(createHtml(vals[0], vals[1]));
+            };
+
+            scope.$watchGroup(['left', 'right'], listener);
         }
     };
 })

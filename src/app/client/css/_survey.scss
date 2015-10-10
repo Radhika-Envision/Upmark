@@ -42,6 +42,9 @@ h2 {
             background-color $anim-time ease,
             opacity $anim-time ease
         );
+        @media print {
+            border: 1px solid gray;
+        }
     }
     &.survey-s[label]:before {
         background-color: mix($survey-colour, white, 50%);
@@ -113,6 +116,10 @@ h2 {
     padding-top: 10px;
     padding-bottom: 10px;
     margin-bottom: 20px;
+
+    @media print {
+        margin-bottom: 0;
+    }
 
     h2 {
         .clock-progress {
@@ -258,6 +265,10 @@ ul.fa-ul-big {
     margin-top: 4px;
     > a {
         vertical-align: top;
+    }
+
+    @media print {
+        display: none;
     }
 }
 
@@ -682,4 +693,60 @@ column-progress {
     right: -20px;
     display: block;
     color: #888;
+}
+
+.label:not(:first-child) {
+    margin-left: 0.6ex;
+}
+.label-context, a.label.label-context {
+    background: #ddd;
+    color: #444;
+}
+.label-added {
+    background: #337ab7;
+}
+.label-deleted {
+    background: #d9534f;
+}
+.label-modified {
+    background: #5cb85c;
+}
+.label-reordered {
+    background: #777;
+}
+.label-list-index {
+    background: #5bc0de;
+}
+.label-relocated {
+    background: #f0ad4e;
+}
+.label-disabled {
+    opacity: 0.5;
+    text-decoration: line-through;
+    @media print {
+        display: none;
+    }
+}
+.diff {
+    del {
+        background: #fcc;
+        color: #400;
+    }
+    ins {
+        background: #cfc;
+        color: #040;
+    }
+    .only-old ins,
+    .only-new del {
+        display: none;
+    }
+}
+
+ul.cardlist {
+    padding: 0;
+
+    li {
+        padding: 18px 0;
+        list-style: none;
+    }
 }
