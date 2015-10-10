@@ -587,7 +587,7 @@ angular.module('wsaa.aquamark',
                             surveyId1: $route.current.params.survey1,
                             surveyId2: $route.current.params.survey2,
                             hierarchyId: $route.current.params.hierarchy,
-                            ignoreTag: 'list index'
+                            ignoreTag: $route.current.params.ignoreTags
                         }).$promise;
                     }]
                 })}

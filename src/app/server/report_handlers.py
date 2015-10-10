@@ -40,7 +40,7 @@ class DiffHandler(handlers.BaseHandler):
             diff_engine = DiffEngine(session, survey_id_a, survey_id_b, hierarchy_id)
             diff = diff_engine.execute()
             diff = [di for di in diff
-                    if len(ignore_tags.symmetric_difference(di['tags'])) > 0]
+                    if len(set().union(di['tags']).difference(ignore_tags)) > 0]
             son = {
                 'diff': diff
             }
@@ -126,12 +126,12 @@ class DiffEngine:
         top_level_diff = [
             {
                 'type': 'survey',
-                'tags': [],
+                'tags': ['context'],
                 'pair': [to_son(hierarchy_a.survey), to_son(hierarchy_b.survey)]
             },
             {
                 'type': 'hierarchy',
-                'tags': [],
+                'tags': ['context'],
                 'pair': [to_son(hierarchy_a), to_son(hierarchy_b)]
             }
         ]

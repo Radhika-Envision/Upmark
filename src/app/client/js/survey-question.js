@@ -609,7 +609,8 @@ angular.module('wsaa.surveyQuestions', [
                     s1 = $scope.structure.survey;
                     s2 = survey;
                 }
-                var url = format('/diff?survey1={}&survey2={}&hierarchy={}',
+                var url = format(
+                    '/diff?survey1={}&survey2={}&hierarchy={}&ignoreTags=list+index',
                     s1.id,
                     s2.id,
                     $scope.structure.hierarchy.id);
@@ -1814,6 +1815,28 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.diff = routeData.diff;
 
+    $scope.tags = [
+        'context', 'added', 'deleted', 'modified',
+        'reordered', 'relocated', 'list index'];
+
+    $scope.ignoreTags = $location.search()['ignoreTags'];
+    if (angular.isString($scope.ignoreTags))
+        $scope.ignoreTags = [$scope.ignoreTags];
+    else if ($scope.ignoreTags == null)
+        $scope.ignoreTags = [];
+
+    $scope.toggleTag = function(tag) {
+        var i = $scope.ignoreTags.indexOf(tag);
+        if (i >= 0)
+            $scope.ignoreTags.splice(i, 1);
+        else
+            $scope.ignoreTags.push(tag);
+        $location.search('ignoreTags', $scope.ignoreTags);
+    };
+    $scope.tagEnabled = function(tag) {
+        return $scope.ignoreTags.indexOf(tag) < 0;
+    };
+
     $scope.getItemUrl = function(item, entity, survey) {
         if (item.type == 'qnode')
             return format("/qnode/{}?survey={}", entity.id, survey.id);
@@ -1824,19 +1847,6 @@ angular.module('wsaa.surveyQuestions', [
             return format("/survey/{}", survey.id);
         else if (item.type == 'hierarchy')
             return format("/hierarchy/{}?survey={}", entity.id, survey.id);
-    };
-
-    $scope.getAssessmentUrl1 = function(survey) {
-        return format('/diff?survey1={}&survey2={}&hierarchy={}',
-                survey.id,
-                $scope.survey2.id,
-                $scope.hierarchy1.id);
-    };
-    $scope.getAssessmentUrl2 = function(survey) {
-        return format('/diff?survey1={}&survey2={}&hierarchy={}',
-                $scope.survey1.id,
-                survey.id,
-                $scope.hierarchy1.id);
     };
 
     $scope.chooser = false;

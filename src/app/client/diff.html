@@ -6,8 +6,19 @@
 </div>
 </div>
 
+<div class="container text-center">
+    <span class="visible-print-inline">Showing: </span>
+    <a class="label"
+            ng-repeat="tag in tags"
+            ng-class="['label-' + tag.toLowerCase().replace(' ', '-'),
+                       tagEnabled(tag) ? null : 'label-disabled']"
+            ng-click="toggleTag(tag)">
+        {{tag}}
+    </a>
+</div>
+
 <div class="container">
-    <ul class="cardlist">
+    <ul class="cardlist diff">
         <li ng-repeat="item in diff.diff">
             <h3>
                 <span semantic-diff
