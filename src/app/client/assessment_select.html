@@ -76,7 +76,7 @@
             The survey must be purchased before a submission can be created.
         </span>
     </p>
-    <div class="text-center">
+    <div class="text-center hidden-print">
         <a ng-href="#/assessment/new?survey={{survey.id}}&organisation={{aSearch.organisation.id}}"
                 class="btn btn-link btn-lg"
                 ng-if="purchasedSurvey && checkRole('assessment_add') && showEdit && !assessments.length">
@@ -90,7 +90,8 @@
             View without a submission
         </a>
     </div>
-    <div ng-if="purchasedSurvey && checkRole('assessment_add') && showEdit">
+    <div ng-if="purchasedSurvey && checkRole('assessment_add') && showEdit"
+            class="hidden-print">
         <p ng-if="assessments.length" class="text-muted text-center">
             You can start another submission by clicking the
             <i class="fa fa-plus"></i> button above.

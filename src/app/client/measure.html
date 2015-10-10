@@ -162,7 +162,7 @@
                 ng-click="saveResponse()">
             <i class="fa fa-check fa-fw"></i></button>
     </response>
-    <div class="spaced btn-group btn-group-justified">
+    <div class="spaced btn-group btn-group-justified hidden-print">
         <div class="btn-group">
             <button class="btn btn-default"
                     ng-class="{active: response.approval == 'draft'}"
@@ -203,6 +203,9 @@
                 Approved
             </button>
         </div>
+    </div>
+    <div class="visible-print-block">
+        Response status: {{response.approval}}
     </div>
 
     <div ng-controller="ResponseAttachmentCtrl">
@@ -323,7 +326,7 @@
             </span>
         </li>
     </ul>
-    <p class="text-warning text-center"><small>
+    <p class="text-warning text-center hidden-print"><small>
         <i class="fa fa-bug"></i>
         Attachments are not scanned for viruses.
     </small></p>

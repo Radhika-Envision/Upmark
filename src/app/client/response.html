@@ -17,11 +17,11 @@
 <ol class="responses list-unstyled" ng-if="!response.notRelevant">
     <li ng-repeat="part in responseType.parts" class="clearfix"
             ng-class="{active: $index == state.active}">
-        <div ng-if="part.name">
+        <div ng-if="part.name" class="hidden-print">
             <label ng-click="state.active = $index">{{part.name}}</label>
         </div>
         <div>
-            <div class="btn-group btn-group-justified"
+            <div class="btn-group btn-group-justified hidden-print"
                     ng-init="pi = $index">
                 <div class="btn-group"
                         ng-repeat="o in part.options">
@@ -37,10 +37,18 @@
                 </div>
             </div>
         </div>
+        <div class="visible-print-block">
+            <span ng-if="part.name">{{part.name}}:</span>
+            <span>
+                {{getActiveOption($index).index + 1}}
+                {{getActiveOption($index).note}}
+            </span>
+        </div>
     </li>
 </ol>
 
 <label for="comments" class="sr-only">Comments</label>
+<p class="visible-print-block">Comments:</p>
 <div textarea-label="{{!response.comment ? 'Comments' : ''}}">
     <markdown-editor id="comments"
         ng-model="response.comment" placeholder="''"
