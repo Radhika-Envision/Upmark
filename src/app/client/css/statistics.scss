@@ -1,7 +1,12 @@
+@import '_utils.scss';
+
 .chart {
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     text-align: center;
 
+    .box {
+        @include transition(background-color ease 1s);
+    }
     .box:nth-child(odd) {
         background-color: #FBFBFB;
         .border20 {
@@ -25,6 +30,7 @@
         background-color: #eee;
         &:hover {
             background-color: #fff;
+            @include transition(background-color ease 0.3s);
             .border20 {
                 stroke: #eee;
             }
