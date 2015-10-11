@@ -1855,7 +1855,7 @@ angular.module('wsaa.surveyQuestions', [
                 var message = "Saved";
                 if (headers('Operation-Details'))
                     message += ': ' + headers('Operation-Details');
-                Notifications.set('edit', 'success', message, 5000);
+                Notifications.set('edit', 'success', message);
                 $location.url(format(
                     '/qnode/{}?survey={}', $scope.parent.id, $scope.survey.id));
             },
@@ -1917,7 +1917,7 @@ angular.module('wsaa.surveyQuestions', [
                 var message = "Saved";
                 if (headers('Operation-Details'))
                     message += ': ' + headers('Operation-Details');
-                Notifications.set('edit', 'success', message, 5000);
+                Notifications.set('edit', 'success', message);
                 $location.url(format(
                     '/qnode/{}?survey={}', $scope.qnode.id, $scope.survey.id));
             },
