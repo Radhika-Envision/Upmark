@@ -6,6 +6,11 @@
             <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
             <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
         </button>
+        <button class="btn btn-default btn-round" title="Print"
+                ng-if="!edit.model"
+                onclick="print()">
+            <i class="fa fa-print"></i>
+        </button>
         <button class="btn btn-default btn-round" title="Delete"
                 ng-click="edit.del()"
                 ng-if="survey.isEditable && !edit.model &&

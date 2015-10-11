@@ -752,5 +752,8 @@ ul.cardlist {
     li {
         padding: 18px 0;
         list-style: none;
+        @media print {
+            padding: 0;
+        }
     }
 }

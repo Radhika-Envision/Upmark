@@ -1,6 +1,11 @@
 <div class="header">
 <div class="container">
     <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Print"
+                ng-if="!edit.model"
+                onclick="print()">
+            <i class="fa fa-print"></i>
+        </button>
         <a class="btn btn-default btn-round" title="Duplicate"
                 ng-href="#/survey/new?duplicate={{survey.id}}"
                 ng-if="!edit.model && checkRole('survey_dup')">
