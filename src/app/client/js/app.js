@@ -560,6 +560,32 @@ angular.module('wsaa.aquamark',
                             parentId: $route.current.params.qnode == '' ?
                                 null : $route.current.params.qnode
                         }).$promise;
+                    }],
+                    qnode1: ['QuestionNode', '$route', 'assessment1',
+                            function(QuestionNode, $route, assessment1) {
+                        if (!$route.current.params.qnode)
+                            return null;
+                        return QuestionNode.get({
+                            surveyId: assessment1.survey.id,
+                            id: $route.current.params.qnode == '' ?
+                                null : $route.current.params.qnode
+                        }).$promise;
+                    }],
+                    qnode2: ['QuestionNode', '$route', 'assessment1',
+                             'assessment2', 'qnode1',
+                            function(QuestionNode, $route, assessment1,
+                                     assessment2, qnode1) {
+                        if (!$route.current.params.qnode)
+                            return null;
+                        if (!assessment2)
+                            return null;
+                        if (assessment1.survey.id == assessment2.survey.id)
+                            return qnode1;
+                        return QuestionNode.get({
+                            surveyId: assessment2.survey.id,
+                            id: $route.current.params.qnode == '' ?
+                                null : $route.current.params.qnode
+                        }).$promise;
                     }]
                 })}
             })

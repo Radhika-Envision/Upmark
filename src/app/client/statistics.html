@@ -1,8 +1,35 @@
 <div class="header">
 <div class="container">
+    <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Collapse"
+                ng-click="layout.expandHeader = !layout.expandHeader">
+            <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
+            <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
+        </button>
+        <button class="btn btn-default btn-round" title="Print"
+                onclick="print()">
+            <i class="fa fa-print"></i>
+        </button>
+    </div>
     <h2 page-title>
         Box-and-Whisker Plot
     </h2>
+    <h2 ng-class="layout.expandHeader ? null: 'pull-left'"
+            ng-if="struct2.survey && struct1.survey.id != struct2.survey.id">
+        <span ng-if="!layout.expandHeader">L:</span>
+        <span ng-if="layout.expandHeader">Left:</span>
+    </h2>
+    <question-header entity="qnode1 || assessment1.hierarchy"
+        assessment="assessment1" get-url="getNavUrl"></question-header>
+    <h2 ng-class="layout.expandHeader ? null: 'pull-left'"
+            ng-if="struct2.survey && struct1.survey.id != struct2.survey.id">
+        <span ng-if="!layout.expandHeader">R:</span>
+        <span ng-if="layout.expandHeader">Right:</span>
+    </h2>
+    <question-header entity="qnode2 || assessment2.hierarchy"
+        assessment="assessment2" get-url="getNavUrl"
+        ng-if="struct2.survey && struct1.survey.id != struct2.survey.id"
+        ></question-header>
 </div>
 </div>
 
@@ -18,6 +45,9 @@
             <i class="fa fa-caret-down"
                 ng-if="chooser != 1"></i>
         </button>
+    </div>
+    <div ng-if="assessment2">
+        <span>L:</span>
     </div>
     <div title="Organisation 1">
         <a ng-href="#/org/{{assessment1.organisation.id}}"
@@ -53,6 +83,9 @@
             <i class="fa fa-caret-down"
                 ng-if="chooser != 2"></i>
         </button>
+    </div>
+    <div ng-if="assessment2">
+        <span>R:</span>
     </div>
     <div title="Organisation 2" ng-if="assessment2">
         <a ng-href="#/org/{{assessment2.organisation.id}}"

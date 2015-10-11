@@ -101,6 +101,10 @@ h2 {
         display: none;
     }
 }
+h2.pull-left {
+    margin-top: 9px;
+    margin-right: 1ex;
+}
 .header-expanded {
     h2 {
         display: block;
@@ -268,7 +272,7 @@ ul.fa-ul-big {
     }
 
     @media print {
-        display: none;
+        display: none !important;
     }
 }
 

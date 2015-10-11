@@ -742,7 +742,8 @@ angular.module('wsaa.surveyQuestions', [
         restrict: 'E',
         scope: {
             entity: '=',
-            assessment: '='
+            assessment: '=',
+            getUrl: '='
         },
         replace: true,
         templateUrl: 'question_header.html',
@@ -768,6 +769,12 @@ angular.module('wsaa.surveyQuestions', [
                 if (!key)
                     return "";
 
+                if ($scope.getUrl) {
+                    var url = $scope.getUrl(item, key);
+                    if (url)
+                        return url;
+                }
+
                 var path = format("#/{}/{}", item.path, key);
                 var query = [];
                 if (item.path == 'survey' || item.path == 'assessment') {
@@ -782,9 +789,9 @@ angular.module('wsaa.surveyQuestions', [
                 if (item.path == 'measure' && item.entity.parent) {
                     query.push('parent=' + item.entity.parent.id);
                 }
-                path += '?' + query.join('&');
+                url = path + '?' + query.join('&');
 
-                return path;
+                return url;
             };
 
             hotkeys.bindTo($scope)
@@ -1140,7 +1147,7 @@ angular.module('wsaa.surveyQuestions', [
                 };
 
                 var displayChart = function (object, dataIndex, compareMode) {
-                    var lineWidth = !object.compareMode ? width : width / 2;
+                    var lineWidth = !object.compareMode ? width : width / 2 - 1;
                     var data = object.data[dataIndex];
                     // Compute the new x-scale.
                     var yAxis = d3.scale.linear()
@@ -1265,7 +1272,7 @@ angular.module('wsaa.surveyQuestions', [
                             if(compareMode) {
                                 if(index == 3)
                                     return dataIndex==0 ? width/2:width+5;
-                                return dataIndex==0 ? width/2:width + 1;
+                                return dataIndex==0 ? width/2:width;
                             } else {
                                 if(index == 3)
                                     return width+5;
@@ -1352,13 +1359,24 @@ angular.module('wsaa.surveyQuestions', [
         return box;
     };
 
-    // Start ucustom logic here
+    // Start custom logic here
     $scope.assessment1 = routeData.assessment1;
     $scope.assessment2 = routeData.assessment2;
     $scope.rnodes1 = routeData.rnodes1;
     $scope.rnodes2 = routeData.rnodes2;
     $scope.stats1 = routeData.stats1;
     $scope.stats2 = routeData.stats2;
+    $scope.qnode1 = routeData.qnode1;
+    $scope.qnode2 = routeData.qnode2;
+    $scope.struct1 = Structure(
+        routeData.qnode1 || routeData.assessment1.hierarchy,
+        routeData.assessment1);
+    if (routeData.assessment2) {
+        $scope.struct2 = Structure(
+            routeData.qnode2 || routeData.assessment2.hierarchy,
+            routeData.assessment2);
+    }
+    $scope.layout = layout;
 
     $scope.getAssessmentUrl1 = function(assessment) {
         var query;
@@ -1385,6 +1403,19 @@ angular.module('wsaa.surveyQuestions', [
         }
         return format('/statistics?{}&qnode={}',
             query, $location.search()['qnode'] || '');
+    };
+
+    $scope.getNavUrl = function(item, key) {
+        if (item.path == 'qnode') {
+            return format(
+                '#/statistics?assessment1={}&assessment2={}&qnode={}',
+                $scope.assessment1.id, $scope.assessment2.id, key);
+        } else if (item.path == 'assessment') {
+            return format(
+                '#/statistics?assessment1={}&assessment2={}',
+                $scope.assessment1.id, $scope.assessment2.id);
+        }
+        return null;
     };
 
     $scope.chooser = false;
