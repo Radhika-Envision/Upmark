@@ -1,0 +1,118 @@
+<div class="header">
+<div class="container">
+    <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Collapse"
+                ng-click="layout.expandHeader = !layout.expandHeader">
+            <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
+            <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
+        </button>
+        <button class="btn btn-default btn-round" title="Print"
+                onclick="print()">
+            <i class="fa fa-print"></i>
+        </button>
+    </div>
+    <h2 page-title>
+        Box-and-Whisker Plot
+    </h2>
+    <h2 ng-class="layout.expandHeader ? null: 'pull-left'"
+            ng-if="struct2.survey && struct1.survey.id != struct2.survey.id">
+        <span ng-if="!layout.expandHeader">L:</span>
+        <span ng-if="layout.expandHeader">Left:</span>
+    </h2>
+    <question-header entity="qnode1 || assessment1.hierarchy"
+        assessment="assessment1" get-url="getNavUrl"></question-header>
+    <h2 ng-class="layout.expandHeader ? null: 'pull-left'"
+            ng-if="struct2.survey && struct1.survey.id != struct2.survey.id">
+        <span ng-if="!layout.expandHeader">R:</span>
+        <span ng-if="layout.expandHeader">Right:</span>
+    </h2>
+    <question-header entity="qnode2 || assessment2.hierarchy"
+        assessment="assessment2" get-url="getNavUrl"
+        ng-if="struct2.survey && struct1.survey.id != struct2.survey.id"
+        ></question-header>
+</div>
+</div>
+
+<div class="subheader bg-muted">
+
+<div class="container text-muted assessment-header">
+    <div class="toolbar">
+        <button class="btn-round btn btn-default"
+                ng-click="toggleDropdown(1)"
+                title="Choose a submission">
+            <i class="fa fa-caret-up"
+                ng-if="chooser == 1"></i>
+            <i class="fa fa-caret-down"
+                ng-if="chooser != 1"></i>
+        </button>
+    </div>
+    <div ng-if="assessment2">
+        <span>L:</span>
+    </div>
+    <div title="Organisation 1">
+        <a ng-href="#/org/{{assessment1.organisation.id}}"
+                class="stealth btn btn-link">
+            {{assessment1.organisation.name}}</a>
+    </div>
+    <div title="Submission">
+        <a ng-href="#/assessment/{{assessment1.id}}"
+                class="stealth btn btn-link">
+            {{assessment1.title}}</a>
+    </div>
+    <div title="Submission" ng-if="!assessment1">
+        <span>
+            No first submission
+        </span>
+    </div>
+</div>
+
+<div class="atop" ng-if="chooser == 1"
+        assessment-select="assessment1"
+        track survey="assessment1.survey"
+        org="org1"
+        format-url="getAssessmentUrl1"
+        disallow-none="assessment2 == null"></div>
+
+<div class="container text-muted assessment-header">
+    <div class="toolbar">
+        <button class="btn-round btn btn-default"
+                ng-click="toggleDropdown(2)"
+                title="Choose a second submission to compare against">
+            <i class="fa fa-caret-up"
+                ng-if="chooser == 2"></i>
+            <i class="fa fa-caret-down"
+                ng-if="chooser != 2"></i>
+        </button>
+    </div>
+    <div ng-if="assessment2">
+        <span>R:</span>
+    </div>
+    <div title="Organisation 2" ng-if="assessment2">
+        <a ng-href="#/org/{{assessment2.organisation.id}}"
+                class="stealth btn btn-link">
+            {{assessment2.organisation.name}}</a>
+    </div>
+    <div title="Submission" ng-if="assessment2">
+        <a ng-href="#/assessment/{{assessment2.id}}"
+                class="stealth btn btn-link">
+            {{assessment2.title}}</a>
+    </div>
+    <div title="Submission" ng-if="!assessment2">
+        <span>
+            No second submission
+        </span>
+    </div>
+</div>
+
+<div class="atop" ng-if="chooser == 2"
+        assessment-select="assessment2"
+        track survey="assessment1.survey"
+        org="org2"
+        format-url="getAssessmentUrl2"
+        disallow-none="assessment1 == null"></div>
+
+</div>
+
+<div class="chart">
+    <div id="chart"></div>
+</div>

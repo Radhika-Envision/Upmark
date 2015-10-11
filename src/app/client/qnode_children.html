@@ -38,7 +38,10 @@
             </td>
             <td class="shrink text-muted numeric" title="Score"
                     ng-if="assessment && checkRole('view_aggregate_score')">
-                {{getStats(item.id).score | number:0}}
+                {{getStats(item.id).score | number:0}} /
+            </td>
+            <td class="shrink text-muted numeric" title="Total score">
+                {{item.totalWeight | number:0}}
             </td>
             <td class="shrink" ng-if="assessment">
                 <column-progress items="getStats(item.id).progressItems">

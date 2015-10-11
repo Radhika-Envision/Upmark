@@ -10,6 +10,11 @@
             <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
             <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
         </button>
+        <button class="btn btn-default btn-round" title="Print"
+                ng-if="!edit.model"
+                onclick="print()">
+            <i class="fa fa-print"></i>
+        </button>
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
                 ng-if="edit.model && edit.model.id">
@@ -30,9 +35,7 @@
 </div>
 </div>
 
-
 <assessment-header></assessment-header>
-
 
 <div ng-if="edit.model">
 <div class="container">
@@ -56,14 +59,14 @@
 <div ng-if="!edit.model && qnode.description || rnode">
 <div class="container">
     <div ng-if="rnode" class="stats">
-        <button class="btn btn-on-danger btn-round pull-right"
+        <button class="btn btn-on-danger btn-round pull-right hidden-print"
                 title="Toggle not relevant"
                 ng-click="toggleNotRelevant()"
                 ng-class="{active: rnode.notRelevant}">
             <i class="fa fa-fw fa-ban"></i></button>
 
         <span title="Score">
-            {{rnode.score}}
+            {{rnode.score | number:0}}
         </span>
         <span title="Progress">
             <column-progress items="stats.progressItems"></column-progress>

@@ -44,6 +44,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 r'/id$',
                 r'/title$',
                 r'/seq$',
+                r'/created$',
                 r'/is_editable$',
                 r'/n_measures$',
                 r'/survey/tracking_id$',

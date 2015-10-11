@@ -40,14 +40,20 @@ class QuestionNodeHandler(
                     ValueError):
                 raise handlers.MissingDocError("No such category")
 
+            exclude = []
+            if self.current_user.role == 'clerk':
+                exclude.append(r'/total_weight$')
+
             to_son = ToSon(include=[
                 # Fields to match from any visited object
                 r'/id$',
                 r'/title$',
                 r'/seq$',
+                r'/total_weight$',
                 r'/n_measures$',
                 r'/is_editable$',
                 r'/survey/tracking_id$',
+                r'/survey/created$',
                 # Fields to match from only the root object
                 r'^/description$',
                 # Ascend into nested parent objects
@@ -57,7 +63,7 @@ class QuestionNodeHandler(
                 r'/hierarchy/survey$',
                 # Response types needed here when creating a new measure
                 r'/response_types.*$'
-            ])
+            ], exclude=exclude)
             son = to_son(qnode)
 
             sibling_query = (session.query(model.QuestionNode)
@@ -123,19 +129,24 @@ class QuestionNodeHandler(
 
             query = self.paginate(query, optional=True)
 
+            exclude = []
+            if self.current_user.role == 'clerk':
+                exclude.append(r'/total_weight$')
+
             include = [
                 # Fields to match from any visited object
                 r'/id$',
                 r'/title$',
                 r'/seq$',
                 r'/n_measures$',
+                r'/total_weight$',
                 # Descend into nested objects
                 r'/[0-9]+$',
             ]
             if truthy(self.get_argument('desc', False)):
                 include += [r'/description$']
 
-            to_son = ToSon(include=include)
+            to_son = ToSon(include=include, exclude=exclude)
             sons = to_son(query.all())
 
         self.set_header("Content-Type", "application/json")
@@ -207,6 +218,10 @@ class QuestionNodeHandler(
 
             query = self.paginate(query)
 
+            exclude = []
+            if self.current_user.role == 'clerk':
+                exclude.append(r'/total_weight$')
+
             include = [
                 # Fields to match from any visited object
                 r'/id$',
@@ -216,7 +231,7 @@ class QuestionNodeHandler(
             if truthy(self.get_argument('desc', False)):
                 include += [r'/description$']
 
-            to_son = ToSon(include=include)
+            to_son = ToSon(include=include, exclude=exclude)
             sons = []
             for qnode, path in query.all():
                 son = to_son(qnode)

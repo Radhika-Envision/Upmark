@@ -10,6 +10,7 @@ parse~=1.6.6
 voluptuous~=0.8.7
 simpleeval~=0.8.5
 boto3~=1.1.2
-
+numpy~=1.9.2
+XlsxWriter~=0.5.3
 # Non-functional requirements (dev tools)
 pudb

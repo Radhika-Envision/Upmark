@@ -258,14 +258,12 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         controller: ['$scope', 'hotkeys', 'Current', 'questionAuthz',
                 'Notifications',
                 function($scope, hotkeys, current, authz, Notifications) {
-            if (!$scope.response) {
-                $scope.response = {
-                    responseParts: [],
-                    comment: null
-                };
-            }
-            if (!$scope.response.responseParts)
-                $scope.response.responseParts = [];
+            $scope.$watch('response', function(response) {
+                if (!$scope.response)
+                    $scope.response = {};
+                if (!$scope.responseParts)
+                    $scope.response.responseParts = [];
+            });
             if ($scope.weight == null)
                 $scope.weight = 100;
 
@@ -292,6 +290,10 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                 if (partR)
                     return partR.index == iOpt;
                 return false;
+            };
+            $scope.getActiveOption = function(iPart) {
+                console.log($scope.response.responseParts)
+                return $scope.response.responseParts[iPart];
             };
             $scope.enabled = function(iPart, iOpt) {
                 if (!$scope.stats.expressionVars)

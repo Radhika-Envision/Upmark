@@ -1,6 +1,37 @@
 <div class="header">
 <div class="container">
     <div class="toolbar">
+
+        <span dropdown dropdown-append-to-body ng-if="!edit.model">
+            <button class="btn btn-default btn-round"
+                    title="Export" dropdown-toggle>
+                <i class="fa fa-cloud-download"></i></button>
+
+            <ul class="dropdown-menu dropdown-menu-right">
+                <li class="dropdown-header">Export submission</li>
+                <li>
+                    <a title="Download Excel file"
+                            ng-href="/export/assessment/{{assessment.id}}.xlsx"
+                            download>
+                        <i class="fa fa-th-list"></i>
+                        Colourful spreadsheet
+                    </a>
+                </li>
+                <li>
+                    <a title="Download Excel file"
+                            ng-href="/export/response/{{assessment.id}}.xlsx"
+                            download>
+                        <i class="fa fa-list-ol"></i>
+                        One measure per row
+                    </a>
+                </li>
+            </ul>
+        </span>
+
+        <a class="btn btn-default btn-round" title="Statistics"
+                ng-href="#/statistics?assessment1={{assessment.id}}"
+                ng-if="!edit.model && checkRole('assessment_admin')">
+            <i class="fa fa-sml fa-bar-chart-o"></i></a>
         <button class="btn btn-default btn-round" title="Delete"
                 ng-click="edit.del()"
                 ng-if="!edit.model && checkRole('assessment_admin')">
@@ -9,6 +40,11 @@
                 ng-click="layout.expandHeader = !layout.expandHeader">
             <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
             <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
+        </button>
+        <button class="btn btn-default btn-round" title="Print"
+                ng-if="!edit.model"
+                onclick="print()">
+            <i class="fa fa-print"></i>
         </button>
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
@@ -32,9 +68,7 @@
 </div>
 </div>
 
-
 <assessment-header ng-if="!edit.model"></assessment-header>
-
 
 <div class="container" ng-if="edit.model && !edit.model.hierarchy">
     <p>
@@ -60,6 +94,14 @@
                 Please provide a title.</span>
             <input type="text" class="form-control" id="title" name="title"
                 ng-model="edit.model.title" required />
+        </div>
+        <div class="checkbox" show-errors
+                ng-if="!$scope.duplicate && checkRole('survey_edit')">
+            <label>
+                <input type="checkbox" id="fillRandom" name="fillRandom"
+                    ng-model="edit.params.fillRandom" />
+                Fill with random scores
+            </label>
         </div>
     </form>
 

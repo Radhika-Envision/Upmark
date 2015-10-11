@@ -1,0 +1,122 @@
+@import '_utils.scss';
+
+.chart {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    text-align: center;
+
+    .box {
+        @include transition(background-color ease 1s);
+    }
+    .box:nth-child(odd) {
+        background-color: #FBFBFB;
+        .border20 {
+            stroke: white;
+        }
+    }
+    .box:nth-child(even) {
+        background-color: #FFFFFF;
+        .border20 {
+            stroke: white;
+        }
+    }
+    .box .tick:not(.current_text) {
+        display: none;
+    }
+
+    >div {
+        display: inline;
+    }
+    >div:hover .box {
+        background-color: #eee;
+        &:hover {
+            background-color: #fff;
+            @include transition(background-color ease 0.3s);
+            .border20 {
+                stroke: #eee;
+            }
+            .tick {
+                display: block;
+            }
+        }
+    }
+}
+
+.box {
+  font: 10px sans-serif;
+  cursor: pointer;
+}
+
+.box line, .box title {
+  fill: #fff;
+  stroke: gray;
+  stroke-width: 2px;
+}
+
+.box rect {
+  fill: #DDDDDD;
+  stroke: #C8C8C8;
+  stroke-width: 1px;  
+}
+
+.box:hover rect {
+  fill: #BFBFBF;
+}
+
+.box .median {
+  stroke: blue;
+}
+
+.box:hover .whisker {
+  stroke: black;
+}
+
+
+.box .current {
+  stroke-width: 4px;
+  stroke: #c22;
+}
+
+.box .current_text {
+  fill: #900;
+}
+
+.box .median_text {
+  stroke-width: 2px;
+  fill: blue;
+}
+
+.box .center {
+  stroke: #ccc;
+}
+
+.box .outlier {
+  fill: none;
+  stroke: #ccc;
+}
+
+.info {
+  font: 20px sans-serif;
+  fill: red;
+}
+
+@media print {
+    .chart rect {
+        fill: white !important;
+        stroke: black !important;
+    }
+    .chart line {
+        stroke: black !important;
+    }
+    .chart line.current {
+        stroke: #a00 !important;
+    }
+    .chart line.border20 {
+        stroke: #ccc !important;
+    }
+    .chart line.median {
+        stroke: #00a !important;
+    }
+    .chart .tick {
+        display: block !important;
+    }
+}

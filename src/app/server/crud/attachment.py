@@ -29,7 +29,6 @@ from utils import reorder, ToSon, truthy, updater
 log = logging.getLogger('app.crud.attachment')
 
 MAX_WORKERS = 4
-s3_url = "https://s3-{region}.amazonaws.com/{bucket}/{s3_path}"
 
 
 class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
@@ -48,13 +47,13 @@ class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
 
                 file_name = attachment.file_name
                 if attachment.storage == "aws":
-                    s3 = aws.session.client('s3')
-                    attachment_object = parse(s3_url, attachment.url)
+                    s3 = aws.session.client('s3', verify=False)
+                    attachment_object = parse(aws.s3_url, attachment.url)
                     with tempfile.NamedTemporaryFile() as temp:
+
                         s3.download_file(attachment_object["bucket"],
                                                attachment_object["s3_path"],
                                                temp.name)
-
 
                         with open(temp.name, "rb") as file:
                             blob = file.read()
@@ -150,7 +149,7 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
             self._check_authz(response.assessment)
 
             if aws.session is not None:
-                s3 = aws.session.resource('s3')
+                s3 = aws.session.resource('s3', verify=False)
                 bucket = "aquamark"
                 hex_key = hashlib.sha256(bytes(fileinfo['body'])).hexdigest()
                 s3_path = "{0}/{1}".format(
@@ -173,7 +172,7 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
 
             if aws.session is not None:
                 attachment.storage = "aws"
-                aws_url = s3_url.format(
+                aws_url = aws.s3_url.format(
                             region=aws.region_name, 
                             bucket=bucket, 
                             s3_path=s3_path)

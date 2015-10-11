@@ -15,6 +15,11 @@
             <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
             <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
         </button>
+        <button class="btn btn-default btn-round" title="Print"
+                ng-if="!edit.model"
+                onclick="print()">
+            <i class="fa fa-print"></i>
+        </button>
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
                 ng-if="edit.model && edit.model.id">
@@ -35,9 +40,7 @@
 </div>
 </div>
 
-
 <assessment-header></assessment-header>
-
 
 <div ng-if="edit.model">
 <div class="container">
@@ -164,7 +167,7 @@
                 ng-click="saveResponse()">
             <i class="fa fa-check fa-fw"></i></button>
     </response>
-    <div class="spaced btn-group btn-group-justified">
+    <div class="spaced btn-group btn-group-justified hidden-print">
         <div class="btn-group">
             <button class="btn btn-default"
                     ng-class="{active: response.approval == 'draft'}"
@@ -205,6 +208,9 @@
                 Approved
             </button>
         </div>
+    </div>
+    <div class="visible-print-block">
+        Response status: {{response.approval}}
     </div>
 
     <div ng-controller="ResponseAttachmentCtrl">
@@ -325,7 +331,7 @@
             </span>
         </li>
     </ul>
-    <p class="text-warning text-center"><small>
+    <p class="text-warning text-center hidden-print"><small>
         <i class="fa fa-bug"></i>
         Attachments are not scanned for viruses.
     </small></p>

@@ -106,7 +106,8 @@ STYLESHEETS = [
         'hrefs': [
             '/css/app.css',
             '/css/dropzone.css',
-            '/css/clock.css'
+            '/css/clock.css',
+            '/css/statistics.css'
         ]
     },
     {
@@ -170,9 +171,12 @@ SCRIPTS = [
             '/.bower_components/dropzone/dist/dropzone.js',
             '/.bower_components/jqueryui-touch-punch/jquery.ui.touch-punch.js',
             '/.bower_components/js-expression-eval/parser.js',
+            '/.bower_components/d3/d3.min.js',
             '/.bower_components/medium-editor/dist/js/medium-editor.js',
             '/.bower_components/angular-medium-editor/dist/angular-medium-editor.js',
             '/.bower_components/megamark/dist/megamark.js',
+            '/.bower_components/angular-diff-match-patch/angular-diff-match-patch.js',
+            '/.bower_components/google-diff-match-patch/diff_match_patch.js',
             '/.bower_components/domador/dist/domador.js'
         ]
     },

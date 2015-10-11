@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 import datetime
+import random
 import time
 import uuid
 
@@ -58,6 +59,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/survey/tracking_id$',
                 # Nested
                 r'/survey$',
+                r'/survey/tracking_id$',
                 r'/organisation$',
                 r'/hierarchy$',
                 r'/hierarchy/structure.*$'
@@ -70,7 +72,6 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
     def query(self):
         '''Get a list.'''
-
         term = self.get_argument('term', '')
         survey_id = self.get_argument('surveyId', '')
         hierarchy_id = self.get_argument('hierarchyId', '')
@@ -154,6 +155,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
 
         duplicate_id = self.get_argument('duplicateId', '')
 
+        fill_random = truthy(self.get_argument('fillRandom', ''))
+
         if org_id != str(self.organisation.id):
             self.check_privillege('consultant')
 
@@ -172,6 +175,12 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 if duplicate_id != '':
                     yield AssessmentHandler.executor.submit(
                         self.duplicate, assessment, duplicate_id, session)
+
+                elif fill_random:
+                    self.check_privillege('author')
+                    yield AssessmentHandler.executor.submit(
+                        self.fill_random, assessment, session)
+
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(assessment_id)
@@ -269,6 +278,40 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
 
         session.flush()
         assessment.update_stats_descendants()
+
+    def fill_random(self, assessment, session):
+        '''
+        Fill the rnodes with random scores for testing purposes.
+        '''
+
+        def lerp(a, b, fac):
+            return ((b - a) * fac) + a
+
+        def new_bias(bias, hold=0.8):
+            return lerp(random.random(), bias, hold)
+
+        def visit_qnode(qnode, bias):
+            rnode = qnode.get_rnode(assessment)
+            if not rnode:
+                rnode = model.ResponseNode(
+                    survey=assessment.survey, assessment=assessment,
+                    qnode=qnode)
+                session.add(rnode)
+            score = 0
+            for child in qnode.children:
+                score += visit_qnode(child, new_bias(bias))
+            for measure in qnode.measures:
+                score += new_bias(bias) * measure.weight
+            rnode.score = score
+            return score
+
+        user = session.query(model.AppUser).get(str(self.current_user.id))
+
+        for i, qnode in enumerate(assessment.hierarchy.qnodes):
+            random.seed(i)
+            bias = random.random()
+            random.seed()
+            visit_qnode(qnode, new_bias(bias, hold=0.2))
 
     @tornado.web.authenticated
     def put(self, assessment_id):

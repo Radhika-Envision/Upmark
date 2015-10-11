@@ -50,6 +50,7 @@ class MeasureHandler(
                 r'/seq$',
                 r'/is_editable$',
                 r'/survey/tracking_id$',
+                r'/survey/created$',
                 # Fields to match from only the root object
                 r'^/intent$',
                 r'^/inputs$',
