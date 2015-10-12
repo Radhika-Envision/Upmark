@@ -895,6 +895,10 @@ Response.measure = relationship(
                      Response.survey_id == Measure.survey_id))
 
 
+ResponseHistory.user = relationship(
+    AppUser, backref='user', passive_deletes=True)
+
+
 Session = None
 VersionedSession = None
 
