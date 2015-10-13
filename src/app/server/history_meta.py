@@ -117,6 +117,17 @@ def _history_mapper(local_mapper):
             *cols,
             schema=local_mapper.local_table.schema
         )
+
+        for key in local_mapper.local_table.foreign_key_constraints:
+            log.info("key: %s", key)
+
+        if "user_id" in table.c:
+            table.append_constraint(
+                ForeignKeyConstraint(
+                    ['user_id'],
+                    ['appuser.id']
+                )
+            )
     else:
         # single table inheritance.  take any additional columns that may have
         # been added and add them to the history table.
