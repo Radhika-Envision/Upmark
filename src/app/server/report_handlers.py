@@ -435,7 +435,6 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
     @handlers.authz('consultant')
     def post(self, file_type):
         query = to_basestring(self.request.body)
-        log.error('Query: %s', query)
 
         with model.session_scope() as session:
             result = session.execute(query)
@@ -443,8 +442,7 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
                     'name': c.name,
                     'type': AdHocHandler.TYPES.get(c.type_code, None)
                 } for c in result.context.cursor.description]
-            rows = result.fetchall()
-            log.info('result %s %s', rows[0].__class__, dir(rows[0]))
+            rows = result.fetchmany(20)
 
             col_to_son = ToSon(include=[
                 r'/[0-9]+$',

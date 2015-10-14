@@ -2435,7 +2435,9 @@ angular.module('wsaa.surveyQuestions', [
 
 .controller('AdHocCtrl', ['$scope', '$http', 'Notifications',
             function($scope, $http, Notifications) {
-    $scope.query = 'SELECT * FROM organisation';
+    $scope.query = 'SELECT u.name, o.name FROM appuser AS u\n' +
+                   '    JOIN organisation AS o ON u.organisation_id = o.id\n' +
+                   '    ORDER BY u.name';
     $scope.result = {};
 
     $scope.execute = function(query) {

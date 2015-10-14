@@ -8,12 +8,13 @@
 
 <div class="container">
 <form>
-    <div class="form-group" show-errors>
+    <div class="form-group"
+            textarea-label="{{!query ? 'Enter SQL query' : ''}}">
         <textarea autoresize ng-model="query"
             class="autoresize form-control">
         </textarea>
     </div>
-    <div class="form-group" show-errors>
+    <div class="form-group">
         <button ng-click="execute(query)"
                 class="btn btn-default">
             <i class="fa fa-play"></i>
@@ -22,24 +23,35 @@
     </div>
 </form>
 
-<pre>{{result}}</pre>
-<div>
+<div ng-if="result.cols">
     <h2>Result</h2>
     <table class="table">
         <thead>
             <tr>
-                <th ng-repeat="col in result.cols">
+                <th ng-repeat="col in result.cols track by $index">
                     {{col.name}}
                 </th>
             </tr>
         </thead>
         <tbody>
-            <tr ng-repeat="row in result.rows">
-                <td ng-repeat="cell in row">
+            <tr ng-repeat="row in result.rows track by $index">
+                <td ng-repeat="cell in row track by $index">
                     {{cell}}
                 </td>
             </tr>
         </tbody>
     </table>
+
+    <div class="spaced">
+        <p ng-if="result.cols && !result.rows">Empty result set.</p>
+        <p class="text-warning text-center"
+                ng-if="result.rows.length >= 20">
+            <small>
+                <i class="fa fa-bug"></i>
+                Results in web view are limited to 20 items. If you want the
+                next page, add e.g. <code>OFFSET 20</code> to your query.
+            </small>
+        </p>
+    </div>
 </div>
 </div>
