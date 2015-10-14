@@ -117,6 +117,16 @@ def _history_mapper(local_mapper):
             *cols,
             schema=local_mapper.local_table.schema
         )
+
+        for fk in local_mapper.local_table.foreign_key_constraints:
+            log.debug(
+                "Duplicating foreign key for history table: %s, fk: %s",
+                local_mapper.local_table, fk)
+            if 'version' in fk.info and fk.info['version']:
+                fk_new = fk.copy()
+                fk_new.info['history_copy'] = fk
+                table.append_constraint(fk_new)
+
     else:
         # single table inheritance.  take any additional columns that may have
         # been added and add them to the history table.

@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from datetime import datetime
+import logging
 import os
 import sys
 import uuid
@@ -26,6 +27,7 @@ from history_meta import Versioned, versioned_session
 from response_type import ResponseTypeCache
 
 
+log = logging.getLogger('app.model')
 metadata = MetaData()
 Base = declarative_base(metadata=metadata)
 
@@ -687,19 +689,23 @@ class Response(Versioned, Base):
     __table_args__ = (
         ForeignKeyConstraint(
             ['measure_id', 'survey_id'],
-            ['measure.id', 'measure.survey_id']
+            ['measure.id', 'measure.survey_id'],
+            info={'version': True}
         ),
         ForeignKeyConstraint(
             ['survey_id'],
-            ['survey.id']
+            ['survey.id'],
+            info={'version': True}
         ),
         ForeignKeyConstraint(
             ['user_id'],
-            ['appuser.id']
+            ['appuser.id'],
+            info={'version': True}
         ),
         ForeignKeyConstraint(
             ['assessment_id'],
-            ['assessment.id']
+            ['assessment.id'],
+            info={'version': True}
         ),
         UniqueConstraint('measure_id', 'assessment_id'),
     )
@@ -893,6 +899,10 @@ Response.measure = relationship(
     Measure,
     primaryjoin=and_(foreign(Response.measure_id) == Measure.id,
                      Response.survey_id == Measure.survey_id))
+
+
+ResponseHistory.user = relationship(
+    AppUser, backref='user', passive_deletes=True)
 
 
 Session = None
