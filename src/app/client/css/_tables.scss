@@ -86,6 +86,10 @@ tr.strike {
     }
 }
 
+.scroll-x {
+    overflow-x: auto;
+}
+
 /* Font Awesome badge that can be nested inside another <i> tag */
 .fa-badge {
     position: relative;
