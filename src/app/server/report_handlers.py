@@ -464,7 +464,8 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
 
     @run_on_executor
     def export_json(self, path, query, limit):
-        with model.session_scope() as session, open(path, 'w') as f:
+        with model.session_scope() as session, \
+                open(path, 'w', encoding='utf-8') as f:
             result = session.execute(query)
             cols = [{
                     'name': c.name,
@@ -492,7 +493,8 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
 
     @run_on_executor
     def export_csv(self, path, query, limit):
-        with model.session_scope() as session, open(path, 'w') as f:
+        with model.session_scope() as session, \
+                open(path, 'w', encoding='utf-8') as f:
             writer = csv.writer(f)
             result = session.execute(query)
             writer.writerow([c.name for c in result.context.cursor.description])
