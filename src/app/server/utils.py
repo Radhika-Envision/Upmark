@@ -8,6 +8,7 @@ import model
 
 import sqlalchemy
 from sqlalchemy.orm import joinedload
+from sqlalchemy.engine.result import RowProxy
 
 
 log = logging.getLogger('app.utils')
@@ -57,6 +58,7 @@ class ToSon:
             raise UtilException(
                 "Serialisation failed: cycle detected: %s" % path)
         self.visited.append(value)
+        log.debug('Type is  %s', value.__class__)
 
         if isinstance(value, model.Base):
             names = dir(value)
@@ -78,7 +80,8 @@ class ToSon:
             son = time.mktime(value.timetuple())
         elif isinstance(value, uuid.UUID):
             son = str(value)
-        elif hasattr(value, '__getitem__') and hasattr(value, 'keys') and hasattr(value, 'values'):
+        elif (hasattr(value, '__getitem__') and hasattr(value, 'keys') and
+              hasattr(value, 'values') and not isinstance(value, RowProxy)):
             # Dictionaries
             son = {}
             for name in value.keys():

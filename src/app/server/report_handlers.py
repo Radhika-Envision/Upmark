@@ -6,7 +6,7 @@ from sqlalchemy import String
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import cast, literal
 from tornado import gen
-from tornado.escape import json_decode, json_encode, utf8
+from tornado.escape import json_decode, json_encode, utf8, to_basestring
 import tornado.web
 
 import handlers
@@ -418,3 +418,48 @@ class DiffEngine:
                     changes += 1
             if changes > 0:
                 diff_item['tags'].append('modified')
+
+
+class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
+    '''
+    Allows ad-hoc queries using SQL.
+    '''
+
+    TYPES = {
+        2950: 'UUID',
+        25: 'text',
+        1114: 'datetime',
+        23: 'integer'
+    }
+
+    @handlers.authz('consultant')
+    def post(self, file_type):
+        query = to_basestring(self.request.body)
+        log.error('Query: %s', query)
+
+        with model.session_scope() as session:
+            result = session.execute(query)
+            cols = [{
+                    'name': c.name,
+                    'type': AdHocHandler.TYPES.get(c.type_code, None)
+                } for c in result.context.cursor.description]
+            rows = result.fetchall()
+            log.info('result %s %s', rows[0].__class__, dir(rows[0]))
+
+            col_to_son = ToSon(include=[
+                r'/[0-9]+$',
+                r'/[0-9]+/name$',
+                r'/[0-9]+/type$'
+            ])
+            rows_to_son = ToSon(include=[
+                r'/[0-9]+$',
+                r'/[0-9]+/[0-9]+$'
+            ])
+            son = {
+                'cols': col_to_son(cols),
+                'rows': rows_to_son(rows)
+            }
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(son))
+        self.finish()

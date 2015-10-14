@@ -618,6 +618,11 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
+            .when('/adhoc', {
+                templateUrl : 'adhoc.html',
+                controller : 'AdHocCtrl',
+                resolve: {}
+            })
 
             .when('/measures', {
                 templateUrl : 'measure_list.html',

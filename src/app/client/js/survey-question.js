@@ -2433,4 +2433,22 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
+.controller('AdHocCtrl', ['$scope', '$http', 'Notifications',
+            function($scope, $http, Notifications) {
+    $scope.query = 'SELECT * FROM organisation';
+    $scope.result = {};
+
+    $scope.execute = function(query) {
+        $http.post('/adhoc_query.json', $scope.query).then(
+            function success(response) {
+                $scope.result = angular.fromJson(response.data);
+            },
+            function failure(response) {
+                Notifications.set('query', 'error', "Failure: " + response.statusText);
+            }
+        );
+    };
+}])
+
+
 ;
