@@ -61,7 +61,8 @@
     </div>
 </form>
 
-<div ng-if="result.cols" class="scroll-x">
+<div ng-if="result.cols">
+    <div class="scroll-x">
     <table class="table">
         <thead>
             <tr>
@@ -78,15 +79,21 @@
             </tr>
         </tbody>
     </table>
+    </div> <!-- scroll-x -->
 
     <div class="spaced">
         <p ng-if="result.cols && !result.rows">Empty result set.</p>
         <p class="text-warning text-center"
-                ng-if="result.rows.length >= 20">
+                ng-if="result.rows.length >= execLimit">
             <small>
                 <i class="fa fa-bug"></i>
-                Results in web view are limited to 20 items. If you want the
-                next page, add e.g. <code>OFFSET 20</code> to your query.
+                Results in web view are limited to {{execLimit}} items. If you
+                want the next page, add an
+                <a title="PostgreSQL docs on LIMIT and OFFSET"
+                    href="http://www.postgresql.org/docs/9.4/static/queries-limit.html"
+                    ><code>OFFSET</code></a>
+                to your query or <i class="fa fa-cloud-download"></i> download
+                the results.
             </small>
         </p>
     </div>

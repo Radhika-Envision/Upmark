@@ -477,8 +477,10 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/[0-9]+$'
             ])
             chunksize = min(limit, AdHocHandler.CHUNKSIZE)
-            while True:
+            n_read = 0
+            while n_read < limit:
                 rows = result.fetchmany(chunksize)
+                n_read += len(rows)
                 if len(rows) == 0:
                     break
                 for row in rows:
@@ -496,8 +498,10 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
             writer.writerow([c.name for c in result.context.cursor.description])
 
             chunksize = min(limit, AdHocHandler.CHUNKSIZE)
-            while True:
+            n_read = 0
+            while n_read < limit:
                 rows = result.fetchmany(chunksize)
+                n_read += len(rows)
                 if len(rows) == 0:
                     break
                 writer.writerows(rows)

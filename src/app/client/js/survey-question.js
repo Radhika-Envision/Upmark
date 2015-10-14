@@ -2446,9 +2446,13 @@ angular.module('wsaa.surveyQuestions', [
     $scope.query = samples[0].query;
     $scope.result = {};
     $scope.samples = samples;
+    $scope.execLimit = 20;
 
     $scope.execute = function(query) {
-        $http.post('/adhoc_query.json', query).then(
+        var config = {
+            params: {limit: $scope.execLimit}
+        };
+        $http.post('/adhoc_query.json', query, config).then(
             function success(response) {
                 $scope.result = angular.fromJson(response.data);
                 Notifications.set('query', 'info', "Query finished", 5000);
