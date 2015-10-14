@@ -1,5 +1,7 @@
-import uuid
 import json
+import os
+import tempfile
+import uuid
 
 import sqlalchemy
 from sqlalchemy import String
@@ -8,7 +10,10 @@ from sqlalchemy.sql.expression import cast, literal
 import sqlparse
 from tornado import gen
 from tornado.escape import json_decode, json_encode, utf8, to_basestring
+from tornado import gen
 import tornado.web
+from tornado.concurrent import run_on_executor
+from concurrent.futures import ThreadPoolExecutor
 
 import handlers
 import model
@@ -426,42 +431,93 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
     Allows ad-hoc queries using SQL.
     '''
 
+    executor = ThreadPoolExecutor(max_workers=4)
+
     TYPES = {
         2950: 'UUID',
         25: 'text',
         1114: 'datetime',
         23: 'integer'
     }
+    CHUNKSIZE = 100
+    MAX_LIMIT = 2000
+    BUF_SIZE = 4096
 
     @handlers.authz('consultant')
+    @gen.coroutine
     def post(self, file_type):
         query = to_basestring(self.request.body)
+        limit = int(self.get_argument('limit', AdHocHandler.MAX_LIMIT))
+        if limit > AdHocHandler.MAX_LIMIT:
+            raise handlers.ModelError(
+                'Limit is too high. Max %d' % AdHocHandler.MAX_LIMIT)
 
-        with model.session_scope() as session:
+        if file_type == 'json':
+            yield self.as_json(query, limit)
+        elif file_type == 'csv':
+            yield self.as_csv(query, limit)
+        elif file_type == 'xlsx':
+            yield self.as_xlsx(query, limit)
+        else:
+            raise handlers.MissingDocError('%s not supported' % file_type)
+
+    @run_on_executor
+    def export_json(self, path, query, limit):
+        with model.session_scope() as session, open(path, 'w') as f:
             result = session.execute(query)
             cols = [{
                     'name': c.name,
                     'type': AdHocHandler.TYPES.get(c.type_code, None)
                 } for c in result.context.cursor.description]
-            rows = result.fetchmany(20)
 
-            col_to_son = ToSon(include=[
-                r'/[0-9]+$',
-                r'/[0-9]+/name$',
-                r'/[0-9]+/type$'
+            f.write('{"cols": %s, "rows": [' % json_encode(cols))
+            first = True
+            to_son = ToSon(include=[
+                r'/[0-9]+$'
             ])
-            rows_to_son = ToSon(include=[
-                r'/[0-9]+$',
-                r'/[0-9]+/[0-9]+$'
-            ])
-            son = {
-                'cols': col_to_son(cols),
-                'rows': rows_to_son(rows)
-            }
+            chunksize = min(limit, AdHocHandler.CHUNKSIZE)
+            while True:
+                rows = result.fetchmany(chunksize)
+                if len(rows) == 0:
+                    break
+                for row in rows:
+                    if not first:
+                        f.write(', ')
+                    f.write(json_encode(to_son(row)))
+                    first = False
+            f.write(']}')
 
-        self.set_header("Content-Type", "application/json")
-        self.write(json_encode(son))
+    @gen.coroutine
+    def as_json(self, query, limit):
+        with tempfile.TemporaryDirectory() as tempdir:
+            path = os.path.join(tempdir, 'query_result.json')
+            yield self.export_json(path, query, limit)
+
+            self.set_header("Content-Type", "application/json")
+            self.set_header(
+                'Content-Disposition', 'attachment; filename=query_result.json')
+            self.transfer_file(path)
         self.finish()
+
+    @gen.coroutine
+    def as_csv(self, query):
+        with tempfile.TemporaryDirectory() as tempdir:
+            path = os.path.join(tempdir, 'query_result.csv')
+            yield self.export_csv(path, query, limit)
+
+            self.set_header("Content-Type", "text/csv")
+            self.set_header(
+                'Content-Disposition', 'attachment; filename=query_result.csv')
+            self.transfer_file(path)
+        self.finish()
+
+    def transfer_file(self, path):
+        with open(path, 'rb') as f:
+            while True:
+                data = f.read(AdHocHandler.BUF_SIZE)
+                if not data:
+                    break
+                self.write(data)
 
 
 class SqlFormatHandler(handlers.BaseHandler):
