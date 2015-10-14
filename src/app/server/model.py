@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from datetime import datetime
+import logging
 import os
 import sys
 import uuid
@@ -26,6 +27,7 @@ from history_meta import Versioned, versioned_session
 from response_type import ResponseTypeCache
 
 
+log = logging.getLogger('app.model')
 metadata = MetaData()
 Base = declarative_base(metadata=metadata)
 

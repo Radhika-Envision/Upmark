@@ -15,6 +15,27 @@ import tornado.options
 import tornado.web
 import tornado.httpserver
 
+
+log = logging.getLogger('app')
+
+
+def get_package_dir():
+    frameinfo = inspect.getframeinfo(inspect.currentframe())
+    return os.path.dirname(frameinfo.filename)
+
+
+def configure_logging():
+    package_dir = get_package_dir()
+    logconf_path = os.path.join(package_dir, 'logging.cfg')
+    if not os.path.exists(logconf_path):
+        log.info("Warning: log config file %s does not exist.", logconf_path)
+    else:
+        logging.config.fileConfig(logconf_path)
+
+
+configure_logging()
+
+
 import crud
 import handlers
 import import_handlers
@@ -25,13 +46,7 @@ import model
 from utils import truthy
 
 
-log = logging.getLogger('app')
 tornado.options.options.logging = 'none'
-
-
-def get_package_dir():
-    frameinfo = inspect.getframeinfo(inspect.currentframe())
-    return os.path.dirname(frameinfo.filename)
 
 
 def parse_options():
@@ -40,12 +55,6 @@ def parse_options():
     tornado.options.define(
         "port", default=os.environ.get('PORT', '8000'),
         help="Bind to this port")
-
-    logconf_path = os.path.join(package_dir, 'logging.cfg')
-    if not os.path.exists(logconf_path):
-        log.info("Warning: log config file %s does not exist.", logconf_path)
-    else:
-        logging.config.fileConfig(logconf_path)
 
     tornado.options.define(
         "xsrf", default=os.environ.get('AQ_XSRF', 'True'),
@@ -123,6 +132,10 @@ def connect_db():
     else:
         log.info("Upgrading database (if required)")
         command.upgrade(alembic_cfg, "head")
+
+    # Override alembic logging config.
+    # TODO: Don't use Alembic's command-line API!
+    configure_logging()
 
 
 def default_settings():
