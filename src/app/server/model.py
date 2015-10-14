@@ -689,19 +689,23 @@ class Response(Versioned, Base):
     __table_args__ = (
         ForeignKeyConstraint(
             ['measure_id', 'survey_id'],
-            ['measure.id', 'measure.survey_id']
+            ['measure.id', 'measure.survey_id'],
+            info={'version': True}
         ),
         ForeignKeyConstraint(
             ['survey_id'],
-            ['survey.id']
+            ['survey.id'],
+            info={'version': True}
         ),
         ForeignKeyConstraint(
             ['user_id'],
-            ['appuser.id']
+            ['appuser.id'],
+            info={'version': True}
         ),
         ForeignKeyConstraint(
             ['assessment_id'],
-            ['assessment.id']
+            ['assessment.id'],
+            info={'version': True}
         ),
         UniqueConstraint('measure_id', 'assessment_id'),
     )
