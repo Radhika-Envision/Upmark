@@ -177,7 +177,8 @@ SCRIPTS = [
             '/.bower_components/megamark/dist/megamark.js',
             '/.bower_components/angular-diff-match-patch/angular-diff-match-patch.js',
             '/.bower_components/google-diff-match-patch/diff_match_patch.js',
-            '/.bower_components/domador/dist/domador.js'
+            '/.bower_components/domador/dist/domador.js',
+            '/.bower_components/FileSaver.js/FileSaver.js'
         ]
     },
     {

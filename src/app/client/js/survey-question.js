@@ -2448,10 +2448,27 @@ angular.module('wsaa.surveyQuestions', [
     $scope.samples = samples;
 
     $scope.execute = function(query) {
-        $http.post('/adhoc_query.json', $scope.query).then(
+        $http.post('/adhoc_query.json', query).then(
             function success(response) {
                 $scope.result = angular.fromJson(response.data);
                 Notifications.set('query', 'info', "Query finished", 5000);
+            },
+            function failure(response) {
+                Notifications.set('query', 'error',
+                    "Error: " + response.statusText);
+            }
+        );
+    };
+
+    $scope.download = function(query, file_type) {
+        $http.post('/adhoc_query.' + file_type, query).then(
+            function success(response) {
+                Notifications.set('query', 'info', "Query finished", 5000);
+                var blob = new Blob(
+                    [response.data], {type: response.headers('Content-Type')});
+                var name = /filename=(.*)/.exec(
+                    response.headers('Content-Disposition'))[1];
+                saveAs(blob, name);
             },
             function failure(response) {
                 Notifications.set('query', 'error',

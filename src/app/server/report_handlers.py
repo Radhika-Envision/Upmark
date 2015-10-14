@@ -1,3 +1,4 @@
+import csv
 import json
 import os
 import tempfile
@@ -487,6 +488,20 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
                     first = False
             f.write(']}')
 
+    @run_on_executor
+    def export_csv(self, path, query, limit):
+        with model.session_scope() as session, open(path, 'w') as f:
+            writer = csv.writer(f)
+            result = session.execute(query)
+            writer.writerow([c.name for c in result.context.cursor.description])
+
+            chunksize = min(limit, AdHocHandler.CHUNKSIZE)
+            while True:
+                rows = result.fetchmany(chunksize)
+                if len(rows) == 0:
+                    break
+                writer.writerows(rows)
+
     @gen.coroutine
     def as_json(self, query, limit):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -500,7 +515,7 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
         self.finish()
 
     @gen.coroutine
-    def as_csv(self, query):
+    def as_csv(self, query, limit):
         with tempfile.TemporaryDirectory() as tempdir:
             path = os.path.join(tempdir, 'query_result.csv')
             yield self.export_csv(path, query, limit)
