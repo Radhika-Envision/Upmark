@@ -433,7 +433,7 @@ angular.module('vpac.widgets', [])
 }])
 
 
-.directive('autoresize', [function() {
+.directive('autoresize', ['$timeout', function($timeout) {
     return {
         restrict: 'AC',
         require: '?ngModel',
@@ -449,6 +449,7 @@ angular.module('vpac.widgets', [])
 
             elem.on('input change', resize);
             ngModel.$viewChangeListeners.push(resize);
+            $timeout(resize);
 
             scope.$on('$destroy', function() {
                 elem.off();
