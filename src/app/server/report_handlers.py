@@ -5,6 +5,7 @@ import sqlalchemy
 from sqlalchemy import String
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import cast, literal
+import sqlparse
 from tornado import gen
 from tornado.escape import json_decode, json_encode, utf8, to_basestring
 import tornado.web
@@ -460,4 +461,17 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
+        self.finish()
+
+
+class SqlFormatHandler(handlers.BaseHandler):
+    @handlers.authz('consultant')
+    def post(self):
+        query = to_basestring(self.request.body)
+        query = sqlparse.format(
+            query, keyword_case='upper', identifier_case='lower',
+            reindent=True, indent_width=4)
+
+        self.set_header("Content-Type", "text/plain")
+        self.write(utf8(query))
         self.finish()

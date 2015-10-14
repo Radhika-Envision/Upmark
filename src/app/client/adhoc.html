@@ -14,17 +14,34 @@
             class="autoresize form-control">
         </textarea>
     </div>
-    <div class="form-group">
+    <div class="form-group text-center">
+        <button ng-click="format(query)"
+                class="btn btn-default">
+            <i class="fa fa-paragraph"></i>
+            Format
+        </button>
         <button ng-click="execute(query)"
                 class="btn btn-default">
             <i class="fa fa-play"></i>
             Execute
         </button>
+        <span dropdown dropdown-append-to-body>
+            <button class="btn btn-default" title="Presets" dropdown-toggle>
+                <i class="fa fa-bookmark"></i></button>
+
+            <ul class="dropdown-menu dropdown-menu-right">
+                <li class="dropdown-header">Sample queries</li>
+                <li ng-repeat="sample in samples">
+                    <a href ng-click="setQuery(sample.query)">
+                        {{sample.name}}
+                    </a>
+                </li>
+            </ul>
+        </span>
     </div>
 </form>
 
 <div ng-if="result.cols">
-    <h2>Result</h2>
     <table class="table">
         <thead>
             <tr>

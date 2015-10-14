@@ -227,6 +227,8 @@ def get_mappings():
             export_handlers.ExportResponseHandler, {}),
         (r"/adhoc_query\.(.+)",
             report_handlers.AdHocHandler, {}),
+        (r"/reformat.sql",
+            report_handlers.SqlFormatHandler, {}),
 
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response.json", import_handlers.ImportResponseHandler, {}),

@@ -12,5 +12,6 @@ simpleeval~=0.8.5
 boto3~=1.1.2
 numpy~=1.9.2
 XlsxWriter~=0.5.3
+sqlparse~=0.1.16
 # Non-functional requirements (dev tools)
 pudb

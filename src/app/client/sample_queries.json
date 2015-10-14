@@ -1,0 +1,14 @@
+[
+    {
+        "name": "List users",
+        "query": "SELECT u.name,\n   o.name\nFROM appuser AS u\nJOIN organisation AS o ON u.organisation_id = o.id\nORDER BY u.name"
+    },
+    {
+        "name": "Meta: List tables",
+        "query": "SELECT table_name\nFROM INFORMATION_SCHEMA.TABLES\nWHERE table_schema = 'public';"
+    },
+    {
+        "name": "Meta: Describe table",
+        "query": "SELECT column_name,\n    data_type,\n    character_maximum_length\nFROM INFORMATION_SCHEMA.COLUMNS\nWHERE table_name = 'response';"
+    }
+]

@@ -621,7 +621,11 @@ angular.module('wsaa.aquamark',
             .when('/adhoc', {
                 templateUrl : 'adhoc.html',
                 controller : 'AdHocCtrl',
-                resolve: {}
+                resolve: {
+                    samples: ['SampleQueries', function(SampleQueries) {
+                        return SampleQueries.get({}).$promise;
+                    }]
+                }
             })
 
             .when('/measures', {

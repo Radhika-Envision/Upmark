@@ -2433,23 +2433,59 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
-.controller('AdHocCtrl', ['$scope', '$http', 'Notifications',
-            function($scope, $http, Notifications) {
-    $scope.query = 'SELECT u.name, o.name FROM appuser AS u\n' +
-                   '    JOIN organisation AS o ON u.organisation_id = o.id\n' +
-                   '    ORDER BY u.name';
+.factory('SampleQueries', ['$resource', function($resource) {
+    return $resource('/sample_queries.json', {}, {
+        get: { method: 'GET', isArray: true, cache: false }
+    });
+}])
+
+
+.controller('AdHocCtrl', ['$scope', '$http', 'Notifications', 'samples',
+            'hotkeys',
+            function($scope, $http, Notifications, samples, hotkeys) {
+    $scope.query = samples[0].query;
     $scope.result = {};
+    $scope.samples = samples;
 
     $scope.execute = function(query) {
         $http.post('/adhoc_query.json', $scope.query).then(
             function success(response) {
                 $scope.result = angular.fromJson(response.data);
+                Notifications.set('query', 'info', "Query finished", 5000);
             },
             function failure(response) {
-                Notifications.set('query', 'error', "Failure: " + response.statusText);
+                Notifications.set('query', 'error',
+                    "Error: " + response.statusText);
             }
         );
     };
+
+    $scope.format = function(query) {
+        $http.post('/reformat.sql', $scope.query).then(
+            function success(response) {
+                $scope.query = response.data;
+                Notifications.set('query', 'info', "Formatted", 5000);
+            },
+            function failure(response) {
+                Notifications.set('query', 'error',
+                    "Error: " + response.statusText);
+            }
+        );
+    };
+
+    $scope.setQuery = function(query) {
+        $scope.query = query;
+    };
+
+    hotkeys.bindTo($scope)
+        .add({
+            combo: ['ctrl+enter'],
+            description: "Execute query",
+            allowIn: ['TEXTAREA'],
+            callback: function(event, hotkey) {
+                $scope.execute($scope.query);
+            }
+        });
 }])
 
 

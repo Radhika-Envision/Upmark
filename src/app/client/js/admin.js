@@ -477,7 +477,12 @@ angular.module('wsaa.admin', [
 .factory('confAuthz', ['Roles', function(Roles) {
     return function(current) {
         return function(functionName) {
-            return Roles.hasPermission(current.user.role, 'admin');
+            switch (functionName) {
+                case 'adhoc_analytics':
+                    return Roles.hasPermission(current.user.role, 'consultant');
+                default:
+                    return Roles.hasPermission(current.user.role, 'admin');
+            }
         };
     };
 }])

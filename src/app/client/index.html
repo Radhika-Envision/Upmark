@@ -44,6 +44,12 @@
                             <span class="when-collapsed">Administration</span>
                         </a>
                     </li>
+                    <li ng-if="checkRole('adhoc_analytics')">
+                        <a ng-href="#/adhoc" title="Custom Query">
+                            <i class="fa fa-fw fa-database"></i>
+                            <span class="when-collapsed">Custom Query</span>
+                        </a>
+                    </li>
                     <li>
                         <a ng-href="#/users" title="Users">
                             <i class="fa fa-fw fa-users"></i>
