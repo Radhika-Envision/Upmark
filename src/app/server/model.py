@@ -927,6 +927,17 @@ def session_scope(version=False):
         session.close()
 
 
+def create_user_and_privilege():
+     with session_scope() as session:
+        result = session.execute("SELECT * FROM pg_catalog.pg_user WHERE usename='analyst';")
+        if result.rowcount == 0:
+            session.execute("CREATE USER analyst;")
+            session.execute("GRANT SELECT (id, organisation_id, email, name, role, created, enabled) ON appuser to analyst;")
+            for table in Base.metadata.tables:
+                if str(table) != "appuser":
+                    session.execute("GRANT SELECT ON {} to analyst;".format(table))
+
+
 def connect_db(url):
     global Session, VersionedSession
     engine = create_engine(url)
@@ -937,8 +948,10 @@ def connect_db(url):
     Session = sessionmaker(bind=engine)
     VersionedSession = sessionmaker(bind=engine)
     versioned_session(VersionedSession)
+    create_user_and_privilege()
     return engine
 
 
 def initialise_schema(engine):
     Base.metadata.create_all(engine)
+
