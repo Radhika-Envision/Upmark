@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import base64
+from configparser import ConfigParser
 import inspect
 import logging.config
 import os
@@ -26,7 +27,8 @@ def get_package_dir():
 
 def configure_logging():
     package_dir = get_package_dir()
-    logconf_path = os.path.join(package_dir, 'logging.cfg')
+    # TODO: Stop using alembic command-line API so we can split this file up
+    logconf_path = os.path.join(package_dir, "..", "alembic.ini")
     if not os.path.exists(logconf_path):
         log.info("Warning: log config file %s does not exist.", logconf_path)
     else:
@@ -125,6 +127,7 @@ def connect_db():
     engine = model.connect_db(os.environ.get('DATABASE_URL'))
     inspector = sqlalchemy.engine.reflection.Inspector.from_engine(engine)
 
+    # TODO: Don't use Alembic's command-line API! It also overrides stdout :(
     if 'alembic_version' not in inspector.get_table_names():
         log.info("Initialising database")
         model.initialise_schema(engine)
@@ -133,9 +136,7 @@ def connect_db():
         log.info("Upgrading database (if required)")
         command.upgrade(alembic_cfg, "head")
 
-    # Override alembic logging config.
-    # TODO: Don't use Alembic's command-line API!
-    configure_logging()
+    model.connect_db_ro(os.environ.get('DATABASE_URL'))
 
 
 def default_settings():
@@ -226,6 +227,10 @@ def get_mappings():
             export_handlers.ExportAssessmentHandler, {}),
         (r"/export/response/([^/]*)\.(.+)",
             export_handlers.ExportResponseHandler, {}),
+        (r"/adhoc_query\.(.+)",
+            report_handlers.AdHocHandler, {}),
+        (r"/reformat.sql",
+            report_handlers.SqlFormatHandler, {}),
 
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response.json", import_handlers.ImportResponseHandler, {}),

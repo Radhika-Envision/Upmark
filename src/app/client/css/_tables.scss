@@ -29,8 +29,33 @@
             max-width: 0;
         }
     }
+    .str-wrap {
+        min-width: 40ex;
+        max-width: 40ex;
+        > span {
+            white-space: pre-line;
+        }
+    }
     .numeric {
+        max-width: 12ex;
         text-align: right;
+    }
+    .med-truncated {
+        max-width: 12ex;
+        overflow: hidden;
+        > span {
+            white-space: nowrap;
+        }
+    }
+    .date {
+        white-space: nowrap;
+    }
+    .pre-wrap {
+        min-width: 40ex;
+        max-width: 40ex;
+        > span {
+            white-space: pre-wrap;
+        }
     }
     > tbody > tr.table-li > td:first-child:before {
         counter-increment: tabular;
@@ -84,6 +109,10 @@ tr.strike {
             opacity: 0.5;
         }
     }
+}
+
+.scroll-x {
+    overflow-x: auto;
 }
 
 /* Font Awesome badge that can be nested inside another <i> tag */

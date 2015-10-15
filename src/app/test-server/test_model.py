@@ -5,6 +5,7 @@ import unittest
 from unittest import mock
 import urllib
 
+import sqlalchemy
 from sqlalchemy.sql import func
 from sqlalchemy.orm.session import make_transient
 from tornado.escape import json_encode
@@ -381,3 +382,32 @@ class SurveyTest(base.AqHttpTestBase):
             self.assertEqual(len(sa.hierarchies), len(sb.hierarchies))
             for a, b in zip(sa.hierarchies, sb.hierarchies):
                 visit_hierarchy(a, b)
+
+
+class ReadonlySessionTest(base.AqModelTestBase):
+
+    def test_readonly_session(self):
+        with model.session_scope(readonly=True) as session:
+            surveys = session.query(model.Survey).all()
+            self.assertNotEqual(len(surveys), 0)
+
+        with self.assertRaises(sqlalchemy.exc.ProgrammingError) as ecm, \
+                model.session_scope(readonly=True) as session:
+            session.query(model.SystemConfig).all()
+        self.assertIn('permission denied', str(ecm.exception))
+
+        with self.assertRaises(sqlalchemy.exc.ProgrammingError) as ecm, \
+                model.session_scope(readonly=True) as session:
+            session.execute("DELETE FROM measure")
+        self.assertIn('permission denied', str(ecm.exception))
+
+        with self.assertRaises(sqlalchemy.exc.ProgrammingError) as ecm, \
+                model.session_scope(readonly=True) as session:
+            session.execute("UPDATE measure SET title = 'foo'")
+        self.assertIn('permission denied', str(ecm.exception))
+
+        with self.assertRaises(sqlalchemy.exc.ProgrammingError) as ecm, \
+                model.session_scope(readonly=True) as session:
+            item = model.Measure(title='FOo')
+            session.add(item)
+        self.assertIn('permission denied', str(ecm.exception))

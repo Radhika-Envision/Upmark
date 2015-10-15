@@ -447,8 +447,8 @@ angular.module('vpac.widgets', [])
                 elem.css('height', '' + height + 'px');
             };
 
-            elem.on('input change', resize);
-            ngModel.$viewChangeListeners.push(resize);
+//            elem.on('input change propertychange', resize);
+            scope.$watch(function() {return ngModel.$viewValue; }, resize);
 
             scope.$on('$destroy', function() {
                 elem.off();
