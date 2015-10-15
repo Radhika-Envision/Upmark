@@ -136,6 +136,8 @@ def connect_db():
         log.info("Upgrading database (if required)")
         command.upgrade(alembic_cfg, "head")
 
+    model.connect_db_ro(os.environ.get('DATABASE_URL'))
+
 
 def default_settings():
     with model.session_scope() as session:

@@ -1,3 +1,4 @@
+import base64
 from contextlib import contextmanager
 from datetime import datetime
 import logging
@@ -933,43 +934,66 @@ def session_scope(version=False, readonly=False):
 
 def create_user_and_privilege():
      with session_scope() as session:
-        result = session.execute("SELECT COUNT(*) FROM pg_catalog.pg_user WHERE usename='analyst';")
-        if result.scalar() == 0:
-            session.execute("CREATE USER analyst;")
-            session.execute("GRANT SELECT (id, organisation_id, email, name, role, created, enabled) ON appuser to analyst;")
-            for table in Base.metadata.tables:
-                if str(table) != "appuser":
-                    session.execute("GRANT SELECT ON {} to analyst;".format(table))
+        password = base64.b64encode(os.urandom(50)).decode('ascii')
+        session.execute(
+            "CREATE USER analyst WITH PASSWORD :pwd", {'pwd': password})
+        session.execute(
+            "GRANT SELECT"
+            " (id, organisation_id, email, name, role, created, enabled)"
+            " ON appuser to analyst")
+        for table in Base.metadata.tables:
+            if str(table) not in {'appuser', 'systemconfig', 'alembic_version'}:
+                session.execute(
+                    "GRANT SELECT ON {} to analyst".format(table))
+
+        pwd_conf = SystemConfig(name='analyst_password')
+        pwd_conf.human_name = "Analyst password"
+        pwd_conf.description = "Password for read-only database access"
+        pwd_conf.value = password
+        pwd_conf.user_defined = False
+        session.add(pwd_conf)
 
 
 def connect_db(url):
-    global Session, VersionedSession, ReadonlySession
-    engine = create_engine(url) 
-    conn = engine.connect()
-
+    global Session, VersionedSession
+    engine = create_engine(url)
     # Never drop the schema here.
     # - For short-term testing, use psql.
     # - For breaking changes, add migration code to the alembic scripts.
     Session = sessionmaker(bind=engine)
     VersionedSession = sessionmaker(bind=engine)
     versioned_session(VersionedSession)
-    # For arbitary query on the web create new user named 'analyst'
-    # and give select permission to all the tables 
-    # except password column on appuser
-    create_user_and_privilege()
-    parsed_url = sqlalchemy.engine.url.make_url(url)
-    readonly_url = sqlalchemy.engine.url.URL(parsed_url.drivername, 
-                                             username='analyst',
-                                             host=parsed_url.host, 
-                                             port=parsed_url.port, 
-                                             database=parsed_url.database)
-    engine_readonly = create_engine(readonly_url)
-    engine_readonly.connect()
-    ReadonlySession = sessionmaker(bind=engine_readonly)
 
     return engine
 
 
+def connect_db_ro(base_url):
+    global ReadonlySession
+
+    with session_scope() as session:
+        password = (session.query(SystemConfig.value)
+                .filter(SystemConfig.name == 'analyst_password')
+                .scalar())
+
+    parsed_url = sqlalchemy.engine.url.make_url(base_url)
+    readonly_url = sqlalchemy.engine.url.URL(
+        parsed_url.drivername,
+        username='analyst',
+        password=password,
+        host=parsed_url.host,
+        port=parsed_url.port,
+        database=parsed_url.database)
+    engine_readonly = create_engine(readonly_url)
+    ReadonlySession = sessionmaker(bind=engine_readonly)
+
+    return engine_readonly
+
+
 def initialise_schema(engine):
     Base.metadata.create_all(engine)
+
+    # For arbitary query on the web create new user named 'analyst'
+    # and give select permission to all the tables 
+    # except password column on appuser
+    create_user_and_privilege()
 
