@@ -2454,8 +2454,12 @@ angular.module('wsaa.surveyQuestions', [
         };
         $http.post('/adhoc_query.json', query, config).then(
             function success(response) {
+                var message = "Query finished";
+                if (response.headers('Operation-Details'))
+                    message += ': ' + response.headers('Operation-Details');
+                Notifications.set('query', 'info', message, 5000);
+
                 $scope.result = angular.fromJson(response.data);
-                Notifications.set('query', 'info', "Query finished", 5000);
             },
             function failure(response) {
                 Notifications.set('query', 'error',
@@ -2465,9 +2469,14 @@ angular.module('wsaa.surveyQuestions', [
     };
 
     $scope.download = function(query, file_type) {
-        $http.post('/adhoc_query.' + file_type, query).then(
+        $http.post('/adhoc_query.' + file_type, query,
+                   {responseType: 'blob'}).then(
             function success(response) {
-                Notifications.set('query', 'info', "Query finished", 5000);
+                var message = "Query finished";
+                if (response.headers('Operation-Details'))
+                    message += ': ' + response.headers('Operation-Details');
+                Notifications.set('query', 'info', message, 5000);
+
                 var blob = new Blob(
                     [response.data], {type: response.headers('Content-Type')});
                 var name = /filename=(.*)/.exec(

@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import closing
 import csv
 import json
 import os
@@ -14,7 +16,7 @@ from tornado.escape import json_decode, json_encode, utf8, to_basestring
 from tornado import gen
 import tornado.web
 from tornado.concurrent import run_on_executor
-from concurrent.futures import ThreadPoolExecutor
+import xlsxwriter
 
 import handlers
 import model
@@ -514,16 +516,88 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
                 open(path, 'w', encoding='utf-8') as f:
             writer = csv.writer(f)
             result = session.execute(query)
-            writer.writerow([c.name for c in result.context.cursor.description])
+            cols = self.parse_cols(result.context.cursor)
+            writer.writerow([c['name'] for c in cols])
 
             chunksize = min(limit, AdHocHandler.CHUNKSIZE)
             n_read = 0
             while n_read < limit:
                 rows = result.fetchmany(chunksize)
-                n_read += len(rows)
                 if len(rows) == 0:
                     break
                 writer.writerows(rows)
+                n_read += len(rows)
+            self.reason('Read %d rows' % n_read)
+            if result.fetchone():
+                self.reason('Row limit reached; data truncated.')
+
+    @run_on_executor
+    def export_excel(self, path, query, limit):
+        with model.session_scope() as session, \
+                closing(xlsxwriter.Workbook(path)) as workbook:
+            result = session.execute(query)
+
+            format_str = workbook.add_format({
+                'valign': 'top'})
+            format_str_wrap = workbook.add_format({
+                'valign': 'top', 'text_wrap': True})
+            format_float = workbook.add_format({
+                'valign': 'top', 'num_format': '#,##0.00'})
+            format_int = workbook.add_format({
+                'valign': 'top', 'num_format': '#,##0'})
+
+            format_bold = workbook.add_format({'bold': True})
+
+            worksheet_q = workbook.add_worksheet('query')
+            worksheet_q.set_column(0, 0, 80, format_str_wrap)
+            worksheet_q.write(0, 0, query)
+
+            worksheet_r = workbook.add_worksheet('result')
+            cols = self.parse_cols(result.context.cursor)
+            for c, col in enumerate(cols):
+                if col['type'] == 'int':
+                    worksheet_r.set_column(c, c, 10, format_int)
+                elif col['type'] == 'float':
+                    worksheet_r.set_column(c, c, 10, format_float)
+                elif col['rich_type'] == 'uuid':
+                    worksheet_r.set_column(c, c, 10, format_str)
+                elif col['rich_type'] == 'text':
+                    worksheet_r.set_column(c, c, 40, format_str_wrap)
+                else:
+                    worksheet_r.set_column(c, c, 20)
+            worksheet_r.set_row(0, None, format_bold)
+            for c, col in enumerate(cols):
+                worksheet_r.write(0, c, col['name'])
+
+            chunksize = min(limit, AdHocHandler.CHUNKSIZE)
+            n_read = 0
+            while n_read < limit:
+                rows = result.fetchmany(chunksize)
+                if len(rows) == 0:
+                    break
+                for r, row in enumerate(rows):
+                    for c, (cell, col) in enumerate(zip(row, cols)):
+                        data = cell
+                        if col['type'] == 'string':
+                            data = str(cell)
+                        worksheet_r.write(r + n_read + 1, c, data)
+                n_read += len(rows)
+            self.reason('Read %d rows' % n_read)
+            if result.fetchone():
+                self.reason('Row limit reached; data truncated.')
+                worksheet_r.insert_textbox(
+                    1, 1, 'Row limit reached; data truncated.',
+                    {'width': 400, 'height': 200,
+                     'x_offset': 10, 'y_offset': 10,
+                     'fill': {'color': "#ffdd88"},
+                     'border': {'color': "#634E19"},
+                     'font': {'color': "#634E19"},
+                     'align': {
+                        'vertical': 'middle',
+                        'horizontal': 'center'
+                     }})
+
+            worksheet_r.activate()
 
     @gen.coroutine
     def as_json(self, query, limit):
@@ -544,9 +618,26 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
             path = os.path.join(tempdir, 'query_result.csv')
             yield self.export_csv(path, query, limit)
 
+            self.write_reasons()
             self.set_header("Content-Type", "text/csv")
             self.set_header(
                 'Content-Disposition', 'attachment; filename=query_result.csv')
+            self.transfer_file(path)
+        self.finish()
+
+    @gen.coroutine
+    def as_xlsx(self, query, limit):
+        with tempfile.TemporaryDirectory() as tempdir:
+            path = os.path.join(tempdir, 'query_result.xlsx')
+            yield self.export_excel(path, query, limit)
+
+            self.write_reasons()
+            self.set_header("Content-Type",
+                            "application/vnd.openxmlformats-officedocument"
+                            ".spreadsheetml.sheet")
+            self.set_header(
+                'Content-Disposition',
+                'attachment; filename=query_result.xlsx')
             self.transfer_file(path)
         self.finish()
 
