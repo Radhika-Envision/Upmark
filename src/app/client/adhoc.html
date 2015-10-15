@@ -8,12 +8,6 @@
 
 <div class="container">
 <form>
-    <div class="form-group"
-            textarea-label="{{!query ? 'Enter SQL query' : ''}}">
-        <textarea autoresize ng-model="query"
-            class="autoresize form-control">
-        </textarea>
-    </div>
     <div class="form-group text-center">
         <button ng-click="format(query)"
                 class="btn btn-default"
@@ -21,28 +15,24 @@
             <i class="fa fa-paragraph"></i>
             <span class="sr-only">Format</span>
         </button>
-        <span dropdown dropdown-append-to-body>
-            <button class="btn btn-default" title="Download" dropdown-toggle>
-                <i class="fa fa-cloud-download"></i></button>
-
-            <ul class="dropdown-menu dropdown-menu-right">
-                <li class="dropdown-header">Download as</li>
-                <li>
-                    <a href ng-click="download(query, 'csv')">
-                        <i class="fa fa-table"></i>
-                        CSV
-                    </a>
-                </li>
-                <li>
-                    <a href ng-click="download(query, 'xlsx')">
-                        <i class="fa fa-file-excel-o"></i>
-                        Excel
-                    </a>
-                </li>
-            </ul>
+        <span class="btn-group">
+            <span class="btn-group-addon">
+                <i class="fa fa-cloud-download"></i>
+            </span>
+            <button ng-click="download(query, 'csv')"
+                    class="btn btn-default"
+                    title="Execute and download as comma-separated values (text)">
+                CSV
+            </button>
+            <button ng-click="download(query, 'xlsx')"
+                    class="btn btn-default"
+                    title="Execute and download as an Excel spreadsheet">
+                Excel
+            </button>
         </span>
         <button ng-click="execute(query)"
-                class="btn btn-default">
+                class="btn btn-default"
+                    title="Execute and display on this page">
             <i class="fa fa-play"></i>
             Execute
         </button>
@@ -59,6 +49,12 @@
                 </li>
             </ul>
         </span>
+    </div>
+    <div class="form-group"
+            textarea-label="{{!query ? 'Enter SQL query' : ''}}">
+        <textarea autoresize ng-model="query"
+            class="autoresize form-control">
+        </textarea>
     </div>
 </form>
 
