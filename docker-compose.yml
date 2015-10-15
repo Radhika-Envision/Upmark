@@ -22,8 +22,12 @@ test:
 
 postgres:
   image: postgres:9
+  environment:
+    POSTGRES_PASSWORD: postgres
 
 postgresTest:
   image: postgres:9
   volumes:
    - .testdb:/var/lib/postgresql/data
+  environment:
+    POSTGRES_PASSWORD: postgres

@@ -47,16 +47,20 @@ class AqModelTestBase(unittest.TestCase):
         super().setUp()
         engine = model.connect_db(os.environ.get('DATABASE_URL'))
         engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
+        engine.execute("DROP ROLE analyst")
         engine.execute("CREATE SCHEMA public")
         model.initialise_schema(engine)
+        model.connect_db_ro(os.environ.get('DATABASE_URL'))
         self.create_org_structure()
         self.create_survey_structure()
 
     def create_org_structure(self):
         engine = model.connect_db(os.environ.get('DATABASE_URL'))
         engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
+        engine.execute("DROP ROLE analyst")
         engine.execute("CREATE SCHEMA public")
         model.initialise_schema(engine)
+        model.connect_db_ro(os.environ.get('DATABASE_URL'))
 
         with model.session_scope() as session:
             org1 = model.Organisation(

@@ -934,9 +934,11 @@ def session_scope(version=False, readonly=False):
 
 def create_user_and_privilege():
      with session_scope() as session:
-        password = base64.b64encode(os.urandom(50)).decode('ascii')
+        password = base64.b32encode(os.urandom(30)).decode('ascii')
         session.execute(
             "CREATE USER analyst WITH PASSWORD :pwd", {'pwd': password})
+        session.execute(
+            "GRANT USAGE ON SCHEMA public TO analyst")
         session.execute(
             "GRANT SELECT"
             " (id, organisation_id, email, name, role, created, enabled)"
