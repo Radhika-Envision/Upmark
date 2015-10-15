@@ -907,16 +907,20 @@ ResponseHistory.user = relationship(
 
 Session = None
 VersionedSession = None
+ReadonlySession = None
 
 
 @contextmanager
-def session_scope(version=False):
+def session_scope(version=False, readonly=False):
     # http://docs.sqlalchemy.org/en/latest/orm/session_basics.html#when-do-i-construct-a-session-when-do-i-commit-it-and-when-do-i-close-it
     """Provide a transactional scope around a series of operations."""
-    if version:
+    if readonly:
+        session = ReadonlySession()
+    elif version:
         session = VersionedSession()
     else:
         session = Session()
+
     try:
         yield session
         session.commit()
@@ -929,8 +933,8 @@ def session_scope(version=False):
 
 def create_user_and_privilege():
      with session_scope() as session:
-        result = session.execute("SELECT * FROM pg_catalog.pg_user WHERE usename='analyst';")
-        if result.rowcount == 0:
+        result = session.execute("SELECT COUNT(*) FROM pg_catalog.pg_user WHERE usename='analyst';")
+        if result.scalar() == 0:
             session.execute("CREATE USER analyst;")
             session.execute("GRANT SELECT (id, organisation_id, email, name, role, created, enabled) ON appuser to analyst;")
             for table in Base.metadata.tables:
@@ -939,16 +943,30 @@ def create_user_and_privilege():
 
 
 def connect_db(url):
-    global Session, VersionedSession
-    engine = create_engine(url)
+    global Session, VersionedSession, ReadonlySession
+    engine = create_engine(url) 
     conn = engine.connect()
+
     # Never drop the schema here.
     # - For short-term testing, use psql.
     # - For breaking changes, add migration code to the alembic scripts.
     Session = sessionmaker(bind=engine)
     VersionedSession = sessionmaker(bind=engine)
     versioned_session(VersionedSession)
+    # For arbitary query on the web create new user named 'analyst'
+    # and give select permission to all the tables 
+    # except password column on appuser
     create_user_and_privilege()
+    parsed_url = sqlalchemy.engine.url.make_url(url)
+    readonly_url = sqlalchemy.engine.url.URL(parsed_url.drivername, 
+                                             username='analyst',
+                                             host=parsed_url.host, 
+                                             port=parsed_url.port, 
+                                             database=parsed_url.database)
+    engine_readonly = create_engine(readonly_url)
+    engine_readonly.connect()
+    ReadonlySession = sessionmaker(bind=engine_readonly)
+
     return engine
 
 
