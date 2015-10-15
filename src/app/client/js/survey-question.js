@@ -2498,6 +2498,26 @@ angular.module('wsaa.surveyQuestions', [
         $scope.query = query;
     };
 
+    $scope.colClass = function($index) {
+        var col = $scope.result.cols[$index];
+        if (col.richType == 'int' || col.richType == 'float')
+            return 'numeric';
+        else if (col.richType == 'uuid')
+            return 'med-truncated';
+        else if (col.richType == 'text')
+            return 'str-wrap';
+        else if (col.richType == 'json')
+            return 'pre-wrap';
+        else if (col.type == 'date')
+            return 'date';
+        else
+            return null;
+    };
+    $scope.colRichType = function($index) {
+        var col = $scope.result.cols[$index];
+        return col.richType;
+    };
+
     hotkeys.bindTo($scope)
         .add({
             combo: ['ctrl+enter'],

@@ -435,13 +435,17 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=4)
 
     TYPES = {
-        2950: 'UUID',
-        25: 'text',
-        1114: 'datetime',
-        23: 'integer'
+        2950:   ('string',  'uuid'),
+        25:     ('string',  'text'),
+        1043:   ('string',  'enum'),
+        1114:   ('date',    'datetime'),
+        23:     ('int',     'int'),
+        701:    ('float',   'float'),
+        16:     ('bool',    'bool'),
+        114:    ('string',  'json')
     }
     CHUNKSIZE = 100
-    MAX_LIMIT = 2000
+    MAX_LIMIT = 2500
     BUF_SIZE = 4096
 
     @handlers.authz('consultant')
@@ -462,17 +466,27 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
         else:
             raise handlers.MissingDocError('%s not supported' % file_type)
 
+    def parse_cols(self, cursor):
+        return [{
+                'name': c.name,
+                'type': AdHocHandler.TYPES.get(c.type_code, None)[0],
+                'rich_type': AdHocHandler.TYPES.get(c.type_code, None)[1],
+                'type_code': c.type_code
+            } for c in cursor.description]
+
     @run_on_executor
     def export_json(self, path, query, limit):
         with model.session_scope() as session, \
                 open(path, 'w', encoding='utf-8') as f:
             result = session.execute(query)
-            cols = [{
-                    'name': c.name,
-                    'type': AdHocHandler.TYPES.get(c.type_code, None)
-                } for c in result.context.cursor.description]
+            cols = self.parse_cols(result.context.cursor)
 
-            f.write('{"cols": %s, "rows": [' % json_encode(cols))
+            to_son = ToSon(include=[
+                r'/[0-9]+$',
+                r'/[0-9]+/[^/]+$'
+            ])
+            f.write('{"cols": %s, "rows": [' % json_encode(to_son(cols)))
+
             first = True
             to_son = ToSon(include=[
                 r'/[0-9]+$'
@@ -481,7 +495,6 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
             n_read = 0
             while n_read < limit:
                 rows = result.fetchmany(chunksize)
-                n_read += len(rows)
                 if len(rows) == 0:
                     break
                 for row in rows:
@@ -489,7 +502,11 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
                         f.write(', ')
                     f.write(json_encode(to_son(row)))
                     first = False
+                n_read += len(rows)
             f.write(']}')
+            self.reason('Read %d rows' % n_read)
+            if result.fetchone():
+                self.reason('Row limit reached; data truncated.')
 
     @run_on_executor
     def export_csv(self, path, query, limit):
@@ -514,6 +531,7 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
             path = os.path.join(tempdir, 'query_result.json')
             yield self.export_json(path, query, limit)
 
+            self.write_reasons()
             self.set_header("Content-Type", "application/json")
             self.set_header(
                 'Content-Disposition', 'attachment; filename=query_result.json')
