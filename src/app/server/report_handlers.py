@@ -110,11 +110,11 @@ class DiffEngine:
         def path_key(diff_item):
             a, b = diff_item['pair']
             if a and b:
-                return 0, b['path'].split('.')
+                return 0, [int(c) for c in b['path'].split('.') if c != '']
             elif b:
-                return 0, b['path'].split('.')
+                return 0, [int(c) for c in b['path'].split('.') if c != '']
             elif a:
-                return 1, a['path'].split('.')
+                return 1, [int(c) for c in a['path'].split('.') if c != '']
             else:
                 return 2
         diff.sort(key=path_key)
