@@ -381,11 +381,3 @@ class SurveyTest(base.AqHttpTestBase):
             self.assertEqual(len(sa.hierarchies), len(sb.hierarchies))
             for a, b in zip(sa.hierarchies, sb.hierarchies):
                 visit_hierarchy(a, b)
-
-
-class ReadonlySessionTest(base.AqModelTestBase):
-
-    def test_readonly_session(self):
-        with model.session_scope(readonly=True) as session:
-            surveys = session.query(model.Survey).all()
-            self.assertNotEqual(len(surveys), 0)
