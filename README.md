@@ -8,8 +8,10 @@ water management utilities.
 Build with:
 
 ```bash
-sudo docker build -t vpac/aquamark src/app
+make
 ```
+
+For custom builds, refer to the Docker command in the [Makefile](Makefile).
 
 Run with:
 
@@ -41,15 +43,35 @@ organisation.
 
 Create an instance (e.g. t1.micro). Choose *ubuntu-trusty-14.04* as the base
 image (AMI). Then log in to the new machine, clone the repository and build the
-Docker image:
+Docker image.
 
-```bash
-cd /home/ubuntu
+1. Install dependencies:
 
-git clone https://github.com/vpac-innovations/aquamark.git
-# Enter your username and password
-sudo docker build -t vpac/aquamark /home/ubuntu/aquamark/src/app
-```
+    ```bash
+    sudo apt-get install git make
+    wget -qO- https://get.docker.com/ | sudo sh
+    ```
+
+1. [Create a deployment key][ck] for the git repository:
+
+    ```bash
+    ssh-keygen -t rsa -b 4096 -C "aws+your@email.com"
+    ```
+
+    Then [add the key][ak] to the GitHub project.
+
+1. Build the Docker image:
+
+    ```bash
+    cd /home/ubuntu
+
+    git clone https://github.com/vpac-innovations/aquamark.git
+    cd aquamark
+    make
+    ```
+
+[ck]: https://help.github.com/articles/generating-ssh-keys/
+[ak]: https://developer.github.com/guides/managing-deploy-keys/#deploy-keys
 
 Edit the watchdog config file and add your email credentials. Then test that the
 email function works.
