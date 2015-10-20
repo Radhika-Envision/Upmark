@@ -166,13 +166,18 @@ Here are the steps of the creating auto-scaling group.
         1. Under *Configure Details*, give this new configuration a similar
            name to the AMI.
             1. No IAM role is required because the AWS API key is set in the AMI.
-            1. Under *Advanced Details > IP Address Type*, select *Do not assign
-               a public IP address to any instances.*
+            1. Under *Advanced Details > IP Address Type*, select *Assign a
+               public IP address to every instance*. This is requred because we
+               don't have NAT set up for the VPC.
         1. Under *Add Storage*, change the hard drive type to *Magnetic*. The
            default size of 20GB should be fine.
         1. Under *Configure Security Group*, choose a group that allows web and
-           SSH traffic (ports 80 and 22). HTTPS is not required because that is
-           handled by the load balancer.
+           SSH traffic (ports 80 and 22) *for the local subnet* for the
+           machine's availability zone (AZ) e.g. `172.31.0.0/20`. Check your VPC
+           configuration if you're not sure. Do not allow connections from
+           0.0.0.0/32.
+
+           HTTPS is not required because that is handled by the load balancer.
 
     1. AUTO SCALING > Launch Configurations > Create Auto Scaling Group
         1. Configure Auto Scaling group details
