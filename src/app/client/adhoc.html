@@ -75,18 +75,145 @@
 
     <docs>
         <i class="fa-li fa fa-sitemap fa-border"></i>
-        <h4>User tables</h4>
+        <h3>User tables</h3>
         <p>
-            <img src="images/design-tables-user.svg">
+            Users belong to organisations:
         </p>
-        <h4>Survey tables</h4>
+        <img src="images/design-tables-user.svg" class="img-responsive">
+        <dl>
+            <dt>organisation</dt>
+            <dd>
+                <p>PK: <code>id</code>.</p>
+                Stores details and metadata about organisations - both those
+                taking part in surveys, and those authoring them.
+            </dd>
+
+            <dt>appuser</dt>
+            <dd>
+                <p>PK: <code>id</code>.</p>
+                Stores credentials for users when logging in, and is used to
+                identify actions (such as response edits).
+                The <code>appuser.password</code> field is not accessible, so
+                running <code>SELECT * FROM appuser</code> will fail. List the
+                fields you want explicitly.
+                <p>Email addresses are case-insensitive and unique.</p>
+            </dd>
+        </dl>
+    </docs>
+    <docs>
+        <i class="fa-li fa fa-sitemap fa-border"></i>
+        <h3>Survey tables</h3>
         <p>
-            <img src="images/design-tables-survey.svg">
+            Survey questions are stored in the <code>survey</code>,
+            <code>hierarchy</code>, <code>qnode</code> and
+            <code>measure</code> tables. <code>qnode_measure_link</code> stores
+            the many-to-many relationship between <code>qnode</code> and
+            <code>measure</code>.
+            The naming of these tables no longer matches the terminology in this
+            web app: "programs" are stored in the <code>survey</code> table,
+            "surveys" are stored in the <code>hierarchy</code> table, and
+            "categories" are stored in the <code>qnode</code> table.
         </p>
-        <h4>Submission tables</h4>
+        <img src="images/design-tables-survey.svg" class="img-responsive">
+        <dl>
+            <dt>survey</dt>
+            <dd>
+                <p>PK: <code>id</code>.</p>
+                The survey table stores programs. Each program has a unique id,
+                but may be linked to other program by using the same tracking
+                id. This is used to maintain lineage when programs are
+                duplicated. A program may have more than one survey (see
+                hierarchy).
+            </dd>
+
+            <dt>hierarchy</dt>
+            <dd>
+                <p>PK: <code>id</code>, <code>survey_id</code>.</p>
+                The hierarchy table stores surveys. Surveys have a collection of
+                categories (qnodes).
+                Each survey has an id which
+                may be shared with other surveys of the same lineage in other
+                programs.
+            </dd>
+
+            <dt>qnode</dt>
+            <dd>
+                <p>PK: <code>id</code>, <code>survey_id</code>.</p>
+                Represents categories in the survey, used to group measures.
+                Each qnode may have multiple measures or other qnodes as
+                children.
+            </dd>
+
+            <dt>qnode_measure_link</dt>
+            <dd>
+                <p>
+                    PK: <code>survey_id</code>, <code>qnode_id</code>,
+                    <code>measure_id</code>.
+                </p>
+                Links qnodes to measures. This is required because a measure may
+                belong to multiple categories (one per hierarchy) - or none, in
+                which case it is orphaned.
+            </dd>
+
+            <dt>measure</dt>
+            <dd>
+                <p>PK: <code>id</code>, <code>survey_id</code>.</p>
+                An actual question in a program. Measures can be shared between
+                surveys, but not between programs. The
+                <code>response_type</code> determines
+                the options available to the user. That field is a soft link to
+                data in <code>survey.response_types</code>.
+            </dd>
+        </dl>
+    </docs>
+    <docs>
+        <i class="fa-li fa fa-sitemap fa-border"></i>
+        <h3>Submission tables</h3>
         <p>
-            <img src="images/design-tables-response.svg">
+            Submissions are an organisation's answer to a survey. Generally,
+            there is a one-to-many mapping between entities in the survey tables
+            and those in the submission tables.
         </p>
+        <img src="images/design-tables-response.svg" class="img-responsive">
+        <dl>
+            <dt>purchased_survey</dt>
+            <dd>
+                <p>PK: <code>survey_id</code>, <code>hierarchy_id</code>,
+                    <code>organisation_id</code>.</p>
+                Links an organisation to the surveys it has purchased.
+            </dd>
+
+            <dt>assessment</dt>
+            <dd>
+                <p>PK: <code>id</code>.</p>
+                A submission against a survey.
+            </dd>
+
+            <dt>rnode</dt>
+            <dd>
+                <p>PK: <code>id</code>.</p>
+                Caches aggregate scores within a category (i.e. the sum of the
+                scores of the responses). Has no parent; to traverse the tree,
+                traverse the qnodes instead.
+            </dd>
+
+            <dt>response</dt>
+            <dd>
+                <p>PK: <code>id</code>.</p>
+                An actual response to a question (measure). The
+                <code>response_parts</code> field is the authoritative response;
+                the <code>score</code> is the cached, calculated score.
+            </dd>
+
+            <dt>attachment</dt>
+            <dd>
+                <p>PK: <code>id</code>.</p>
+                Files and links; supporting documentation for a response.
+                Usually files will not be stored in the actual database;
+                instead, the <code>url</code> field will point to the actual
+                location (not accessible through this screen).
+            </dd>
+        </dl>
     </docs>
 </form>
 
