@@ -807,7 +807,8 @@ angular.module('wsaa.aquamark',
     });
 
     $rootScope.$on('$locationChangeStart', function( event ) {
-        if (!(form.$dirty)) {
+        var element = angular.element($('form'));
+        if (element.length && (!element.$dirty)) {
             var answer = confirm("Are you sure you want to leave this page?")
             if (!answer) {
                 event.preventDefault();
