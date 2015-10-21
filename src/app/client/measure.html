@@ -110,6 +110,35 @@
 </div>
 </div>
 
+<docs ng-if="!edit.model && parents && checkRole('measure_edit')">
+    <i class="fa-li fa fa-sitemap fa-border"></i>
+    A program's measures can be shared between its surveys.
+    Respondents can use the following category paths to reach this
+    measure:
+    <ul ng-if="parents.length">
+        <li ng-repeat="parent in parents">
+            <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}&parent={{parent.qnodes[parent.qnodes.length - 1].id}}">
+            {{parent.hierarchy.title}}
+            <span ng-repeat="item in parent.qnodes">
+                &raquo;
+                <span ng-if="item.seq != null">
+                    {{item.seq + 1}}.</span>
+                {{item.title}}
+            </span>
+            </a>
+        </li>
+    </ul>
+    <p ng-if="parent">
+        This measure can be
+        <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}">
+            viewed without a survey</a>,
+        but it can not be responded to like that.
+    </p>
+    <p ng-if="!parents.length">
+        This measure is an orphan: it belongs to no categories.
+    </p>
+</docs>
+
 <div class="container spaced" ng-if="!edit.model && assessment">
     <response type="responseType" model="response" weight="measure.weight">
         <span ng-controller="ResponseHistory" dropdown
@@ -157,11 +186,20 @@
                     Loading...</li>
             </ul>
         </span>
+
         <button class="btn btn-round btn-on-danger"
                 title="Not relevant"
                 ng-click="toggleNotRelvant()"
                 ng-class="{active: response.notRelevant}">
             <i class="fa fa-ban fa-fw"></i></button>
+        <docs ng-if="response.notRelevant">
+            <i class="fa-li fa fa-ban fa-border"></i>
+            <p>
+                This response is marked as not relevant. It does not
+                contribute to the submission's score.
+            </p>
+        </docs>
+
         <button class="btn btn-default btn-round"
                 title="Save response"
                 ng-click="saveResponse()">
@@ -212,6 +250,42 @@
     <div class="visible-print-block">
         Response status: {{response.approval}}
     </div>
+    <docs>
+        <i class="fa-li fa fa-check-square-o fa-border"></i>
+        <p>
+            Responses progress through approval
+            states <i>draft</i> &raquo; <i>final</i> &raquo;
+            <i>reviewed</i> &raquo; <i>approved</i>. Approval states
+            are resticted to roles as follows:
+        </p>
+        <ul>
+            <li>
+                Clerk: Draft, Final (responses only)
+            </li>
+            <li>
+                Organisation Admin: Draft, Final
+            </li>
+            <li>
+                Consultant: Reviewed
+            </li>
+            <li>
+                Authority: Approved
+            </li>
+        </ul>
+        <p>
+            Increasing the appoval state indicates that the response is
+            ready for the next level of review. It is OK to reduce the
+            approval state if you wish to make a change after it as been
+            reviewed; this will indicate that it needs to be reviewed
+            again.
+        </p>
+        <p>
+            Submissions progress through the same states. When all the
+            responses in a survey are <i>Final</i>, the submission
+            can be marked as <i>Final</i>, and so on. After that
+            it is not possible to reduce the state of the responses.
+        </p>
+    </docs>
 
     <div ng-controller="ResponseAttachmentCtrl">
     <div class="section">
@@ -348,77 +422,6 @@
         Submitted by
         <a ng-href="#/user/{{response.user.id}}">
             {{response.user.name}}</a>
-    </p>
-</docs>
-<docs ng-if="!edit.model && assessment && response.notRelevant">
-    <i class="fa-li fa fa-ban fa-border"></i>
-    <p>
-        This response is marked as not relevant. It does not
-        contribute to the submission's score.
-    </p>
-</docs>
-<docs ng-if="!edit.model && assessment">
-    <i class="fa-li fa fa-check-square-o fa-border"></i>
-    <p>
-        Responses progress through approval
-        states <i>draft</i> &raquo; <i>final</i> &raquo;
-        <i>reviewed</i> &raquo; <i>approved</i>. Approval states
-        are resticted to roles as follows:
-    </p>
-    <ul>
-        <li>
-            Clerk: Draft, Final (responses only)
-        </li>
-        <li>
-            Organisation Admin: Draft, Final
-        </li>
-        <li>
-            Consultant: Reviewed
-        </li>
-        <li>
-            Authority: Approved
-        </li>
-    </ul>
-    <p>
-        Increasing the appoval state indicates that the response is
-        ready for the next level of review. It is OK to reduce the
-        approval state if you wish to make a change after it as been
-        reviewed; this will indicate that it needs to be reviewed
-        again.
-    </p>
-    <p>
-        Submissions progress through the same states. When all the
-        responses in a survey are <i>Final</i>, the submission
-        can be marked as <i>Final</i>, and so on. After that
-        it is not possible to reduce the state of the responses.
-    </p>
-</docs>
-<docs ng-if="!edit.model && parents && checkRole('measure_edit')">
-    <i class="fa-li fa fa-sitemap fa-border"></i>
-    A program's measures can be shared between its surveys.
-    Respondents can use the following category paths to reach this
-    measure:
-    <ul ng-if="parents.length">
-        <li ng-repeat="parent in parents">
-            <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}&parent={{parent.qnodes[parent.qnodes.length - 1].id}}">
-            {{parent.hierarchy.title}}
-            <span ng-repeat="item in parent.qnodes">
-                &raquo;
-                <span ng-if="item.seq != null">
-                    {{item.seq + 1}}.</span>
-                {{item.title}}
-            </span>
-            </a>
-        </li>
-    </ul>
-    <p ng-if="parent">
-        This measure can be
-        <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}">
-            viewed without a survey</a>,
-        but it can not be responded to like that.
-    </p>
-    <p ng-if="!parents.length">
-        This measure is an orphan: it belongs to no categories.
     </p>
 </docs>
 

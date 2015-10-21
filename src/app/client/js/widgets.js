@@ -710,7 +710,7 @@ angular.module('vpac.widgets', [])
         template: '<ul class="docs fa-ul fa-ul-big"></ul>',
         link: function(scope, elem, attrs) {
             docsService.add = function(transcludeElem) {
-                elem.children('ul.docs').append(transcludeElem);
+                elem.children('ul.docs').prepend(transcludeElem);
             };
             scope.$on('$destroy', function() {
                 docsService.add = null;
