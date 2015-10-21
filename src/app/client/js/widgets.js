@@ -687,6 +687,10 @@ angular.module('vpac.widgets', [])
 
 
 .service('scopeUtils', [function() {
+    /**
+     * Finds the path to a scope, e.g. the second child of the root scope would
+     * have a path of 00000.00001.
+     */
     this.path = function(scope) {
         var path;
         var ord;
@@ -712,7 +716,6 @@ angular.module('vpac.widgets', [])
 .directive('docs', ['docsService', function(docsService) {
     return {
         restrict: 'E',
-        scope: {},
         template: '<li ng-transclude></li>',
         replace: true,
         transclude: true,
@@ -734,7 +737,6 @@ angular.module('vpac.widgets', [])
         template: '<ul class="docs fa-ul fa-ul-big"></ul>',
         link: function(scope, elem, attrs) {
             docsService.add = function(transcludeElem) {
-                console.log(scopeUtils.path(transcludeElem.scope()));
                 var container = elem.children('ul.docs');
                 var path = scopeUtils.path(transcludeElem.scope());
                 var child = container.children().first();
