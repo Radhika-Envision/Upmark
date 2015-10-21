@@ -686,6 +686,29 @@ angular.module('vpac.widgets', [])
 }])
 
 
+.service('scopeUtils', [function() {
+    this.path = function(scope) {
+        var path;
+        var ord;
+        if (scope.$parent) {
+            path = this.path(scope.$parent);
+            ord = 0;
+            var sibling = scope.$parent.$$childHead;
+            while (sibling != scope) {
+                ord++;
+                sibling = sibling.$$nextSibling;
+            }
+        } else {
+            path = '';
+            ord = 0;
+        }
+        // Pad ordinal with zeros
+        ord = ('00000' + ord).slice(-5);
+        return path + ord + '.';
+    };
+}])
+
+
 .directive('docs', ['docsService', function(docsService) {
     return {
         restrict: 'E',
@@ -703,14 +726,28 @@ angular.module('vpac.widgets', [])
 }])
 
 
-.directive('docsRenderer', ['docsService', function(docsService) {
+.directive('docsRenderer', ['docsService', 'scopeUtils',
+        function(docsService, scopeUtils) {
     return {
         restrict: 'EA',
         scope: {},
         template: '<ul class="docs fa-ul fa-ul-big"></ul>',
         link: function(scope, elem, attrs) {
             docsService.add = function(transcludeElem) {
-                elem.children('ul.docs').prepend(transcludeElem);
+                console.log(scopeUtils.path(transcludeElem.scope()));
+                var container = elem.children('ul.docs');
+                var path = scopeUtils.path(transcludeElem.scope());
+                var child = container.children().first();
+                while (child.length) {
+                    var childPath = scopeUtils.path(child.scope());
+                    if (childPath > path)
+                        break;
+                    child = child.next();
+                }
+                if (child.length)
+                    child.before(transcludeElem);
+                else
+                    container.append(transcludeElem);
             };
             scope.$on('$destroy', function() {
                 docsService.add = null;
