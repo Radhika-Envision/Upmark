@@ -249,6 +249,9 @@ ul.docs > li:not(.printable) {
         display: none;
     }
 }
+dt {
+    margin-top: 8px;
+}
 
 .nudge-right {
     position: relative;
@@ -759,6 +762,7 @@ ul.cardlist {
         list-style: none;
         @media print {
             padding: 0;
+            page-break-inside: avoid;
         }
     }
 }

@@ -118,9 +118,9 @@
 <div ng-if="!edit.model" class="container">
     <!-- Don't wrap the contents of this tag! -->
     <p ng-if="assessment.hierarchy.description"
-            class="formatted">{{assessment.hierarchy.description}}</p>
+            class="formatted">Submission against {{assessment.hierarchy.description}}</p>
 
-    <div class="btn-group btn-group-justified">
+    <div class="btn-group btn-group-justified hidden-print">
         <div class="btn-group">
             <button class="btn btn-default"
                     ng-class="{active: assessment.approval == 'draft'}"
@@ -158,6 +158,8 @@
             </button>
         </div>
     </div>
+
+    <p class="visible-print">Status: {{assessment.approval}}.</p>
 </div>
 
 <div class="container"
