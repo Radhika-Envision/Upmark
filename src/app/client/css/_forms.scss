@@ -192,6 +192,27 @@ div[textarea-label] {
     .btn-group.btn-group-justified {
         border-spacing: initial;
     }
+    .btn-arrow-right {
+        position: relative;
+    }
+    .btn-group-arrow-right .btn-group:not(:last-child) .btn {
+        position:relative;
+
+        &:before {
+            content: ' ';
+            background-color: transparent;
+            position: absolute;
+            top: -.2px;
+            bottom: 0;
+            right: -31.9px;
+            border: 16px solid;
+            border-color: transparent;
+        }
+
+        &.btn-default.active:before {
+            border-left-color: #BBE2F6;
+        }
+    }
 }
 // On small screens, stack vertically
 @media (max-width: 768px) {
