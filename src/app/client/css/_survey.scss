@@ -244,6 +244,11 @@ ul.fa-ul-big {
 .fa-li > .fa-badge {
     left: -1.5em;
 }
+ul.docs > li:not(.printable) {
+    @media print {
+        display: none;
+    }
+}
 
 .nudge-right {
     position: relative;
