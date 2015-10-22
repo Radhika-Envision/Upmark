@@ -171,7 +171,7 @@ div[textarea-label] {
 .btn-default, .btn-default.active {
     &:active, &.active, &.active:focus, &:active.focus, &:active:focus {
         &:not([disabled]):not(.btn-round) {
-            box-shadow: none;
+            box-shadow: 1px 1px 4px 5px rgba(255, 255, 255, 0.5);
             color: $button-fg;
             background-color: $primary-colour;
             @include transform(scale(1.02, 1.1));
@@ -198,6 +198,12 @@ div[textarea-label] {
     .btn-group-arrow-right .btn-group:not(:last-child) .btn {
         position:relative;
 
+        &.active {
+            /* Draw above other buttons in the same group that have
+             * :hover set. That bootstrap style is to assist with
+             * borders, I think. - z0r */
+            z-index: 3;
+        }
         &:before {
             content: ' ';
             background-color: transparent;
@@ -207,6 +213,7 @@ div[textarea-label] {
             right: -31.9px;
             border: 16px solid;
             border-color: transparent;
+            pointer-events: none;
         }
 
         &.btn-default.active:before {
