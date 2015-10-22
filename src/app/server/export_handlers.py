@@ -495,7 +495,7 @@ class Exporter():
                         for response in assessment.ordered_responses])
                 worksheet.set_column(level_length + 1, 
                     level_length + max_len_of_response, 12)
-                worksheet.set_column(level_length + max_len_of_response + 3, 
+                worksheet.set_column(level_length + max_len_of_response + 3,
                     level_length + max_len_of_response + 3, 200)
 
                 # Header from heirarchy levels
@@ -514,7 +514,7 @@ class Exporter():
                         line, level_length, str(qnode_measure[0].seq + 1)
                             + ". " + response.measure.title, format)
                     self.write_response_parts(
-                        worksheet, response.response_parts, line, format_no_wrap, 
+                        worksheet, response.response_parts, line, format_no_wrap,
                             level_length + 1)
                     score = 0
                     if response.measure.weight != 0:
