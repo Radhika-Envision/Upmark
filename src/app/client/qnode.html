@@ -64,6 +64,13 @@
                 ng-click="toggleNotRelevant()"
                 ng-class="{active: rnode.notRelevant}">
             <i class="fa fa-fw fa-ban"></i></button>
+        <docs ng-if="!edit.model && rnode.notRelevant">
+            <i class="fa-li fa fa-ban fa-border"></i>
+            <p>
+                This category is marked as not relevant. It does not
+                contribute to the submission's score.
+            </p>
+        </docs>
 
         <span title="Score">
             {{rnode.score | number:0}}
@@ -98,17 +105,3 @@
 <div class="container"
     ng-controller="QnodeMeasures" ng-include="'qnode_measures.html'"
     ng-if="currentLevel.hasMeasures && !rnode.notRelevant && !edit.model"></div>
-
-<div class="container spaced">
-    <div class="spaced text-muted">
-        <ul class="fa-ul fa-ul-big">
-            <li ng-if="!edit.model && rnode.notRelevant">
-                <i class="fa-li fa fa-ban fa-border"></i>
-                <p>
-                    This category is marked as not relevant. It does not
-                    contribute to the submission's score.
-                </p>
-            </li>
-        </ul>
-    </div>
-</div>

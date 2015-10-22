@@ -220,6 +220,7 @@ ul.fa-ul-big {
             width: 1.54em;
             height: 1.54em;
             text-align: center;
+            padding: 0.2em 0;
         }
     }
     p {
@@ -243,6 +244,14 @@ ul.fa-ul-big {
 }
 .fa-li > .fa-badge {
     left: -1.5em;
+}
+ul.docs > li:not(.printable) {
+    @media print {
+        display: none;
+    }
+}
+dt {
+    margin-top: 8px;
 }
 
 .nudge-right {
@@ -754,6 +763,27 @@ ul.cardlist {
         list-style: none;
         @media print {
             padding: 0;
+            page-break-inside: avoid;
         }
     }
+}
+
+.underline {
+    text-decoration: underline;
+}
+
+.underline-red {
+    color: #a00;
+}
+
+.underline-blue {
+    color: #00a;
+}
+
+.underline > span {
+    color: initial;
+}
+
+.text-muted .underline > span {
+    color: #777;
 }

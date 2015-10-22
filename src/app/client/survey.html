@@ -54,34 +54,32 @@
         <div ng-include="'response_types.html'"></div>
     </form>
 
-    <ul class="fa-ul fa-ul-big text-muted">
-        <li ng-if="!edit.model.id && duplicating">
-            <i class="fa-li fa fa-clone fa-border"></i>
-            <p>
-                You are creating a duplicate of an existing program. The full
-                structure of the program will be copied, with the lineage to the old
-                program preserved. Submissions will not be copied, but they can
-                be at a later time.
-            </p>
-            <p>
-                If you want to create a fresh program with no lineage,
-                <a href="#/surveys">go back</a> and use the Add
-                <i class="fa fa-plus"></i> function instead.
-            </p>
-        </li>
-        <li ng-if="!edit.model.id && !duplicating">
-            <i class="fa-li fa fa-plus fa-border"></i>
-            <p>
-                You are creating a new program with a new structure. It will not
-                be possible to link responses from other programs to this one.
-            </p>
-            <p>
-                If you wish to preserve lineage, <a href="#/surveys">open an
-                existing program</a> and use the Duplicate
-                <i class="fa fa-clone"></i> function instead.
-            </p>
-        </li>
-    </div>
+    <docs ng-if="!edit.model.id && duplicating">
+        <i class="fa-li fa fa-clone fa-border"></i>
+        <p>
+            You are creating a duplicate of an existing program. The full
+            structure of the program will be copied, with the lineage to the old
+            program preserved. Submissions will not be copied, but they can
+            be at a later time.
+        </p>
+        <p>
+            If you want to create a fresh program with no lineage,
+            <a href="#/surveys">go back</a> and use the Add
+            <i class="fa fa-plus"></i> function instead.
+        </p>
+    </docs>
+    <docs ng-if="!edit.model.id && !duplicating">
+        <i class="fa-li fa fa-plus fa-border"></i>
+        <p>
+            You are creating a new program with a new structure. It will not
+            be possible to link responses from other programs to this one.
+        </p>
+        <p>
+            If you wish to preserve lineage, <a href="#/surveys">open an
+            existing program</a> and use the Duplicate
+            <i class="fa fa-clone"></i> function instead.
+        </p>
+    </docs>
 </div>
 
 
