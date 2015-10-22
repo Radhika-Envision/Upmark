@@ -766,3 +766,23 @@ ul.cardlist {
         }
     }
 }
+
+.underline {
+    text-decoration: underline;
+}
+
+.underline-red {
+    color: #a00;
+}
+
+.underline-blue {
+    color: #00a;
+}
+
+.underline > span {
+    color: initial;
+}
+
+.text-muted .underline > span {
+    color: #777;
+}

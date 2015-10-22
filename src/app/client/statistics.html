@@ -116,3 +116,124 @@
 <div class="chart">
     <div id="chart"></div>
 </div>
+
+<docs>
+    <i class="fa-li fa fa-bar-chart fa-border"></i>
+
+    <p ng-if="!assessment2">
+        This is a
+        <a href="https://en.wikipedia.org/wiki/Box_plot">
+            box-and-whisker plot</a>
+        of a submission. The values for this submission are plotted
+        against aggregate data for other submissions of the
+        same survey.
+    </p>
+    <img src="images/chart-box-sample.svg"
+        class="img-responsive center-block"
+        ng-if="!assessment2">
+    <p ng-if="!assessment2">
+        Each column shows eight pieces of information:
+    </p>
+
+    <p ng-if="assessment2">
+        This is a
+        <a href="https://en.wikipedia.org/wiki/Box_plot">
+            box and whisker plot</a>
+        of two submissions. The values are plotted
+        against aggregate data for other submissions of the
+        same survey(s).
+    </p>
+    <img src="images/chart-box-sample-compare.svg"
+        class="img-responsive center-block"
+        ng-if="assessment2">
+    <p ng-if="assessment2">
+        Each column relates to a single sub-category of the current category.
+        The left side of the column shows the values for the first submission
+        (<em>L</em>) while the right side shows the values of the second
+        submission (<em>R</em>).
+        Each side of the column shows eight pieces of information:
+    </p>
+
+    <dl>
+        <dt>Submission value</dt>
+        <dd>
+            The actual score for the sub-category of the <em>selected
+            submission</em>.
+            This is the
+            <span class="underline underline-red"><span>
+                red line</span></span>.
+        </dd>
+
+        <dt>Upper bound</dt>
+        <dd>
+            The maximum possible score for the sub-category of the
+            <em>survey</em>. This is shown as the line at the top of
+            the chart.
+        </dd>
+
+        <dt>Max</dt>
+        <dd>
+            The actual
+            <a href="https://en.wikipedia.org/wiki/Maxima_and_minima">
+                maximum</a>
+            score for the sub-category of
+            all submissions across all organisations. 100% of
+            all submissions have a score less than or equal to this
+            value.
+            This is the
+            <span class="underline"><span>top whisker</span></span>.
+        </dd>
+
+        <dt>3rd quartile</dt>
+        <dd>
+            The third
+            <a href="https://en.wikipedia.org/wiki/Quartile">
+                quartile</a>;
+            half-way between the median and the maximum. 75% of all
+            submissions have a score less than or equal to this value.
+            This is the top of the box.
+        </dd>
+
+        <dt>Median</dt>
+        <dd>
+            The second
+            <a href="https://en.wikipedia.org/wiki/Median">
+                quartile</a>.
+            50% of all submissions have a score less than or equal to
+            <a href="https://en.wikipedia.org/wiki/Median">
+                the median</a>.
+            This is the
+            <span class="underline underline-blue"><span>
+                blue line</span></span>.
+        </dd>
+
+        <dt>1st quartile</dt>
+        <dd>
+            The first
+            <a href="https://en.wikipedia.org/wiki/Median">
+                quartile</a>.
+            25% of all submissions have a score less than or equal to
+            this value.
+            This is the bottom of the box.
+        </dd>
+
+        <dt>Min</dt>
+        <dd>
+            The actual
+            <a href="https://en.wikipedia.org/wiki/Maxima_and_minima">
+                minimum</a>
+            score for the sub-category of the
+            all submissions across all organisations. 0% of
+            all submissions have a score less than or equal to this
+            value.
+            <span class="underline"><span>bottom whisker</span></span>.
+        </dd>
+
+        <dt>Lower bound</dt>
+        <dd>
+            The minimum possible score for the sub-category of the
+            <em>survey</em>. This is shown as the line at the bottom of
+            the chart.
+        </dd>
+    </dl>
+</docs>
