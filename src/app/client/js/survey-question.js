@@ -1949,10 +1949,10 @@ angular.module('wsaa.surveyQuestions', [
 .controller('MeasureCtrl', [
         '$scope', 'Measure', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'Survey', 'format', 'layout',
-        'Structure', 'Arrays', 'Response', 'hotkeys',
+        'Structure', 'Arrays', 'Response', 'hotkeys', '$q', '$timeout', '$window',
         function($scope, Measure, routeData, Editor, authz,
                  $location, Notifications, current, Survey, format, layout,
-                 Structure, Arrays, Response, hotkeys) {
+                 Structure, Arrays, Response, hotkeys, $q, $timeout, $window) {
 
     $scope.layout = layout;
     $scope.parent = routeData.parent;
@@ -1974,35 +1974,71 @@ angular.module('wsaa.surveyQuestions', [
     if ($scope.assessment) {
         // Get the response that is associated with this measure and assessment.
         // Create an empty one if it doesn't exist yet.
-        $scope.response = Response.get({
+        // Create an empty response for the time being so the response control
+        // doesn't create its own.
+        $scope.response = {};
+        Response.get({
             measureId: $scope.measure.id,
             assessmentId: $scope.assessment.id
-        });
-        $scope.response.$promise.catch(function failure(details) {
-            if (details.status != 404) {
-                Notifications.set('edit', 'error',
-                    "Failed to get response details: " + details.statusText);
-                return;
+        }).$promise.then(
+            function success(response) {
+                $scope.setResponse(response);
+            },
+            function failure(details) {
+                if (details.status != 404) {
+                    Notifications.set('edit', 'error',
+                        "Failed to get response details: " + details.statusText);
+                    return;
+                }
+                $scope.response = new Response({
+                    measureId: $scope.measure.id,
+                    assessmentId: $scope.assessment.id,
+                    responseParts: [],
+                    comment: '',
+                    notRelevant: false,
+                    approval: 'draft'
+                });
             }
-            $scope.response = new Response({
-                measureId: $scope.measure.id,
-                assessmentId: $scope.assessment.id,
-                responseParts: [],
-                comment: '',
-                notRelevant: false,
-                approval: 'draft'
-            });
+        );
+
+        var interceptingLocation = false;
+        $scope.$on('$locationChangeStart', function(event, next, current) {
+            if (!$scope.responseDirty || interceptingLocation)
+                return;
+            event.preventDefault();
+            interceptingLocation = true;
+            $scope.saveResponse().then(
+                function success() {
+                    $window.location.href = next;
+                    $timeout(function() {
+                        interceptingLocation = false;
+                    });
+                },
+                function failure(details) {
+                    var message = "Failed to save: " +
+                        details.statusText +
+                        ". Are you sure you want to leave this page?";
+                    var answer = confirm(message);
+                    if (answer)
+                        $window.location.href = next;
+                    $timeout(function() {
+                        interceptingLocation = false;
+                    });
+                }
+            );
         });
     }
     $scope.saveResponse = function() {
-        $scope.response.$save().then(
+        return $scope.response.$save().then(
             function success(response) {
                 $scope.$broadcast('response-saved');
                 Notifications.set('edit', 'success', "Saved", 5000);
+                return response;
             },
             function failure(details) {
                 Notifications.set('edit', 'error',
                     "Could not save response: " + details.statusText);
+                return $q.reject(details);
             });
     };
     $scope.toggleNotRelvant = function() {
@@ -2036,6 +2072,7 @@ angular.module('wsaa.surveyQuestions', [
     };
     $scope.setResponse = function(response) {
         $scope.response = response;
+        $scope.responseDirty = false;
     };
 
     $scope.$watch('measure', function(measure) {
