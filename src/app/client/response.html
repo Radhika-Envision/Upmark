@@ -39,10 +39,11 @@
         </div>
         <div class="visible-print-block">
             <span ng-if="part.name">{{part.name}}:</span>
-            <span>
+            <span ng-if="getActiveOption($index)">
                 {{getActiveOption($index).index + 1}}
                 {{getActiveOption($index).note}}
             </span>
+            <span ng-if="!getActiveOption($index)">-</span>
         </div>
     </li>
 </ol>

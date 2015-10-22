@@ -292,6 +292,8 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                 return false;
             };
             $scope.getActiveOption = function(iPart) {
+                if (!$scope.response.responseParts.length)
+                    return null;
                 return $scope.response.responseParts[iPart];
             };
             $scope.enabled = function(iPart, iOpt) {

@@ -176,7 +176,7 @@
                             {{version.user.name}}
                         </span>
                         <span>
-                            {{version.modified * 1000 | timeAgo}}
+                            {{version.modified * 1000 | timeAgo:'medium'}}
                         </span>
                     </a>
                 </li>
@@ -205,6 +205,21 @@
                 ng-click="saveResponse()">
             <i class="fa fa-check fa-fw"></i></button>
     </response>
+
+    <div>
+        <p ng-if="response.user.name" class="spaced text-center">
+            <i class="fa fa-history"></i>
+            Version {{response.version}} submitted by
+            <a ng-href="#/user/{{response.user.id}}">
+                {{response.user.name}}</a>,
+            {{response.modified * 1000 | timeAgo:'medium'}}
+        </p>
+        <p ng-if="!response.user.name" class="spaced text-center">
+            <i class="fa fa-history"></i>
+            Response not submitted yet.
+        </p>
+    </div>
+
     <div class="spaced btn-group btn-group-justified hidden-print
                 btn-group-arrow-right">
         <div class="btn-group">
@@ -412,18 +427,5 @@
     </small></p>
     </div>
 </div>
-
-<docs ng-if="!edit.model && assessment && response.user.name">
-    <i class="fa-li fa fa-history fa-border"></i>
-    <p>
-        Version {{response.version}} -
-        {{response.modified * 1000 | timeAgo}}
-    </p>
-    <p>
-        Submitted by
-        <a ng-href="#/user/{{response.user.id}}">
-            {{response.user.name}}</a>
-    </p>
-</docs>
 
 </div>
