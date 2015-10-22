@@ -766,4 +766,22 @@ angular.module('vpac.widgets', [])
 }])
 
 
+.directive('formNavWarn', [function() {
+    return {
+        restrict: 'AC',
+        require: 'form',
+        link: function(scope, elem, attrs, form) {
+            scope.$on('$locationChangeStart', function(event) {
+                if (form.$dirty) {
+                    var answer = confirm("You have unsaved changes. Are you" +
+                        "sure you want to leave this page?");
+                    if (!answer) {
+                        event.preventDefault();
+                    }
+                }
+            });
+        }
+    };
+}])
+
 ;

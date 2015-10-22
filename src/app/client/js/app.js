@@ -806,16 +806,6 @@ angular.module('wsaa.aquamark',
         $window.ga('send', 'pageview', '/' + $route.current.loadedTemplateUrl);
     });
 
-    $rootScope.$on('$locationChangeStart', function( event ) {
-        var element = angular.element($('form'));
-        if (element.length && (!element.$dirty)) {
-            var answer = confirm("Are you sure you want to leave this page?")
-            if (!answer) {
-                event.preventDefault();
-            }
-        }
-    });
-
     var oneDay = 60 * 60 * 24;
     timeAgo.settings.allowFuture = true;
     timeAgo.settings.fullDateAfterSeconds = oneDay * 3;
