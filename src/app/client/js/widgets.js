@@ -722,7 +722,7 @@ angular.module('vpac.widgets', [])
         link: function(scope, elem, attrs) {
             docsService.add(elem);
             scope.$on('$destroy', function() {
-                elem.remove();
+                docsService.remove(elem);
             });
         }
     };
@@ -734,8 +734,10 @@ angular.module('vpac.widgets', [])
     return {
         restrict: 'EA',
         scope: {},
-        template: '<ul class="docs fa-ul fa-ul-big"></ul>',
+        template: '<h3 ng-show="ndocs > 0">Documentation</h3>' +
+                  '<ul class="docs fa-ul fa-ul-big"></ul>',
         link: function(scope, elem, attrs) {
+            scope.ndocs = 0;
             docsService.add = function(transcludeElem) {
                 var container = elem.children('ul.docs');
                 var path = scopeUtils.path(transcludeElem.scope());
@@ -750,6 +752,11 @@ angular.module('vpac.widgets', [])
                     child.before(transcludeElem);
                 else
                     container.append(transcludeElem);
+                scope.ndocs++;
+            };
+            docsService.remove = function(transcludeElem) {
+                transcludeElem.remove();
+                scope.ndocs--;
             };
             scope.$on('$destroy', function() {
                 docsService.add = null;
