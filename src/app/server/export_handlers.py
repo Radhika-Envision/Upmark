@@ -469,7 +469,9 @@ class Exporter():
 
         format = workbook.add_format()
         format.set_text_wrap()
+        format_no_wrap = workbook.add_format()
         format_comment = workbook.add_format()
+        format_comment.set_text_wrap()
         format_percent = workbook.add_format()
         format_percent.set_num_format(10)
         format_no_wrap = workbook.add_format()
@@ -492,7 +494,10 @@ class Exporter():
                     [len(response.response_parts) 
                         for response in assessment.ordered_responses])
                 worksheet.set_column(level_length + 1, 
-                    level_length + max_len_of_response, 10)
+                    level_length + max_len_of_response, 12)
+                worksheet.set_column(level_length + max_len_of_response + 3, 
+                    level_length + max_len_of_response + 3, 200)
+
                 # Header from heirarchy levels
                 self.write_response_header(
                     workbook, worksheet, levels, max_len_of_response)
@@ -526,7 +531,7 @@ class Exporter():
 
     def write_response_header(self, workbook, sheet, levels, max_response):
         format = workbook.add_format()
-        format.set_text_wrap()
+        # format.set_text_wrap()
         format.set_bold()
 
         for level in levels:
