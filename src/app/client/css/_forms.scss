@@ -140,19 +140,6 @@ div[textarea-label] {
     background-color: $button-bg;
     border-color: transparent;
 
-    &[disabled] {
-        color: darken($button-bg, 20%);
-        background-color: $button-bg;
-        border-width: 1px;
-        padding-bottom: 6px - 1px;
-        border-color: transparent;
-    }
-
-    &:hover, &:active, &.active, &.active:hover, &.active:focus, &:focus,
-    &:active.focus, &:active:focus {
-        outline: none;
-        border-color: transparent;
-    }
     &:hover, &.active:focus, &:focus {
         &:not([disabled]) {
             background-color: lighten($button-bg, 3%);
@@ -161,7 +148,6 @@ div[textarea-label] {
         }
     }
     &:active, &.active, &.active:focus, &:active.focus, &:active:focus {
-        box-shadow: none;
         color: $button-fg;
     }
     .fa-badge {
@@ -185,6 +171,35 @@ div[textarea-label] {
         @include transform(scale(1));
         border-radius: 4px !important;
     }
+}
+
+.btn, .form-control, .open > .dropdown-toggle.btn-default {
+    &[disabled] {
+        color: darken($button-bg, 20%);
+        background-color: $button-bg;
+        border-width: 1px;
+        padding-bottom: 6px - 1px;
+        border-color: transparent;
+    }
+    &:hover, &:active, &.active, &.active:hover, &.active:focus, &:focus,
+    &:active.focus, &:active:focus {
+        outline: none;
+        border-color: transparent;
+        box-shadow: none;
+    }
+}
+
+@include keyframes(pulse-scale) {
+    from {
+        transform: scale(1);
+    }
+    to {
+        transform: scale(1.1);
+    }
+}
+
+.btn-alert {
+    @include animation(1s pulse-scale ease-out infinite alternate);
 }
 
 // On large screens, arrange horizontally

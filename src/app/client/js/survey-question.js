@@ -1976,7 +1976,16 @@ angular.module('wsaa.surveyQuestions', [
         // Create an empty one if it doesn't exist yet.
         // Create an empty response for the time being so the response control
         // doesn't create its own.
-        $scope.response = {};
+        $scope.lastSavedResponse = null;
+        $scope.setResponse = function(response) {
+            $scope.response = response;
+            $scope.lastSavedResponse = angular.copy(response);
+        };
+
+        $scope.setResponse({
+            responseParts: [],
+            comment: ''
+        });
         Response.get({
             measureId: $scope.measure.id,
             assessmentId: $scope.assessment.id
@@ -1990,20 +1999,20 @@ angular.module('wsaa.surveyQuestions', [
                         "Failed to get response details: " + details.statusText);
                     return;
                 }
-                $scope.response = new Response({
+                $scope.setResponse(new Response({
                     measureId: $scope.measure.id,
                     assessmentId: $scope.assessment.id,
                     responseParts: [],
                     comment: '',
                     notRelevant: false,
                     approval: 'draft'
-                });
+                }));
             }
         );
 
         var interceptingLocation = false;
         $scope.$on('$locationChangeStart', function(event, next, current) {
-            if (!$scope.responseDirty || interceptingLocation)
+            if (!$scope.response.$dirty || interceptingLocation)
                 return;
             event.preventDefault();
             interceptingLocation = true;
@@ -2027,53 +2036,64 @@ angular.module('wsaa.surveyQuestions', [
                 }
             );
         });
-    }
-    $scope.saveResponse = function() {
-        return $scope.response.$save().then(
-            function success(response) {
-                $scope.$broadcast('response-saved');
-                Notifications.set('edit', 'success', "Saved", 5000);
-                return response;
-            },
-            function failure(details) {
-                Notifications.set('edit', 'error',
-                    "Could not save response: " + details.statusText);
-                return $q.reject(details);
-            });
-    };
-    $scope.toggleNotRelvant = function() {
-        var oldValue = $scope.response.notRelevant;
-        $scope.response.notRelevant = !oldValue;
-        $scope.response.$save().then(
-            function success() {
-                Notifications.set('edit', 'success', "Saved", 5000);
-            },
-            function failure(details) {
-                if (details.status == 403) {
-                    Notifications.set('edit', 'info',
-                        "Not saved yet: " + details.statusText);
-                } else {
-                    $scope.response.notRelevant = oldValue;
+
+        $scope.saveResponse = function() {
+            return $scope.response.$save().then(
+                function success(response) {
+                    $scope.$broadcast('response-saved');
+                    Notifications.set('edit', 'success', "Saved", 5000);
+                    $scope.setResponse(response);
+                    return response;
+                },
+                function failure(details) {
+                    Notifications.set('edit', 'error',
+                        "Could not save response: " + details.statusText);
+                    return $q.reject(details);
+                });
+        };
+        $scope.resetResponse = function() {
+            $scope.response = angular.copy($scope.lastSavedResponse);
+        };
+        $scope.toggleNotRelvant = function() {
+            var oldValue = $scope.response.notRelevant;
+            $scope.response.notRelevant = !oldValue;
+            $scope.response.$save().then(
+                function success(response) {
+                    Notifications.set('edit', 'success', "Saved", 5000);
+                    $scope.setResponse(response);
+                },
+                function failure(details) {
+                    if (details.status == 403) {
+                        Notifications.set('edit', 'info',
+                            "Not saved yet: " + details.statusText);
+                    } else {
+                        $scope.response.notRelevant = oldValue;
+                        Notifications.set('edit', 'error',
+                            "Could not save response: " + details.statusText);
+                    }
+                });
+        };
+        $scope.setState = function(state) {
+            $scope.response.$save({approval: state},
+                function success(response) {
+                    Notifications.set('edit', 'success', "Saved", 5000);
+                    $scope.setResponse(response);
+                },
+                function failure(details) {
                     Notifications.set('edit', 'error',
                         "Could not save response: " + details.statusText);
                 }
-            });
-    };
-    $scope.setState = function(state) {
-        $scope.response.$save({approval: state},
-            function success() {
-                Notifications.set('edit', 'success', "Saved", 5000);
-            },
-            function failure(details) {
-                Notifications.set('edit', 'error',
-                    "Could not save response: " + details.statusText);
-            }
-        );
-    };
-    $scope.setResponse = function(response) {
-        $scope.response = response;
-        $scope.responseDirty = false;
-    };
+            );
+        };
+        $scope.$watch('response', function() {
+            console.log('changed');
+            $scope.response.$dirty = !angular.equals(
+                $scope.response, $scope.lastSavedResponse);
+        }, true);
+        $scope.$watch('response.$dirty', function($dirty) {
+            console.log($dirty);
+        });
+    }
 
     $scope.$watch('measure', function(measure) {
         $scope.structure = Structure(measure);

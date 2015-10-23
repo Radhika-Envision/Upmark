@@ -201,8 +201,16 @@
         </docs>
 
         <button class="btn btn-default btn-round"
+                title="Reset"
+                ng-click="resetResponse()">
+            <i class="fa fa-times fa-fw"></i></button>
+
+        <button class="btn btn-round"
                 title="Save response"
-                ng-click="saveResponse()">
+                ng-click="saveResponse()"
+                ng-class="response.$dirty ?
+                          'btn-primary btn-alert' :
+                          'btn-default'">
             <i class="fa fa-check fa-fw"></i></button>
     </response>
 

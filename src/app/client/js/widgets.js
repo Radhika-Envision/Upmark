@@ -335,7 +335,7 @@ angular.module('vpac.widgets', [])
     };
 
     Editor.prototype.destroy = function() {
-        this.cancel();
+        this.model = null;
         this.scope = null;
         this.getter = null;
     };
