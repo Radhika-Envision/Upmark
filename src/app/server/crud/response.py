@@ -206,8 +206,8 @@ class ResponseHandler(handlers.BaseHandler):
                         modified = self.request_son["modified"]
                         ## rounding happen.
                         if modified is None or modified < int(response.modified.timestamp()):
-                            raise model.ModelError("Another person have already" +
-                                " answered this question.\n" +
+                            raise handlers.ModelError("Another person have already" +
+                                " answered this question." +
                                 "Please refresh this page.")
 
 
