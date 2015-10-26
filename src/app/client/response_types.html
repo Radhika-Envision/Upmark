@@ -103,7 +103,15 @@
                         placeholder="{{rt.parts.length > 1 ?
                             'Part name (required for multi-part response types)' :
                             'Part name (optional for one-part response types)'}}"
-                        title="Part name" />
+                        title="Part name" /><br />
+                    <input type="text" class="form-control"
+                        id="ltitle{{rti}}-{{$index}}"
+                        name="ltitle{{rti}}-{{$index}}"
+                        ng-model="part.description" empty-as-null
+                        placeholder="{{rt.parts.length > 1 ?
+                            'Part description (required for multi-part response types)' :
+                            'Part description (optional for one-part response types)'}}"
+                        title="Part description" />
                 </td>
                 <td class="shrink">
                     <button class="btn btn-default btn-round" title="Remove"

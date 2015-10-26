@@ -200,6 +200,9 @@ class ResponseHandler(handlers.BaseHandler):
                     if hours_since_update < 8 and same_user:
                         response.version_on_update = False
 
+
+                ### check multi user assessment.
+
                 if approval != '':
                     self._check_approval_change(response, assessment, approval)
 
