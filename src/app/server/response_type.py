@@ -34,7 +34,6 @@ class ResponseType:
     def __init__(self, rt_def):
         self.id_ = rt_def['id']
         self.name = rt_def['name']
-        self.description = rt_def['description']
         self.parts = [ResponsePart(p_def) for p_def in rt_def['parts']]
         self.formula = rt_def.get('formula', None)
 

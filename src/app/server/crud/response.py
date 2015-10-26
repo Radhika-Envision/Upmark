@@ -194,14 +194,22 @@ class ResponseHandler(handlers.BaseHandler):
                         approval='draft')
                     session.add(response)
                 else:
+                    same_user = response.user.id == self.current_user.id
                     td = datetime.datetime.utcnow() - response.modified
                     hours_since_update = td.seconds / 60 / 60
-                    same_user = response.user.id == self.current_user.id
-                    if hours_since_update < 8 and same_user:
-                        response.version_on_update = False
 
+                    if same_user:
+                        if hours_since_update < 8:
+                            response.version_on_update = False
+                    else:
+                        ## different user checking
+                        modified = self.request_son["modified"]
+                        ## rounding happen.
+                        if modified is None or modified < int(response.modified.timestamp()):
+                            raise model.ModelError("Another person have already" +
+                                " answered this question.\n" +
+                                "Please refresh this page.")
 
-                ### check multi user assessment.
 
                 if approval != '':
                     self._check_approval_change(response, assessment, approval)
