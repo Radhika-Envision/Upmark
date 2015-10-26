@@ -34,6 +34,7 @@ class ResponseType:
     def __init__(self, rt_def):
         self.id_ = rt_def['id']
         self.name = rt_def['name']
+        self.description = rt_def['description']
         self.parts = [ResponsePart(p_def) for p_def in rt_def['parts']]
         self.formula = rt_def.get('formula', None)
 
@@ -97,6 +98,7 @@ class ResponsePart:
     def __init__(self, p_def):
         self.id_ = p_def.get('id', None)
         self.name = p_def.get('name', None)
+        self.description = p_def.get('description', None)
         self.options = [ResponseOption(o_def)
                         for o_def in p_def['options']]
 

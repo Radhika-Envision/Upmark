@@ -6,6 +6,7 @@
             {
                 "id": "dev",
                 "name": "Development",
+                "description": "How evolved are our processes",
                 "options": [
                     {"score": 0.48, "name": "Informal"},
                     {"score": 0.56, "name": "Aware"},
@@ -17,6 +18,7 @@
             {
                 "id": "doc",
                 "name": "Documentation",
+                "description": "How well documented is our process",
                 "options": [
                     {"score": 0.12, "name": "None"},
                     {"score": 0.14, "if": "dev__i >= 1", "name": "Minimal"},
@@ -28,6 +30,7 @@
             {
                 "id": "cov",
                 "name": "Coverage & Frequency",
+                "description": "How evolved are our processes",
                 "options": [
                     {"score": 0.12, "name": "Sparse"},
                     {"score": 0.24, "name": "Limited"},
@@ -39,6 +42,7 @@
             {
                 "id": "eff",
                 "name": "Effectiveness",
+                "description": "How well do our processes deliver the desired outcomes",
                 "options": [
                     {"score": 0.08, "name": "Rarely"},
                     {"score": 0.16, "name": "Occasionally"},

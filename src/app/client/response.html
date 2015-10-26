@@ -16,7 +16,8 @@
 
 <ol class="responses list-unstyled" ng-if="!response.notRelevant">
     <li ng-repeat="part in responseType.parts" class="clearfix"
-            ng-class="{active: $index == state.active}">
+            ng-class="{active: $index == state.active}"
+            title="{{part.description}}">
         <div ng-if="part.name" class="hidden-print">
             <label ng-click="state.active = $index">{{part.name}}</label>
         </div>

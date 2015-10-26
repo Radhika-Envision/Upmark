@@ -147,6 +147,8 @@ class Survey(Base):
                         All(str, Length(min=1)), None),
                     Required('name', default=None): Any(
                         All(str, Length(min=1)), None),
+                    Optional('description', default=None): Any(
+                        All(str, Length(min=1)), None),
                     'options': All([
                         {
                             'score': All(Coerce(float), Range(min=0, max=1)),
