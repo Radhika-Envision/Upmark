@@ -727,9 +727,9 @@ class Response(Versioned, Base):
             info={'version': True}
         ),
         UniqueConstraint('measure_id', 'assessment_id'),
-        Index('rnode_assessment_id_approval_index', assessment_id, approval),
-        Index('rnode_assessment_id_measure_id_index', assessment_id, measure_id),
-        Index('rnode_assessment_id_survey_id_index', assessment_id, survey_id),
+        Index('response_assessment_id_approval_index', assessment_id, approval),
+        Index('response_assessment_id_measure_id_index', assessment_id, measure_id),
+        Index('response_assessment_id_survey_id_index', assessment_id, survey_id),
     )
 
     survey = relationship(Survey)
