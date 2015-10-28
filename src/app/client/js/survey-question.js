@@ -2088,13 +2088,9 @@ angular.module('wsaa.surveyQuestions', [
             );
         };
         $scope.$watch('response', function() {
-            console.log('changed');
             $scope.response.$dirty = !angular.equals(
                 $scope.response, $scope.lastSavedResponse);
         }, true);
-        $scope.$watch('response.$dirty', function($dirty) {
-            console.log($dirty);
-        });
     }
 
     $scope.$watch('measure', function(measure) {

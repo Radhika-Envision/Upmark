@@ -220,7 +220,10 @@
             Version {{response.version}} submitted by
             <a ng-href="#/user/{{response.user.id}}">
                 {{response.user.name}}</a>,
-            {{response.modified * 1000 | timeAgo:'medium'}}
+            {{response.modified * 1000 | timeAgo:'medium'}}.
+            <span ng-if="response.$dirty" class="visible-print-inline">
+                Some modifications have not been saved.
+            </span>
         </p>
         <p ng-if="!response.user.name" class="spaced text-center">
             <i class="fa fa-history"></i>
