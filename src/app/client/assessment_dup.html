@@ -56,7 +56,13 @@
             <a ng-href="#/assessment/new?survey={{survey.id}}&organisation={{organisation.id}}&duplicate={{assessment.id}}">
                 <h4>{{assessment.title}}</h4>
                 <p>
-                    Created {{assessment.created * 1000 | timeAgo:'medium'}}
+                    Created
+                    <span class="hidden-print">
+                        {{assessment.created * 1000 | timeAgo:'medium'}}
+                    </span>
+                    <span class="visible-print-inline">
+                        {{assessment.created * 1000 | date:'medium'}}.
+                    </span>
                     <span class="text-muted">in program</span>
                     <i>{{assessment.survey.title}}</i>
                 </p>

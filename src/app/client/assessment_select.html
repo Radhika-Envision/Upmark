@@ -49,7 +49,12 @@
                     </span></h4>
                 <p class="truncate">
                     {{a.hierarchy.title}} in {{a.survey.title}}
-                    - {{a.created * 1000 | timeAgo:'fullDate'}}
+                    <span class="hidden-print">
+                        - {{a.created * 1000 | timeAgo:'medium'}}
+                    </span>
+                    <span class="visible-print-inline">
+                        - {{a.created * 1000 | date:'medium'}}
+                    </span>
                     - {{a.organisation.name}}
                 </p>
             </a>

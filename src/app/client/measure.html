@@ -220,7 +220,12 @@
             Version {{response.version}} submitted by
             <a ng-href="#/user/{{response.user.id}}">
                 {{response.user.name}}</a>,
-            {{response.modified * 1000 | timeAgo:'medium'}}.
+            <span class="hidden-print">
+                {{response.modified * 1000 | timeAgo:'medium'}}.
+            </span>
+            <span class="visible-print-inline">
+                {{response.modified * 1000 | date:'medium'}}.
+            </span>
             <span ng-if="response.$dirty" class="visible-print-inline">
                 Some modifications have not been saved.
             </span>
