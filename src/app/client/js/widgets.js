@@ -826,4 +826,30 @@ angular.module('vpac.widgets', [])
     };
 }])
 
+
+/**
+ * Watches a named form (by ID) for changes; when the form becomes dirty, the
+ * button this is applied to changes CSS classes to be highlighted.
+ */
+.directive('formSaveButton', [function() {
+    return {
+        restrict: 'A',
+        scope: {
+            target: '@formSaveButton'
+        },
+        link: function(scope, elem, attrs) {
+            scope.$watch(
+                function watch() {
+                    var tElem = $('#' + scope.target);
+                    var tField = tElem.attr('name');
+                    return tElem.scope()[tField].$dirty;
+                }, function(dirty) {
+                    elem.toggleClass('btn-primary btn-alert', dirty);
+                    elem.toggleClass('btn-default', !dirty);
+                }
+            );
+        }
+    };
+}])
+
 ;
