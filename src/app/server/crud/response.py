@@ -202,7 +202,9 @@ class ResponseHandler(handlers.BaseHandler):
                         response.version_on_update = False
 
                     modified = self.request_son.get("modified", 0)
-                    if modified < response.modified.timestamp():
+                    # Convert to int to avoid string conversion errors during
+                    # JSON marshalling.
+                    if int(modified) < int(response.modified.timestamp()):
                         raise handlers.ModelError(
                             "This response has changed since you loaded the"
                             " page. Please copy or remember your changes and"
