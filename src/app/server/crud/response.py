@@ -198,18 +198,15 @@ class ResponseHandler(handlers.BaseHandler):
                     td = datetime.datetime.utcnow() - response.modified
                     hours_since_update = td.seconds / 60 / 60
 
-                    if same_user:
-                        if hours_since_update < 8:
-                            response.version_on_update = False
-                    else:
-                        ## different user checking
-                        modified = self.request_son["modified"]
-                        ## rounding happen.
-                        if modified is None or modified < int(response.modified.timestamp()):
-                            raise handlers.ModelError("Another person have already" +
-                                " answered this question." +
-                                "Please refresh this page.")
+                    if same_user and hours_since_update < 8:
+                        response.version_on_update = False
 
+                    modified = self.request_son.get("modified", 0)
+                    if modified < response.modified.timestamp():
+                        raise handlers.ModelError(
+                            "This response has changed since you loaded the"
+                            " page. Please copy or remember your changes and"
+                            " refresh the page.")
 
                 if approval != '':
                     self._check_approval_change(response, assessment, approval)
