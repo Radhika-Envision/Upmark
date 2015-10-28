@@ -30,7 +30,7 @@
             {
                 "id": "cov",
                 "name": "Coverage & Frequency",
-                "description": "How evolved are our processes",
+                "description": "How widespread and applied are our processes",
                 "options": [
                     {"score": 0.12, "name": "Sparse"},
                     {"score": 0.24, "name": "Limited"},
