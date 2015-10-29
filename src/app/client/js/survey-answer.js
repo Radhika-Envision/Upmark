@@ -322,6 +322,37 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                 return isEnabled;
             };
 
+            $scope.$watch('responseType.parts', function(parts) {
+                if (!parts) {
+                    $scope.docs = [];
+                    return;
+                }
+
+                var docs = [];
+                for (var i = 0; i < parts.length; i++) {
+                    var part = parts[i];
+                    var doc = {
+                        index: i,
+                        name: part.name,
+                        description: part.description,
+                        options: []
+                    };
+                    for (var j = 0; j < part.options.length; j++) {
+                        var opt = part.options[j];
+                        if (opt.description) {
+                            doc.options.push({
+                                index: j,
+                                name: opt.name,
+                                description: opt.description
+                            });
+                        }
+                    }
+                    if (doc.description || doc.options.length)
+                        docs.push(doc);
+                }
+                $scope.docs = docs;
+            }, true);
+
             $scope.$watch('responseType.parts.length', function(length) {
                 $scope.response.responseParts = $scope.response.responseParts
                     .slice(0, length);

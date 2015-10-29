@@ -49,16 +49,16 @@
     </li>
 </ol>
 
-<docs>
+<docs ng-if="docs.length">
     <i class="fa-li fa fa-check-square-o fa-border"></i>
 
-    <div ng-repeat="part in responseType.parts">
-        <h3>Response Part {{$index + 1}}. {{part.name}}</h3>
+    <div ng-repeat="part in docs">
+        <h3>Response Part {{part.index + 1}}. {{part.name}}</h3>
         <p ng-if="part.description" class="formatted"
             >{{part.description}}</p>
         <dl ng-init="pi = $index">
             <dt ng-repeat-start="o in part.options" ng-if="o.description">
-                {{o.name}}
+                Option {{o.index + 1}}. {{o.name}}
             </dt>
             <dd ng-repeat-end class="formatted" ng-if="o.description"
                 >{{o.description}}</dd>
