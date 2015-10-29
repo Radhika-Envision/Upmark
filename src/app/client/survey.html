@@ -17,7 +17,7 @@
             <i class="fa fa-trash-o"></i></button>
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
-                ng-if="edit.model && edit.model.id">
+                ng-if="edit.model && edit.model.id && !rtEdit.rt">
             <i class="fa fa-times"></i></button>
         <button class="btn btn-default btn-round" title="Save"
                 ng-click="edit.save()"
