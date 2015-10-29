@@ -53,14 +53,23 @@
     <i class="fa-li fa fa-check-square-o fa-border"></i>
 
     <div ng-repeat="part in docs">
-        <h3>Response Part {{part.index + 1}}. {{part.name}}</h3>
+        <h3 ng-if="docs.length == 1">
+            Response {{part.name}}
+        </h3>
+        <h3 ng-if="docs.length > 1">
+            Response Part {{part.index + 1}}. {{part.name}}
+        </h3>
         <p ng-if="part.description" class="formatted"
             >{{part.description}}</p>
         <dl ng-init="pi = $index">
-            <dt ng-repeat-start="o in part.options" ng-if="o.description">
+            <dt ng-repeat-start="o in part.options"
+                    ng-if="o.description"
+                    ng-class="o.active ? 'active' : null">
                 Option {{o.index + 1}}. {{o.name}}
             </dt>
-            <dd ng-repeat-end class="formatted" ng-if="o.description"
+            <dd ng-repeat-end class="formatted"
+                    ng-if="o.description"
+                    ng-class="o.active ? 'active' : null"
                 >{{o.description}}</dd>
         </dl>
     </div>

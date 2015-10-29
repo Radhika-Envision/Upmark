@@ -253,6 +253,12 @@ ul.docs > li:not(.printable) {
 dt {
     margin-top: 8px;
 }
+dt.active:before {
+    @include fontawesome("\f0da");
+    display: block;
+    position: absolute;
+    left: -12px;
+}
 
 .nudge-right {
     position: relative;
