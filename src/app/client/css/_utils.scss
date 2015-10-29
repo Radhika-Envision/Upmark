@@ -53,6 +53,14 @@
     animation: $rules;
 }
 
+@mixin animation-delay($rules...) {
+    -webkit-animation-delay: $rules;
+    -moz-animation-delay: $rules;
+    -ms-animation-delay: $rules;
+    -o-animation-delay: $rules;
+    animation-delay: $rules;
+}
+
 @mixin keyframes($name) {
     @-webkit-keyframes #{$name} { @content; }
     @-moz-keyframes #{$name} { @content; }

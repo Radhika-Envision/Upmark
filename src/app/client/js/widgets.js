@@ -784,4 +784,30 @@ angular.module('vpac.widgets', [])
     };
 }])
 
+
+.factory('spinnerService', [function() {
+    return {
+        nLoading: 0
+    };
+}])
+
+
+.directive('spinner', ['spinnerService', 'Enqueue',
+        function(spinnerService, Enqueue) {
+    return {
+        restrict: 'C',
+        link: function(scope, elem, attrs, form) {
+            var update = Enqueue(function() {
+                elem.toggleClass('in', spinnerService.nLoading > 0);
+            }, 500);
+            scope.$watch(
+                function() {
+                    return spinnerService.nLoading > 0;
+                },
+                update
+            );
+        }
+    };
+}])
+
 ;
