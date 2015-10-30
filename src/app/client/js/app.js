@@ -539,18 +539,31 @@ angular.module('wsaa.aquamark',
                             root: qnodeId ? null : ''
                         }).$promise;
                     }],
-                    stats1: ['Statistics', '$route', 'assessment1',
-                            function(Statistics, $route, assessment1) {
+                    stats1: ['Statistics', '$route', 'assessment1', '$q',
+                             'assessment2',
+                            function(Statistics, $route, assessment1, $q,
+                                assessment2) {
                         return Statistics.get({
                             id: assessment1.survey.id,
                             parentId: $route.current.params.qnode == '' ?
                                 null : $route.current.params.qnode
-                        }).$promise;
+                        }).$promise.then(function(stats1) {
+                            if (!assessment2 && stats1.length == 0) {
+                                return $q.reject(
+                                    "There is no data for that category");
+                            }
+                            else if (stats1.length == 0) {
+                                return $q.reject(
+                                    "There is no data for that category of" +
+                                    " the first survey/submission");
+                            }
+                            return stats1;
+                        });
                     }],
                     stats2: ['Statistics', '$route', 'assessment1',
-                             'assessment2', 'stats1',
+                             'assessment2', 'stats1', '$q',
                             function(Statistics, $route, assessment1,
-                                     assessment2, stats1) {
+                                     assessment2, stats1, $q) {
                         if (!assessment2)
                             return null;
                         if (assessment1.survey.id == assessment2.survey.id)
@@ -559,7 +572,14 @@ angular.module('wsaa.aquamark',
                             id: assessment2.survey.id,
                             parentId: $route.current.params.qnode == '' ?
                                 null : $route.current.params.qnode
-                        }).$promise;
+                        }).$promise.then(function(stats1) {
+                            if (stats1.length == 0) {
+                                return $q.reject(
+                                    "There is no data for that category of" +
+                                    " the second survey/submission");
+                            }
+                            return stats1;
+                        });
                     }],
                     qnode1: ['QuestionNode', '$route', 'assessment1',
                             function(QuestionNode, $route, assessment1) {
@@ -812,6 +832,10 @@ angular.module('wsaa.aquamark',
         var error;
         if (rejection && rejection.statusText)
             error = rejection.statusText;
+        else if (rejection && rejection.message)
+            error = rejection.message;
+        else if (angular.isString(rejection))
+            error = rejection;
         else
             error = "Object not found";
         log.error("Failed to navigate to {}", $location.url());
