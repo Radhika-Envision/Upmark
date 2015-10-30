@@ -1406,14 +1406,16 @@ angular.module('wsaa.surveyQuestions', [
     };
 
     $scope.getNavUrl = function(item, key) {
+        var aid1 = $scope.assessment1.id;
+        var aid2 = $scope.assessment2 ? $scope.assessment2.id : ''
         if (item.path == 'qnode') {
             return format(
                 '#/statistics?assessment1={}&assessment2={}&qnode={}',
-                $scope.assessment1.id, $scope.assessment2.id, key);
+                aid1, aid2, key);
         } else if (item.path == 'assessment') {
             return format(
                 '#/statistics?assessment1={}&assessment2={}',
-                $scope.assessment1.id, $scope.assessment2.id);
+                aid1, aid2);
         }
         return null;
     };
