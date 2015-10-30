@@ -770,6 +770,10 @@ angular.module('wsaa.aquamark',
 ])
 
 
+/*
+ * Install an HTTP interceptor to make error reasons easier to use. All HTTP
+ * responses will have the "reason" in the statusText field.
+ */
 .config(['$httpProvider',
     function($httpProvider) {
         $httpProvider.interceptors.push(['$q', function($q) {
@@ -800,26 +804,11 @@ angular.module('wsaa.aquamark',
 
 
 .run(['$rootScope', '$window', '$location', 'Notifications', 'log', 'timeAgo',
-        '$route', 'checkLogin', 'spinnerService',
+        '$route', 'checkLogin',
         function($rootScope, $window, $location, Notifications, log, timeAgo,
-            $route, checkLogin, spinnerService) {
-
-    $rootScope.routeChanging = true;
-    $rootScope.$on('$routeChangeStart',
-            function(event, current, previous, rejection) {
-        $rootScope.routeChanging = true;
-    });
-    $rootScope.$watch('routeChanging', function(changing) {
-        if (changing)
-            spinnerService.nLoading++;
-        else
-            spinnerService.nLoading--;
-        console.log(spinnerService.nLoading);
-    });
-
+            $route, checkLogin) {
     $rootScope.$on('$routeChangeError',
             function(event, current, previous, rejection) {
-        $rootScope.routeChanging = false;
         var error;
         if (rejection && rejection.statusText)
             error = rejection.statusText;
@@ -841,7 +830,6 @@ angular.module('wsaa.aquamark',
     });
 
     $rootScope.$on('$routeChangeSuccess', function(event) {
-        $rootScope.routeChanging = false;
         $window.ga('send', 'pageview', '/' + $route.current.loadedTemplateUrl);
     });
 

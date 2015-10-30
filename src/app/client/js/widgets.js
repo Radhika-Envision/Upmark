@@ -785,26 +785,42 @@ angular.module('vpac.widgets', [])
 }])
 
 
-.factory('spinnerService', [function() {
-    return {
-        nLoading: 0
+.directive('spinner', ['Enqueue',
+        function(Enqueue) {
+    var pendingRequests = 0;
+    var patchOpen = function() {
+        var oldOpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(method, url, async, user, pass) {
+            pendingRequests++;
+            this.addEventListener("readystatechange", function() {
+                if (this.readyState == 4)
+                    pendingRequests--;
+            }, false);
+            oldOpen.call(this, method, url, async, user, pass);
+        };
     };
-}])
+    patchOpen();
 
-
-.directive('spinner', ['spinnerService', 'Enqueue',
-        function(spinnerService, Enqueue) {
     return {
         restrict: 'C',
         link: function(scope, elem, attrs, form) {
-            var update = Enqueue(function() {
-                elem.toggleClass('in', spinnerService.nLoading > 0);
-            }, 500);
+            var show = Enqueue(function() {
+                elem.toggleClass('in', true);
+            }, 250);
+            var hide = function() {
+                Enqueue.cancel(show);
+                elem.toggleClass('in', false);
+            };
             scope.$watch(
                 function() {
-                    return spinnerService.nLoading > 0;
+                    return pendingRequests > 0;
                 },
-                update
+                function(pending) {
+                    if (pending)
+                        show();
+                    else
+                        hide();
+                }
             );
         }
     };
