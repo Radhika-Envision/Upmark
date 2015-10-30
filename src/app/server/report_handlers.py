@@ -605,7 +605,6 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
             path = os.path.join(tempdir, 'query_result.json')
             yield self.export_json(path, query, limit)
 
-            self.write_reasons()
             self.set_header("Content-Type", "application/json")
             self.set_header(
                 'Content-Disposition', 'attachment; filename=query_result.json')
@@ -618,7 +617,6 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
             path = os.path.join(tempdir, 'query_result.csv')
             yield self.export_csv(path, query, limit)
 
-            self.write_reasons()
             self.set_header("Content-Type", "text/csv")
             self.set_header(
                 'Content-Disposition', 'attachment; filename=query_result.csv')
@@ -631,7 +629,6 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
             path = os.path.join(tempdir, 'query_result.xlsx')
             yield self.export_excel(path, query, limit)
 
-            self.write_reasons()
             self.set_header("Content-Type",
                             "application/vnd.openxmlformats-officedocument"
                             ".spreadsheetml.sheet")

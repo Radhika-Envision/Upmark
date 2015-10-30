@@ -101,7 +101,6 @@ class MeasureHandler(
                 son['survey'] = to_son(measure.survey)
 
         self.set_header("Content-Type", "application/json")
-        self.write_reasons()
         self.write(json_encode(son))
         self.finish()
 
@@ -157,7 +156,6 @@ class MeasureHandler(
                 mson['orphan'] = len(measure.parents) == 0
 
         self.set_header("Content-Type", "application/json")
-        self.write_reasons()
         self.write(json_encode(sons))
         self.finish()
 

@@ -12,9 +12,10 @@ from alembic import command
 from sqlalchemy import func
 import sqlalchemy.engine.reflection
 import sqlalchemy.orm
+import tornado
+import tornado.httpserver
 import tornado.options
 import tornado.web
-import tornado.httpserver
 
 
 log = logging.getLogger('app')
@@ -263,7 +264,8 @@ def start_web_server():
 
     if log.isEnabledFor(logging.INFO):
         import socket
-        log.info("Settings: %s", settings)
+        log.info("Tornado version: %s", tornado.version)
+        log.info("Tornado settings: %s", settings)
         log.info(
             "Starting web application. Will be available on port %s", port)
         log.info("Try opening http://%s:%s", socket.gethostname(), port)

@@ -770,6 +770,30 @@ angular.module('wsaa.aquamark',
 ])
 
 
+.config(['$httpProvider',
+    function($httpProvider) {
+        $httpProvider.interceptors.push(['$q', function($q) {
+            return {
+                response: function(response) {
+                    var reason = response.headers('Operation-Details');
+                    if (reason)
+                        response.statusText = reason;
+                    return response;
+                },
+                responseError: function(rejection) {
+                    if (!rejection.headers)
+                        return $q.reject(rejection);
+                    var reason = rejection.headers('Operation-Details');
+                    if (reason)
+                        rejection.statusText = reason;
+                    return $q.reject(rejection);
+                }
+            };
+        }]);
+    }
+])
+
+
 .run(['$cacheFactory', '$http', function($cacheFactory, $http) {
     $http.defaults.cache = $cacheFactory('lruCache', {capacity: 100});
 }])
