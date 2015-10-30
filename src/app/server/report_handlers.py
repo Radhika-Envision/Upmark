@@ -480,7 +480,10 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
     def export_json(self, path, query, limit):
         with model.session_scope(readonly=True) as session, \
                 open(path, 'w', encoding='utf-8') as f:
-            result = session.execute(query)
+            try:
+                result = session.execute(query)
+            except sqlalchemy.exc.ProgrammingError as e:
+                raise handlers.ModelError.from_sa(e)
             cols = self.parse_cols(result.context.cursor)
 
             to_son = ToSon(include=[
@@ -515,7 +518,10 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
         with model.session_scope(readonly=True) as session, \
                 open(path, 'w', encoding='utf-8') as f:
             writer = csv.writer(f)
-            result = session.execute(query)
+            try:
+                result = session.execute(query)
+            except sqlalchemy.exc.ProgrammingError as e:
+                raise handlers.ModelError.from_sa(e)
             cols = self.parse_cols(result.context.cursor)
             writer.writerow([c['name'] for c in cols])
 
@@ -535,7 +541,10 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
     def export_excel(self, path, query, limit):
         with model.session_scope(readonly=True) as session, \
                 closing(xlsxwriter.Workbook(path)) as workbook:
-            result = session.execute(query)
+            try:
+                result = session.execute(query)
+            except sqlalchemy.exc.ProgrammingError as e:
+                raise handlers.ModelError.from_sa(e)
 
             format_str = workbook.add_format({
                 'valign': 'top'})
