@@ -47,7 +47,7 @@ class AqModelTestBase(unittest.TestCase):
         super().setUp()
         engine = model.connect_db(os.environ.get('DATABASE_URL'))
         engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
-        engine.execute("DROP ROLE analyst")
+        engine.execute("DROP ROLE IF EXISTS analyst")
         engine.execute("CREATE SCHEMA public")
         model.initialise_schema(engine)
         model.connect_db_ro(os.environ.get('DATABASE_URL'))
