@@ -609,9 +609,10 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/diff', {
-                templateUrl : 'diff.html',
-                controller : 'DiffCtrl',
+            .when('/diff/:survey1/:survey2/:hierarchy', {
+                templateUrl: 'diff.html',
+                controller: 'DiffCtrl',
+                reloadOnSearch: false,
                 resolve: {routeData: chain({
                     hierarchy1: ['Hierarchy', '$route',
                             function(Hierarchy, $route) {
@@ -625,15 +626,6 @@ angular.module('wsaa.aquamark',
                         return Hierarchy.get({
                             id: $route.current.params.hierarchy,
                             surveyId: $route.current.params.survey2
-                        }).$promise;
-                    }],
-                    diff: ['Diff', '$route',
-                            function(Diff, $route) {
-                        return Diff.get({
-                            surveyId1: $route.current.params.survey1,
-                            surveyId2: $route.current.params.survey2,
-                            hierarchyId: $route.current.params.hierarchy,
-                            ignoreTag: $route.current.params.ignoreTags
                         }).$promise;
                     }]
                 })}

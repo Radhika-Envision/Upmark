@@ -24,6 +24,17 @@
 </div>
 
 <div class="container">
+    <p class="spaced text-center">
+        <span ng-if="update.promise">
+            Pending.
+        </span>
+        <span ng-if="!update.promise && !diff.$resolved">
+            Generating report.
+            <span ng-if="longRunning">
+                This may take some time...
+            </span>
+        </span>
+    </p>
     <ul class="cardlist diff">
         <li ng-repeat="item in diff.diff">
             <h3>
