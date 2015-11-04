@@ -284,8 +284,8 @@ class AqHttpTestBase(AqModelTestBase, AsyncHTTPTestCase):
 
             self.assertEqual(
                 expected, response.code,
-                msg="{} failed: {}\n\n{}".format(
-                    path, response.reason, body))
+                msg="{} failed: {}\n\n{}\n(body may be truncated)".format(
+                    path, response.reason, body[:100]))
         if decode:
             return denormalise(json_decode(response.body))
         else:
