@@ -177,6 +177,11 @@ class AqModelTestBase(unittest.TestCase):
                                 'description': "Test",
                                 'measures': [0, 1],
                             },
+                            {
+                                'title': "Process 2",
+                                'description': "Test 2",
+                                'measures': [2],
+                            },
                         ],
                     },
                     {

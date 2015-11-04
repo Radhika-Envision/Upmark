@@ -247,7 +247,10 @@ angular.module('vpac.widgets', [])
                 that.getter.assign(that.scope, model);
                 that.model = null;
                 that.scope.$emit('EditSaved', model);
-                Notifications.set('edit', 'success', "Saved", 5000);
+                var message = "Saved";
+                if (getResponseHeaders('Operation-Details'))
+                    message += ": " + getResponseHeaders('Operation-Details');
+                Notifications.set('edit', 'success', message, 5000);
             } finally {
                 that.saving = false;
                 that = null;
@@ -297,7 +300,10 @@ angular.module('vpac.widgets', [])
                 log.debug("Success");
                 that.model = null;
                 that.scope.$emit('EditDeleted', model);
-                Notifications.set('edit', 'success', "Deleted", 5000);
+                var message = "Deleted";
+                if (getResponseHeaders('Operation-Details'))
+                    message += ": " + getResponseHeaders('Operation-Details');
+                Notifications.set('edit', 'success', message, 5000);
             } finally {
                 that.saving = false;
                 that = null;

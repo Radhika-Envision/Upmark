@@ -286,6 +286,7 @@ class MeasureHandler(
                     raise ValueError("No such object")
                 self._update(measure, self.request_son)
 
+                affected_parents = set(measure.parents)
                 for parent_id in parent_ids:
                     # Add links to parents. Links can't be removed like this;
                     # use the delete method instead.
@@ -294,17 +295,19 @@ class MeasureHandler(
                     if new_parent is None:
                         raise handlers.ModelError("No such question node")
                     if new_parent in measure.parents:
-                        self.reasons.append('Already a child of %s' % new_parent.title)
                         continue
-                    self.reasons.append('Added to %s' % new_parent.title)
+                    self.reason('Added to %s' % new_parent.title)
                     for old_parent in list(measure.parents):
                         if str(old_parent.hierarchy_id) == str(new_parent.hierarchy_id):
                             old_parent.measures.remove(measure)
                             old_parent.qnode_measures.reorder()
-                            self.reasons.append('Moved from %s' % old_parent.title)
+                            self.reason('Moved from %s' % old_parent.title)
                     new_parent.measures.append(measure)
                     new_parent.qnode_measures.reorder()
                     new_parent.update_stats_ancestors()
+                    affected_parents.add(new_parent)
+                for parent in affected_parents:
+                    parent.update_stats_ancestors()
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such measure")
         except sqlalchemy.exc.IntegrityError as e:

@@ -248,7 +248,7 @@ class AssessmentTest(base.AqHttpTestBase):
                 expected=200, decode=True)
             new_survey_id = survey_son['id']
 
-        # Open both new hierarchies to organisation
+        # Open (purchase) both new hierarchies for organisation
         with base.mock_user('admin'):
             self.fetch(
                 "/organisation/%s/hierarchy/%s.json?surveyId=%s" %
@@ -300,21 +300,22 @@ class AssessmentTest(base.AqHttpTestBase):
                 assessment_3.hierarchy_id)
 
             # Assessment 2 uses the same hierarchy as the source assessment,
-            # so it should have the same number of responses (two).
+            # so it should have the same number of responses (three).
             # Assessment 3 uses a different hierarchy with only one common
-            # measure, so it should have a different number of responses (one).
-            self.assertEqual(len(assessment_2.responses), 2)
-            self.assertEqual(len(assessment_3.responses), 1)
-            self.assertEqual(session.query(model.Response).count(), 5)
+            # measure, so it should have a different number of responses (two).
+            self.assertEqual(len(assessment_1.responses), 3)
+            self.assertEqual(len(assessment_2.responses), 3)
+            self.assertEqual(len(assessment_3.responses), 2)
+            self.assertEqual(session.query(model.Response).count(), 8)
 
             # Make sure the number of rnodes matches the number of qnodes in the
             # hierarchy (no leftovers).
             self.assertEqual(session.query(model.ResponseNode)
                 .filter_by(assessment_id=assessment_1.id)
-                .count(), 3)
+                .count(), 4)
             self.assertEqual(session.query(model.ResponseNode)
                 .filter_by(assessment_id=assessment_2.id)
-                .count(), 3)
+                .count(), 4)
             self.assertEqual(session.query(model.ResponseNode)
                 .filter_by(assessment_id=assessment_3.id)
                 .count(), 3)
@@ -323,18 +324,18 @@ class AssessmentTest(base.AqHttpTestBase):
             # 100 + 200 = 300 (due to weighting of the measures). Assessment 3
             # should have just 200.
             self.assertEqual([r.score for r in assessment_1.ordered_responses],
-                             [100.0, 200.0])
-            self.assertEqual(list(assessment_1.rnodes)[0].score, 300)
+                             [100.0, 200.0, 300.0])
+            self.assertEqual(list(assessment_1.rnodes)[0].score, 600)
             self.assertEqual(list(assessment_1.rnodes)[1].score, 0)
 
             self.assertEqual([r.score for r in assessment_2.ordered_responses],
-                             [100.0, 200.0])
-            self.assertEqual(list(assessment_2.rnodes)[0].score, 300)
+                             [100.0, 200.0, 300.0])
+            self.assertEqual(list(assessment_2.rnodes)[0].score, 600)
             self.assertEqual(list(assessment_2.rnodes)[1].score, 0)
 
             self.assertEqual([r.score for r in assessment_3.ordered_responses],
-                             [200.0])
-            self.assertEqual(list(assessment_3.rnodes)[0].score, 200)
+                             [200.0, 300.0])
+            self.assertEqual(list(assessment_3.rnodes)[0].score, 500)
             self.assertEqual(list(assessment_3.rnodes)[1].score, 0)
 
             # When an assessment is duplicated, all of its responses are set to
@@ -342,7 +343,7 @@ class AssessmentTest(base.AqHttpTestBase):
             self.assertEqual(assessment_1.approval, 'final')
             self.assertTrue(all(r.approval == 'final'
                                 for r in assessment_1.responses))
-            self.assertEqual(list(assessment_1.rnodes)[0].n_submitted, 2)
+            self.assertEqual(list(assessment_1.rnodes)[0].n_submitted, 3)
             self.assertEqual(list(assessment_1.rnodes)[1].n_submitted, 0)
 
             self.assertEqual(assessment_2.approval, 'draft')
