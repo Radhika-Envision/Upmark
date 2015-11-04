@@ -31,6 +31,20 @@ MAX_WORKERS = 4
 log = logging.getLogger('app.report_handler')
 
 
+perf_time = time.perf_counter()
+perf_start = None
+def perf():
+    global perf_start, perf_time
+    if perf_start is None:
+        perf_start = time.perf_counter()
+        perf_time = 0.0
+    else:
+        now = time.perf_counter()
+        perf_time += now - perf_start
+        perf_start = now
+    return perf_time
+
+
 class DiffHandler(handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
@@ -110,10 +124,10 @@ class DiffEngine:
                 'tags': [],
                 'pair': pair,
             } for pair in to_son(qnode_pairs)]
-        start = time.perf_counter()
+        start = perf()
         self.add_qnode_metadata(qnode_pairs, qnode_diff)
         self.add_metadata(qnode_pairs, qnode_diff)
-        duration = time.perf_counter() - start
+        duration = perf() - start
         self.timing.append("Qnode metadata took %gs" % duration)
         self.remove_unchanged_fields(qnode_diff)
 
@@ -122,10 +136,10 @@ class DiffEngine:
                 'tags': [],
                 'pair': pair,
             } for pair in to_son(measure_pairs)]
-        start = time.perf_counter()
+        start = perf()
         self.add_measure_metadata(measure_pairs, measure_diff)
         self.add_metadata(measure_pairs, measure_diff)
-        duration = time.perf_counter() - start
+        duration = perf() - start
         self.timing.append("Measure metadata took %gs" % duration)
         self.remove_unchanged_fields(measure_diff)
 
@@ -141,9 +155,9 @@ class DiffEngine:
                 return 1, [int(c) for c in a['path'].split('.') if c != '']
             else:
                 return 2
-        start = time.perf_counter()
+        start = perf()
         diff.sort(key=path_key)
-        duration = time.perf_counter() - start
+        duration = perf() - start
         self.timing.append("Sorting took %gs" % duration)
 
         HA = model.Hierarchy
@@ -179,7 +193,7 @@ class DiffEngine:
         QA = model.QuestionNode
         QB = aliased(model.QuestionNode, name='qnode_b')
 
-        start = time.perf_counter()
+        start = perf()
 
         # Find modified / relocated qnodes
         qnode_mod_query = (self.session.query(QA, QB)
@@ -223,7 +237,7 @@ class DiffEngine:
         qnodes = list(qnode_mod_query.all()
                     + qnode_add_query.all()
                     + qnode_del_query.all())
-        duration = time.perf_counter() - start
+        duration = perf() - start
         self.timing.append("Primary qnode query took %gs" % duration)
         return qnodes
 
@@ -235,7 +249,7 @@ class DiffEngine:
         QMA = model.QnodeMeasure
         QMB = aliased(model.QnodeMeasure, name='qnode_measure_link_b')
 
-        start = time.perf_counter()
+        start = perf()
 
         # Find modified / relocated measures
         measure_mod_query = (self.session.query(MA, MB)
@@ -316,7 +330,7 @@ class DiffEngine:
         measures = list(measure_mod_query.all()
                     + measure_add_query.all()
                     + measure_del_query.all())
-        duration = time.perf_counter() - start
+        duration = perf() - start
         self.timing.append("Primary measure query took %gs" % duration)
         return measures
 
@@ -339,10 +353,10 @@ class DiffEngine:
             if b:
                 b_son['path'] = b.get_path()
             if a and b and str(a.parent_id) == str(b.parent_id):
-                start = time.perf_counter()
+                start = perf()
                 if self.qnode_was_reordered(a, b, reorder_ignore):
                    diff_item['tags'].append('reordered')
-                reorder_time += time.perf_counter() - start
+                reorder_time += perf() - start
         self.timing.append("Qnode reorder filter took %gs" % reorder_time)
 
     def add_measure_metadata(self, measure_pairs, measure_diff):
@@ -370,10 +384,10 @@ class DiffEngine:
                 b_son['parentId'] = str(b.get_parent(self.hierarchy_id).id)
                 b_son['seq'] = b.get_seq(self.hierarchy_id)
             if a and b and a_son['parentId'] == b_son['parentId']:
-                start = time.perf_counter()
+                start = perf()
                 if self.measure_was_reordered(a, b, reorder_ignore):
                    diff_item['tags'].append('reordered')
-                reorder_time += time.perf_counter() - start
+                reorder_time += perf() - start
         self.timing.append("Measure reorder filter took %gs" % reorder_time)
 
     def qnode_was_reordered(self, a, b, reorder_ignore):
