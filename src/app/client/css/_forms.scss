@@ -132,7 +132,7 @@ div[textarea-label] {
     }
 }
 
-.btn-default, .btn-default[disabled],
+.btn.btn-default, .btn.btn-default[disabled],
 .form-control, .form-control.active,
 .open > .dropdown-toggle.btn-default
 {
@@ -150,12 +150,15 @@ div[textarea-label] {
     &:active, &.active, &.active:focus, &:active.focus, &:active:focus {
         color: $button-fg;
     }
+    &[disabled] {
+        color: lighten($button-fg, 60%);
+    }
     .fa-badge {
         @include text-shadow-outline($button-bg);
     }
 }
 .btn-default, .btn-default.active {
-    &:active, &.active, &.active:focus, &:active.focus, &:active:focus {
+    &:active, &:active.focus, &:active:focus {
         &:not([disabled]):not(.btn-round) {
             box-shadow: 1px 1px 4px 5px rgba(255, 255, 255, 0.5);
             color: $button-fg;
@@ -330,6 +333,9 @@ div[textarea-label] {
 }
 
 .btn-on-danger {
+    color: lighten($button-fg, 30%);
+    background-color: $button-bg;
+
     &:hover, &.active:focus, &:focus {
         outline: none;
         border-bottom-color: rgba($danger-col, 0.5);
