@@ -27,6 +27,7 @@ log = logging.getLogger('app.handlers')
 # A string to break through caches. This changes each time Landblade is
 # deployed.
 DEPLOY_ID = str(time.time())
+aq_version = None
 
 
 def deploy_id():
@@ -361,7 +362,8 @@ class MainHandler(BaseHandler):
             template, user=self.current_user, organisation=self.organisation,
             scripts=self.scripts, stylesheets=self.stylesheets,
             analytics_id=tornado.options.options.analytics_id,
-            deploy_id=self.deploy_id)
+            deploy_id=self.deploy_id,
+            aq_version=aq_version)
 
 
 class AuthLoginHandler(MainHandler):

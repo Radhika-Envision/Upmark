@@ -864,8 +864,10 @@ angular.module('wsaa.aquamark',
 
 
 .controller('RootCtrl', ['$scope', 'hotkeys', '$cookies', 'User',
-        'Notifications', '$window',
-        function($scope, hotkeys, $cookies, User, Notifications, $window) {
+        'Notifications', '$window', 'aqVersion',
+        function($scope, hotkeys, $cookies, User, Notifications, $window,
+            aqVersion) {
+    $scope.aqVersion = aqVersion;
     $scope.hotkeyHelp = hotkeys.toggleCheatSheet;
 
     try {

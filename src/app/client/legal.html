@@ -9,7 +9,9 @@
 <div>
 <div class="container">
     <p>
-        This application was created by
+        <span ng-if="aqVersion">This is version {{aqVersion}}</span>
+        <span ng-if="!aqVersion">This is a development version</span>
+        of the Aquamark web app, created by
         <a href="http://vpac-innovations.com.au/"
             title="VPAC Innovations home page">VPAC Innovations</a>
         for the
