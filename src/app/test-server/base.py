@@ -277,10 +277,10 @@ class AqHttpTestBase(AqModelTestBase, AsyncHTTPTestCase):
             else:
                 body = response.body or ''
 
-                self.assertEqual(
-                    expected, response.code,
-                    msg="{} failed: {}\n\n{}".format(
-                        path, response.reason, body))
+            self.assertEqual(
+                expected, response.code,
+                msg="{} failed: {}\n\n{}".format(
+                    path, response.reason, body))
         if decode:
             return denormalise(json_decode(response.body))
         else:

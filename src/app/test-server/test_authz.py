@@ -38,24 +38,41 @@ class StatisticsAuthzTest(base.AqHttpTestBase):
                     .filter_by(title='Hierarchy 1')
                     .one())
 
-            survey_id = str(survey.id)
-            organisation_id = str(organisation.id)
-            hierarchy_id = str(hierarchy.id)
+            self.survey_id = str(survey.id)
+            self.organisation_id = str(organisation.id)
+            self.hierarchy_id = str(hierarchy.id)
 
-        with base.mock_user('admin'):
-            ## purchase the survey
+        with base.mock_user('consultant'):
             self.fetch(
-                "/organisation/%s/hierarchy/%s.json?surveyId=%s" %
-                (organisation_id, hierarchy_id, survey_id),
-                method='PUT', body='', expected=200)
+                "/statistics/%s.json" % self.survey_id,
+                method='GET', expected=200, decode=False)
 
-        with base.mock_user('org_admin'):
-            assessment_son = {'title': "Assessment"}
-            assessment_son = self.fetch(
-                "/assessment.json?orgId=%s&surveyId=%s&hierarchyId=%s" %
-                (organisation_id, survey_id, hierarchy_id),
-                method='POST', body=json_encode(assessment_son),
-                expected=200, decode=False)
+        with base.mock_user('authority'):
+            self.fetch(
+                "/statistics/%s.json" % self.survey_id,
+                method='GET', expected=200, decode=False)
+
+        with base.mock_user('clerk'):
+            self.fetch(
+                "/statistics/%s.json" % self.survey_id,
+                method='GET', expected=403, decode=False)
+
+        # After purchase survey
+        with base.mock_user('admin'):
+            self.purchase_survey()
+
+        with base.mock_user('clerk'):
+            self.fetch(
+                "/statistics/%s.json" % self.survey_id,
+                method='GET', expected=200, decode=False)
+
+    def purchase_survey(self):
+        self.fetch(
+            "/organisation/%s/hierarchy/%s.json?surveyId=%s" %
+            (self.organisation_id, self.hierarchy_id, self.survey_id),
+            method='PUT', body='', expected=200)
+
+
 
 class ExporterAuthzTest(base.AqHttpTestBase):
     def setUp(self):
@@ -91,20 +108,23 @@ class ExporterAuthzTest(base.AqHttpTestBase):
                             model.Assessment.hierarchy_id==self.hierarchy_id).one()
             assessment_id = assessment.id
 
+        log.info("test_assessment_exporter1")
         with base.mock_user('author'):
             self.fetch(
                 "/export/assessment/%s.xlsx" % assessment_id,
                 method='GET', expected=403, decode=False, encoding=None)
 
+        log.info("test_assessment_exporter2")
         with base.mock_user('consultant'):
             self.fetch(
                 "/export/assessment/%s.xlsx" % assessment_id,
                 method='GET', expected=200, decode=False, encoding=None)
 
+        log.info("test_assessment_exporter3")
         with base.mock_user('clerk'):
             self.fetch(
                 "/export/assessment/%s.xlsx" % assessment_id,
-                method='GET', expected=200, decode=False, encoding=None)
+                method='GET', expected=403, decode=False, encoding=None)
 
 
     # def test_response_exporter(self):

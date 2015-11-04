@@ -26,6 +26,19 @@ class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, survey_id):
+        if self.has_privillege('consultant') or self.has_privillege('authority') :
+            pass
+        else:
+            with model.session_scope() as session:
+                purchased_survey = (session.query(model.PurchasedSurvey)
+                    .filter_by(survey_id=survey_id,
+                               organisation_id=self.organisation.id)
+                    .first())
+                log.info("purchased_survey: %s", purchased_survey)
+                if purchased_survey==None:
+                    raise handlers.AuthzError("You should purchase this survey" +
+                        " to see this chart")
+
         parent_id = self.get_argument("parentId", None)
         with model.session_scope() as session:
             try:

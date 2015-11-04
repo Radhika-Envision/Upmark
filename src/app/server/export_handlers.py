@@ -485,7 +485,11 @@ class Exporter():
             assessment = session.query(model.Assessment)\
                 .get(assessment_id)
 
-            if assessment and assessment.hierarchy and assessment.hierarchy.stricture and assessment.hierarchy.stricture.get('levels'):
+            if assessment and \
+                assessment.hierarchy and \
+                assessment.hierarchy.structure and \
+                assessment.hierarchy.structure.get('levels'):
+
                 log.info("assessment: %s", assessment)
                 levels = assessment.hierarchy.structure["levels"]
                 level_length = len(levels)
