@@ -338,13 +338,14 @@ angular.module('wsaa.surveyQuestions', [
         },
         controller: ['$scope', 'Current', 'Assessment', 'Organisation',
                 '$location', 'format', 'Notifications', 'PurchasedSurvey',
-                'Structure', 'questionAuthz',
+                'Structure', 'questionAuthz', 'Enqueue',
                 function($scope, current, Assessment, Organisation,
                          $location, format, Notifications, PurchasedSurvey,
-                         Structure, authz) {
+                         Structure, authz, Enqueue) {
 
             $scope.aSearch = {
-                organisation: null
+                organisation: null,
+                historical: false
             };
 
             $scope.$watch('assessment.organisation', function(org) {
@@ -369,20 +370,24 @@ angular.module('wsaa.surveyQuestions', [
                 $scope.search.hierarchyId = hierarchy ? hierarchy.id : null;
             });
 
-            $scope.$watchGroup(['survey', 'track'], function(vars) {
+            $scope.$watchGroup(['survey', 'aSearch.historical'], function(vars) {
                 var survey = vars[0],
-                    track = vars[1];
+                    historical = vars[1];
 
-                if (track != null) {
+                if (historical) {
                     $scope.search.trackingId = survey ? survey.trackingId : null;
                     $scope.search.surveyId = null;
                 } else {
                     $scope.search.trackingId = null;
                     $scope.search.surveyId = survey ? survey.id : null;
                 }
-                $scope.showEdit = !track;
+            });
+            $scope.$watch('track', function(track) {
+                $scope.aSearch.historical = track != null;
+                $scope.showEdit = track == null;
             });
 
+            $scope.historical = false;
             $scope.search = {
                 term: "",
                 orgId: null,
@@ -390,10 +395,10 @@ angular.module('wsaa.surveyQuestions', [
                 surveyId: null,
                 trackingId: null,
                 page: 0,
-                pageSize: 10
+                pageSize: 5
             };
-            $scope.$watch('search', function(search) {
-                Assessment.query(search).$promise.then(
+            $scope.applySearch = Enqueue(function() {
+                Assessment.query($scope.search).$promise.then(
                     function success(assessments) {
                         $scope.assessments = assessments;
                     },
@@ -402,7 +407,8 @@ angular.module('wsaa.surveyQuestions', [
                             "Could not get submission list: " + details.statusText);
                     }
                 );
-            }, true);
+            }, 100);
+            $scope.$watch('search', $scope.applySearch, true);
 
             $scope.$watchGroup(['survey', 'search.orgId', 'hierarchy', 'track'],
                     function(vars) {
