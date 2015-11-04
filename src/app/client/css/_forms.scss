@@ -157,14 +157,14 @@ div[textarea-label] {
         @include text-shadow-outline($button-bg);
     }
 }
-.btn-default, .btn-default.active {
-    &:active, &:active.focus, &:active:focus {
+.btn-default.active {
+    &, &:active.focus, &:active:focus {
         &:not([disabled]):not(.btn-round) {
             box-shadow: 1px 1px 4px 5px rgba(255, 255, 255, 0.5);
             color: $button-fg;
             background-color: $primary-colour;
             @include transform(scale(1.02, 1.1));
-            border-radius: 2px !important;
+            border-radius: 3px !important;
         }
     }
 }
@@ -228,7 +228,7 @@ div[textarea-label] {
             position: absolute;
             top: -.2px;
             bottom: 0;
-            right: -31.9px;
+            right: -32px;
             border: 16px solid;
             border-color: transparent;
             pointer-events: none;
