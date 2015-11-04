@@ -25,12 +25,16 @@ import logging
 from utils import falsy, ToSon, truthy
 
 
+MAX_WORKERS = 4
+
 log = logging.getLogger('app.report_handler')
 
 
 class DiffHandler(handlers.BaseHandler):
+    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated
+    @gen.coroutine
     def get(self):
         survey_id_a = self.get_argument("surveyId1", '')
         survey_id_b = self.get_argument("surveyId2", '')
@@ -45,18 +49,27 @@ class DiffHandler(handlers.BaseHandler):
         if hierarchy_id == '':
             raise handlers.ModelError("Hierarchy ID required")
 
+        son = yield self.background_task(
+            survey_id_a, survey_id_b, hierarchy_id, ignore_tags)
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(son))
+        self.finish()
+
+    @run_on_executor
+    def background_task(
+            self, survey_id_a, survey_id_b, hierarchy_id, ignore_tags):
+
         with model.session_scope() as session:
-            diff_engine = DiffEngine(session, survey_id_a, survey_id_b, hierarchy_id)
+            diff_engine = DiffEngine(
+                session, survey_id_a, survey_id_b, hierarchy_id)
             diff = diff_engine.execute()
             diff = [di for di in diff
                     if len(set().union(di['tags']).difference(ignore_tags)) > 0]
             son = {
                 'diff': diff
             }
-
-        self.set_header("Content-Type", "application/json")
-        self.write(json_encode(son))
-        self.finish()
+        return son
 
 
 class DiffEngine:
