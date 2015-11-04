@@ -4,6 +4,7 @@ import csv
 import json
 import os
 import tempfile
+import time
 import uuid
 
 import sqlalchemy
@@ -49,8 +50,11 @@ class DiffHandler(handlers.BaseHandler):
         if hierarchy_id == '':
             raise handlers.ModelError("Hierarchy ID required")
 
-        son = yield self.background_task(
+        son, details = yield self.background_task(
             survey_id_a, survey_id_b, hierarchy_id, ignore_tags)
+
+        for i, message in enumerate(details):
+            self.reason("%d %s" % (i, message))
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -69,7 +73,7 @@ class DiffHandler(handlers.BaseHandler):
             son = {
                 'diff': diff
             }
-        return son
+        return son, diff_engine.timing
 
 
 class DiffEngine:
@@ -78,6 +82,7 @@ class DiffEngine:
         self.survey_id_a = survey_id_a
         self.survey_id_b = survey_id_b
         self.hierarchy_id = hierarchy_id
+        self.timing = []
 
     def execute(self):
         qnode_pairs = self.get_qnodes()
@@ -105,8 +110,11 @@ class DiffEngine:
                 'tags': [],
                 'pair': pair,
             } for pair in to_son(qnode_pairs)]
+        start = time.time()
         self.add_qnode_metadata(qnode_pairs, qnode_diff)
         self.add_metadata(qnode_pairs, qnode_diff)
+        duration = time.time() - start
+        self.timing.append("Qnode metadata took %gs" % duration)
         self.remove_unchanged_fields(qnode_diff)
 
         measure_diff = [{
@@ -114,8 +122,11 @@ class DiffEngine:
                 'tags': [],
                 'pair': pair,
             } for pair in to_son(measure_pairs)]
+        start = time.time()
         self.add_measure_metadata(measure_pairs, measure_diff)
         self.add_metadata(measure_pairs, measure_diff)
+        duration = time.time() - start
+        self.timing.append("Measure metadata took %gs" % duration)
         self.remove_unchanged_fields(measure_diff)
 
         diff = qnode_diff + measure_diff
@@ -130,7 +141,10 @@ class DiffEngine:
                 return 1, [int(c) for c in a['path'].split('.') if c != '']
             else:
                 return 2
+        start = time.time()
         diff.sort(key=path_key)
+        duration = time.time() - start
+        self.timing.append("Sorting took %gs" % duration)
 
         HA = model.Hierarchy
         HB = aliased(model.Hierarchy, name='hierarchy_b')
@@ -164,6 +178,8 @@ class DiffEngine:
     def get_qnodes(self):
         QA = model.QuestionNode
         QB = aliased(model.QuestionNode, name='qnode_b')
+
+        start = time.time()
 
         # Find modified / relocated qnodes
         qnode_mod_query = (self.session.query(QA, QB)
@@ -204,9 +220,12 @@ class DiffEngine:
                                     QA.hierarchy_id == self.hierarchy_id)))
         )
 
-        return list(qnode_mod_query.all()
+        qnodes = list(qnode_mod_query.all()
                     + qnode_add_query.all()
                     + qnode_del_query.all())
+        duration = time.time() - start
+        self.timing.append("Primary qnode query took %gs" % duration)
+        return qnodes
 
     def get_measures(self):
         QA = model.QuestionNode
@@ -215,6 +234,8 @@ class DiffEngine:
         MB = aliased(model.Measure, name='measure_b')
         QMA = model.QnodeMeasure
         QMB = aliased(model.QnodeMeasure, name='qnode_measure_link_b')
+
+        start = time.time()
 
         # Find modified / relocated measures
         measure_mod_query = (self.session.query(MA, MB)
@@ -251,8 +272,6 @@ class DiffEngine:
                     (QMA.qnode_id != QMB.qnode_id) |
                     (QMA.seq != QMB.seq))
         )
-
-        ncols = len(MA.__table__.c)
 
         # Find deleted measures
         measure_del_query = (self.session.query(MA, literal(None))
@@ -294,9 +313,12 @@ class DiffEngine:
                                     QA.hierarchy_id == self.hierarchy_id)))
         )
 
-        return list(measure_mod_query.all()
+        measures = list(measure_mod_query.all()
                     + measure_add_query.all()
                     + measure_del_query.all())
+        duration = time.time() - start
+        self.timing.append("Primary measure query took %gs" % duration)
+        return measures
 
     def add_qnode_metadata(self, qnode_pairs, qnode_diff):
         # Create sets of ids; group by transform type
@@ -309,6 +331,7 @@ class DiffEngine:
 
         reorder_ignore = set().union(deleted, added, relocated)
 
+        reorder_time = 0.0
         for (a, b), diff_item in zip(qnode_pairs, qnode_diff):
             a_son, b_son = diff_item['pair']
             if a:
@@ -316,8 +339,11 @@ class DiffEngine:
             if b:
                 b_son['path'] = b.get_path()
             if a and b and str(a.parent_id) == str(b.parent_id):
+                start = time.time()
                 if self.qnode_was_reordered(a, b, reorder_ignore):
                    diff_item['tags'].append('reordered')
+                reorder_time += time.time() - start
+        self.timing.append("Qnode reorder filter took %gs" % reorder_time)
 
     def add_measure_metadata(self, measure_pairs, measure_diff):
         # Create sets of ids; group by transform type
@@ -332,6 +358,7 @@ class DiffEngine:
 
         reorder_ignore = set().union(deleted, added, relocated)
 
+        reorder_time = 0.0
         for (a, b), diff_item in zip(measure_pairs, measure_diff):
             a_son, b_son = diff_item['pair']
             if a:
@@ -343,8 +370,11 @@ class DiffEngine:
                 b_son['parentId'] = str(b.get_parent(self.hierarchy_id).id)
                 b_son['seq'] = b.get_seq(self.hierarchy_id)
             if a and b and a_son['parentId'] == b_son['parentId']:
+                start = time.time()
                 if self.measure_was_reordered(a, b, reorder_ignore):
                    diff_item['tags'].append('reordered')
+                reorder_time += time.time() - start
+        self.timing.append("Measure reorder filter took %gs" % reorder_time)
 
     def qnode_was_reordered(self, a, b, reorder_ignore):
         a_siblings = (self.session.query(model.QuestionNode.id)
