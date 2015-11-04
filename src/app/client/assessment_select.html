@@ -5,18 +5,23 @@
         <div class="toolbar" ng-if="showEdit">
             <a class="btn btn-default btn-round" title="Import"
                     ng-href="#/assessment/import?survey={{survey.id}}&organisation={{aSearch.organisation.id}}"
-                    ng-if="purchasedSurvey && checkRole('assessment_add')">
+                    ng-if="showEdit && purchasedSurvey && checkRole('assessment_add')">
                 <i class="fa fa-fw fa-cloud-upload"></i></a>
             <a class="btn btn-default btn-round" title="Duplicate existing"
                     ng-href="#/assessment/duplicate?survey={{survey.id}}&organisation={{aSearch.organisation.id}}"
-                    ng-if="purchasedSurvey && checkRole('assessment_add')">
+                    ng-if="showEdit && purchasedSurvey && checkRole('assessment_add')">
                 <i class="fa fa-fw fa-clone">
                     <i class="fa fa-link fa-badge"></i>
                 </i></a>
             <a class="btn btn-default btn-round" title="Add new"
                     ng-href="#/assessment/new?survey={{survey.id}}&organisation={{aSearch.organisation.id}}"
-                    ng-if="purchasedSurvey && checkRole('assessment_add')">
+                    ng-if="showEdit && purchasedSurvey && checkRole('assessment_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
+            <a ng-href="#{{getAssessmentUrl(null)}}"
+                    class="btn btn-default btn-round"
+                    ng-if="!disallowNone && (showEdit || assessment)"
+                    title="View without a submission">
+                <i class="fa fa-ban"></i></a>
         </div>
         <h2 label="Sb">
             Submissions
