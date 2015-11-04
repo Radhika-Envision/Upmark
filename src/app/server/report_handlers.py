@@ -68,7 +68,7 @@ class DiffHandler(handlers.BaseHandler):
             survey_id_a, survey_id_b, hierarchy_id, ignore_tags)
 
         for i, message in enumerate(details):
-            self.reason("%d %s" % (i, message))
+            self.add_header('Profiling', "%d %s" % (i, message))
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
