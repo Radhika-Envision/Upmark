@@ -485,7 +485,8 @@ class Exporter():
             assessment = session.query(model.Assessment)\
                 .get(assessment_id)
 
-            if assessment:
+            if assessment and assessment.hierarchy and assessment.hierarchy.stricture and assessment.hierarchy.stricture.get('levels'):
+                log.info("assessment: %s", assessment)
                 levels = assessment.hierarchy.structure["levels"]
                 level_length = len(levels)
                 worksheet.set_column(0, level_length, 50)
