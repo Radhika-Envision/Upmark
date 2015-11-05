@@ -90,6 +90,7 @@ class AppUser(Base):
 
     __table_args__ = (
         Index('appuser_email_key', func.lower(email), unique=True),
+        # Index on name because it's used for sorting
         Index('appuser_name_index', func.lower(name)),
     )
 
@@ -192,7 +193,6 @@ class Survey(Base):
     __table_args__ = (
         Index('survey_tracking_id_index', tracking_id),
         Index('survey_created_index', created),
-        Index('survey_title_index', title),
     )
 
     def __repr__(self):
@@ -219,7 +219,6 @@ class PurchasedSurvey(Base):
             ['organisation_id'],
             ['organisation.id']
         ),
-        Index('purchasedsurvey_open_date_index', open_date),
     )
 
     organisation = relationship(Organisation, backref='purchased_surveys')
@@ -316,7 +315,8 @@ class QuestionNode(Base):
             ['survey_id'],
             ['survey.id']
         ),
-        Index('qnode_seq_index', seq),
+        Index('qnode_parent_id_survey_id_index', parent_id, survey_id),
+        Index('qnode_hierarchy_id_survey_id_index', hierarchy_id, survey_id),
     )
 
     survey = relationship(Survey)
@@ -451,10 +451,9 @@ class QnodeMeasure(Base):
             ['survey_id'],
             ['survey.id']
         ),
-        Index('qnodemeasure_seq_index', seq),
+        Index('qnodemeasure_qnode_id_survey_id_index', qnode_id, survey_id),
+        Index('qnodemeasure_measure_id_survey_id_index', measure_id, survey_id),
     )
-
-
 
     survey = relationship(Survey)
 
@@ -509,7 +508,8 @@ class Assessment(Base):
             ['organisation_id'],
             ['organisation.id']
         ),
-        Index('assessment_approval_index', approval),
+        Index('assessment_organisation_id_hierarchy_id_index',
+              organisation_id, hierarchy_id),
     )
 
     survey = relationship(Survey)
@@ -727,9 +727,8 @@ class Response(Versioned, Base):
             info={'version': True}
         ),
         UniqueConstraint('measure_id', 'assessment_id'),
-        Index('response_assessment_id_approval_index', assessment_id, approval),
-        Index('response_assessment_id_measure_id_index', assessment_id, measure_id),
-        Index('response_assessment_id_survey_id_index', assessment_id, survey_id),
+        Index('response_assessment_id_measure_id_index',
+              assessment_id, measure_id),
     )
 
     survey = relationship(Survey)

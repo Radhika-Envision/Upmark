@@ -101,7 +101,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
 
             if approval != '':
                 approval_set = self.approval_set(approval)
-                log.warn('Approval set: %s', approval_set)
+                log.debug('Approval set: %s', approval_set)
                 query = query.filter(
                     model.Assessment.approval.in_(approval_set))
 
