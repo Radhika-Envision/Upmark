@@ -64,6 +64,11 @@ def upgrade():
         'response',
         ['assessment_id', 'measure_id'], unique=False)
 
+    op.create_index(
+        'attachment_response_id_index',
+        'attachment',
+        ['response_id'], unique=False)
+
 
 def downgrade():
     op.drop_index('appuser_name_index',
@@ -72,8 +77,6 @@ def downgrade():
                   table_name='survey')
     op.drop_index('survey_created_index',
                   table_name='survey')
-    op.drop_index('purchasedsurvey_open_date_index',
-                  table_name='purchased_survey')
     op.drop_index('qnode_hierarchy_id_survey_id_index',
                   table_name='qnode')
     op.drop_index('qnode_parent_id_survey_id_index',
@@ -88,4 +91,5 @@ def downgrade():
                   table_name='rnode')
     op.drop_index('response_assessment_id_measure_id_index',
                   table_name='response')
-
+    op.drop_index('attachment_response_id_index',
+                  table_name='attachment')

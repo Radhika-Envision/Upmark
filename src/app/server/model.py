@@ -820,6 +820,10 @@ class Attachment(Base):
     url = Column(Text, nullable=True)
     blob = Column(LargeBinary, nullable=True)
 
+    __table_args__ = (
+        Index('attachment_response_id_index', response_id),
+    )
+
     response = relationship(Response, backref='attachments')
     organisation = relationship(Organisation)
 
