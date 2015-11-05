@@ -157,8 +157,8 @@ div[textarea-label] {
         @include text-shadow-outline($button-bg);
     }
 }
-.btn-default.active {
-    &, &:active.focus, &:active:focus {
+.btn-default {
+    &.active, &.active:focus, &:active.focus, &:active:focus {
         &:not([disabled]):not(.btn-round) {
             box-shadow: 1px 1px 4px 5px rgba(255, 255, 255, 0.5);
             color: $button-fg;

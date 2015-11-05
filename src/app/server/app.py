@@ -281,10 +281,21 @@ def stop_web_server():
     tornado.ioloop.IOLoop.instance().stop()
 
 
+def read_app_version():
+    package_dir = get_package_dir()
+    try:
+        with open(os.path.join(package_dir, '..', 'version.txt')) as f:
+            version = f.readline().strip()
+    except FileNotFoundError:
+        version = None
+    handlers.aq_version = version
+
+
 if __name__ == "__main__":
     try:
         parse_options()
         connect_db()
+        read_app_version()
         signal.signal(signal.SIGTERM, signal_handler)
         start_web_server()
     except KeyboardInterrupt:

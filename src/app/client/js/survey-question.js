@@ -616,7 +616,7 @@ angular.module('wsaa.surveyQuestions', [
                     s2 = survey;
                 }
                 var url = format(
-                    '/diff?survey1={}&survey2={}&hierarchy={}&ignoreTags=list+index',
+                    '/diff/{}/{}/{}?ignoreTags=list+index',
                     s1.id,
                     s2.id,
                     $scope.structure.hierarchy.id);
@@ -1776,25 +1776,48 @@ angular.module('wsaa.surveyQuestions', [
 .controller('DiffCtrl', [
         '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'format', 'Structure',
+        'Enqueue', 'Diff', '$timeout',
         function($scope, QuestionNode, routeData, Editor, authz,
-                 $location, Notifications, current, format, Structure) {
+                 $location, Notifications, current, format, Structure,
+                 Enqueue, Diff, $timeout) {
 
     $scope.hierarchy1 = routeData.hierarchy1;
     $scope.hierarchy2 = routeData.hierarchy2;
     $scope.survey1 = $scope.hierarchy1.survey;
     $scope.survey2 = $scope.hierarchy2.survey;
 
-    $scope.diff = routeData.diff;
+    $scope.diff = null;
 
     $scope.tags = [
         'context', 'added', 'deleted', 'modified',
         'reordered', 'relocated', 'list index'];
 
-    $scope.ignoreTags = $location.search()['ignoreTags'];
-    if (angular.isString($scope.ignoreTags))
-        $scope.ignoreTags = [$scope.ignoreTags];
-    else if ($scope.ignoreTags == null)
-        $scope.ignoreTags = [];
+    $scope.updateTags = function() {
+        var ignoreTags = $location.search()['ignoreTags'];
+        if (angular.isString(ignoreTags))
+            ignoreTags = [ignoreTags];
+        else if (ignoreTags == null)
+            ignoreTags = [];
+        $scope.ignoreTags = ignoreTags;
+    };
+    $scope.update = Enqueue(function() {
+        $scope.longRunning = false;
+        $scope.diff = Diff.get({
+            surveyId1: $scope.survey1.id,
+            surveyId2: $scope.survey2.id,
+            hierarchyId: $scope.hierarchy1.id,
+            ignoreTag: $scope.ignoreTags
+        });
+        $timeout(function() {
+            $scope.longRunning = true;
+        }, 5000);
+    }, 1000);
+    $scope.$on('$routeUpdate', function(scope, next, current) {
+        $scope.updateTags();
+        $scope.update();
+    });
+    $scope.updateTags();
+    $scope.update();
 
     $scope.toggleTag = function(tag) {
         var i = $scope.ignoreTags.indexOf(tag);

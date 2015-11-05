@@ -90,6 +90,8 @@ class AppUser(Base):
 
     __table_args__ = (
         Index('appuser_email_key', func.lower(email), unique=True),
+        # Index on name because it's used for sorting
+        Index('appuser_name_index', func.lower(name)),
     )
 
     def __repr__(self):
@@ -187,6 +189,11 @@ class Survey(Base):
         '''Updates the stats of an entire tree.'''
         for hierarchy in self.hierarchies:
             hierarchy.update_stats_descendants()
+
+    __table_args__ = (
+        Index('survey_tracking_id_index', tracking_id),
+        Index('survey_created_index', created),
+    )
 
     def __repr__(self):
         return "Survey(title={})".format(self.title)
@@ -308,6 +315,8 @@ class QuestionNode(Base):
             ['survey_id'],
             ['survey.id']
         ),
+        Index('qnode_parent_id_survey_id_index', parent_id, survey_id),
+        Index('qnode_hierarchy_id_survey_id_index', hierarchy_id, survey_id),
     )
 
     survey = relationship(Survey)
@@ -442,6 +451,8 @@ class QnodeMeasure(Base):
             ['survey_id'],
             ['survey.id']
         ),
+        Index('qnodemeasure_qnode_id_survey_id_index', qnode_id, survey_id),
+        Index('qnodemeasure_measure_id_survey_id_index', measure_id, survey_id),
     )
 
     survey = relationship(Survey)
@@ -497,6 +508,8 @@ class Assessment(Base):
             ['organisation_id'],
             ['organisation.id']
         ),
+        Index('assessment_organisation_id_hierarchy_id_index',
+              organisation_id, hierarchy_id),
     )
 
     survey = relationship(Survey)
@@ -563,6 +576,7 @@ class ResponseNode(Base):
             ['assessment.id']
         ),
         UniqueConstraint('qnode_id', 'assessment_id'),
+        Index('rnode_qnode_id_assessment_id_index', qnode_id, assessment_id),
     )
 
     survey = relationship(Survey)
@@ -713,6 +727,8 @@ class Response(Versioned, Base):
             info={'version': True}
         ),
         UniqueConstraint('measure_id', 'assessment_id'),
+        Index('response_assessment_id_measure_id_index',
+              assessment_id, measure_id),
     )
 
     survey = relationship(Survey)
@@ -803,6 +819,10 @@ class Attachment(Base):
     file_name = Column(Text, nullable=True)
     url = Column(Text, nullable=True)
     blob = Column(LargeBinary, nullable=True)
+
+    __table_args__ = (
+        Index('attachment_response_id_index', response_id),
+    )
 
     response = relationship(Response, backref='attachments')
     organisation = relationship(Organisation)
@@ -909,6 +929,8 @@ Response.measure = relationship(
 ResponseHistory.user = relationship(
     AppUser, backref='user', passive_deletes=True)
 
+## assessment_id, measure_id
+## version fileds need to have index on ResponseHistory
 
 Session = None
 VersionedSession = None
