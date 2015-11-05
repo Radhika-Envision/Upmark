@@ -1,8 +1,11 @@
+from concurrent.futures import ThreadPoolExecutor
 import datetime
 import logging
 import time
 import uuid
 
+from tornado import gen
+from tornado.concurrent import run_on_executor
 from tornado.escape import json_decode, json_encode
 import tornado.web
 import sqlalchemy
@@ -16,7 +19,10 @@ import model
 
 from utils import ToSon, truthy, updater
 
+
 log = logging.getLogger('app.crud.survey')
+
+MAX_WORKERS = 4
 
 
 class SurveyCentric:
@@ -49,6 +55,7 @@ class SurveyCentric:
 
 
 class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
+    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated
     def get(self, survey_id):
@@ -126,6 +133,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         self.finish()
 
     @handlers.authz('author')
+    @gen.coroutine
     def post(self, survey_id):
         '''
         Create a new survey.
@@ -149,13 +157,15 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                     if source_survey is None:
                         raise handlers.MissingDocError(
                             "Source survey does not exist")
-                    self.duplicate_structure(source_survey, survey, session)
+                    yield self.duplicate_structure(
+                        source_survey, survey, session)
                     source_survey.finalised_date = datetime.datetime.utcnow()
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(survey_id)
 
+    @run_on_executor
     def duplicate_structure(self, source_survey, target_survey, session):
         '''
         Duplicate an existing survey - just the structure (e.g. hierarchy,
