@@ -132,7 +132,7 @@ div[textarea-label] {
     }
 }
 
-.btn-default, .btn-default[disabled],
+.btn.btn-default, .btn.btn-default[disabled],
 .form-control, .form-control.active,
 .open > .dropdown-toggle.btn-default
 {
@@ -140,19 +140,6 @@ div[textarea-label] {
     background-color: $button-bg;
     border-color: transparent;
 
-    &[disabled] {
-        color: darken($button-bg, 20%);
-        background-color: $button-bg;
-        border-width: 1px;
-        padding-bottom: 6px - 1px;
-        border-color: transparent;
-    }
-
-    &:hover, &:active, &.active, &.active:hover, &.active:focus, &:focus,
-    &:active.focus, &:active:focus {
-        outline: none;
-        border-color: transparent;
-    }
     &:hover, &.active:focus, &:focus {
         &:not([disabled]) {
             background-color: lighten($button-bg, 3%);
@@ -161,21 +148,23 @@ div[textarea-label] {
         }
     }
     &:active, &.active, &.active:focus, &:active.focus, &:active:focus {
-        box-shadow: none;
         color: $button-fg;
+    }
+    &[disabled] {
+        color: lighten($button-fg, 60%);
     }
     .fa-badge {
         @include text-shadow-outline($button-bg);
     }
 }
-.btn-default, .btn-default.active {
-    &:active, &.active, &.active:focus, &:active.focus, &:active:focus {
+.btn-default {
+    &.active, &.active:focus, &:active.focus, &:active:focus {
         &:not([disabled]):not(.btn-round) {
-            box-shadow: none;
+            box-shadow: 1px 1px 4px 5px rgba(255, 255, 255, 0.5);
             color: $button-fg;
             background-color: $primary-colour;
             @include transform(scale(1.02, 1.1));
-            border-radius: 2px !important;
+            border-radius: 3px !important;
         }
     }
 }
@@ -185,6 +174,35 @@ div[textarea-label] {
         @include transform(scale(1));
         border-radius: 4px !important;
     }
+}
+
+.btn, .form-control, .open > .dropdown-toggle.btn-default {
+    &[disabled] {
+        color: darken($button-bg, 20%);
+        background-color: $button-bg;
+        border-width: 1px;
+        padding-bottom: 6px - 1px;
+        border-color: transparent;
+    }
+    &:hover, &:active, &.active, &.active:hover, &.active:focus, &:focus,
+    &:active.focus, &:active:focus {
+        outline: none;
+        border-color: transparent;
+        box-shadow: none;
+    }
+}
+
+@include keyframes(pulse-scale) {
+    from {
+        transform: scale(1);
+    }
+    to {
+        transform: scale(1.1);
+    }
+}
+
+.btn-alert {
+    @include animation(1s pulse-scale ease-out infinite alternate);
 }
 
 // On large screens, arrange horizontally
@@ -198,15 +216,22 @@ div[textarea-label] {
     .btn-group-arrow-right .btn-group:not(:last-child) .btn {
         position:relative;
 
+        &.active {
+            /* Draw above other buttons in the same group that have
+             * :hover set. That bootstrap style is to assist with
+             * borders, I think. - z0r */
+            z-index: 3;
+        }
         &:before {
             content: ' ';
             background-color: transparent;
             position: absolute;
             top: -.2px;
             bottom: 0;
-            right: -31.9px;
+            right: -32px;
             border: 16px solid;
             border-color: transparent;
+            pointer-events: none;
         }
 
         &.btn-default.active:before {
@@ -308,6 +333,9 @@ div[textarea-label] {
 }
 
 .btn-on-danger {
+    color: lighten($button-fg, 30%);
+    background-color: $button-bg;
+
     &:hover, &.active:focus, &:focus {
         outline: none;
         border-bottom-color: rgba($danger-col, 0.5);

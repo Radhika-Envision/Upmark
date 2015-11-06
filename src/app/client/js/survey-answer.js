@@ -256,13 +256,16 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         templateUrl: 'response.html',
         transclude: true,
         controller: ['$scope', 'hotkeys', 'Current', 'questionAuthz',
-                'Notifications',
-                function($scope, hotkeys, current, authz, Notifications) {
+                'Notifications', 'Enqueue',
+                function($scope, hotkeys, current, authz, Notifications,
+                    Enqueue) {
             $scope.$watch('response', function(response) {
-                if (!$scope.response)
-                    $scope.response = {};
-                if (!$scope.responseParts)
-                    $scope.response.responseParts = [];
+                if (!$scope.response) {
+                    $scope.response = {
+                        responseParts: [],
+                        comment: ''
+                    };
+                }
             });
             if ($scope.weight == null)
                 $scope.weight = 100;
@@ -319,6 +322,45 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                 Notifications.remove('response');
                 return isEnabled;
             };
+
+            $scope.updateDocs = Enqueue(function() {
+                var parts = $scope.responseType.parts;
+                if (!parts) {
+                    $scope.docs = [];
+                    return;
+                }
+
+                var docs = [];
+                for (var i = 0; i < parts.length; i++) {
+                    var part = parts[i];
+                    var doc = {
+                        index: i,
+                        name: part.name,
+                        description: part.description,
+                        options: []
+                    };
+                    for (var j = 0; j < part.options.length; j++) {
+                        var opt = part.options[j];
+                        if (opt.description) {
+                            doc.options.push({
+                                index: j,
+                                active: $scope.active(i, j),
+                                name: opt.name,
+                                description: opt.description
+                            });
+                        }
+                    }
+                    if (doc.description || doc.options.length)
+                        docs.push(doc);
+                }
+                $scope.docs = docs;
+            });
+            $scope.$watch('responseType.parts', function(parts) {
+                $scope.updateDocs();
+            }, true);
+            $scope.$watch('response.responseParts', function(parts) {
+                $scope.updateDocs();
+            });
 
             $scope.$watch('responseType.parts.length', function(length) {
                 $scope.response.responseParts = $scope.response.responseParts

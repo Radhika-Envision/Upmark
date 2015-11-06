@@ -76,8 +76,11 @@ class ToSon:
 
         elif isinstance(value, str):
             son = value
+        elif isinstance(value, datetime.datetime):
+            son = value.timestamp()
         elif isinstance(value, datetime.date):
-            son = time.mktime(value.timetuple())
+            son = datetime.datetime.combine(
+                value, datetime.datetime.min.time()).timestamp()
         elif isinstance(value, uuid.UUID):
             son = str(value)
         elif (hasattr(value, '__getitem__') and hasattr(value, 'keys') and

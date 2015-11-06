@@ -4,6 +4,7 @@ import csv
 import json
 import os
 import tempfile
+import time
 import uuid
 
 import sqlalchemy
@@ -25,12 +26,30 @@ import logging
 from utils import falsy, ToSon, truthy
 
 
+MAX_WORKERS = 4
+
 log = logging.getLogger('app.report_handler')
 
 
+perf_time = time.perf_counter()
+perf_start = None
+def perf():
+    global perf_start, perf_time
+    if perf_start is None:
+        perf_start = time.perf_counter()
+        perf_time = 0.0
+    else:
+        now = time.perf_counter()
+        perf_time += now - perf_start
+        perf_start = now
+    return perf_time
+
+
 class DiffHandler(handlers.BaseHandler):
+    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated
+    @gen.coroutine
     def get(self):
         survey_id_a = self.get_argument("surveyId1", '')
         survey_id_b = self.get_argument("surveyId2", '')
@@ -45,18 +64,30 @@ class DiffHandler(handlers.BaseHandler):
         if hierarchy_id == '':
             raise handlers.ModelError("Hierarchy ID required")
 
+        son, details = yield self.background_task(
+            survey_id_a, survey_id_b, hierarchy_id, ignore_tags)
+
+        for i, message in enumerate(details):
+            self.add_header('Profiling', "%d %s" % (i, message))
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(son))
+        self.finish()
+
+    @run_on_executor
+    def background_task(
+            self, survey_id_a, survey_id_b, hierarchy_id, ignore_tags):
+
         with model.session_scope() as session:
-            diff_engine = DiffEngine(session, survey_id_a, survey_id_b, hierarchy_id)
+            diff_engine = DiffEngine(
+                session, survey_id_a, survey_id_b, hierarchy_id)
             diff = diff_engine.execute()
             diff = [di for di in diff
                     if len(set().union(di['tags']).difference(ignore_tags)) > 0]
             son = {
                 'diff': diff
             }
-
-        self.set_header("Content-Type", "application/json")
-        self.write(json_encode(son))
-        self.finish()
+        return son, diff_engine.timing
 
 
 class DiffEngine:
@@ -65,6 +96,7 @@ class DiffEngine:
         self.survey_id_a = survey_id_a
         self.survey_id_b = survey_id_b
         self.hierarchy_id = hierarchy_id
+        self.timing = []
 
     def execute(self):
         qnode_pairs = self.get_qnodes()
@@ -92,8 +124,11 @@ class DiffEngine:
                 'tags': [],
                 'pair': pair,
             } for pair in to_son(qnode_pairs)]
+        start = perf()
         self.add_qnode_metadata(qnode_pairs, qnode_diff)
         self.add_metadata(qnode_pairs, qnode_diff)
+        duration = perf() - start
+        self.timing.append("Qnode metadata took %gs" % duration)
         self.remove_unchanged_fields(qnode_diff)
 
         measure_diff = [{
@@ -101,8 +136,11 @@ class DiffEngine:
                 'tags': [],
                 'pair': pair,
             } for pair in to_son(measure_pairs)]
+        start = perf()
         self.add_measure_metadata(measure_pairs, measure_diff)
         self.add_metadata(measure_pairs, measure_diff)
+        duration = perf() - start
+        self.timing.append("Measure metadata took %gs" % duration)
         self.remove_unchanged_fields(measure_diff)
 
         diff = qnode_diff + measure_diff
@@ -117,7 +155,10 @@ class DiffEngine:
                 return 1, [int(c) for c in a['path'].split('.') if c != '']
             else:
                 return 2
+        start = perf()
         diff.sort(key=path_key)
+        duration = perf() - start
+        self.timing.append("Sorting took %gs" % duration)
 
         HA = model.Hierarchy
         HB = aliased(model.Hierarchy, name='hierarchy_b')
@@ -151,6 +192,8 @@ class DiffEngine:
     def get_qnodes(self):
         QA = model.QuestionNode
         QB = aliased(model.QuestionNode, name='qnode_b')
+
+        start = perf()
 
         # Find modified / relocated qnodes
         qnode_mod_query = (self.session.query(QA, QB)
@@ -191,9 +234,12 @@ class DiffEngine:
                                     QA.hierarchy_id == self.hierarchy_id)))
         )
 
-        return list(qnode_mod_query.all()
+        qnodes = list(qnode_mod_query.all()
                     + qnode_add_query.all()
                     + qnode_del_query.all())
+        duration = perf() - start
+        self.timing.append("Primary qnode query took %gs" % duration)
+        return qnodes
 
     def get_measures(self):
         QA = model.QuestionNode
@@ -202,6 +248,8 @@ class DiffEngine:
         MB = aliased(model.Measure, name='measure_b')
         QMA = model.QnodeMeasure
         QMB = aliased(model.QnodeMeasure, name='qnode_measure_link_b')
+
+        start = perf()
 
         # Find modified / relocated measures
         measure_mod_query = (self.session.query(MA, MB)
@@ -238,8 +286,6 @@ class DiffEngine:
                     (QMA.qnode_id != QMB.qnode_id) |
                     (QMA.seq != QMB.seq))
         )
-
-        ncols = len(MA.__table__.c)
 
         # Find deleted measures
         measure_del_query = (self.session.query(MA, literal(None))
@@ -281,9 +327,12 @@ class DiffEngine:
                                     QA.hierarchy_id == self.hierarchy_id)))
         )
 
-        return list(measure_mod_query.all()
+        measures = list(measure_mod_query.all()
                     + measure_add_query.all()
                     + measure_del_query.all())
+        duration = perf() - start
+        self.timing.append("Primary measure query took %gs" % duration)
+        return measures
 
     def add_qnode_metadata(self, qnode_pairs, qnode_diff):
         # Create sets of ids; group by transform type
@@ -296,6 +345,7 @@ class DiffEngine:
 
         reorder_ignore = set().union(deleted, added, relocated)
 
+        reorder_time = 0.0
         for (a, b), diff_item in zip(qnode_pairs, qnode_diff):
             a_son, b_son = diff_item['pair']
             if a:
@@ -303,8 +353,11 @@ class DiffEngine:
             if b:
                 b_son['path'] = b.get_path()
             if a and b and str(a.parent_id) == str(b.parent_id):
+                start = perf()
                 if self.qnode_was_reordered(a, b, reorder_ignore):
                    diff_item['tags'].append('reordered')
+                reorder_time += perf() - start
+        self.timing.append("Qnode reorder filter took %gs" % reorder_time)
 
     def add_measure_metadata(self, measure_pairs, measure_diff):
         # Create sets of ids; group by transform type
@@ -319,6 +372,7 @@ class DiffEngine:
 
         reorder_ignore = set().union(deleted, added, relocated)
 
+        reorder_time = 0.0
         for (a, b), diff_item in zip(measure_pairs, measure_diff):
             a_son, b_son = diff_item['pair']
             if a:
@@ -330,8 +384,11 @@ class DiffEngine:
                 b_son['parentId'] = str(b.get_parent(self.hierarchy_id).id)
                 b_son['seq'] = b.get_seq(self.hierarchy_id)
             if a and b and a_son['parentId'] == b_son['parentId']:
+                start = perf()
                 if self.measure_was_reordered(a, b, reorder_ignore):
                    diff_item['tags'].append('reordered')
+                reorder_time += perf() - start
+        self.timing.append("Measure reorder filter took %gs" % reorder_time)
 
     def qnode_was_reordered(self, a, b, reorder_ignore):
         a_siblings = (self.session.query(model.QuestionNode.id)
@@ -480,7 +537,10 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
     def export_json(self, path, query, limit):
         with model.session_scope(readonly=True) as session, \
                 open(path, 'w', encoding='utf-8') as f:
-            result = session.execute(query)
+            try:
+                result = session.execute(query)
+            except sqlalchemy.exc.ProgrammingError as e:
+                raise handlers.ModelError.from_sa(e)
             cols = self.parse_cols(result.context.cursor)
 
             to_son = ToSon(include=[
@@ -515,7 +575,10 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
         with model.session_scope(readonly=True) as session, \
                 open(path, 'w', encoding='utf-8') as f:
             writer = csv.writer(f)
-            result = session.execute(query)
+            try:
+                result = session.execute(query)
+            except sqlalchemy.exc.ProgrammingError as e:
+                raise handlers.ModelError.from_sa(e)
             cols = self.parse_cols(result.context.cursor)
             writer.writerow([c['name'] for c in cols])
 
@@ -535,7 +598,10 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
     def export_excel(self, path, query, limit):
         with model.session_scope(readonly=True) as session, \
                 closing(xlsxwriter.Workbook(path)) as workbook:
-            result = session.execute(query)
+            try:
+                result = session.execute(query)
+            except sqlalchemy.exc.ProgrammingError as e:
+                raise handlers.ModelError.from_sa(e)
 
             format_str = workbook.add_format({
                 'valign': 'top'})
@@ -605,7 +671,6 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
             path = os.path.join(tempdir, 'query_result.json')
             yield self.export_json(path, query, limit)
 
-            self.write_reasons()
             self.set_header("Content-Type", "application/json")
             self.set_header(
                 'Content-Disposition', 'attachment; filename=query_result.json')
@@ -618,7 +683,6 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
             path = os.path.join(tempdir, 'query_result.csv')
             yield self.export_csv(path, query, limit)
 
-            self.write_reasons()
             self.set_header("Content-Type", "text/csv")
             self.set_header(
                 'Content-Disposition', 'attachment; filename=query_result.csv')
@@ -631,7 +695,6 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
             path = os.path.join(tempdir, 'query_result.xlsx')
             yield self.export_excel(path, query, limit)
 
-            self.write_reasons()
             self.set_header("Content-Type",
                             "application/vnd.openxmlformats-officedocument"
                             ".spreadsheetml.sheet")

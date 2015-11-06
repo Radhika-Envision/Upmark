@@ -8,6 +8,12 @@ angular.module('settings', [])
 .constant('deployId', null)
 {% end %}
 
+{% if aq_version is not None %}
+.constant('aqVersion', '{{aq_version}}')
+{% else %}
+.constant('aqVersion', null)
+{% end %}
+
 .constant('versionedResources', {
     exclude: [
         '^/?template/tooltip',

@@ -32,15 +32,15 @@ class SurveyStructureTest(base.AqModelTestBase):
             h = survey.hierarchies[0]
             self.assertEqual(h.title, "Hierarchy 1")
             self.assertEqual(len(h.qnodes), 2)
-            self.assertEqual(h.n_measures, 2)
+            self.assertEqual(h.n_measures, 3)
 
             self.assertEqual(h.qnodes[1].seq, 1)
             q = h.qnodes[0]
             self.assertEqual(q.title, "Function 1")
             self.assertEqual(q.seq, 0)
-            self.assertEqual(len(q.children), 1)
+            self.assertEqual(len(q.children), 2)
             self.assertEqual(len(q.measures), 0)
-            self.assertEqual(q.n_measures, 2)
+            self.assertEqual(q.n_measures, 3)
 
             q = q.children[0]
             self.assertEqual(q.title, "Process 1")
@@ -90,7 +90,7 @@ class SurveyStructureTest(base.AqModelTestBase):
             h = survey.hierarchies[0]
             q = h.qnodes[0].children[0]
             self.assertEqual(len(q.measures), 2)
-            self.assertEqual(q.parent.n_measures, 2)
+            self.assertEqual(q.parent.n_measures, 3)
             self.assertEqual(q.measures[0].title, "Foo Measure")
             self.assertEqual(q.qnode_measures[0].seq, 0)
             self.assertEqual(q.measures[1].title, "Bar Measure")
@@ -104,8 +104,8 @@ class SurveyStructureTest(base.AqModelTestBase):
             self.assertEqual(q.measures[0].title, "Bar Measure")
             self.assertEqual(q.qnode_measures[0].seq, 0)
             self.assertEqual(q.n_measures, 1)
-            self.assertEqual(q.parent.n_measures, 1)
-            self.assertEqual(h.n_measures, 1)
+            self.assertEqual(q.parent.n_measures, 2)
+            self.assertEqual(h.n_measures, 2)
 
     def test_orphan_measure(self):
         with model.session_scope() as session:
@@ -207,6 +207,79 @@ class SurveyTest(base.AqHttpTestBase):
                 "/survey.json?editable=true", method='GET',
                 expected=200, decode=True)
             self.assertEqual(len(survey_sons), 1)
+
+    def test_modify(self):
+        with model.session_scope() as session:
+            survey = session.query(model.Survey).first()
+            h = survey.hierarchies[0]
+            q = h.qnodes[0].children[0]
+            q2 = h.qnodes[0].children[1]
+            sid = str(survey.id)
+            hid = str(h.id)
+            qid = str(q.id)
+            qid2 = str(q2.id)
+            mid1 = str(q.measures[0].id)
+            mid2 = str(q.measures[0].id)
+            m3 = (session.query(model.Measure)
+                .filter_by(title='Baz Measure')
+                .one())
+            mid3 = str(m3.id)
+
+        with base.mock_user('author'):
+            q_son = self.fetch(
+                "/qnode/{}.json?surveyId={}".format(qid, sid),
+                method='GET', expected=200, decode=True)
+            self.assertAlmostEqual(q_son['total_weight'], 300)
+
+            # Modify a measure's weight and check that the qnode weight is
+            # updated
+            m_son = self.fetch(
+                "/measure/{}.json?surveyId={}".format(mid1, sid),
+                method='GET', expected=200, decode=True)
+            self.assertAlmostEqual(m_son['weight'], 100)
+            m_son['weight'] = 200
+            m_son = self.fetch(
+                "/measure/{}.json?surveyId={}".format(mid1, sid),
+                method='PUT', body=json_encode(m_son),
+                expected=200, decode=True)
+            self.assertAlmostEqual(m_son['weight'], 200)
+            q_son = self.fetch(
+                "/qnode/{}.json?surveyId={}".format(qid, sid),
+                method='GET', expected=200, decode=True)
+            self.assertAlmostEqual(q_son['total_weight'], 400)
+
+            # Add another measure and check qnode weight
+            q2_son = self.fetch(
+                "/qnode/{}.json?surveyId={}".format(qid2, sid),
+                method='GET', expected=200, decode=True)
+            self.assertAlmostEqual(q2_son['total_weight'], 300)
+            m_son = self.fetch(
+                "/measure/{}.json?surveyId={}".format(mid3, sid),
+                method='GET', expected=200, decode=True)
+            self.assertAlmostEqual(m_son['weight'], 300)
+            m_son = self.fetch(
+                "/measure/{}.json?surveyId={}&parentId={}".format(
+                    mid3, sid, qid),
+                method='PUT', body=json_encode(m_son),
+                expected=200, decode=True)
+            q_son = self.fetch(
+                "/qnode/{}.json?surveyId={}".format(qid, sid),
+                method='GET', expected=200, decode=True)
+            self.assertAlmostEqual(q_son['total_weight'], 700)
+            q2_son = self.fetch(
+                "/qnode/{}.json?surveyId={}".format(qid2, sid),
+                method='GET', expected=200, decode=True)
+            self.assertAlmostEqual(q2_son['total_weight'], 0)
+
+            # Delete a measure and check that the qnode weight is updated
+            self.fetch(
+                "/measure/{}.json?surveyId={}&parentId={}".format(
+                    mid1, sid, qid),
+                method='DELETE', expected=200)
+            q_son = self.fetch(
+                "/qnode/{}.json?surveyId={}".format(qid, sid),
+                method='GET', expected=200, decode=True)
+            self.assertAlmostEqual(q_son['total_weight'], 500)
 
     def test_duplicate_survey(self):
         with base.mock_user('author'):

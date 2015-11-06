@@ -16,7 +16,8 @@
 
 <ol class="responses list-unstyled" ng-if="!response.notRelevant">
     <li ng-repeat="part in responseType.parts" class="clearfix"
-            ng-class="{active: $index == state.active}">
+            ng-class="{active: $index == state.active}"
+            title="{{part.description}}">
         <div ng-if="part.name" class="hidden-print">
             <label ng-click="state.active = $index">{{part.name}}</label>
         </div>
@@ -25,11 +26,11 @@
                     ng-init="pi = $index">
                 <div class="btn-group"
                         ng-repeat="o in part.options">
-                <button
-                        class="btn btn-default"
+                <button class="btn btn-default"
                         ng-class="{active: active(pi, $index)}"
                         ng-click="choose(pi, $index)"
-                        ng-disabled="!enabled(pi, $index)">
+                        ng-disabled="!enabled(pi, $index)"
+                        title="{{o.description || part.description}}">
                     <span class="index">{{$index + 1}}</span>
                     {{o.name}}
                     <span class="text-hidden">{{$index + 1}}</span>
@@ -47,6 +48,32 @@
         </div>
     </li>
 </ol>
+
+<docs ng-if="docs.length">
+    <i class="fa-li fa fa-check-square-o fa-border"></i>
+
+    <div ng-repeat="part in docs">
+        <h3 ng-if="docs.length == 1">
+            Response {{part.name}}
+        </h3>
+        <h3 ng-if="docs.length > 1">
+            Response Part {{part.index + 1}}. {{part.name}}
+        </h3>
+        <p ng-if="part.description" class="formatted"
+            >{{part.description}}</p>
+        <dl ng-init="pi = $index">
+            <dt ng-repeat-start="o in part.options"
+                    ng-if="o.description"
+                    ng-class="o.active ? 'active' : null">
+                Option {{o.index + 1}}. {{o.name}}
+            </dt>
+            <dd ng-repeat-end class="formatted"
+                    ng-if="o.description"
+                    ng-class="o.active ? 'active' : null"
+                >{{o.description}}</dd>
+        </dl>
+    </div>
+</docs>
 
 <label for="comments" class="sr-only">Comments</label>
 <p class="visible-print-block">Comments:</p>

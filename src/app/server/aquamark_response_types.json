@@ -6,45 +6,49 @@
             {
                 "id": "dev",
                 "name": "Development",
+                "description": "How evolved are our processes",
                 "options": [
-                    {"score": 0.48, "name": "Informal"},
-                    {"score": 0.56, "name": "Aware"},
-                    {"score": 0.64, "name": "Formulated"},
-                    {"score": 0.74, "name": "Advanced"},
-                    {"score": 0.80, "name": "Robust"}
+                    {"score": 0.48, "name": "Informal", "description": "Process Objective / Outcomes:No defined and the need is not clearly recognised\nProcess Development:None"},
+                    {"score": 0.56, "name": "Aware", "description": "Process Objective / Outcomes:Has been defined and the need is understood\nProcess Development:Initiated"},
+                    {"score": 0.64, "name": "Formulated", "description": "Process Objective / Outcomes:Has been defined and the need is understood\nProcess Development:Significantly developed\nProcess Robustness:The process includes some aspects of the measure definition"},
+                    {"score": 0.74, "name": "Advanced", "description": "Process Objective / Outcomes:Has been defined and the need is understood in detail\nProcess Development:Substantially complete\nProcess Robustness:The process incorporates most aspects of the measure definition"},
+                    {"score": 0.80, "name": "Robust", "description": "Process Objective / Outcomes:Has been defined and the need is understood in detail\nProcess Development:Complete\nProcess Robustness:The process incorporates most aspects of the measure definition"}
                 ]
             },
             {
                 "id": "doc",
                 "name": "Documentation",
+                "description": "How well documented is our process",
                 "options": [
-                    {"score": 0.12, "name": "None"},
-                    {"score": 0.14, "if": "dev__i >= 1", "name": "Minimal"},
-                    {"score": 0.16, "if": "dev__i >= 2", "name": "Moderate"},
-                    {"score": 0.18, "if": "dev__i >= 3", "name": "Advanced"},
-                    {"score": 0.20, "if": "dev__i >= 4", "name": "Complete"}
+                    {"score": 0.12, "name": "None", "description":"Documentation Development:None\nDocumentation Testing and Verification:Unknown"},
+                    {"score": 0.14, "if": "dev__i >= 1", "name": "Minimal", "description":"Documentation Development:Some brief notes are available\nDocumentation Testing and Verification:Uncertainty of its accuracy, completeness or usefulness"},
+                    {"score": 0.16, "if": "dev__i >= 2", "name": "Moderate", "description":"Documentation Development:Structured but not comprehensive\nDocumentation Testing and Verification:Limited checking and not yet checked by the person(s) responsible / accountable"},
+                    {"score": 0.18, "if": "dev__i >= 3", "name": "Advanced", "description":"Documentation Development:Substantially complete\nDocumentation Testing and Verification:Checked, but may not yet have been checked by the person(s) responsible / accountable"},
+                    {"score": 0.20, "if": "dev__i >= 4", "name": "Complete", "description":"Documentation Development:Complete\nDocumentation Testing and Verification:Checked by the person(s) responsible / accountable"}
                 ]
             },
             {
                 "id": "cov",
                 "name": "Coverage & Frequency",
+                "description": "How widespread and applied are our processes",
                 "options": [
-                    {"score": 0.12, "name": "Sparse"},
-                    {"score": 0.24, "name": "Limited"},
-                    {"score": 0.36, "if": "dev__i >= 2", "name": "Moderate"},
-                    {"score": 0.46, "if": "dev__i >= 2", "name": "Predominant"},
-                    {"score": 0.60, "if": "dev__i >= 2", "name": "Total"}
+                    {"score": 0.12, "name": "Sparse", "description":"Geographic Area:In use in very few relevant areas(<25%)\nAsset Classes / Categories:In use in very few relevant asset classes(<25%)\nService Provided:In use in very few services(<25%)\nFrequency of Use:Use is uncommon and known to a few personnel"},
+                    {"score": 0.24, "name": "Limited", "description":"Geographic Area:In use in few relevant areas (25 to 50%)\nAsset Classes / Categories:In use in few relevant asset (25 to 50%)\nService Provided:In use in few services (25 to 50%)\nFrequency of Use:Used intemittently with no systematic management and there are significant gaps in staff use"},
+                    {"score": 0.36, "if": "dev__i >= 2", "name": "Moderate", "description":"Geographic Area:In use in many relevant areas (50 to 75%)\nAsset Classes / Categories:In use in many relevant assets (50 to 75%)\nService Provided:In use in many services (50 to 75%)\nFrequency of Use:Used often and the developed process is generally adhered to by many relevant staff"},
+                    {"score": 0.46, "if": "dev__i >= 2", "name": "Predominant", "description":"Geographic Area:In use in most relevant areas (>75%)\nAsset Classes / Categories:In use in most relevant asset classes(>75%)\nService Provided:In use in most services(>75%)\nFrequency of Use:Used consistently with few deviations from the developed process by most relevant staff"},
+                    {"score": 0.60, "if": "dev__i >= 2", "name": "Total", "description":"Geographic Area:Can demonstrate its use in all relevant areas\nAsset Classes / Categories:Can demonstrate its use in all relevant asset classes\nService Provided:Can demonstrate its use in all services\nFrequency of Use:Can demonstrate that the process is used(>90% of the time) by the majority of relevant staff(>90%)"}
                 ]
             },
             {
                 "id": "eff",
                 "name": "Effectiveness",
+                "description": "How well do our processes deliver the desired outcomes",
                 "options": [
-                    {"score": 0.08, "name": "Rarely"},
-                    {"score": 0.16, "name": "Occasionally"},
-                    {"score": 0.24, "if": "dev__i >= 2", "name": "Often"},
-                    {"score": 0.32, "if": "dev__i >= 2", "name": "Usually"},
-                    {"score": 0.40, "if": "dev__i >= 2", "name": "Always"}
+                    {"score": 0.08, "name": "Rarely", "description":"Achieve Desired Outcomes:Step 1 defined outcomes not achieved"},
+                    {"score": 0.16, "name": "Occasionally", "description":"Achieve Desired Outcomes:Step 1 defined outcomes not achieved in few relevant areas(25% to 50%)"},
+                    {"score": 0.24, "if": "dev__i >= 2", "name": "Often", "description":"Achieve Desired Outcomes:Step 1 defined outcomes not achieved in many relevant areas(50% to 75%)"},
+                    {"score": 0.32, "if": "dev__i >= 2", "name": "Usually", "description":"Achieve Desired Outcomes:Step 1 defined outcomes not achieved in most relevant areas(>75%)"},
+                    {"score": 0.40, "if": "dev__i >= 2", "name": "Always", "description":"Achieve Desired Outcomes:Can show Step 1 defined outcomes are achieved in all relevant areas"}
                 ]
             }
         ],
@@ -56,11 +60,11 @@
         "parts": [
             {
                 "options": [
-                    {"score": 0.2, "name": "Basic"},
-                    {"score": 0.4, "name": "Limited"},
-                    {"score": 0.6, "name": "Adequate"},
-                    {"score": 0.8, "name": "Good"},
-                    {"score": 1.0, "name": "Comprehensive"}
+                    {"score": 0.2, "name": "Basic", "description": "Functional need not adequately defined.\nSystem meets some needs but inadequate for all the participants requirements.\nScope for major improvement."},
+                    {"score": 0.4, "name": "Limited", "description": "Functional need more broadly defined.\nSystem meets most current basic participant requirements.\nImprovements needed to fully meet current basic needs."},
+                    {"score": 0.6, "name": "Adequate", "description": "Functional need fully defined.\nSystem meets current basic needs.\nFurther development would allow increased use / application."},
+                    {"score": 0.8, "name": "Good", "description": "Functional need fully defined.\nSystem meets all defined needs most of the time with only minor inadequacies."},
+                    {"score": 1.0, "name": "Comprehensive", "description": "Participant is confident that the system functionality imposes no restrictions in its application."}
                 ]
             }
         ]
@@ -71,11 +75,11 @@
         "parts": [
             {
                 "options": [
-                    {"score": 0.2, "name": "Poor"},
-                    {"score": 0.4, "name": "Limited"},
-                    {"score": 0.6, "name": "Adequate"},
-                    {"score": 0.8, "name": "Good"},
-                    {"score": 1.0, "name": "Comprehensive"}
+                    {"score": 0.2, "name": "Poor", "description": "Meets some needs but inadequate for participant requirements."},
+                    {"score": 0.4, "name": "Limited", "description": "Meets most current basic needs with some improvements needed."},
+                    {"score": 0.6, "name": "Adequate", "description": "Meets current basic needs. Additional capacity would allow participant to increase use of application."},
+                    {"score": 0.8, "name": "Good", "description": "Meets needs most of the time with only minor inadequacies."},
+                    {"score": 1.0, "name": "Comprehensive", "description": "Participant is confident that the system capacity imposes no restrictions in its application"}
                 ]
             }
         ]
@@ -86,11 +90,11 @@
         "parts": [
             {
                 "options": [
-                    {"score": 0.2, "name": "Difficult"},
-                    {"score": 0.4, "name": "Limited"},
-                    {"score": 0.6, "name": "Adequate"},
-                    {"score": 0.8, "name": "Good"},
-                    {"score": 1.0, "name": "Effective"}
+                    {"score": 0.2, "name": "Difficult", "description": "Manual systems in all areas.\nVerbal communication used in some instances.\nForms used are difficult to read and understand.\nSystems are hard to use, known to be a cause of a large number data recording errors.\nLack of commitment by those capturing."},
+                    {"score": 0.4, "name": "Limited", "description": "Manual systems in use.\nForms used are of a basic design, hard to read and understand, but reduced potential for incorrect data entry.\nNo verbal data capture. Some commitment to accurate and timely capture evident."},
+                    {"score": 0.6, "name": "Adequate", "description": "Manual systems in most areas, some electronic aids.\nForms designed, but some difficulty in reading / understanding.\nCommitment to accurate and timely capture widespread."},
+                    {"score": 0.8, "name": "Good", "description": "Electronic systems used in most relevant areas.\nManual systems in use elsewhere.\nForms, where necessary, well designed for most areas, providing good understanding of data requirements.\nCommitment to accurate and timely capture predominates."},
+                    {"score": 1.0, "name": "Effective", "description": "Electronic systems used in all relevant areas.\nEffective manual systems in use elsewhere.\nForms well designed, easily read and understood, giving minimal potential for errors.\nTotal commitment by all parties to accurate and timely data capture."}
                 ]
             }
         ]
@@ -101,11 +105,11 @@
         "parts": [
             {
                 "options": [
-                    {"score": 0.2, "name": "Poor"},
-                    {"score": 0.4, "name": "Limited"},
-                    {"score": 0.6, "name": "Adequate"},
-                    {"score": 0.8, "name": "Good"},
-                    {"score": 1.0, "name": "Streamlined"}
+                    {"score": 0.2, "name": "Poor", "description": "Data communicated for manual input in ad hoc fashion or verbally.\nData handled, transferred or keyed several times before final entry."},
+                    {"score": 0.4, "name": "Limited", "description": "Data provided in written form only but requiring entry more than once in many instances."},
+                    {"score": 0.6, "name": "Adequate", "description": "Forms (both paper and computer screens) provide for ease of entry.\nData input hampered by differences between paper forms and computer screens. Some data entered more than once."},
+                    {"score": 0.8, "name": "Good", "description": "Electronic systems providing for keyless entry except at the point of capture used in most relevant areas.\nWhere manual entry is used, paper forms and computer screens provide consistency of approach minimising entry errors.\nNo requirements for multiple entries."},
+                    {"score": 1.0, "name": "Streamlined", "description": "Electronic systems with entry at the point of capture used in all relevant areas. Well- designed manual systems in use elsewhere.\nPaper and computer forms well designed, easily read and understood and single entry with minimal potential for errors."}
                 ]
             }
         ]
@@ -116,11 +120,11 @@
         "parts": [
             {
                 "options": [
-                    {"score": 0.2, "name": "Rare"},
-                    {"score": 0.4, "name": "Limited"},
-                    {"score": 0.6, "name": "Adequate"},
-                    {"score": 0.8, "name": "Good"},
-                    {"score": 1.0, "name": "Comprehensive"}
+                    {"score": 0.2, "name": "Rare", "description": "Data not verified to any set procedure, and rarely done."},
+                    {"score": 0.4, "name": "Limited", "description": "Some verification systems in place, not documented, carried out on an ad hoc basis."},
+                    {"score": 0.6, "name": "Adequate", "description": "Verification procedures are such that the Participant is confident that the data is generally accurate. No quality control procedure in use."},
+                    {"score": 0.8, "name": "Good", "description": "Verification procedures designed to ensure all data is verified. Procedures documented, and in use across most of the participant."},
+                    {"score": 1.0, "name": "Comprehensive", "description": "All data fully verified according to the participants accuracy requirements, and to the required Quality Control standards."}
                 ]
             }
         ]
@@ -131,11 +135,11 @@
         "parts": [
             {
                 "options": [
-                    {"score": 0.2, "name": "Uncontrolled"},
-                    {"score": 0.4, "name": "Limited"},
-                    {"score": 0.6, "name": "Adequate"},
-                    {"score": 0.8, "name": "Good"},
-                    {"score": 1.0, "name": "Fully Controlled"}
+                    {"score": 0.2, "name": "Uncontrolled", "description": "Subject to change by any person with access to the system."},
+                    {"score": 0.4, "name": "Limited", "description": "Change restricted to a range of approved users. No change control procedures in place."},
+                    {"score": 0.6, "name": "Adequate", "description": "Change restricted to a range of approved users. Some change control procedures in place, but lacking documentation."},
+                    {"score": 0.8, "name": "Good", "description": "Change restricted to a small number of approved users. Change control procedures in place, but lacking documentation."},
+                    {"score": 1.0, "name": "Fully Controlled", "description": "Change restricted to a small number of approved users.\nDocumented and authorised change control procedures in place."}
                 ]
             }
         ]
@@ -146,11 +150,11 @@
         "parts": [
             {
                 "options": [
-                    {"score": 0.2, "name": "No Backup"},
-                    {"score": 0.4, "name": "Limited"},
-                    {"score": 0.6, "name": "Moderate"},
-                    {"score": 0.8, "name": "Good"},
-                    {"score": 1.0, "name": "Full Backup"}
+                    {"score": 0.2, "name": "No Backup", "description": "No data backup."},
+                    {"score": 0.4, "name": "Limited", "description": "Uncontrolled backup to cd or floppy, at user discretion.\nServer files and software backed up on an irregular basis.\nNo copies of paper records held in secure storage."},
+                    {"score": 0.6, "name": "Moderate", "description": "Instructions issued to back up local hard drives to cd or floppy, but sometimes not implemented.\nCopies of most paper records held in secure storage.\nServer files and software regularly backed up."},
+                    {"score": 0.8, "name": "Good", "description": "Written procedures in place requiring regular backups of local hard drives and mostly implemented across the Agency.\nCopies of all paper records held in secure storage. Server files and software regularly backed up."},
+                    {"score": 1.0, "name": "Full Backup", "description": "Procedures to back up all Agency local pc hard drives and server systems are documented and enforced.\nCopies of paper records held in secure storage. Duplicate data and records held off site."}
                 ]
             }
         ]
@@ -161,11 +165,11 @@
         "parts": [
             {
                 "options": [
-                    {"score": 0.2, "name": "Poor"},
-                    {"score": 0.4, "name": "Basic"},
-                    {"score": 0.6, "name": "Fair"},
-                    {"score": 0.8, "name": "Good"},
-                    {"score": 1.0, "name": "Excellent"}
+                    {"score": 0.2, "name": "Poor", "description": "Data, once filed is difficult to identify and recall.\nSpecialist assistance is always required to retrieve and transfer data.\nRetrieval and delivery time can cause significant disruption to the user."},
+                    {"score": 0.4, "name": "Basic", "description": "Data is poorly indexed, difficult to locate and transfer.\nSpecialist assistance often required to locate and issue.\nRetrieval time is satisfactory if the assistance is available"},
+                    {"score": 0.6, "name": "Fair", "description": "Data is available to authorised users, sometimes through specialist personnel.\nRetrieval time is not normally a problem.\nThere is a lack of indexing and instruction for use."},
+                    {"score": 0.8, "name": "Good", "description": "Data is available directly to authorised users, and mostly without the need for specialist assistance.\nThere is some indexing and instruction for use."},
+                    {"score": 1.0, "name": "Excellent", "description": "Data well indexed, instructions for location and retrieval are clear and issued to all users.\nRetrieval and transfer is directly available to all authorised users."}
                 ]
             }
         ]
@@ -176,11 +180,11 @@
         "parts": [
             {
                 "options": [
-                    {"score": 0.2, "name": "Incompatible"},
-                    {"score": 0.4, "name": "Limited"},
-                    {"score": 0.6, "name": "Moderate"},
-                    {"score": 0.8, "name": "Good"},
-                    {"score": 1.0, "name": "Fully Compatible"}
+                    {"score": 0.2, "name": "Incompatible", "description": "Data is an unusual format not readily useable by popular spreadsheets and databases."},
+                    {"score": 0.4, "name": "Limited", "description": "Data can be transferred into the required format, but this is a repetitive operation that has to be done every time the data is recalled."},
+                    {"score": 0.6, "name": "Moderate", "description": "Data is generally maintained in a format that can be transferred to popular spreadsheets and databases, but the user must check before extraction that the format has been updated for current compatibility"},
+                    {"score": 0.8, "name": "Good", "description": "Data is normally maintained in a format that can be transferred to popular spreadsheets and databases"},
+                    {"score": 1.0, "name": "Fully Compatible", "description": "All data is maintained in a format that can be transferred to popular spreadsheets and databases and there is a Quality Assurance process in place to ensure compatibility."}
                 ]
             }
         ]
@@ -191,11 +195,11 @@
         "parts": [
             {
                 "options": [
-                    {"score": 0.2, "name": "Poor"},
-                    {"score": 0.4, "name": "Basic"},
-                    {"score": 0.6, "name": "Fair"},
-                    {"score": 0.8, "name": "Good"},
-                    {"score": 1.0, "name": "Comprehensive"}
+                    {"score": 0.2, "name": "Poor", "description": "Few interconnections with relevant systems. Very difficult to connect to other systems, requires high level system supplier technical input to do so."},
+                    {"score": 0.4, "name": "Basic", "description": "Some interconnections with relevant systems. Very difficult to connect to other systems, requires well trained IT personnel to do so, working closely with the supplier."},
+                    {"score": 0.6, "name": "Fair", "description": "Interconnected to many relevant systems. Connections to other systems may be made using the users manual, but IT personnel would generally refer back to the supplier for instructions."},
+                    {"score": 0.8, "name": "Good", "description": "Interconnected to most relevant systems. Connections to other systems can be made by IT personnel, with reference to detailed users manual information."},
+                    {"score": 1.0, "name": "Comprehensive", "description": "Interconnections to all relevant systems have been readily made by IT personnel and those interconnections which are used often are automatic."}
                 ]
             }
         ]
@@ -206,11 +210,11 @@
         "parts": [
             {
                 "options": [
-                    {"score": 0.2, "name": "Poor"},
-                    {"score": 0.4, "name": "Basic"},
-                    {"score": 0.6, "name": "Fair"},
-                    {"score": 0.8, "name": "Good"},
-                    {"score": 1.0, "name": "Excellent"}
+                    {"score": 0.2, "name": "Poor", "description": "Almost impossible to get ad hoc reports."},
+                    {"score": 0.4, "name": "Basic", "description": "Ad hoc reports can be written by specialist system users, but the system itself still imposes restrictions."},
+                    {"score": 0.6, "name": "Fair", "description": "Ad hoc reports can be written by specialist users using additional report writers such as Crystal."},
+                    {"score": 0.8, "name": "Good", "description": "Ad hoc reports can be written by general system users using specialist additional report writers such as Crystal."},
+                    {"score": 1.0, "name": "Excellent", "description": "The system has all the tools necessary for a trained user to write ad hoc reports."}
                 ]
             }
         ]
@@ -221,11 +225,11 @@
         "parts": [
             {
                 "options": [
-                    {"score": 0.2, "name": "Poor"},
-                    {"score": 0.4, "name": "Basic"},
-                    {"score": 0.6, "name": "Fair"},
-                    {"score": 0.8, "name": "Good"},
-                    {"score": 1.0, "name": "Excellent"}
+                    {"score": 0.2, "name": "Poor", "description": "Very few standard reports, and these are of little use to the Agency."},
+                    {"score": 0.4, "name": "Basic", "description": "A limited range of standard reports is provided, but not directly appropriate to the Agencys requirements.\nStandard reports not generally used, ad hoc reports being required to overcome inadequacy of standard reports."},
+                    {"score": 0.6, "name": "Fair", "description": "A limited range of standard reports are provided, generally in the format required by the Agency.\nAd hoc reporting is a common requirement to overcome inadequacy of standard reports."},
+                    {"score": 0.8, "name": "Good", "description": "A range of standard reports are available which fulfill most of the Agencys requirements.\nAd hoc reporting is required on a regular basis for some users to overcome inadequacy of standard reports."},
+                    {"score": 1.0, "name": "Excellent", "description": "The Agency has researched the reporting requirements, and all users are satisfied with the scope and quality of the standard reports available.\nThe need for ad hoc reporting to overcome inadequacy of standard reports is minimal."}
                 ]
             }
         ]
@@ -236,11 +240,11 @@
         "parts": [
             {
                 "options": [
-                    {"score": 0.2, "name": "Poor"},
-                    {"score": 0.4, "name": "Basic"},
-                    {"score": 0.6, "name": "Fair"},
-                    {"score": 0.8, "name": "Good"},
-                    {"score": 1.0, "name": "Comprehensive"}
+                    {"score": 0.2, "name": "Poor", "description": "Limited documentation. Nearly useless. Hardly referred to by the users."},
+                    {"score": 0.4, "name": "Basic", "description": "Limited in scope, covering only the fundamentals.\nDifficult to get answers to many questions that arise."},
+                    {"score": 0.6, "name": "Fair", "description": "Covers most areas of the system.\nFundamentals are dealt with and with some effort answers are available to most questions."},
+                    {"score": 0.8, "name": "Good", "description": "Good system coverage.\nCan be relied upon to readily give answers to most questions."},
+                    {"score": 1.0, "name": "Comprehensive", "description": "Good system coverage.\nHas proven to readily provide complete answers to the questions by users."}
                 ]
             }
         ]
@@ -251,11 +255,11 @@
         "parts": [
             {
                 "options": [
-                    {"score": 0.2, "name": "Poor"},
-                    {"score": 0.4, "name": "Basic"},
-                    {"score": 0.6, "name": "Fair"},
-                    {"score": 0.8, "name": "Good"},
-                    {"score": 1.0, "name": "Excellent"}
+                    {"score": 0.2, "name": "Poor", "description": "Strong antipathy towards the system, personnel avoid using it if at all possible."},
+                    {"score": 0.4, "name": "Basic", "description": "Used with reluctance, and only because the tasks cannot be completed without it."},
+                    {"score": 0.6, "name": "Fair", "description": "Quite usable but personnel consider that the level of training required is too great, and that if not used regularly they forget how to use it."},
+                    {"score": 0.8, "name": "Good", "description": "Personnel generally satisfied with the system, but some concerns evident."},
+                    {"score": 1.0, "name": "Excellent", "description": "Personnel satisfied with the system with few complaints."}
                 ]
             }
         ]
@@ -266,11 +270,11 @@
         "parts": [
             {
                 "options": [
-                    {"score": 0.2, "name": "Poor"},
-                    {"score": 0.4, "name": "Basic"},
-                    {"score": 0.6, "name": "Fair"},
-                    {"score": 0.8, "name": "Good"},
-                    {"score": 1.0, "name": "Comprehensive"}
+                    {"score": 0.2, "name": "Poor", "description": "Almost nothing available.\nSystem can only be maintained or modified by authors."},
+                    {"score": 0.4, "name": "Basic", "description": "Some documentation available, generally fairly superficial and lacking definition in key areas.\nDetailed, system specific training required to maintain or to modify the system."},
+                    {"score": 0.6, "name": "Fair", "description": "Documentation of basic flow charts and some code labeling. System maintainers require some system specific training."},
+                    {"score": 0.8, "name": "Good", "description": "Documentation is clear and generally meets standards and the user needs. Some problems with clarity and scope. Maintenance can be carried out by most IT staff without specific training."},
+                    {"score": 1.0, "name": "Comprehensive", "description": "Documentation is complete, clear, specific, and compliant with standards for code documentation and there are no complaints.\nMaintenance can be carried out by IT staff without specific training."}
                 ]
             }
         ]
@@ -281,11 +285,11 @@
         "parts": [
             {
                 "options": [
-                    {"score": 0.2, "name": "Poor"},
-                    {"score": 0.4, "name": "Basic"},
-                    {"score": 0.6, "name": "Fair"},
-                    {"score": 0.8, "name": "Good"},
-                    {"score": 1.0, "name": "Comprehensive"}
+                    {"score": 0.2, "name": "Poor", "description": "Routine software updates not implemented. No forecast of future needs and no action being taken to avoid obsolescence."},
+                    {"score": 0.4, "name": "Basic", "description": "Some software updates identified but not implemented. Some superficial assessment of future needs, but no planning in place for maintenance or upgrade"},
+                    {"score": 0.6, "name": "Fair", "description": "Assessment of future needs has been carried out in a detailed way, but is not revised on a regular basis.\nSystem software is regularly upgraded to meet requirements. Upgrades planned but timing is undetermined and budget not identified"},
+                    {"score": 0.8, "name": "Good", "description": "Assessment of future needs has been carried out in a detailed way and is revised on a regular basis.\nUpgrades planned but timing is undetermined. Budget identified and provided for on a contingency basis."},
+                    {"score": 1.0, "name": "Comprehensive", "description": "Full assessment of future needs has been carried out and documented and is revised on a regular basis. The system is maintained / upgraded at the optimum time to provide the identified level of service.\nBudget identified and provided for."}
                 ]
             }
         ]
@@ -296,11 +300,11 @@
         "parts": [
             {
                 "options": [
-                    {"score": 0.2, "name": "Poor"},
-                    {"score": 0.4, "name": "Basic"},
-                    {"score": 0.6, "name": "Fair"},
-                    {"score": 0.8, "name": "Good"},
-                    {"score": 1.0, "name": "High"}
+                    {"score": 0.2, "name": "Poor", "description": "Frequent down time, high level of user frustration.\nUnreliable to the point where staff doubt that it can continue in its present form."},
+                    {"score": 0.4, "name": "Basic", "description": "Problems with unavailability, especially at times of peak use or during important events.\nAs a result data loss often occurs."},
+                    {"score": 0.6, "name": "Fair", "description": "Some problems with unavailability, especially at times of peak use or during important events.\nSome data loss may occur."},
+                    {"score": 0.8, "name": "Good", "description": "Few problems with unavailability, especially at times of peak use or during important events.\nData loss is not unknown, but is so infrequent that it is not a major issue."},
+                    {"score": 1.0, "name": "High", "description": "Rarely if ever unavailable when required."}
                 ]
             }
         ]
@@ -311,11 +315,11 @@
         "parts": [
             {
                 "options": [
-                    {"score": 0.2, "name": "None"},
-                    {"score": 0.4, "name": "Basic"},
-                    {"score": 0.6, "name": "Moderate"},
-                    {"score": 0.8, "name": "Good"},
-                    {"score": 1.0, "name": "Comprehensive"}
+                    {"score": 0.2, "name": "None", "description": "System never reviewed since implementation.\nAgency is unaware if system continues to deliver benefits exceeding its costs"},
+                    {"score": 0.4, "name": "Basic", "description": "System has been reviewed in the past but no current review.\nAgency remains unsure if system continues to deliver benefits exceeding its costs."},
+                    {"score": 0.6, "name": "Moderate", "description": "System has been reviewed on an ad hoc basis for meeting desired outcomes, technical obsolescence, usage and cost. Reviews do not consider these in a framework of benefits versus cost to the agency. Some improvement opportunities are implemented."},
+                    {"score": 0.8, "name": "Good", "description": "System is regularly reviewed for meeting desired outcomes, technical obsolescence, usage and cost. The review considers these in a qualitative framework of benefits versus cost to the agency. Many improvement opportunities are identified and implemented."},
+                    {"score": 1.0, "name": "Comprehensive", "description": "System is routinely reviewed as part of a documented business process. Review considers required outcomes, technical obsolescence, usage and cost. The review considers these in a quantitative framework of benefits versus cost to the agency. All improvement opportunities are identified and implemented."}
                 ]
             }
         ]

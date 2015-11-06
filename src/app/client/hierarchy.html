@@ -42,7 +42,8 @@
         <button class="btn btn-default btn-round" title="Save"
                 ng-click="edit.save()"
                 ng-if="edit.model"
-                form="editor">
+                form="editor"
+                form-save-button="editor">
             <i class="fa fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
@@ -62,7 +63,7 @@
 
 <div ng-if="edit.model">
 <div class="container">
-    <form novalidate name="form" id="editor">
+    <form novalidate name="form" id="editor" form-nav-warn>
         <div class="form-group" show-errors>
             <label for="title">Name</label>
             <span class="help-label" ng-if="form.title.$error.required">

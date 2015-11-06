@@ -194,11 +194,21 @@ class ResponseHandler(handlers.BaseHandler):
                         approval='draft')
                     session.add(response)
                 else:
+                    same_user = response.user.id == self.current_user.id
                     td = datetime.datetime.utcnow() - response.modified
                     hours_since_update = td.seconds / 60 / 60
-                    same_user = response.user.id == self.current_user.id
-                    if hours_since_update < 8 and same_user:
+
+                    if same_user and hours_since_update < 8:
                         response.version_on_update = False
+
+                    modified = self.request_son.get("modified", 0)
+                    # Convert to int to avoid string conversion errors during
+                    # JSON marshalling.
+                    if int(modified) < int(response.modified.timestamp()):
+                        raise handlers.ModelError(
+                            "This response has changed since you loaded the"
+                            " page. Please copy or remember your changes and"
+                            " refresh the page.")
 
                 if approval != '':
                     self._check_approval_change(response, assessment, approval)

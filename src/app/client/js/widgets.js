@@ -247,7 +247,10 @@ angular.module('vpac.widgets', [])
                 that.getter.assign(that.scope, model);
                 that.model = null;
                 that.scope.$emit('EditSaved', model);
-                Notifications.set('edit', 'success', "Saved", 5000);
+                var message = "Saved";
+                if (getResponseHeaders('Operation-Details'))
+                    message += ": " + getResponseHeaders('Operation-Details');
+                Notifications.set('edit', 'success', message, 5000);
             } finally {
                 that.saving = false;
                 that = null;
@@ -297,7 +300,10 @@ angular.module('vpac.widgets', [])
                 log.debug("Success");
                 that.model = null;
                 that.scope.$emit('EditDeleted', model);
-                Notifications.set('edit', 'success', "Deleted", 5000);
+                var message = "Deleted";
+                if (getResponseHeaders('Operation-Details'))
+                    message += ": " + getResponseHeaders('Operation-Details');
+                Notifications.set('edit', 'success', message, 5000);
             } finally {
                 that.saving = false;
                 that = null;
@@ -335,7 +341,7 @@ angular.module('vpac.widgets', [])
     };
 
     Editor.prototype.destroy = function() {
-        this.cancel();
+        this.model = null;
         this.scope = null;
         this.getter = null;
     };
@@ -765,5 +771,91 @@ angular.module('vpac.widgets', [])
     };
 }])
 
+
+.directive('formNavWarn', [function() {
+    return {
+        restrict: 'AC',
+        require: 'form',
+        link: function(scope, elem, attrs, form) {
+            scope.$on('$locationChangeStart', function(event) {
+                if (form.$dirty) {
+                    var answer = confirm("You have unsaved changes. Are you" +
+                        "sure you want to leave this page?");
+                    if (!answer) {
+                        event.preventDefault();
+                    }
+                }
+            });
+        }
+    };
+}])
+
+
+.directive('spinner', ['Enqueue',
+        function(Enqueue) {
+    var pendingRequests = 0;
+    var patchOpen = function() {
+        var oldOpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(method, url, async, user, pass) {
+            pendingRequests++;
+            this.addEventListener("readystatechange", function() {
+                if (this.readyState == 4)
+                    pendingRequests--;
+            }, false);
+            oldOpen.call(this, method, url, async, user, pass);
+        };
+    };
+    patchOpen();
+
+    return {
+        restrict: 'C',
+        link: function(scope, elem, attrs, form) {
+            var show = Enqueue(function() {
+                elem.toggleClass('in', true);
+            }, 250);
+            var hide = function() {
+                Enqueue.cancel(show);
+                elem.toggleClass('in', false);
+            };
+            scope.$watch(
+                function() {
+                    return pendingRequests > 0;
+                },
+                function(pending) {
+                    if (pending)
+                        show();
+                    else
+                        hide();
+                }
+            );
+        }
+    };
+}])
+
+
+/**
+ * Watches a named form (by ID) for changes; when the form becomes dirty, the
+ * button this is applied to changes CSS classes to be highlighted.
+ */
+.directive('formSaveButton', [function() {
+    return {
+        restrict: 'A',
+        scope: {
+            target: '@formSaveButton'
+        },
+        link: function(scope, elem, attrs) {
+            scope.$watch(
+                function watch() {
+                    var tElem = $('#' + scope.target);
+                    var tField = tElem.attr('name');
+                    return tElem.scope()[tField].$dirty;
+                }, function(dirty) {
+                    elem.toggleClass('btn-primary btn-alert', dirty);
+                    elem.toggleClass('btn-default', !dirty);
+                }
+            );
+        }
+    };
+}])
 
 ;

@@ -81,7 +81,8 @@
         <h3>Response Parts</h3>
     </div>
     <table class="table" ng-if="rt.parts.length">
-        <tbody ng-repeat="part in rt.parts" ng-init="rti = $index">
+        <tbody ng-repeat="part in rt.parts" ng-init="rti = $index"
+                class="spaced">
             <tr class="form-row">
                 <td class="shrink form-group" show-errors>
                     <label for="lid{{rti}}-{{$index}}" class="sr-only">
@@ -109,6 +110,18 @@
                     <button class="btn btn-default btn-round" title="Remove"
                             ng-click="remove(rt, rt.parts, part)">
                         <i class="fa fa-fw fa-trash-o"></i></button>
+                </td>
+            </tr>
+            <tr class="form-row">
+                <td class="shrink">
+                </td>
+                <td class="form-group">
+                    <textarea class="form-control autoresize"
+                        id="ltitle{{rti}}-{{$index}}"
+                        name="ltitle{{rti}}-{{$index}}"
+                        ng-model="part.description" empty-as-null
+                        placeholder="Part description (optional)"
+                        title="Part description"></textarea>
                 </td>
             </tr>
             <tr>
@@ -168,6 +181,23 @@
                                                 part.options.length > 2 && $last ?
                                                     null : 'hidden'}">
                                         <i class="fa fa-fw fa-trash-o"></i></button>
+                                </td>
+                            </tr>
+                            <tr class="form-row">
+                                <td></td>
+                                <td colspan="{{rt.parts.length > 1 ? 2 : 1}}"
+                                        class="form-group" show-errors>
+                                    <label for="ldesc{{rti}}-{{pi}}-{{$index}}"
+                                    class="sr-only">
+                                        Option description</label>
+                                    <textarea type="text"
+                                        class="form-control autoresize"
+                                        id="ldesc{{rti}}-{{pi}}-{{$index}}"
+                                        name="ldesc{{rti}}-{{pi}}-{{$index}}"
+                                        ng-model="opt.description" empty-as-null
+                                        placeholder="Option description (optional)"
+                                        title="A tooltip to show to the user"
+                                        ></textarea>
                                 </td>
                             </tr>
                         </tbody>

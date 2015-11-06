@@ -27,7 +27,8 @@
         <button class="btn btn-default btn-round" title="Save"
                 ng-click="edit.save()"
                 ng-if="edit.model"
-                form="editor">
+                form="editor"
+                form-save-button="editor">
             <i class="fa fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
@@ -201,8 +202,16 @@
         </docs>
 
         <button class="btn btn-default btn-round"
+                title="Reset"
+                ng-click="resetResponse()">
+            <i class="fa fa-times fa-fw"></i></button>
+
+        <button class="btn btn-round"
                 title="Save response"
-                ng-click="saveResponse()">
+                ng-click="saveResponse()"
+                ng-class="response.$dirty ?
+                          'btn-primary btn-alert' :
+                          'btn-default'">
             <i class="fa fa-check fa-fw"></i></button>
     </response>
 
@@ -212,7 +221,15 @@
             Version {{response.version}} submitted by
             <a ng-href="#/user/{{response.user.id}}">
                 {{response.user.name}}</a>,
-            {{response.modified * 1000 | timeAgo:'medium'}}
+            <span class="hidden-print">
+                {{response.modified * 1000 | timeAgo:'medium'}}.
+            </span>
+            <span class="visible-print-inline">
+                {{response.modified * 1000 | date:'medium'}}.
+            </span>
+            <span ng-if="response.$dirty" class="visible-print-inline">
+                Some modifications have not been saved.
+            </span>
         </p>
         <p ng-if="!response.user.name" class="spaced text-center">
             <i class="fa fa-history"></i>
@@ -267,7 +284,7 @@
         Response status: {{response.approval}}
     </div>
     <docs>
-        <i class="fa-li fa fa-check-square-o fa-border"></i>
+        <i class="fa-li fa fa-chevron-right fa-border"></i>
         <p>
             Responses progress through approval
             states <i>draft</i> &raquo; <i>final</i> &raquo;

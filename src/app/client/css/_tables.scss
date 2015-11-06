@@ -91,6 +91,12 @@
     }
     > tbody + tbody {
         border-top: none;
+
+        &.spaced > tr:first-child {
+            td, th {
+                padding-top: 36px;
+            }
+        }
     }
 
 }

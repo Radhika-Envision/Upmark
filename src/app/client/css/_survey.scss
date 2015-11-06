@@ -166,7 +166,7 @@ ul.dropdown-menu {
         right: 4px !important;
     }
     @media (min-width: 768px) {
-        margin-right: -80px;
+        margin-right: -20px;
     }
 
     > li > a {
@@ -252,6 +252,12 @@ ul.docs > li:not(.printable) {
 }
 dt {
     margin-top: 8px;
+}
+dt.active:before {
+    @include fontawesome("\f0da");
+    display: block;
+    position: absolute;
+    left: -12px;
 }
 
 .nudge-right {
@@ -638,6 +644,71 @@ column-progress {
         bottom: 2px;
         left: -$column-width;
         right: 0;
+    }
+}
+
+@include keyframes(sine-height) {
+    0% {
+        height: 60%;
+    }
+    50% {
+        height: 100%;
+    }
+    100% {
+        height: 60%;
+    }
+}
+
+$spinner-height: 16px;
+.spinner {
+    $column-width: (7 / 28) * $spinner-height;
+    $column-spacing: (2 / 28) * $spinner-height;
+
+    position: fixed;
+    top: 32px;
+    left: 50%;
+    z-index: 5000;
+    height: $spinner-height;
+    margin-left: 0 - $spinner-height / 2;
+    margin-top: 0 - $spinner-height / 2;
+    transform: skewX(-10deg);
+    /*
+     * Fix for jagged edges
+     * http://stackoverflow.com/a/6898097/320036
+     */
+    -webkit-backface-visibility: hidden;
+
+    pointer-events: none;
+
+    > span {
+        width: 0;
+        height: 100%;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        display: inline-block;
+        border-left: $column-width solid;
+        border-color: $aq-bar1;
+        overflow: hidden;
+        @include animation(1s sine-height ease-in-out infinite);
+    }
+
+    > span + span {
+        left: ($column-spacing + $column-width) * 1;
+        border-color: $aq-bar2;
+        @include animation-delay(0.15s);
+    }
+
+    > span + span + span {
+        left: ($column-spacing + $column-width) * 2;
+        border-color: $aq-bar3;
+        @include animation-delay(0.3s);
+    }
+
+    > span + span + span + span {
+        left: ($column-spacing + $column-width) * 3;
+        border-color: $aq-bar4;
+        @include animation-delay(0.45s);
     }
 }
 

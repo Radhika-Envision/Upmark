@@ -133,7 +133,8 @@ class Importer():
             survey = model.Survey()
             survey.title = title
             survey.description = description
-            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'aquamark_response_types.json')) as file:
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                'aquamark_response_types.json')) as file:
                 survey.response_types = json.load(file)
             session.add(survey)
             session.flush()
@@ -143,26 +144,34 @@ class Importer():
             hierarchy.survey_id = survey.id
             hierarchy.title = "Aquamark (Imported)"
             hierarchy.description = "WSAA's own 4-level hierarchy."
-            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'aquamark_hierarchy.json')) as data_file:
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
+                'aquamark_hierarchy.json')) as data_file:
                 hierarchy.structure = json.load(data_file)
             session.add(hierarchy)
             session.flush()
 
             log.info("hierarchy: %s" % hierarchy.id)
 
-            function_title_row = [{"title": row[self.col2num("J")], 
-                                   "order": row[self.col2num("C")],
-                                   "row_num": all_rows.index(row)} 
-                                   for row in all_rows if str(row[self.col2num("S")]) == "Function Header"]
-            process_title_row = [{"title": row[self.col2num("J")],
-                                  "order": row[self.col2num("D")], 
-                                  "row_num": all_rows.index(row)} 
-                                  for row in all_rows if str(row[self.col2num("S")]) == "Process Header"]
-            subprocess_title_row = [{"title": row[self.col2num("J")], 
-                                     "order": row[self.col2num("E")], 
-                                     "row_num": all_rows.index(row)} 
-                                     for row in all_rows if str(row[self.col2num("S")]) == "SubProcess Header"]
+            function_title_row = [{
+                "title": row[self.col2num("J")],
+                "order": row[self.col2num("C")],
+                "row_num": all_rows.index(row)
+            } for row in all_rows
+                if str(row[self.col2num("S")]) == "Function Header"]
 
+            process_title_row = [{
+                "title": row[self.col2num("J")],
+                "order": row[self.col2num("D")],
+                "row_num": all_rows.index(row)
+            } for row in all_rows
+                if str(row[self.col2num("S")]) == "Process Header"]
+
+            subprocess_title_row = [{
+                "title": row[self.col2num("J")],
+                "order": row[self.col2num("E")],
+                "row_num": all_rows.index(row)
+            } for row in all_rows
+                if str(row[self.col2num("S")]) == "SubProcess Header"]
 
             for function in function_title_row:
                 function_order = int(function['order'])

@@ -85,7 +85,6 @@ class QuestionNodeHandler(
                 son['next'] = str(next_.id)
 
         self.set_header("Content-Type", "application/json")
-        self.write_reasons()
         self.write(json_encode(son))
         self.finish()
 
@@ -150,7 +149,6 @@ class QuestionNodeHandler(
             sons = to_son(query.all())
 
         self.set_header("Content-Type", "application/json")
-        self.write_reasons()
         self.write(json_encode(sons))
         self.finish()
 
@@ -239,7 +237,6 @@ class QuestionNodeHandler(
                 sons.append(son)
 
         self.set_header("Content-Type", "application/json")
-        self.write_reasons()
         self.write(json_encode(sons))
         self.finish()
 

@@ -338,13 +338,14 @@ angular.module('wsaa.surveyQuestions', [
         },
         controller: ['$scope', 'Current', 'Assessment', 'Organisation',
                 '$location', 'format', 'Notifications', 'PurchasedSurvey',
-                'Structure', 'questionAuthz',
+                'Structure', 'questionAuthz', 'Enqueue',
                 function($scope, current, Assessment, Organisation,
                          $location, format, Notifications, PurchasedSurvey,
-                         Structure, authz) {
+                         Structure, authz, Enqueue) {
 
             $scope.aSearch = {
-                organisation: null
+                organisation: null,
+                historical: false
             };
 
             $scope.$watch('assessment.organisation', function(org) {
@@ -369,20 +370,24 @@ angular.module('wsaa.surveyQuestions', [
                 $scope.search.hierarchyId = hierarchy ? hierarchy.id : null;
             });
 
-            $scope.$watchGroup(['survey', 'track'], function(vars) {
+            $scope.$watchGroup(['survey', 'aSearch.historical'], function(vars) {
                 var survey = vars[0],
-                    track = vars[1];
+                    historical = vars[1];
 
-                if (track != null) {
+                if (historical) {
                     $scope.search.trackingId = survey ? survey.trackingId : null;
                     $scope.search.surveyId = null;
                 } else {
                     $scope.search.trackingId = null;
                     $scope.search.surveyId = survey ? survey.id : null;
                 }
-                $scope.showEdit = !track;
+            });
+            $scope.$watch('track', function(track) {
+                $scope.aSearch.historical = track != null;
+                $scope.showEdit = track == null;
             });
 
+            $scope.historical = false;
             $scope.search = {
                 term: "",
                 orgId: null,
@@ -390,10 +395,10 @@ angular.module('wsaa.surveyQuestions', [
                 surveyId: null,
                 trackingId: null,
                 page: 0,
-                pageSize: 10
+                pageSize: 5
             };
-            $scope.$watch('search', function(search) {
-                Assessment.query(search).$promise.then(
+            $scope.applySearch = Enqueue(function() {
+                Assessment.query($scope.search).$promise.then(
                     function success(assessments) {
                         $scope.assessments = assessments;
                     },
@@ -402,7 +407,8 @@ angular.module('wsaa.surveyQuestions', [
                             "Could not get submission list: " + details.statusText);
                     }
                 );
-            }, true);
+            }, 100);
+            $scope.$watch('search', $scope.applySearch, true);
 
             $scope.$watchGroup(['survey', 'search.orgId', 'hierarchy', 'track'],
                     function(vars) {
@@ -610,7 +616,7 @@ angular.module('wsaa.surveyQuestions', [
                     s2 = survey;
                 }
                 var url = format(
-                    '/diff?survey1={}&survey2={}&hierarchy={}&ignoreTags=list+index',
+                    '/diff/{}/{}/{}?ignoreTags=list+index',
                     s1.id,
                     s2.id,
                     $scope.structure.hierarchy.id);
@@ -1406,14 +1412,16 @@ angular.module('wsaa.surveyQuestions', [
     };
 
     $scope.getNavUrl = function(item, key) {
+        var aid1 = $scope.assessment1.id;
+        var aid2 = $scope.assessment2 ? $scope.assessment2.id : ''
         if (item.path == 'qnode') {
             return format(
                 '#/statistics?assessment1={}&assessment2={}&qnode={}',
-                $scope.assessment1.id, $scope.assessment2.id, key);
+                aid1, aid2, key);
         } else if (item.path == 'assessment') {
             return format(
                 '#/statistics?assessment1={}&assessment2={}',
-                $scope.assessment1.id, $scope.assessment2.id);
+                aid1, aid2);
         }
         return null;
     };
@@ -1768,25 +1776,48 @@ angular.module('wsaa.surveyQuestions', [
 .controller('DiffCtrl', [
         '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'format', 'Structure',
+        'Enqueue', 'Diff', '$timeout',
         function($scope, QuestionNode, routeData, Editor, authz,
-                 $location, Notifications, current, format, Structure) {
+                 $location, Notifications, current, format, Structure,
+                 Enqueue, Diff, $timeout) {
 
     $scope.hierarchy1 = routeData.hierarchy1;
     $scope.hierarchy2 = routeData.hierarchy2;
     $scope.survey1 = $scope.hierarchy1.survey;
     $scope.survey2 = $scope.hierarchy2.survey;
 
-    $scope.diff = routeData.diff;
+    $scope.diff = null;
 
     $scope.tags = [
         'context', 'added', 'deleted', 'modified',
         'reordered', 'relocated', 'list index'];
 
-    $scope.ignoreTags = $location.search()['ignoreTags'];
-    if (angular.isString($scope.ignoreTags))
-        $scope.ignoreTags = [$scope.ignoreTags];
-    else if ($scope.ignoreTags == null)
-        $scope.ignoreTags = [];
+    $scope.updateTags = function() {
+        var ignoreTags = $location.search()['ignoreTags'];
+        if (angular.isString(ignoreTags))
+            ignoreTags = [ignoreTags];
+        else if (ignoreTags == null)
+            ignoreTags = [];
+        $scope.ignoreTags = ignoreTags;
+    };
+    $scope.update = Enqueue(function() {
+        $scope.longRunning = false;
+        $scope.diff = Diff.get({
+            surveyId1: $scope.survey1.id,
+            surveyId2: $scope.survey2.id,
+            hierarchyId: $scope.hierarchy1.id,
+            ignoreTag: $scope.ignoreTags
+        });
+        $timeout(function() {
+            $scope.longRunning = true;
+        }, 5000);
+    }, 1000);
+    $scope.$on('$routeUpdate', function(scope, next, current) {
+        $scope.updateTags();
+        $scope.update();
+    });
+    $scope.updateTags();
+    $scope.update();
 
     $scope.toggleTag = function(tag) {
         var i = $scope.ignoreTags.indexOf(tag);
@@ -1949,10 +1980,10 @@ angular.module('wsaa.surveyQuestions', [
 .controller('MeasureCtrl', [
         '$scope', 'Measure', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'Survey', 'format', 'layout',
-        'Structure', 'Arrays', 'Response', 'hotkeys',
+        'Structure', 'Arrays', 'Response', 'hotkeys', '$q', '$timeout', '$window',
         function($scope, Measure, routeData, Editor, authz,
                  $location, Notifications, current, Survey, format, layout,
-                 Structure, Arrays, Response, hotkeys) {
+                 Structure, Arrays, Response, hotkeys, $q, $timeout, $window) {
 
     $scope.layout = layout;
     $scope.parent = routeData.parent;
@@ -1974,69 +2005,122 @@ angular.module('wsaa.surveyQuestions', [
     if ($scope.assessment) {
         // Get the response that is associated with this measure and assessment.
         // Create an empty one if it doesn't exist yet.
-        $scope.response = Response.get({
+        // Create an empty response for the time being so the response control
+        // doesn't create its own.
+        $scope.lastSavedResponse = null;
+        $scope.setResponse = function(response) {
+            $scope.response = response;
+            $scope.lastSavedResponse = angular.copy(response);
+        };
+
+        $scope.setResponse({
+            responseParts: [],
+            comment: ''
+        });
+        Response.get({
             measureId: $scope.measure.id,
             assessmentId: $scope.assessment.id
-        });
-        $scope.response.$promise.catch(function failure(details) {
-            if (details.status != 404) {
-                Notifications.set('edit', 'error',
-                    "Failed to get response details: " + details.statusText);
-                return;
-            }
-            $scope.response = new Response({
-                measureId: $scope.measure.id,
-                assessmentId: $scope.assessment.id,
-                responseParts: [],
-                comment: '',
-                notRelevant: false,
-                approval: 'draft'
-            });
-        });
-    }
-    $scope.saveResponse = function() {
-        $scope.response.$save().then(
+        }).$promise.then(
             function success(response) {
-                $scope.$broadcast('response-saved');
-                Notifications.set('edit', 'success', "Saved", 5000);
+                $scope.setResponse(response);
             },
             function failure(details) {
-                Notifications.set('edit', 'error',
-                    "Could not save response: " + details.statusText);
-            });
-    };
-    $scope.toggleNotRelvant = function() {
-        var oldValue = $scope.response.notRelevant;
-        $scope.response.notRelevant = !oldValue;
-        $scope.response.$save().then(
-            function success() {
-                Notifications.set('edit', 'success', "Saved", 5000);
-            },
-            function failure(details) {
-                if (details.status == 403) {
-                    Notifications.set('edit', 'info',
-                        "Not saved yet: " + details.statusText);
-                } else {
-                    $scope.response.notRelevant = oldValue;
+                if (details.status != 404) {
+                    Notifications.set('edit', 'error',
+                        "Failed to get response details: " + details.statusText);
+                    return;
+                }
+                $scope.setResponse(new Response({
+                    measureId: $scope.measure.id,
+                    assessmentId: $scope.assessment.id,
+                    responseParts: [],
+                    comment: '',
+                    notRelevant: false,
+                    approval: 'draft'
+                }));
+            }
+        );
+
+        var interceptingLocation = false;
+        $scope.$on('$locationChangeStart', function(event, next, current) {
+            if (!$scope.response.$dirty || interceptingLocation)
+                return;
+            event.preventDefault();
+            interceptingLocation = true;
+            $scope.saveResponse().then(
+                function success() {
+                    $window.location.href = next;
+                    $timeout(function() {
+                        interceptingLocation = false;
+                    });
+                },
+                function failure(details) {
+                    var message = "Failed to save: " +
+                        details.statusText +
+                        ". Are you sure you want to leave this page?";
+                    var answer = confirm(message);
+                    if (answer)
+                        $window.location.href = next;
+                    $timeout(function() {
+                        interceptingLocation = false;
+                    });
+                }
+            );
+        });
+
+        $scope.saveResponse = function() {
+            return $scope.response.$save().then(
+                function success(response) {
+                    $scope.$broadcast('response-saved');
+                    Notifications.set('edit', 'success', "Saved", 5000);
+                    $scope.setResponse(response);
+                    return response;
+                },
+                function failure(details) {
+                    Notifications.set('edit', 'error',
+                        "Could not save response: " + details.statusText);
+                    return $q.reject(details);
+                });
+        };
+        $scope.resetResponse = function() {
+            $scope.response = angular.copy($scope.lastSavedResponse);
+        };
+        $scope.toggleNotRelvant = function() {
+            var oldValue = $scope.response.notRelevant;
+            $scope.response.notRelevant = !oldValue;
+            $scope.response.$save().then(
+                function success(response) {
+                    Notifications.set('edit', 'success', "Saved", 5000);
+                    $scope.setResponse(response);
+                },
+                function failure(details) {
+                    if (details.status == 403) {
+                        Notifications.set('edit', 'info',
+                            "Not saved yet: " + details.statusText);
+                    } else {
+                        $scope.response.notRelevant = oldValue;
+                        Notifications.set('edit', 'error',
+                            "Could not save response: " + details.statusText);
+                    }
+                });
+        };
+        $scope.setState = function(state) {
+            $scope.response.$save({approval: state},
+                function success(response) {
+                    Notifications.set('edit', 'success', "Saved", 5000);
+                    $scope.setResponse(response);
+                },
+                function failure(details) {
                     Notifications.set('edit', 'error',
                         "Could not save response: " + details.statusText);
                 }
-            });
-    };
-    $scope.setState = function(state) {
-        $scope.response.$save({approval: state},
-            function success() {
-                Notifications.set('edit', 'success', "Saved", 5000);
-            },
-            function failure(details) {
-                Notifications.set('edit', 'error',
-                    "Could not save response: " + details.statusText);
-            }
-        );
-    };
-    $scope.setResponse = function(response) {
-        $scope.response = response;
-    };
+            );
+        };
+        $scope.$watch('response', function() {
+            $scope.response.$dirty = !angular.equals(
+                $scope.response, $scope.lastSavedResponse);
+        }, true);
+    }
 
     $scope.$watch('measure', function(measure) {
         $scope.structure = Structure(measure);

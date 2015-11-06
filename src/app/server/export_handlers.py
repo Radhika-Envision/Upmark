@@ -366,7 +366,7 @@ class Exporter():
         format_part.set_bottom_color('white')
         format_part.set_bottom(1)
         format_part_answer = workbook.add_format()
-        format_part_answer.set_text_wrap()
+        # format_part_answer.set_text_wrap()
         format_part_answer.set_bg_color("#B1A0C7")
         format_part_answer.set_bottom_color('white')
         format_part_answer.set_bottom(1)
@@ -469,16 +469,28 @@ class Exporter():
 
         format = workbook.add_format()
         format.set_text_wrap()
+        format_no_wrap = workbook.add_format()
+        format_comment = workbook.add_format()
+        format_comment.set_text_wrap()
+        format_percent = workbook.add_format()
+        format_percent.set_num_format(10)
+        format_no_wrap = workbook.add_format()
         format_comment = workbook.add_format()
         format_percent = workbook.add_format()
         format_percent.set_num_format(10)
+
 
         line = 1
         with model.session_scope() as session:
             assessment = session.query(model.Assessment)\
                 .get(assessment_id)
 
-            if assessment:
+            if assessment and \
+                assessment.hierarchy and \
+                assessment.hierarchy.structure and \
+                assessment.hierarchy.structure.get('levels'):
+
+                log.info("assessment: %s", assessment)
                 levels = assessment.hierarchy.structure["levels"]
                 level_length = len(levels)
                 worksheet.set_column(0, level_length, 50)
@@ -487,7 +499,10 @@ class Exporter():
                     [len(response.response_parts) 
                         for response in assessment.ordered_responses])
                 worksheet.set_column(level_length + 1, 
-                    level_length + max_len_of_response, 10)
+                    level_length + max_len_of_response, 12)
+                worksheet.set_column(level_length + max_len_of_response + 3,
+                    level_length + max_len_of_response + 3, 200)
+
                 # Header from heirarchy levels
                 self.write_response_header(
                     workbook, worksheet, levels, max_len_of_response)
@@ -504,7 +519,7 @@ class Exporter():
                         line, level_length, str(qnode_measure[0].seq + 1)
                             + ". " + response.measure.title, format)
                     self.write_response_parts(
-                        worksheet, response.response_parts, line, format, 
+                        worksheet, response.response_parts, line, format_no_wrap,
                             level_length + 1)
                     score = 0
                     if response.measure.weight != 0:
@@ -512,7 +527,7 @@ class Exporter():
                     worksheet.write(line, level_length + max_len_of_response + 1, 
                             score, format_percent)
                     worksheet.write(line, level_length + max_len_of_response + 2, 
-                            qnode.total_weight, format)
+                            qnode.total_weight, format_no_wrap)
                     worksheet.write(line, level_length + max_len_of_response + 3, 
                             response.comment, format_comment)
                     line = line + 1
@@ -521,7 +536,7 @@ class Exporter():
 
     def write_response_header(self, workbook, sheet, levels, max_response):
         format = workbook.add_format()
-        format.set_text_wrap()
+        # format.set_text_wrap()
         format.set_bold()
 
         for level in levels:

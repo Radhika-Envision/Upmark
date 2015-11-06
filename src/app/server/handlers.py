@@ -27,6 +27,7 @@ log = logging.getLogger('app.handlers')
 # A string to break through caches. This changes each time Landblade is
 # deployed.
 DEPLOY_ID = str(time.time())
+aq_version = None
 
 
 def deploy_id():
@@ -254,18 +255,14 @@ class BaseHandler(tornado.web.RequestHandler):
                     (str(e), self.request.body[0:30]))
             return self._request_son
 
-    @property
-    def reasons(self):
-        if not hasattr(self, '_reasons'):
-            self._reasons = []
-        return self._reasons
+    def set_status(self, *args, **kwargs):
+        reason = kwargs.get('reason')
+        if reason:
+            self.reason(reason)
+        return super().set_status(*args, **kwargs)
 
     def reason(self, message):
-        self.reasons.append(message)
-
-    def write_reasons(self):
-        if len(self.reasons) > 0:
-            self.set_header("Operation-Details", '; '.join(self.reasons))
+        self.add_header("Operation-Details", message)
 
 
 class PingHandler(BaseHandler):
@@ -365,7 +362,8 @@ class MainHandler(BaseHandler):
             template, user=self.current_user, organisation=self.organisation,
             scripts=self.scripts, stylesheets=self.stylesheets,
             analytics_id=tornado.options.options.analytics_id,
-            deploy_id=self.deploy_id)
+            deploy_id=self.deploy_id,
+            aq_version=aq_version)
 
 
 class AuthLoginHandler(MainHandler):

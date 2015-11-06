@@ -97,6 +97,7 @@ class ResponsePart:
     def __init__(self, p_def):
         self.id_ = p_def.get('id', None)
         self.name = p_def.get('name', None)
+        self.description = p_def.get('description', None)
         self.options = [ResponseOption(o_def)
                         for o_def in p_def['options']]
 

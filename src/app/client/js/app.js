@@ -539,18 +539,31 @@ angular.module('wsaa.aquamark',
                             root: qnodeId ? null : ''
                         }).$promise;
                     }],
-                    stats1: ['Statistics', '$route', 'assessment1',
-                            function(Statistics, $route, assessment1) {
+                    stats1: ['Statistics', '$route', 'assessment1', '$q',
+                             'assessment2',
+                            function(Statistics, $route, assessment1, $q,
+                                assessment2) {
                         return Statistics.get({
                             id: assessment1.survey.id,
                             parentId: $route.current.params.qnode == '' ?
                                 null : $route.current.params.qnode
-                        }).$promise;
+                        }).$promise.then(function(stats1) {
+                            if (!assessment2 && stats1.length == 0) {
+                                return $q.reject(
+                                    "There is no data for that category");
+                            }
+                            else if (stats1.length == 0) {
+                                return $q.reject(
+                                    "There is no data for that category of" +
+                                    " the first survey/submission");
+                            }
+                            return stats1;
+                        });
                     }],
                     stats2: ['Statistics', '$route', 'assessment1',
-                             'assessment2', 'stats1',
+                             'assessment2', 'stats1', '$q',
                             function(Statistics, $route, assessment1,
-                                     assessment2, stats1) {
+                                     assessment2, stats1, $q) {
                         if (!assessment2)
                             return null;
                         if (assessment1.survey.id == assessment2.survey.id)
@@ -559,7 +572,14 @@ angular.module('wsaa.aquamark',
                             id: assessment2.survey.id,
                             parentId: $route.current.params.qnode == '' ?
                                 null : $route.current.params.qnode
-                        }).$promise;
+                        }).$promise.then(function(stats1) {
+                            if (stats1.length == 0) {
+                                return $q.reject(
+                                    "There is no data for that category of" +
+                                    " the second survey/submission");
+                            }
+                            return stats1;
+                        });
                     }],
                     qnode1: ['QuestionNode', '$route', 'assessment1',
                             function(QuestionNode, $route, assessment1) {
@@ -589,9 +609,10 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/diff', {
-                templateUrl : 'diff.html',
-                controller : 'DiffCtrl',
+            .when('/diff/:survey1/:survey2/:hierarchy', {
+                templateUrl: 'diff.html',
+                controller: 'DiffCtrl',
+                reloadOnSearch: false,
                 resolve: {routeData: chain({
                     hierarchy1: ['Hierarchy', '$route',
                             function(Hierarchy, $route) {
@@ -605,15 +626,6 @@ angular.module('wsaa.aquamark',
                         return Hierarchy.get({
                             id: $route.current.params.hierarchy,
                             surveyId: $route.current.params.survey2
-                        }).$promise;
-                    }],
-                    diff: ['Diff', '$route',
-                            function(Diff, $route) {
-                        return Diff.get({
-                            surveyId1: $route.current.params.survey1,
-                            surveyId2: $route.current.params.survey2,
-                            hierarchyId: $route.current.params.hierarchy,
-                            ignoreTag: $route.current.params.ignoreTags
                         }).$promise;
                     }]
                 })}
@@ -770,6 +782,34 @@ angular.module('wsaa.aquamark',
 ])
 
 
+/*
+ * Install an HTTP interceptor to make error reasons easier to use. All HTTP
+ * responses will have the "reason" in the statusText field.
+ */
+.config(['$httpProvider',
+    function($httpProvider) {
+        $httpProvider.interceptors.push(['$q', function($q) {
+            return {
+                response: function(response) {
+                    var reason = response.headers('Operation-Details');
+                    if (reason)
+                        response.statusText = reason;
+                    return response;
+                },
+                responseError: function(rejection) {
+                    if (!rejection.headers)
+                        return $q.reject(rejection);
+                    var reason = rejection.headers('Operation-Details');
+                    if (reason)
+                        rejection.statusText = reason;
+                    return $q.reject(rejection);
+                }
+            };
+        }]);
+    }
+])
+
+
 .run(['$cacheFactory', '$http', function($cacheFactory, $http) {
     $http.defaults.cache = $cacheFactory('lruCache', {capacity: 100});
 }])
@@ -779,12 +819,15 @@ angular.module('wsaa.aquamark',
         '$route', 'checkLogin',
         function($rootScope, $window, $location, Notifications, log, timeAgo,
             $route, checkLogin) {
-
     $rootScope.$on('$routeChangeError',
             function(event, current, previous, rejection) {
         var error;
         if (rejection && rejection.statusText)
             error = rejection.statusText;
+        else if (rejection && rejection.message)
+            error = rejection.message;
+        else if (angular.isString(rejection))
+            error = rejection;
         else
             error = "Object not found";
         log.error("Failed to navigate to {}", $location.url());
@@ -813,8 +856,10 @@ angular.module('wsaa.aquamark',
 
 
 .controller('RootCtrl', ['$scope', 'hotkeys', '$cookies', 'User',
-        'Notifications', '$window',
-        function($scope, hotkeys, $cookies, User, Notifications, $window) {
+        'Notifications', '$window', 'aqVersion',
+        function($scope, hotkeys, $cookies, User, Notifications, $window,
+            aqVersion) {
+    $scope.aqVersion = aqVersion;
     $scope.hotkeyHelp = hotkeys.toggleCheatSheet;
 
     try {
