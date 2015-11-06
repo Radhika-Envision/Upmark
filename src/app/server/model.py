@@ -828,6 +828,60 @@ class Attachment(Base):
     organisation = relationship(Organisation)
 
 
+class Activity(Base):
+    '''An event in the event stream'''
+    __tablename__ = 'activity'
+    id = Column(GUID, nullable=False, primary_key=True)
+    created = Column(DateTime, default=datetime.utcnow, nullable=False)
+    subject_id = Column(GUID, ForeignKey("appuser.id"), nullable=False)
+    verb = Column(
+        Enum('create', 'update', 'state', 'delete', native_enum=False),
+        nullable=False)
+    object_desc = Column(Text)
+
+    # Object reference (should match columns in Subscription)
+    user_id = Column(GUID)
+    survey_id = Column(GUID)
+    hierarchy_id = Column(GUID)
+    assessment_id = Column(GUID)
+    qnode_id = Column(GUID)
+    measure_id = Column(GUID)
+
+    # Index `created` column to allow fast filtering by date ranges across all
+    # users.
+    # Note Postgres' default index is btree, which supports ordered index
+    # scanning.
+    # Also create a multi-column index that has the subject's ID first, so we
+    # can quickly list the recent activity of a user.
+    __table_args__ = (
+        Index('activity_created_index', created),
+        Index('activity_subject_id_created_index', subject_id, created),
+    )
+
+
+class Subscription(Base):
+    '''Subscribes a user to events related to some object'''
+    __tablename__ = 'subscription'
+    id = Column(GUID, nullable=False, primary_key=True)
+    created = Column(DateTime, default=datetime.utcnow, nullable=False)
+    subject_id = Column(GUID, ForeignKey("appuser.id"), nullable=False)
+    subscribed = Column(Boolean, nullable=False)
+
+    # Object reference (should match columns in Activity)
+    user_id = Column(GUID)
+    survey_id = Column(GUID)
+    hierarchy_id = Column(GUID)
+    assessment_id = Column(GUID)
+    qnode_id = Column(GUID)
+    measure_id = Column(GUID)
+
+    # Index to allow quick lookups of subscribed objects for a given user
+    __table_args__ = (
+        Index('subscription_subject_object_index',
+            subject_id, user_id, survey_id),
+    )
+
+
 # Lists and Complex Relationships
 #
 # We need to give explicit join rules due to use of foreign key in composite
