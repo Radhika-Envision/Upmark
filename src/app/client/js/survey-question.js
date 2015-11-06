@@ -2517,6 +2517,13 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
+.factory('CustomQueryConfig', ['$resource', function($resource) {
+    return $resource('/adhoc_query.json', {}, {
+        get: { method: 'GET', cache: false }
+    });
+}])
+
+
 .factory('SampleQueries', ['$resource', function($resource) {
     return $resource('/sample_queries.json', {}, {
         get: { method: 'GET', isArray: true, cache: false }
@@ -2525,8 +2532,9 @@ angular.module('wsaa.surveyQuestions', [
 
 
 .controller('AdHocCtrl', ['$scope', '$http', 'Notifications', 'samples',
-            'hotkeys',
-            function($scope, $http, Notifications, samples, hotkeys) {
+            'hotkeys', 'config',
+            function($scope, $http, Notifications, samples, hotkeys, config) {
+    $scope.config = config;
     $scope.query = samples[0].query;
     $scope.result = {};
     $scope.samples = samples;

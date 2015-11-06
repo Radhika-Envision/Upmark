@@ -74,8 +74,13 @@
         </p>
         <p>
             Up to {{execLimit}} result rows can be displayed in browser window
-            by pressing <i class="fa fa-play"></i> Execute. More rows can be
-            returned by downloading the data as CSV or as an Excel spreadsheet.
+            by pressing <i class="fa fa-play"></i> Execute. Up to
+            {{config.maxLimit}} rows can be returned by downloading the data as
+            CSV or as an Excel spreadsheet.
+            <span ng-if="config.wallTime">
+                All queries are limited to {{config.wallTime / 1000}}s of
+                runtime.
+            </span>
         </p>
     </docs>
 
@@ -165,7 +170,9 @@
             <dd>
                 <p>PK: <code>id</code>, <code>survey_id</code>.</p>
                 An actual question in a program. Measures can be shared between
-                surveys, but not between programs. The
+                surveys, but not between programs (there is a many-to-many
+                relationship with the <code>qnode</code> table, via the
+                <code>qnode_measure_link</code> table). The
                 <code>response_type</code> determines
                 the options available to the user. That field is a soft link to
                 data in <code>survey.response_types</code>.

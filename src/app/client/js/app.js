@@ -634,6 +634,9 @@ angular.module('wsaa.aquamark',
                 templateUrl : 'adhoc.html',
                 controller : 'AdHocCtrl',
                 resolve: {
+                    config: ['CustomQueryConfig', function(CustomQueryConfig) {
+                        return CustomQueryConfig.get({}).$promise;
+                    }],
                     samples: ['SampleQueries', function(SampleQueries) {
                         return SampleQueries.get({}).$promise;
                     }]

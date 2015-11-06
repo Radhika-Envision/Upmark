@@ -28,7 +28,7 @@ from utils import falsy, ToSon, truthy
 
 MAX_WORKERS = 4
 
-log = logging.getLogger('app.report_handler')
+log = logging.getLogger('app.report_handlers')
 
 
 perf_time = time.perf_counter()
@@ -508,13 +508,20 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
     BUF_SIZE = 4096
 
     @handlers.authz('consultant')
+    def get(self, file_type):
+        to_son = ToSon(include=[r'.*'])
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(to_son(self.config)))
+        self.finish()
+
+    @handlers.authz('consultant')
     @gen.coroutine
     def post(self, file_type):
         query = to_basestring(self.request.body)
-        limit = int(self.get_argument('limit', AdHocHandler.MAX_LIMIT))
-        if limit > AdHocHandler.MAX_LIMIT:
+        limit = int(self.get_argument('limit', self.config['max_limit']))
+        if limit > self.config['max_limit']:
             raise handlers.ModelError(
-                'Limit is too high. Max %d' % AdHocHandler.MAX_LIMIT)
+                'Limit is too high. Max %d' % self.config['max_limit'])
 
         if file_type == 'json':
             yield self.as_json(query, limit)
@@ -525,6 +532,41 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
         else:
             raise handlers.MissingDocError('%s not supported' % file_type)
 
+    @property
+    def config(self):
+        log.debug("Reading config")
+        if hasattr(self, '_config'):
+            return self._config
+
+        _config = {}
+        with model.session_scope() as session:
+            try:
+                wall_time = (session.query(model.SystemConfig)
+                    .get('adhoc_timeout'))
+                if wall_time is None:
+                    raise ValueError("adhoc_timeout is not defined")
+                _config['wall_time'] = int(float(wall_time.value) * 1000)
+                if _config['wall_time'] < 0:
+                    raise ValueError("adhoc_timeout must be non-negative")
+            except (ValueError, sqlalchemy.exc.SQLAlchemyError) as e:
+                raise handlers.ModelError(
+                    "Failed to get settings: %s" % e)
+
+            try:
+                max_limit = (session.query(model.SystemConfig)
+                    .get('adhoc_max_limit'))
+                if max_limit is None:
+                    raise ValueError("adhoc_max_limit is not defined")
+                _config['max_limit'] = int(max_limit.value)
+                if _config['max_limit'] < 0:
+                    raise ValueError("adhoc_max_limit must be positive")
+            except (ValueError, sqlalchemy.exc.SQLAlchemyError) as e:
+                raise handlers.ModelError(
+                    "Failed to get settings: %s" % e)
+
+        self._config = _config
+        return self._config
+
     def parse_cols(self, cursor):
         return [{
                 'name': c.name,
@@ -533,14 +575,28 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
                 'type_code': c.type_code
             } for c in cursor.description]
 
+    def apply_config(self, session):
+        log.debug("Setting wall time to %d" % self._config['wall_time'])
+        try:
+            session.execute("SET statement_timeout TO :wall_time",
+                            {'wall_time': self._config['wall_time']})
+        except sqlalchemy.exc.SQLAlchemyError as e:
+            raise handlers.ModelError(
+                "Failed to prepare database session: %s" % e)
+
     @run_on_executor
     def export_json(self, path, query, limit):
         with model.session_scope(readonly=True) as session, \
                 open(path, 'w', encoding='utf-8') as f:
+            self.apply_config(session)
+            log.debug("Executing query for JSON export")
+
             try:
                 result = session.execute(query)
             except sqlalchemy.exc.ProgrammingError as e:
-                raise handlers.ModelError.from_sa(e)
+                raise handlers.ModelError.from_sa(e, reason="")
+            except sqlalchemy.exc.OperationalError as e:
+                raise handlers.ModelError.from_sa(e, reason="")
             cols = self.parse_cols(result.context.cursor)
 
             to_son = ToSon(include=[
@@ -574,11 +630,16 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
     def export_csv(self, path, query, limit):
         with model.session_scope(readonly=True) as session, \
                 open(path, 'w', encoding='utf-8') as f:
+            self.apply_config(session)
+            log.debug("Executing query for CSV export")
+
             writer = csv.writer(f)
             try:
                 result = session.execute(query)
             except sqlalchemy.exc.ProgrammingError as e:
-                raise handlers.ModelError.from_sa(e)
+                raise handlers.ModelError.from_sa(e, reason="")
+            except sqlalchemy.exc.OperationalError as e:
+                raise handlers.ModelError.from_sa(e, reason="")
             cols = self.parse_cols(result.context.cursor)
             writer.writerow([c['name'] for c in cols])
 
@@ -598,10 +659,15 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
     def export_excel(self, path, query, limit):
         with model.session_scope(readonly=True) as session, \
                 closing(xlsxwriter.Workbook(path)) as workbook:
+            self.apply_config(session)
+            log.debug("Executing query for Excel export")
+
             try:
                 result = session.execute(query)
             except sqlalchemy.exc.ProgrammingError as e:
-                raise handlers.ModelError.from_sa(e)
+                raise handlers.ModelError.from_sa(e, reason="")
+            except sqlalchemy.exc.OperationalError as e:
+                raise handlers.ModelError.from_sa(e, reason="")
 
             format_str = workbook.add_format({
                 'valign': 'top'})

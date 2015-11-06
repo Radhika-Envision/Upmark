@@ -51,13 +51,13 @@ class ModelError(tornado.web.HTTPError):
     POSTGRES_PATTERN = re.compile(r'\([^)]+\) (.*)')
 
     @classmethod
-    def from_sa(cls, sa_error):
+    def from_sa(cls, sa_error, reason="Arguments are invalid: "):
         log.error('%s', str(sa_error))
         match = cls.POSTGRES_PATTERN.search(str(sa_error))
         if match is not None:
-            return cls(reason="Arguments are invalid: %s" % match.group(1))
+            return cls(reason="%s%s" % (reason, match.group(1)))
         else:
-            return cls()
+            return cls(reason=reason)
 
 
 class MissingDocError(tornado.web.HTTPError):
