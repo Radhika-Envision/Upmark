@@ -232,6 +232,17 @@ class BaseHandler(tornado.web.RequestHandler):
         if not self.has_privillege(*roles):
             raise AuthzError()
 
+    def check_purchased(self, survey_id, hierarchy_id):
+        with model.session_scope() as session:
+            purchased_survey = session.query(model.PurchasedSurvey)\
+                .get((survey_id, 
+                      hierarchy_id,
+                      self.organisation.id))
+
+            if purchased_survey == None:
+                raise AuthzError("This survey has not been purchsed yet")
+
+
     @property
     def organisation(self):
         if self.current_user is None or self.current_user.organisation_id is None:

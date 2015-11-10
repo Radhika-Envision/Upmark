@@ -10,6 +10,7 @@ from sqlalchemy.orm import joinedload
 import handlers
 import model
 import logging
+from aspectlib import Aspect
 
 import crud
 from utils import falsy, reorder, ToSon, truthy, updater
@@ -22,14 +23,30 @@ class MeasureHandler(
         handlers.Paginate,
         crud.survey.SurveyCentric, handlers.BaseHandler):
 
-    @tornado.web.authenticated
-    def get(self, measure_id):
-        '''Get a single measure.'''
+    @Aspect
+    def check_purchased(self, *args, **kwargs):
+        measure_id = args[0]
+        qnode_id = self.get_argument('parentId', '')
 
         if measure_id == '':
             self.query()
-            return
+        else:
+            with model.session_scope() as session:
+                qnodeMeasure = session.query(model.QnodeMeasure)\
+                    .get((self.survey_id, qnode_id, measure_id))
 
+                if qnodeMeasure is None:
+                    raise ValueError("No such object")
+
+                super(MeasureHandler, self).check_purchased(self.survey_id,
+                    qnodeMeasure.qnode.hierarchy.id)
+                yield
+
+
+    @tornado.web.authenticated
+    @check_purchased
+    def get(self, measure_id):
+        '''Get a single measure.'''
         parent_id = self.get_argument('parentId', '')
 
         with model.session_scope() as session:

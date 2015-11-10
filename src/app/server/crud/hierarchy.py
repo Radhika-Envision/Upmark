@@ -12,6 +12,7 @@ import handlers
 import model
 import logging
 import voluptuous
+from aspectlib import Aspect
 
 from utils import reorder, ToSon, truthy, updater
 
@@ -21,12 +22,21 @@ log = logging.getLogger('app.crud.hierarchy')
 
 class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
 
-    @tornado.web.authenticated
-    def get(self, hierarchy_id):
-        if hierarchy_id == "":
-            self.query()
-            return
+    @Aspect
+    def check_purchased(self, *args, **kwargs):
+        hierarchy_id = args[0]
 
+        if hierarchy_id == '':
+            self.query()
+        else:
+            super(HierarchyHandler, self).check_purchased(self.survey_id,
+                hierarchy_id)
+            yield
+
+
+    @tornado.web.authenticated
+    @check_purchased
+    def get(self, hierarchy_id):
         with model.session_scope() as session:
             try:
                 hierarchy = session.query(model.Hierarchy)\
