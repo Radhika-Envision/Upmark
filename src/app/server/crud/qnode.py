@@ -29,11 +29,22 @@ class QuestionNodeHandler(
         qnode_id = args[0]
 
         if qnode_id == '':
-            hierarchy_id = self.get_argument('hierarchyId', '')
+            hierarchy_id = self.get_argument('hierarchyId', None)
+            parent_id = self.get_argument('parentId', None)
 
-            super(QuestionNodeHandler, self).check_purchased(self.survey_id,
-                hierarchy_id)
+            if hierarchy_id:
+                super(QuestionNodeHandler, self).check_purchased(self.survey_id,
+                    hierarchy_id)
+            else:
+                with model.session_scope() as session:
+                    qnode = session.query(model.QuestionNode)\
+                        .get((parent_id, self.survey_id))
 
+                    if qnode is None:
+                        raise ValueError("No such object")
+
+                    super(QuestionNodeHandler, self).check_purchased(self.survey_id,
+                        qnode.hierarchy.id)
             self.query()
         else:
             with model.session_scope() as session:
