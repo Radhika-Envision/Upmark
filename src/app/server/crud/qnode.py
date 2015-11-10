@@ -22,11 +22,18 @@ log = logging.getLogger('app.crud.qnode')
 
 class QuestionNodeHandler(
         handlers.Paginate, crud.survey.SurveyCentric, handlers.BaseHandler):
+
     @Aspect
     def check_purchased(self, *args, **kwargs):
+        log.info("self: %s", self.__class__.__name__)
         qnode_id = args[0]
 
         if qnode_id == '':
+            hierarchy_id = self.get_argument('hierarchyId', '')
+
+            super(QuestionNodeHandler, self).check_purchased(self.survey_id,
+                hierarchy_id)
+
             self.query()
         else:
             with model.session_scope() as session:

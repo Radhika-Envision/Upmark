@@ -17,7 +17,7 @@ from tornado import gen
 import tornado.web
 from tornado.concurrent import run_on_executor
 from concurrent.futures import ThreadPoolExecutor
-
+from aspectlib import Aspect
 
 BUF_SIZE = 4096
 MAX_WORKERS = 4
@@ -28,6 +28,17 @@ log = logging.getLogger('app.export_handler')
 class ExportSurveyHandler(handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
+    @Aspect
+    def check_purchased(self, *args, **kwargs):
+        survey_id = args[0]
+        hierarchy_id = args[1]
+
+        super(ExportSurveyHandler, self).check_purchased(survey_id,
+            hierarchy_id)
+        yield
+
+
+    @check_purchased
     @tornado.web.authenticated
     @gen.coroutine
     def get(self, survey_id, hierarchy_id, extension):

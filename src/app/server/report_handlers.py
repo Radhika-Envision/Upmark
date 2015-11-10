@@ -18,6 +18,7 @@ from tornado import gen
 import tornado.web
 from tornado.concurrent import run_on_executor
 import xlsxwriter
+from aspectlib import Aspect
 
 import handlers
 import model
@@ -48,7 +49,23 @@ def perf():
 class DiffHandler(handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
+    @Aspect
+    def check_purchased(self, *args, **kwargs):
+        survey_id_a = self.get_argument("surveyId1", '')
+        survey_id_b = self.get_argument("surveyId2", '')
+        hierarchy_id = self.get_argument("hierarchyId", '')
+
+        if survey_id_a != '':
+            super(DiffHandler, self).check_purchased(survey_id_a,
+                hierarchy_id)
+            if survey_id_b != '':
+                super(DiffHandler, self).check_purchased(survey_id_b,
+                    hierarchy_id)
+            yield
+
+
     @tornado.web.authenticated
+    @check_purchased
     @gen.coroutine
     def get(self):
         survey_id_a = self.get_argument("surveyId1", '')

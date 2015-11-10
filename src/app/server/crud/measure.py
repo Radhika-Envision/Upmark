@@ -26,20 +26,35 @@ class MeasureHandler(
     @Aspect
     def check_purchased(self, *args, **kwargs):
         measure_id = args[0]
-        qnode_id = self.get_argument('parentId', '')
 
         if measure_id == '':
+            qnode_id = self.get_argument('qnodeId', '')
+            log.info("measure: %s, %s", measure_id, qnode_id)
+
+            with model.session_scope() as session:
+                qnode = session.query(model.QuestionNode)\
+                    .get((qnode_id, self.survey_id))
+
+                if qnode is None:
+                    raise ValueError("No such object")
+                hierarchy_id = qnode.hierarchy.id
+
+            super(MeasureHandler, self).check_purchased(self.survey_id,
+                hierarchy_id)
+
             self.query()
         else:
+            qnode_id = self.get_argument('parentId', '')
+
             with model.session_scope() as session:
                 qnodeMeasure = session.query(model.QnodeMeasure)\
                     .get((self.survey_id, qnode_id, measure_id))
 
                 if qnodeMeasure is None:
                     raise ValueError("No such object")
-
+                hierarchy_id = qnodeMeasure.qnode.hierarchy.id
                 super(MeasureHandler, self).check_purchased(self.survey_id,
-                    qnodeMeasure.qnode.hierarchy.id)
+                    hierarchy_id)
                 yield
 
 
