@@ -40,12 +40,15 @@ def upgrade():
         sa.Column('ob_ids', postgresql.ARRAY(guid.GUID()), nullable=False),
         sa.Column('ob_refs', postgresql.ARRAY(guid.GUID()), nullable=True),
         sa.CheckConstraint(
-            'array_length(ob_ids) > 0',
+            'array_length(ob_ids, 1) > 0',
             name='activity_ob_ids_length_constraint'),
         sa.CheckConstraint(
-            'array_length(ob_refs) > 0',
+            'array_length(ob_refs, 1) > 0',
             name='activity_ob_refs_length_constraint'),
-        sa.ForeignKeyConstraint(['subject_id'], ['appuser.id']),
+        sa.ForeignKeyConstraint(
+            ['subject_id'],
+            ['appuser.id'],
+            name='activity_subject_id_fkey'),
         sa.PrimaryKeyConstraint('id')
     )
     op.create_index(
@@ -75,11 +78,14 @@ def upgrade():
                 'program', 'survey', 'qnode', 'measure',
                 'submission', native_enum=False),
             nullable=False),
-        sa.Column('ob_refs', postgresql.ARRAY(GUID()), nullable=False),
+        sa.Column('ob_refs', postgresql.ARRAY(guid.GUID()), nullable=False),
         sa.CheckConstraint(
-            'array_length(ob_refs) > 0',
+            'array_length(ob_refs, 1) > 0',
             name='subscription_ob_refs_length_constraint'),
-        sa.ForeignKeyConstraint(['user_id'], ['appuser.id']),
+        sa.ForeignKeyConstraint(
+            ['user_id'],
+            ['appuser.id'],
+            name='subscription_user_id_fkey'),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint(
             'user_id', 'ob_refs',

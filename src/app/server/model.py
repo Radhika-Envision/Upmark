@@ -871,10 +871,10 @@ class Activity(Base):
         Index('activity_sticky_index', sticky,
               postgresql_where=(sticky == True)),
         CheckConstraint(
-            'array_length(ob_ids) > 0',
+            'array_length(ob_ids, 1) > 0',
             name='activity_ob_ids_length_constraint'),
         CheckConstraint(
-            'array_length(ob_refs) > 0',
+            'array_length(ob_refs, 1) > 0',
             name='activity_ob_refs_length_constraint'),
     )
 
@@ -889,7 +889,10 @@ class Subscription(Base):
     user_id = Column(GUID, ForeignKey("appuser.id"), nullable=False)
     subscribed = Column(Boolean, nullable=False)
 
-    # Object reference; does not include parent objects
+    # Object reference; does not include parent objects. One day an index might
+    # be needed on the ob_refs column; if you want to use GIN, see:
+    # http://www.postgresql.org/docs/9.4/static/gin-intro.html
+    # http://stackoverflow.com/questions/19959735/postgresql-gin-index-on-array-of-uuid
     ob_type = Column(Enum(
         'none',
         'organisation', 'user',
@@ -905,7 +908,7 @@ class Subscription(Base):
             user_id, ob_refs,
             name='subscription_user_ob_refs_unique_constraint'),
         CheckConstraint(
-            'array_length(ob_refs) > 0',
+            'array_length(ob_refs, 1) > 0',
             name='subscription_ob_refs_length_constraint'),
     )
 
