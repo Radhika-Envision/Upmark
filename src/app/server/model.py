@@ -878,6 +878,8 @@ class Activity(Base):
             name='activity_ob_refs_length_constraint'),
     )
 
+    subject = relationship(AppUser)
+
 
 class Subscription(Base):
     '''Subscribes a user to events related to some object'''
@@ -906,6 +908,8 @@ class Subscription(Base):
             'array_length(ob_refs) > 0',
             name='subscription_ob_refs_length_constraint'),
     )
+
+    user = relationship(AppUser, backref='subscriptions')
 
 
 # Lists and Complex Relationships

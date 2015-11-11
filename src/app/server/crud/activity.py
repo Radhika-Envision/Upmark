@@ -1,3 +1,5 @@
+import datetime
+
 from tornado.escape import json_encode
 import tornado.web
 import sqlalchemy
@@ -7,6 +9,54 @@ import model
 import logging
 
 from utils import ToSon, truthy, updater
+
+
+class ActivityHandler(handlers.BaseHandler):
+
+    @tornado.web.authenticated
+    def get(self):
+        until_date = self.get_argument('until', '')
+        if until_date != '':
+            until_date = datetime.datetime.fromtimestamp(until_date)
+        else:
+            until_date = datetime.datetime.now()
+
+        from_date = self.get_argument('from', '')
+        if from_date != '':
+            until_date = datetime.datetime.fromtimestamp(until_date)
+        else:
+            from_date = until_date - datetime.timedelta(days=7)
+
+        if (until_date - from_date).days > 31:
+            raise handlers.ModelError(
+                "Time range is too large")
+
+        with model.session_scope() as session:
+            query = (session.query(model.Activity)
+                .filter(((model.Activity.created > from_date) &
+                         (model.Activity.created <= until_date)) |
+                        (model.Activity.sticky == True))
+                .order_by(model.Activity.sticky.desc(),
+                          model.Activity.created.desc()))
+
+            to_son = ToSon(include=[
+                r'/created$',
+                r'/subject$',
+                r'/subject/id$',
+                r'/subject/name$',
+                r'/verb$',
+                r'/object_desc$',
+                r'/object_ids/?.*$',
+            ])
+            son = {
+                'from': from_date.timestamp(),
+                'until': until_date.timestamp(),
+                'activities': to_son(query.all())
+            }
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(son))
+        self.finish()
 
 
 class SubscriptionHandler(handlers.BaseHandler):
