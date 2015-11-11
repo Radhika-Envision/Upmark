@@ -8,15 +8,15 @@ import uuid
 
 from sqlalchemy import Boolean, create_engine, Column, DateTime, Enum, Float, \
     ForeignKey, Index, Integer, String, Text, Table, LargeBinary
-from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy.dialects.postgresql import ARRAY, JSON
 import sqlalchemy.exc
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import backref, foreign, relationship, remote, sessionmaker
 from sqlalchemy.orm.session import object_session
-from sqlalchemy.schema import UniqueConstraint, ForeignKeyConstraint, Index,\
-    MetaData
+from sqlalchemy.schema import CheckConstraint, ForeignKeyConstraint, \
+    Index, MetaData, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.sql.expression import and_
 from passlib.hash import sha256_crypt
@@ -833,29 +833,49 @@ class Activity(Base):
     __tablename__ = 'activity'
     id = Column(GUID, nullable=False, primary_key=True)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
+    # Subject is the user performing the action. The object may also be a user.
     subject_id = Column(GUID, ForeignKey("appuser.id"), nullable=False)
+    # Verb is the action being performed by the subject on the object.
     verb = Column(
         Enum('create', 'update', 'state', 'delete', native_enum=False),
         nullable=False)
+    # A snapshot of some defining feature of the object at the time the event
+    # happened (e.g. title of a measure before it was deleted).
     object_desc = Column(Text)
+    sticky = Column(Boolean, nullable=False, default=False)
 
-    # Object reference (should match columns in Subscription)
-    user_id = Column(GUID)
-    survey_id = Column(GUID)
-    hierarchy_id = Column(GUID)
-    assessment_id = Column(GUID)
-    qnode_id = Column(GUID)
-    measure_id = Column(GUID)
+    # Object reference (the entity being acted upon). The ob_type and ob_id_*
+    # columns are for looking up the target object (e.g. to create a hyperlink).
+    ob_type = Column(Enum(
+        'none',
+        'organisation', 'user',
+        'program', 'survey', 'qnode', 'measure',
+        'submission',
+        native_enum=False), nullable=False)
+    ob_ids = Column(ARRAY(GUID), nullable=False)
+    # The ob_refs column contains all relevant IDs including e.g. parent
+    # categories, and is used for filtering.
+    ob_refs = Column(ARRAY(GUID))
 
-    # Index `created` column to allow fast filtering by date ranges across all
-    # users.
-    # Note Postgres' default index is btree, which supports ordered index
-    # scanning.
-    # Also create a multi-column index that has the subject's ID first, so we
-    # can quickly list the recent activity of a user.
     __table_args__ = (
+        # Index `created` column to allow fast filtering by date ranges across
+        # all users.
+        # Note Postgres' default index is btree, which supports ordered index
+        # scanning.
         Index('activity_created_index', created),
+        # A multi-column index that has the subject's ID first, so we can
+        # quickly list the recent activity of a user.
         Index('activity_subject_id_created_index', subject_id, created),
+        # Sticky activities are queried without respect to time, so a separate
+        # index is needed for them.
+        Index('activity_sticky_index', sticky,
+              postgresql_where=(sticky == True)),
+        CheckConstraint(
+            'array_length(ob_ids) > 0',
+            name='activity_ob_ids_length_constraint'),
+        CheckConstraint(
+            'array_length(ob_refs) > 0',
+            name='activity_ob_refs_length_constraint'),
     )
 
 
@@ -864,21 +884,27 @@ class Subscription(Base):
     __tablename__ = 'subscription'
     id = Column(GUID, nullable=False, primary_key=True)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
-    subject_id = Column(GUID, ForeignKey("appuser.id"), nullable=False)
+    user_id = Column(GUID, ForeignKey("appuser.id"), nullable=False)
     subscribed = Column(Boolean, nullable=False)
 
-    # Object reference (should match columns in Activity)
-    user_id = Column(GUID)
-    survey_id = Column(GUID)
-    hierarchy_id = Column(GUID)
-    assessment_id = Column(GUID)
-    qnode_id = Column(GUID)
-    measure_id = Column(GUID)
+    # Object reference; does not include parent objects
+    ob_type = Column(Enum(
+        'none',
+        'organisation', 'user',
+        'program', 'survey', 'qnode', 'measure',
+        'submission',
+        native_enum=False), nullable=False)
+    ob_refs = Column(ARRAY(GUID), nullable=False)
 
-    # Index to allow quick lookups of subscribed objects for a given user
     __table_args__ = (
-        Index('subscription_subject_object_index',
-            subject_id, user_id, survey_id),
+        # Index to allow quick lookups of subscribed objects for a given user
+        Index('subscription_user_id_index', user_id),
+        UniqueConstraint(
+            user_id, ob_refs,
+            name='subscription_user_ob_refs_unique_constraint'),
+        CheckConstraint(
+            'array_length(ob_refs) > 0',
+            name='subscription_ob_refs_length_constraint'),
     )
 
 
