@@ -33,7 +33,7 @@
 
 <div ng-if="edit.model">
 <div class="container">
-    <form novalidate name="form" id="editor">
+    <form novalidate name="form" id="editor" form-nav-warn>
         <div class="form-group" show-errors>
             <label for="org_name">Name</label>
             <span class="help-label" ng-if="form.org_name.$error.required">

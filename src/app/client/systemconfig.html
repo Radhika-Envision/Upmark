@@ -27,7 +27,7 @@
 
 <div ng-if="edit.model">
 <div class="container">
-    <form novalidate name="form" id="editor">
+    <form novalidate name="form" id="editor" form-nav-warn>
         <div class="form-group" ng-repeat="item in edit.model.settings">
             <label for="value{{$index}}">{{item.humanName}}</label>
             <p ng-if="item.description">{{item.description}}</p>

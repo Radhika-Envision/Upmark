@@ -88,7 +88,7 @@
 </div>
 
 <div class="container" ng-if="edit.model && edit.model.hierarchy">
-    <form novalidate name="form" id="editor">
+    <form novalidate name="form" id="editor" form-nav-warn>
         <div class="form-group" show-errors>
             <label for="title">Name</label>
             <span class="help-label" ng-if="form.title.$error.required">
