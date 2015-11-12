@@ -1,6 +1,7 @@
 import base64
 from contextlib import contextmanager
 from datetime import datetime
+from itertools import chain, zip_longest
 import logging
 import os
 import sys
@@ -353,11 +354,14 @@ class QuestionNode(Base):
         self.total_weight = total_weight
         self.n_measures = n_measures
 
-    def get_path(self):
+    def lineage(self):
         if self.parent_id:
-            return "%s %d." % (self.parent.get_path(), self.seq + 1)
+            return self.parent.lineage() + [self]
         else:
-            return "%d." % (self.seq + 1)
+            return [self]
+
+    def get_path(self):
+        return " ".join(["%d." % (q.seq + 1) for q in self.lineage()])
 
     def __repr__(self):
         return "QuestionNode(title={}, survey={})".format(
@@ -421,6 +425,44 @@ class Measure(Base):
         return (object_session(self).query(Response)
             .filter_by(assessment_id=assessment_id, measure_id=self.id)
             .first())
+
+    def lineage(self, hierarchy=None):
+        if hierarchy is None:
+            hierarchy_id = None
+        elif isinstance(hierarchy, (str, uuid.UUID)):
+            hierarchy_id = hierarchy
+        else:
+            hierarchy_id = hierarchy.id
+
+        if hierarchy_id:
+            qms = [qm for qm in self.qnode_measures
+                   if str(qm.hierarchy_id) == str(hierarchy_id)]
+        else:
+            qms = self.qnode_measures
+
+        lineages = [reversed(qm.qnode.lineage()) for qm in qms]
+        mixed_lineage = chain(*list(zip_longest(*lineages)))
+        mixed_lineage = [q for q in mixed_lineage
+                         if q is not None]
+        mixed_lineage = list(reversed(mixed_lineage))
+
+        return mixed_lineage + [self]
+
+    def record_action(self, subject, verbs):
+        if len(verbs) == 0:
+            return None;
+        hs = [qm.qnode.hierarchy_id for qm in self.qnode_measures]
+        lineage = [entity.id for entity in self.lineage()]
+        action = Activity(
+            subject_id=subject.id,
+            verbs=verbs,
+            object_desc=self.title,
+            ob_type='measure',
+            ob_ids=[self.survey_id, self.id],
+            ob_refs=[self.survey_id] + hs + lineage
+        )
+        object_session(self).add(action)
+        return action
 
     def __repr__(self):
         return "Measure(title={}, survey={})".format(
@@ -831,13 +873,15 @@ class Attachment(Base):
 class Activity(Base):
     '''An event in the event stream'''
     __tablename__ = 'activity'
-    id = Column(GUID, nullable=False, primary_key=True)
+    id = Column(GUID, default=uuid.uuid4, nullable=False, primary_key=True)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
     # Subject is the user performing the action. The object may also be a user.
     subject_id = Column(GUID, ForeignKey("appuser.id"), nullable=False)
     # Verb is the action being performed by the subject on the object.
-    verb = Column(
-        Enum('create', 'update', 'state', 'delete', native_enum=False),
+    verbs = Column(
+        ARRAY(Enum(
+            'create', 'update', 'state', 'delete', 'relation',
+            'reorder_children', native_enum=False)),
         nullable=False)
     # A snapshot of some defining feature of the object at the time the event
     # happened (e.g. title of a measure before it was deleted).
@@ -855,7 +899,7 @@ class Activity(Base):
     ob_ids = Column(ARRAY(GUID), nullable=False)
     # The ob_refs column contains all relevant IDs including e.g. parent
     # categories, and is used for filtering.
-    ob_refs = Column(ARRAY(GUID))
+    ob_refs = Column(ARRAY(GUID), nullable=False)
 
     __table_args__ = (
         # Index `created` column to allow fast filtering by date ranges across
@@ -871,6 +915,9 @@ class Activity(Base):
         Index('activity_sticky_index', sticky,
               postgresql_where=(sticky == True)),
         CheckConstraint(
+            'array_length(verbs, 1) > 0',
+            name='activity_verbs_length_constraint'),
+        CheckConstraint(
             'array_length(ob_ids, 1) > 0',
             name='activity_ob_ids_length_constraint'),
         CheckConstraint(
@@ -884,7 +931,7 @@ class Activity(Base):
 class Subscription(Base):
     '''Subscribes a user to events related to some object'''
     __tablename__ = 'subscription'
-    id = Column(GUID, nullable=False, primary_key=True)
+    id = Column(GUID, default=uuid.uuid4, nullable=False, primary_key=True)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
     user_id = Column(GUID, ForeignKey("appuser.id"), nullable=False)
     subscribed = Column(Boolean, nullable=False)

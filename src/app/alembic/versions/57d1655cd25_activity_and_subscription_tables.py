@@ -25,8 +25,9 @@ def upgrade():
         sa.Column('created', sa.DateTime(), nullable=False),
         sa.Column('subject_id', guid.GUID(), nullable=False),
         sa.Column(
-            'verb', sa.Enum(
-                'create', 'update', 'state', 'delete', native_enum=False),
+            'verbs', postgresql.ARRAY(sa.Enum(
+                'create', 'update', 'state', 'delete', 'relation',
+                'reorder_children', native_enum=False)),
             nullable=False),
         sa.Column('object_desc', sa.Text(), nullable=True),
         sa.Column('sticky', sa.Boolean(), nullable=False),
@@ -38,7 +39,10 @@ def upgrade():
                 'submission', native_enum=False),
             nullable=False),
         sa.Column('ob_ids', postgresql.ARRAY(guid.GUID()), nullable=False),
-        sa.Column('ob_refs', postgresql.ARRAY(guid.GUID()), nullable=True),
+        sa.Column('ob_refs', postgresql.ARRAY(guid.GUID()), nullable=False),
+        sa.CheckConstraint(
+            'array_length(verbs, 1) > 0',
+            name='activity_verbs_length_constraint'),
         sa.CheckConstraint(
             'array_length(ob_ids, 1) > 0',
             name='activity_ob_ids_length_constraint'),

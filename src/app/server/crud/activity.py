@@ -19,7 +19,7 @@ class ActivityHandler(handlers.BaseHandler):
         if until_date != '':
             until_date = datetime.datetime.fromtimestamp(until_date)
         else:
-            until_date = datetime.datetime.now()
+            until_date = datetime.datetime.utcnow()
 
         from_date = self.get_argument('from', '')
         if from_date != '':
@@ -40,13 +40,14 @@ class ActivityHandler(handlers.BaseHandler):
                           model.Activity.created.desc()))
 
             to_son = ToSon(include=[
-                r'/created$',
+                r'^/created$',
                 r'/subject$',
                 r'/subject/id$',
                 r'/subject/name$',
-                r'/verb$',
+                r'/verbs/?.*$',
                 r'/object_desc$',
                 r'/object_ids/?.*$',
+                r'/[0-9]+$',
             ])
             son = {
                 'from': from_date.timestamp(),

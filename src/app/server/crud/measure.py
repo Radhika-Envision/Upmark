@@ -213,6 +213,7 @@ class MeasureHandler(
                 self._update(measure, self.request_son)
                 session.flush()
 
+                parents = []
                 for parent_id in parent_ids:
                     qnode = session.query(model.QuestionNode)\
                         .get((parent_id, self.survey_id))
@@ -221,7 +222,14 @@ class MeasureHandler(
                     qnode.measures.append(measure)
                     qnode.qnode_measures.reorder()
                     qnode.update_stats_ancestors()
+                    parents.append(qnode)
                 measure_id = str(measure.id)
+
+                verbs = ['create']
+                if len(parents) > 0:
+                    verbs.append('relation')
+                measure.record_action(self.current_user, verbs)
+
                 log.info("Created measure %s", measure_id)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
@@ -259,9 +267,11 @@ class MeasureHandler(
                         qnode.measures.remove(measure)
                         qnode.qnode_measures.reorder()
                         qnode.update_stats_ancestors()
+                    measure.record_action(self.current_user, ['relation'])
                 else:
                     if len(measure.parents) > 0:
                         raise handlers.ModelError("Measure is in use")
+                    measure.record_action(self.current_user, ['delete'])
                     session.delete(measure)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Measure is in use")
@@ -291,7 +301,13 @@ class MeasureHandler(
                     raise ValueError("No such object")
                 self._update(measure, self.request_son)
 
+                verbs = []
+                # Check if modified now to avoid problems with autoflush later
+                if session.is_modified(measure):
+                    verbs.append('update')
+
                 affected_parents = set(measure.parents)
+                has_relocated = False
                 for parent_id in parent_ids:
                     # Add links to parents. Links can't be removed like this;
                     # use the delete method instead.
@@ -302,6 +318,7 @@ class MeasureHandler(
                     if new_parent in measure.parents:
                         continue
                     self.reason('Added to %s' % new_parent.title)
+                    has_relocated = True
                     for old_parent in list(measure.parents):
                         if str(old_parent.hierarchy_id) == str(new_parent.hierarchy_id):
                             old_parent.measures.remove(measure)
@@ -311,8 +328,14 @@ class MeasureHandler(
                     new_parent.qnode_measures.reorder()
                     new_parent.update_stats_ancestors()
                     affected_parents.add(new_parent)
+                if has_relocated:
+                    verbs.append('relation')
+
                 for parent in affected_parents:
                     parent.update_stats_ancestors()
+
+                measure.record_action(self.current_user, verbs)
+
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such measure")
         except sqlalchemy.exc.IntegrityError as e:
