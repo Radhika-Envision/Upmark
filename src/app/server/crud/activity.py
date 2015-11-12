@@ -45,6 +45,7 @@ class ActivityHandler(handlers.BaseHandler):
                 r'/subject/id$',
                 r'/subject/name$',
                 r'/verbs/?.*$',
+                r'/ob_type$',
                 r'/object_desc$',
                 r'/object_ids/?.*$',
                 r'/[0-9]+$',
@@ -52,7 +53,7 @@ class ActivityHandler(handlers.BaseHandler):
             son = {
                 'from': from_date.timestamp(),
                 'until': until_date.timestamp(),
-                'activities': to_son(query.all())
+                'actions': to_son(query.all())
             }
 
         self.set_header("Content-Type", "application/json")

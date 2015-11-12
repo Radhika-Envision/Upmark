@@ -5,8 +5,8 @@ angular.module('wsaa.aquamark',
                 'ui.bootstrap.showErrors', 'validation.match', 'settings',
                 'yaru22.angular-timeago', 'angular-select-text',
                 'angular-medium-editor',
-                'wsaa.survey', 'wsaa.admin', 'wsaa.surveyQuestions',
-                'wsaa.surveyAnswers',
+                'wsaa.survey', 'wsaa.admin', 'wsaa.home',
+                'wsaa.surveyQuestions', 'wsaa.surveyAnswers',
                 'vpac.utils', 'vpac.widgets', 'diff-match-patch'])
 
 
@@ -100,8 +100,10 @@ angular.module('wsaa.aquamark',
         $routeProvider
 
             .when('/', {
-                redirectTo : 'surveys'
+                templateUrl : 'home.html',
+                controller : 'HomeCtrl'
             })
+
             .when('/admin', {
                 templateUrl : 'systemconfig.html',
                 controller : 'SystemConfigCtrl',
