@@ -372,7 +372,7 @@ class QuestionNode(Base):
             verbs=verbs,
             object_desc=self.title,
             ob_type='qnode',
-            ob_ids=[self.survey_id, self.id],
+            ob_ids=[self.id, self.survey_id],
             ob_refs=[self.survey_id, self.hierarchy_id] + lineage
         )
         object_session(self).add(action)
@@ -473,7 +473,7 @@ class Measure(Base):
             verbs=verbs,
             object_desc=self.title,
             ob_type='measure',
-            ob_ids=[self.survey_id, self.id],
+            ob_ids=[self.id, self.survey_id],
             ob_refs=[self.survey_id] + hs + lineage
         )
         object_session(self).add(action)

@@ -10,8 +10,8 @@ angular.module('wsaa.home', ['ngResource'])
 }])
 
 
-.controller('HomeCtrl', ['$scope', 'Activity', 'Notifications', '$q',
-        function($scope, Activity, Notifications, $q) {
+.controller('HomeCtrl', ['$scope', 'Activity', 'Notifications', '$q', 'format',
+        function($scope, Activity, Notifications, $q, format) {
 
     $scope.activity = null;
 
@@ -68,6 +68,30 @@ angular.module('wsaa.home', ['ngResource'])
             return 'category';
         default:
             return action.obType;
+        }
+    };
+
+    $scope.url = function(action) {
+        switch (action.obType) {
+        case 'organisation':
+            return format("/org/{}", action.obIds[0]);
+        case 'user':
+            return format("/user/{}", action.obIds[0]);
+        case 'program':
+            return format("/survey/{}", action.obIds[0]);
+        case 'survey':
+            return format("/hierarchy/{}?survey={}",
+                action.obIds[0], action.obIds[1]);
+        case 'qnode':
+            return format("/qnode/{}?survey={}",
+                action.obIds[0], action.obIds[1]);
+        case 'measure':
+            return format("/measure/{}?survey={}",
+                action.obIds[0], action.obIds[1]);
+        case 'submission':
+            return format("/assessment/{}", action.obIds[0]);
+        default:
+            return '';
         }
     };
 

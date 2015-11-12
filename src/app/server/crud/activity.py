@@ -40,15 +40,18 @@ class ActivityHandler(handlers.BaseHandler):
                           model.Activity.created.desc()))
 
             to_son = ToSon(include=[
-                r'^/created$',
+                r'/created$',
                 r'/subject$',
                 r'/subject/id$',
                 r'/subject/name$',
                 r'/verbs/?.*$',
                 r'/ob_type$',
+                r'/ob_ids$',
                 r'/object_desc$',
                 r'/object_ids/?.*$',
                 r'/[0-9]+$',
+            ], exclude=[
+                r'/subject/created$',
             ])
             son = {
                 'from': from_date.timestamp(),

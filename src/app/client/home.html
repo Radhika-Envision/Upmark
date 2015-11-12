@@ -12,11 +12,20 @@
 </div>
 
 <div class="container">
-    <ul>
+    <ul class="list-results">
         <li ng-repeat="action in activity.actions">
-            {{action.subject.name}} {{verbs(action)}}
-            <span class="text-muted">the {{obType(action)}}</span>
-            <em>{{action.objectDesc}}</em>
+            <a ng-href="#{{url(action)}}" title="Open this {{obType(action)}}">
+                {{action.subject.name}}
+                <span class="text-muted">
+                    {{verbs(action)}} the {{obType(action)}}
+                </span>
+                {{action.objectDesc}}
+                <p>{{action.created * 1000 | timeAgo:'medium'}}</p>
+            </a>
         </li>
     </ul>
+    <p ng-if="!activity.actions.length">
+        There are no events for this time period.
+        Perhaps you'd like to <a href="#/surveys">browse the programs</a>?
+    </p>
 </div>
