@@ -363,6 +363,21 @@ class QuestionNode(Base):
     def get_path(self):
         return " ".join(["%d." % (q.seq + 1) for q in self.lineage()])
 
+    def record_action(self, subject, verbs):
+        if len(verbs) == 0:
+            return None;
+        lineage = [q.id for q in self.lineage()]
+        action = Activity(
+            subject_id=subject.id,
+            verbs=verbs,
+            object_desc=self.title,
+            ob_type='qnode',
+            ob_ids=[self.survey_id, self.id],
+            ob_refs=[self.survey_id, self.hierarchy_id] + lineage
+        )
+        object_session(self).add(action)
+        return action
+
     def __repr__(self):
         return "QuestionNode(title={}, survey={})".format(
             self.title, getattr(self.survey, 'title', None))

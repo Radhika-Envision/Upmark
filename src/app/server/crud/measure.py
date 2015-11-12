@@ -359,6 +359,7 @@ class MeasureHandler(
                 reorder(
                     qnode.qnode_measures, self.request_son,
                     id_attr='measure_id')
+                qnode.record_action(self.current_user, ['reorder_children'])
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)

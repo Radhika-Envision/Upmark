@@ -308,6 +308,7 @@ class QuestionNodeHandler(
                 session.flush()
                 qnode.update_stats_ancestors()
                 qnode_id = str(qnode.id)
+                qnode.record_action(self.current_user, ['create'])
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
@@ -340,6 +341,7 @@ class QuestionNodeHandler(
                     hierarchy = qnode.hierarchy
                 if qnode.parent is not None:
                     parent = qnode.parent
+                qnode.record_action(self.current_user, ['delete'])
                 session.delete(qnode)
                 if hierarchy is not None:
                     hierarchy.qnodes.reorder()
@@ -372,6 +374,10 @@ class QuestionNodeHandler(
                     raise ValueError("No such object")
                 self._update(session, qnode, self.request_son)
 
+                verbs = []
+                if session.is_modified(qnode):
+                    verbs.append('update')
+
                 if parent_id != '' and str(qnode.parent_id) != parent_id:
                     # Change parent
                     old_parent = qnode.parent
@@ -387,6 +393,8 @@ class QuestionNodeHandler(
                     new_parent.update_stats_ancestors()
                     self.reason("Moved from %s to %s" % (
                         old_parent.title, new_parent.title))
+                    verbs.append('relation')
+                qnode.record_action(self.current_user, verbs)
 
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such question node")
@@ -432,6 +440,8 @@ class QuestionNodeHandler(
                                 "Parent does not belong to that hierarchy")
                     log.debug("Reordering children of: %s", parent)
                     reorder(parent.children, son)
+                    parent.record_action(
+                        self.current_user, ['reorder_children'])
                 elif root is not None:
                     hierarchy = session.query(model.Hierarchy)\
                         .get((hierarchy_id, self.survey_id))
