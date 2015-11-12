@@ -95,6 +95,35 @@ angular.module('wsaa.home', ['ngResource'])
         }
     };
 
+    $scope.icons = function(action) {
+        var icons = [];
+        for (var i = 0; i < action.verbs.length; i++) {
+            var verb = action.verbs[i];
+            switch (verb) {
+            case 'create':
+                icons.push('fa-plus');
+                break;
+            case 'update':
+                icons.push('fa-pencil');
+                break;
+            case 'state':
+                icons.push('fa-chevron-right');
+                break;
+            case 'delete':
+                icons.push('fa-trash-o');
+                break;
+            case 'relation':
+                icons.push('fa-link');
+                break;
+            case 'reorder_children':
+                icons.push('fa-arrows-v');
+                break;
+            default:
+            }
+        }
+        return icons;
+    };
+
 }])
 
 ;

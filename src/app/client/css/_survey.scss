@@ -242,8 +242,20 @@ ul.fa-ul-big {
         }
     }
 }
+ul.fa-ul-big.list-results {
+    > li {
+        margin-top: 0;
+    }
+    > li > i.fa-li {
+        top: 8px;
+    }
+}
 .fa-li > .fa-badge {
-    left: -1.5em;
+    left: -1em;
+}
+.fa-border-fill {
+    background-color: #F5F5F5;
+    border-color: #f5f5f5;
 }
 ul.docs > li:not(.printable) {
     @media print {
@@ -339,15 +351,16 @@ ul.list-results {
             padding: 8px;
         }
         > a {
+            color: #555;
             > h4 {
                 font-weight: bold;
                 position: relative;
             }
             > p {
-                color: #555;
                 &:last-child {
                     margin-bottom: 0;
                 }
+                color: #777;
             }
         }
 

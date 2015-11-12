@@ -69,13 +69,19 @@
     @keyframes #{$name} { @content; }
 }
 
-$outline-width: 0.15em;
-$outline-jitter: 0.25;
+$outline-width: 1px;
+$outline-blur: 0.00em;
+$outline-jitter: 0.5;
 
 @mixin text-shadow-outline($colour) {
     text-shadow:
-        ($outline-width) ($outline-width * $outline-jitter) $colour,
-        (-$outline-width) (-$outline-width * $outline-jitter) $colour,
-        ($outline-width * $outline-jitter) (-$outline-width) $colour,
-        (-$outline-width * $outline-jitter) ($outline-width) $colour;
+        ($outline-width) ($outline-width * $outline-jitter) $outline-blur $colour,
+        (-$outline-width) (-$outline-width * $outline-jitter) $outline-blur $colour,
+        ($outline-width * $outline-jitter) (-$outline-width) $outline-blur $colour,
+        (-$outline-width * $outline-jitter) ($outline-width) $outline-blur $colour,
+
+        (-$outline-width) ($outline-width * $outline-jitter) $outline-blur $colour,
+        ($outline-width) (-$outline-width * $outline-jitter) $outline-blur $colour,
+        (-$outline-width * $outline-jitter) (-$outline-width) $outline-blur $colour,
+        ($outline-width * $outline-jitter) ($outline-width) $outline-blur $colour;
 }

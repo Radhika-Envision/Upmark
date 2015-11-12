@@ -12,8 +12,13 @@
 </div>
 
 <div class="container">
-    <ul class="list-results">
+    <ul class="list-results fa-ul fa-ul-big">
         <li ng-repeat="action in activity.actions">
+            <i class="fa fa-li fa-border fa-border-fill"
+                    ng-class="icons(action)[0]">
+                <i class="fa fa-badge fa-plus"
+                        ng-if="icons(action).length > 1"></i>
+            </i>
             <a ng-href="#{{url(action)}}" title="Open this {{obType(action)}}">
                 {{action.subject.name}}
                 <span class="text-muted">
