@@ -160,6 +160,9 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                     yield self.duplicate_structure(
                         source_survey, survey, session)
                     source_survey.finalised_date = datetime.datetime.utcnow()
+                    source_survey.record_action(self.current_user, ['state'])
+
+                survey.record_action(self.current_user, ['create'])
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
@@ -237,6 +240,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 if not survey.is_editable:
                     raise handlers.MethodError(
                         "This survey is closed for editing")
+                survey.record_action(self.current_user, ['delete'])
                 session.delete(survey)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Survey is in use")
@@ -269,6 +273,8 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                     raise handlers.MethodError(
                         "This survey is closed for editing")
                 self._update(survey, self.request_son)
+                if session.is_modified(survey):
+                    survey.record_action(self.current_user, ['update'])
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such survey")
         except sqlalchemy.exc.IntegrityError as e:
@@ -290,6 +296,8 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                         survey.finalised_date = None
                     else:
                         survey.finalised_date = datetime.datetime.utcnow()
+                if session.is_modified(survey):
+                    survey.record_action(self.current_user, ['state'])
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such survey")
         except sqlalchemy.exc.IntegrityError as e:

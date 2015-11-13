@@ -60,6 +60,20 @@ class Organisation(Base):
     number_of_customers = Column(Integer, nullable=False)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
 
+    def record_action(self, subject, verbs):
+        if len(verbs) == 0:
+            return None;
+        action = Activity(
+            subject_id=subject.id,
+            verbs=verbs,
+            object_desc=self.name,
+            ob_type='organisation',
+            ob_ids=[self.id],
+            ob_refs=[self.id]
+        )
+        object_session(self).add(action)
+        return action
+
     __table_args__ = (
         Index('organisation_name_key', func.lower(name), unique=True),
     )
@@ -88,6 +102,20 @@ class AppUser(Base):
 
     def check_password(self, plaintext):
         return sha256_crypt.verify(plaintext, self.password)
+
+    def record_action(self, subject, verbs):
+        if len(verbs) == 0:
+            return None;
+        action = Activity(
+            subject_id=subject.id,
+            verbs=verbs,
+            object_desc=self.name,
+            ob_type='user',
+            ob_ids=[self.id],
+            ob_refs=[self.organisation_id, self.id]
+        )
+        object_session(self).add(action)
+        return action
 
     __table_args__ = (
         Index('appuser_email_key', func.lower(email), unique=True),
@@ -191,6 +219,20 @@ class Survey(Base):
         for hierarchy in self.hierarchies:
             hierarchy.update_stats_descendants()
 
+    def record_action(self, subject, verbs):
+        if len(verbs) == 0:
+            return None;
+        action = Activity(
+            subject_id=subject.id,
+            verbs=verbs,
+            object_desc=self.title,
+            ob_type='program',
+            ob_ids=[self.id],
+            ob_refs=[self.tracking_id, self.id]
+        )
+        object_session(self).add(action)
+        return action
+
     __table_args__ = (
         Index('survey_tracking_id_index', tracking_id),
         Index('survey_created_index', created),
@@ -279,6 +321,20 @@ class Hierarchy(Base):
         for qnode in self.qnodes:
             qnode.update_stats_descendants()
         self.update_stats()
+
+    def record_action(self, subject, verbs):
+        if len(verbs) == 0:
+            return None;
+        action = Activity(
+            subject_id=subject.id,
+            verbs=verbs,
+            object_desc=self.title,
+            ob_type='survey',
+            ob_ids=[self.id, self.survey_id],
+            ob_refs=[self.survey_id, self.id]
+        )
+        object_session(self).add(action)
+        return action
 
     def __repr__(self):
         return "Hierarchy(title={}, survey={})".format(

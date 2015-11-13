@@ -134,6 +134,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 self._update(user, self.request_son)
                 session.add(user)
                 session.flush()
+                user.record_action(self.current_user, ['create'])
                 session.expunge(user)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
@@ -154,6 +155,8 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                     raise ValueError("No such object")
                 self._check_update(self.request_son, user)
                 self._update(user, self.request_son)
+                if session.is_modified(user):
+                    user.record_action(self.current_user, ['update'])
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         except (sqlalchemy.exc.StatementError, ValueError):
@@ -171,6 +174,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                     raise ValueError("No such object")
                 self._check_delete(user)
                 user.organisation.users.remove(user)
+                user.record_action(self.current_user, ['delete'])
                 session.delete(user)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError(

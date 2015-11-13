@@ -449,6 +449,8 @@ class QuestionNodeHandler(
                         raise handlers.MissingDocError("No such hierarchy")
                     log.debug("Reordering children of: %s", hierarchy)
                     reorder(hierarchy.qnodes, son)
+                    hierarchy.record_action(
+                        self.current_user, ['reorder_children'])
                 else:
                     raise handlers.ModelError(
                         "Hierarchy or parent ID required")

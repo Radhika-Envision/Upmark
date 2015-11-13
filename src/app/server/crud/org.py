@@ -80,6 +80,8 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                 self._update(org, self.request_son)
                 session.add(org)
                 session.flush()
+                if session.is_modified(org):
+                    org.record_action(self.current_user, ['create'])
                 org_id = str(org.id)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
@@ -105,6 +107,8 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                 if org is None:
                     raise ValueError("No such object")
                 self._update(org, self.request_son)
+                if session.is_modified(org):
+                    org.record_action(self.current_user, ['update'])
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         except (sqlalchemy.exc.StatementError, ValueError):
@@ -119,6 +123,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                 org = session.query(model.Organisation).get(org_id)
                 if org is None:
                     raise ValueError("No such object")
+                org.record_action(self.current_user, ['delete'])
                 session.delete(org)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError(
