@@ -214,9 +214,7 @@ def get_mappings():
         (r"/user/?([^/]*).json", crud.user.UserHandler, {}),
         (r"/user/([^/]*)/subscription/(.*).json",
             crud.activity.SubscriptionHandler, {}),
-        (r"/user/([^/]*)/activity().json",
-            crud.activity.ActivityHandler, {}),
-        (r"()/activity/?([^/]*).json",
+        (r"/activity/?([^/]*).json",
             crud.activity.ActivityHandler, {}),
         (r"/password.json", crud.user.PasswordHandler, {}),
 

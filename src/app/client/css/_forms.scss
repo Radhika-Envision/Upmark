@@ -292,6 +292,10 @@ div[textarea-label] {
     }
 }
 
+:not(:hover) > .hover-parent {
+    display: none;
+}
+
 :not(ng-include):not(.nested)>.header .btn-default, .well .btn-default {
     &:not([disabled]) {
         color: lighten($button-fg, 30%);

@@ -4,9 +4,11 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
 
 
 .factory('Activity', ['$resource', function($resource) {
-    return $resource('/activity.json', {}, {
+    return $resource('/activity/:id.json', {}, {
         get: { method: 'GET', cache: false },
-        create: { method: 'POST', cache: false }
+        save: { method: 'PUT', cache: false },
+        create: { method: 'POST', cache: false },
+        remove: { method: 'DELETE', cache: false }
     });
 }])
 
@@ -21,6 +23,8 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
                     return Roles.hasPermission(current.user.role, 'org_admin');
                 case 'post_to_all':
                     return Roles.hasPermission(current.user.role, 'admin');
+                case 'modify_post':
+                    return Roles.hasPermission(current.user.role, 'org_admin');
             }
             return false;
         };
@@ -36,16 +40,19 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
     $scope.activity = null;
     $scope.current = Current;
 
-    Activity.get().$promise.then(
-        function success(activity) {
-            $scope.activity = activity;
-        },
-        function failure(details) {
-            Notifications.set('get', 'error',
-                "Could not get recent activity: " + details.statusText);
-            return $q.reject(details);
-        }
-    );
+    $scope.updateActivities = function() {
+        Activity.get().$promise.then(
+            function success(activity) {
+                $scope.activity = activity;
+            },
+            function failure(details) {
+                Notifications.set('activity', 'error',
+                    "Could not get recent activity: " + details.statusText);
+                return $q.reject(details);
+            }
+        );
+    };
+    $scope.updateActivities();
 
     $scope.verbs = function(action) {
         var expr = "";
@@ -151,16 +158,66 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
         return icons;
     };
 
+    $scope.remove = function(action) {
+        Activity.remove({id: action.id}).$promise.then(
+            function success() {
+                $scope.updateActivities();
+                Notifications.set('activity', 'success', "Deleted", 5000);
+            },
+            function failure(details) {
+                Notifications.set('activity', 'error',
+                    "Could not delete activity: " + details.statusText);
+                return $q.reject(details);
+            }
+        );
+    };
+
+    $scope.toggleSticky = function(action) {
+        var updatedAction = angular.copy(action);
+        updatedAction.sticky = !action.sticky;
+
+        Activity.save({id: action.id}, updatedAction).$promise.then(
+            function success(updatedAction) {
+                angular.copy(updatedAction, action);
+                Notifications.set('activity', 'success', "Saved", 5000);
+            },
+            function failure(details) {
+                Notifications.set('activity', 'error',
+                    "Could not save activity: " + details.statusText);
+                return $q.reject(details);
+            }
+        );
+    };
+
     $scope.checkRole = homeAuthz(Current);
 
-    $scope.post = {
-        to: $scope.checkRole('post_to_all') ? 'all' : 'org',
-        sticky: true,
-        message: ''
+    $scope.showPost = false;
+    $scope.togglePost = function() {
+        $scope.showPost = !$scope.showPost;
+        $scope.resetPost();
+    };
+    $scope.resetPost = function() {
+        $scope.post = {
+            to: $scope.checkRole('post_to_all') ? 'all' : 'org',
+            sticky: true,
+            message: ''
+        };
     };
 
     $scope.postMessage = function() {
-        Activity.create($scope.post);
+        Activity.create($scope.post).$promise.then(
+            function success(action) {
+                $scope.updateActivities();
+                $scope.showPost = false;
+                $scope.resetPost();
+                Notifications.set('activity', 'success', "Posted", 5000);
+            },
+            function failure(details) {
+                Notifications.set('activity', 'error',
+                    "Could not post message: " + details.statusText);
+                return $q.reject(details);
+            }
+        );
     };
 
 }])

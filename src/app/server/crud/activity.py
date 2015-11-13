@@ -13,14 +13,30 @@ from utils import ToSon, truthy, updater
 
 class ActivityHandler(handlers.BaseHandler):
 
+    TO_SON = ToSon(include=[
+        r'/id$',
+        r'/created$',
+        r'/sticky$',
+        r'/subject$',
+        r'/subject/name$',
+        r'/verbs/?.*$',
+        r'/ob_type$',
+        r'/ob_ids$',
+        r'/object_desc$',
+        r'/object_ids/?.*$',
+        r'/[0-9]+$',
+    ], exclude=[
+        r'/subject/created$',
+    ])
+
     @tornado.web.authenticated
-    def get(self, user_id, activity_id):
+    def get(self, activity_id):
         if activity_id == '':
-            return self.query(user_id)
+            return self.query()
 
         raise handlers.MethodError("GET for single activity is not implemented")
 
-    def query(self, user_id):
+    def query(self):
         until_date = self.get_argument('until', '')
         if until_date != '':
             until_date = datetime.datetime.fromtimestamp(until_date)
@@ -45,33 +61,21 @@ class ActivityHandler(handlers.BaseHandler):
                 .order_by(model.Activity.sticky.desc(),
                           model.Activity.created.desc()))
 
-            to_son = ToSon(include=[
-                r'/created$',
-                r'/sticky$',
-                r'/subject$',
-                r'/subject/id$',
-                r'/subject/name$',
-                r'/verbs/?.*$',
-                r'/ob_type$',
-                r'/ob_ids$',
-                r'/object_desc$',
-                r'/object_ids/?.*$',
-                r'/[0-9]+$',
-            ], exclude=[
-                r'/subject/created$',
-            ])
             son = {
                 'from': from_date.timestamp(),
                 'until': until_date.timestamp(),
-                'actions': to_son(query.all())
+                'actions': ActivityHandler.TO_SON(query.all())
             }
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
 
-    @handlers.authz('org_admin')
-    def post(self, user_id, activity_id):
+    @tornado.web.authenticated
+    def post(self, activity_id):
+        if activity_id != '':
+            raise handlers.ModelError("Can't specify ID for new activity")
+
         with model.session_scope() as session:
             activity = model.Activity(
                 subject_id=self.current_user.id,
@@ -83,10 +87,71 @@ class ActivityHandler(handlers.BaseHandler):
                 ob_refs=[]
             )
             session.add(activity)
+            session.flush()
+            self.check_create(activity)
+            son = ActivityHandler.TO_SON(activity)
 
         self.set_header("Content-Type", "application/json")
-        self.write(json_encode({}))
+        self.write(json_encode(son))
         self.finish()
+
+    @tornado.web.authenticated
+    def put(self, activity_id):
+        with model.session_scope() as session:
+            activity = (session.query(model.Activity)
+                .get(activity_id))
+            if not activity:
+                raise handlers.MissingDocError("No such activity")
+
+            self.check_modify(activity)
+
+            if 'sticky' in self.request_son:
+                activity.sticky = self.request_son['sticky']
+            if 'object_desc' in self.request_son:
+                activity.object_desc = self.request_son['object_desc']
+            son = ActivityHandler.TO_SON(activity)
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(son))
+        self.finish()
+
+    @tornado.web.authenticated
+    def delete(self, activity_id):
+        with model.session_scope() as session:
+            activity = (session.query(model.Activity)
+                .get(activity_id))
+            if not activity:
+                raise handlers.MissingDocError("No such activity")
+            self.check_delete(activity)
+            session.delete(activity)
+
+        self.set_header("Content-Type", "text/plain")
+        self.write("Deleted")
+        self.finish()
+
+    def check_create(self, activity):
+        if activity.verbs != ['broadcast']:
+            raise handlers.AuthzError(
+                "You can't create a non-broadcast activity")
+        self.check_modify(activity)
+
+    def check_modify(self, activity):
+        if self.has_privillege('admin'):
+            return
+        elif self.has_privillege('org_admin'):
+            org = activity.subject.organisation
+            if str(org.id) != str(self.current_user.organisation_id):
+                raise handlers.AuthzError(
+                    "You can't modify another organisation's activity")
+        else:
+            raise handlers.AuthzError(
+                "You can't modify activities")
+
+    def check_delete(self, activity):
+        if activity.verbs != ['broadcast']:
+            raise handlers.AuthzError(
+                "You can't delete a non-broadcast activity")
+        self.check_modify(activity)
 
 
 class SubscriptionHandler(handlers.BaseHandler):

@@ -2,7 +2,6 @@
 <div class="container">
     <div class="toolbar">
         <button class="btn btn-default btn-round" title="Print"
-                ng-if="!edit.model"
                 onclick="print()">
             <i class="fa fa-print"></i>
         </button>
@@ -19,6 +18,25 @@
                 <i class="fa fa-badge fa-plus"
                         ng-if="icons(action).length > 1"></i>
             </i>
+            <div class="pull-right hidden-print hover-parent"
+                    ng-if="checkRole('modify_post')">
+                <button class="btn btn-default btn-round"
+                        title="Delete (usually you should just unpin)"
+                        ng-click="remove(action);
+                                  $event.preventDefault()"
+                        ng-if="action.obType == null">
+                    <i class="fa fa-fw fa-trash-o"></i>
+                </button>
+                <button class="btn btn-default btn-round"
+                        title="Pin / Unpin"
+                        ng-click="toggleSticky(action);
+                                  $event.preventDefault()">
+                    <i class="fa fa-fw fa-thumb-tack">
+                        <i class="fa fa-badge fa-times"
+                                ng-if="action.sticky"></i>
+                    </i>
+                </button>
+            </div>
             <a ng-href="#{{url(action)}}"
                     title="Open this {{obType(action)}}"
                     ng-if="action.obType != null">
@@ -52,7 +70,44 @@
         </li>
     </ul>
 
-    <form novalidate name="form" id="post" ng-if="checkRole('post_message')">
+    <div class="text-center">
+        <div class="btn-group">
+            <span class="btn-group-addon">
+                7 days ending {{activity.until * 1000 | date:'mediumDate'}}
+            </span>
+            <button class="btn btn-default"
+                    title="Previous"
+                    ng-click="previousActivities()">
+                <i class="fa fa-caret-left"></i>
+            </button>
+            <button class="btn btn-default"
+                    title="Next"
+                    ng-click="nextActivities()">
+                <i class="fa fa-caret-right"></i>
+            </button>
+        </div>
+        <button class="btn btn-default"
+                title="Refresh timeline"
+                ng-click="updateActivities()">
+            <i class="fa fa-refresh"></i>
+        </button>
+        <button class="btn btn-default"
+                title="{{showPost ?
+                           'Cancel post' :
+                           'Post a new message' :"
+                ng-click="togglePost()"
+                ng-if="checkRole('post_message')">
+            <i class="fa fa-envelope-o">
+                <i class="fa fa-plus fa-badge"
+                    ng-if="!showPost"></i>
+                <i class="fa fa-times fa-badge text-danger"
+                    ng-if="showPost"></i>
+            </i>
+        </button>
+    </div>
+
+    <form novalidate name="form" id="post" ng-if="showPost"
+            class="hidden-print">
         <h3>Broadcast Message</h3>
         <div class="form-group">
             <label for="message" class="sr-only">Message</label>
@@ -60,7 +115,7 @@
                 id="message" name="message"
                 ng-model="post.message"></textarea>
         </div>
-        <div class="form-inline text-right">
+        <div class="form-inline text-center">
             <div class="form-group" ng-if="checkRole('post_to_all')">
                 <div class="btn-group">
                     <span class="btn-group-addon">
@@ -96,5 +151,23 @@
                 </button>
             </div>
         </div>
+        <docs ng-if="checkRole('post_message')">
+            <i class="fa-li fa fa-envelope-o fa-border"></i>
+            You can post messages to the timeline.
+            <span ng-if="checkRole('post_to_all')">
+                You can choose to make your message visible to all users, or only
+                users in your organisation.
+            </span>
+            <span ng-if="!checkRole('post_to_all')">
+                Your post will only be visible to members of your organisation.
+            </span>
+            <p>
+                Pinned messages <i class="fa fa-thumb-tack"></i> will stay at the
+                top of the timeline until you unpin them. An unpinned message will
+                be moved to the time at which it was created.
+                Generally it is preferred to unpin messages instead of deleting
+                them.
+            </p>
+        </docs>
     </form>
 </div>
