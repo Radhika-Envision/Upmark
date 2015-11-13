@@ -14,7 +14,13 @@ from utils import ToSon, truthy, updater
 class ActivityHandler(handlers.BaseHandler):
 
     @tornado.web.authenticated
-    def get(self):
+    def get(self, user_id, activity_id):
+        if activity_id == '':
+            return self.query(user_id)
+
+        raise handlers.MethodError("GET for single activity is not implemented")
+
+    def query(self, user_id):
         until_date = self.get_argument('until', '')
         if until_date != '':
             until_date = datetime.datetime.fromtimestamp(until_date)
@@ -41,6 +47,7 @@ class ActivityHandler(handlers.BaseHandler):
 
             to_son = ToSon(include=[
                 r'/created$',
+                r'/sticky$',
                 r'/subject$',
                 r'/subject/id$',
                 r'/subject/name$',
@@ -61,6 +68,24 @@ class ActivityHandler(handlers.BaseHandler):
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
+        self.finish()
+
+    @handlers.authz('org_admin')
+    def post(self, user_id, activity_id):
+        with model.session_scope() as session:
+            activity = model.Activity(
+                subject_id=self.current_user.id,
+                verbs=['broadcast'],
+                object_desc=self.request_son['message'],
+                sticky=self.request_son['sticky'],
+                ob_type=None,
+                ob_ids=[],
+                ob_refs=[]
+            )
+            session.add(activity)
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode({}))
         self.finish()
 
 
@@ -93,6 +118,7 @@ class SubscriptionHandler(handlers.BaseHandler):
         self.write(json_encode(son))
         self.finish()
 
+    @tornado.web.authenticated
     def put(self, user_id, object_ids):
         object_ids = object_ids.split('/')
         with model.session_scope() as session:
@@ -115,6 +141,7 @@ class SubscriptionHandler(handlers.BaseHandler):
 
         self.get(user_id, object_ids)
 
+    @tornado.web.authenticated
     def delete(self, user_id, object_ids):
         object_ids = object_ids.split('/')
         with model.session_scope() as session:

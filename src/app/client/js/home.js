@@ -1,19 +1,40 @@
 'use strict';
 
-angular.module('wsaa.home', ['ngResource'])
+angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
 
 
 .factory('Activity', ['$resource', function($resource) {
     return $resource('/activity.json', {}, {
-        get: { method: 'GET', cache: true }
+        get: { method: 'GET', cache: false },
+        create: { method: 'POST', cache: false }
     });
 }])
 
 
+.factory('homeAuthz', ['Roles', function(Roles) {
+    return function(current) {
+        return function(functionName) {
+            if (!current.$resolved)
+                return false;
+            switch(functionName) {
+                case 'post_message':
+                    return Roles.hasPermission(current.user.role, 'org_admin');
+                case 'post_to_all':
+                    return Roles.hasPermission(current.user.role, 'admin');
+            }
+            return false;
+        };
+    };
+}])
+
+
 .controller('HomeCtrl', ['$scope', 'Activity', 'Notifications', '$q', 'format',
-        function($scope, Activity, Notifications, $q, format) {
+            'Current', 'homeAuthz',
+        function($scope, Activity, Notifications, $q, format, Current,
+            homeAuthz) {
 
     $scope.activity = null;
+    $scope.current = Current;
 
     Activity.get().$promise.then(
         function success(activity) {
@@ -36,6 +57,9 @@ angular.module('wsaa.home', ['ngResource'])
 
             var verb = action.verbs[i];
             switch (verb) {
+            case 'broadcast':
+                verb = 'broadcast';
+                break;
             case 'create':
                 verb = 'created';
                 break;
@@ -100,6 +124,9 @@ angular.module('wsaa.home', ['ngResource'])
         for (var i = 0; i < action.verbs.length; i++) {
             var verb = action.verbs[i];
             switch (verb) {
+            case 'broadcast':
+                icons.push('fa-envelope');
+                break;
             case 'create':
                 icons.push('fa-plus');
                 break;
@@ -122,6 +149,18 @@ angular.module('wsaa.home', ['ngResource'])
             }
         }
         return icons;
+    };
+
+    $scope.checkRole = homeAuthz(Current);
+
+    $scope.post = {
+        to: $scope.checkRole('post_to_all') ? 'all' : 'org',
+        sticky: true,
+        message: ''
+    };
+
+    $scope.postMessage = function() {
+        Activity.create($scope.post);
     };
 
 }])

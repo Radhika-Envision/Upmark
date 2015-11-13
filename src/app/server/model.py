@@ -895,8 +895,10 @@ class Activity(Base):
     # Verb is the action being performed by the subject on the object.
     verbs = Column(
         ARRAY(Enum(
-            'create', 'update', 'state', 'delete', 'relation',
-            'reorder_children', native_enum=False)),
+            'broadcast',
+            'create', 'update', 'state', 'delete',
+            'relation', 'reorder_children',
+            native_enum=False)),
         nullable=False)
     # A snapshot of some defining feature of the object at the time the event
     # happened (e.g. title of a measure before it was deleted).
@@ -906,11 +908,10 @@ class Activity(Base):
     # Object reference (the entity being acted upon). The ob_type and ob_id_*
     # columns are for looking up the target object (e.g. to create a hyperlink).
     ob_type = Column(Enum(
-        'none',
         'organisation', 'user',
         'program', 'survey', 'qnode', 'measure',
         'submission',
-        native_enum=False), nullable=False)
+        native_enum=False))
     ob_ids = Column(ARRAY(GUID), nullable=False)
     # The ob_refs column contains all relevant IDs including e.g. parent
     # categories, and is used for filtering.
@@ -930,13 +931,16 @@ class Activity(Base):
         Index('activity_sticky_index', sticky,
               postgresql_where=(sticky == True)),
         CheckConstraint(
-            'array_length(verbs, 1) > 0',
+            "(verbs @> ARRAY['broadcast']::varchar[] or ob_type != null)",
+            name='activity_broadcast_constraint'),
+        CheckConstraint(
+            'ob_type = null or array_length(verbs, 1) > 0',
             name='activity_verbs_length_constraint'),
         CheckConstraint(
-            'array_length(ob_ids, 1) > 0',
+            'ob_type = null or array_length(ob_ids, 1) > 0',
             name='activity_ob_ids_length_constraint'),
         CheckConstraint(
-            'array_length(ob_refs, 1) > 0',
+            'ob_type = null or array_length(ob_refs, 1) > 0',
             name='activity_ob_refs_length_constraint'),
     )
 
@@ -970,7 +974,7 @@ class Subscription(Base):
             user_id, ob_refs,
             name='subscription_user_ob_refs_unique_constraint'),
         CheckConstraint(
-            'array_length(ob_refs, 1) > 0',
+            'ob_type = null or array_length(ob_refs, 1) > 0',
             name='subscription_ob_refs_length_constraint'),
     )
 

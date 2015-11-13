@@ -26,28 +26,31 @@ def upgrade():
         sa.Column('subject_id', guid.GUID(), nullable=False),
         sa.Column(
             'verbs', postgresql.ARRAY(sa.Enum(
-                'create', 'update', 'state', 'delete', 'relation',
-                'reorder_children', native_enum=False)),
+                'boradcast',
+                'create', 'update', 'state', 'delete',
+                'relation', 'reorder_children',
+                native_enum=False)),
             nullable=False),
         sa.Column('object_desc', sa.Text(), nullable=True),
         sa.Column('sticky', sa.Boolean(), nullable=False),
         sa.Column(
             'ob_type', sa.Enum(
-                'none',
                 'organisation', 'user',
                 'program', 'survey', 'qnode', 'measure',
-                'submission', native_enum=False),
-            nullable=False),
+                'submission', native_enum=False)),
         sa.Column('ob_ids', postgresql.ARRAY(guid.GUID()), nullable=False),
         sa.Column('ob_refs', postgresql.ARRAY(guid.GUID()), nullable=False),
         sa.CheckConstraint(
-            'array_length(verbs, 1) > 0',
+            "(verbs @> ARRAY['broadcast']::varchar[] or ob_type != null)",
+            name='activity_broadcast_constraint'),
+        sa.CheckConstraint(
+            'ob_type = null or array_length(verbs, 1) > 0',
             name='activity_verbs_length_constraint'),
         sa.CheckConstraint(
-            'array_length(ob_ids, 1) > 0',
+            'ob_type = null or array_length(ob_ids, 1) > 0',
             name='activity_ob_ids_length_constraint'),
         sa.CheckConstraint(
-            'array_length(ob_refs, 1) > 0',
+            'ob_type = null or array_length(ob_refs, 1) > 0',
             name='activity_ob_refs_length_constraint'),
         sa.ForeignKeyConstraint(
             ['subject_id'],
@@ -75,16 +78,13 @@ def upgrade():
         sa.Column('user_id', guid.GUID(), nullable=False),
         sa.Column('subscribed', sa.Boolean(), nullable=False),
         sa.Column(
-            'ob_type',
-            sa.Enum(
-                'none',
+            'ob_type', sa.Enum(
                 'organisation', 'user',
                 'program', 'survey', 'qnode', 'measure',
-                'submission', native_enum=False),
-            nullable=False),
+                'submission', native_enum=False)),
         sa.Column('ob_refs', postgresql.ARRAY(guid.GUID()), nullable=False),
         sa.CheckConstraint(
-            'array_length(ob_refs, 1) > 0',
+            'ob_type = null or array_length(ob_refs, 1) > 0',
             name='subscription_ob_refs_length_constraint'),
         sa.ForeignKeyConstraint(
             ['user_id'],
