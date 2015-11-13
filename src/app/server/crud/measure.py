@@ -28,39 +28,42 @@ class MeasureHandler(
         measure_id = args[0]
 
         if measure_id == '':
-            qnode_id = self.get_argument('qnodeId', '')
-            log.info("measure: %s, %s", measure_id, qnode_id)
+            qnode_id = self.get_argument('parentId', '')
+            if qnode_id != '':
+                with model.session_scope() as session:
+                    qnode = session.query(model.QuestionNode)\
+                        .get((qnode_id, self.survey_id))
 
-            with model.session_scope() as session:
-                qnode = session.query(model.QuestionNode)\
-                    .get((qnode_id, self.survey_id))
+                    if qnode is None:
+                        raise ValueError("No such object")
 
-                if qnode is None:
-                    raise ValueError("No such object")
-                hierarchy_id = qnode.hierarchy.id
+                    hierarchy_id = qnode.hierarchy.id
+                    super(MeasureHandler, self).check_purchased(self.survey_id,
+                        hierarchy_id)
 
-            super(MeasureHandler, self).check_purchased(self.survey_id,
-                hierarchy_id)
-
-            self.query()
         else:
             qnode_id = self.get_argument('parentId', '')
+            if qnode_id != '':
+                with model.session_scope() as session:
+                    qnodeMeasure = session.query(model.QnodeMeasure)\
+                        .get((self.survey_id, qnode_id, measure_id))
 
-            with model.session_scope() as session:
-                qnodeMeasure = session.query(model.QnodeMeasure)\
-                    .get((self.survey_id, qnode_id, measure_id))
-
-                if qnodeMeasure is None:
-                    raise ValueError("No such object")
-                hierarchy_id = qnodeMeasure.qnode.hierarchy.id
-                super(MeasureHandler, self).check_purchased(self.survey_id,
-                    hierarchy_id)
-                yield
+                    if qnodeMeasure is None:
+                        raise ValueError("No such object")
+                        
+                    hierarchy_id = qnodeMeasure.qnode.hierarchy.id
+                    super(MeasureHandler, self).check_purchased(self.survey_id,
+                        hierarchy_id)
+        yield
 
 
     @tornado.web.authenticated
     @check_purchased
     def get(self, measure_id):
+        if measure_id == '':
+            self.query()
+            return
+
         '''Get a single measure.'''
         parent_id = self.get_argument('parentId', '')
 

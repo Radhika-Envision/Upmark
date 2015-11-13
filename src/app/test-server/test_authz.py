@@ -89,17 +89,24 @@ class ExporterAuthzTest(base.AqHttpTestBase):
             self.survey_id = str(survey.id)
             self.organisation_id = str(organisation.id)
             self.hierarchy_id = str(hierarchy.id)        
+            log.info("survey_id: %s", self.survey_id)
+            log.info("organisation_id: %s", self.organisation_id)
+            log.info("hierarchy_id: %s", self.hierarchy_id)
+
+        with base.mock_user('admin'):
+            self.purchase_survey()
+            self.add_assessment()
+
 
     def test_structure_exporter(self):
-        with base.mock_user('author'):
-            self.fetch("/export/survey/%s/hierarchy/%s.xlsx" % 
+        with base.mock_user('admin'):
+            log.info("/export/survey/%s/hierarchy/%s.xlsx", 
+                self.survey_id, self.hierarchy_id)
+            self.fetch("/export/survey/%s/hierarchy/%s.xlsx" %
                 (self.survey_id, self.hierarchy_id),
                 method='GET', expected=200, encoding=None)
 
     def test_assessment_exporter(self):
-        with base.mock_user('admin'):
-            self.purchase_survey()
-            self.add_assessment()
 
         with model.session_scope() as session:
             assessment = session.query(model.Assessment).filter(
@@ -108,19 +115,16 @@ class ExporterAuthzTest(base.AqHttpTestBase):
                             model.Assessment.hierarchy_id==self.hierarchy_id).one()
             assessment_id = assessment.id
 
-        log.info("test_assessment_exporter1")
         with base.mock_user('author'):
             self.fetch(
                 "/export/assessment/%s.xlsx" % assessment_id,
                 method='GET', expected=403, decode=False, encoding=None)
 
-        log.info("test_assessment_exporter2")
         with base.mock_user('consultant'):
             self.fetch(
                 "/export/assessment/%s.xlsx" % assessment_id,
                 method='GET', expected=200, decode=False, encoding=None)
 
-        log.info("test_assessment_exporter3")
         with base.mock_user('clerk'):
             self.fetch(
                 "/export/assessment/%s.xlsx" % assessment_id,

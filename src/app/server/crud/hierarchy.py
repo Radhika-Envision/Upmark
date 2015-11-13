@@ -26,17 +26,20 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
     def check_purchased(self, *args, **kwargs):
         hierarchy_id = args[0]
 
-        if hierarchy_id == '':
-            self.query()
-        else:
+        if hierarchy_id != '':
             super(HierarchyHandler, self).check_purchased(self.survey_id,
                 hierarchy_id)
-            yield
+        yield
 
 
     @tornado.web.authenticated
     @check_purchased
     def get(self, hierarchy_id):
+        
+        if hierarchy_id == '':
+            self.query()
+            return
+
         with model.session_scope() as session:
             try:
                 hierarchy = session.query(model.Hierarchy)\

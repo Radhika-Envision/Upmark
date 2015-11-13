@@ -1,3 +1,4 @@
+import logging
 import json
 import os
 import unittest
@@ -14,6 +15,9 @@ from utils import denormalise
 
 
 app.parse_options()
+
+
+log = logging.getLogger('app.test_model')
 
 
 def get_secure_cookie(user_email=None, super_email=None):
@@ -279,13 +283,13 @@ class AqHttpTestBase(AqModelTestBase, AsyncHTTPTestCase):
         if expected is not None:
             if encoding:
                 body = response.body and response.body.decode(encoding) or ''
+                self.assertEqual(
+                    expected, response.code,
+                    msg="{} failed: {}\n\n{}\n(body may be truncated)".format(
+                        path, response.reason, body[:100]))
             else:
-                body = response.body or ''
+                body = response.body
 
-            self.assertEqual(
-                expected, response.code,
-                msg="{} failed: {}\n\n{}\n(body may be truncated)".format(
-                    path, response.reason, body[:100]))
         if decode:
             return denormalise(json_decode(response.body))
         else:

@@ -25,28 +25,9 @@ class QuestionNodeHandler(
 
     @Aspect
     def check_purchased(self, *args, **kwargs):
-        log.info("self: %s", self.__class__.__name__)
         qnode_id = args[0]
 
-        if qnode_id == '':
-            hierarchy_id = self.get_argument('hierarchyId', None)
-            parent_id = self.get_argument('parentId', None)
-
-            if hierarchy_id:
-                super(QuestionNodeHandler, self).check_purchased(self.survey_id,
-                    hierarchy_id)
-            else:
-                with model.session_scope() as session:
-                    qnode = session.query(model.QuestionNode)\
-                        .get((parent_id, self.survey_id))
-
-                    if qnode is None:
-                        raise ValueError("No such object")
-
-                    super(QuestionNodeHandler, self).check_purchased(self.survey_id,
-                        qnode.hierarchy.id)
-            self.query()
-        else:
+        if qnode_id != '':
             with model.session_scope() as session:
                 qnode = session.query(model.QuestionNode)\
                     .get((qnode_id, self.survey_id))
@@ -56,12 +37,16 @@ class QuestionNodeHandler(
 
                 super(QuestionNodeHandler, self).check_purchased(self.survey_id,
                     qnode.hierarchy.id)
-                yield
+        yield
 
 
     @tornado.web.authenticated
     @check_purchased
     def get(self, qnode_id):
+        if qnode_id == '':
+            self.query()
+            return
+
         with model.session_scope() as session:
             try:
                 qnode = session.query(model.QuestionNode)\

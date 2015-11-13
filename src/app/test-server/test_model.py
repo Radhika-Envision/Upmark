@@ -224,6 +224,16 @@ class SurveyTest(base.AqHttpTestBase):
                 .filter_by(title='Baz Measure')
                 .one())
             mid3 = str(m3.id)
+            user = (session.query(model.AppUser)
+                    .filter_by(email='author')
+                    .one())
+            self.organisation_id = str(user.organisation.id)
+            survey_id = survey.id
+            hierarchy_id = h.id
+
+        with base.mock_user('admin'):
+            # need to purchase survey
+            self.purchase_survey(hierarchy_id, survey_id)
 
         with base.mock_user('author'):
             q_son = self.fetch(
@@ -289,6 +299,7 @@ class SurveyTest(base.AqHttpTestBase):
             self.assertEqual(len(survey_sons), 1)
             original_survey_id = survey_sons[0]['id']
 
+        with base.mock_user('author'):
             survey_son = self.fetch(
                 "/survey/%s.json" % original_survey_id, method='GET',
                 expected=200, decode=True)
@@ -308,6 +319,7 @@ class SurveyTest(base.AqHttpTestBase):
                     "/hierarchy.json?surveyId=%s" % original_survey_id,
                     method='GET',
                     expected=200, decode=True)
+
                 new_hierarchy_sons = self.fetch(
                     "/hierarchy.json?surveyId=%s" % new_survey_id, method='GET',
                     expected=200, decode=True)
@@ -318,20 +330,26 @@ class SurveyTest(base.AqHttpTestBase):
                     check_qnodes(h1['id'], '')
 
             def check_qnodes(hierarchy_id, parent_id):
-                # Check duplicated qnodes
-                url = "/qnode.json?surveyId=%s&hierarchyId=%s&parentId=%s"
-                original_qnode_sons = self.fetch(
-                    url % (original_survey_id, hierarchy_id, parent_id),
-                    method='GET', expected=200, decode=True)
-                new_qnode_sons = self.fetch(
-                    url % (new_survey_id, hierarchy_id, parent_id),
-                    method='GET', expected=200, decode=True)
+                with base.mock_user('admin'):
+                    self.purchase_survey(hierarchy_id, original_survey_id)
+                    self.purchase_survey(hierarchy_id, new_survey_id)
 
-                for q1, q2 in zip(original_qnode_sons, new_qnode_sons):
-                    self.assertEqual(q1['id'], q2['id'])
-                    self.assertEqual(q1['title'], q2['title'])
-                    check_qnodes(hierarchy_id, q1['id'])
-                    check_measures(q1['id'])
+                with base.mock_user('author'):
+                    # Check duplicated qnodes
+                    url = "/qnode.json?surveyId=%s&hierarchyId=%s&parentId=%s"
+                    original_qnode_sons = self.fetch(
+                        url % (original_survey_id, hierarchy_id, parent_id),
+                        method='GET', expected=200, decode=True)
+                    new_qnode_sons = self.fetch(
+                        url % (new_survey_id, hierarchy_id, parent_id),
+                        method='GET', expected=200, decode=True)
+
+                    for q1, q2 in zip(original_qnode_sons, new_qnode_sons):
+                        log.info("q1: %s, q2: %s", q1, q2)
+                        self.assertEqual(q1['id'], q2['id'])
+                        self.assertEqual(q1['title'], q2['title'])
+                        check_qnodes(hierarchy_id, q1['id'])
+                        check_measures(q1['id'])
 
             def check_measures(parent_id):
                 # Check duplicated measures
@@ -455,6 +473,18 @@ class SurveyTest(base.AqHttpTestBase):
             self.assertEqual(len(sa.hierarchies), len(sb.hierarchies))
             for a, b in zip(sa.hierarchies, sb.hierarchies):
                 visit_hierarchy(a, b)
+
+    def purchase_survey(self, hierarchy_id, survey_id):
+        with model.session_scope() as session:
+            user = (session.query(model.AppUser)
+                .filter_by(email='admin')
+                .one())
+            organisation_id = str(user.organisation.id)
+
+            self.fetch(
+                "/organisation/%s/hierarchy/%s.json?surveyId=%s" %
+                (organisation_id, hierarchy_id, survey_id),
+                method='PUT', body='', expected=200)
 
 
 class ReadonlySessionTest(base.AqModelTestBase):
