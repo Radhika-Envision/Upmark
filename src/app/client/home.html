@@ -2,16 +2,58 @@
 <div class="container">
     <div class="toolbar">
         <button class="btn btn-default btn-round" title="Print"
-                onclick="print()">
+                onclick="print()"
+                ng-if="!showPost">
             <i class="fa fa-print"></i>
+        </button>
+        <button class="btn btn-default btn-round"
+                title="{{showPost ?
+                           'Cancel post' :
+                           'Post a new message'}}"
+                ng-click="togglePost()"
+                ng-if="checkRole('post_message')">
+            <i class="fa fa-envelope-o"
+                ng-if="!showPost"></i>
+            <i class="fa fa-times"
+                ng-if="showPost"></i>
+        </button>
+        <button class="btn btn-default btn-round"
+                title="Submit"
+                ng-click="postMessage()"
+                ng-if="showPost">
+            <i class="fa fa-check"></i>
         </button>
     </div>
     <h2>Timeline</h2>
 </div>
 </div>
 
-<div class="container">
-    <ul class="list-results fa-ul fa-ul-big">
+<div class="container" ng-if="!showPost">
+    <div class="text-center">
+        <div class="btn-group">
+            <span class="btn-group-addon">
+                {{activityParams.period / secondsInADay}}
+                days to {{activity.until * 1000 | date:'mediumDate'}}
+            </span>
+            <button class="btn btn-default hidden-print"
+                    title="Previous"
+                    ng-click="previousActivities()">
+                <i class="fa fa-caret-left"></i>
+            </button>
+            <button class="btn btn-default hidden-print"
+                    title="Now"
+                    ng-click="goToNow()">
+                <i class="fa fa-home"></i>
+            </button>
+            <button class="btn btn-default hidden-print"
+                    title="Next"
+                    ng-click="nextActivities()">
+                <i class="fa fa-caret-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <ul class="list-results fa-ul fa-ul-big spaced">
         <li ng-repeat="action in activity.actions">
             <i class="fa fa-li fa-border fa-border-fill"
                     ng-class="icons(action)[0]">
@@ -53,7 +95,7 @@
             </a>
             <div ng-if="action.obType == null">
                 {{action.subject.name}}<span class="text-muted"> said:</span>
-                {{action.objectDesc}}
+                <p>{{action.objectDesc}}</p>
                 <p class="text-muted">
                     {{action.created * 1000 | timeAgo:'medium'}}
                     <i class="fa fa-thumb-tack" ng-if="action.sticky"
@@ -65,50 +107,17 @@
             <i class="fa fa-li fa-border fa-border-fill fa-moon-o"></i>
             <a href="#/surveys" title="Browse programs">
                 There are no events for this time period.
-                <p>Perhaps you'd like to browse the programs?</p>
+                <p class="hidden-print">
+                    Perhaps you'd like to browse the programs?
+                </p>
             </a>
         </li>
     </ul>
+</div>
 
-    <div class="text-center">
-        <div class="btn-group">
-            <span class="btn-group-addon">
-                {{activityParams.period / secondsInADay}}
-                days ending {{activity.until * 1000 | date:'mediumDate'}}
-            </span>
-            <button class="btn btn-default"
-                    title="Previous"
-                    ng-click="previousActivities()">
-                <i class="fa fa-caret-left"></i>
-            </button>
-            <button class="btn btn-default"
-                    title="Next"
-                    ng-click="nextActivities()">
-                <i class="fa fa-caret-right"></i>
-            </button>
-        </div>
-        <button class="btn btn-default"
-                title="Refresh timeline"
-                ng-click="updateActivities()">
-            <i class="fa fa-refresh"></i>
-        </button>
-        <button class="btn btn-default"
-                title="{{showPost ?
-                           'Cancel post' :
-                           'Post a new message' :"
-                ng-click="togglePost()"
-                ng-if="checkRole('post_message')">
-            <i class="fa fa-envelope-o">
-                <i class="fa fa-plus fa-badge"
-                    ng-if="!showPost"></i>
-                <i class="fa fa-times fa-badge text-danger"
-                    ng-if="showPost"></i>
-            </i>
-        </button>
-    </div>
 
-    <form novalidate name="form" id="post" ng-if="showPost"
-            class="hidden-print">
+<div class="container" ng-if="showPost">
+    <form novalidate name="form" id="post" class="hidden-print">
         <h3>Broadcast Message</h3>
         <div class="form-group">
             <label for="message" class="sr-only">Message</label>
@@ -116,7 +125,7 @@
                 id="message" name="message"
                 ng-model="post.message"></textarea>
         </div>
-        <div class="form-inline text-center">
+        <div class="text-center">
             <div class="form-group" ng-if="checkRole('post_to_all')">
                 <div class="btn-group">
                     <span class="btn-group-addon">
@@ -135,8 +144,6 @@
                         My Organisation
                     </button>
                 </div>
-            </div>
-            <div class="form-group">
                 <button class="btn btn-default"
                         ng-class="{'active': post.sticky}"
                         ng-click="post.sticky = !post.sticky"
@@ -144,31 +151,26 @@
                     <i class="fa fa-thumb-tack"></i>
                     Pin
                 </button>
-                <button class="btn btn-default"
-                        title="Send this message"
-                        ng-click="postMessage()">
-                    <i class="fa fa-envelope-o"></i>
-                    Post
-                </button>
             </div>
         </div>
-        <docs ng-if="checkRole('post_message')">
-            <i class="fa-li fa fa-envelope-o fa-border"></i>
-            You can post messages to the timeline.
-            <span ng-if="checkRole('post_to_all')">
-                You can choose to make your message visible to all users, or only
-                users in your organisation.
-            </span>
-            <span ng-if="!checkRole('post_to_all')">
-                Your post will only be visible to members of your organisation.
-            </span>
-            <p>
-                Pinned messages <i class="fa fa-thumb-tack"></i> will stay at the
-                top of the timeline until you unpin them. An unpinned message will
-                be moved to the time at which it was created.
-                Generally it is preferred to unpin messages instead of deleting
-                them.
-            </p>
-        </docs>
     </form>
+
+    <docs>
+        <i class="fa-li fa fa-envelope-o fa-border"></i>
+        You can post messages to the timeline.
+        <span ng-if="checkRole('post_to_all')">
+            You can choose to make your message visible to all users, or only
+            users in your organisation.
+        </span>
+        <span ng-if="!checkRole('post_to_all')">
+            Your post will only be visible to members of your organisation.
+        </span>
+        <p>
+            Pinned messages <i class="fa fa-thumb-tack"></i> will stay at the
+            top of the timeline until you unpin them. An unpinned message will
+            be moved to the time at which it was created.
+            Generally it is preferred to unpin messages instead of deleting
+            them.
+        </p>
+    </docs>
 </div>

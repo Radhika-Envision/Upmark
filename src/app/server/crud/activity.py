@@ -11,6 +11,9 @@ import logging
 from utils import ToSon, truthy, updater
 
 
+log = logging.getLogger('app.crud.activity')
+
+
 class ActivityHandler(handlers.BaseHandler):
 
     TO_SON = ToSon(include=[
@@ -54,13 +57,24 @@ class ActivityHandler(handlers.BaseHandler):
 
         from_date = until_date - period
 
+        # Only show sticky elements when viewing current time period
+        offset = abs((until_date - datetime.datetime.utcnow()).total_seconds())
+        include_sticky = offset < period.total_seconds() / 2
+
         with model.session_scope() as session:
-            query = (session.query(model.Activity)
-                .filter(((model.Activity.created > from_date) &
-                         (model.Activity.created <= until_date)) |
-                        (model.Activity.sticky == True))
-                .order_by(model.Activity.sticky.desc(),
-                          model.Activity.created.desc()))
+            query = session.query(model.Activity)
+            date_range = ((model.Activity.created > from_date) &
+                          (model.Activity.created <= until_date))
+            if include_sticky:
+                query = query.filter(
+                    date_range | (model.Activity.sticky == True))
+            else:
+                query = query.filter(
+                    date_range & (model.Activity.sticky == False))
+
+            query = query.order_by(
+                model.Activity.sticky.desc(),
+                model.Activity.created.desc())
 
             son = {
                 'from': from_date.timestamp(),
@@ -76,6 +90,9 @@ class ActivityHandler(handlers.BaseHandler):
     def post(self, activity_id):
         if activity_id != '':
             raise handlers.ModelError("Can't specify ID for new activity")
+
+        if len(self.request_son['message']) < 3:
+            raise handlers.ModelError("Message is too short")
 
         with model.session_scope() as session:
             activity = model.Activity(

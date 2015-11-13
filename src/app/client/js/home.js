@@ -45,6 +45,9 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
         period: 7 * $scope.secondsInADay,
         until: Date.now() / 1000
     };
+    $scope.goToNow = function() {
+        $scope.activityParams.until = Date.now() / 1000;
+    };
     $scope.previousActivities = function() {
         $scope.activityParams.until -= $scope.activityParams.period;
     };
@@ -222,7 +225,7 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
     $scope.postMessage = function() {
         Activity.create($scope.post).$promise.then(
             function success(action) {
-                $scope.updateActivities();
+                $scope.goToNow();
                 $scope.showPost = false;
                 $scope.resetPost();
                 Notifications.set('activity', 'success', "Posted", 5000);
