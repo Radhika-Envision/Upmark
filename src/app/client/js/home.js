@@ -40,8 +40,24 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
     $scope.activity = null;
     $scope.current = Current;
 
+    $scope.secondsInADay = 24 * 60 * 60;
+    $scope.activityParams = {
+        period: 7 * $scope.secondsInADay,
+        until: Date.now() / 1000
+    };
+    $scope.previousActivities = function() {
+        $scope.activityParams.until -= $scope.activityParams.period;
+    };
+    $scope.nextActivities = function() {
+        $scope.activityParams.until += $scope.activityParams.period;
+    };
+
+    $scope.$watch('activityParams', function(vals) {
+        $scope.updateActivities();
+    }, true);
+
     $scope.updateActivities = function() {
-        Activity.get().$promise.then(
+        Activity.get($scope.activityParams).$promise.then(
             function success(activity) {
                 $scope.activity = activity;
             },
@@ -52,7 +68,6 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
             }
         );
     };
-    $scope.updateActivities();
 
     $scope.verbs = function(action) {
         var expr = "";

@@ -73,7 +73,8 @@
     <div class="text-center">
         <div class="btn-group">
             <span class="btn-group-addon">
-                7 days ending {{activity.until * 1000 | date:'mediumDate'}}
+                {{activityParams.period / secondsInADay}}
+                days ending {{activity.until * 1000 | date:'mediumDate'}}
             </span>
             <button class="btn btn-default"
                     title="Previous"

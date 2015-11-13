@@ -39,19 +39,20 @@ class ActivityHandler(handlers.BaseHandler):
     def query(self):
         until_date = self.get_argument('until', '')
         if until_date != '':
-            until_date = datetime.datetime.fromtimestamp(until_date)
+            until_date = datetime.datetime.fromtimestamp(float(until_date))
         else:
             until_date = datetime.datetime.utcnow()
 
-        from_date = self.get_argument('from', '')
-        if from_date != '':
-            until_date = datetime.datetime.fromtimestamp(until_date)
+        period = self.get_argument('period', '')
+        if period != '':
+            period = datetime.timedelta(seconds=float(period))
         else:
-            from_date = until_date - datetime.timedelta(days=7)
+            period = datetime.timedelta(days=7)
 
-        if (until_date - from_date).days > 31:
-            raise handlers.ModelError(
-                "Time range is too large")
+        if period.days > 31:
+            raise handlers.ModelError("Time period is too large")
+
+        from_date = until_date - period
 
         with model.session_scope() as session:
             query = (session.query(model.Activity)
