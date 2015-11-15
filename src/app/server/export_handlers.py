@@ -95,7 +95,7 @@ class ExportAssessmentHandler(handlers.BaseHandler):
         with tempfile.TemporaryDirectory() as tmpdirname:
             output_path = os.path.join(tmpdirname, output_file)
             yield self.background_task(
-                output_path, survey_id, hierarchy_id, assessment_id)
+                output_path, survey_id, hierarchy_id, assessment_id, self.current_user.role)
             self.set_header('Content-Type', 'application/octet-stream')
             self.set_header('Content-Disposition', 'attachment; filename='
                             + output_file)
@@ -111,10 +111,10 @@ class ExportAssessmentHandler(handlers.BaseHandler):
 
     @run_on_executor
     def background_task(self, path, survey_id, hierarchy_id,
-                        assessment_id):
+                        assessment_id, user_role):
         e = Exporter()
         survey_id = e.process_structure_file(
-            path, survey_id, hierarchy_id, assessment_id)
+            path, survey_id, hierarchy_id, assessment_id, user_role)
 
 
 class ExportResponseHandler(handlers.BaseHandler):
@@ -175,7 +175,7 @@ class Exporter():
         return num
 
     def process_structure_file(self, file_name, survey_id, hierarchy_id,
-                               assessment_id=''):
+                               assessment_id='', user_role=''):
         """
         Open and write an Excel file
         """
@@ -257,13 +257,13 @@ class Exporter():
             self.write_qnode_to_worksheet(session, workbook, worksheet,
                                           qnode_list, response_qnode_list, 
                                           measure_list, response_list,
-                                          'None', prefix, 0)
+                                          'None', prefix, 0, user_role)
 
         workbook.close()
 
     def write_qnode_to_worksheet(self, session, workbook, worksheet,
                                  qnode_list, response_qnode_list, measure_list, response_list,
-                                 parent_id, prefix, depth):
+                                 parent_id, prefix, depth, user_role):
 
         filtered = [node for node in qnode_list
                     if node["parent_id"] == parent_id]
@@ -312,8 +312,14 @@ class Exporter():
             numbering = prefix + str(qnode["seq"] + 1) + ". "
             worksheet.merge_range("A{0}:B{0}".format(self.line + 1),
                                   numbering + qnode["title"], format)
-            worksheet.write(self.line, 2, qnode["total_weight"], format)
-            worksheet.write(self.line, 3, percent, format_percent)
+            # this column should not be displayed for user 'clerk'
+            if user_role == 'clerk':
+                worksheet.write(self.line, 2, '', format)
+                worksheet.write(self.line, 3, '', format_percent)
+            else:
+                worksheet.write(self.line, 2, qnode["total_weight"], format)
+                worksheet.write(self.line, 3, percent, format_percent)
+
             self.line = self.line + 1
             worksheet.write(self.line, 0, '', format2)
             worksheet.write(self.line, 1, qnode["description"], format2)
@@ -323,13 +329,15 @@ class Exporter():
             self.write_qnode_to_worksheet(session, workbook, worksheet,
                                           qnode_list, response_qnode_list, 
                                           measure_list, response_list,
-                                          qnode["id"], numbering, depth + 1)
+                                          qnode["id"], numbering, depth + 1,
+                                          user_role)
             self.write_measure_to_worksheet(session, workbook, worksheet,
                                             measure_list, response_list, 
-                                            qnode["id"], numbering)
+                                            qnode["id"], numbering, user_role)
 
     def write_measure_to_worksheet(self, session, workbook, worksheet,
-                                   measure_list, response_list, qnode_id, prefix):
+                                   measure_list, response_list, qnode_id,
+                                   prefix, user_role):
 
         filtered = [node for node in measure_list
                     if node["qnode_id"] == qnode_id]
@@ -415,8 +423,14 @@ class Exporter():
             worksheet.write(self.line, 0, '', format_header)
             worksheet.write(
                 self.line, 1, numbering + qnode_measure["title"], format_bold_header)
-            worksheet.write(self.line, 2, qnode_measure["weight"], format)
-            worksheet.write(self.line, 3, percentage, format_percent)
+            # this column should not be displayed for user 'clerk'
+            if user_role == 'clerk':
+                worksheet.write(self.line, 2, '', format)
+                worksheet.write(self.line, 3, '', format_percent)
+            else:
+                worksheet.write(self.line, 2, qnode_measure["weight"], format)
+                worksheet.write(self.line, 3, percentage, format_percent)
+
             self.line = self.line + 1
             worksheet.write(self.line, 0, "intent", format_header)
             worksheet.write(self.line, 1, qnode_measure["intent"], format)
