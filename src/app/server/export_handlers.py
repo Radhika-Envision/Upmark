@@ -487,6 +487,7 @@ class Exporter():
         model.connect_db(os.environ.get('DATABASE_URL'))
         workbook = xlsxwriter.Workbook(file_name)
         worksheet = workbook.add_worksheet('Response')
+        worksheet_metadata = workbook.add_worksheet('Metadata')
 
         format = workbook.add_format()
         format.set_text_wrap()
@@ -499,7 +500,7 @@ class Exporter():
         format_comment = workbook.add_format()
         format_percent = workbook.add_format()
         format_percent.set_num_format(10)
-
+        format_date = workbook.add_format({'num_format': 'dd/mm/yy hh:mm:ss'})
 
         line = 1
         with model.session_scope() as session:
@@ -511,7 +512,9 @@ class Exporter():
                 assessment.hierarchy.structure and \
                 assessment.hierarchy.structure.get('levels'):
 
-                log.info("assessment: %s", assessment)
+                self.write_metadata(workbook, worksheet_metadata, assessment)
+
+                # log.info("assessment: %s", assessment)
                 levels = assessment.hierarchy.structure["levels"]
                 level_length = len(levels)
                 worksheet.set_column(0, level_length, 50)
@@ -520,15 +523,16 @@ class Exporter():
                     [len(response.response_parts) 
                         for response in assessment.ordered_responses])
                 worksheet.set_column(level_length + 1, 
-                    level_length + max_len_of_response, 12)
-                worksheet.set_column(level_length + max_len_of_response + 3,
-                    level_length + max_len_of_response + 3, 200)
+                    level_length + max_len_of_response + 8, 15)
+                worksheet.set_column(level_length + max_len_of_response + 9,
+                    level_length + max_len_of_response + 9, 200)
 
                 # Header from heirarchy levels
                 self.write_response_header(
                     workbook, worksheet, levels, max_len_of_response)
 
                 for response in assessment.ordered_responses:
+                    # log.info("response: %s", response.measure.id)
                     qnode = response.measure.get_parent(
                         assessment.hierarchy_id)
                     self.write_qnode(
@@ -545,15 +549,70 @@ class Exporter():
                     score = 0
                     if response.measure.weight != 0:
                         score = response.score / response.measure.weight
-                    worksheet.write(line, level_length + max_len_of_response + 1, 
+
+                    final_response = session.query(model.Response)\
+                                        .filter_by(assessment_id=assessment.id,
+                                                   measure_id=response.measure.id,
+                                                   approval='final').first()
+                    if final_response:
+                        worksheet.write(line, level_length + max_len_of_response + 1,
+                                final_response.modified, format_date)
+                        worksheet.write(line, level_length + max_len_of_response + 2,
+                                final_response.user.email, format)
+
+                    reviewed_response = session.query(model.Response)\
+                                        .filter_by(assessment_id=assessment.id,
+                                                   measure_id=response.measure.id,
+                                                   approval='reviewed').first()
+                    if reviewed_response:
+                        worksheet.write(line, level_length + max_len_of_response + 3,
+                                reviewed_response.modified, format_date)
+                        worksheet.write(line, level_length + max_len_of_response + 4,
+                                reviewed_response.user.email, format)
+
+                    approved_response = session.query(model.Response)\
+                                        .filter_by(assessment_id=assessment.id,
+                                                   measure_id=response.measure.id,
+                                                   approval='approved').first()
+                    if approved_response:
+                        worksheet.write(line, level_length + max_len_of_response + 5,
+                                approved_response.modified, format_date)
+                        worksheet.write(line, level_length + max_len_of_response + 6,
+                                approved_response.user.email, format)
+
+                    worksheet.write(line, level_length + max_len_of_response + 7,
                             score, format_percent)
-                    worksheet.write(line, level_length + max_len_of_response + 2, 
+                    worksheet.write(line, level_length + max_len_of_response + 8,
                             qnode.total_weight, format_no_wrap)
-                    worksheet.write(line, level_length + max_len_of_response + 3, 
+                    worksheet.write(line, level_length + max_len_of_response + 9,
                             response.comment, format_comment)
                     line = line + 1
 
         workbook.close()
+
+    def write_metadata(self, workbook, sheet, assessment):
+        sheet.set_column(0, 1, 40)
+
+        line = 0
+        format = workbook.add_format()
+        format.set_text_wrap()
+        format_header = workbook.add_format()
+        format_header.set_text_wrap()
+        format_header.set_bold()
+        log.info("assessment: %s", assessment.title)
+
+        sheet.write(line, 0, "Program Name", format_header)
+        sheet.write(line, 1, assessment.survey.title, format)
+        line = line + 1
+        sheet.write(line, 0, "Survey Name", format_header)
+        sheet.write(line, 1, assessment.hierarchy.title, format)
+        line = line + 1
+        sheet.write(line, 0, "Organisation", format_header)
+        sheet.write(line, 1, assessment.organisation.name, format)
+        line = line + 1
+        sheet.write(line, 0, "Submission Name", format_header)
+        sheet.write(line, 1, assessment.title, format)
+        line = line + 1
 
     def write_response_header(self, workbook, sheet, levels, max_response):
         format = workbook.add_format()
@@ -566,9 +625,17 @@ class Exporter():
         for index in range(max_response):
             sheet.write(0, len(levels) + index + 1, "Response " + str(index + 1), 
                 format)
-        sheet.write(0, len(levels) + max_response + 1, "Percent", format)
-        sheet.write(0, len(levels) + max_response + 2, "Weight", format)
-        sheet.write(0, len(levels) + max_response + 3, "Comment", format)
+        sheet.write(0, len(levels) + max_response + 1, "Final Report By", format)
+        sheet.write(0, len(levels) + max_response + 2, "Final Report Date", format)
+        sheet.write(0, len(levels) + max_response + 3, "Review By", format)
+        sheet.write(0, len(levels) + max_response + 4, "Reviewed Date", format)
+        sheet.write(0, len(levels) + max_response + 5, "Approved By", format)
+        sheet.write(0, len(levels) + max_response + 6, "Approved Date", format)
+
+        sheet.write(0, len(levels) + max_response + 7, "Score", format)
+        sheet.write(0, len(levels) + max_response + 8, "Weight", format)
+        sheet.write(0, len(levels) + max_response + 9, "Comment", format)
+        sheet.write(0, len(levels) + max_response + 10, "URL", format)
 
     def write_qnode(self, sheet, qnode, line, format, col):
         if qnode.parent != None:

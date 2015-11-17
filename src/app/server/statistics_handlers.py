@@ -25,7 +25,7 @@ log = logging.getLogger('app.statistics_handler')
 class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
 
     @tornado.web.authenticated
-    def get(self, survey_id):
+    def get(self, survey_id, approval='approved'):
         if self.has_privillege('consultant') or self.has_privillege('authority') :
             pass
         else:
