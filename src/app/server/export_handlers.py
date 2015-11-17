@@ -114,7 +114,8 @@ class ExportAssessmentHandler(handlers.BaseHandler):
                         assessment_id, user_role):
         e = Exporter()
         survey_id = e.process_structure_file(
-            path, survey_id, hierarchy_id, assessment_id, user_role)
+            path, survey_id, hierarchy_id, assessment_id,
+            user_role)
 
 
 class ExportResponseHandler(handlers.BaseHandler):
@@ -160,7 +161,11 @@ class ExportResponseHandler(handlers.BaseHandler):
     def background_task(self, path, survey_id, hierarchy_id,
                         assessment_id):
         e = Exporter()
-        survey_id = e.process_response_file(path, survey_id, assessment_id)
+        base_url = ("%s://%s" % (self.request.protocol,
+                self.request.host,))
+
+        survey_id = e.process_response_file(path, survey_id,
+                                            assessment_id, base_url)
 
 
 class Exporter():
@@ -479,7 +484,7 @@ class Exporter():
 
             self.line = self.line + 1
 
-    def process_response_file(self, file_name, survey_id, assessment_id):
+    def process_response_file(self, file_name, survey_id, assessment_id, base_url):
         """
         Open and write an Excel file
         """
@@ -500,6 +505,11 @@ class Exporter():
         format_percent = workbook.add_format()
         format_percent.set_num_format(10)
         format_date = workbook.add_format({'num_format': 'dd/mm/yy hh:mm:ss'})
+        url_format = workbook.add_format({
+            'font_color': 'blue',
+            'underline':  1
+        })
+
 
         line = 1
         with model.session_scope() as session:
@@ -589,6 +599,10 @@ class Exporter():
                             qnode.total_weight, format_no_wrap)
                     worksheet.write(line, level_length + max_len_of_response + 9,
                             response.comment, format_comment)
+                    url = "{0}/#/measure/{1}?assessment={2}&parent={3}".format(
+                            base_url, response.measure.id, assessment.id, qnode.id)
+                    worksheet.write_url(line, level_length + max_len_of_response + 10,
+                            url, url_format, "Link")
                     line = line + 1
 
         workbook.close()
