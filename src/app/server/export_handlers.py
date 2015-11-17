@@ -466,7 +466,6 @@ class Exporter():
 
             index = 0
             if measure_response:
-                log.debug("measure_response: %s", measure_response[0])
                 for part in measure_response[0]["response_parts"]:
                     worksheet.write(self.line - parts_len + index, 3,
                                     "%d - %s" % (part["index"] + 1, part["note"]),
@@ -513,8 +512,6 @@ class Exporter():
                 assessment.hierarchy.structure.get('levels'):
 
                 self.write_metadata(workbook, worksheet_metadata, assessment)
-
-                # log.info("assessment: %s", assessment)
                 levels = assessment.hierarchy.structure["levels"]
                 level_length = len(levels)
                 worksheet.set_column(0, level_length, 50)
@@ -522,6 +519,11 @@ class Exporter():
                 max_len_of_response = max(
                     [len(response.response_parts) 
                         for response in assessment.ordered_responses])
+                response_types = [part["parts"] for part in assessment.survey._response_types
+                                    if len(part["parts"]) == max_len_of_response][0]
+                response_parts = [part['name'] for part in  response_types]
+                log.info("response_parts: %s", response_parts)
+
                 worksheet.set_column(level_length + 1, 
                     level_length + max_len_of_response + 8, 15)
                 worksheet.set_column(level_length + max_len_of_response + 9,
@@ -529,7 +531,8 @@ class Exporter():
 
                 # Header from heirarchy levels
                 self.write_response_header(
-                    workbook, worksheet, levels, max_len_of_response)
+                    workbook, worksheet, levels, max_len_of_response,
+                    response_parts)
 
                 for response in assessment.ordered_responses:
                     # log.info("response: %s", response.measure.id)
@@ -614,7 +617,8 @@ class Exporter():
         sheet.write(line, 1, assessment.title, format)
         line = line + 1
 
-    def write_response_header(self, workbook, sheet, levels, max_response):
+    def write_response_header(self, workbook, sheet, levels,
+                              max_response, response_parts):
         format = workbook.add_format()
         # format.set_text_wrap()
         format.set_bold()
@@ -622,8 +626,8 @@ class Exporter():
         for level in levels:
             sheet.write(0, levels.index(level), level["title"], format)
         sheet.write(0, len(levels), "Measure", format)
-        for index in range(max_response):
-            sheet.write(0, len(levels) + index + 1, "Response " + str(index + 1), 
+        for index in range(len(response_parts)):
+            sheet.write(0, len(levels) + index + 1, response_parts[index],
                 format)
         sheet.write(0, len(levels) + max_response + 1, "Final Report By", format)
         sheet.write(0, len(levels) + max_response + 2, "Final Report Date", format)
