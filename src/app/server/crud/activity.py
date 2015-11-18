@@ -240,6 +240,9 @@ class Activities:
             action.ob_refs = desc.ob_refs
             action.message = desc.message
             action.created = datetime.datetime.utcnow()
+            vs = set(action.verbs)
+            new_vs = list(action.verbs) + [v for v in verbs if v not in vs]
+            action.verbs = new_vs
         else:
             action = model.Activity(
                 subject_id=subject.id, verbs=verbs, **desc._asdict())
