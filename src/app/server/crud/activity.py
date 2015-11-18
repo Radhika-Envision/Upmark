@@ -215,16 +215,35 @@ class ActivityHandler(handlers.BaseHandler):
 
 
 class Activities:
+    UPDATE_WINDOW = datetime.timedelta(hours=2)
+
     def __init__(self, session):
         self.session = session
 
     def record(self, subject, ob, verbs):
+        '''
+        Record an action for an object. If the object was changed in the last
+        little while, and the most recent change was by the same subject (user),
+        then the last action will be reused and its timestamp will be updated.
+        '''
         if len(verbs) == 0:
             return None;
         desc = ob.action_descriptor
-        action = model.Activity(
-            subject_id=subject.id, verbs=verbs, **desc._asdict())
-        self.session.add(action)
+        from_time = datetime.datetime.utcnow() - Activities.UPDATE_WINDOW
+        action = (self.session.query(model.Activity)
+            .filter(model.Activity.created >= from_time,
+                    model.Activity.ob_ids == desc.ob_ids)
+            .order_by(model.Activity.created.desc())
+            .first())
+
+        if action and str(action.subject_id) == str(subject.id):
+            action.ob_refs = desc.ob_refs
+            action.message = desc.message
+            action.created = datetime.datetime.utcnow()
+        else:
+            action = model.Activity(
+                subject_id=subject.id, verbs=verbs, **desc._asdict())
+            self.session.add(action)
         return action
 
     def subscribe(self, observer, ob):
