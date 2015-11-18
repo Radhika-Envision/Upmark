@@ -166,7 +166,9 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                     act.record(self.current_user, source_survey, ['state'])
 
                 act.record(self.current_user, survey, ['create'])
-                act.subscribe(self.current_user, survey)
+                if not act.has_subscription(self.current_user, survey):
+                    act.subscribe(self.current_user, survey)
+                    self.reason("Subscribed to survey")
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
@@ -282,7 +284,9 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 act = crud.activity.Activities(session)
                 if session.is_modified(survey):
                     act.record(self.current_user, survey, ['update'])
-                act.subscribe(self.current_user, survey)
+                if not act.has_subscription(self.current_user, survey):
+                    act.subscribe(self.current_user, survey)
+                    self.reason("Subscribed to survey")
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such survey")
         except sqlalchemy.exc.IntegrityError as e:
@@ -308,7 +312,9 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 act = crud.activity.Activities(session)
                 if session.is_modified(survey):
                     act.record(self.current_user, survey, ['state'])
-                act.subscribe(self.current_user, survey)
+                if not act.has_subscription(self.current_user, survey):
+                    act.subscribe(self.current_user, survey)
+                    self.reason("Subscribed to survey")
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such survey")
         except sqlalchemy.exc.IntegrityError as e:
