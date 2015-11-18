@@ -1,8 +1,12 @@
 import datetime
+from itertools import product
 
 from tornado.escape import json_encode
 import tornado.web
 import sqlalchemy
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.sql.expression import cast
+from sqlalchemy.types import VARCHAR
 
 import handlers
 import model
@@ -62,24 +66,42 @@ class ActivityHandler(handlers.BaseHandler):
         include_sticky = offset < period.total_seconds() / 2
 
         with model.session_scope() as session:
-            query = session.query(model.Activity)
-            date_range = ((model.Activity.created > from_date) &
-                          (model.Activity.created <= until_date))
-            if include_sticky:
+            def filter_by_subscriptions(query):
+                # Join with the subscription table using the ob_refs field
+                broadcast = cast(['broadcast'], ARRAY(VARCHAR))
+                query = query.outerjoin(
+                    model.Subscription,
+                    model.Activity.ob_refs.contains(model.Subscription.ob_refs))
                 query = query.filter(
-                    date_range | (model.Activity.sticky == True))
-            else:
-                query = query.filter(
-                    date_range & (model.Activity.sticky == False))
+                    ((model.Subscription.id != None) &
+                     (model.Subscription.user_id == self.current_user.id)) |
+                    ((model.Activity.verbs == broadcast) &
+                     (model.Activity.ob_type == None)))
+                return query
 
-            query = query.order_by(
-                model.Activity.sticky.desc(),
-                model.Activity.created.desc())
+            query = (session.query(model.Activity)
+                .filter(model.Activity.created > from_date,
+                        model.Activity.created <= until_date,
+                        model.Activity.sticky == False))
+
+            query = filter_by_subscriptions(query)
+
+            query = query.order_by(model.Activity.created.desc())
+            non_sticky = query.all()
+
+            if include_sticky:
+                query = (session.query(model.Activity)
+                    .filter(model.Activity.sticky == True))
+                query = filter_by_subscriptions(query)
+                query = query.order_by(model.Activity.created.desc())
+                sticky = query.all()
+            else:
+                sticky = []
 
             son = {
                 'from': from_date.timestamp(),
                 'until': until_date.timestamp(),
-                'actions': ActivityHandler.TO_SON(query.all())
+                'actions': ActivityHandler.TO_SON(sticky + non_sticky)
             }
 
         self.set_header("Content-Type", "application/json")
@@ -95,15 +117,35 @@ class ActivityHandler(handlers.BaseHandler):
             raise handlers.ModelError("Message is too short")
 
         with model.session_scope() as session:
+            if self.request_son['to'] == 'org':
+                self.check_privillege('org_admin')
+                ob = (session.query(model.Organisation)
+                    .get(self.current_user.organisation_id))
+                if ob is None:
+                    raise handlers.ModelError('No such organisation')
+            elif self.request_son['to'] == 'all':
+                self.check_privillege('admin')
+                ob = None
+            else:
+                raise handlers.ModelError('Unrecognised recipient')
+
             activity = model.Activity(
                 subject_id=self.current_user.id,
                 verbs=['broadcast'],
-                object_desc=self.request_son['message'],
-                sticky=self.request_son['sticky'],
-                ob_type=None,
-                ob_ids=[],
-                ob_refs=[]
+                message=self.request_son['message'],
+                sticky=self.request_son['sticky']
             )
+
+            if ob:
+                desc = ob.action_descriptor
+                activity.ob_type = desc.ob_type
+                activity.ob_ids = desc.ob_ids
+                activity.ob_refs = desc.ob_refs
+            else:
+                activity.ob_type = None
+                activity.ob_ids = []
+                activity.ob_refs = []
+
             session.add(activity)
             session.flush()
             self.check_create(activity)
@@ -125,8 +167,8 @@ class ActivityHandler(handlers.BaseHandler):
 
             if 'sticky' in self.request_son:
                 activity.sticky = self.request_son['sticky']
-            if 'object_desc' in self.request_son:
-                activity.object_desc = self.request_son['object_desc']
+            if 'message' in self.request_son:
+                activity.message = self.request_son['message']
             son = ActivityHandler.TO_SON(activity)
 
         self.set_header("Content-Type", "application/json")
@@ -186,10 +228,40 @@ class Activities:
         return action
 
     def subscribe(self, observer, ob):
-        pass
+        desc = ob.action_descriptor
+        sub = model.Subscription(
+            user_id=observer.id,
+            ob_type=desc.ob_type,
+            ob_refs=desc.ob_refs,
+            subscribed=True)
+        self.session.add(sub)
+        return sub
 
-    def is_subscribed(self, ob):
-        pass
+    def is_subscribed(self, observer, ob):
+        '''
+        Check whether an object would show up in the user's timeline.
+        @return True if the user is subscribed to this object or its parents,
+        False if the user has explicitly unsubscribed, or None if no
+        subscription has been made yet (effectively False).
+        '''
+        desc = ob.action_descriptor
+        subs = list(self.session.query(model.Subscription)
+            .filter(model.Subscription.user_id == observer.id,
+                    model.Subscription.ob_refs.contained_by(desc.ob_refs))
+            .all())
+
+        # Find deepest matching subscription
+        deepest_sub = None
+        max_depth = -1
+        for ref, sub in product(desc.ob_refs, subs):
+            depth = sub.ob_refs.index(ref)
+            if depth > max_depth:
+                deepest_sub = sub
+                max_depth = depth
+        if deepest_sub:
+            return deepest_sub.subscribed
+        else:
+            return None
 
 
 class SubscriptionHandler(handlers.BaseHandler):

@@ -60,28 +60,32 @@
                 <i class="fa fa-badge fa-plus"
                         ng-if="icons(action).length > 1"></i>
             </i>
-            <div class="pull-right hidden-print hover-parent"
-                    ng-if="checkRole('modify_post')">
+            <div class="pull-right hidden-print hover-parent">
                 <button class="btn btn-default btn-round"
                         title="Delete (usually you should just unpin)"
-                        ng-click="remove(action);
-                                  $event.preventDefault()"
-                        ng-if="action.obType == null">
+                        ng-click="remove(action)"
+                        ng-if="checkRole('modify_post') &&
+                               verbs(action) == 'broadcast'">
                     <i class="fa fa-fw fa-trash-o"></i>
                 </button>
                 <button class="btn btn-default btn-round"
                         title="Pin / Unpin"
-                        ng-click="toggleSticky(action);
-                                  $event.preventDefault()">
+                        ng-click="toggleSticky(action)"
+                        ng-if="checkRole('modify_post')">
                     <i class="fa fa-fw fa-thumb-tack">
                         <i class="fa fa-badge fa-times"
                                 ng-if="action.sticky"></i>
                     </i>
                 </button>
+                <a class="btn btn-default btn-round"
+                        title="View {{action.subject.name}}'s profile"
+                        ng-href="#/user/{{action.subject.id}}">
+                    <i class="fa fa-fw fa-user"></i>
+                </a>
             </div>
             <a ng-href="#{{url(action)}}"
-                    title="Open this {{obType(action)}}"
-                    ng-if="action.obType != null">
+                    title="View this {{obType(action)}}"
+                    ng-if="verbs(action) != 'broadcast'">
                 {{action.subject.name}}
                 <span class="text-muted">
                     {{verbs(action)}} the {{obType(action)}}
@@ -93,7 +97,7 @@
                         title="Pinned"></i>
                 </p>
             </a>
-            <div ng-if="action.obType == null">
+            <div ng-if="verbs(action) == 'broadcast'">
                 {{action.subject.name}}<span class="text-muted"> said:</span>
                 <p>{{action.message}}</p>
                 <p class="text-muted">

@@ -63,6 +63,7 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
         Activity.get($scope.activityParams).$promise.then(
             function success(activity) {
                 $scope.activity = activity;
+                Notifications.remove('activity');
             },
             function failure(details) {
                 Notifications.set('activity', 'error',

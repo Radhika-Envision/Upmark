@@ -986,7 +986,6 @@ class Subscription(Base):
     # http://www.postgresql.org/docs/9.4/static/gin-intro.html
     # http://stackoverflow.com/questions/19959735/postgresql-gin-index-on-array-of-uuid
     ob_type = Column(Enum(
-        'none',
         'organisation', 'user',
         'program', 'survey', 'qnode', 'measure',
         'submission',
