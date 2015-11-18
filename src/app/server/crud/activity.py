@@ -416,3 +416,52 @@ class SubscriptionHandler(handlers.BaseHandler):
         '''
         update = updater(subscription)
         update('subscribed', son)
+
+
+class CardHandler(handlers.BaseHandler):
+
+    @tornado.web.authenticated
+    def get(self):
+        sons = []
+        to_son = ToSon(include=[
+            r'.*'
+        ])
+        with model.session_scope() as session:
+            org_id = self.current_user.organisation_id
+            org = (session.query(model.Organisation).get(org_id))
+            sons.append(to_son({
+                'title': org.name,
+                'created': org.created,
+                'ob_type': 'organisation',
+                'ob_ids': [org.id],
+            }))
+
+            if self.has_privillege('author', 'consultant'):
+                surveys = (session.query(model.Survey)
+                    .filter(model.Survey.finalised_date == None)
+                    .order_by(model.Survey.created.desc())
+                    .limit(2)
+                    .all())
+                sons += to_son([{
+                    'title': s.title,
+                    'created': s.created,
+                    'ob_type': 'program',
+                    'ob_ids': [s.id],
+                } for s in surveys])
+
+            if self.has_privillege('clerk'):
+                assessments = (session.query(model.Assessment)
+                    .filter(model.Assessment.organisation_id == org_id)
+                    .order_by(model.Assessment.created.desc())
+                    .limit(2)
+                    .all())
+                sons += to_son([{
+                    'title': a.title,
+                    'created': a.created,
+                    'ob_type': 'submission',
+                    'ob_ids': [a.id],
+                } for a in assessments])
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(sons))
+        self.finish()

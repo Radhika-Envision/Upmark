@@ -850,6 +850,14 @@ ul.cardlist {
             page-break-inside: avoid;
         }
     }
+
+    li.association {
+        background-color: lighten($aq-bar1, 30%);
+    }
+    li.question {
+    }
+    li.answer {
+    }
 }
 
 .underline {

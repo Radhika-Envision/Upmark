@@ -13,6 +13,13 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
 }])
 
 
+.factory('Card', ['$resource', function($resource) {
+    return $resource('/card/:id.json', {}, {
+        query: { method: 'GET', cache: false, isArray: true }
+    });
+}])
+
+
 .factory('homeAuthz', ['Roles', function(Roles) {
     return function(current) {
         return function(functionName) {
@@ -33,12 +40,14 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
 
 
 .controller('HomeCtrl', ['$scope', 'Activity', 'Notifications', '$q', 'format',
-            'Current', 'homeAuthz',
+            'Current', 'homeAuthz', 'Card',
         function($scope, Activity, Notifications, $q, format, Current,
-            homeAuthz) {
+            homeAuthz, Card) {
 
     $scope.activity = null;
     $scope.current = Current;
+
+    $scope.cards = Card.query({});
 
     $scope.secondsInADay = 24 * 60 * 60;
     $scope.activityParams = {
@@ -140,6 +149,26 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
                 action.obIds[0], action.obIds[1]);
         case 'submission':
             return format("/assessment/{}", action.obIds[0]);
+        default:
+            return '';
+        }
+    };
+
+    $scope.cls = function(action) {
+        switch (action.obType) {
+        case 'organisation':
+        case 'user':
+            return 'association';
+        case 'program':
+        case 'survey':
+        case 'qnode':
+        case 'measure':
+            return 'question';
+        case 'submission':
+        case 'rnode':
+        case 'response':
+        case 'attachment':
+            return 'answer';
         default:
             return '';
         }

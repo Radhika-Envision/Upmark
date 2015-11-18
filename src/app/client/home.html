@@ -28,7 +28,9 @@
 </div>
 </div>
 
-<div class="container" ng-if="!showPost">
+<div class="container container-fluid" ng-if="!showPost"><div class="row">
+
+<div class="col-sm-8">
     <div class="text-center">
         <div class="btn-group">
             <span class="btn-group-addon">
@@ -117,7 +119,30 @@
             </a>
         </li>
     </ul>
+    <p class="text-muted">
+        You can post to other people's timelines by pressing the <i class="fa fa-envelope-o"></i> button.
+    </p>
+
+</div> <!-- Timeline -->
+
+<div class="col-sm-4">
+    <ul class="cardlist list-results">
+        <li ng-repeat="c in cards">
+            <a ng-href="#{{url(c)}}">
+                <h4>{{c.title}}</h4>
+                <p class="truncate">
+                    {{c.created * 1000 | timeAgo:'mediumDate'}}
+                </p>
+            </a>
+        </li>
+        <li ng-if="!cards.length" class="text-muted">
+            No cards to display.
+        </li>
+    </ul>
 </div>
+
+</div> <!-- row -->
+</div> <!-- container-fluid -->
 
 
 <div class="container" ng-if="showPost">

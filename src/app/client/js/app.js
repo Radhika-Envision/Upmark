@@ -352,7 +352,8 @@ angular.module('wsaa.aquamark',
                             id: $route.current.params.survey
                         }).$promise;
                     }],
-                    organisation: ['Organisation', '$route', function(Organisation, $route) {
+                    organisation: ['Organisation', '$route',
+                            function(Organisation, $route) {
                         if (!$route.current.params.organisation)
                             return null;
                         return Organisation.get({
