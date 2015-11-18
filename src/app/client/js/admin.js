@@ -223,12 +223,17 @@ angular.module('wsaa.admin', [
     };
 
     $scope.toggleEnabled = function() {
+        var original = $scope.user.enabled;
         $scope.user.enabled = !$scope.user.enabled;
         $scope.user.$save(
-            function success() {
-                Notifications.set('edit', 'success', 'Saved', 5000);
+            function success(user, getResponseHeaders) {
+                var message = "Saved";
+                if (getResponseHeaders('Operation-Details'))
+                    message += ": " + getResponseHeaders('Operation-Details');
+                Notifications.set('edit', 'success', message, 5000);
             },
             function failure(details) {
+                $scope.user.enabled = original;
                 Notifications.set('edit', 'error',
                     "Could not save object: " + details.statusText);
                 return $q.reject(details);

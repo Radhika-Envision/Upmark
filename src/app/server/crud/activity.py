@@ -237,6 +237,14 @@ class Activities:
         self.session.add(sub)
         return sub
 
+    def has_subscription(self, observer, ob):
+        desc = ob.action_descriptor
+        count = (self.session.query(model.Subscription)
+            .filter(model.Subscription.user_id == observer.id,
+                    model.Subscription.ob_refs.contained_by(desc.ob_refs))
+            .count())
+        return count > 0
+
     def is_subscribed(self, observer, ob):
         '''
         Check whether an object would show up in the user's timeline.
@@ -253,8 +261,9 @@ class Activities:
         # Find deepest matching subscription
         deepest_sub = None
         max_depth = -1
-        for ref, sub in product(desc.ob_refs, subs):
-            depth = sub.ob_refs.index(ref)
+        ob_refs = [str(ref) for ref in desc.ob_refs]
+        for sub in subs:
+            depth = ob_refs.index(str(sub.ob_refs[-1]))
             if depth > max_depth:
                 deepest_sub = sub
                 max_depth = depth

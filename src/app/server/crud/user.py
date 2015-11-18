@@ -138,7 +138,9 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
 
                 act = crud.activity.Activities(session)
                 act.record(self.current_user, user, ['create'])
-                act.subscribe(self.current_user, user)
+                if not act.has_subscription(self.current_user, user):
+                    act.subscribe(self.current_user, user.organisation)
+                    self.reason("Subscribed to organisation")
 
                 session.expunge(user)
         except sqlalchemy.exc.IntegrityError as e:
@@ -164,7 +166,9 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 act = crud.activity.Activities(session)
                 if session.is_modified(user):
                     act.record(self.current_user, user, ['update'])
-                act.subscribe(self.current_user, user)
+                if not act.has_subscription(self.current_user, user):
+                    act.subscribe(self.current_user, user.organisation)
+                    self.reason("Subscribed to organisation")
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
