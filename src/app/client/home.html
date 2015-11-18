@@ -84,12 +84,12 @@
             <a ng-href="#{{url(action)}}"
                     title="View this {{obType(action)}}"
                     ng-if="verbs(action) != 'broadcast'">
-                {{action.subject.name}}
-                <span class="text-muted">
-                    {{verbs(action)}} the {{obType(action)}}
-                </span>
-                {{action.message}}
+                <h4>{{action.message}}</h4>
                 <p class="text-muted">
+                    <span class="capitalize">
+                         {{obType(action)}}
+                    </span>
+                    {{verbs(action)}} by {{action.subject.name}}
                     {{action.created * 1000 | timeAgo:'medium'}}
                     <i class="fa fa-thumb-tack" ng-if="action.sticky"
                         title="Pinned"></i>
