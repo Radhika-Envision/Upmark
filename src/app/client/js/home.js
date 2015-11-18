@@ -40,9 +40,9 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
 
 
 .controller('HomeCtrl', ['$scope', 'Activity', 'Notifications', '$q', 'format',
-            'Current', 'homeAuthz', 'Card',
+            'Current', 'homeAuthz', 'Card', 'hotkeys',
         function($scope, Activity, Notifications, $q, format, Current,
-            homeAuthz, Card) {
+            homeAuthz, Card, hotkeys) {
 
     $scope.activity = null;
     $scope.current = Current;
@@ -270,6 +270,29 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
             }
         );
     };
+
+    hotkeys.bindTo($scope)
+        .add({
+            combo: ['n'],
+            description: "Next time period",
+            callback: function(event, hotkey) {
+                $scope.nextActivities();
+            }
+        })
+        .add({
+            combo: ['p'],
+            description: "Previous time period",
+            callback: function(event, hotkey) {
+                $scope.previousActivities();
+            }
+        })
+        .add({
+            combo: ['r'],
+            description: "Reset (go to current time)",
+            callback: function(event, hotkey) {
+                $scope.goToNow();
+            }
+        });
 
 }])
 
