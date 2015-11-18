@@ -312,7 +312,9 @@ class QuestionNodeHandler(
 
                 act = crud.activity.Activities(session)
                 act.record(self.current_user, qnode, ['create'])
-                act.subscribe(self.current_user, qnode)
+                if not act.has_subscription(self.current_user, qnode):
+                    act.subscribe(self.current_user, qnode.survey)
+                    self.reason("Subscribed to program")
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
@@ -406,7 +408,9 @@ class QuestionNodeHandler(
 
                 act = crud.activity.Activities(session)
                 act.record(self.current_user, qnode, verbs)
-                act.subscribe(self.current_user, qnode)
+                if not act.has_subscription(self.current_user, qnode):
+                    act.subscribe(self.current_user, qnode.survey)
+                    self.reason("Subscribed to program")
 
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such question node")
@@ -455,7 +459,9 @@ class QuestionNodeHandler(
                     log.debug("Reordering children of: %s", parent)
                     reorder(parent.children, son)
                     act.record(self.current_user, parent, ['reorder_children'])
-                    act.subscribe(self.current_user, parent)
+                    if not act.has_subscription(self.current_user, parent):
+                        act.subscribe(self.current_user, parent.survey)
+                        self.reason("Subscribed to program")
                 elif root is not None:
                     hierarchy = session.query(model.Hierarchy)\
                         .get((hierarchy_id, self.survey_id))
@@ -465,7 +471,9 @@ class QuestionNodeHandler(
                     reorder(hierarchy.qnodes, son)
                     act.record(
                         self.current_user, hierarchy, ['reorder_children'])
-                    act.subscribe(self.current_user, hierarchy)
+                    if not act.has_subscription(self.current_user, hierarchy):
+                        act.subscribe(self.current_user, hierarchy.survey)
+                        self.reason("Subscribed to program")
                 else:
                     raise handlers.ModelError(
                         "Hierarchy or parent ID required")

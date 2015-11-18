@@ -84,7 +84,9 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
 
                 act = crud.activity.Activities(session)
                 act.record(self.current_user, org, ['create'])
-                act.subscribe(self.current_user, org)
+                if not act.has_subscription(self.current_user, org):
+                    act.subscribe(self.current_user, org)
+                    self.reason("Subscribed to organisation")
 
                 org_id = str(org.id)
         except sqlalchemy.exc.IntegrityError as e:
@@ -115,7 +117,9 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                 act = crud.activity.Activities(session)
                 if session.is_modified(org):
                     act.record(self.current_user, org, ['update'])
-                act.subscribe(self.current_user, org)
+                if not act.has_subscription(self.current_user, org):
+                    act.subscribe(self.current_user, org)
+                    self.reason("Subscribed to organisation")
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)

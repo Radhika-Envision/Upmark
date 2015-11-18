@@ -230,7 +230,9 @@ class MeasureHandler(
 
                 act = crud.activity.Activities(session)
                 act.record(self.current_user, measure, verbs)
-                act.subscribe(self.current_user, measure)
+                if not act.has_subscription(self.current_user, measure):
+                    act.subscribe(self.current_user, measure.survey)
+                    self.reason("Subscribed to program")
 
                 log.info("Created measure %s", measure_id)
         except sqlalchemy.exc.IntegrityError as e:
@@ -271,7 +273,9 @@ class MeasureHandler(
                         qnode.qnode_measures.reorder()
                         qnode.update_stats_ancestors()
                     act.record(self.current_user, measure, ['relation'])
-                    act.subscribe(self.current_user, measure)
+                    if not act.has_subscription(self.current_user, measure):
+                        act.subscribe(self.current_user, measure.survey)
+                        self.reason("Subscribed to program")
                 else:
                     if len(measure.parents) > 0:
                         raise handlers.ModelError("Measure is in use")
@@ -340,7 +344,9 @@ class MeasureHandler(
 
                 act = crud.activity.Activities(session)
                 act.record(self.current_user, measure, verbs)
-                act.subscribe(self.current_user, measure)
+                if not act.has_subscription(self.current_user, measure):
+                    act.subscribe(self.current_user, measure.survey)
+                    self.reason("Subscribed to program")
 
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such measure")
@@ -368,7 +374,9 @@ class MeasureHandler(
 
                 act = crud.activity.Activities(session)
                 act.record(self.current_user, qnode, ['reorder_children'])
-                act.subscribe(self.current_user, qnode)
+                if not act.has_subscription(self.current_user, qnode):
+                    act.subscribe(self.current_user, qnode.survey)
+                    self.reason("Subscribed to program")
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)

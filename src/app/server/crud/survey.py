@@ -168,7 +168,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 act.record(self.current_user, survey, ['create'])
                 if not act.has_subscription(self.current_user, survey):
                     act.subscribe(self.current_user, survey)
-                    self.reason("Subscribed to survey")
+                    self.reason("Subscribed to program")
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
@@ -286,7 +286,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                     act.record(self.current_user, survey, ['update'])
                 if not act.has_subscription(self.current_user, survey):
                     act.subscribe(self.current_user, survey)
-                    self.reason("Subscribed to survey")
+                    self.reason("Subscribed to program")
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such survey")
         except sqlalchemy.exc.IntegrityError as e:
@@ -314,7 +314,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                     act.record(self.current_user, survey, ['state'])
                 if not act.has_subscription(self.current_user, survey):
                     act.subscribe(self.current_user, survey)
-                    self.reason("Subscribed to survey")
+                    self.reason("Subscribed to program")
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such survey")
         except sqlalchemy.exc.IntegrityError as e:
