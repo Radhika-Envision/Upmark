@@ -910,6 +910,12 @@ ul.fa-ul.timeline {
         > a:hover {
             background: #eee;
         }
+
+        > .toolbar {
+            position: absolute;
+            right: 0;
+            top: 0;
+        }
     }
 
 
@@ -928,13 +934,25 @@ ul.fa-ul.timeline {
     }
 
     > li.association {
-        border-color: mix($aq-bar1, white, 30%);
+        $col: mix($aq-bar1, white, 30%);
+        border-color: $col;
+        > .fa-li > .fa-badge {
+            @include text-shadow-outline($col);
+        }
     }
     > li.question {
-        border-color: mix($aq-bar2, white, 30%);
+        $col: mix($aq-bar2, white, 30%);
+        border-color: $col;
+        > .fa-li > .fa-badge {
+            @include text-shadow-outline($col);
+        }
     }
     > li.answer {
-        border-color: mix($aq-bar3, white, 30%);
+        $col: mix($aq-bar3, white, 30%);
+        border-color: $col;
+        > .fa-li > .fa-badge {
+            @include text-shadow-outline($col);
+        }
     }
 }
 
