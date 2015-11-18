@@ -155,6 +155,9 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
     };
 
     $scope.cls = function(action) {
+        if (action.verbs && action.verbs[0] == 'broadcast')
+            return 'broadcast';
+
         switch (action.obType) {
         case 'organisation':
         case 'user':

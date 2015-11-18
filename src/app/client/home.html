@@ -56,7 +56,8 @@
     </div>
 
     <ul class="list-results fa-ul fa-ul-big spaced">
-        <li ng-repeat="action in activity.actions">
+        <li ng-repeat="action in activity.actions"
+                ng-class="cls(action)">
             <i class="fa fa-li fa-border fa-border-fill"
                     ng-class="icons(action)[0]">
                 <i class="fa fa-badge fa-plus"
@@ -127,10 +128,13 @@
 
 <div class="col-sm-4">
     <ul class="cardlist list-results">
-        <li ng-repeat="c in cards">
-            <a ng-href="#{{url(c)}}">
+        <li ng-repeat="c in cards"
+                ng-class="cls(c)">
+            <a ng-href="#{{url(c)}}"
+                    title="View this {{c.obType}}">
                 <h4>{{c.title}}</h4>
                 <p class="truncate">
+                    <span class="capitalize">{{c.obType}}</span> -
                     {{c.created * 1000 | timeAgo:'mediumDate'}}
                 </p>
             </a>
