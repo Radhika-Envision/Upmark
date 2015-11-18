@@ -16,6 +16,7 @@ import voluptuous
 
 import handlers
 import model
+import crud.activity
 
 from utils import ToSon, truthy, updater
 
@@ -151,6 +152,8 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 session.flush()
                 survey_id = str(survey.id)
 
+                act = crud.activity.Activities(session)
+
                 if duplicate_id != '':
                     source_survey = (session.query(model.Survey)
                         .get(duplicate_id))
@@ -160,9 +163,10 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                     yield self.duplicate_structure(
                         source_survey, survey, session)
                     source_survey.finalised_date = datetime.datetime.utcnow()
-                    source_survey.record_action(self.current_user, ['state'])
+                    act.record(self.current_user, source_survey, ['state'])
 
-                survey.record_action(self.current_user, ['create'])
+                act.record(self.current_user, survey, ['create'])
+                act.subscribe(self.current_user, survey)
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
@@ -240,7 +244,8 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 if not survey.is_editable:
                     raise handlers.MethodError(
                         "This survey is closed for editing")
-                survey.record_action(self.current_user, ['delete'])
+                act = crud.activity.Activities(session)
+                act.record(self.current_user, survey, ['delete'])
                 session.delete(survey)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Survey is in use")
@@ -273,8 +278,11 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                     raise handlers.MethodError(
                         "This survey is closed for editing")
                 self._update(survey, self.request_son)
+
+                act = crud.activity.Activities(session)
                 if session.is_modified(survey):
-                    survey.record_action(self.current_user, ['update'])
+                    act.record(self.current_user, survey, ['update'])
+                act.subscribe(self.current_user, survey)
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such survey")
         except sqlalchemy.exc.IntegrityError as e:
@@ -296,8 +304,11 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                         survey.finalised_date = None
                     else:
                         survey.finalised_date = datetime.datetime.utcnow()
+
+                act = crud.activity.Activities(session)
                 if session.is_modified(survey):
-                    survey.record_action(self.current_user, ['state'])
+                    act.record(self.current_user, survey, ['state'])
+                act.subscribe(self.current_user, survey)
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such survey")
         except sqlalchemy.exc.IntegrityError as e:

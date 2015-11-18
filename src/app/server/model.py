@@ -1,4 +1,5 @@
 import base64
+from collections import namedtuple
 from contextlib import contextmanager
 from datetime import datetime
 from itertools import chain, zip_longest
@@ -34,6 +35,11 @@ metadata = MetaData()
 Base = declarative_base(metadata=metadata)
 
 
+ActionDescriptor = namedtuple(
+    'ActionDescriptor',
+    'message, ob_type, ob_ids, ob_refs')
+
+
 class ModelError(Exception):
     pass
 
@@ -60,19 +66,13 @@ class Organisation(Base):
     number_of_customers = Column(Integer, nullable=False)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
 
-    def record_action(self, subject, verbs):
-        if len(verbs) == 0:
-            return None;
-        action = Activity(
-            subject_id=subject.id,
-            verbs=verbs,
-            object_desc=self.name,
-            ob_type='organisation',
-            ob_ids=[self.id],
-            ob_refs=[self.id]
-        )
-        object_session(self).add(action)
-        return action
+    @property
+    def action_descriptor(self):
+        return ActionDescriptor(
+            self.name,
+            'organisation',
+            [self.id],
+            [self.id])
 
     __table_args__ = (
         Index('organisation_name_key', func.lower(name), unique=True),
@@ -103,19 +103,13 @@ class AppUser(Base):
     def check_password(self, plaintext):
         return sha256_crypt.verify(plaintext, self.password)
 
-    def record_action(self, subject, verbs):
-        if len(verbs) == 0:
-            return None;
-        action = Activity(
-            subject_id=subject.id,
-            verbs=verbs,
-            object_desc=self.name,
-            ob_type='user',
-            ob_ids=[self.id],
-            ob_refs=[self.organisation_id, self.id]
-        )
-        object_session(self).add(action)
-        return action
+    @property
+    def action_descriptor(self):
+        return ActionDescriptor(
+            self.name,
+            'user',
+            [self.id],
+            [self.organisation_id, self.id])
 
     __table_args__ = (
         Index('appuser_email_key', func.lower(email), unique=True),
@@ -219,19 +213,13 @@ class Survey(Base):
         for hierarchy in self.hierarchies:
             hierarchy.update_stats_descendants()
 
-    def record_action(self, subject, verbs):
-        if len(verbs) == 0:
-            return None;
-        action = Activity(
-            subject_id=subject.id,
-            verbs=verbs,
-            object_desc=self.title,
-            ob_type='program',
-            ob_ids=[self.id],
-            ob_refs=[self.tracking_id, self.id]
-        )
-        object_session(self).add(action)
-        return action
+    @property
+    def action_descriptor(self):
+        return ActionDescriptor(
+            self.title,
+            'program',
+            [self.id],
+            [self.tracking_id, self.id])
 
     __table_args__ = (
         Index('survey_tracking_id_index', tracking_id),
@@ -322,19 +310,13 @@ class Hierarchy(Base):
             qnode.update_stats_descendants()
         self.update_stats()
 
-    def record_action(self, subject, verbs):
-        if len(verbs) == 0:
-            return None;
-        action = Activity(
-            subject_id=subject.id,
-            verbs=verbs,
-            object_desc=self.title,
-            ob_type='survey',
-            ob_ids=[self.id, self.survey_id],
-            ob_refs=[self.survey_id, self.id]
-        )
-        object_session(self).add(action)
-        return action
+    @property
+    def action_descriptor(self):
+        return ActionDescriptor(
+            self.title,
+            'survey',
+            [self.id, self.survey_id],
+            [self.survey_id, self.id])
 
     def __repr__(self):
         return "Hierarchy(title={}, survey={})".format(
@@ -419,20 +401,14 @@ class QuestionNode(Base):
     def get_path(self):
         return " ".join(["%d." % (q.seq + 1) for q in self.lineage()])
 
-    def record_action(self, subject, verbs):
-        if len(verbs) == 0:
-            return None;
+    @property
+    def action_descriptor(self):
         lineage = [q.id for q in self.lineage()]
-        action = Activity(
-            subject_id=subject.id,
-            verbs=verbs,
-            object_desc=self.title,
-            ob_type='qnode',
-            ob_ids=[self.id, self.survey_id],
-            ob_refs=[self.survey_id, self.hierarchy_id] + lineage
-        )
-        object_session(self).add(action)
-        return action
+        return ActionDescriptor(
+            self.title,
+            'qnode',
+            [self.id, self.survey_id],
+            [self.survey_id, self.hierarchy_id] + lineage)
 
     def __repr__(self):
         return "QuestionNode(title={}, survey={})".format(
@@ -519,21 +495,15 @@ class Measure(Base):
 
         return mixed_lineage + [self]
 
-    def record_action(self, subject, verbs):
-        if len(verbs) == 0:
-            return None;
+    @property
+    def action_descriptor(self):
         hs = [qm.qnode.hierarchy_id for qm in self.qnode_measures]
         lineage = [entity.id for entity in self.lineage()]
-        action = Activity(
-            subject_id=subject.id,
-            verbs=verbs,
-            object_desc=self.title,
-            ob_type='measure',
-            ob_ids=[self.id, self.survey_id],
-            ob_refs=[self.survey_id] + hs + lineage
-        )
-        object_session(self).add(action)
-        return action
+        return ActionDescriptor(
+            self.title,
+            'measure',
+            [self.id, self.survey_id],
+            [self.survey_id] + hs + lineage)
 
     def __repr__(self):
         return "Measure(title={}, survey={})".format(
@@ -958,7 +928,7 @@ class Activity(Base):
         nullable=False)
     # A snapshot of some defining feature of the object at the time the event
     # happened (e.g. title of a measure before it was deleted).
-    object_desc = Column(Text)
+    message = Column(Text)
     sticky = Column(Boolean, nullable=False, default=False)
 
     # Object reference (the entity being acted upon). The ob_type and ob_id_*

@@ -7,6 +7,7 @@ import tornado.web
 import sqlalchemy
 from sqlalchemy.orm import joinedload
 
+import crud.activity
 import crud.survey
 import handlers
 import model
@@ -80,8 +81,11 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                 self._update(org, self.request_son)
                 session.add(org)
                 session.flush()
-                if session.is_modified(org):
-                    org.record_action(self.current_user, ['create'])
+
+                act = crud.activity.Activities(session)
+                act.record(self.current_user, org, ['create'])
+                act.subscribe(self.current_user, org)
+
                 org_id = str(org.id)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
@@ -107,8 +111,12 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                 if org is None:
                     raise ValueError("No such object")
                 self._update(org, self.request_son)
+
+                act = crud.activity.Activities(session)
                 if session.is_modified(org):
-                    org.record_action(self.current_user, ['update'])
+                    act.record(self.current_user, org, ['update'])
+                act.subscribe(self.current_user, org)
+
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         except (sqlalchemy.exc.StatementError, ValueError):
@@ -123,7 +131,10 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                 org = session.query(model.Organisation).get(org_id)
                 if org is None:
                     raise ValueError("No such object")
-                org.record_action(self.current_user, ['delete'])
+
+                act = crud.activity.Activities(session)
+                act.record(self.current_user, org, ['delete'])
+
                 session.delete(org)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError(

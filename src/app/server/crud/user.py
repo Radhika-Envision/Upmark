@@ -8,6 +8,7 @@ import tornado.web
 import sqlalchemy
 from sqlalchemy.orm import joinedload
 
+import crud.activity
 import handlers
 import model
 import logging
@@ -134,7 +135,11 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 self._update(user, self.request_son)
                 session.add(user)
                 session.flush()
-                user.record_action(self.current_user, ['create'])
+
+                act = crud.activity.Activities(session)
+                act.record(self.current_user, user, ['create'])
+                act.subscribe(self.current_user, user)
+
                 session.expunge(user)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
@@ -155,8 +160,12 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                     raise ValueError("No such object")
                 self._check_update(self.request_son, user)
                 self._update(user, self.request_son)
+
+                act = crud.activity.Activities(session)
                 if session.is_modified(user):
-                    user.record_action(self.current_user, ['update'])
+                    act.record(self.current_user, user, ['update'])
+                act.subscribe(self.current_user, user)
+
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         except (sqlalchemy.exc.StatementError, ValueError):
@@ -174,7 +183,10 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                     raise ValueError("No such object")
                 self._check_delete(user)
                 user.organisation.users.remove(user)
-                user.record_action(self.current_user, ['delete'])
+
+                act = crud.activity.Activities(session)
+                act.record(self.current_user, user, ['delete'])
+
                 session.delete(user)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError(

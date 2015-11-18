@@ -11,6 +11,7 @@ from sqlalchemy.orm import aliased, joinedload
 from sqlalchemy.sql.expression import literal
 
 import crud
+import crud.activity
 import handlers
 import model
 from utils import reorder, ToSon, truthy, updater
@@ -308,7 +309,10 @@ class QuestionNodeHandler(
                 session.flush()
                 qnode.update_stats_ancestors()
                 qnode_id = str(qnode.id)
-                qnode.record_action(self.current_user, ['create'])
+
+                act = crud.activity.Activities(session)
+                act.record(self.current_user, qnode, ['create'])
+                act.subscribe(self.current_user, qnode)
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
@@ -341,13 +345,18 @@ class QuestionNodeHandler(
                     hierarchy = qnode.hierarchy
                 if qnode.parent is not None:
                     parent = qnode.parent
-                qnode.record_action(self.current_user, ['delete'])
+
+                act = crud.activity.Activities(session)
+                act.record(self.current_user, qnode, ['delete'])
+
                 session.delete(qnode)
+
                 if hierarchy is not None:
                     hierarchy.qnodes.reorder()
                 if parent is not None:
                     parent.children.reorder()
                     parent.update_stats_ancestors()
+
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Question node is in use")
         except (sqlalchemy.exc.StatementError, ValueError):
@@ -394,7 +403,10 @@ class QuestionNodeHandler(
                     self.reason("Moved from %s to %s" % (
                         old_parent.title, new_parent.title))
                     verbs.append('relation')
-                qnode.record_action(self.current_user, verbs)
+
+                act = crud.activity.Activities(session)
+                act.record(self.current_user, qnode, verbs)
+                act.subscribe(self.current_user, qnode)
 
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such question node")
@@ -428,6 +440,8 @@ class QuestionNodeHandler(
         son = json_decode(self.request.body)
         try:
             with model.session_scope() as session:
+
+                act = crud.activity.Activities(session)
                 if parent_id != '':
                     parent = session.query(model.QuestionNode)\
                         .get((parent_id, self.survey_id))
@@ -440,8 +454,8 @@ class QuestionNodeHandler(
                                 "Parent does not belong to that hierarchy")
                     log.debug("Reordering children of: %s", parent)
                     reorder(parent.children, son)
-                    parent.record_action(
-                        self.current_user, ['reorder_children'])
+                    act.record(self.current_user, parent, ['reorder_children'])
+                    act.subscribe(self.current_user, parent)
                 elif root is not None:
                     hierarchy = session.query(model.Hierarchy)\
                         .get((hierarchy_id, self.survey_id))
@@ -449,8 +463,9 @@ class QuestionNodeHandler(
                         raise handlers.MissingDocError("No such hierarchy")
                     log.debug("Reordering children of: %s", hierarchy)
                     reorder(hierarchy.qnodes, son)
-                    hierarchy.record_action(
-                        self.current_user, ['reorder_children'])
+                    act.record(
+                        self.current_user, hierarchy, ['reorder_children'])
+                    act.subscribe(self.current_user, hierarchy)
                 else:
                     raise handlers.ModelError(
                         "Hierarchy or parent ID required")

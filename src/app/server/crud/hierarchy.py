@@ -7,6 +7,7 @@ import tornado.web
 import sqlalchemy
 from sqlalchemy.orm import joinedload
 
+import crud.activity
 import crud.survey
 import handlers
 import model
@@ -96,7 +97,11 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 self._update(hierarchy, self.request_son)
                 session.add(hierarchy)
                 session.flush()
-                hierarchy.record_action(self.current_user, ['create'])
+
+                act = crud.activity.Activities(session)
+                act.record(self.current_user, hierarchy, ['create'])
+                act.subscribe(self.current_user, hierarchy)
+
                 hierarchy_id = str(hierarchy.id)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
@@ -117,8 +122,12 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 if hierarchy is None:
                     raise ValueError("No such object")
                 self._update(hierarchy, self.request_son)
+
+                act = crud.activity.Activities(session)
                 if session.is_modified(hierarchy):
-                    hierarchy.record_action(self.current_user, ['update'])
+                    act.record(self.current_user, hierarchy, ['update'])
+                act.subscribe(self.current_user, hierarchy)
+
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such hierarchy")
         except sqlalchemy.exc.IntegrityError as e:
@@ -138,7 +147,10 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     .get((hierarchy_id, self.survey_id))
                 if hierarchy is None:
                     raise ValueError("No such object")
-                hierarchy.record_action(self.current_user, ['delete'])
+
+                act = crud.activity.Activities(session)
+                act.record(self.current_user, hierarchy, ['delete'])
+
                 session.delete(hierarchy)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("This hierarchy is in use")

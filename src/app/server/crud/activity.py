@@ -19,13 +19,13 @@ class ActivityHandler(handlers.BaseHandler):
     TO_SON = ToSon(include=[
         r'/id$',
         r'/created$',
+        r'/message$',
         r'/sticky$',
         r'/subject$',
         r'/subject/name$',
         r'/verbs/?.*$',
         r'/ob_type$',
         r'/ob_ids$',
-        r'/object_desc$',
         r'/object_ids/?.*$',
         r'/[0-9]+$',
     ], exclude=[
@@ -170,6 +170,26 @@ class ActivityHandler(handlers.BaseHandler):
             raise handlers.AuthzError(
                 "You can't delete a non-broadcast activity")
         self.check_modify(activity)
+
+
+class Activities:
+    def __init__(self, session):
+        self.session = session
+
+    def record(self, subject, ob, verbs):
+        if len(verbs) == 0:
+            return None;
+        desc = ob.action_descriptor
+        action = model.Activity(
+            subject_id=subject.id, verbs=verbs, **desc._asdict())
+        self.session.add(action)
+        return action
+
+    def subscribe(self, observer, ob):
+        pass
+
+    def is_subscribed(self, ob):
+        pass
 
 
 class SubscriptionHandler(handlers.BaseHandler):

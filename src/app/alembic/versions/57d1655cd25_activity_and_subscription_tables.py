@@ -31,7 +31,7 @@ def upgrade():
                 'relation', 'reorder_children',
                 native_enum=False)),
             nullable=False),
-        sa.Column('object_desc', sa.Text(), nullable=True),
+        sa.Column('message', sa.Text(), nullable=True),
         sa.Column('sticky', sa.Boolean(), nullable=False),
         sa.Column(
             'ob_type', sa.Enum(

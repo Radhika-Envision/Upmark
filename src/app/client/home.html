@@ -86,7 +86,7 @@
                 <span class="text-muted">
                     {{verbs(action)}} the {{obType(action)}}
                 </span>
-                {{action.objectDesc}}
+                {{action.message}}
                 <p class="text-muted">
                     {{action.created * 1000 | timeAgo:'medium'}}
                     <i class="fa fa-thumb-tack" ng-if="action.sticky"
@@ -95,7 +95,7 @@
             </a>
             <div ng-if="action.obType == null">
                 {{action.subject.name}}<span class="text-muted"> said:</span>
-                <p>{{action.objectDesc}}</p>
+                <p>{{action.message}}</p>
                 <p class="text-muted">
                     {{action.created * 1000 | timeAgo:'medium'}}
                     <i class="fa fa-thumb-tack" ng-if="action.sticky"

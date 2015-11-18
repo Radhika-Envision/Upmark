@@ -7,11 +7,10 @@ import tornado.web
 import sqlalchemy
 from sqlalchemy.orm import joinedload
 
-import handlers
-import model
-import logging
-
 import crud
+import handlers
+import logging
+import model
 from utils import falsy, reorder, ToSon, truthy, updater
 
 
@@ -228,7 +227,10 @@ class MeasureHandler(
                 verbs = ['create']
                 if len(parents) > 0:
                     verbs.append('relation')
-                measure.record_action(self.current_user, verbs)
+
+                act = crud.activity.Activities(session)
+                act.record(self.current_user, measure, verbs)
+                act.subscribe(self.current_user, measure)
 
                 log.info("Created measure %s", measure_id)
         except sqlalchemy.exc.IntegrityError as e:
@@ -253,6 +255,7 @@ class MeasureHandler(
                 if measure is None:
                     raise handlers.MissingDocError("No such measure")
 
+                act = crud.activity.Activities(session)
                 if len(parent_ids) > 0:
                     # Just unlink from qnodes
                     for parent_id in parent_ids:
@@ -267,11 +270,12 @@ class MeasureHandler(
                         qnode.measures.remove(measure)
                         qnode.qnode_measures.reorder()
                         qnode.update_stats_ancestors()
-                    measure.record_action(self.current_user, ['relation'])
+                    act.record(self.current_user, measure, ['relation'])
+                    act.subscribe(self.current_user, measure)
                 else:
                     if len(measure.parents) > 0:
                         raise handlers.ModelError("Measure is in use")
-                    measure.record_action(self.current_user, ['delete'])
+                    act.record(self.current_user, measure, ['delete'])
                     session.delete(measure)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Measure is in use")
@@ -334,7 +338,9 @@ class MeasureHandler(
                 for parent in affected_parents:
                     parent.update_stats_ancestors()
 
-                measure.record_action(self.current_user, verbs)
+                act = crud.activity.Activities(session)
+                act.record(self.current_user, measure, verbs)
+                act.subscribe(self.current_user, measure)
 
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such measure")
@@ -359,7 +365,10 @@ class MeasureHandler(
                 reorder(
                     qnode.qnode_measures, self.request_son,
                     id_attr='measure_id')
-                qnode.record_action(self.current_user, ['reorder_children'])
+
+                act = crud.activity.Activities(session)
+                act.record(self.current_user, qnode, ['reorder_children'])
+                act.subscribe(self.current_user, qnode)
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
