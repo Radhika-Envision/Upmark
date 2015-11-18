@@ -102,7 +102,7 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
                 verb = 'modified';
                 break;
             case 'state':
-                verb = 'state changed';
+                verb = 'changed the state of';
                 break;
             case 'delete':
                 verb = 'deleted';
@@ -111,7 +111,7 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
                 verb = '(re)linked';
                 break;
             case 'reorder_children':
-                verb = 'children reordered';
+                verb = 'reordered the children of';
                 break;
             default:
                 verb = verb;
