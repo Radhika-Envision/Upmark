@@ -391,10 +391,12 @@ class AuthLoginHandler(MainHandler):
         except:
             errormessage = ""
 
+        next = self.get_argument("next", "/")
         self.render(
             "../client/login.html", scripts=self.scripts,
             stylesheets=self.stylesheets,
             analytics_id=tornado.options.options.analytics_id,
+            next=next,
             error=errormessage)
 
     def post(self, user_id):
@@ -434,7 +436,9 @@ class AuthLoginHandler(MainHandler):
                 "superuser", str(user.id).encode('utf8'),
                 expires_days=AuthLoginHandler.EXPIRE_DAYS)
 
-        self.redirect(self.get_argument("next", "/"))
+        next = self.get_argument("next", "/")
+        log.info("next2: %s", next)
+        self.redirect(next)
 
     @property
     def xsrf_token(self):
@@ -523,6 +527,15 @@ class AuthLogoutHandler(BaseHandler):
         self.clear_cookie("user")
         self.clear_cookie("superuser")
         self.redirect(self.get_argument("next", "/"))
+
+
+class RedirectHandler(BaseHandler):
+
+    @tornado.web.authenticated
+    def get(self):
+        url = self.get_argument("url", "/")
+        log.info("url: %s", url)
+        self.redirect(url)
 
 
 class RamCacheHandler(tornado.web.RequestHandler):
