@@ -115,7 +115,7 @@
         </li>
     </ul>
 
-    <docs ng-if="checkRole('post_message')">
+    <docs>
         <i class="fa-li fa fa-envelope-o fa-border"></i>
         <h3>Timeline</h3>
         <p>
@@ -127,7 +127,7 @@
             look for the <i class="fa fa-envelope"></i> button in the toolbar
             while browsing the site.
         </p>
-        <p>
+        <p ng-if="checkRole('post_message')">
             You can post to other people's timelines by pressing the
             <i class="fa fa-envelope-o"></i> button.
         </p>
@@ -168,7 +168,7 @@
                 ng-model="post.message"></textarea>
         </div>
         <div class="text-center">
-            <div class="form-group" ng-if="checkRole('post_to_all')">
+            <div class="form-group">
                 <div class="btn-group">
                     <span class="btn-group-addon">
                         To:
@@ -176,7 +176,8 @@
                     <button class="btn btn-default"
                             ng-class="{'active': post.to == 'all'}"
                             ng-click="post.to = 'all'"
-                            title="Post to all users">
+                            title="Post to all users"
+                            ng-if="checkRole('post_to_all')">
                         Everyone
                     </button>
                     <button class="btn btn-default"
@@ -200,17 +201,19 @@
     <docs>
         <i class="fa-li fa fa-envelope-o fa-border"></i>
         <h3>Posting to the Timeline</h3>
-        You can post messages to the timeline.
-        <span ng-if="checkRole('post_to_all')">
-            You can choose to make your message visible to all users, or only
-            users in your organisation.
-        </span>
-        <span ng-if="!checkRole('post_to_all')">
-            Your post will only be visible to members of your organisation.
-        </span>
+        <p>
+            You can post messages to the timeline.
+            <span ng-if="checkRole('post_to_all')">
+                You can choose to make your message visible to all users, or
+                only users in your organisation.
+            </span>
+            <span ng-if="!checkRole('post_to_all')">
+                Your post will only be visible to members of your organisation.
+            </span>
+        </p>
         <p>
             Pinned messages <i class="fa fa-thumb-tack"></i> will stay at the
-            top of the timeline until you unpin them. An unpinned message will
+            top until you unpin them. An unpinned message will
             be moved to the time at which it was created.
             Generally it is preferred to unpin messages instead of deleting
             them.
@@ -218,7 +221,7 @@
     </docs>
 </div>
 
-<docs>
+<docs ng-if="!showPost">
     <i class="fa-li fa fa-keyboard-o fa-border"></i>
     <h3>Keyboard Shortcuts</h3>
     <p>
