@@ -5,7 +5,7 @@ angular.module('wsaa.aquamark',
                 'ui.bootstrap.showErrors', 'validation.match', 'settings',
                 'yaru22.angular-timeago', 'angular-select-text',
                 'angular-medium-editor',
-                'wsaa.survey', 'wsaa.admin', 'wsaa.home',
+                'wsaa.survey', 'wsaa.admin', 'wsaa.home', 'wsaa.subscription',
                 'wsaa.surveyQuestions', 'wsaa.surveyAnswers',
                 'vpac.utils', 'vpac.widgets', 'diff-match-patch'])
 
@@ -112,6 +112,11 @@ angular.module('wsaa.aquamark',
                         return SystemConfig.get().$promise;
                     }]
                 }
+            })
+
+            .when('/subscription/:type', {
+                templateUrl : 'subscription.html',
+                controller : 'SubscriptionCtrl'
             })
 
             .when('/users', {

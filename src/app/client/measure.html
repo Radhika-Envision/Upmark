@@ -34,6 +34,9 @@
                 ng-click="edit.edit()"
                 ng-if="editable && !edit.model">
             <i class="fa fa-pencil"></i></button>
+        <a class="btn btn-default btn-round" title="Subscriptions"
+                ng-href="#/subscription/measure?id={{measure.id}}&id={{survey.id}}">
+            <i class="fa fa-envelope"></i></a>
         <survey-history entity="measure" service="Measure"
                 ng-if="!edit.model"></survey-history>
     </div>

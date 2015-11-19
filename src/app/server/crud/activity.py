@@ -254,7 +254,7 @@ class Activities:
         sub = model.Subscription(
             user_id=observer.id,
             ob_type=desc.ob_type,
-            ob_refs=desc.ob_refs,
+            ob_refs=desc.ob_ids,
             subscribed=True)
         self.session.add(sub)
         return sub
@@ -274,32 +274,36 @@ class Activities:
         False if the user has explicitly unsubscribed, or None if no
         subscription has been made yet (effectively False).
         '''
+        subs = self.subscriptions(observer, ob)
+        if len(subs) == 0:
+            return None
+        return subs[-1].subscribed
+
+    def subscriptions(self, observer, ob):
+        '''
+        Get a list of subscriptions that are active for the given object, in
+        order of increasing priority. That is, the last item in the list
+        determines the actual subscription state.
+        '''
         desc = ob.action_descriptor
         subs = list(self.session.query(model.Subscription)
             .filter(model.Subscription.user_id == observer.id,
                     model.Subscription.ob_refs.contained_by(desc.ob_refs))
             .all())
-
-        # Find deepest matching subscription
-        deepest_sub = None
-        max_depth = -1
         ob_refs = [str(ref) for ref in desc.ob_refs]
-        for sub in subs:
-            depth = ob_refs.index(str(sub.ob_refs[-1]))
-            if depth > max_depth:
-                deepest_sub = sub
-                max_depth = depth
-        if deepest_sub:
-            return deepest_sub.subscribed
-        else:
-            return None
+        subs.sort(key=lambda sub: ob_refs.index(str(sub.ob_refs[-1])))
+        return subs
 
 
 class SubscriptionHandler(handlers.BaseHandler):
 
     @tornado.web.authenticated
-    def get(self, user_id, object_ids):
-        object_ids = object_ids.split('/')
+    def get(self, ob_type, ids):
+        if ob_type != '':
+            self.query(ob_type, ids.split(','))
+            return
+
+        subscription_id = ids
         with model.session_scope() as session:
             user = session.query(model.AppUser).get(user_id)
             if not user:
@@ -307,9 +311,13 @@ class SubscriptionHandler(handlers.BaseHandler):
 
             self.check_authz(user)
 
-            subscription = self.get_subscription(session, user_id, object_ids)
+            subscription = (session.query(model.Subscription)
+                .get(subscription_id))
             if not subscription:
-                raise handlers.MissingDocError("No subscription for that object")
+                raise handlers.MissingDocError("No such subscription")
+            if str(subscription.user_id) != user_id:
+                raise handlers.ModelError(
+                    "That subscription does not belong to that user")
 
             to_son = ToSon(include=[
                 r'/created$',
@@ -324,9 +332,11 @@ class SubscriptionHandler(handlers.BaseHandler):
         self.write(json_encode(son))
         self.finish()
 
-    @tornado.web.authenticated
-    def put(self, user_id, object_ids):
-        object_ids = object_ids.split('/')
+    def query(self, ob_type, object_ids):
+        user_id = self.get_argument('userId', '')
+        if user_id == '':
+            user_id = str(self.current_user.id)
+
         with model.session_scope() as session:
             user = session.query(model.AppUser).get(user_id)
             if not user:
@@ -334,22 +344,84 @@ class SubscriptionHandler(handlers.BaseHandler):
 
             self.check_authz(user)
 
-            subscription = self.get_subscription(session, user_id, object_ids)
-            if not subscription:
-                self.check_exists(
-                    session, self.request_son['ob_type'], object_ids)
+            ob = self.get_ob(session, ob_type, object_ids)
+            if not ob:
+                raise handlers.MissingDocError("No such object")
 
-                subscription = model.Subscription(
-                    user_id=user_id,
-                    ob_refs=object_ids,
-                    ob_type=self.request_son['ob_type'])
-            self.update(subscription, self.request_son)
+            act = Activities(session)
+            subs = act.subscriptions(user, ob)
 
-        self.get(user_id, object_ids)
+            desc = ob.action_descriptor
+            sub_details = {
+                'ob_type': desc.ob_type,
+                'ob_ids': desc.ob_ids,
+                'message': desc.message,
+                'subscribed': len(subs) > 0 and subs[-1].subscribed,
+                'subscriptions': subs
+            }
+
+            to_son = ToSon(include=[
+                r'/created$',
+                r'/subscribed$',
+                r'/ob_type$',
+                r'/ob_refs/?.*$',
+                r'^/message$',
+                r'^/user_id$',
+                r'^/ob_ids/?.*$',
+                r'/subscriptions$',
+                r'/subscriptions/[0-9]+$',
+            ])
+            son = to_son(sub_details)
+
+            to_son = ToSon(include=[
+                r'/id$',
+                r'/title$',
+                r'/name$',
+                r'/survey_id$',
+            ])
+            for s in son['subscriptions']:
+                o = self.get_ob(session, s['obType'], s['obRefs'])
+                if o:
+                    s['ob'] = to_son(o)
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(son))
+        self.finish()
 
     @tornado.web.authenticated
-    def delete(self, user_id, object_ids):
-        object_ids = object_ids.split('/')
+    def post(self, ob_type, object_ids):
+        if ob_type == '':
+            raise handlers.ModelError(
+                "Object type required when creating a subscription")
+
+        user_id = self.get_argument('userId', '')
+        if user_id == '':
+            user_id = str(self.current_user.id)
+
+        self.get(ob_type, subscription_id)
+
+    @tornado.web.authenticated
+    def put(self, ob_type, subscription_id):
+        if ob_type != '':
+            raise handlers.ModelError(
+                "Can't provide object type when updating a subscription")
+
+        user_id = self.get_argument('userId', '')
+        if user_id == '':
+            user_id = str(self.current_user.id)
+
+        self.get(ob_type, subscription_id)
+
+    @tornado.web.authenticated
+    def delete(self, ob_type, subscription_id):
+        if ob_type != '':
+            raise handlers.ModelError(
+                "Can't provide object type when deleting a subscription")
+
+        user_id = self.get_argument('userId', '')
+        if user_id == '':
+            user_id = str(self.current_user.id)
+
         with model.session_scope() as session:
             user = session.query(model.AppUser).get(user_id)
             if not user:
@@ -364,17 +436,7 @@ class SubscriptionHandler(handlers.BaseHandler):
 
         self.finish()
 
-    def get_subscription(self, session, user_id, object_ids):
-        query = (session.query(model.Subscription)
-            .filter(model.Subscription.user_id == user_id,
-                    model.Subscription.ob_refs == object_ids))
-        try:
-            subscription = query.one()
-        except sqlalchemy.exc.StatementError as e:
-            return None
-        return subscription
-
-    def check_exists(self, session, ob_type, ob_refs):
+    def get_ob(self, session, ob_type, ob_refs):
         def arglen(n, min_, max_=None):
             if max_ is None:
                 max_ = min_
@@ -426,8 +488,7 @@ class SubscriptionHandler(handlers.BaseHandler):
         else:
             raise model.ModelError("Can't subscribe to '%s' type" % ob_type)
 
-        if query.count() == 0:
-            raise model.MissingDocError("No such object")
+        return query.first()
 
     def check_authz(self, user):
         if self.has_privillege('admin'):
@@ -436,10 +497,10 @@ class SubscriptionHandler(handlers.BaseHandler):
             return
         elif not self.has_privillege('org_admin'):
             raise handlers.AuthzError(
-                "You can't view another user's subscriptions.")
+                "You can't access another user's subscriptions.")
         elif str(user.organisation_id) != str(self.current_user.organisation_id):
             raise handlers.AuthzError(
-                "You can't view another organisation's user's subscriptions.")
+                "You can't access another organisation's user's subscriptions.")
 
     def update(self, subscription, son):
         '''

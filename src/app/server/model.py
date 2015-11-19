@@ -219,7 +219,7 @@ class Survey(Base):
             self.title,
             'program',
             [self.id],
-            [self.tracking_id, self.id])
+            [self.id])
 
     __table_args__ = (
         Index('survey_tracking_id_index', tracking_id),
