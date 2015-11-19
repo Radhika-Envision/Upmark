@@ -12,7 +12,7 @@ import sqlalchemy
 import datetime
 import xlsxwriter
 
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, lazyload
 from tornado import gen
 import tornado.web
 from tornado.concurrent import run_on_executor
@@ -532,7 +532,6 @@ class Exporter():
                 response_types = [part["parts"] for part in assessment.survey._response_types
                                     if len(part["parts"]) == max_len_of_response][0]
                 response_parts = [part['name'] for part in  response_types]
-                log.info("response_parts: %s", response_parts)
 
                 worksheet.set_column(level_length + 1, 
                     level_length + max_len_of_response + 8, 15)
@@ -563,35 +562,27 @@ class Exporter():
                     if response.measure.weight != 0:
                         score = response.score / response.measure.weight
 
-                    final_response = session.query(model.Response)\
-                                        .filter_by(assessment_id=assessment.id,
-                                                   measure_id=response.measure.id,
-                                                   approval='final').first()
-                    if final_response:
-                        worksheet.write(line, level_length + max_len_of_response + 1,
-                                final_response.modified, format_date)
-                        worksheet.write(line, level_length + max_len_of_response + 2,
-                                final_response.user.email, format)
+                    export_approval_status = ['final', 'reviewed', 'approved']
 
-                    reviewed_response = session.query(model.Response)\
-                                        .filter_by(assessment_id=assessment.id,
-                                                   measure_id=response.measure.id,
-                                                   approval='reviewed').first()
-                    if reviewed_response:
-                        worksheet.write(line, level_length + max_len_of_response + 3,
-                                reviewed_response.modified, format_date)
-                        worksheet.write(line, level_length + max_len_of_response + 4,
-                                reviewed_response.user.email, format)
+                    self.write_approval(worksheet, line, 
+                                level_length + max_len_of_response, response,
+                                response.user, format, format_date)
+                    if response.approval in export_approval_status:
+                        export_approval_status.remove(response.approval)
 
-                    approved_response = session.query(model.Response)\
-                                        .filter_by(assessment_id=assessment.id,
-                                                   measure_id=response.measure.id,
-                                                   approval='approved').first()
-                    if approved_response:
-                        worksheet.write(line, level_length + max_len_of_response + 5,
-                                approved_response.modified, format_date)
-                        worksheet.write(line, level_length + max_len_of_response + 6,
-                                approved_response.user.email, format)
+                    for approval_status in export_approval_status:
+                        res = session.query(model.ResponseHistory).\
+                            filter_by(id=response.id, approval=approval_status).\
+                            order_by(model.ResponseHistory.modified.desc()).\
+                            first()
+                        if res:
+                            user = session.query(model.AppUser).\
+                                filter_by(id=res.user_id).\
+                                first()
+
+                            self.write_approval(worksheet, line, 
+                                level_length + max_len_of_response, res,
+                                user, format, format_date)
 
                     worksheet.write(line, level_length + max_len_of_response + 7,
                             score, format_percent)
@@ -599,13 +590,34 @@ class Exporter():
                             qnode.total_weight, format_no_wrap)
                     worksheet.write(line, level_length + max_len_of_response + 9,
                             response.comment, format_comment)
-                    url = "{0}/#/measure/{1}?assessment={2}&parent={3}".format(
-                            base_url, response.measure.id, assessment.id, qnode.id)
+                    escaped_url = url_escape("/#/measure/{0}?assessment={1}&parent={2}".format(
+                          response.measure.id, assessment.id, qnode.id))
+
+                    url = base_url + "/redirect?url=" + escaped_url
                     worksheet.write_url(line, level_length + max_len_of_response + 10,
                             url, url_format, "Link")
                     line = line + 1
 
         workbook.close()
+
+    def write_approval(self, worksheet, line, column_num, response, user, 
+                       format, format_date):
+
+        pad = None
+        if response.approval == 'final':
+            pad = 0
+        elif response.approval == 'reviewed':
+            pad = 2
+        elif response.approval == 'approved':
+            pad = 4
+
+        if pad is not None:
+            worksheet.write(line, column_num + pad + 1,
+                    response.modified, format_date)
+            worksheet.write(line, column_num + pad + 2,
+                    user.name, format)
+
+
 
     def write_metadata(self, workbook, sheet, assessment):
         sheet.set_column(0, 1, 40)
