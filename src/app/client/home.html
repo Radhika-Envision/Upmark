@@ -86,9 +86,9 @@
                     ng-if="verbs(action) != 'broadcast'">
                 <h4>{{action.message}}</h4>
                 <p class="text-muted">
-                    {{action.subject.name}}
+                    <em>{{action.subject.name}}</em>
                     {{verbs(action)}}
-                    this {{obType(action)}}
+                    this <em>{{obType(action)}}</em>
                     {{action.created * 1000 | timeAgo:'medium'}}
                     <i class="fa fa-thumb-tack" ng-if="action.sticky"
                         title="Pinned"></i>
@@ -114,9 +114,24 @@
             </a>
         </li>
     </ul>
-    <p class="text-muted">
-        You can post to other people's timelines by pressing the <i class="fa fa-envelope-o"></i> button.
-    </p>
+
+    <docs ng-if="checkRole('post_message')">
+        <i class="fa-li fa fa-envelope-o fa-border"></i>
+        <h3>Timeline</h3>
+        <p>
+            Actions that people perform will appear here
+            if you have subscribed to them. For example, if you respond to a
+            <em>measure</em> (question), you will be subscribed to the
+            <em>submission</em> that it belongs to. You will then be notified of
+            other changes to that submission. You can change your subscriptions;
+            look for the <i class="fa fa-envelope"></i> button in the toolbar
+            while browsing the site.
+        </p>
+        <p>
+            You can post to other people's timelines by pressing the
+            <i class="fa fa-envelope-o"></i> button.
+        </p>
+    </docs>
 
 </div> <!-- Timeline -->
 
@@ -184,6 +199,7 @@
 
     <docs>
         <i class="fa-li fa fa-envelope-o fa-border"></i>
+        <h3>Posting to the Timeline</h3>
         You can post messages to the timeline.
         <span ng-if="checkRole('post_to_all')">
             You can choose to make your message visible to all users, or only
@@ -201,3 +217,13 @@
         </p>
     </docs>
 </div>
+
+<docs>
+    <i class="fa-li fa fa-keyboard-o fa-border"></i>
+    <h3>Keyboard Shortcuts</h3>
+    <p>
+        Keyboard shortcuts are available throughout the site. They change
+        depending on which screen you are looking at.
+        Press <kbd>?</kbd> to explore.
+    </p>
+</docs>
