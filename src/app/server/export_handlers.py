@@ -590,10 +590,10 @@ class Exporter():
                             qnode.total_weight, format_no_wrap)
                     worksheet.write(line, level_length + max_len_of_response + 9,
                             response.comment, format_comment)
-                    escaped_url = url_escape("/#/measure/{0}?assessment={1}&parent={2}".format(
-                          response.measure.id, assessment.id, qnode.id))
 
-                    url = base_url + "/redirect?url=" + escaped_url
+                    url = base_url + "/#/measure/{0}?assessment={1}&parent={2}".format(
+                          response.measure.id, assessment.id, qnode.id)
+
                     worksheet.write_url(line, level_length + max_len_of_response + 10,
                             url, url_format, "Link")
                     line = line + 1
