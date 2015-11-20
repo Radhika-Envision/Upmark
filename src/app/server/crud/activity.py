@@ -151,6 +151,11 @@ class ActivityHandler(handlers.BaseHandler):
             self.check_create(activity)
             son = ActivityHandler.TO_SON(activity)
 
+            act = Activities(session)
+            if ob and not act.has_subscription(self.current_user, ob):
+                act.subscribe(self.current_user, ob)
+                self.reason("Subscribed to " + ob.ob_type)
+
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
