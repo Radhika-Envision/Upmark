@@ -436,9 +436,7 @@ class AuthLoginHandler(MainHandler):
                 "superuser", str(user.id).encode('utf8'),
                 expires_days=AuthLoginHandler.EXPIRE_DAYS)
 
-        next = self.get_argument("next", "/")
-        log.info("next2: %s", next)
-        self.redirect(next)
+        self.redirect('/' + self.get_argument("next", "#/"))
 
     @property
     def xsrf_token(self):
