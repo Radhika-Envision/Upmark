@@ -67,12 +67,20 @@ class Organisation(Base):
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     @property
+    def ob_type(self):
+        return 'organisation'
+
+    @property
+    def action_lineage(self):
+        return [self]
+
+    @property
     def action_descriptor(self):
         return ActionDescriptor(
             self.name,
-            'organisation',
+            self.ob_type,
             [self.id],
-            [self.id])
+            [item.id for item in self.action_lineage])
 
     __table_args__ = (
         Index('organisation_name_key', func.lower(name), unique=True),
@@ -104,12 +112,24 @@ class AppUser(Base):
         return sha256_crypt.verify(plaintext, self.password)
 
     @property
+    def ob_type(self):
+        return 'user'
+
+    @property
+    def ob_ids(self):
+        return [self.id]
+
+    @property
+    def action_lineage(self):
+        return [self.organisation, self]
+
+    @property
     def action_descriptor(self):
         return ActionDescriptor(
             self.name,
-            'user',
-            [self.id],
-            [self.organisation_id, self.id])
+            self.ob_type,
+            self.ob_ids,
+            [item.id for item in self.action_lineage])
 
     __table_args__ = (
         Index('appuser_email_key', func.lower(email), unique=True),
@@ -214,12 +234,24 @@ class Survey(Base):
             hierarchy.update_stats_descendants()
 
     @property
+    def ob_type(self):
+        return 'program'
+
+    @property
+    def ob_ids(self):
+        return [self.id]
+
+    @property
+    def action_lineage(self):
+        return [self]
+
+    @property
     def action_descriptor(self):
         return ActionDescriptor(
             self.title,
-            'program',
-            [self.id],
-            [self.id])
+            self.ob_type,
+            self.ob_ids,
+            [item.id for item in self.action_lineage])
 
     __table_args__ = (
         Index('survey_tracking_id_index', tracking_id),
@@ -311,12 +343,24 @@ class Hierarchy(Base):
         self.update_stats()
 
     @property
+    def ob_type(self):
+        return 'survey'
+
+    @property
+    def ob_ids(self):
+        return [self.id, self.survey_id]
+
+    @property
+    def action_lineage(self):
+        return [self.survey, self]
+
+    @property
     def action_descriptor(self):
         return ActionDescriptor(
             self.title,
-            'survey',
-            [self.id, self.survey_id],
-            [self.survey_id, self.id])
+            self.ob_type,
+            self.ob_ids,
+            [item.id for item in self.action_lineage])
 
     def __repr__(self):
         return "Hierarchy(title={}, survey={})".format(
@@ -402,13 +446,24 @@ class QuestionNode(Base):
         return " ".join(["%d." % (q.seq + 1) for q in self.lineage()])
 
     @property
+    def ob_type(self):
+        return 'qnode'
+
+    @property
+    def ob_ids(self):
+        return [self.id, self.survey_id]
+
+    @property
+    def action_lineage(self):
+        return [self.survey, self.hierarchy] + self.lineage
+
+    @property
     def action_descriptor(self):
-        lineage = [q.id for q in self.lineage()]
         return ActionDescriptor(
             self.title,
-            'qnode',
-            [self.id, self.survey_id],
-            [self.survey_id, self.hierarchy_id] + lineage)
+            self.ob_type,
+            self.ob_ids,
+            [item.id for item in self.action_lineage])
 
     def __repr__(self):
         return "QuestionNode(title={}, survey={})".format(
@@ -496,14 +551,27 @@ class Measure(Base):
         return mixed_lineage + [self]
 
     @property
+    def ob_type(self):
+        return 'measure'
+
+    @property
+    def ob_ids(self):
+        return [self.id, self.survey_id]
+
+    @property
+    def action_lineage(self):
+        hs = [qm.qnode.hierarchy for qm in self.qnode_measures]
+        return [self.survey] + hs + self.lineage()
+
+    @property
     def action_descriptor(self):
         hs = [qm.qnode.hierarchy_id for qm in self.qnode_measures]
         lineage = [entity.id for entity in self.lineage()]
         return ActionDescriptor(
             self.title,
-            'measure',
-            [self.id, self.survey_id],
-            [self.survey_id] + hs + lineage)
+            self.ob_type,
+            self.ob_ids,
+            [item.id for item in self.action_lineage])
 
     def __repr__(self):
         return "Measure(title={}, survey={})".format(

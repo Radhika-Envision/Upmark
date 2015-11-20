@@ -938,6 +938,14 @@ ul.fa-ul.timeline {
         background: transparent;
     }
 
+    /* Object types */
+    > li.broadcast {
+        $col: $primary-colour;
+        border-color: $col;
+        > .fa-li > .fa-badge {
+            @include text-shadow-outline($col);
+        }
+    }
     > li.association {
         $col: mix($aq-bar1, white, 30%);
         border-color: $col;
@@ -954,6 +962,36 @@ ul.fa-ul.timeline {
     }
     > li.answer {
         $col: mix($aq-bar3, white, 30%);
+        border-color: $col;
+        > .fa-li > .fa-badge {
+            @include text-shadow-outline($col);
+        }
+    }
+
+    /* Selection states */
+    > li.selected {
+        $col: #8fde8f;
+        border-color: $col;
+        > .fa-li > .fa-badge {
+            @include text-shadow-outline($col);
+        }
+    }
+    > li.selected.inherited {
+        $col: #c3e2c3;
+        border-color: $col;
+        > .fa-li > .fa-badge {
+            @include text-shadow-outline($col);
+        }
+    }
+    > li.unselected {
+        $col: #e69090;
+        border-color: $col;
+        > .fa-li > .fa-badge {
+            @include text-shadow-outline($col);
+        }
+    }
+    > li.unselected.inherited {
+        $col: #d8b0b0;
         border-color: $col;
         > .fa-li > .fa-badge {
             @include text-shadow-outline($col);

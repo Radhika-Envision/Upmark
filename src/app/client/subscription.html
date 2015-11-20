@@ -7,25 +7,66 @@
         </button>
     </div>
     <h2 page-title>
-        Subscription to {{subDetails.obType}}
+        Subscription to {{acts.obType(subscription.obType)}}
     </h2>
 </div>
 </div>
 
 <div class="container">
-    <p>
-        Changes to this {{subDetails.obType}}
-        <span ng-if="subDetails.subscribed">
-            <strong>will appear</strong>
-        </span>
-        <span ng-if="!subDetails.subscribed">
-            will <strong>not</strong> appear
-        </span>
+    <p ng-if="subscription.effectivelySubscribed">
+        <i class="fa fa-check"></i>
+        Changes to this {{subscription.obType}}
+        <strong>will appear</strong>
         in <a href="#/">your timeline</a> because:
     </p>
-    <ul class="list-results">
-        <li ng-repeat="sub in subDetails.subscriptions">
-            <h4>{{sub.ob.title || sub.ob.name}}</h4>
+    <p ng-if="!subscription.effectivelySubscribed">
+        <i class="fa fa-times"></i>
+        Changes to this {{subscription.obType}}
+        will <strong>not</strong> appear
+        in <a href="#/">your timeline</a> because:
+    </p>
+    <ul class="list-results fa-ul fa-ul-big timeline">
+        <li ng-repeat="sub in subscriptions"
+                ng-class="{
+                    selected: sub.effectivelySubscribed,
+                    unselected: !sub.effectivelySubscribed,
+                    inherited: sub.subscribed == null
+                }">
+            <i class="fa fa-li fa-border fa-border-fill"
+                    ng-class="{
+                        'fa-check': sub.subscribed === true,
+                        'fa-times': sub.subscribed === false,
+                        'fa-long-arrow-down': sub.subscribed == null,
+                    }">
+            </i>
+            <a ng-href="#{{acts.url(sub)}}">
+                <h4>{{sub.title}}</h4>
+                <p class="text-muted">
+                    <span ng-if="sub.subscribed === true">
+                        You have subscribed to this
+                        <em>{{acts.obType(sub)}}</em>
+                    </span>
+                    <span ng-if="sub.subscribed === false">
+                        You have unsubscribed from this
+                        <em>{{acts.obType(sub)}}</em>
+                    </span>
+                    <span ng-if="sub.subscribed == null">
+                        You have neither subscribed nor unsubscribed from this
+                        <em>{{acts.obType(sub)}}</em>
+                    </span>
+
+                    <span ng-if="!$last &&
+                            subscriptions[$index + 1].effectivelySubscribed ==
+                                sub.effectivelySubscribed">
+                        and
+                    </span>
+                    <span ng-if="!$last &&
+                            subscriptions[$index + 1].effectivelySubscribed !=
+                                sub.effectivelySubscribed">
+                        but
+                    </span>
+                </p>
+            </a>
         </li>
     </ul>
 </div> <!-- container -->

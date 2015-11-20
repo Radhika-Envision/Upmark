@@ -350,42 +350,28 @@ class SubscriptionHandler(handlers.BaseHandler):
 
             act = Activities(session)
             subs = act.subscriptions(user, ob)
+            subscription_map = {
+                tuple(sub.ob_refs): sub.subscribed
+                for sub in act.subscriptions(user, ob)}
 
-            desc = ob.action_descriptor
-            sub_details = {
-                'ob_type': desc.ob_type,
-                'ob_ids': desc.ob_ids,
-                'message': desc.message,
-                'subscribed': len(subs) > 0 and subs[-1].subscribed,
-                'subscriptions': subs
-            }
+            lineage = [{
+                'title': hasattr(item, 'title') and item.title or item.name,
+                'ob_type': item.ob_type,
+                'ob_ids': item.ob_ids,
+                'subscribed': subscription_map.get(tuple(item.ob_ids), None)
+            } for item in ob.action_lineage]
 
             to_son = ToSon(include=[
-                r'/created$',
+                r'/title$',
                 r'/subscribed$',
                 r'/ob_type$',
-                r'/ob_refs/?.*$',
-                r'^/message$',
-                r'^/user_id$',
-                r'^/ob_ids/?.*$',
-                r'/subscriptions$',
-                r'/subscriptions/[0-9]+$',
+                r'/ob_ids/?.*$',
+                r'/[0-9]+$',
             ])
-            son = to_son(sub_details)
-
-            to_son = ToSon(include=[
-                r'/id$',
-                r'/title$',
-                r'/name$',
-                r'/survey_id$',
-            ])
-            for s in son['subscriptions']:
-                o = self.get_ob(session, s['obType'], s['obRefs'])
-                if o:
-                    s['ob'] = to_son(o)
+            sons = to_son(lineage)
 
         self.set_header("Content-Type", "application/json")
-        self.write(json_encode(son))
+        self.write(json_encode(sons))
         self.finish()
 
     @tornado.web.authenticated

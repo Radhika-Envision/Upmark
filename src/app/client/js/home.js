@@ -39,50 +39,11 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
 }])
 
 
-.controller('HomeCtrl', ['$scope', 'Activity', 'Notifications', '$q', 'format',
-            'Current', 'homeAuthz', 'Card', 'hotkeys',
-        function($scope, Activity, Notifications, $q, format, Current,
-            homeAuthz, Card, hotkeys) {
+.service('ActivityTransform', ['format', function(format) {
+    this.verbs = function(action) {
+        if (!action)
+            return "";
 
-    $scope.activity = null;
-    $scope.current = Current;
-
-    $scope.cards = Card.query({});
-
-    $scope.secondsInADay = 24 * 60 * 60;
-    $scope.activityParams = {
-        period: 7 * $scope.secondsInADay,
-        until: Date.now() / 1000
-    };
-    $scope.goToNow = function() {
-        $scope.activityParams.until = Date.now() / 1000;
-    };
-    $scope.previousActivities = function() {
-        $scope.activityParams.until -= $scope.activityParams.period;
-    };
-    $scope.nextActivities = function() {
-        $scope.activityParams.until += $scope.activityParams.period;
-    };
-
-    $scope.$watch('activityParams', function(vals) {
-        $scope.updateActivities();
-    }, true);
-
-    $scope.updateActivities = function() {
-        Activity.get($scope.activityParams).$promise.then(
-            function success(activity) {
-                $scope.activity = activity;
-                Notifications.remove('activity');
-            },
-            function failure(details) {
-                Notifications.set('activity', 'error',
-                    "Could not get recent activity: " + details.statusText);
-                return $q.reject(details);
-            }
-        );
-    };
-
-    $scope.verbs = function(action) {
         var expr = "";
         for (var i = 0; i < action.verbs.length; i++) {
             if (i > 0 && i == action.verbs.length - 1)
@@ -121,7 +82,10 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
         return expr;
     };
 
-    $scope.obType = function(action) {
+    this.obType = function(action) {
+        if (!action)
+            return null;
+
         switch (action.obType) {
         case 'qnode':
             return 'category';
@@ -130,7 +94,10 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
         }
     };
 
-    $scope.url = function(action) {
+    this.url = function(action) {
+        if (!action)
+            return null;
+
         switch (action.obType) {
         case 'organisation':
             return format("/org/{}", action.obIds[0]);
@@ -154,7 +121,10 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
         }
     };
 
-    $scope.cls = function(action) {
+    this.cls = function(action) {
+        if (!action)
+            return null;
+
         if (action.verbs && action.verbs[0] == 'broadcast')
             return 'broadcast';
 
@@ -177,7 +147,10 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
         }
     };
 
-    $scope.icons = function(action) {
+    this.icons = function(action) {
+        if (!action)
+            return null;
+
         var icons = [];
         for (var i = 0; i < action.verbs.length; i++) {
             var verb = action.verbs[i];
@@ -207,6 +180,52 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
             }
         }
         return icons;
+    };
+}])
+
+
+.controller('HomeCtrl', ['$scope', 'Activity', 'Notifications', '$q', 'format',
+            'Current', 'homeAuthz', 'Card', 'hotkeys', 'ActivityTransform',
+        function($scope, Activity, Notifications, $q, format, Current,
+            homeAuthz, Card, hotkeys, ActivityTransform) {
+
+    $scope.acts = ActivityTransform;
+    $scope.activity = null;
+    $scope.current = Current;
+
+    $scope.cards = Card.query({});
+
+    $scope.secondsInADay = 24 * 60 * 60;
+    $scope.activityParams = {
+        period: 7 * $scope.secondsInADay,
+        until: Date.now() / 1000
+    };
+    $scope.goToNow = function() {
+        $scope.activityParams.until = Date.now() / 1000;
+    };
+    $scope.previousActivities = function() {
+        $scope.activityParams.until -= $scope.activityParams.period;
+    };
+    $scope.nextActivities = function() {
+        $scope.activityParams.until += $scope.activityParams.period;
+    };
+
+    $scope.$watch('activityParams', function(vals) {
+        $scope.updateActivities();
+    }, true);
+
+    $scope.updateActivities = function() {
+        Activity.get($scope.activityParams).$promise.then(
+            function success(activity) {
+                $scope.activity = activity;
+                Notifications.remove('activity');
+            },
+            function failure(details) {
+                Notifications.set('activity', 'error',
+                    "Could not get recent activity: " + details.statusText);
+                return $q.reject(details);
+            }
+        );
     };
 
     $scope.remove = function(action) {
