@@ -71,6 +71,10 @@ class Organisation(Base):
         return 'organisation'
 
     @property
+    def ob_ids(self):
+        return [self.id]
+
+    @property
     def action_lineage(self):
         return [self]
 
@@ -79,7 +83,7 @@ class Organisation(Base):
         return ActionDescriptor(
             self.name,
             self.ob_type,
-            [self.id],
+            self.ob_ids,
             [item.id for item in self.action_lineage])
 
     __table_args__ = (

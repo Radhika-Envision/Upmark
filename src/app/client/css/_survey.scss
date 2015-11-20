@@ -297,6 +297,9 @@ dt.active:before {
     > a {
         vertical-align: top;
     }
+    > .btn:first-child, > a:first-child {
+        margin-left: 0;
+    }
 
     @media print {
         display: none !important;
@@ -915,6 +918,10 @@ ul.fa-ul.timeline {
             position: absolute;
             right: 0;
             top: 0;
+            padding: 4px;
+            background-color: white;
+            border-radius: 15px;
+            margin: 4px;
         }
 
         .text-muted em {

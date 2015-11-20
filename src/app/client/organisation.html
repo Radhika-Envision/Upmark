@@ -21,6 +21,9 @@
                 ng-click="edit.edit()"
                 ng-if="!edit.model && checkRole('org_modify')">
             <i class="fa fa-pencil"></i></button>
+        <a class="btn btn-default btn-round" title="Subscriptions"
+                ng-href="#/subscription/organisation?id={{org.id}}">
+            <i class="fa fa-envelope"></i></a>
     </div>
     <h2 page-title>
         <i class="fa fa-fw fa-university"></i>
