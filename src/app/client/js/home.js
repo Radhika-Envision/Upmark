@@ -259,6 +259,18 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
         );
     };
 
+    $scope.subscriptionUrl = function(action) {
+        var url = '/subscription/' + action.obType;
+        for (var i = 0; i < action.obIds.length; i++) {
+            if (i == 0)
+                url += '?';
+            else
+                url += '&';
+            url += 'id=' + action.obIds[i];
+        }
+        return url;
+    };
+
     $scope.checkRole = homeAuthz(Current);
 
     $scope.showPost = false;

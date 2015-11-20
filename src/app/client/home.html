@@ -76,6 +76,12 @@
                     </i>
                 </button>
                 <a class="btn btn-default btn-round"
+                        title="View subscription details"
+                        ng-href="#{{subscriptionUrl(action)}}"
+                        ng-if="action.obIds.length">
+                    <i class="fa fa-fw fa-question"></i>
+                </a>
+                <a class="btn btn-default btn-round"
                         title="View {{action.subject.name}}'s profile"
                         ng-href="#/user/{{action.subject.id}}">
                     <i class="fa fa-fw fa-user"></i>
