@@ -504,7 +504,7 @@ class Exporter():
         format_comment = workbook.add_format()
         format_percent = workbook.add_format()
         format_percent.set_num_format(10)
-        format_date = workbook.add_format({'num_format': 'dd/mm/yy hh:mm:ss'})
+        format_date = workbook.add_format({'num_format': 'dd/mmm/yy'})
         url_format = workbook.add_format({
             'font_color': 'blue',
             'underline':  1
@@ -536,7 +536,7 @@ class Exporter():
                 worksheet.set_column(level_length + 1, 
                     level_length + max_len_of_response + 8, 15)
                 worksheet.set_column(level_length + max_len_of_response + 9,
-                    level_length + max_len_of_response + 9, 200)
+                    level_length + max_len_of_response + 9, 100)
 
                 # Header from heirarchy levels
                 self.write_response_header(
@@ -613,9 +613,9 @@ class Exporter():
 
         if pad is not None:
             worksheet.write(line, column_num + pad + 1,
-                    response.modified, format_date)
-            worksheet.write(line, column_num + pad + 2,
                     user.name, format)
+            worksheet.write(line, column_num + pad + 2,
+                    response.modified, format_date)
 
 
 
