@@ -292,8 +292,10 @@ div[textarea-label] {
     }
 }
 
-:not(:hover) > .hover-parent {
-    display: none;
+/* Use in conjunction with .fade to make something fade in when the mouse is
+   over the parent element */
+:hover > .hover-parent {
+    opacity: 1;
 }
 
 :not(ng-include):not(.nested)>.header .btn-default, .well .btn-default {

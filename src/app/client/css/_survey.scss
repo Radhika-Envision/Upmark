@@ -354,6 +354,7 @@ ul.list-results {
             padding: 8px;
         }
         > a {
+            @include transition(background-color 0.3s);
             color: #555;
             > h4 {
                 font-weight: bold;
