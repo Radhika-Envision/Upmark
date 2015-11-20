@@ -305,19 +305,14 @@ class SubscriptionHandler(handlers.BaseHandler):
 
         subscription_id = ids
         with model.session_scope() as session:
-            user = session.query(model.AppUser).get(user_id)
-            if not user:
-                raise handlers.MissingDocError("No such user")
-
-            self.check_authz(user)
-
             subscription = (session.query(model.Subscription)
                 .get(subscription_id))
             if not subscription:
                 raise handlers.MissingDocError("No such subscription")
-            if str(subscription.user_id) != user_id:
+
+            if subscription.user_id != self.current_user.id:
                 raise handlers.ModelError(
-                    "That subscription does not belong to that user")
+                    "Can't view another user's subscriptions")
 
             to_son = ToSon(include=[
                 r'/created$',
@@ -333,28 +328,22 @@ class SubscriptionHandler(handlers.BaseHandler):
         self.finish()
 
     def query(self, ob_type, object_ids):
-        user_id = self.get_argument('userId', '')
-        if user_id == '':
-            user_id = str(self.current_user.id)
-
         with model.session_scope() as session:
-            user = session.query(model.AppUser).get(user_id)
-            if not user:
-                raise handlers.MissingDocError("No such user")
-
-            self.check_authz(user)
-
             ob = self.get_ob(session, ob_type, object_ids)
             if not ob:
                 raise handlers.MissingDocError("No such object")
 
             act = Activities(session)
-            subs = act.subscriptions(user, ob)
+            subs = act.subscriptions(self.current_user, ob)
             subscription_map = {
                 tuple(sub.ob_refs): sub.subscribed
-                for sub in act.subscriptions(user, ob)}
+                for sub in act.subscriptions(self.current_user, ob)}
+            subscription_id_map = {
+                tuple(sub.ob_refs): sub.id
+                for sub in act.subscriptions(self.current_user, ob)}
 
             lineage = [{
+                'id': subscription_id_map.get(tuple(item.ob_ids), None),
                 'title': hasattr(item, 'title') and item.title or item.name,
                 'ob_type': item.ob_type,
                 'ob_ids': item.ob_ids,
@@ -362,6 +351,7 @@ class SubscriptionHandler(handlers.BaseHandler):
             } for item in ob.action_lineage]
 
             to_son = ToSon(include=[
+                r'/id$',
                 r'/title$',
                 r'/subscribed$',
                 r'/ob_type$',
@@ -376,15 +366,31 @@ class SubscriptionHandler(handlers.BaseHandler):
 
     @tornado.web.authenticated
     def post(self, ob_type, object_ids):
+        object_ids = object_ids.split(',')
+        log.error("%s", object_ids)
+
         if ob_type == '':
             raise handlers.ModelError(
                 "Object type required when creating a subscription")
 
-        user_id = self.get_argument('userId', '')
-        if user_id == '':
-            user_id = str(self.current_user.id)
+        try:
+            with model.session_scope() as session:
+                ob = self.get_ob(session, ob_type, object_ids)
+                if not ob:
+                    raise handlers.MissingDocError("No such object")
 
-        self.get(ob_type, subscription_id)
+                acts = Activities(session)
+                subscription = acts.subscribe(self.current_user, ob)
+                subscription.subscribed = self.request_son.get(
+                    'subscribed', False)
+
+                session.flush()
+                subscription_id = str(subscription.id)
+
+        except sqlalchemy.exc.IntegrityError as e:
+            raise handlers.ModelError.from_sa(e)
+
+        self.get('', subscription_id)
 
     @tornado.web.authenticated
     def put(self, ob_type, subscription_id):
@@ -392,11 +398,22 @@ class SubscriptionHandler(handlers.BaseHandler):
             raise handlers.ModelError(
                 "Can't provide object type when updating a subscription")
 
-        user_id = self.get_argument('userId', '')
-        if user_id == '':
-            user_id = str(self.current_user.id)
+        with model.session_scope() as session:
+            subscription = (session.query(model.Subscription)
+                .get(subscription_id))
 
-        self.get(ob_type, subscription_id)
+            if not subscription:
+                raise handlers.MissingDocError("No such subscription")
+
+            if subscription.user_id != self.current_user.id:
+                raise handlers.AuthzError(
+                    "You can't modify another user's subscriptions")
+
+            subscription.subscribed = self.request_son.get('subscribed', False)
+
+            subscription_id = str(subscription.id)
+
+        self.get('', subscription_id)
 
     @tornado.web.authenticated
     def delete(self, ob_type, subscription_id):
@@ -404,20 +421,17 @@ class SubscriptionHandler(handlers.BaseHandler):
             raise handlers.ModelError(
                 "Can't provide object type when deleting a subscription")
 
-        user_id = self.get_argument('userId', '')
-        if user_id == '':
-            user_id = str(self.current_user.id)
-
         with model.session_scope() as session:
-            user = session.query(model.AppUser).get(user_id)
-            if not user:
-                raise handlers.MissingDocError("No such user")
+            subscription = (session.query(model.Subscription)
+                .get(subscription_id))
 
-            self.check_authz(user)
-
-            subscription = self.get_subscription(session, user_id, object_ids)
             if not subscription:
                 raise model.MissingDocError("No subscription for that object")
+
+            if subscription.user_id != self.current_user.id:
+                raise handlers.AuthzError(
+                    "You can't modify another user's subscriptions")
+
             session.delete(subscription)
 
         self.finish()
@@ -428,7 +442,7 @@ class SubscriptionHandler(handlers.BaseHandler):
                 max_ = min_
             if len(ob_refs) < min_ or len(ob_refs) > max_:
                 raise handlers.ModelError(
-                    "Wrong number of IDs for '%s'" % ob_type)
+                    "Wrong number of IDs for %s" % ob_type)
             
         if ob_type == 'organisation':
             arglen(len(ob_refs), 1)
@@ -446,25 +460,22 @@ class SubscriptionHandler(handlers.BaseHandler):
                 .filter(model.Survey.id == ob_refs[0]))
 
         elif ob_type == 'survey':
-            arglen(len(ob_refs), 1, 2)
+            arglen(len(ob_refs), 2, 2)
             query = (session.query(model.Hierarchy)
-                .filter(model.Hierarchy.id == ob_refs[0]))
-            if len(ob_refs) > 1:
-                query = query.filter(model.Hierarchy.survey_id == ob_refs[1])
+                .filter(model.Hierarchy.id == ob_refs[0],
+                        model.Hierarchy.survey_id == ob_refs[1]))
 
         elif ob_type == 'qnode':
-            arglen(len(ob_refs), 1, 2)
+            arglen(len(ob_refs), 2, 2)
             query = (session.query(model.QuestionNode)
-                .filter(model.QuestionNode.id == ob_refs[0]))
-            if len(ob_refs) > 1:
-                query = query.filter(model.QuestionNode.survey_id == ob_refs[1])
+                .filter(model.QuestionNode.id == ob_refs[0],
+                        model.QuestionNode.survey_id == ob_refs[1]))
 
         elif ob_type == 'measure':
-            arglen(len(ob_refs), 1, 2)
+            arglen(len(ob_refs), 2, 2)
             query = (session.query(model.Measure)
-                .filter(model.Measure.id == ob_refs[0]))
-            if len(ob_refs) > 1:
-                query = query.filter(model.Measure.survey_id == ob_refs[1])
+                .filter(model.Measure.id == ob_refs[0],
+                        model.Measure.survey_id == ob_refs[1]))
 
         elif ob_type == 'submission':
             arglen(len(ob_refs), 1)

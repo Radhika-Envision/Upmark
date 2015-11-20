@@ -455,7 +455,7 @@ class QuestionNode(Base):
 
     @property
     def action_lineage(self):
-        return [self.survey, self.hierarchy] + self.lineage
+        return [self.survey, self.hierarchy] + self.lineage()
 
     @property
     def action_descriptor(self):
