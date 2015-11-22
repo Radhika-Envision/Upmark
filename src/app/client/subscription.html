@@ -49,12 +49,6 @@
             </i>
             <div class="toolbar hidden-print hover-parent fade">
                 <button class="btn btn-default btn-round"
-                        title="Remove this subscription"
-                        ng-click="remove(sub)"
-                        ng-if="sub.subscribed != null">
-                    <i class="fa fa-fw fa-trash-o"></i>
-                </button>
-                <button class="btn btn-default btn-round"
                         title="{{sub.effectivelySubscribed ?
                                  'Unsubscribe from this ' + acts.obType(sub) :
                                  'Subscribe to this ' + acts.obType(sub)}}"
@@ -63,6 +57,14 @@
                         ng-if="!sub.effectivelySubscribed"></i>
                     <i class="fa fa-fw fa-times"
                         ng-if="sub.effectivelySubscribed"></i>
+                </button>
+                <button class="btn btn-default btn-round"
+                        title="Remove this {{sub.subscribed === true ?
+                                 'subscription' :
+                                 'unsubscription'}}"
+                        ng-click="remove(sub)"
+                        ng-if="sub.subscribed != null">
+                    <i class="fa fa-fw fa-trash-o"></i>
                 </button>
             </div>
             <a ng-href="#{{acts.url(sub)}}"
