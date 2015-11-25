@@ -21,13 +21,13 @@ response = [r for r in response["DBSnapshots"] if r[
 
 if response:
     last_snapshot = sorted(
-        response, key=lambda snapshot: snapshot['InstanceCreateTime'], reverse=False)[0]
+        response, key=lambda snapshot: snapshot['SnapshotCreateTime'], reverse=False)[0]
 
     if last_snapshot:
         week_ago = now + datetime.timedelta(days=-7)
         print(week_ago)
-        print(last_snapshot['InstanceCreateTime'])
-        if last_snapshot['InstanceCreateTime'].replace(tzinfo=None) < week_ago:
+        print(last_snapshot['SnapshotCreateTime'])
+        if last_snapshot['SnapshotCreateTime'].replace(tzinfo=None) < week_ago:
             create_weekly_backup()
 else:
     create_weekly_backup()
