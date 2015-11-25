@@ -1394,8 +1394,8 @@ angular.module('wsaa.surveyQuestions', [
             query = format('assessment1={}',
                 $scope.assessment2 ? $scope.assessment2.id : '');
         }
-        return format('/statistics?{}&qnode={}',
-            query, $location.search()['qnode'] || '');
+        return format('/statistics?{}&qnode={}&approval={}',
+            query, $location.search()['qnode'] || '', $scope.approval);
     };
     $scope.getAssessmentUrl2 = function(assessment) {
         var query;
@@ -1407,8 +1407,8 @@ angular.module('wsaa.surveyQuestions', [
             query = format('assessment1={}',
                 $scope.assessment1 ? $scope.assessment1.id : '');
         }
-        return format('/statistics?{}&qnode={}',
-            query, $location.search()['qnode'] || '');
+        return format('/statistics?{}&qnode={}&approval={}',
+            query, $location.search()['qnode'] || '', $scope.approval);
     };
 
     $scope.getNavUrl = function(item, key) {
@@ -1416,12 +1416,12 @@ angular.module('wsaa.surveyQuestions', [
         var aid2 = $scope.assessment2 ? $scope.assessment2.id : ''
         if (item.path == 'qnode') {
             return format(
-                '#/statistics?assessment1={}&assessment2={}&qnode={}',
-                aid1, aid2, key);
+                '#/statistics?assessment1={}&assessment2={}&qnode={}&approval={}',
+                aid1, aid2, key, $scope.approval);
         } else if (item.path == 'assessment') {
             return format(
-                '#/statistics?assessment1={}&assessment2={}',
-                aid1, aid2);
+                '#/statistics?assessment1={}&assessment2={}&approval={}',
+                aid1, aid2, $scope.approval);
         }
         return null;
     };
@@ -1432,6 +1432,12 @@ angular.module('wsaa.surveyQuestions', [
             $scope.chooser = null;
         else
             $scope.chooser = num;
+    };
+
+
+    $scope.setState = function(approval) {
+        $scope.approval = approval;
+        $location.search('approval', approval);
     };
 
     var margin = {top: 10, right: 50, bottom: 20, left: 50},

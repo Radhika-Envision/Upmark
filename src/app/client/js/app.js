@@ -546,7 +546,9 @@ angular.module('wsaa.aquamark',
                         return Statistics.get({
                             id: assessment1.survey.id,
                             parentId: $route.current.params.qnode == '' ?
-                                null : $route.current.params.qnode
+                                null : $route.current.params.qnode,
+                            approval: $route.current.params.approval == '' ?
+                                null : $route.current.params.approval
                         }).$promise.then(function(stats1) {
                             if (!assessment2 && stats1.length == 0) {
                                 return $q.reject(
@@ -571,7 +573,9 @@ angular.module('wsaa.aquamark',
                         return Statistics.get({
                             id: assessment2.survey.id,
                             parentId: $route.current.params.qnode == '' ?
-                                null : $route.current.params.qnode
+                                null : $route.current.params.qnode,
+                            approval: $route.current.params.approval == '' ?
+                                null : $route.current.params.approval
                         }).$promise.then(function(stats1) {
                             if (stats1.length == 0) {
                                 return $q.reject(

@@ -40,10 +40,10 @@ class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
                         " to see this chart")
 
         parent_id = self.get_argument("parentId", None)
-        approval=self.get_argument("approval", "approved")
+        approval=self.get_argument("approval", "draft")
         approval_status = ['draft', 'reviewed', 'final', 'approved']
         approval_index = approval_status.index(approval)
-        included_approval_status=approval_status[0:approval_index + 1]
+        included_approval_status=approval_status[approval_index:4]
         with model.session_scope() as session:
             try:
                 responseNodes = session.query(model.ResponseNode)\
@@ -66,7 +66,6 @@ class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
 
             response = []
             for responseNode in responseNodes:
-                log.info('assessment: %s', responseNode.assessment.approval)
                 r = [res for res in response 
                      if res["qnodeId"] == str(responseNode.qnode.id)]
                 if len(r) == 0:
