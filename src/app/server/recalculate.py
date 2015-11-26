@@ -1,4 +1,3 @@
-import os
 import logging
 import time
 import model
@@ -6,7 +5,8 @@ import app
 
 
 log = logging.getLogger('recalculate')
-time.sleep(10)
+interval = 300
+time.sleep(interval)
 
 
 app.connect_db()
@@ -27,4 +27,4 @@ while True:
 
     log.info("Heart beat!!")
     print("Heart beat!!")
-    time.sleep(10)
+    time.sleep(interval)
