@@ -1,21 +1,34 @@
 import datetime
 from itertools import product
+import types
 
 from tornado.escape import json_encode
 import tornado.web
 import sqlalchemy
-from sqlalchemy.dialects.postgresql import ARRAY
+import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import array, ARRAY, UUID
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql.expression import cast
 from sqlalchemy.types import VARCHAR
 
 import handlers
 import model
 import logging
-
+from function_asfrom import ColumnFunction
 from utils import ToSon, truthy, updater
 
 
 log = logging.getLogger('app.crud.activity')
+
+
+class unnest_func(ColumnFunction):
+    name = 'unnest'
+    column_names = ['unnest', 'ordinality']
+
+
+@compiles(unnest_func)
+def _compile_unnest_func(element, compiler, **kw):
+    return compiler.visit_function(element, **kw) + " WITH ORDINALITY"
 
 
 class ActivityHandler(handlers.BaseHandler):
@@ -66,42 +79,89 @@ class ActivityHandler(handlers.BaseHandler):
         include_sticky = offset < period.total_seconds() / 2
 
         with model.session_scope() as session:
-            def filter_by_subscriptions(query):
-                # Join with the subscription table using the ob_refs field
-                broadcast = cast(['broadcast'], ARRAY(VARCHAR))
-                query = query.outerjoin(
+            uid = self.current_user.id
+            oid = self.current_user.organisation_id
+
+            time_filter = (
+                (model.Activity.sticky == False) &
+                (model.Activity.created > from_date) &
+                (model.Activity.created <= until_date))
+            if include_sticky:
+                time_filter = (model.Activity.sticky == True) | time_filter
+
+            query = (session.query(model.Activity, model.Activity.id)
+                .filter(time_filter)
+                .order_by(model.Activity.sticky.desc(),
+                          model.Activity.created.desc(),
+                          model.Activity.id))
+
+            # Mark activities as subscribed or not
+            # Join with the subscription table using the ob_refs field
+            act_ref = unnest_func(model.Activity.ob_refs).alias('act_ref')
+            broadcast = cast(['broadcast'], ARRAY(VARCHAR))
+            query = (query
+                .add_columns(
+                    act_ref.c.unnest,
+                    act_ref.c.ordinality,
+                    model.Subscription.subscribed)
+                .outerjoin(act_ref, sa.true())
+                .outerjoin(
                     model.Subscription,
-                    model.Activity.ob_refs.contains(model.Subscription.ob_refs))
-                query = query.filter(
+                    model.Subscription.ob_refs[1] == act_ref.c.unnest)
+                .filter(
                     ((model.Subscription.id != None) &
-                     (model.Subscription.user_id == self.current_user.id)) |
+                     (model.Subscription.user_id == uid)) |
                     ((model.Activity.verbs == broadcast) &
                      (model.Activity.ob_type == None)))
-                return query
+                .order_by(act_ref.c.ordinality.desc()))
+
+            # Filter out activities that involve surveys that have not been
+            # purchased.
+            # Join with hierarchy and purchased_survey tables using ob_refs
+            # field
+            if not self.has_privillege('author', 'consultant'):
+                query = (query
+                    .add_columns(
+                        ((model.Hierarchy.id == None) |
+                         (model.PurchasedSurvey.hierarchy_id != None))
+                        .label('purchased'))
+                    .outerjoin(
+                        model.Hierarchy,
+                        model.Activity.ob_refs.contains(
+                            array([model.Hierarchy.survey_id,
+                                   model.Hierarchy.id])))
+                    .outerjoin(
+                        model.PurchasedSurvey,
+                        model.Activity.ob_refs.contains(
+                            array([model.PurchasedSurvey.survey_id,
+                                   model.PurchasedSurvey.hierarchy_id])) &
+                        (model.PurchasedSurvey.survey_id == model.Hierarchy.survey_id) &
+                        (model.PurchasedSurvey.hierarchy_id == model.Hierarchy.id))
+                    .filter(
+                        (model.PurchasedSurvey.organisation_id == None) |
+                        (model.PurchasedSurvey.organisation_id == oid)))
+
+#            activities = [a[0] for a in query.all()]
+
+            sub = (query
+                .distinct(model.Activity.sticky,
+                          model.Activity.created,
+                          model.Activity.id)
+                .subquery('sub'))
 
             query = (session.query(model.Activity)
-                .filter(model.Activity.created > from_date,
-                        model.Activity.created <= until_date,
-                        model.Activity.sticky == False))
+                .select_entity_from(sub)
+                .filter((sub.c.subscribed == None) |
+                         (sub.c.subscribed == True)))
+            if not self.has_privillege('author', 'consultant'):
+                query = query.filter(sub.c.purchased == True)
+            activities = query.all()
 
-            query = filter_by_subscriptions(query)
-
-            query = query.order_by(model.Activity.created.desc())
-            non_sticky = query.all()
-
-            if include_sticky:
-                query = (session.query(model.Activity)
-                    .filter(model.Activity.sticky == True))
-                query = filter_by_subscriptions(query)
-                query = query.order_by(model.Activity.created.desc())
-                sticky = query.all()
-            else:
-                sticky = []
 
             son = {
                 'from': from_date.timestamp(),
                 'until': until_date.timestamp(),
-                'actions': ActivityHandler.TO_SON(sticky + non_sticky)
+                'actions': ActivityHandler.TO_SON(activities)
             }
 
         self.set_header("Content-Type", "application/json")

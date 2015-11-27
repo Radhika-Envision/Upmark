@@ -35,13 +35,62 @@ metadata = MetaData()
 Base = declarative_base(metadata=metadata)
 
 
+class ModelError(Exception):
+    pass
+
+
 ActionDescriptor = namedtuple(
     'ActionDescriptor',
     'message, ob_type, ob_ids, ob_refs')
 
 
-class ModelError(Exception):
-    pass
+class Observable:
+    '''
+    Mixin for mappers that can generate :py:class:`Activities <Activity>`.
+    '''
+
+    @property
+    def ob_title(self):
+        '''
+        @return human-readable descriptive text for the object (e.g. its name).
+        '''
+        return self.title
+
+    @property
+    def ob_type(self):
+        '''
+        @return the type of object as a string.
+        '''
+        raise NotImplementedError()
+
+    @property
+    def ob_ids(self):
+        '''
+        @return a minimal list of IDs that uniquly identify the object, in
+        descending order of specificity. E.g. [measure_id, program_id], because
+        the measure belongs to the program.
+        '''
+        raise NotImplementedError()
+
+    @property
+    def action_lineage(self):
+        '''
+        @return a list of IDs that give a detailed path to the object, in order
+        of increasing specificity. E.g.
+        [program_id, survey_id, qnode_id, qnode_id, measure_id]
+        '''
+        raise NotImplementedError()
+
+    @property
+    def action_descriptor(self):
+        '''
+        @return an ActionDescriptor for the object.
+        '''
+        return ActionDescriptor(
+            self.ob_title,
+            self.ob_type,
+            self.ob_ids,
+            [item.id for item in self.action_lineage])
 
 
 class SystemConfig(Base):
@@ -56,7 +105,7 @@ class SystemConfig(Base):
         return "SystemConfig(name={}, value={})".format(self.name, self.value)
 
 
-class Organisation(Base):
+class Organisation(Observable, Base):
     __tablename__ = 'organisation'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
 
@@ -65,6 +114,10 @@ class Organisation(Base):
     region = Column(Text, nullable=False)
     number_of_customers = Column(Integer, nullable=False)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    @property
+    def ob_title(self):
+        return self.name
 
     @property
     def ob_type(self):
@@ -78,14 +131,6 @@ class Organisation(Base):
     def action_lineage(self):
         return [self]
 
-    @property
-    def action_descriptor(self):
-        return ActionDescriptor(
-            self.name,
-            self.ob_type,
-            self.ob_ids,
-            [item.id for item in self.action_lineage])
-
     __table_args__ = (
         Index('organisation_name_key', func.lower(name), unique=True),
     )
@@ -94,7 +139,7 @@ class Organisation(Base):
         return "Organisation(name={})".format(self.name)
 
 
-class AppUser(Base):
+class AppUser(Observable, Base):
     __tablename__ = 'appuser'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     organisation_id = Column(
@@ -116,6 +161,10 @@ class AppUser(Base):
         return sha256_crypt.verify(plaintext, self.password)
 
     @property
+    def ob_title(self):
+        return self.name
+
+    @property
     def ob_type(self):
         return 'user'
 
@@ -126,14 +175,6 @@ class AppUser(Base):
     @property
     def action_lineage(self):
         return [self.organisation, self]
-
-    @property
-    def action_descriptor(self):
-        return ActionDescriptor(
-            self.name,
-            self.ob_type,
-            self.ob_ids,
-            [item.id for item in self.action_lineage])
 
     __table_args__ = (
         Index('appuser_email_key', func.lower(email), unique=True),
@@ -170,7 +211,7 @@ def has_privillege(current_role, *target_roles):
     return False
 
 
-class Survey(Base):
+class Survey(Observable, Base):
     __tablename__ = 'survey'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     tracking_id = Column(GUID, default=uuid.uuid4, nullable=False)
@@ -249,14 +290,6 @@ class Survey(Base):
     def action_lineage(self):
         return [self]
 
-    @property
-    def action_descriptor(self):
-        return ActionDescriptor(
-            self.title,
-            self.ob_type,
-            self.ob_ids,
-            [item.id for item in self.action_lineage])
-
     __table_args__ = (
         Index('survey_tracking_id_index', tracking_id),
         Index('survey_created_index', created),
@@ -301,7 +334,7 @@ class PurchasedSurvey(Base):
         super().__init__(**kwargs)
 
 
-class Hierarchy(Base):
+class Hierarchy(Observable, Base):
     __tablename__ = 'hierarchy'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(
@@ -358,14 +391,6 @@ class Hierarchy(Base):
     def action_lineage(self):
         return [self.survey, self]
 
-    @property
-    def action_descriptor(self):
-        return ActionDescriptor(
-            self.title,
-            self.ob_type,
-            self.ob_ids,
-            [item.id for item in self.action_lineage])
-
     def __repr__(self):
         return "Hierarchy(title={}, survey={})".format(
             self.title, getattr(self.survey, 'title', None))
@@ -375,7 +400,7 @@ Hierarchy.organisations = association_proxy('purchased_surveys', 'organisation')
 Organisation.hierarchies = association_proxy('purchased_surveys', 'hierarchy')
 
 
-class QuestionNode(Base):
+class QuestionNode(Observable, Base):
     __tablename__ = 'qnode'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(GUID, nullable=False, primary_key=True)
@@ -461,20 +486,12 @@ class QuestionNode(Base):
     def action_lineage(self):
         return [self.survey, self.hierarchy] + self.lineage()
 
-    @property
-    def action_descriptor(self):
-        return ActionDescriptor(
-            self.title,
-            self.ob_type,
-            self.ob_ids,
-            [item.id for item in self.action_lineage])
-
     def __repr__(self):
         return "QuestionNode(title={}, survey={})".format(
             self.title, getattr(self.survey, 'title', None))
 
 
-class Measure(Base):
+class Measure(Observable, Base):
     __tablename__ = 'measure'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(
@@ -566,16 +583,6 @@ class Measure(Base):
     def action_lineage(self):
         hs = [qm.qnode.hierarchy for qm in self.qnode_measures]
         return [self.survey] + hs + self.lineage()
-
-    @property
-    def action_descriptor(self):
-        hs = [qm.qnode.hierarchy_id for qm in self.qnode_measures]
-        lineage = [entity.id for entity in self.lineage()]
-        return ActionDescriptor(
-            self.title,
-            self.ob_type,
-            self.ob_ids,
-            [item.id for item in self.action_lineage])
 
     def __repr__(self):
         return "Measure(title={}, survey={})".format(
