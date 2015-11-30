@@ -12,19 +12,24 @@ interval = 300
 
 def process():
     while True:
+        count = 0
         while True:
             with model.session_scope() as session:
                 sub = (session.query(model.Assessment)
                     .join(model.Hierarchy)
                     .filter(model.Hierarchy.modified > model.Assessment.modified)
                     .first())
-                if sub is not None:
-                    sub.update_stats_descendants()
-                    sub.modified = sub.hierarchy.modified
-                    session.commit()
+                if sub is None:
+                    break
+                if count == 0:
+                    log.info("Starting new job")
+                sub.update_stats_descendants()
+                sub.modified = sub.hierarchy.modified
+                session.commit()
+                count += 1
 
-            log.info("Job finished: %s", datetime.datetime.utcnow())
-            time.sleep(interval)
+        log.info("Job finished. Recalculated scores for %d submissions", count)
+        time.sleep(interval)
 
 if __name__ == "__main__":
     try:
