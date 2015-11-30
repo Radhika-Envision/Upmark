@@ -203,6 +203,22 @@ Here are the steps of the creating auto-scaling group.
        The key file does *not* need to be copied to the hop computer.
 
 
+### Recalculating daemon
+Recalculating score is a job for calculating score when survey structure changes.
+It happen every 5min in a background service with docker container. So this process
+runs on backup machine need to be run as a daemon.
+It uses same docker build image as currently working docker aquamark web instance
+uses. 
+
+
+```
+docker run -d --name recalc
+--link postgres:postgres
+-e DATABASE_URL=DB_URL
+vpac-innovations/aquamark python3 ./app/server/recalculate.py
+```
+
+
 ### Upgrading
 
 Create an instance from the former Aquamark AMI: in the AWS console, choose
