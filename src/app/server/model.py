@@ -244,6 +244,8 @@ class Hierarchy(Base):
 
     title = Column(Text, nullable=False)
     description = Column(Text)
+    modified = Column(DateTime, nullable=True)
+
     _structure = Column('structure', JSON, nullable=False)
 
     _structure_schema = Schema({
@@ -494,6 +496,8 @@ class Assessment(Base):
         Enum('draft', 'final', 'reviewed', 'approved', native_enum=False),
         nullable=False)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
+    modified = Column(DateTime, nullable=True)
+
 
     __table_args__ = (
         ForeignKeyConstraint(
