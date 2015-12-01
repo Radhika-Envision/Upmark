@@ -217,6 +217,7 @@ app, so it should be upgraded at the same time as the web app.
 ```bash
 docker run -d --name recalc \
     -e DATABASE_URL=<DATABASE_URL> \
+    --restart=always \
     vpac/aquamark python3 ./app/server/recalculate.py
 ```
 
