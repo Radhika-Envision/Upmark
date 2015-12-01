@@ -10,7 +10,6 @@ from sqlalchemy.orm import joinedload
 import handlers
 import model
 import logging
-from aspectlib import Aspect
 
 import crud
 from utils import falsy, reorder, ToSon, truthy, updater
@@ -23,42 +22,7 @@ class MeasureHandler(
         handlers.Paginate,
         crud.survey.SurveyCentric, handlers.BaseHandler):
 
-    @Aspect
-    def check_purchased(self, *args, **kwargs):
-        measure_id = args[0]
-
-        if measure_id == '':
-            qnode_id = self.get_argument('parentId', '')
-            if qnode_id != '':
-                with model.session_scope() as session:
-                    qnode = session.query(model.QuestionNode)\
-                        .get((qnode_id, self.survey_id))
-
-                    if qnode is None:
-                        raise ValueError("No such object")
-
-                    hierarchy_id = qnode.hierarchy.id
-                    super(MeasureHandler, self).check_purchased(self.survey_id,
-                        hierarchy_id)
-
-        else:
-            qnode_id = self.get_argument('parentId', '')
-            if qnode_id != '':
-                with model.session_scope() as session:
-                    qnodeMeasure = session.query(model.QnodeMeasure)\
-                        .get((self.survey_id, qnode_id, measure_id))
-
-                    if qnodeMeasure is None:
-                        raise ValueError("No such object")
-                        
-                    hierarchy_id = qnodeMeasure.qnode.hierarchy.id
-                    super(MeasureHandler, self).check_purchased(self.survey_id,
-                        hierarchy_id)
-        yield
-
-
     @tornado.web.authenticated
-    @check_purchased
     def get(self, measure_id):
         if measure_id == '':
             self.query()
@@ -105,15 +69,22 @@ class MeasureHandler(
             son = to_son(measure)
 
             if parent_id != '':
-                for p, link in zip(son['parents'], measure.qnode_measures):
-                    if str(link.qnode_id) == parent_id:
-                        son['parent'] = p
-                        son['seq'] = link.seq
+                parent = None
+                for p, l in zip(son['parents'], measure.qnode_measures):
+                    if str(l.qnode_id) == parent_id:
+                        parent = p
+                        link = l
                         break
-                if 'parent' not in son:
-                    raise handlers.MissingDocError(
-                        "That question node is not a parent of this measure")
+                if not parent:
+                     raise handlers.MissingDocError(
+                         "That question node is not a parent of this measure")
 
+                log.info("parent_hierarchy: %s", parent['hierarchy'])
+                self.check_browse_survey(
+                    session, self.survey_id, parent['hierarchy']['id'])
+
+                son['parent'] = p
+                son['seq'] = link.seq
                 prev = (session.query(model.QnodeMeasure)
                     .filter(model.QnodeMeasure.qnode_id == parent_id,
                             model.QnodeMeasure.survey_id == measure.survey_id,

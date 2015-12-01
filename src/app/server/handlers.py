@@ -232,16 +232,18 @@ class BaseHandler(tornado.web.RequestHandler):
         if not self.has_privillege(*roles):
             raise AuthzError()
 
-    def check_purchased(self, survey_id, hierarchy_id):
-        with model.session_scope() as session:
-            purchased_survey = session.query(model.PurchasedSurvey)\
-                .get((survey_id, 
-                      hierarchy_id,
-                      self.organisation.id))
+    def check_browse_survey(self, session, survey_id, hierarchy_id):
+        if self.has_privillege('consultant', 'author'):
+            return
 
-            if purchased_survey == None:
-                raise AuthzError("This survey has not been purchsed yet")
+        n_purchased_surveys = (session.query(model.PurchasedSurvey)
+            .filter_by(survey_id=survey_id,
+                       hierarchy_id=hierarchy_id,
+                       organisation_id=self.current_user.organisation_id)
+            .count())
 
+        if n_purchased_surveys == 0:
+            raise AuthzError("This survey has not been purchsed yet")
 
     @property
     def organisation(self):

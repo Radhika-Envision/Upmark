@@ -9,7 +9,6 @@ import sqlalchemy
 from sqlalchemy.dialects.postgresql import array
 from sqlalchemy.orm import aliased, joinedload
 from sqlalchemy.sql.expression import literal
-from aspectlib import Aspect
 
 import crud
 import handlers
@@ -23,25 +22,7 @@ log = logging.getLogger('app.crud.qnode')
 class QuestionNodeHandler(
         handlers.Paginate, crud.survey.SurveyCentric, handlers.BaseHandler):
 
-    @Aspect
-    def check_purchased(self, *args, **kwargs):
-        qnode_id = args[0]
-
-        if qnode_id != '':
-            with model.session_scope() as session:
-                qnode = session.query(model.QuestionNode)\
-                    .get((qnode_id, self.survey_id))
-
-                if qnode is None:
-                    raise ValueError("No such object")
-
-                super(QuestionNodeHandler, self).check_purchased(self.survey_id,
-                    qnode.hierarchy.id)
-        yield
-
-
     @tornado.web.authenticated
-    @check_purchased
     def get(self, qnode_id):
         if qnode_id == '':
             self.query()
@@ -62,6 +43,9 @@ class QuestionNodeHandler(
             exclude = []
             if self.current_user.role == 'clerk':
                 exclude.append(r'/total_weight$')
+
+            self.check_browse_survey(session, self.survey_id, 
+                                     qnode.hierarchy_id)
 
             to_son = ToSon(include=[
                 # Fields to match from any visited object
@@ -131,6 +115,8 @@ class QuestionNodeHandler(
             query = session.query(model.QuestionNode)\
                 .filter_by(survey_id=self.survey_id)
 
+            self.check_browse_survey(session, self.survey_id, 
+                                     hierarchy_id)
             if hierarchy_id != '':
                 query = query.filter_by(hierarchy_id=hierarchy_id)
             if parent_id != '':
