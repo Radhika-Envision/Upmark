@@ -79,7 +79,6 @@ class MeasureHandler(
                      raise handlers.MissingDocError(
                          "That question node is not a parent of this measure")
 
-                log.info("parent_hierarchy: %s", parent['hierarchy'])
                 self.check_browse_survey(
                     session, self.survey_id, parent['hierarchy']['id'])
 
