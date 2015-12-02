@@ -113,6 +113,48 @@
 
 </div>
 
+<div class="container subheader">
+    <div class="btn-group btn-group-justified hidden-print
+                btn-group-arrow-right">
+        <div class="btn-group">
+            <button class="btn btn-default"
+                    ng-class="{active: approval == 'draft'}"
+                    ng-click="setState('draft')">
+                <approval model="approval"
+                    ng-if="approval == 'draft'"></approval>
+                Draft
+            </button>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-default"
+                    ng-class="{active: approval == 'final'}"
+                    ng-click="setState('final')">
+                <approval model="approval"
+                    ng-if="approval == 'final'"></approval>
+                Final
+            </button>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-default"
+                    ng-class="{active: approval == 'reviewed'}"
+                    ng-click="setState('reviewed')">
+                <approval model="approval"
+                    ng-if="approval == 'reviewed'"></approval>
+                Reviewed
+            </button>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-default"
+                    ng-class="{active: approval == 'approved'}"
+                    ng-click="setState('approved')">
+                <approval model="approval"
+                    ng-if="approval == 'approved'"></approval>
+                Approved
+            </button>
+        </div>
+    </div>
+</div>
+
 <div class="chart">
     <div id="chart"></div>
 </div>

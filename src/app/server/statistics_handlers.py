@@ -25,7 +25,7 @@ log = logging.getLogger('app.statistics_handler')
 class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
 
     @tornado.web.authenticated
-    def get(self, survey_id, approval='approved'):
+    def get(self, survey_id):
         if self.has_privillege('consultant') or self.has_privillege('authority') :
             pass
         else:
@@ -40,13 +40,19 @@ class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
                         " to see this chart")
 
         parent_id = self.get_argument("parentId", None)
+        approval=self.get_argument("approval", "draft")
+        approval_status = ['draft', 'reviewed', 'final', 'approved']
+        approval_index = approval_status.index(approval)
+        included_approval_status=approval_status[approval_index:4]
         with model.session_scope() as session:
             try:
                 responseNodes = session.query(model.ResponseNode)\
                     .join(model.ResponseNode.qnode)\
+                    .join(model.ResponseNode.assessment)\
                     .options(joinedload(model.ResponseNode.qnode))\
                     .filter(model.ResponseNode.survey_id==survey_id)\
-                    .filter(model.QuestionNode.parent_id==parent_id)
+                    .filter(model.QuestionNode.parent_id==parent_id)\
+                    .filter(model.Assessment.approval.in_(included_approval_status))
 
                 if responseNodes is None:
                     raise ValueError("No such object")
@@ -82,7 +88,6 @@ class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
                 r["quartile"] = [numpy.percentile(numpy_array, 25), 
                                 numpy.percentile(numpy_array, 50),
                                 numpy.percentile(numpy_array, 75)]
-                # r.pop("data", None)
 
         self.set_header("Content-Type", "application/json")
         self.write(json.dumps(response))
