@@ -17,7 +17,8 @@ from tornado import gen
 import tornado.web
 from tornado.concurrent import run_on_executor
 from concurrent.futures import ThreadPoolExecutor
-
+from tornado.escape import json_decode, json_encode, url_escape, url_unescape
+import numpy
 
 BUF_SIZE = 4096
 MAX_WORKERS = 4
@@ -36,6 +37,8 @@ class ExportSurveyHandler(handlers.BaseHandler):
                 "File type not supported: %s" % extension)
 
         with model.session_scope() as session:
+            self.check_browse_survey(session, survey_id, hierarchy_id)
+
             hierarchy = (session.query(model.Hierarchy)
                          .get((hierarchy_id, survey_id)))
             if survey_id != str(hierarchy.survey_id):
@@ -85,6 +88,7 @@ class ExportAssessmentHandler(handlers.BaseHandler):
                 self.check_privillege('consultant')
             hierarchy_id = str(assessment.hierarchy_id)
             survey_id = str(assessment.survey_id)
+            self.check_browse_survey(session, survey_id, hierarchy_id)
 
         output_file = 'submission_{0}.xlsx'.format(assessment_id)
 
@@ -130,6 +134,8 @@ class ExportResponseHandler(handlers.BaseHandler):
                 self.check_privillege('consultant')
             hierarchy_id = str(assessment.hierarchy_id)
             survey_id = str(assessment.survey_id)
+            self.check_browse_survey(session, survey_id, hierarchy_id)
+
 
         output_file = 'submission_response_{0}.xlsx'.format(assessment_id)
 
@@ -436,8 +442,9 @@ class Exporter():
             parts_len = len(response_types[0]["parts"])
             index = 0
             for part in response_types[0]["parts"]:
-                worksheet.write(self.line - parts_len + index, 2,
-                                part["name"], format_part)
+                if 'name' in part:
+                    worksheet.write(self.line - parts_len + index, 2,
+                                    part["name"], format_part)
                 index = index + 1
 
             measure_response = [r for r in response_list

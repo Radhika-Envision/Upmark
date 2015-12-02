@@ -197,7 +197,11 @@ class PurchasedSurveyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             if not hierarchy:
                 raise handlers.MissingDocError('No such hierarchy')
 
-            org.hierarchies.append(hierarchy)
+            purchased_survey = (session.query(model.PurchasedSurvey)
+                .get((self.survey_id, hierarchy_id, org.id)))
+
+            if not purchased_survey:
+                org.hierarchies.append(hierarchy)
 
     @handlers.authz('admin')
     def delete(self, org_id, survey_id):

@@ -12,7 +12,6 @@ import handlers
 import model
 import logging
 import voluptuous
-
 from utils import reorder, ToSon, truthy, updater
 
 
@@ -23,7 +22,8 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, hierarchy_id):
-        if hierarchy_id == "":
+        
+        if hierarchy_id == '':
             self.query()
             return
 
@@ -38,6 +38,8 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     sqlalchemy.orm.exc.NoResultFound,
                     ValueError):
                 raise handlers.MissingDocError("No such hierarchy")
+
+            self.check_browse_survey(session, self.survey_id, hierarchy_id)
 
             to_son = ToSon(include=[
                 # Any

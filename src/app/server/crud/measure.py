@@ -24,12 +24,11 @@ class MeasureHandler(
 
     @tornado.web.authenticated
     def get(self, measure_id):
-        '''Get a single measure.'''
-
         if measure_id == '':
             self.query()
             return
 
+        '''Get a single measure.'''
         parent_id = self.get_argument('parentId', '')
 
         with model.session_scope() as session:
@@ -70,15 +69,21 @@ class MeasureHandler(
             son = to_son(measure)
 
             if parent_id != '':
-                for p, link in zip(son['parents'], measure.qnode_measures):
-                    if str(link.qnode_id) == parent_id:
-                        son['parent'] = p
-                        son['seq'] = link.seq
+                parent = None
+                for p, l in zip(son['parents'], measure.qnode_measures):
+                    if str(l.qnode_id) == parent_id:
+                        parent = p
+                        link = l
                         break
-                if 'parent' not in son:
-                    raise handlers.MissingDocError(
-                        "That question node is not a parent of this measure")
+                if not parent:
+                     raise handlers.MissingDocError(
+                         "That question node is not a parent of this measure")
 
+                self.check_browse_survey(
+                    session, self.survey_id, parent['hierarchy']['id'])
+
+                son['parent'] = p
+                son['seq'] = link.seq
                 prev = (session.query(model.QnodeMeasure)
                     .filter(model.QnodeMeasure.qnode_id == parent_id,
                             model.QnodeMeasure.survey_id == measure.survey_id,
