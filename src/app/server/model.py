@@ -1071,7 +1071,10 @@ class Attachment(Base):
 
 
 class Activity(Base):
-    '''An event in the event stream'''
+    '''
+    An event in the activity stream (timeline). This forms a kind of logging
+    that can be filtered based on users' subscriptions.
+    '''
     __tablename__ = 'activity'
     id = Column(GUID, default=uuid.uuid4, nullable=False, primary_key=True)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
