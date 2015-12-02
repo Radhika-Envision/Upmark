@@ -1374,6 +1374,7 @@ angular.module('wsaa.surveyQuestions', [
     $scope.stats2 = routeData.stats2;
     $scope.qnode1 = routeData.qnode1;
     $scope.qnode2 = routeData.qnode2;
+    $scope.approval = routeData.approval;
     $scope.struct1 = Structure(
         routeData.qnode1 || routeData.assessment1.hierarchy,
         routeData.assessment1);
@@ -1436,7 +1437,6 @@ angular.module('wsaa.surveyQuestions', [
 
 
     $scope.setState = function(approval) {
-        $scope.approval = approval;
         $location.search('approval', approval);
     };
 
