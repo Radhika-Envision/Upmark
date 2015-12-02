@@ -182,6 +182,7 @@ class ResponseHandler(handlers.BaseHandler):
                      assessment_id=assessment_id, measure_id=measure_id))
                 response = query.first()
 
+                verbs = []
                 if response is None:
                     measure = (session.query(model.Measure)
                         .get((measure_id, assessment.survey.id)))
@@ -193,6 +194,7 @@ class ResponseHandler(handlers.BaseHandler):
                         survey_id=assessment.survey.id,
                         approval='draft')
                     session.add(response)
+                    verbs.append('create')
                 else:
                     same_user = response.user.id == self.current_user.id
                     td = datetime.datetime.utcnow() - response.modified
@@ -209,11 +211,17 @@ class ResponseHandler(handlers.BaseHandler):
                             "This response has changed since you loaded the"
                             " page. Please copy or remember your changes and"
                             " refresh the page.")
+                    verbs.append('update')
 
                 if approval != '':
                     self._check_approval_change(response, assessment, approval)
 
+                    if approval != response.approval:
+                        verbs.append('state')
+
                 self._update(response, self.request_son, approval)
+                if not session.is_modified(response) and 'update' in verbs:
+                    verbs.remove('update')
                 self._check_approval_state(response)
                 session.flush()
 
@@ -224,6 +232,12 @@ class ResponseHandler(handlers.BaseHandler):
                     response.update_stats_ancestors()
                 except (model.ModelError, ResponseTypeError) as e:
                     raise handlers.ModelError(str(e))
+
+                act = crud.activity.Activities(session)
+                act.record(self.current_user, response, verbs)
+                if not act.has_subscription(self.current_user, response):
+                    act.subscribe(self.current_user, response.assessment)
+                    self.reason("Subscribed to submission")
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)

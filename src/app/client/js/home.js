@@ -88,7 +88,9 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
 
         switch (action.obType) {
         case 'qnode':
-            return 'category';
+            return 'survey category';
+        case 'rnode':
+            return 'submission category';
         default:
             return action.obType;
         }
@@ -116,6 +118,12 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
                 action.obIds[0], action.obIds[1]);
         case 'submission':
             return format("/assessment/{}", action.obIds[0]);
+        case 'rnode':
+            return format("/qnode/{}?assessment={}",
+                action.obIds[0], action.obIds[1]);
+        case 'response':
+            return format("/measure/{}?assessment={}",
+                action.obIds[0], action.obIds[1]);
         default:
             return '';
         }

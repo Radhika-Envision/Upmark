@@ -409,7 +409,7 @@ class SubscriptionHandler(handlers.BaseHandler):
 
             lineage = [{
                 'id': subscription_id_map.get(tuple(item.ob_ids), None),
-                'title': hasattr(item, 'title') and item.title or item.name,
+                'title': item.ob_title,
                 'ob_type': item.ob_type,
                 'ob_ids': item.ob_ids,
                 'subscribed': subscription_map.get(tuple(item.ob_ids), None)
@@ -546,6 +546,18 @@ class SubscriptionHandler(handlers.BaseHandler):
             arglen(len(ob_refs), 1)
             query = (session.query(model.Assessment)
                 .filter(model.Assessment.id == ob_refs[0]))
+
+        elif ob_type == 'rnode':
+            arglen(len(ob_refs), 2, 2)
+            query = (session.query(model.ResponseNode)
+                .filter(model.ResponseNode.qnode_id == ob_refs[0],
+                        model.ResponseNode.assessment_id == ob_refs[1]))
+
+        elif ob_type == 'response':
+            arglen(len(ob_refs), 2, 2)
+            query = (session.query(model.Response)
+                .filter(model.Response.measure_id == ob_refs[0],
+                        model.Response.assessment_id == ob_refs[1]))
 
         else:
             raise model.ModelError("Can't subscribe to '%s' type" % ob_type)

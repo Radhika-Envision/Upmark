@@ -434,7 +434,7 @@ class QuestionNode(Observable, Base):
     survey = relationship(Survey)
 
     def get_rnode(self, assessment):
-        if isinstance(assessment, str):
+        if isinstance(assessment, (str, uuid.UUID)):
             assessment_id = assessment
         else:
             assessment_id = assessment.id
@@ -644,7 +644,7 @@ class QnodeMeasure(Base):
             getattr(self.survey, 'title', None))
 
 
-class Assessment(Base):
+class Assessment(Observable, Base):
     __tablename__ = 'assessment'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(GUID, nullable=False)
@@ -691,6 +691,21 @@ class Assessment(Base):
             if rnode is not None:
                 yield rnode
 
+    @property
+    def ob_type(self):
+        return 'submission'
+
+    @property
+    def ob_ids(self):
+        return [self.id]
+
+    @property
+    def action_lineage(self):
+        # It would be nice to include the program and survey in this list, but
+        # then everyone who was subscribed to a survey would get spammed with
+        # all the submissions against it.
+        return [self]
+
     def update_stats_descendants(self):
         for qnode in self.hierarchy.qnodes:
             rnode = qnode.get_rnode(self)
@@ -709,7 +724,7 @@ class Assessment(Base):
             getattr(self.organisation, 'name', None))
 
 
-class ResponseNode(Base):
+class ResponseNode(Observable, Base):
     __tablename__ = 'rnode'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(GUID, nullable=False)
@@ -772,6 +787,37 @@ class ResponseNode(Base):
             response = measure.get_response(self.assessment)
             if response is not None:
                 yield response
+
+    def lineage(self):
+        return [q.get_rnode(self.assessment_id) for q in self.qnode.lineage()]
+
+    @property
+    def ob_type(self):
+        return 'rnode'
+
+    @property
+    def ob_title(self):
+        return self.qnode.title
+
+    @property
+    def ob_ids(self):
+        return [self.qnode_id, self.assessment_id]
+
+    @property
+    def action_lineage(self):
+        # It would be nice to include the program and survey in this list, but
+        # then everyone who was subscribed to a survey would get spammed with
+        # all the submissions against it.
+        return [self.assessment] + self.lineage()
+
+    @property
+    def action_descriptor(self):
+        # Use qnodes instead of rnodes for lineage, because rnode.id is not part
+        # of the API.
+        lineage = ([self.assessment.id] +
+                   [q.id for q in self.qnode.lineage()])
+        return ActionDescriptor(
+            self.ob_title, self.ob_type, self.ob_ids, lineage)
 
     def update_stats(self):
         if self.not_relevant:
@@ -848,7 +894,7 @@ class ResponseNode(Base):
             getattr(org, 'name', None))
 
 
-class Response(Versioned, Base):
+class Response(Observable, Versioned, Base):
     __tablename__ = 'response'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(GUID, nullable=False)
@@ -928,6 +974,40 @@ class Response(Versioned, Base):
     @response_parts.setter
     def response_parts(self, s):
         self._response_parts = Response._response_parts_schema(s)
+
+    def lineage(self):
+        return ([q.get_rnode(self.assessment_id)
+                 for q in self.parent_qnode.lineage()] +
+                [self])
+
+    @property
+    def ob_type(self):
+        return 'response'
+
+    @property
+    def ob_title(self):
+        return self.measure.title
+
+    @property
+    def ob_ids(self):
+        return [self.measure_id, self.assessment_id]
+
+    @property
+    def action_lineage(self):
+        # It would be nice to include the program and survey in this list, but
+        # then everyone who was subscribed to a survey would get spammed with
+        # all the submissions against it.
+        return [self.assessment] + self.lineage()
+
+    @property
+    def action_descriptor(self):
+        # Use qnodes and the measure instead of rnodes and the response for
+        # lineage, because rnode.id and response.id are not part of the API.
+        lineage = ([self.assessment.id] +
+                   [q.id for q in self.parent_qnode.lineage()] +
+                   [self.measure_id])
+        return ActionDescriptor(
+            self.ob_title, self.ob_type, self.ob_ids, lineage)
 
     def update_stats(self):
         if self.not_relevant:
@@ -1015,7 +1095,7 @@ class Activity(Base):
     ob_type = Column(Enum(
         'organisation', 'user',
         'program', 'survey', 'qnode', 'measure',
-        'submission',
+        'submission', 'rnode', 'response',
         native_enum=False))
     ob_ids = Column(ARRAY(GUID), nullable=False)
     # The ob_refs column contains all relevant IDs including e.g. parent
@@ -1067,7 +1147,7 @@ class Subscription(Base):
     ob_type = Column(Enum(
         'organisation', 'user',
         'program', 'survey', 'qnode', 'measure',
-        'submission',
+        'submission', 'rnode', 'response',
         native_enum=False), nullable=False)
     ob_refs = Column(ARRAY(GUID), nullable=False)
 
