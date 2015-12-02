@@ -248,6 +248,8 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                         "This survey is closed for editing")
                 act = crud.activity.Activities(session)
                 act.record(self.current_user, survey, ['delete'])
+                for hierarchy in survey.hierarchies:
+                    hierarchy.modified = datetime.datetime.utcnow()
                 session.delete(survey)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Survey is in use")
@@ -325,6 +327,9 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         Apply survey-provided data to the saved model.
         '''
+        if survey.response_types != son['response_types']:
+            for hierarchy in survey.hierarchies:
+                hierarchy.modified = datetime.datetime.utcnow()
         update = updater(survey)
         update('title', son)
         update('description', son)
