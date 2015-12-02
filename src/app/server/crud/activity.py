@@ -448,6 +448,10 @@ class SubscriptionHandler(handlers.BaseHandler):
                 subscription = acts.subscribe(self.current_user, ob)
                 subscription.subscribed = self.request_son.get(
                     'subscribed', False)
+                if subscription.subscribed:
+                    user = (session.query(model.AppUser)
+                        .get(self.current_user.id))
+                    self.check_subscribe_authz(user, ob)
 
                 session.flush()
                 subscription_id = str(subscription.id)
@@ -475,6 +479,11 @@ class SubscriptionHandler(handlers.BaseHandler):
                     "You can't modify another user's subscriptions")
 
             subscription.subscribed = self.request_son.get('subscribed', False)
+            if subscription.subscribed:
+                user = session.query(model.AppUser).get(self.current_user.id)
+                ob = self.get_ob(
+                    session, subscription.ob_type, subscription.ob_refs)
+                self.check_subscribe_authz(user, ob)
 
             subscription_id = str(subscription.id)
 
@@ -575,6 +584,30 @@ class SubscriptionHandler(handlers.BaseHandler):
         elif str(user.organisation_id) != str(self.current_user.organisation_id):
             raise handlers.AuthzError(
                 "You can't access another organisation's user's subscriptions.")
+
+    def check_subscribe_authz(self, user, ob):
+        if self.has_privillege('consultant'):
+            return
+
+        if ob.ob_type in {'organisation', 'user', 'program'}:
+            return
+        elif ob.ob_type in {'survey', 'qnode', 'measure'}:
+            if hasattr(ob, 'hierarchy'):
+                hierarchy = ob.hierarchy
+            else:
+                hierarchy = ob
+            if not hierarchy in user.organisation.purchased_surveys:
+                raise handlers.AuthzError(
+                    "You can't subscribe to a survey that you haven't"
+                    " purchased.")
+        elif ob.ob_type in {'submission', 'rnode', 'response'}:
+            if hasattr(ob, 'assessment'):
+                organisation_id = ob.assessment.organisation_id
+            else:
+                organisation_id = ob.organisation_id
+            if organisation_id != user.organisation_id:
+                raise handlers.AuthzError(
+                    "You can't subscribe to another organisation's submission.")
 
     def update(self, subscription, son):
         '''
