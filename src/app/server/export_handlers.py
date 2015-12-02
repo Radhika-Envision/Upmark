@@ -12,7 +12,7 @@ import sqlalchemy
 import datetime
 import xlsxwriter
 
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, lazyload
 from tornado import gen
 import tornado.web
 from tornado.concurrent import run_on_executor
@@ -95,7 +95,7 @@ class ExportAssessmentHandler(handlers.BaseHandler):
         with tempfile.TemporaryDirectory() as tmpdirname:
             output_path = os.path.join(tmpdirname, output_file)
             yield self.background_task(
-                output_path, survey_id, hierarchy_id, assessment_id)
+                output_path, survey_id, hierarchy_id, assessment_id, self.current_user.role)
             self.set_header('Content-Type', 'application/octet-stream')
             self.set_header('Content-Disposition', 'attachment; filename='
                             + output_file)
@@ -111,10 +111,11 @@ class ExportAssessmentHandler(handlers.BaseHandler):
 
     @run_on_executor
     def background_task(self, path, survey_id, hierarchy_id,
-                        assessment_id):
+                        assessment_id, user_role):
         e = Exporter()
         survey_id = e.process_structure_file(
-            path, survey_id, hierarchy_id, assessment_id)
+            path, survey_id, hierarchy_id, assessment_id,
+            user_role)
 
 
 class ExportResponseHandler(handlers.BaseHandler):
@@ -160,7 +161,11 @@ class ExportResponseHandler(handlers.BaseHandler):
     def background_task(self, path, survey_id, hierarchy_id,
                         assessment_id):
         e = Exporter()
-        survey_id = e.process_response_file(path, survey_id, assessment_id)
+        base_url = ("%s://%s" % (self.request.protocol,
+                self.request.host,))
+
+        survey_id = e.process_response_file(path, survey_id,
+                                            assessment_id, base_url)
 
 
 class Exporter():
@@ -175,7 +180,7 @@ class Exporter():
         return num
 
     def process_structure_file(self, file_name, survey_id, hierarchy_id,
-                               assessment_id=''):
+                               assessment_id='', user_role=''):
         """
         Open and write an Excel file
         """
@@ -257,13 +262,13 @@ class Exporter():
             self.write_qnode_to_worksheet(session, workbook, worksheet,
                                           qnode_list, response_qnode_list, 
                                           measure_list, response_list,
-                                          'None', prefix, 0)
+                                          'None', prefix, 0, user_role)
 
         workbook.close()
 
     def write_qnode_to_worksheet(self, session, workbook, worksheet,
                                  qnode_list, response_qnode_list, measure_list, response_list,
-                                 parent_id, prefix, depth):
+                                 parent_id, prefix, depth, user_role):
 
         filtered = [node for node in qnode_list
                     if node["parent_id"] == parent_id]
@@ -312,8 +317,14 @@ class Exporter():
             numbering = prefix + str(qnode["seq"] + 1) + ". "
             worksheet.merge_range("A{0}:B{0}".format(self.line + 1),
                                   numbering + qnode["title"], format)
-            worksheet.write(self.line, 2, qnode["total_weight"], format)
-            worksheet.write(self.line, 3, percent, format_percent)
+            # this column should not be displayed for user 'clerk'
+            if user_role == 'clerk':
+                worksheet.write(self.line, 2, '', format)
+                worksheet.write(self.line, 3, '', format_percent)
+            else:
+                worksheet.write(self.line, 2, qnode["total_weight"], format)
+                worksheet.write(self.line, 3, percent, format_percent)
+
             self.line = self.line + 1
             worksheet.write(self.line, 0, '', format2)
             worksheet.write(self.line, 1, qnode["description"], format2)
@@ -323,13 +334,15 @@ class Exporter():
             self.write_qnode_to_worksheet(session, workbook, worksheet,
                                           qnode_list, response_qnode_list, 
                                           measure_list, response_list,
-                                          qnode["id"], numbering, depth + 1)
+                                          qnode["id"], numbering, depth + 1,
+                                          user_role)
             self.write_measure_to_worksheet(session, workbook, worksheet,
                                             measure_list, response_list, 
-                                            qnode["id"], numbering)
+                                            qnode["id"], numbering, user_role)
 
     def write_measure_to_worksheet(self, session, workbook, worksheet,
-                                   measure_list, response_list, qnode_id, prefix):
+                                   measure_list, response_list, qnode_id,
+                                   prefix, user_role):
 
         filtered = [node for node in measure_list
                     if node["qnode_id"] == qnode_id]
@@ -415,8 +428,14 @@ class Exporter():
             worksheet.write(self.line, 0, '', format_header)
             worksheet.write(
                 self.line, 1, numbering + qnode_measure["title"], format_bold_header)
-            worksheet.write(self.line, 2, qnode_measure["weight"], format)
-            worksheet.write(self.line, 3, percentage, format_percent)
+            # this column should not be displayed for user 'clerk'
+            if user_role == 'clerk':
+                worksheet.write(self.line, 2, '', format)
+                worksheet.write(self.line, 3, '', format_percent)
+            else:
+                worksheet.write(self.line, 2, qnode_measure["weight"], format)
+                worksheet.write(self.line, 3, percentage, format_percent)
+
             self.line = self.line + 1
             worksheet.write(self.line, 0, "intent", format_header)
             worksheet.write(self.line, 1, qnode_measure["intent"], format)
@@ -452,7 +471,6 @@ class Exporter():
 
             index = 0
             if measure_response:
-                log.debug("measure_response: %s", measure_response[0])
                 for part in measure_response[0]["response_parts"]:
                     worksheet.write(self.line - parts_len + index, 3,
                                     "%d - %s" % (part["index"] + 1, part["note"]),
@@ -466,13 +484,14 @@ class Exporter():
 
             self.line = self.line + 1
 
-    def process_response_file(self, file_name, survey_id, assessment_id):
+    def process_response_file(self, file_name, survey_id, assessment_id, base_url):
         """
         Open and write an Excel file
         """
         model.connect_db(os.environ.get('DATABASE_URL'))
         workbook = xlsxwriter.Workbook(file_name)
         worksheet = workbook.add_worksheet('Response')
+        worksheet_metadata = workbook.add_worksheet('Metadata')
 
         format = workbook.add_format()
         format.set_text_wrap()
@@ -485,6 +504,11 @@ class Exporter():
         format_comment = workbook.add_format()
         format_percent = workbook.add_format()
         format_percent.set_num_format(10)
+        format_date = workbook.add_format({'num_format': 'dd/mmm/yy'})
+        url_format = workbook.add_format({
+            'font_color': 'blue',
+            'underline':  1
+        })
 
 
         line = 1
@@ -497,7 +521,7 @@ class Exporter():
                 assessment.hierarchy.structure and \
                 assessment.hierarchy.structure.get('levels'):
 
-                log.info("assessment: %s", assessment)
+                self.write_metadata(workbook, worksheet_metadata, assessment)
                 levels = assessment.hierarchy.structure["levels"]
                 level_length = len(levels)
                 worksheet.set_column(0, level_length, 50)
@@ -505,16 +529,22 @@ class Exporter():
                 max_len_of_response = max(
                     [len(response.response_parts) 
                         for response in assessment.ordered_responses])
+                response_types = [part["parts"] for part in assessment.survey._response_types
+                                    if len(part["parts"]) == max_len_of_response][0]
+                response_parts = [part['name'] for part in  response_types]
+
                 worksheet.set_column(level_length + 1, 
-                    level_length + max_len_of_response, 12)
-                worksheet.set_column(level_length + max_len_of_response + 3,
-                    level_length + max_len_of_response + 3, 200)
+                    level_length + max_len_of_response + 8, 15)
+                worksheet.set_column(level_length + max_len_of_response + 9,
+                    level_length + max_len_of_response + 9, 100)
 
                 # Header from heirarchy levels
                 self.write_response_header(
-                    workbook, worksheet, levels, max_len_of_response)
+                    workbook, worksheet, levels, max_len_of_response,
+                    response_parts)
 
                 for response in assessment.ordered_responses:
+                    # log.info("response: %s", response.measure.id)
                     qnode = response.measure.get_parent(
                         assessment.hierarchy_id)
                     self.write_qnode(
@@ -531,17 +561,90 @@ class Exporter():
                     score = 0
                     if response.measure.weight != 0:
                         score = response.score / response.measure.weight
-                    worksheet.write(line, level_length + max_len_of_response + 1, 
+
+                    export_approval_status = ['final', 'reviewed', 'approved']
+
+                    self.write_approval(worksheet, line, 
+                                level_length + max_len_of_response, response,
+                                response.user, format, format_date)
+                    if response.approval in export_approval_status:
+                        export_approval_status.remove(response.approval)
+
+                    for approval_status in export_approval_status:
+                        res = session.query(model.ResponseHistory).\
+                            filter_by(id=response.id, approval=approval_status).\
+                            order_by(model.ResponseHistory.modified.desc()).\
+                            first()
+                        if res:
+                            user = session.query(model.AppUser).\
+                                filter_by(id=res.user_id).\
+                                first()
+
+                            self.write_approval(worksheet, line, 
+                                level_length + max_len_of_response, res,
+                                user, format, format_date)
+
+                    worksheet.write(line, level_length + max_len_of_response + 7,
                             score, format_percent)
-                    worksheet.write(line, level_length + max_len_of_response + 2, 
+                    worksheet.write(line, level_length + max_len_of_response + 8,
                             qnode.total_weight, format_no_wrap)
-                    worksheet.write(line, level_length + max_len_of_response + 3, 
+                    worksheet.write(line, level_length + max_len_of_response + 9,
                             response.comment, format_comment)
+
+                    url = base_url + "/#/measure/{0}?assessment={1}&parent={2}".format(
+                          response.measure.id, assessment.id, qnode.id)
+
+                    worksheet.write_url(line, level_length + max_len_of_response + 10,
+                            url, url_format, "Link")
                     line = line + 1
 
         workbook.close()
 
-    def write_response_header(self, workbook, sheet, levels, max_response):
+    def write_approval(self, worksheet, line, column_num, response, user, 
+                       format, format_date):
+
+        pad = None
+        if response.approval == 'final':
+            pad = 0
+        elif response.approval == 'reviewed':
+            pad = 2
+        elif response.approval == 'approved':
+            pad = 4
+
+        if pad is not None:
+            worksheet.write(line, column_num + pad + 1,
+                    user.name, format)
+            worksheet.write(line, column_num + pad + 2,
+                    response.modified, format_date)
+
+
+
+    def write_metadata(self, workbook, sheet, assessment):
+        sheet.set_column(0, 1, 40)
+
+        line = 0
+        format = workbook.add_format()
+        format.set_text_wrap()
+        format_header = workbook.add_format()
+        format_header.set_text_wrap()
+        format_header.set_bold()
+        log.info("assessment: %s", assessment.title)
+
+        sheet.write(line, 0, "Program Name", format_header)
+        sheet.write(line, 1, assessment.survey.title, format)
+        line = line + 1
+        sheet.write(line, 0, "Survey Name", format_header)
+        sheet.write(line, 1, assessment.hierarchy.title, format)
+        line = line + 1
+        sheet.write(line, 0, "Organisation", format_header)
+        sheet.write(line, 1, assessment.organisation.name, format)
+        line = line + 1
+        sheet.write(line, 0, "Submission Name", format_header)
+        sheet.write(line, 1, assessment.title, format)
+        line = line + 1
+
+    def write_response_header(self, workbook, sheet, levels,
+                              max_response, response_parts):
         format = workbook.add_format()
         # format.set_text_wrap()
         format.set_bold()
@@ -549,12 +652,20 @@ class Exporter():
         for level in levels:
             sheet.write(0, levels.index(level), level["title"], format)
         sheet.write(0, len(levels), "Measure", format)
-        for index in range(max_response):
-            sheet.write(0, len(levels) + index + 1, "Response " + str(index + 1), 
+        for index in range(len(response_parts)):
+            sheet.write(0, len(levels) + index + 1, response_parts[index],
                 format)
-        sheet.write(0, len(levels) + max_response + 1, "Percent", format)
-        sheet.write(0, len(levels) + max_response + 2, "Weight", format)
-        sheet.write(0, len(levels) + max_response + 3, "Comment", format)
+        sheet.write(0, len(levels) + max_response + 1, "Final Report By", format)
+        sheet.write(0, len(levels) + max_response + 2, "Final Report Date", format)
+        sheet.write(0, len(levels) + max_response + 3, "Review By", format)
+        sheet.write(0, len(levels) + max_response + 4, "Reviewed Date", format)
+        sheet.write(0, len(levels) + max_response + 5, "Approved By", format)
+        sheet.write(0, len(levels) + max_response + 6, "Approved Date", format)
+
+        sheet.write(0, len(levels) + max_response + 7, "Score", format)
+        sheet.write(0, len(levels) + max_response + 8, "Weight", format)
+        sheet.write(0, len(levels) + max_response + 9, "Comment", format)
+        sheet.write(0, len(levels) + max_response + 10, "URL", format)
 
     def write_qnode(self, sheet, qnode, line, format, col):
         if qnode.parent != None:

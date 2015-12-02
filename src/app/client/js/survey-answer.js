@@ -42,10 +42,10 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 .controller('AssessmentCtrl', [
         '$scope', 'Assessment', 'Hierarchy', 'routeData', 'Editor',
         'questionAuthz', 'layout', '$location', 'Current', 'format', '$filter',
-        'Notifications', 'Structure',
+        'Notifications', 'Structure', '$http',
         function($scope, Assessment, Hierarchy, routeData, Editor, authz,
                  layout, $location, current, format, $filter, Notifications,
-                 Structure) {
+                 Structure, $http) {
 
     $scope.layout = layout;
     $scope.survey = routeData.survey;
@@ -105,6 +105,32 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
     });
 
     $scope.checkRole = authz(current, $scope.survey, $scope.assessment);
+
+    $scope.download = function(assessment_id, export_type) {
+        var url = null;
+        if (export_type == 'structure')
+            url = '/export/assessment/' + assessment_id + '.xlsx';
+        else
+            url = '/export/response/' + assessment_id + '.xlsx';
+
+        // console.log(assessment_id, export_type);
+        $http.get(url, { responseType: "arraybuffer" }).then(
+            function success(response) {
+                var message = "Export finished";
+                Notifications.set('export', 'info', message, 5000);
+                console.log(response);
+                var blob = new Blob(
+                    [response.data], {type: response.headers('Content-Type')});
+                var name = /filename=(.*)/.exec(
+                    response.headers('Content-Disposition'))[1];
+                saveAs(blob, name);
+            },
+            function failure(response) {
+                Notifications.set('export', 'error',
+                    "Error: " + response.statusText);
+            }
+        );
+    };
 }])
 
 
