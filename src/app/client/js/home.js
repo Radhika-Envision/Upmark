@@ -86,13 +86,13 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
         if (!action)
             return null;
 
-        switch (action.obType) {
+        switch (action.obType || action) {
         case 'qnode':
             return 'survey category';
         case 'rnode':
             return 'submission category';
         default:
-            return action.obType;
+            return action.obType || action;
         }
     };
 

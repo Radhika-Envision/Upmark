@@ -21,6 +21,7 @@ angular.module('wsaa.subscription', ['ngResource', 'wsaa.admin'])
         function($scope, Subscription, Notifications, $q, format, Current,
             hotkeys, $route, ActivityTransform) {
 
+    $scope.obType = $route.current.params.type;
     $scope.ids = $route.current.params.id;
     if (!angular.isArray($scope.ids))
         $scope.ids = [$scope.ids];
@@ -28,18 +29,24 @@ angular.module('wsaa.subscription', ['ngResource', 'wsaa.admin'])
     $scope.acts = ActivityTransform;
     $scope.subscriptions = null;
     $scope.subscription = null;
+    $scope.objectMissing = false;
 
     $scope.reload = function() {
         Subscription.query({
-            obType: $route.current.params.type,
+            obType: $scope.obType,
             obIds: $scope.ids
         }).$promise.then(
             function success(subscriptions) {
                 $scope.subscriptions = subscriptions;
+                $scope.objectMissing = false;
             },
             function failure(details) {
-                Notifications.set('subscription', 'error',
-                    "Could not get subscriptions: " + details.statusText);
+                if (details.status == 404) {
+                    $scope.objectMissing = true;
+                } else {
+                    Notifications.set('subscription', 'error',
+                        "Could not get subscriptions: " + details.statusText);
+                }
                 return $q.reject(details);
             }
         );

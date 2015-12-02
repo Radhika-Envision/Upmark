@@ -7,14 +7,29 @@
         </button>
     </div>
     <h2 page-title>
-        Subscription to {{acts.obType(subscription)}}
+        Subscription to {{acts.obType(obType)}}
     </h2>
 </div>
 </div>
 
 <div class="container" ng-if="!subscription">
-    <p>
+    <p ng-if="!objectMissing">
         Loading...
+    </p>
+    <p ng-if="objectMissing" ng-switch="obType">
+        <span ng-switch-default>
+            Could not get subscription details.
+        </span>
+        <span ng-switch-when="rnode">
+            You can't subscribe to this {{acts.obType(obType)}} until one of its
+            measures is responded to. Try saving a response first, or subscribe
+            to a parent category or the submission it belongs to.
+        </span>
+        <span ng-switch-when="response">
+            You can't subscribe to this {{acts.obType(obType)}} until it exists.
+            Try saving the response first, or subscribe to one of the categories
+            it belongs to.
+        </span>
     </p>
 </div>
 
