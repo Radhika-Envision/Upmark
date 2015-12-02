@@ -198,7 +198,7 @@ class ResponseHandler(handlers.BaseHandler):
                 else:
                     same_user = response.user.id == self.current_user.id
                     td = datetime.datetime.utcnow() - response.modified
-                    hours_since_update = td.seconds / 60 / 60
+                    hours_since_update = td.total_seconds() / 60 / 60
 
                     if same_user and hours_since_update < 8:
                         response.version_on_update = False
