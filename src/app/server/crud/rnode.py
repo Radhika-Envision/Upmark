@@ -170,6 +170,12 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 except (model.ModelError, ResponseTypeError) as e:
                     raise handlers.ModelError(str(e))
 
+                act = crud.activity.Activities(session)
+                act.record(self.current_user, rnode, ['update'])
+                if not act.has_subscription(self.current_user, rnode):
+                    act.subscribe(self.current_user, rnode.assessment)
+                    self.reason("Subscribed to submission")
+
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(assessment_id, qnode_id)

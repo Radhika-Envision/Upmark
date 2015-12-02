@@ -5,8 +5,8 @@ angular.module('wsaa.aquamark',
                 'ui.bootstrap.showErrors', 'validation.match', 'settings',
                 'yaru22.angular-timeago', 'angular-select-text',
                 'angular-medium-editor',
-                'wsaa.survey', 'wsaa.admin', 'wsaa.surveyQuestions',
-                'wsaa.surveyAnswers',
+                'wsaa.survey', 'wsaa.admin', 'wsaa.home', 'wsaa.subscription',
+                'wsaa.surveyQuestions', 'wsaa.surveyAnswers',
                 'vpac.utils', 'vpac.widgets', 'diff-match-patch'])
 
 
@@ -100,8 +100,10 @@ angular.module('wsaa.aquamark',
         $routeProvider
 
             .when('/', {
-                redirectTo : 'surveys'
+                templateUrl : 'home.html',
+                controller : 'HomeCtrl'
             })
+
             .when('/admin', {
                 templateUrl : 'systemconfig.html',
                 controller : 'SystemConfigCtrl',
@@ -110,6 +112,11 @@ angular.module('wsaa.aquamark',
                         return SystemConfig.get().$promise;
                     }]
                 }
+            })
+
+            .when('/subscription/:type', {
+                templateUrl : 'subscription.html',
+                controller : 'SubscriptionCtrl'
             })
 
             .when('/users', {
@@ -350,7 +357,8 @@ angular.module('wsaa.aquamark',
                             id: $route.current.params.survey
                         }).$promise;
                     }],
-                    organisation: ['Organisation', '$route', function(Organisation, $route) {
+                    organisation: ['Organisation', '$route',
+                            function(Organisation, $route) {
                         if (!$route.current.params.organisation)
                             return null;
                         return Organisation.get({

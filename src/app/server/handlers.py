@@ -187,6 +187,8 @@ SCRIPTS = [
         'hrefs': [
             '/js/app.js',
             '/js/admin.js',
+            '/js/home.js',
+            '/js/subscription.js',
             '/js/survey.js',
             '/js/survey-question.js',
             '/js/survey-answer.js',

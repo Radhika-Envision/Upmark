@@ -163,7 +163,7 @@ div[textarea-label] {
             box-shadow: 1px 1px 4px 5px rgba(255, 255, 255, 0.5);
             color: $button-fg;
             background-color: $primary-colour;
-            @include transform(scale(1.02, 1.1));
+            @include transform(scale(1.01, 1.05));
             border-radius: 3px !important;
         }
     }
@@ -290,6 +290,12 @@ div[textarea-label] {
             box-shadow: none;
         }
     }
+}
+
+/* Use in conjunction with .fade to make something fade in when the mouse is
+   over the parent element */
+:hover > .hover-parent {
+    opacity: 1;
 }
 
 :not(ng-include):not(.nested)>.header .btn-default, .well .btn-default {
