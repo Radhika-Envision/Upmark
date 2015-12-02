@@ -206,16 +206,30 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
     $scope.secondsInADay = 24 * 60 * 60;
     $scope.activityParams = {
         period: 7 * $scope.secondsInADay,
-        until: Date.now() / 1000
+        until: null
     };
     $scope.goToNow = function() {
-        $scope.activityParams.until = Date.now() / 1000;
+        $scope.activityParams.until = null;
     };
     $scope.previousActivities = function() {
-        $scope.activityParams.until -= $scope.activityParams.period;
+        var until;
+        if ($scope.activity.from)
+            until = $scope.activity.from;
+        else if ($scope.activityParams.until)
+            until = $scope.activityParams.until - $scope.activityParams.period;
+        else
+            until = (Date.now() / 1000) - $scope.activityParams.period;
+        $scope.activityParams.until = until;
     };
     $scope.nextActivities = function() {
-        $scope.activityParams.until += $scope.activityParams.period;
+        var until;
+        if ($scope.activity.until)
+            until = $scope.activity.until + $scope.activityParams.period;
+        else if ($scope.activityParams.until)
+            until = $scope.activityParams.until + $scope.activityParams.period;
+        else
+            until = (Date.now() / 1000) + $scope.activityParams.period;
+        $scope.activityParams.until = until;
     };
 
     $scope.$watch('activityParams', function(vals) {
