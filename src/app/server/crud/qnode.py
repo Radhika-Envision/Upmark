@@ -115,9 +115,8 @@ class QuestionNodeHandler(
             query = session.query(model.QuestionNode)\
                 .filter_by(survey_id=self.survey_id)
 
-            self.check_browse_survey(session, self.survey_id, 
-                                     hierarchy_id)
             if hierarchy_id != '':
+                self.check_browse_survey(session, self.survey_id, hierarchy_id)
                 query = query.filter_by(hierarchy_id=hierarchy_id)
             if parent_id != '':
                 query = query.filter_by(parent_id=parent_id)
@@ -150,8 +149,13 @@ class QuestionNodeHandler(
             if truthy(self.get_argument('desc', False)):
                 include += [r'/description$']
 
+            qnodes = list(query.all())
+            hierarchy_ids = {q.hierarchy_id for q in qnodes}
+            for hid in hierarchy_ids:
+                self.check_browse_survey(session, self.survey_id, hid)
+
             to_son = ToSon(include=include, exclude=exclude)
-            sons = to_son(query.all())
+            sons = to_son(qnodes)
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
