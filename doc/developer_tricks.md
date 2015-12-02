@@ -17,3 +17,14 @@ sudo docker run -it --rm \
     postgres:9.4 \
     bash -c "pg_dumpall -U postgres -h postgres > /backup/aq_dump.sql"
 ```
+
+Restoring a backup:
+
+```bash
+mkdir ~/tmp
+sudo docker run -it --rm \
+    -v ~/tmp:/backup \
+    --link aquamark_postgres_1:postgres \
+    postgres:9.4 \
+    bash -c "psql -U postgres -h postgres < /backup/aq_dump.sql"
+```
