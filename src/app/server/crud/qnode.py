@@ -292,6 +292,7 @@ class QuestionNodeHandler(
                     parent = None
 
                 qnode.hierarchy = hierarchy
+                qnode.hierarchy.modified = datetime.datetime.utcnow()
 
                 if parent is not None:
                     log.debug("Appending to parent")
@@ -351,6 +352,7 @@ class QuestionNodeHandler(
                 act = crud.activity.Activities(session)
                 act.record(self.current_user, qnode, ['delete'])
 
+                qnode.hierarchy.modified = datetime.datetime.utcnow()
                 session.delete(qnode)
 
                 if hierarchy is not None:
@@ -408,6 +410,10 @@ class QuestionNodeHandler(
 
                 act = crud.activity.Activities(session)
                 act.record(self.current_user, qnode, verbs)
+
+                if len(verbs) != 0:
+                    qnode.hierarchy.modified = datetime.datetime.utcnow()
+
                 if not act.has_subscription(self.current_user, qnode):
                     act.subscribe(self.current_user, qnode.survey)
                     self.reason("Subscribed to program")
