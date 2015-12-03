@@ -374,6 +374,7 @@ class Hierarchy(Observable, Base):
         '''Updates the stats this hierarchy.'''
         n_measures = sum(qnode.n_measures for qnode in self.qnodes)
         self.n_measures = n_measures
+        self.modified = datetime.utcnow()
 
     def update_stats_descendants(self):
         '''Updates the stats of an entire subtree.'''
