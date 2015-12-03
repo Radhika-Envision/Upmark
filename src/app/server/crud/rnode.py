@@ -1,4 +1,5 @@
 import datetime
+import logging
 import time
 import uuid
 
@@ -7,11 +8,10 @@ import tornado.web
 import sqlalchemy
 from sqlalchemy.orm import joinedload
 
+from activity import Activities
 import crud.survey
 import handlers
 import model
-import logging
-
 from response_type import ResponseTypeError
 from utils import reorder, ToSon, truthy, updater
 
@@ -170,7 +170,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 except (model.ModelError, ResponseTypeError) as e:
                     raise handlers.ModelError(str(e))
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 act.record(self.current_user, rnode, ['update'])
                 if not act.has_subscription(self.current_user, rnode):
                     act.subscribe(self.current_user, rnode.assessment)

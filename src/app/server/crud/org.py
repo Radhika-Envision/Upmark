@@ -7,7 +7,7 @@ import tornado.web
 import sqlalchemy
 from sqlalchemy.orm import joinedload
 
-import crud.activity
+from activity import Activities
 import crud.survey
 import handlers
 import model
@@ -82,7 +82,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                 session.add(org)
                 session.flush()
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 act.record(self.current_user, org, ['create'])
                 if not act.has_subscription(self.current_user, org):
                     act.subscribe(self.current_user, org)
@@ -114,7 +114,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                     raise ValueError("No such object")
                 self._update(org, self.request_son)
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 if session.is_modified(org):
                     act.record(self.current_user, org, ['update'])
                 if not act.has_subscription(self.current_user, org):
@@ -136,7 +136,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                 if org is None:
                     raise ValueError("No such object")
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 act.record(self.current_user, org, ['delete'])
 
                 session.delete(org)

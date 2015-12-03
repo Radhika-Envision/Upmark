@@ -1,4 +1,5 @@
 import datetime
+import logging
 import time
 import uuid
 
@@ -8,11 +9,9 @@ import tornado.web
 import sqlalchemy
 from sqlalchemy.orm import joinedload
 
-import crud.activity
+from activity import Activities
 import handlers
 import model
-import logging
-
 from utils import ToSon, truthy, updater
 
 
@@ -136,7 +135,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 session.add(user)
                 session.flush()
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 act.record(self.current_user, user, ['create'])
                 if not act.has_subscription(self.current_user, user):
                     act.subscribe(self.current_user, user.organisation)
@@ -163,7 +162,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 self._check_update(self.request_son, user)
                 self._update(user, self.request_son)
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 if session.is_modified(user):
                     act.record(self.current_user, user, ['update'])
                 if not act.has_subscription(self.current_user, user):
@@ -188,7 +187,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 self._check_delete(user)
                 user.organisation.users.remove(user)
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 act.record(self.current_user, user, ['delete'])
 
                 session.delete(user)

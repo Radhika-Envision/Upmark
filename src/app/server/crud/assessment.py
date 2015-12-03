@@ -12,6 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import make_transient
 
+from activity import Activities
 import crud.survey
 import handlers
 import model
@@ -181,7 +182,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                     yield AssessmentHandler.executor.submit(
                         self.fill_random, assessment, session)
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 act.record(self.current_user, assessment, ['create'])
                 if not act.has_subscription(self.current_user, assessment):
                     act.subscribe(self.current_user, assessment)
@@ -345,7 +346,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 if session.is_modified(assessment):
                     verbs.append('update')
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 act.record(self.current_user, assessment, verbs)
                 if not act.has_subscription(self.current_user, assessment):
                     act.subscribe(self.current_user, assessment)
@@ -370,7 +371,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                     raise handlers.ModelError("No such submission")
                 self._check_delete(assessment)
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 act.record(self.current_user, assessment, ['delete'])
 
                 session.delete(assessment)

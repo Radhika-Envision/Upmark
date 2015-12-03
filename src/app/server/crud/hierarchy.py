@@ -7,7 +7,7 @@ import tornado.web
 import sqlalchemy
 from sqlalchemy.orm import joinedload
 
-import crud.activity
+from activity import Activities
 import crud.survey
 import handlers
 import model
@@ -98,7 +98,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 session.add(hierarchy)
                 session.flush()
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 act.record(self.current_user, hierarchy, ['create'])
                 if not act.has_subscription(self.current_user, hierarchy):
                     act.subscribe(self.current_user, hierarchy.survey)
@@ -125,7 +125,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     raise ValueError("No such object")
                 self._update(hierarchy, self.request_son)
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 if session.is_modified(hierarchy):
                     act.record(self.current_user, hierarchy, ['update'])
                 if not act.has_subscription(self.current_user, hierarchy):
@@ -152,7 +152,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 if hierarchy is None:
                     raise ValueError("No such object")
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 act.record(self.current_user, hierarchy, ['delete'])
 
                 session.delete(hierarchy)

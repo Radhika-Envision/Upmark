@@ -10,8 +10,8 @@ from sqlalchemy.dialects.postgresql import array
 from sqlalchemy.orm import aliased, joinedload
 from sqlalchemy.sql.expression import literal
 
+from activity import Activities
 import crud
-import crud.activity
 import handlers
 import model
 from utils import reorder, ToSon, truthy, updater
@@ -310,7 +310,7 @@ class QuestionNodeHandler(
                 qnode.update_stats_ancestors()
                 qnode_id = str(qnode.id)
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 act.record(self.current_user, qnode, ['create'])
                 if not act.has_subscription(self.current_user, qnode):
                     act.subscribe(self.current_user, qnode.survey)
@@ -348,7 +348,7 @@ class QuestionNodeHandler(
                 if qnode.parent is not None:
                     parent = qnode.parent
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 act.record(self.current_user, qnode, ['delete'])
 
                 session.delete(qnode)
@@ -406,7 +406,7 @@ class QuestionNodeHandler(
                         old_parent.title, new_parent.title))
                     verbs.append('relation')
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 act.record(self.current_user, qnode, verbs)
                 if not act.has_subscription(self.current_user, qnode):
                     act.subscribe(self.current_user, qnode.survey)
@@ -445,7 +445,7 @@ class QuestionNodeHandler(
         try:
             with model.session_scope() as session:
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 if parent_id != '':
                     parent = session.query(model.QuestionNode)\
                         .get((parent_id, self.survey_id))

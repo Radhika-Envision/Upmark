@@ -12,7 +12,7 @@ import handlers
 import model
 import logging
 
-import crud
+from activity import Activities
 from response_type import ResponseTypeError
 from utils import falsy, reorder, ToSon, truthy, updater
 
@@ -233,7 +233,7 @@ class ResponseHandler(handlers.BaseHandler):
                 except (model.ModelError, ResponseTypeError) as e:
                     raise handlers.ModelError(str(e))
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 act.record(self.current_user, response, verbs)
                 if not act.has_subscription(self.current_user, response):
                     act.subscribe(self.current_user, response.assessment)

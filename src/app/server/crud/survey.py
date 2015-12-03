@@ -14,10 +14,9 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import make_transient
 import voluptuous
 
+from activity import Activities
 import handlers
 import model
-import crud.activity
-
 from utils import ToSon, truthy, updater
 
 
@@ -152,7 +151,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 session.flush()
                 survey_id = str(survey.id)
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
 
                 if duplicate_id != '':
                     source_survey = (session.query(model.Survey)
@@ -246,7 +245,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 if not survey.is_editable:
                     raise handlers.MethodError(
                         "This survey is closed for editing")
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 act.record(self.current_user, survey, ['delete'])
                 session.delete(survey)
         except sqlalchemy.exc.IntegrityError as e:
@@ -281,7 +280,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                         "This survey is closed for editing")
                 self._update(survey, self.request_son)
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 if session.is_modified(survey):
                     act.record(self.current_user, survey, ['update'])
                 if not act.has_subscription(self.current_user, survey):
@@ -309,7 +308,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                     else:
                         survey.finalised_date = datetime.datetime.utcnow()
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 if session.is_modified(survey):
                     act.record(self.current_user, survey, ['state'])
                 if not act.has_subscription(self.current_user, survey):

@@ -7,6 +7,7 @@ import tornado.web
 import sqlalchemy
 from sqlalchemy.orm import joinedload
 
+from activity import Activities
 import crud
 import handlers
 import logging
@@ -228,7 +229,7 @@ class MeasureHandler(
                 if len(parents) > 0:
                     verbs.append('relation')
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 act.record(self.current_user, measure, verbs)
                 if not act.has_subscription(self.current_user, measure):
                     act.subscribe(self.current_user, measure.survey)
@@ -257,7 +258,7 @@ class MeasureHandler(
                 if measure is None:
                     raise handlers.MissingDocError("No such measure")
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 if len(parent_ids) > 0:
                     # Just unlink from qnodes
                     for parent_id in parent_ids:
@@ -342,7 +343,7 @@ class MeasureHandler(
                 for parent in affected_parents:
                     parent.update_stats_ancestors()
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 act.record(self.current_user, measure, verbs)
                 if not act.has_subscription(self.current_user, measure):
                     act.subscribe(self.current_user, measure.survey)
@@ -372,7 +373,7 @@ class MeasureHandler(
                     qnode.qnode_measures, self.request_son,
                     id_attr='measure_id')
 
-                act = crud.activity.Activities(session)
+                act = Activities(session)
                 act.record(self.current_user, qnode, ['reorder_children'])
                 if not act.has_subscription(self.current_user, qnode):
                     act.subscribe(self.current_user, qnode.survey)
