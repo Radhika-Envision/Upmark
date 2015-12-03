@@ -302,7 +302,7 @@ div[textarea-label] {
     &:not([disabled]) {
         color: lighten($button-fg, 30%);
     }
-    background-color: white;
+    background-color: transparent;
     border-color: transparent;
 
     &:hover, &:active, &.active:focus, &:focus, &:active.focus, &:active:focus {
@@ -329,6 +329,9 @@ div[textarea-label] {
     border-radius: 4px;
     background: #F0F0F0;
 
+    .btn-default {
+        background: white;
+    }
     textarea, .btn-default[disabled], ul.list-results {
         background: white;
     }

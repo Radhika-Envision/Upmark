@@ -45,7 +45,10 @@
     <span ng-if="item.entity.title && $last">
         <span ng-if="item.entity.seq != null">
             {{item.entity.seq + 1}}.</span>
-        <page-title>{{item.entity.title}}</page-title>
+        <page-title>
+            <span class="hidden">{{item.lineage}}</span>
+            {{item.entity.title}}
+        </page-title>
     </span>
     <span ng-if="!item.entity.title">
         <strong>+</strong>

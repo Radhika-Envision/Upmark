@@ -706,27 +706,38 @@ angular.module('wsaa.surveyQuestions', [
             }
 
             var structure = hierarchy.structure;
+            var lineage = "";
             // Qnodes and measures
             for (var i = 2; i <= qnodeMaxIndex; i++) {
                 entity = stack[i];
                 var level = structure.levels[i - 2];
+                if (entity.seq != null)
+                    lineage += "" + (entity.seq + 1) + ".";
+                else
+                    lineage += "-.";
                 hstack.push({
                     path: 'qnode',
                     title: level.title,
                     label: level.label,
                     entity: entity,
-                    level: i - 2
+                    level: i - 2,
+                    lineage: lineage
                 });
                 qnodes.push(entity);
             }
 
             if (measure) {
+                if (measure.seq != null)
+                    lineage += "" + (measure.seq + 1) + ".";
+                else
+                    lineage += "-.";
                 hstack.push({
                     path: 'measure',
                     title: structure.measure.title,
                     label: structure.measure.label,
                     entity: measure,
-                    level: 'm'
+                    level: 'm',
+                    lineage: lineage
                 });
             }
         }
