@@ -1,6 +1,7 @@
 from . import config
 from . import org
 from . import user
+from . import activity
 
 from . import survey
 from . import hierarchy

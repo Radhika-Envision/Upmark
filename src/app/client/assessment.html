@@ -64,6 +64,10 @@
                 ng-click="edit.edit()"
                 ng-if="!edit.model && checkRole('assessment_edit')">
             <i class="fa fa-pencil"></i></button>
+        <a class="btn btn-default btn-round" title="Subscriptions"
+                ng-href="#/subscription/submission?id={{assessment.id}}"
+                ng-if="!edit.model">
+            <i class="fa fa-envelope"></i></a>
     </div>
     <question-header entity="assessment.hierarchy" assessment="assessment"></question-header>
 </div>

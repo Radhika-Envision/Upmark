@@ -242,8 +242,20 @@ ul.fa-ul-big {
         }
     }
 }
+ul.fa-ul-big.list-results {
+    > li {
+        margin-top: 0;
+    }
+    > li > i.fa-li {
+        top: 8px;
+    }
+}
 .fa-li > .fa-badge {
-    left: -1.5em;
+    left: -1em;
+}
+.fa-border-fill {
+    background-color: #F5F5F5;
+    border-color: #f5f5f5;
 }
 ul.docs > li:not(.printable) {
     @media print {
@@ -284,6 +296,9 @@ dt.active:before {
     margin-top: 4px;
     > a {
         vertical-align: top;
+    }
+    > .btn:first-child, > a:first-child {
+        margin-left: 0;
     }
 
     @media print {
@@ -339,15 +354,17 @@ ul.list-results {
             padding: 8px;
         }
         > a {
+            @include transition(background-color 0.3s);
+            color: #555;
             > h4 {
                 font-weight: bold;
                 position: relative;
             }
             > p {
-                color: #555;
                 &:last-child {
                     margin-bottom: 0;
                 }
+                color: #777;
             }
         }
 
@@ -830,13 +847,168 @@ ul.cardlist {
     padding: 0;
 
     li {
-        padding: 18px 0;
         list-style: none;
+
         @media print {
             padding: 0;
             page-break-inside: avoid;
         }
     }
+
+    li > a {
+        padding: 12px 12px;
+        margin: 1px 0;
+        border-left: 8px solid;
+        background: #f5f5f5;
+        &:hover {
+            background: #eee;
+        }
+    }
+
+    li:first-child > a {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+    }
+
+    li:last-child > a {
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+    }
+
+    li.association > a {
+        border-color: mix($aq-bar1, white, 50%);
+    }
+    li.question > a {
+        border-color: mix($aq-bar2, white, 50%);
+    }
+    li.answer > a {
+        border-color: mix($aq-bar3, white, 50%);
+    }
+}
+
+ul.fa-ul.timeline {
+    margin-left: 0;
+
+    > li {
+        background: #f5f5f5;
+        margin-bottom: 1px;
+        border-left: 4.3em solid #eee;
+
+        @media (max-width: 768px) {
+            border-left-width: 4.3em * 0.5;
+        }
+
+        &:first-child {
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+        }
+
+        &:last-child {
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+        }
+
+        > a, > div {
+            padding: 18px;
+        }
+        > a:hover {
+            background: #eee;
+        }
+
+        > .toolbar {
+            position: absolute;
+            right: 0;
+            top: 0;
+            padding: 4px;
+            background-color: white;
+            border-radius: 17px;
+            margin: 4px;
+        }
+
+        .text-muted em {
+            font-style: normal;
+            color: #555;
+        }
+    }
+
+
+    > li > i.fa-li {
+        padding: 0;
+        top: 50%;
+        margin-top: 28px * -0.5;
+
+        @media (max-width: 768px) {
+            margin-top: 19.5px * -0.5;
+        }
+
+        width: 4.3em * 0.5;
+        border-color: transparent;
+        background: transparent;
+    }
+
+    /* Object types */
+    > li.broadcast {
+        $col: $primary-colour;
+        border-color: $col;
+        > .fa-li > .fa-badge {
+            @include text-shadow-outline($col);
+        }
+    }
+    > li.association {
+        $col: mix($aq-bar1, white, 30%);
+        border-color: $col;
+        > .fa-li > .fa-badge {
+            @include text-shadow-outline($col);
+        }
+    }
+    > li.question {
+        $col: mix($aq-bar2, white, 30%);
+        border-color: $col;
+        > .fa-li > .fa-badge {
+            @include text-shadow-outline($col);
+        }
+    }
+    > li.answer {
+        $col: mix($aq-bar3, white, 30%);
+        border-color: $col;
+        > .fa-li > .fa-badge {
+            @include text-shadow-outline($col);
+        }
+    }
+
+    /* Selection states */
+    > li.selected {
+        $col: #8fde8f;
+        border-color: $col;
+        > .fa-li > .fa-badge {
+            @include text-shadow-outline($col);
+        }
+    }
+    > li.selected.inherited {
+        $col: #c3e2c3;
+        border-color: $col;
+        > .fa-li > .fa-badge {
+            @include text-shadow-outline($col);
+        }
+    }
+    > li.unselected {
+        $col: #e69090;
+        border-color: $col;
+        > .fa-li > .fa-badge {
+            @include text-shadow-outline($col);
+        }
+    }
+    > li.unselected.inherited {
+        $col: #d8b0b0;
+        border-color: $col;
+        > .fa-li > .fa-badge {
+            @include text-shadow-outline($col);
+        }
+    }
+}
+
+.capitalize {
+    text-transform: capitalize;
 }
 
 .underline {

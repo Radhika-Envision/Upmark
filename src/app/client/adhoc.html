@@ -235,6 +235,82 @@
             </dd>
         </dl>
     </docs>
+    <docs>
+        <i class="fa-li fa fa-envelope-o fa-border"></i>
+        <h3>Activity stream tables</h3>
+        <p>
+            The information for the <a href="#/">timeline</a> is stored in
+            two tables:
+        </p>
+        <img src="images/design-tables-activity.svg" class="img-responsive">
+        <dl>
+            <dt>activity</dt>
+            <dd>
+                <p>PK: <code>id</code>.</p>
+                <p>
+                Stores events that occur across the system in a generic way.
+                <code>subject_id</code> is a foreign key to the user who
+                performed the action. <code>verbs</code> is a list of the
+                actions that were taken, e.g. <em>create</em> or
+                <em>update</em>. <code>message</code> is the title of the object
+                that was modified; it is stored denormalised in this table to
+                avoid complex joins and because some of the events may refer to
+                objects that have been deleted. <code>sticky</code> forces the
+                activity to be displayed at the top of the timeline.
+                </p>
+                <p>
+                The reference to the target object is stored in a generic way:
+                <code>ob_type</code> says what kind of object was acted on,
+                e.g. <em>program</em> or <em>qnode</em>. <code>ob_ids</code> is
+                a generic reference to any other table. It's an array of IDs
+                that uniquely and minimally identify the target object (not
+                necessarily by primary key). For example, a row linking to a
+                program would have an array of <em>[survey.id]</em>; a row
+                linking to a qnode would have <em>[qnode.id, survey.id]</em>;
+                while a row linking to a response would have
+                <em>[measure.id, assessment.id]</em>.
+                </p>
+                <p>
+                To allow hierarchical subscriptions, e.g. to allow searching for
+                events that relate to a program and all of its surveys, qnodes
+                and measures, the <code>ob_refs</code> field stores an array of
+                all object IDs in the subscription chain, sorted from shallow to
+                deep. For example, a measure that belongs to two surveys
+                (hierarchies) might have a reference chain of
+                <em>[survey.id, hierarchy.id, hierarchy.id, qnode.id, qnode.id,
+                measure.id]</em>.
+                </p>
+            </dd>
+
+            <dt>subscription</dt>
+            <dd>
+                <p>PK: <code>id</code>.</p>
+                <p>
+                Links users to events in the activity table in a many-to-many
+                fashion. <code>user_id</code> is a foreign key to the user, and
+                <code>subscribed</code> indicates whether it is a subscription
+                or an <em>un</em>subscription. The <code>ob_type</code> field
+                has the same role as <code>activity.ob_type</code>.
+                <code>ob_refs</code> is a generic reference to both the actual
+                object that is subscribed to, and all the activities that refer
+                to it.
+                </p>
+                <p>
+                To find out if a subscription matches an activity, check whether
+                all of the IDs in the <code>ob_refs</code> column are contained
+                in <code>activity.ob_refs</code>. For example,
+                <code>activity.ob_refs <a href="http://www.postgresql.org/docs/9.4/static/functions-array.html">@&gt;</a> subscription.ob_refs</code>. Deeper
+                subscriptions override shallow ones, so to check a subscription
+                against a row in the activity table, find the index of the
+                subscription reference in the <code>activity.ob_refs</code>
+                column. For example, expand <code>activity.ob_refs</code> with
+                <code><a href="http://www.postgresql.org/docs/9.4/static/functions-array.html">unnest</a>(activity.ob_refs) <a href="http://www.postgresql.org/docs/9.4/static/functions-srf.html">WITH ORDINALITY</a></code>
+                and then order the results by
+                <code>activity.created DESC, activity.id, ordinality DESC</code>.
+                </p>
+            </dd>
+        </dl>
+    </docs>
 </form>
 
 <div ng-if="result.cols">

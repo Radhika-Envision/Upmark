@@ -1,6 +1,8 @@
 import base64
+from collections import namedtuple
 from contextlib import contextmanager
 from datetime import datetime
+from itertools import chain, zip_longest
 import logging
 import os
 import sys
@@ -8,15 +10,15 @@ import uuid
 
 from sqlalchemy import Boolean, create_engine, Column, DateTime, Enum, Float, \
     ForeignKey, Index, Integer, String, Text, Table, LargeBinary
-from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy.dialects.postgresql import ARRAY, JSON
 import sqlalchemy.exc
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import backref, foreign, relationship, remote, sessionmaker
 from sqlalchemy.orm.session import object_session
-from sqlalchemy.schema import UniqueConstraint, ForeignKeyConstraint, Index,\
-    MetaData
+from sqlalchemy.schema import CheckConstraint, ForeignKeyConstraint, \
+    Index, MetaData, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.sql.expression import and_
 from passlib.hash import sha256_crypt
@@ -37,6 +39,60 @@ class ModelError(Exception):
     pass
 
 
+ActionDescriptor = namedtuple(
+    'ActionDescriptor',
+    'message, ob_type, ob_ids, ob_refs')
+
+
+class Observable:
+    '''
+    Mixin for mappers that can generate :py:class:`Activities <Activity>`.
+    '''
+
+    @property
+    def ob_title(self):
+        '''
+        @return human-readable descriptive text for the object (e.g. its name).
+        '''
+        return self.title
+
+    @property
+    def ob_type(self):
+        '''
+        @return the type of object as a string.
+        '''
+        raise NotImplementedError()
+
+    @property
+    def ob_ids(self):
+        '''
+        @return a minimal list of IDs that uniquly identify the object, in
+        descending order of specificity. E.g. [measure_id, program_id], because
+        the measure belongs to the program.
+        '''
+        raise NotImplementedError()
+
+    @property
+    def action_lineage(self):
+        '''
+        @return a list of IDs that give a detailed path to the object, in order
+        of increasing specificity. E.g.
+        [program_id, survey_id, qnode_id, qnode_id, measure_id]
+        '''
+        raise NotImplementedError()
+
+    @property
+    def action_descriptor(self):
+        '''
+        @return an ActionDescriptor for the object.
+        '''
+        return ActionDescriptor(
+            self.ob_title,
+            self.ob_type,
+            self.ob_ids,
+            [item.id for item in self.action_lineage])
+
+
 class SystemConfig(Base):
     __tablename__ = 'systemconfig'
     name = Column(String, primary_key=True, nullable=False)
@@ -49,7 +105,7 @@ class SystemConfig(Base):
         return "SystemConfig(name={}, value={})".format(self.name, self.value)
 
 
-class Organisation(Base):
+class Organisation(Observable, Base):
     __tablename__ = 'organisation'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
 
@@ -59,6 +115,22 @@ class Organisation(Base):
     number_of_customers = Column(Integer, nullable=False)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
 
+    @property
+    def ob_title(self):
+        return self.name
+
+    @property
+    def ob_type(self):
+        return 'organisation'
+
+    @property
+    def ob_ids(self):
+        return [self.id]
+
+    @property
+    def action_lineage(self):
+        return [self]
+
     __table_args__ = (
         Index('organisation_name_key', func.lower(name), unique=True),
     )
@@ -67,7 +139,7 @@ class Organisation(Base):
         return "Organisation(name={})".format(self.name)
 
 
-class AppUser(Base):
+class AppUser(Observable, Base):
     __tablename__ = 'appuser'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     organisation_id = Column(
@@ -87,6 +159,22 @@ class AppUser(Base):
 
     def check_password(self, plaintext):
         return sha256_crypt.verify(plaintext, self.password)
+
+    @property
+    def ob_title(self):
+        return self.name
+
+    @property
+    def ob_type(self):
+        return 'user'
+
+    @property
+    def ob_ids(self):
+        return [self.id]
+
+    @property
+    def action_lineage(self):
+        return [self.organisation, self]
 
     __table_args__ = (
         Index('appuser_email_key', func.lower(email), unique=True),
@@ -123,7 +211,7 @@ def has_privillege(current_role, *target_roles):
     return False
 
 
-class Survey(Base):
+class Survey(Observable, Base):
     __tablename__ = 'survey'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     tracking_id = Column(GUID, default=uuid.uuid4, nullable=False)
@@ -190,6 +278,18 @@ class Survey(Base):
         for hierarchy in self.hierarchies:
             hierarchy.update_stats_descendants()
 
+    @property
+    def ob_type(self):
+        return 'program'
+
+    @property
+    def ob_ids(self):
+        return [self.id]
+
+    @property
+    def action_lineage(self):
+        return [self]
+
     __table_args__ = (
         Index('survey_tracking_id_index', tracking_id),
         Index('survey_created_index', created),
@@ -234,7 +334,7 @@ class PurchasedSurvey(Base):
         super().__init__(**kwargs)
 
 
-class Hierarchy(Base):
+class Hierarchy(Observable, Base):
     __tablename__ = 'hierarchy'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(
@@ -279,6 +379,18 @@ class Hierarchy(Base):
             qnode.update_stats_descendants()
         self.update_stats()
 
+    @property
+    def ob_type(self):
+        return 'survey'
+
+    @property
+    def ob_ids(self):
+        return [self.id, self.survey_id]
+
+    @property
+    def action_lineage(self):
+        return [self.survey, self]
+
     def __repr__(self):
         return "Hierarchy(title={}, survey={})".format(
             self.title, getattr(self.survey, 'title', None))
@@ -288,7 +400,7 @@ Hierarchy.organisations = association_proxy('purchased_surveys', 'organisation')
 Organisation.hierarchies = association_proxy('purchased_surveys', 'hierarchy')
 
 
-class QuestionNode(Base):
+class QuestionNode(Observable, Base):
     __tablename__ = 'qnode'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(GUID, nullable=False, primary_key=True)
@@ -322,7 +434,7 @@ class QuestionNode(Base):
     survey = relationship(Survey)
 
     def get_rnode(self, assessment):
-        if isinstance(assessment, str):
+        if isinstance(assessment, (str, uuid.UUID)):
             assessment_id = assessment
         else:
             assessment_id = assessment.id
@@ -353,18 +465,33 @@ class QuestionNode(Base):
         self.total_weight = total_weight
         self.n_measures = n_measures
 
-    def get_path(self):
+    def lineage(self):
         if self.parent_id:
-            return "%s %d." % (self.parent.get_path(), self.seq + 1)
+            return self.parent.lineage() + [self]
         else:
-            return "%d." % (self.seq + 1)
+            return [self]
+
+    def get_path(self):
+        return " ".join(["%d." % (q.seq + 1) for q in self.lineage()])
+
+    @property
+    def ob_type(self):
+        return 'qnode'
+
+    @property
+    def ob_ids(self):
+        return [self.id, self.survey_id]
+
+    @property
+    def action_lineage(self):
+        return [self.survey, self.hierarchy] + self.lineage()
 
     def __repr__(self):
         return "QuestionNode(title={}, survey={})".format(
             self.title, getattr(self.survey, 'title', None))
 
 
-class Measure(Base):
+class Measure(Observable, Base):
     __tablename__ = 'measure'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(
@@ -421,6 +548,41 @@ class Measure(Base):
         return (object_session(self).query(Response)
             .filter_by(assessment_id=assessment_id, measure_id=self.id)
             .first())
+
+    def lineage(self, hierarchy=None):
+        if hierarchy is None:
+            hierarchy_id = None
+        elif isinstance(hierarchy, (str, uuid.UUID)):
+            hierarchy_id = hierarchy
+        else:
+            hierarchy_id = hierarchy.id
+
+        if hierarchy_id:
+            qms = [qm for qm in self.qnode_measures
+                   if str(qm.hierarchy_id) == str(hierarchy_id)]
+        else:
+            qms = self.qnode_measures
+
+        lineages = [reversed(qm.qnode.lineage()) for qm in qms]
+        mixed_lineage = chain(*list(zip_longest(*lineages)))
+        mixed_lineage = [q for q in mixed_lineage
+                         if q is not None]
+        mixed_lineage = list(reversed(mixed_lineage))
+
+        return mixed_lineage + [self]
+
+    @property
+    def ob_type(self):
+        return 'measure'
+
+    @property
+    def ob_ids(self):
+        return [self.id, self.survey_id]
+
+    @property
+    def action_lineage(self):
+        hs = [qm.qnode.hierarchy for qm in self.qnode_measures]
+        return [self.survey] + hs + self.lineage()
 
     def __repr__(self):
         return "Measure(title={}, survey={})".format(
@@ -482,7 +644,7 @@ class QnodeMeasure(Base):
             getattr(self.survey, 'title', None))
 
 
-class Assessment(Base):
+class Assessment(Observable, Base):
     __tablename__ = 'assessment'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(GUID, nullable=False)
@@ -529,6 +691,21 @@ class Assessment(Base):
             if rnode is not None:
                 yield rnode
 
+    @property
+    def ob_type(self):
+        return 'submission'
+
+    @property
+    def ob_ids(self):
+        return [self.id]
+
+    @property
+    def action_lineage(self):
+        # It would be nice to include the program and survey in this list, but
+        # then everyone who was subscribed to a survey would get spammed with
+        # all the submissions against it.
+        return [self]
+
     def update_stats_descendants(self):
         for qnode in self.hierarchy.qnodes:
             rnode = qnode.get_rnode(self)
@@ -547,7 +724,7 @@ class Assessment(Base):
             getattr(self.organisation, 'name', None))
 
 
-class ResponseNode(Base):
+class ResponseNode(Observable, Base):
     __tablename__ = 'rnode'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(GUID, nullable=False)
@@ -610,6 +787,37 @@ class ResponseNode(Base):
             response = measure.get_response(self.assessment)
             if response is not None:
                 yield response
+
+    def lineage(self):
+        return [q.get_rnode(self.assessment_id) for q in self.qnode.lineage()]
+
+    @property
+    def ob_type(self):
+        return 'rnode'
+
+    @property
+    def ob_title(self):
+        return self.qnode.title
+
+    @property
+    def ob_ids(self):
+        return [self.qnode_id, self.assessment_id]
+
+    @property
+    def action_lineage(self):
+        # It would be nice to include the program and survey in this list, but
+        # then everyone who was subscribed to a survey would get spammed with
+        # all the submissions against it.
+        return [self.assessment] + self.lineage()
+
+    @property
+    def action_descriptor(self):
+        # Use qnodes instead of rnodes for lineage, because rnode.id is not part
+        # of the API.
+        lineage = ([self.assessment.id] +
+                   [q.id for q in self.qnode.lineage()])
+        return ActionDescriptor(
+            self.ob_title, self.ob_type, self.ob_ids, lineage)
 
     def update_stats(self):
         if self.not_relevant:
@@ -686,7 +894,7 @@ class ResponseNode(Base):
             getattr(org, 'name', None))
 
 
-class Response(Versioned, Base):
+class Response(Observable, Versioned, Base):
     __tablename__ = 'response'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(GUID, nullable=False)
@@ -767,6 +975,40 @@ class Response(Versioned, Base):
     def response_parts(self, s):
         self._response_parts = Response._response_parts_schema(s)
 
+    def lineage(self):
+        return ([q.get_rnode(self.assessment_id)
+                 for q in self.parent_qnode.lineage()] +
+                [self])
+
+    @property
+    def ob_type(self):
+        return 'response'
+
+    @property
+    def ob_title(self):
+        return self.measure.title
+
+    @property
+    def ob_ids(self):
+        return [self.measure_id, self.assessment_id]
+
+    @property
+    def action_lineage(self):
+        # It would be nice to include the program and survey in this list, but
+        # then everyone who was subscribed to a survey would get spammed with
+        # all the submissions against it.
+        return [self.assessment] + self.lineage()
+
+    @property
+    def action_descriptor(self):
+        # Use qnodes and the measure instead of rnodes and the response for
+        # lineage, because rnode.id and response.id are not part of the API.
+        lineage = ([self.assessment.id] +
+                   [q.id for q in self.parent_qnode.lineage()] +
+                   [self.measure_id])
+        return ActionDescriptor(
+            self.ob_title, self.ob_type, self.ob_ids, lineage)
+
     def update_stats(self):
         if self.not_relevant:
             score = 0.0
@@ -826,6 +1068,104 @@ class Attachment(Base):
 
     response = relationship(Response, backref='attachments')
     organisation = relationship(Organisation)
+
+
+class Activity(Base):
+    '''
+    An event in the activity stream (timeline). This forms a kind of logging
+    that can be filtered based on users' subscriptions.
+    '''
+    __tablename__ = 'activity'
+    id = Column(GUID, default=uuid.uuid4, nullable=False, primary_key=True)
+    created = Column(DateTime, default=datetime.utcnow, nullable=False)
+    # Subject is the user performing the action. The object may also be a user.
+    subject_id = Column(GUID, ForeignKey("appuser.id"), nullable=False)
+    # Verb is the action being performed by the subject on the object.
+    verbs = Column(
+        ARRAY(Enum(
+            'broadcast',
+            'create', 'update', 'state', 'delete',
+            'relation', 'reorder_children',
+            native_enum=False)),
+        nullable=False)
+    # A snapshot of some defining feature of the object at the time the event
+    # happened (e.g. title of a measure before it was deleted).
+    message = Column(Text)
+    sticky = Column(Boolean, nullable=False, default=False)
+
+    # Object reference (the entity being acted upon). The ob_type and ob_id_*
+    # columns are for looking up the target object (e.g. to create a hyperlink).
+    ob_type = Column(Enum(
+        'organisation', 'user',
+        'program', 'survey', 'qnode', 'measure',
+        'submission', 'rnode', 'response',
+        native_enum=False))
+    ob_ids = Column(ARRAY(GUID), nullable=False)
+    # The ob_refs column contains all relevant IDs including e.g. parent
+    # categories, and is used for filtering.
+    ob_refs = Column(ARRAY(GUID), nullable=False)
+
+    __table_args__ = (
+        # Index `created` column to allow fast filtering by date ranges across
+        # all users.
+        # Note Postgres' default index is btree, which supports ordered index
+        # scanning.
+        Index('activity_created_index', created),
+        # A multi-column index that has the subject's ID first, so we can
+        # quickly list the recent activity of a user.
+        Index('activity_subject_id_created_index', subject_id, created),
+        # Sticky activities are queried without respect to time, so a separate
+        # index is needed for them.
+        Index('activity_sticky_index', sticky,
+              postgresql_where=(sticky == True)),
+        CheckConstraint(
+            "(verbs @> ARRAY['broadcast']::varchar[] or ob_type != null)",
+            name='activity_broadcast_constraint'),
+        CheckConstraint(
+            'ob_type = null or array_length(verbs, 1) > 0',
+            name='activity_verbs_length_constraint'),
+        CheckConstraint(
+            'ob_type = null or array_length(ob_ids, 1) > 0',
+            name='activity_ob_ids_length_constraint'),
+        CheckConstraint(
+            'ob_type = null or array_length(ob_refs, 1) > 0',
+            name='activity_ob_refs_length_constraint'),
+    )
+
+    subject = relationship(AppUser)
+
+
+class Subscription(Base):
+    '''Subscribes a user to events related to some object'''
+    __tablename__ = 'subscription'
+    id = Column(GUID, default=uuid.uuid4, nullable=False, primary_key=True)
+    created = Column(DateTime, default=datetime.utcnow, nullable=False)
+    user_id = Column(GUID, ForeignKey("appuser.id"), nullable=False)
+    subscribed = Column(Boolean, nullable=False)
+
+    # Object reference; does not include parent objects. One day an index might
+    # be needed on the ob_refs column; if you want to use GIN, see:
+    # http://www.postgresql.org/docs/9.4/static/gin-intro.html
+    # http://stackoverflow.com/questions/19959735/postgresql-gin-index-on-array-of-uuid
+    ob_type = Column(Enum(
+        'organisation', 'user',
+        'program', 'survey', 'qnode', 'measure',
+        'submission', 'rnode', 'response',
+        native_enum=False), nullable=False)
+    ob_refs = Column(ARRAY(GUID), nullable=False)
+
+    __table_args__ = (
+        # Index to allow quick lookups of subscribed objects for a given user
+        Index('subscription_user_id_index', user_id),
+        UniqueConstraint(
+            user_id, ob_refs,
+            name='subscription_user_ob_refs_unique_constraint'),
+        CheckConstraint(
+            'ob_type = null or array_length(ob_refs, 1) > 0',
+            name='subscription_ob_refs_length_constraint'),
+    )
+
+    user = relationship(AppUser, backref='subscriptions')
 
 
 # Lists and Complex Relationships

@@ -12,6 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import make_transient
 
+from activity import Activities
 import crud.survey
 import handlers
 import model
@@ -181,6 +182,12 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                     yield AssessmentHandler.executor.submit(
                         self.fill_random, assessment, session)
 
+                act = Activities(session)
+                act.record(self.current_user, assessment, ['create'])
+                if not act.has_subscription(self.current_user, assessment):
+                    act.subscribe(self.current_user, assessment)
+                    self.reason("Subscribed to submission")
+
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(assessment_id)
@@ -328,10 +335,23 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 if assessment is None:
                     raise handlers.ModelError("No such submission")
                 self._check_modify(assessment)
+
+                verbs = []
                 if approval != '':
                     self._check_approval(session, assessment, approval)
+                    if approval != assessment.approval:
+                        verbs.append('state')
                     self._set_approval(assessment, approval)
                 self._update(assessment, self.request_son)
+                if session.is_modified(assessment):
+                    verbs.append('update')
+
+                act = Activities(session)
+                act.record(self.current_user, assessment, verbs)
+                if not act.has_subscription(self.current_user, assessment):
+                    act.subscribe(self.current_user, assessment)
+                    self.reason("Subscribed to submission")
+
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such submission")
         except sqlalchemy.exc.IntegrityError as e:
@@ -350,6 +370,10 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 if assessment is None:
                     raise handlers.ModelError("No such submission")
                 self._check_delete(assessment)
+
+                act = Activities(session)
+                act.record(self.current_user, assessment, ['delete'])
+
                 session.delete(assessment)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("This submission is in use")

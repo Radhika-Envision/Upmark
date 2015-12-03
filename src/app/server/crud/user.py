@@ -1,4 +1,5 @@
 import datetime
+import logging
 import time
 import uuid
 
@@ -8,10 +9,9 @@ import tornado.web
 import sqlalchemy
 from sqlalchemy.orm import joinedload
 
+from activity import Activities
 import handlers
 import model
-import logging
-
 from utils import ToSon, truthy, updater
 
 
@@ -116,6 +116,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
+    @tornado.web.authenticated
     def post(self, user_id):
         '''
         Create a new user.
@@ -133,11 +134,19 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 self._update(user, self.request_son)
                 session.add(user)
                 session.flush()
+
+                act = Activities(session)
+                act.record(self.current_user, user, ['create'])
+                if not act.has_subscription(self.current_user, user):
+                    act.subscribe(self.current_user, user.organisation)
+                    self.reason("Subscribed to organisation")
+
                 session.expunge(user)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(user.id)
 
+    @tornado.web.authenticated
     def put(self, user_id):
         '''
         Update an existing user.
@@ -152,12 +161,21 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                     raise ValueError("No such object")
                 self._check_update(self.request_son, user)
                 self._update(user, self.request_son)
+
+                act = Activities(session)
+                if session.is_modified(user):
+                    act.record(self.current_user, user, ['update'])
+                if not act.has_subscription(self.current_user, user):
+                    act.subscribe(self.current_user, user.organisation)
+                    self.reason("Subscribed to organisation")
+
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such user")
         self.get(user_id)
 
+    @tornado.web.authenticated
     def delete(self, user_id):
         if user_id == '':
             raise handlers.MethodError("User ID required")
@@ -166,7 +184,12 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 user = session.query(model.AppUser).get(user_id)
                 if user is None:
                     raise ValueError("No such object")
+                self._check_delete(user)
                 user.organisation.users.remove(user)
+
+                act = Activities(session)
+                act.record(self.current_user, user, ['delete'])
+
                 session.delete(user)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError(
@@ -213,6 +236,21 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
             strength, threshold, _ = test_password(son['password'])
             if strength < threshold:
                 raise handlers.ModelError("Password is not strong enough")
+
+    def _check_delete(self, user):
+        if str(self.current_user.id) == str(user.id):
+            raise handlers.AuthzError(
+                "You can't delete yourself.")
+
+        if model.has_privillege(self.current_user.role, 'admin'):
+            pass
+        elif model.has_privillege(self.current_user.role, 'org_admin'):
+            if str(self.organisation.id) != str(user.organisation_id):
+                raise handlers.AuthzError(
+                    "You can't delete another organisation's user.")
+        elif str(self.current_user.id) != str(user.id):
+            raise handlers.AuthzError(
+                "You can't delete another user.")
 
     def _update(self, user, son):
         '''

@@ -10,6 +10,7 @@ from sqlalchemy.dialects.postgresql import array
 from sqlalchemy.orm import aliased, joinedload
 from sqlalchemy.sql.expression import literal
 
+from activity import Activities
 import crud
 import handlers
 import model
@@ -309,6 +310,12 @@ class QuestionNodeHandler(
                 qnode.update_stats_ancestors()
                 qnode_id = str(qnode.id)
 
+                act = Activities(session)
+                act.record(self.current_user, qnode, ['create'])
+                if not act.has_subscription(self.current_user, qnode):
+                    act.subscribe(self.current_user, qnode.survey)
+                    self.reason("Subscribed to program")
+
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(qnode_id)
@@ -340,12 +347,18 @@ class QuestionNodeHandler(
                     hierarchy = qnode.hierarchy
                 if qnode.parent is not None:
                     parent = qnode.parent
+
+                act = Activities(session)
+                act.record(self.current_user, qnode, ['delete'])
+
                 session.delete(qnode)
+
                 if hierarchy is not None:
                     hierarchy.qnodes.reorder()
                 if parent is not None:
                     parent.children.reorder()
                     parent.update_stats_ancestors()
+
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Question node is in use")
         except (sqlalchemy.exc.StatementError, ValueError):
@@ -372,6 +385,10 @@ class QuestionNodeHandler(
                     raise ValueError("No such object")
                 self._update(session, qnode, self.request_son)
 
+                verbs = []
+                if session.is_modified(qnode):
+                    verbs.append('update')
+
                 if parent_id != '' and str(qnode.parent_id) != parent_id:
                     # Change parent
                     old_parent = qnode.parent
@@ -387,6 +404,13 @@ class QuestionNodeHandler(
                     new_parent.update_stats_ancestors()
                     self.reason("Moved from %s to %s" % (
                         old_parent.title, new_parent.title))
+                    verbs.append('relation')
+
+                act = Activities(session)
+                act.record(self.current_user, qnode, verbs)
+                if not act.has_subscription(self.current_user, qnode):
+                    act.subscribe(self.current_user, qnode.survey)
+                    self.reason("Subscribed to program")
 
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such question node")
@@ -420,6 +444,8 @@ class QuestionNodeHandler(
         son = json_decode(self.request.body)
         try:
             with model.session_scope() as session:
+
+                act = Activities(session)
                 if parent_id != '':
                     parent = session.query(model.QuestionNode)\
                         .get((parent_id, self.survey_id))
@@ -432,6 +458,10 @@ class QuestionNodeHandler(
                                 "Parent does not belong to that hierarchy")
                     log.debug("Reordering children of: %s", parent)
                     reorder(parent.children, son)
+                    act.record(self.current_user, parent, ['reorder_children'])
+                    if not act.has_subscription(self.current_user, parent):
+                        act.subscribe(self.current_user, parent.survey)
+                        self.reason("Subscribed to program")
                 elif root is not None:
                     hierarchy = session.query(model.Hierarchy)\
                         .get((hierarchy_id, self.survey_id))
@@ -439,6 +469,11 @@ class QuestionNodeHandler(
                         raise handlers.MissingDocError("No such hierarchy")
                     log.debug("Reordering children of: %s", hierarchy)
                     reorder(hierarchy.qnodes, son)
+                    act.record(
+                        self.current_user, hierarchy, ['reorder_children'])
+                    if not act.has_subscription(self.current_user, hierarchy):
+                        act.subscribe(self.current_user, hierarchy.survey)
+                        self.reason("Subscribed to program")
                 else:
                     raise handlers.ModelError(
                         "Hierarchy or parent ID required")
