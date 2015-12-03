@@ -591,8 +591,8 @@ class Exporter():
                     worksheet.write(line, level_length + max_len_of_response + 9,
                             response.comment, format_comment)
 
-                    url = base_url + "/#/measure/{0}?assessment={1}&parent={2}".format(
-                          response.measure.id, assessment.id, qnode.id)
+                    url = base_url + "/#/measure/{0}?assessment={1}".format(
+                          response.measure.id, assessment.id)
 
                     worksheet.write_url(line, level_length + max_len_of_response + 10,
                             url, url_format, "Link")

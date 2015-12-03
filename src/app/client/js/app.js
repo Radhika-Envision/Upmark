@@ -699,23 +699,28 @@ angular.module('wsaa.aquamark',
                             id: $route.current.params.assessment
                         }).$promise;
                     }],
-                    parent: ['QuestionNode', '$route', 'assessment',
-                            function(QuestionNode, $route, assessment) {
+                    parent: ['QuestionNode', '$route',
+                            function(QuestionNode, $route) {
+                        if ($route.current.params.assessment)
+                            return null;
                         if (!$route.current.params.parent)
                             return null;
                         return QuestionNode.get({
                             id: $route.current.params.parent,
-                            surveyId: assessment ? assessment.survey.id :
-                                $route.current.params.survey,
+                            surveyId: $route.current.params.survey,
                         }).$promise;
                     }],
-                    measure: ['Measure', '$route', 'assessment',
-                            function(Measure, $route, assessment) {
+                    measure: ['Measure', '$route',
+                            function(Measure, $route) {
                         return Measure.get({
                             id: $route.current.params.measure,
-                            surveyId: assessment ? assessment.survey.id :
-                                $route.current.params.survey,
-                            parentId: $route.current.params.parent
+                            surveyId: $route.current.params.assessment
+                                ? null
+                                : $route.current.params.survey,
+                            parentId: $route.current.params.assessment
+                                ? null
+                                : $route.current.params.parent,
+                            assessmentId: $route.current.params.assessment
                         }).$promise;
                     }]
                 })}

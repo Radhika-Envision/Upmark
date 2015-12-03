@@ -792,7 +792,8 @@ angular.module('wsaa.surveyQuestions', [
                     else
                         query.push('survey=' + $scope.structure.survey.id);
                 }
-                if (item.path == 'measure' && item.entity.parent) {
+                if (item.path == 'measure' && item.entity.parent
+                        && !$scope.assessment) {
                     query.push('parent=' + item.entity.parent.id);
                 }
                 url = path + '?' + query.join('&');
@@ -1692,11 +1693,12 @@ angular.module('wsaa.surveyQuestions', [
         handle: '.grab-handle'
     };
 
-    if ($scope.assessment)
+    if ($scope.assessment) {
         $scope.query = 'assessment=' + $scope.assessment.id;
-    else
+    } else {
         $scope.query = 'survey=' + $scope.survey.id;
-    $scope.query += "&parent=" + $scope.qnode.id;
+        $scope.query += "&parent=" + $scope.qnode.id;
+    }
 
     $scope.edit.params = {
         surveyId: $scope.survey.id,
@@ -2231,13 +2233,13 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.getAssessmentUrl = function(assessment) {
         if (assessment) {
-            return format('/measure/{}?assessment={}&parent={}',
+            return format('/measure/{}?assessment={}',
                 $scope.measure.id, assessment.id,
                 $scope.parent && $scope.parent.id || '');
         } else {
             return format('/measure/{}?survey={}&parent={}',
                 $scope.measure.id, $scope.survey.id,
-                $scope.parent && $scope.parent.id || '');
+                $scope.measure.parent && $scope.measure.parent.id || '');
         }
     };
 }])

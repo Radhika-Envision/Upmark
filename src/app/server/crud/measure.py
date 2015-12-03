@@ -30,11 +30,33 @@ class MeasureHandler(
 
         '''Get a single measure.'''
         parent_id = self.get_argument('parentId', '')
+        assessment_id = self.get_argument('assessmentId', '')
 
         with model.session_scope() as session:
+            if assessment_id:
+                assessment = session.query(model.Assessment).get(assessment_id)
+                if not assessment:
+                    raise handlers.MissingDocError("No such submission")
+                survey_id = assessment.survey_id
+                hierarchy_id = assessment.hierarchy_id
+                parent = None
+            elif parent_id:
+                survey_id = self.survey_id
+                parent = (session.query(model.QuestionNode)
+                    .get((parent_id, survey_id)))
+                if not parent:
+                     raise handlers.MissingDocError("No such category")
+                hierarchy_id = parent.hierarchy_id
+            else:
+                survey_id = self.survey_id
+                parent = None
+                hierarchy_id = None
+
+            self.check_browse_survey(session, survey_id, hierarchy_id)
+
             try:
                 measure = session.query(model.Measure)\
-                    .get((measure_id, self.survey_id))
+                    .get((measure_id, survey_id))
                 if measure is None:
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError,
@@ -42,7 +64,7 @@ class MeasureHandler(
                     ValueError):
                 raise handlers.MissingDocError("No such measure")
 
-            to_son = ToSon(include=[
+            include = [
                 # Fields to match from any visited object
                 r'/id$',
                 r'/title$',
@@ -58,40 +80,37 @@ class MeasureHandler(
                 r'^/weight$',
                 r'^/response_type$',
                 # Descend into nested objects
-                r'/parents$',
-                r'/parents/[0-9]+$',
                 r'/parent$',
                 r'/hierarchy$',
                 r'/hierarchy/survey$',
                 r'/hierarchy/structure.*$',
                 r'/response_types.*$'
-            ])
+            ]
+            exclude = []
+            if not assessment_id:
+                include += [
+                    r'/parents$',
+                    r'/parents/[0-9]+$',
+                ]
+            to_son = ToSon(include=include)
             son = to_son(measure)
 
-            if parent_id != '':
-                parent = None
-                for p, l in zip(son['parents'], measure.qnode_measures):
-                    if str(l.qnode_id) == parent_id:
-                        parent = p
-                        link = l
-                        break
+            if hierarchy_id:
+                parent = measure.get_parent(hierarchy_id)
                 if not parent:
                      raise handlers.MissingDocError(
-                         "That question node is not a parent of this measure")
+                         "This measure does not belong to that survey")
 
-                self.check_browse_survey(
-                    session, self.survey_id, parent['hierarchy']['id'])
-
-                son['parent'] = p
-                son['seq'] = link.seq
+                son['parent'] = to_son(parent)
+                son['seq'] = measure.get_seq(hierarchy_id)
                 prev = (session.query(model.QnodeMeasure)
-                    .filter(model.QnodeMeasure.qnode_id == parent_id,
+                    .filter(model.QnodeMeasure.qnode_id == parent.id,
                             model.QnodeMeasure.survey_id == measure.survey_id,
                             model.QnodeMeasure.seq < son['seq'])
                     .order_by(model.QnodeMeasure.seq.desc())
                     .first())
                 next_ = (session.query(model.QnodeMeasure)
-                    .filter(model.QnodeMeasure.qnode_id == parent_id,
+                    .filter(model.QnodeMeasure.qnode_id == parent.id,
                             model.QnodeMeasure.survey_id == measure.survey_id,
                             model.QnodeMeasure.seq > son['seq'])
                     .order_by(model.QnodeMeasure.seq)
