@@ -1,18 +1,21 @@
-import logging
-import time
-import model
 import datetime
+from email.mime.text import MIMEText
+import logging
+import os
+from string import Template
+import time
+
+from sqlalchemy import or_
 
 from mail import get_config, send
-from string import Template
-from email.mime.text import MIMEText
-from app import connect_db
-from sqlalchemy import or_
+import model
+
 
 log = logging.getLogger('app.recalculate')
 log.setLevel(logging.INFO)
 
-interval = 20
+interval = 300
+
 
 def mail_content(errors):
     content = ''
@@ -21,6 +24,7 @@ def mail_content(errors):
         content += "Title: %s\n" % err['submission_title']
         content += "Message: %s\n\n" % err['error']
     return content
+
 
 def send_email(config, errors):
 
@@ -73,6 +77,11 @@ def process():
                  len(errors))
 
         time.sleep(interval)
+
+
+def connect_db():
+    model.connect_db(os.environ.get('DATABASE_URL'))
+
 
 if __name__ == "__main__":
     try:
