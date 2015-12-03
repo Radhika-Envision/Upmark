@@ -13,5 +13,6 @@ boto3~=1.1.2
 numpy~=1.9.2
 XlsxWriter~=0.7.6
 sqlparse~=0.1.16
+pyyaml~=3.11
 # Non-functional requirements (dev tools)
 pudb
