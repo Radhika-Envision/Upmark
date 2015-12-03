@@ -194,8 +194,9 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
 
 .controller('HomeCtrl', ['$scope', 'Activity', 'Notifications', '$q', 'format',
             'Current', 'homeAuthz', 'Card', 'hotkeys', 'ActivityTransform',
+            'Enqueue',
         function($scope, Activity, Notifications, $q, format, Current,
-            homeAuthz, Card, hotkeys, ActivityTransform) {
+            homeAuthz, Card, hotkeys, ActivityTransform, Enqueue) {
 
     $scope.acts = ActivityTransform;
     $scope.activity = null;
@@ -210,6 +211,7 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
     };
     $scope.goToNow = function() {
         $scope.activityParams.until = null;
+        $scope.updateActivities();
     };
     $scope.previousActivities = function() {
         var until;
@@ -236,7 +238,7 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
         $scope.updateActivities();
     }, true);
 
-    $scope.updateActivities = function() {
+    $scope.updateActivities = Enqueue(function() {
         Activity.get($scope.activityParams).$promise.then(
             function success(activity) {
                 $scope.activity = activity;
@@ -248,7 +250,7 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
                 return $q.reject(details);
             }
         );
-    };
+    });
 
     $scope.remove = function(action) {
         Activity.remove({id: action.id}).$promise.then(
