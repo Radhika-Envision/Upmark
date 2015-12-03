@@ -31,6 +31,10 @@ def _compile_unnest_func(element, compiler, **kw):
     return compiler.visit_function(element, **kw) + " WITH ORDINALITY"
 
 
+class ActivityError(Exception):
+    pass
+
+
 class ActivityHandler(handlers.BaseHandler):
 
     TO_SON = ToSon(include=[
@@ -79,84 +83,14 @@ class ActivityHandler(handlers.BaseHandler):
         include_sticky = offset < period.total_seconds() / 2
 
         with model.session_scope() as session:
-            uid = self.current_user.id
-            oid = self.current_user.organisation_id
-
-            time_filter = (
-                (model.Activity.sticky == False) &
-                (model.Activity.created > from_date) &
-                (model.Activity.created <= until_date))
+            act = Activities(session)
+            sticky_flags = {'filter'}
             if include_sticky:
-                time_filter = (model.Activity.sticky == True) | time_filter
-
-            query = (session.query(model.Activity, model.Activity.id)
-                .filter(time_filter)
-                .order_by(model.Activity.sticky.desc(),
-                          model.Activity.created.desc(),
-                          model.Activity.id))
-
-            # Mark activities as subscribed or not
-            # Join with the subscription table using the ob_refs field
-            act_ref = unnest_func(model.Activity.ob_refs).alias('act_ref')
-            broadcast = cast(['broadcast'], ARRAY(VARCHAR))
-            query = (query
-                .add_columns(
-                    act_ref.c.unnest,
-                    act_ref.c.ordinality,
-                    model.Subscription.subscribed)
-                .outerjoin(act_ref, sa.true())
-                .outerjoin(
-                    model.Subscription,
-                    model.Subscription.ob_refs[1] == act_ref.c.unnest)
-                .filter(
-                    ((model.Subscription.id != None) &
-                     (model.Subscription.user_id == uid)) |
-                    ((model.Activity.verbs == broadcast) &
-                     (model.Activity.ob_type == None)))
-                .order_by(act_ref.c.ordinality.desc()))
-
-            # Filter out activities that involve surveys that have not been
-            # purchased.
-            # Join with hierarchy and purchased_survey tables using ob_refs
-            # field
-            if not self.has_privillege('author', 'consultant'):
-                query = (query
-                    .add_columns(
-                        ((model.Hierarchy.id == None) |
-                         (model.PurchasedSurvey.hierarchy_id != None))
-                        .label('purchased'))
-                    .outerjoin(
-                        model.Hierarchy,
-                        model.Activity.ob_refs.contains(
-                            array([model.Hierarchy.survey_id,
-                                   model.Hierarchy.id])))
-                    .outerjoin(
-                        model.PurchasedSurvey,
-                        model.Activity.ob_refs.contains(
-                            array([model.PurchasedSurvey.survey_id,
-                                   model.PurchasedSurvey.hierarchy_id])) &
-                        (model.PurchasedSurvey.survey_id == model.Hierarchy.survey_id) &
-                        (model.PurchasedSurvey.hierarchy_id == model.Hierarchy.id))
-                    .filter(
-                        (model.PurchasedSurvey.organisation_id == None) |
-                        (model.PurchasedSurvey.organisation_id == oid)))
-
-#            activities = [a[0] for a in query.all()]
-
-            sub = (query
-                .distinct(model.Activity.sticky,
-                          model.Activity.created,
-                          model.Activity.id)
-                .subquery('sub'))
-
-            query = (session.query(model.Activity)
-                .select_entity_from(sub)
-                .filter((sub.c.subscribed == None) |
-                         (sub.c.subscribed == True)))
-            if not self.has_privillege('author', 'consultant'):
-                query = query.filter(sub.c.purchased == True)
+                sticky_flags.update({'include', 'at_top'})
+            query = act.timeline_query(
+                self.current_user.id, from_date, until_date,
+                sticky_flags=sticky_flags)
             activities = query.all()
-
 
             son = {
                 'from': from_date.timestamp(),
@@ -358,6 +292,111 @@ class Activities:
         ob_refs = [str(ref) for ref in desc.ob_refs]
         subs.sort(key=lambda sub: ob_refs.index(str(sub.ob_refs[-1])))
         return subs
+
+    def timeline_query(self, user_id, from_date, until_date, sticky_flags=None):
+        '''
+        Construct a query that filters the activity stream based on the
+        subscriptions of a user.
+        @param sticky_flags subset of {'filter', 'include', 'at_top'}.
+            'filter': Exclude sticky elements from the timeline, unless
+                'include' is also given.
+            'include': Include sticky elements.
+            'at_top': Sort the results so that sticky elements are first.
+            The default is to use all flags.
+        '''
+        if sticky_flags is None:
+            sticky_flags = {'filter', 'include', 'at_top'}
+
+        user = self.session.query(model.AppUser).get(user_id)
+        if not user:
+            raise ActivityError("No such user")
+
+        oid = user.organisation_id
+        filter_purchased = not model.has_privillege(
+            user.role, 'author', 'consultant')
+
+        time_filter = ((model.Activity.created > from_date) &
+                       (model.Activity.created <= until_date))
+
+        if 'filter' in sticky_flags:
+            time_filter = (model.Activity.sticky == False) & time_filter
+        if 'include' in sticky_flags:
+            time_filter = (model.Activity.sticky == True) | time_filter
+
+        order_cols = [model.Activity.created.desc(),
+                    model.Activity.id]
+        distinct_cols = [model.Activity.created,
+                         model.Activity.id]
+
+        if 'at_top' in sticky_flags:
+            order_cols = [model.Activity.sticky.desc()] + order_cols
+            distinct_cols = [model.Activity.sticky] + distinct_cols
+
+        query = (self.session.query(model.Activity)
+            .filter(time_filter)
+            .order_by(*order_cols))
+
+        # Mark activities as subscribed or not
+        # Join with the subscription table using the ob_refs field
+        act_ref = unnest_func(model.Activity.ob_refs).alias('act_ref')
+        broadcast = cast(['broadcast'], ARRAY(VARCHAR))
+        query = (query
+            .add_columns(
+                act_ref.c.unnest,
+                act_ref.c.ordinality,
+                model.Subscription.subscribed)
+            .outerjoin(act_ref, sa.true())
+            .outerjoin(
+                model.Subscription,
+                model.Subscription.ob_refs[1] == act_ref.c.unnest)
+            .filter(
+                ((model.Subscription.id != None) &
+                 (model.Subscription.user_id == user_id)) |
+                ((model.Activity.verbs == broadcast) &
+                 (model.Activity.ob_type == None)))
+            .order_by(act_ref.c.ordinality.desc()))
+
+        # Filter out activities that involve surveys that have not been
+        # purchased.
+        # Join with hierarchy and purchased_survey tables using ob_refs
+        # field
+        if filter_purchased:
+            query = (query
+                .add_columns(
+                    ((model.Hierarchy.id == None) |
+                     (model.PurchasedSurvey.hierarchy_id != None))
+                    .label('purchased'))
+                .outerjoin(
+                    model.Hierarchy,
+                    model.Activity.ob_refs.contains(
+                        array([model.Hierarchy.survey_id,
+                               model.Hierarchy.id])))
+                .outerjoin(
+                    model.PurchasedSurvey,
+                    model.Activity.ob_refs.contains(
+                        array([model.PurchasedSurvey.survey_id,
+                               model.PurchasedSurvey.hierarchy_id])) &
+                    (model.PurchasedSurvey.survey_id == model.Hierarchy.survey_id) &
+                    (model.PurchasedSurvey.hierarchy_id == model.Hierarchy.id))
+                .filter(
+                    (model.PurchasedSurvey.organisation_id == None) |
+                    (model.PurchasedSurvey.organisation_id == oid)))
+
+        # Create a subquery so we can discard duplicate subscriptions (based on
+        # subscription depth; see use of `unnest` above).
+        sub = (query
+            .distinct(*distinct_cols)
+            .subquery('sub'))
+
+        query = (self.session.query(model.Activity)
+            .select_entity_from(sub)
+            .filter((sub.c.subscribed == None) |
+                     (sub.c.subscribed == True)))
+
+        if filter_purchased:
+            query = query.filter(sub.c.purchased == True)
+
+        return query
 
 
 class SubscriptionHandler(handlers.BaseHandler):
