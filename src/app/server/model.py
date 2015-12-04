@@ -344,6 +344,8 @@ class Hierarchy(Observable, Base):
 
     title = Column(Text, nullable=False)
     description = Column(Text)
+    modified = Column(DateTime, nullable=True)
+
     _structure = Column('structure', JSON, nullable=False)
 
     _structure_schema = Schema({
@@ -372,6 +374,7 @@ class Hierarchy(Observable, Base):
         '''Updates the stats this hierarchy.'''
         n_measures = sum(qnode.n_measures for qnode in self.qnodes)
         self.n_measures = n_measures
+        self.modified = datetime.utcnow()
 
     def update_stats_descendants(self):
         '''Updates the stats of an entire subtree.'''
@@ -656,6 +659,8 @@ class Assessment(Observable, Base):
         Enum('draft', 'final', 'reviewed', 'approved', native_enum=False),
         nullable=False)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
+    modified = Column(DateTime, nullable=True)
+
 
     __table_args__ = (
         ForeignKeyConstraint(

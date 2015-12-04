@@ -108,7 +108,7 @@ The database URL will be something like
 
 Check that it's running:
 
-```
+```bash
 curl -w "\n" http://localhost/ping
 # Should print "Web services are UP"
 ```
@@ -201,6 +201,29 @@ Here are the steps of the creating auto-scaling group.
        ```
 
        The key file does *not* need to be copied to the hop computer.
+
+
+### Recalculation daemon
+
+Some changes happen asynchronously, in an [eventually consistent][ec] manner.
+Recalculation of scores takes a long time, so when the survey structure changes
+the [recalculation is done by a daemon][rd], instead of when the author saves
+their changes.
+It happens every so often in a background service with Docker container on the
+[backup machine][db]. It uses same Docker image as the currently working web
+app, so it should be upgraded at the same time as the web app.
+
+
+```bash
+docker run -d --name recalc \
+    -e DATABASE_URL=<DATABASE_URL> \
+    --restart=always \
+    vpac/aquamark python3 ./app/server/recalculate.py
+```
+
+[ec]: https://en.wikipedia.org/wiki/Eventual_consistency
+[db]: database/README.md
+[rd]: src/app/server/recalculate.py
 
 
 ### Upgrading

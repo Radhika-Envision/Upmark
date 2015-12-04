@@ -408,6 +408,7 @@ class QuestionNodeHandler(
 
                 act = Activities(session)
                 act.record(self.current_user, qnode, verbs)
+
                 if not act.has_subscription(self.current_user, qnode):
                     act.subscribe(self.current_user, qnode.survey)
                     self.reason("Subscribed to program")

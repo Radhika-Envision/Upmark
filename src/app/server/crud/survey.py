@@ -324,6 +324,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         Apply survey-provided data to the saved model.
         '''
+        response_types_changed = survey.response_types != son['response_types']
         update = updater(survey)
         update('title', son)
         update('description', son)
@@ -331,7 +332,8 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
             update('response_types', son)
         except voluptuous.Error as e:
             raise handlers.ModelError("Response types are invalid: %s" % str(e))
-
+        if response_types_changed:
+            survey.update_stats_descendants()
 
 class SurveyTrackingHandler(handlers.BaseHandler):
 
