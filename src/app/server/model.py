@@ -218,6 +218,8 @@ class AppUser(Observable, Base):
             native_enum=False), nullable=False)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
     deleted = Column(Boolean, default=False, nullable=False)
+    email_time = Column(DateTime, nullable=True)
+    email_interval = Column(Integer, nullable=True)
 
     def set_password(self, plaintext):
         self.password = sha256_crypt.encrypt(plaintext)
