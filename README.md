@@ -169,7 +169,7 @@ Here are the steps of the creating auto-scaling group.
             1. Under *Advanced Details > IP Address Type*, select *Assign a
                public IP address to every instance*. This is requred because we
                don't have NAT set up for the VPC.
-        1. Under *Add Storage*, change the hard drive type to *Magnetic*. The
+        1. Under *Add Storage*, change the hard drive type to *General SSD*. The
            default size of 20GB should be fine.
         1. Under *Configure Security Group*, choose a group that allows web and
            SSH traffic (ports 80 and 22) *for the local subnet* for the
@@ -271,10 +271,13 @@ above. There is no need to reinstall the watchdog crontab if it was installed
 previously, because it will automatically refer to the new file (provided the
 path in the source code has not changed).
 
-Finally, follow the process for creating a new AWS launch configuration and
+Follow the process for creating a new AWS launch configuration and
 scaling group using the new instance to create the AMI. Add it to the existing
 load balancer. After the new scaling group is active, delete the old one and
 ensure the old instances have stopped.
+
+Finally, if there have been any database schema changes, make sure the daemons
+are updated too. See [Recalculation daemon](#recalculation-daemon).
 
 **Important:** The old scaling group must be deleted, or some users will see the
 old site.
