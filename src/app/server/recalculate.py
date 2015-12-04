@@ -11,7 +11,8 @@ from mail import get_config, send
 import model
 
 
-log = logging.getLogger('app.recalculate')
+logging.basicConfig(format='%(asctime)s %(message)s')
+log = logging.getLogger('recalculate')
 log.setLevel(logging.INFO)
 
 interval = 300
