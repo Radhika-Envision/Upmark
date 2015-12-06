@@ -5,8 +5,9 @@ SMTP_PASSWORD: <SMTP SERVER PASSWORD>
 
 MESSAGE_SEND_FROM: <SENDER EMAIL>
 
-MESSAGE_SUBJECT: Aquamark Notification
+MESSAGE_SUBJECT: Aquamark - Activity Notification
 MESSAGE_CONTENT: |
-    This is test message.
+    This is a report for relative or intereted issue and user's activities. 
+    Here are activities from last notifications.
 
-    Message is like this : ${message}
+    ${message}
