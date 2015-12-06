@@ -18,8 +18,6 @@ interval = 10 # seconds
 
 def mail_content(activities):
     content = ''
-    # content += "Title: %s\n" % err['submission_title']
-    # content += "Message: %s\n\n" % err['error']
     for act in activities:
         if act.verbs != 'broadcast':
             content += act.message + ' '
@@ -54,6 +52,7 @@ def get_activities(session, user):
                                                     from_date,
                                                     now,
                                                     {'at_top'}).all()
+
     return activities_timeline
 
 
@@ -70,17 +69,12 @@ def process():
 
             for user in user_list:
                 now = datetime.datetime.utcnow()
-                if user.email_time == None or user.email_interval == None:
+                if user.email_time == None or user.email_interval == None or
+                    user.email_time + datetime.timedelta(seconds=user.email_interval) < now:
                     activities = get_activities(session, user)
                     if len(activities) != 0:
                         send_email(config, user, activities)
                         user.email_time = now
-                elif user.email_time + datetime.timedelta(seconds=user.email_interval) < now: 
-                    activities = get_activities(session, user)
-                    if len(activities) != 0:
-                        send_email(config, user, activities)
-                        user.email_time = now
-
             session.commit()
 
             log.info("Job finished. Email sent for notification")
