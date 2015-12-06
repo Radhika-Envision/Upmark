@@ -69,8 +69,8 @@ def process():
 
             for user in user_list:
                 now = datetime.datetime.utcnow()
-                if user.email_time == None or user.email_interval == None or
-                    user.email_time + datetime.timedelta(seconds=user.email_interval) < now:
+                if (user.email_time == None or user.email_interval == None) or (
+                    user.email_time + datetime.timedelta(seconds=user.email_interval) < now):
                     activities = get_activities(session, user)
                     if len(activities) != 0:
                         send_email(config, user, activities)
