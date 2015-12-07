@@ -13,7 +13,7 @@ logging.basicConfig(format='%(asctime)s %(message)s')
 log = logging.getLogger('notifications')
 log.setLevel(logging.INFO)
 
-interval = 10 # seconds
+interval = 60 * 60 # seconds
 
 
 def mail_content(activities):
