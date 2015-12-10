@@ -672,6 +672,22 @@ angular.module('vpac.widgets', [])
 })
 
 
+.directive('secondsAsDays', function() {
+    return {
+        restrict: 'A',
+        require: 'ngModel',
+        link: function (scope, elem, attrs, ngModel) {
+            ngModel.$parsers.push(function(value) {
+                return value * (60 * 60 * 24);
+            });
+            ngModel.$formatters.push(function(value) {
+                return value / (60 * 60 * 24);
+            });
+        }
+    };
+})
+
+
 .directive('markdownEditor', [function() {
     function postLink(scope, elem, attrs, ngModel) {
         scope.model = {

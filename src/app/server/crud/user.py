@@ -54,6 +54,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/id$',
                 r'/name$',
                 r'/email$',
+                r'/email_interval$',
                 r'/role$',
                 r'/deleted$',
                 # Descend into nested objects
@@ -301,6 +302,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         update = updater(user)
         update('email', son)
+        update('email_interval', son)
         update('name', son)
         update('role', son)
 

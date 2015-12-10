@@ -204,6 +204,9 @@ class OrgLocation(Base):
         backref=backref('locations', cascade="all, delete-orphan"))
 
 
+ONE_DAY_S = 60 * 60 * 24
+
+
 class AppUser(Observable, Base):
     __tablename__ = 'appuser'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
@@ -218,8 +221,14 @@ class AppUser(Observable, Base):
             native_enum=False), nullable=False)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
     deleted = Column(Boolean, default=False, nullable=False)
+
+    # Notification metadata.
+    # NULL email_time means no notifications have ever been sent.
     email_time = Column(DateTime, nullable=True)
-    email_interval = Column(Integer, nullable=True)
+    # Email interval is the time between sending details of the activities a
+    # user is subscribed to. Units are seconds. 0 means notifications are
+    # disabled.
+    email_interval = Column(Integer, default=ONE_DAY_S, nullable=False)
 
     def set_password(self, plaintext):
         self.password = sha256_crypt.encrypt(plaintext)
