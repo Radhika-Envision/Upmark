@@ -256,6 +256,9 @@ class AppUser(Observable, Base):
         Index('appuser_email_key', func.lower(email), unique=True),
         # Index on name because it's used for sorting
         Index('appuser_name_index', func.lower(name)),
+        CheckConstraint(
+            'email_interval BETWEEN 0 AND 1209600',
+            name='appuser_email_interval_constraint'),
     )
 
     def __repr__(self):

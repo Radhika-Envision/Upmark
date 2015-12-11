@@ -30,6 +30,9 @@ def upgrade():
             .values({'email_interval': op.inline_literal(ONE_DAY_S)})
     )
     op.alter_column('appuser', 'email_interval', nullable=False)
+    op.create_check_constraint(
+        'appuser_email_interval_constraint', 'appuser',
+        'email_interval BETWEEN 0 AND 1209600'),
 
 
 def downgrade():
