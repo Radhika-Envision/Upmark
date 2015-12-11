@@ -5,9 +5,26 @@ SMTP_PASSWORD: <SMTP SERVER PASSWORD>
 
 MESSAGE_SEND_FROM: <SENDER EMAIL>
 
+JOB_INTERVAL_SECONDS: 3600
+
 MESSAGE_SUBJECT: Aquamark - Activity Notification
 MESSAGE_CONTENT: |
-    This is a report for relative or intereted issue and user's activities. 
-    Here are activities from last notifications.
+    The following changes have been made to your subscriptions since
+    ${last_time}.
 
+    ${activities}
+
+    ${messages}
+
+    To opt out of these notifications, visit your profile page at:
+    https://aquamark.wsaa.asn.au/#/user/${user_id}
+
+MESSAGE_BROADCAST: |
+    ${user_name} said:
     ${message}
+    ${date}
+
+MESSAGE_STANDARD: |
+    ${message}
+    ${user_name} ${verbs} ${ob_type}
+    ${date}
