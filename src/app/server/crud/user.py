@@ -185,7 +185,6 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 if user is None:
                     raise ValueError("No such object")
                 self._check_delete(user)
-                user.organisation.users.remove(user)
 
                 act = Activities(session)
                 act.record(self.current_user, user, ['delete'])
