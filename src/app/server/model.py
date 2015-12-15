@@ -1156,7 +1156,7 @@ class Subscription(Base):
         'organisation', 'user',
         'program', 'survey', 'qnode', 'measure',
         'submission', 'rnode', 'response',
-        native_enum=False), nullable=False)
+        native_enum=False))
     ob_refs = Column(ARRAY(GUID), nullable=False)
 
     __table_args__ = (
