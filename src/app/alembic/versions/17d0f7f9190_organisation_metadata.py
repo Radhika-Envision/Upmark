@@ -50,12 +50,12 @@ class OrgMeta(Base):
         Organisation, backref=backref('meta', uselist=False))
 
 
-class OrgRegion(Base):
-    __tablename__ = 'org_region'
+class OrgLocation(Base):
+    __tablename__ = 'org_location'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     organisation_id = Column(
         GUID, ForeignKey("organisation.id"), nullable=False)
-    region_prefecture = Column(Text)
+    region = Column(Text)
     organisation = relationship(Organisation, backref='regions')
 
 
@@ -92,18 +92,21 @@ def upgrade():
         sa.PrimaryKeyConstraint('id')
     )
 
-    op.create_table('org_region',
+    op.create_table('org_location',
         sa.Column('id', postgresql.UUID, nullable=False),
         sa.Column('organisation_id', postgresql.UUID, nullable=False),
         sa.Column('description', sa.Text, nullable=False),
-        sa.Column('osm_id', sa.Text),
+        sa.Column('licence', sa.Text),
         sa.Column('language', sa.Text),
         sa.Column('country', sa.Text),
-        sa.Column('region_prefecture', sa.Text),
+        sa.Column('region', sa.Text),
+        sa.Column('county', sa.Text),
         sa.Column('state', sa.Text),
-        sa.Column('postcode_zip_code', sa.Text),
+        sa.Column('postcode', sa.Text),
         sa.Column('city', sa.Text),
         sa.Column('suburb', sa.Text),
+        sa.Column('lon', sa.Float),
+        sa.Column('lat', sa.Float),
         sa.ForeignKeyConstraint(['organisation_id'], ['organisation.id'], ),
         sa.PrimaryKeyConstraint('id')
     )
@@ -113,10 +116,10 @@ def upgrade():
         org.meta = OrgMeta()
         org.meta.number_of_customers = org.number_of_customers
         if org.region:
-            org_region = OrgRegion(organisation=org)
-            org_region.description = org.region
-            org_region.region_prefecture = org.region
-            org.regions.append(org_region)
+            org_location = OrgLocation(organisation=org)
+            org_location.description = org.region
+            org_location.region = org.region
+            org.locations.append(org_location)
     session.flush()
 
     op.drop_column('organisation', 'region')
@@ -131,8 +134,8 @@ def downgrade():
                   SET region = '',
                       number_of_customers = 0""")
     op.execute("""UPDATE organisation AS o
-                  SET region = coalesce(o_r.region_prefecture, '')
-                  FROM org_region AS o_r
+                  SET region = coalesce(o_r.region, '')
+                  FROM org_location AS o_r
                   WHERE o_r.organisation_id = o.id""")
     op.execute("""UPDATE organisation AS o
                   SET number_of_customers = coalesce(o_m.number_of_customers, 0)
@@ -141,5 +144,5 @@ def downgrade():
     op.alter_column('organisation', 'region', nullable=False)
     op.alter_column('organisation', 'number_of_customers', nullable=False)
 
-    op.drop_table('org_region')
+    op.drop_table('org_location')
     op.drop_table('org_meta')

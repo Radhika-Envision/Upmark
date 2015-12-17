@@ -105,6 +105,13 @@ angular.module('wsaa.admin', [
 }])
 
 
+.factory('LocationSearch', ['$resource', function($resource) {
+    return $resource('/geo/:term.json', {}, {
+        get: { method: 'GET', cache: false },
+    });
+}])
+
+
 .factory('SystemConfig', ['$resource', function($resource) {
     return $resource('/systemconfig.json', {}, {
         get: { method: 'GET', cache: false },
@@ -357,9 +364,9 @@ angular.module('wsaa.admin', [
 
 .controller('OrganisationCtrl', [
         '$scope', 'Organisation', 'org', 'Editor', 'orgAuthz', 'User',
-        '$location', 'Current',
+        '$location', 'Current', 'LocationSearch',
         function($scope, Organisation, org, Editor, orgAuthz, User,
-            $location, Current) {
+            $location, Current, LocationSearch) {
 
     $scope.edit = Editor('org', $scope);
     if (org) {
@@ -368,6 +375,7 @@ angular.module('wsaa.admin', [
     } else {
         // Creating new
         $scope.org = new Organisation({});
+        $scope.org.locations = [];
         $scope.edit.edit();
     }
 
@@ -377,6 +385,44 @@ angular.module('wsaa.admin', [
     $scope.$on('EditDeleted', function(event, model) {
         $location.url('/orgs');
     });
+
+    // ui-select can't be used directly with items in an ng-repeat. The ng-model
+    // needs to be a field within the item. We use a bidirectional transform
+    // on the locations array to box the values.
+    $scope.boxed_locations = null;
+    $scope.$watch('edit.model.locations', function(locations) {
+        if (!locations) {
+            $scope.boxed_locations = null;
+            return;
+        }
+        $scope.boxed_locations = locations.map(function(loc) {
+            return {data: loc};
+        });
+    }, true);
+    $scope.$watch('boxed_locations', function(locations) {
+        if (!$scope.edit.model)
+            return;
+        if (!locations) {
+            $scope.edit.model.locations = null;
+            return;
+        }
+        $scope.edit.model.locations = locations.map(function(loc) {
+            return loc.data;
+        });
+    }, true);
+
+    $scope.deleteLocation = function(loc) {
+        var i = $scope.edit.model.locations.indexOf(loc);
+        $scope.edit.model.locations.splice(i, 1);
+    };
+
+    $scope.searchLoc = function(term) {
+        if (term.length < 3)
+            return;
+        LocationSearch.query({term: term}).$promise.then(function(locations) {
+            $scope.locations = locations;
+        });
+    };
 
     $scope.checkRole = orgAuthz(Current, $scope.org);
 }])

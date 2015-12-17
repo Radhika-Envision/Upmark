@@ -212,7 +212,7 @@ def get_mappings():
         (r"/organisation/?([^/]*).json", crud.org.OrgHandler, {}),
         (r"/organisation/?([^/]*)/hierarchy/?([^/]*).json",
             crud.org.PurchasedSurveyHandler, {}),
-        (r"/geo/(.*).json", crud.org.RegionSearchHandler, {}),
+        (r"/geo/(.*).json", crud.org.LocationSearchHandler, {}),
         (r"/user/?([^/]*).json", crud.user.UserHandler, {}),
         (r"/subscription/()([^/]*).json",
             crud.activity.SubscriptionHandler, {}),

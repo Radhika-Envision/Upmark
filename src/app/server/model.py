@@ -173,8 +173,8 @@ class OrgMeta(Base):
         Organisation, backref=backref('meta', uselist=False))
 
 
-class OrgRegion(Base):
-    __tablename__ = 'org_region'
+class OrgLocation(Base):
+    __tablename__ = 'org_location'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     organisation_id = Column(
         GUID, ForeignKey("organisation.id"), nullable=False)
@@ -183,18 +183,22 @@ class OrgRegion(Base):
     # http://wiki.openstreetmap.org/wiki/Nominatim
 
     description = Column(Text, nullable=False)
-    osm_id = Column(Text)
     language = Column(Text)
+    licence = Column(Text)
 
     country = Column(Text)
     # Region/prefecture/state district
-    region_prefecture = Column(Text)
+    region = Column(Text)
+    county = Column(Text)
     state = Column(Text)
-    postcode_zip_code = Column(Text)
+    postcode = Column(Text)
     city = Column(Text)
     suburb = Column(Text)
 
-    organisation = relationship(Organisation, backref='regions')
+    lon = Column(Float)
+    lat = Column(Float)
+
+    organisation = relationship(Organisation, backref='locations')
 
 
 class AppUser(Observable, Base):

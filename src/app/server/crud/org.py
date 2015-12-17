@@ -36,8 +36,13 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/id$',
                 r'/name$',
                 r'/url$',
-                r'/region$',
-                r'/number_of_customers$'
+                r'/locations.*$',
+                r'/meta.*$',
+            ], exclude=[
+                r'/locations/.*/organisation(_id)?$',
+                r'/locations/.*/id$',
+                r'/meta/organisation(_id)?$',
+                r'/meta/id$',
             ])
             son = to_son(org)
         self.set_header("Content-Type", "application/json")
@@ -245,26 +250,56 @@ class PurchasedSurveyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     "You can't access another organisation's surveys")
 
 
-class RegionSearchHandler(handlers.BaseHandler):
+class LocationSearchHandler(handlers.BaseHandler):
     cache = LruCache()
 
     @tornado.gen.coroutine
     def get(self, search_str):
-        if search_str in self.cache:
-            body, headers = self.cache[search_str]
+        if search_str not in self.cache:
+            locations = yield self.location_search(search_str)
+            self.cache[search_str] = locations
         else:
-            search_parm = urllib.parse.quote_plus(search_str)
-            url = ('https://nominatim.openstreetmap.org/search/{}?'
-                   'format=json&addressdetails=1&limit=1'
-                   .format(search_parm))
-            client = AsyncHTTPClient()
-            response = yield client.fetch(url)
-            body = response.body
-            headers = response.headers
-            self.cache[search_str] = body, headers
+            locations = self.cache[search_str]
 
-        self.set_header(
-            'Content-Type', headers.get('Content-Type', 'application/json'))
-        if headers.get('Date'):
-            self.set_header('Date', headers.get('Date'))
-        self.write(body)
+        self.set_header('Content-Type', 'application/json')
+        self.write(json_encode(locations))
+
+    @tornado.gen.coroutine
+    def location_search(self, search_str):
+        search_parm = urllib.parse.quote_plus(search_str)
+        url = ('https://nominatim.openstreetmap.org/search/{}?'
+               'format=json&addressdetails=1&limit=7'
+               .format(search_parm))
+        client = AsyncHTTPClient()
+        response = yield client.fetch(url)
+        nominatim = json_decode(response.body)
+
+        locations = []
+        for nom in nominatim:
+            if nom['type'] in {'political'}:
+                continue
+
+            a = nom['address']
+            try:
+                lon = float(nom['lon'])
+                lat = float(nom['lat'])
+            except (KeyError, ValueError):
+                lon = None
+                lat = None
+
+            location = {
+                'description': nom['display_name'],
+                'licence': nom['licence'],
+                'lon': lon,
+                'lat': lat,
+                'country': a.get('country'),
+                'region': a.get('region') or a.get('state_district'),
+                'state': a.get('state'),
+                'county': a.get('county'),
+                'postcode': a.get('postcode'),
+                'city': a.get('city') or a.get('town'),
+                'suburb': a.get('suburb'),
+            }
+            locations.append(location)
+
+        return locations

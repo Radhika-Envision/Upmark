@@ -66,14 +66,47 @@
                     ng-model="edit.model.numberOfCustomers"
                     required min="0" />
         </div>
-        <div class="form-group" show-errors>
-            <label for="org_region">Region</label>
-            <span class="help-label" ng-if="form.org_region.$error.required">
-                *</span>
-            <input type="text" class="form-control"
-                    id="org_region" name="org_region"
-                    ng-model="edit.model.region" required />
+
+        <div class="section">
+            <div class="toolbar">
+                <a class="btn btn-default btn-round" title="Add location"
+                        ng-click="edit.model.locations.push(null)">
+                    <i class="fa fa-fw fa-plus"></i>
+                </a>
+            </div>
+            <h2>
+                Locations
+            </h2>
         </div>
+        <table class="table" ng-if="boxed_locations.length">
+            <tr class="form-row" ng-repeat="loc in boxed_locations">
+                <td>
+                    <ui-select ng-model="loc.data" reset-search-input="false">
+                        <ui-select-match placeholder="Type to select a location">
+                            {{loc.data.description}}
+                        </ui-select-match>
+                        <ui-select-choices
+                                repeat="l in locations"
+                                refresh="searchLoc($select.search)"
+                                refresh-delay="1000">
+                            <div ng-bind-html="l.description |
+                                               highlight: $select.search">
+                            </div>
+                        </ui-select-choices>
+                    </ui-select>
+                </td>
+                <td class="shrink">
+                    <button class="btn btn-default btn-round"
+                            title="Remove"
+                            ng-click="deleteLocation(loc)">
+                        <i class="fa fa-fw fa-trash-o"></i></button>
+                </td>
+            </tr>
+        </table>
+        <p ng-if="!boxed_locations.length">
+            No locations have been selected. Press the
+            <i class="fa fa-plus"></i> button to add one.
+        </p>
     </form>
 </div>
 </div>
@@ -97,7 +130,7 @@
 
 
 <div class="container" ng-controller="PurchasedSurveyCtrl"
-        ng-if="checkRole('assessment_browse')">
+        ng-if="!edit.model && checkRole('assessment_browse')">
     <div class="section">
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="Add new"
