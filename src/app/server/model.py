@@ -111,8 +111,6 @@ class Organisation(Observable, Base):
 
     name = Column(Text, nullable=False)
     url = Column(Text, nullable=True)
-    region = Column(Text, nullable=False)
-    number_of_customers = Column(Integer, nullable=False)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     @property
@@ -137,6 +135,66 @@ class Organisation(Observable, Base):
 
     def __repr__(self):
         return "Organisation(name={})".format(self.name)
+
+
+class OrgMeta(Base):
+    __tablename__ = 'org_meta'
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    organisation_id = Column(
+        GUID, ForeignKey("organisation.id"), nullable=False)
+
+    ownership = Column(Enum(
+        'government run', 'government owned', 'private', 'shareholder',
+        native_enum=False))
+    structure = Column(Enum('internal', 'corporation', native_enum=False))
+    asset_types = Column(ARRAY(Enum(
+        'water wholesale', 'water local',
+        'wastewater wholesale', 'wastewater local',
+        native_enum=False)))
+    regulation_level = Column(Enum(
+        'extensive', 'partial', 'none', native_enum=False))
+
+    value_water_hs = Column(Float)
+    value_water_l = Column(Float)
+    value_wastewater_hs = Column(Float)
+    value_wastewater_l = Column(Float)
+
+    operating_cost = Column(Float)
+    revenue = Column(Float)
+    number_fte = Column(Float)
+    number_fte_ext = Column(Float)
+
+    population_served = Column(Integer)
+    number_of_customers = Column(Integer)
+    volume_supplied = Column(Float)
+    volume_collected = Column(Float)
+
+    organisation = relationship(
+        Organisation, backref=backref('meta', uselist=False))
+
+
+class OrgRegion(Base):
+    __tablename__ = 'org_region'
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    organisation_id = Column(
+        GUID, ForeignKey("organisation.id"), nullable=False)
+
+    # Fields loosely match those returned by OSM's Nominatim service:
+    # http://wiki.openstreetmap.org/wiki/Nominatim
+
+    description = Column(Text, nullable=False)
+    osm_id = Column(Text)
+    language = Column(Text)
+
+    country = Column(Text)
+    # Region/prefecture/state district
+    region_prefecture = Column(Text)
+    state = Column(Text)
+    postcode_zip_code = Column(Text)
+    city = Column(Text)
+    suburb = Column(Text)
+
+    organisation = relationship(Organisation, backref='regions')
 
 
 class AppUser(Observable, Base):
@@ -327,7 +385,7 @@ class PurchasedSurvey(Base):
             'purchased_surveys', passive_deletes=True, order_by=open_date.desc()))
 
     # This constructor is used by association_proxy when adding items to the
-    # colleciton.
+    # collection.
     def __init__(self, hierarchy=None, organisation=None, **kwargs):
         self.hierarchy = hierarchy
         self.organisation = organisation
@@ -623,7 +681,7 @@ class QnodeMeasure(Base):
     survey = relationship(Survey)
 
     # This constructor is used by association_proxy when adding items to the
-    # colleciton.
+    # collection.
     def __init__(self, measure=None, qnode=None, seq=None, survey=None,
                  **kwargs):
         self.measure = measure

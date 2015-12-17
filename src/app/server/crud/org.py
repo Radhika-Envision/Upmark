@@ -1,8 +1,11 @@
 import datetime
 import time
 import uuid
+import urllib.parse
 
 from tornado.escape import json_decode, json_encode
+from tornado.httpclient import AsyncHTTPClient
+import tornado.gen
 import tornado.web
 import sqlalchemy
 from sqlalchemy.orm import joinedload
@@ -12,8 +15,7 @@ import crud.survey
 import handlers
 import model
 import logging
-
-from utils import ToSon, updater
+from utils import LruCache, ToSon, updater
 
 class OrgHandler(handlers.Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
@@ -241,3 +243,28 @@ class PurchasedSurveyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             if not self.has_privillege('consultant'):
                 raise handlers.AuthzError(
                     "You can't access another organisation's surveys")
+
+
+class RegionSearchHandler(handlers.BaseHandler):
+    cache = LruCache()
+
+    @tornado.gen.coroutine
+    def get(self, search_str):
+        if search_str in self.cache:
+            body, headers = self.cache[search_str]
+        else:
+            search_parm = urllib.parse.quote_plus(search_str)
+            url = ('https://nominatim.openstreetmap.org/search/{}?'
+                   'format=json&addressdetails=1&limit=1'
+                   .format(search_parm))
+            client = AsyncHTTPClient()
+            response = yield client.fetch(url)
+            body = response.body
+            headers = response.headers
+            self.cache[search_str] = body, headers
+
+        self.set_header(
+            'Content-Type', headers.get('Content-Type', 'application/json'))
+        if headers.get('Date'):
+            self.set_header('Date', headers.get('Date'))
+        self.write(body)
