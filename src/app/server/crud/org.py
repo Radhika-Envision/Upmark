@@ -122,6 +122,8 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                 self._update(org, self.request_son)
 
                 act = Activities(session)
+                # is_modified checks nested collections too:
+                # http://docs.sqlalchemy.org/en/latest/orm/session_api.html#sqlalchemy.orm.session.Session.is_modified
                 if session.is_modified(org):
                     act.record(self.current_user, org, ['update'])
                 if not act.has_subscription(self.current_user, org):
@@ -163,7 +165,33 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
         update('name', son)
         update('url', son)
         update('number_of_customers', son)
-        update('region', son)
+
+        column_names = {c.name
+                        for c in sqlalchemy.inspect(model.OrgLocation).columns
+                        if c.name not in {'id', 'organisation_id'}}
+
+        def loc_eq(a, b):
+            return all(a[n] == getattr(b, n) for n in column_names)
+
+        locs = []
+        for l in son['locations']:
+            # Try to find an existing location object that matches the one
+            # provided by the user
+            matching_locs = [l_existing for l_existing in org.locations
+                             if loc_eq(l, l_existing)]
+            if len(matching_locs) > 0:
+                locs.append(matching_locs[0])
+                continue
+
+            # No match, so create a new one
+            l = {k: l[k]
+                 for k in l
+                 if k in column_names}
+            locs.append(model.OrgLocation(**l))
+
+        # Replace locations collection. The relationship will automatically
+        # delete old locations that are no longer referenced.
+        org.locations = locs
 
 
 class PurchasedSurveyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):

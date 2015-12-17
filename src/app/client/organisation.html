@@ -94,6 +94,29 @@
                             </div>
                         </ui-select-choices>
                     </ui-select>
+                    <p class="text-muted commasep">
+                        <span class="" ng-if="loc.data.country">
+                            country:
+                            {{loc.data.country}}</span><!--
+                     --><span class="" ng-if="loc.data.state">
+                            state:
+                            {{loc.data.state}}</span><!--
+                     --><span class="" ng-if="loc.data.region">
+                            region/state district:
+                            {{loc.data.region}}</span><!--
+                     --><span class="" ng-if="loc.data.county">
+                            county:
+                            {{loc.data.county}}</span><!--
+                     --><span class="" ng-if="loc.data.postcode">
+                            postcode:
+                            {{loc.data.postcode}}</span><!--
+                     --><span class="" ng-if="loc.data.city">
+                            city/town:
+                            {{loc.data.city}}</span><!--
+                     --><span class="" ng-if="loc.data.suburb">
+                            suburb:
+                            {{loc.data.suburb}}</span>
+                    </p>
                 </td>
                 <td class="shrink">
                     <button class="btn btn-default btn-round"
@@ -113,17 +136,42 @@
 
 <div ng-if="!edit.model">
 <div class="container">
-    <dl ng-if="org.url">
-        <dt>Web site</dt>
-        <dd><a ng-href="{{org.url}}">{{org.url}}</a></dd>
-    </dl>
-    <dl ng-if="org.numberOfCustomers">
-        <dt>Number of customers</dt>
-        <dd>{{org.numberOfCustomers}}</dd>
-    </dl>
-    <dl ng-if="org.region">
-        <dt>Region</dt>
-        <dd>{{org.region}}</dd>
+    <dl>
+        <dt ng-if="org.url">Web site</dt>
+        <dd ng-if="org.url"><a ng-href="{{org.url}}">{{org.url}}</a></dd>
+
+        <dt ng-if="org.numberOfCustomers">Number of customers</dt>
+        <dd ng-if="org.numberOfCustomers">{{org.numberOfCustomers}}</dd>
+
+        <dt ng-repeat-start="loc in org.locations">
+            Location:
+            {{loc.description}}
+        </dt>
+        <dd ng-repeat-end>
+            <p class="text-muted commasep">
+                <span class="" ng-if="loc.country">
+                    country:
+                    {{loc.country}}</span><!--
+             --><span class="" ng-if="loc.state">
+                    state:
+                    {{loc.state}}</span><!--
+             --><span class="" ng-if="loc.region">
+                    region/state district:
+                    {{loc.region}}</span><!--
+             --><span class="" ng-if="loc.county">
+                    county:
+                    {{loc.county}}</span><!--
+             --><span class="" ng-if="loc.postcode">
+                    postcode:
+                    {{loc.postcode}}</span><!--
+             --><span class="" ng-if="loc.city">
+                    city/town:
+                    {{loc.city}}</span><!--
+             --><span class="" ng-if="loc.suburb">
+                    suburb:
+                    {{loc.suburb}}</span>
+            </p>
+        </dd>
     </dl>
 </div>
 </div>
@@ -163,5 +211,11 @@
 
 <user-list class="nested" ng-if="!edit.model" org="org" hide-org></user-list>
 
+<div class="container">
+    <h4 class="section" ng-if="attributions.length">Location data copyright</h4>
+    <p class="text-muted" ng-repeat="a in attributions">
+        {{a.text}}
+    </p>
+</div>
 
 </div>

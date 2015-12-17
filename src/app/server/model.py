@@ -170,7 +170,8 @@ class OrgMeta(Base):
     volume_collected = Column(Float)
 
     organisation = relationship(
-        Organisation, backref=backref('meta', uselist=False))
+        Organisation,
+        backref=backref('meta', uselist=False, cascade="all, delete-orphan"))
 
 
 class OrgLocation(Base):
@@ -198,7 +199,9 @@ class OrgLocation(Base):
     lon = Column(Float)
     lat = Column(Float)
 
-    organisation = relationship(Organisation, backref='locations')
+    organisation = relationship(
+        Organisation,
+        backref=backref('locations', cascade="all, delete-orphan"))
 
 
 class AppUser(Observable, Base):

@@ -378,6 +378,7 @@ angular.module('wsaa.admin', [
         $scope.org.locations = [];
         $scope.edit.edit();
     }
+    $scope.attributions = [];
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url('/org/' + model.id);
@@ -410,6 +411,19 @@ angular.module('wsaa.admin', [
             return loc.data;
         });
     }, true);
+
+    $scope.$watch('org.locations', function(locations) {
+        if (!locations) {
+            $scope.attributions = null;
+            return;
+        }
+        var attributions = [];
+        locations.forEach(function(loc) {
+            if (loc.licence && attributions.indexOf(loc.licence) < 0)
+                attributions.push({text: loc.licence});
+        });
+        $scope.attributions = attributions;
+    });
 
     $scope.deleteLocation = function(loc) {
         var i = $scope.edit.model.locations.indexOf(loc);
