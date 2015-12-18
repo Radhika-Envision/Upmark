@@ -138,12 +138,8 @@
             <select type="text" class="form-control"
                 id="org_structure" name="org_structure"
                 ng-model="edit.model.meta.structure">
-                <option value="internal">
-                    Internal department - department of a larger organisation,
-                    e.g. local government
-                </option>
-                <option value="corporation">
-                    Corporation - stand-alone corporation or statutory authority
+                <option ng-repeat="r in structureTypes" value="{{r.name}}">
+                    {{r.desc}}
                 </option>
             </select>
         </div>
@@ -152,39 +148,17 @@
             <select type="text" class="form-control"
                 id="org_regulation" name="org_regulation"
                 ng-model="edit.model.meta.regulationLevel">
-                <option value="extensive">
-                    Extensive - economic regulation of revenues and/or prices,
-                    and performance regulation of customer services, water
-                    quality and/or wastewater effluent/re-use quality
-                </option>
-                <option value="partial">
-                    Regulation of service performance or standards but not
-                    economic regulation
-                </option>
-                <option value="none">
-                    None
+                <option ng-repeat="r in regulationLevels" value="{{r.name}}">
+                    {{r.desc}}
                 </option>
             </select>
         </div>
 
         <div class="form-group" mt-to="edit.model.meta.assetTypes">
             <label>Asset Types</label>
-            <div class="checkbox"><label>
-                <input type="checkbox" mt-checkbox name="water wholesale" />
-                Water, wholesale (catchments, storage, treament or
-                transmission)
-            </label></div>
-            <div class="checkbox"><label>
-                <input type="checkbox" mt-checkbox name="water local" />
-                Water, local distribution
-            </label></div>
-            <div class="checkbox"><label>
-                <input type="checkbox" mt-checkbox name="wastewater wholesale" />
-                Wastewater, wholesale (trunks, treatment or disposal)
-            </label></div>
-            <div class="checkbox"><label>
-                <input type="checkbox" mt-checkbox name="wastewater local" />
-                Wastewater, local collection
+            <div class="checkbox" ng-repeat="a in assetTypes"><label>
+                <input type="checkbox" mt-checkbox="a.name" />
+                {{a.desc}}
             </label></div>
         </div>
         <div class="form-group" show-errors
@@ -343,45 +317,110 @@
         <dd ng-if="org.url">
             <a ng-href="{{org.url}}">{{org.url}}</a></dd>
 
-        <dt ng-repeat-start="loc in org.locations">
-            Location:
-            {{loc.description}}
-        </dt>
-        <dd ng-repeat-end>
-            <p class="text-muted commasep">
-                <span class="" ng-if="loc.country">
-                    country:
-                    {{loc.country}}</span><!--
-             --><span class="" ng-if="loc.state">
-                    state:
-                    {{loc.state}}</span><!--
-             --><span class="" ng-if="loc.region">
-                    region/state district:
-                    {{loc.region}}</span><!--
-             --><span class="" ng-if="loc.county">
-                    county:
-                    {{loc.county}}</span><!--
-             --><span class="" ng-if="loc.postcode">
-                    postcode:
-                    {{loc.postcode}}</span><!--
-             --><span class="" ng-if="loc.city">
-                    city/town:
-                    {{loc.city}}</span><!--
-             --><span class="" ng-if="loc.suburb">
-                    suburb:
-                    {{loc.suburb}}</span>
-            </p>
-        </dd>
-
         <dt ng-if="org.meta.ownership">
             Ownership</dt>
         <dd ng-if="org.meta.ownership">
-            {{org.meta.ownership}}</dd>
+            {{getDesc(ownershipTypes, org.meta.ownership)}}</dd>
 
-        <dt ng-if="org.meta.numberOfCustomers">
-            Number of customers</dt>
-        <dd ng-if="org.meta.numberOfCustomers">
+        <dt ng-if="org.meta.structure">
+            Operational Structure</dt>
+        <dd ng-if="org.meta.structure">
+            {{getDesc(structureTypes, org.meta.structure)}}</dd>
+
+        <dt ng-if="org.locations.length">
+            <ng-pluralize
+                count="org.locations.length"
+                when="{'1': 'Location','other': 'Locations'}"></ng-pluralize>
+        </dt>
+        <dd ng-if="org.locations.length">
+            <ul class="list-unstyled">
+                <li ng-repeat="loc in org.locations"
+                    title="country: {{loc.country}}
+state: {{loc.state}}
+region/state district: {{loc.region}}
+county: {{loc.county}}
+postcode: {{loc.postcode}}
+city/town: {{loc.city}}
+suburb: {{loc.suburb}}">
+                    {{loc.description}}
+                </li>
+            </ul>
+        </dd>
+
+        <dt ng-if="org.meta.regulationLevel">
+            Regulation Level</dt>
+        <dd ng-if="org.meta.regulationLevel">
+            {{getDesc(regulationLevels, org.meta.regulationLevel)}}</dd>
+
+        <dt ng-if="org.meta.assetTypes.length">
+            Asset Types</dt>
+        <dd ng-if="org.meta.assetTypes.length">
+            <ul class="list-unstyled">
+                <li ng-repeat="a in org.meta.assetTypes">
+                    {{getDesc(assetTypes, a)}}
+                </li>
+            </ul>
+        </dd>
+
+        <dt ng-if="org.meta.valueWaterWs != null">
+            Replacement Cost of Wholesale Water Assets (USD)</dt>
+        <dd ng-if="org.meta.valueWaterWs != null">
+            ${{org.meta.valueWaterWs | number}}</dd>
+
+        <dt ng-if="org.meta.valueWaterL != null">
+            Replacement Cost of Local Water Assets (USD)</dt>
+        <dd ng-if="org.meta.valueWaterL != null">
+            ${{org.meta.valueWaterL | number}}</dd>
+
+        <dt ng-if="org.meta.valueWastewaterWs != null">
+            Replacement Cost of Wholesale Wastewater Assets (USD)</dt>
+        <dd ng-if="org.meta.valueWastewaterWs != null">
+            ${{org.meta.valueWastewaterWs | number}}</dd>
+
+        <dt ng-if="org.meta.valueWastewaterL != null">
+            Replacement Cost of Local Wastewater Assets (USD)</dt>
+        <dd ng-if="org.meta.valueWastewaterL != null">
+            ${{org.meta.valueWastewaterL | number}}</dd>
+
+        <dt ng-if="org.meta.operatingCost != null">
+            Operating Cost (USD, ex. depreciation)</dt>
+        <dd ng-if="org.meta.operatingCost != null">
+            ${{org.meta.operatingCost | number}}</dd>
+
+        <dt ng-if="org.meta.revenue != null">
+            Revenue (USD)</dt>
+        <dd ng-if="org.meta.revenue != null">
+            ${{org.meta.revenue | number}}</dd>
+
+        <dt ng-if="org.meta.numberFte != null">
+            Number of FTEs (internal)</dt>
+        <dd ng-if="org.meta.numberFte != null">
+            ${{org.meta.numberFte}}</dd>
+
+        <dt ng-if="org.meta.numberFteExt != null">
+            Number of FTEs (outsourced)</dt>
+        <dd ng-if="org.meta.numberFteExt != null">
+            ${{org.meta.numberFteExt}}</dd>
+
+        <dt ng-if="org.meta.populationServed != null">
+            Population Served</dt>
+        <dd ng-if="org.meta.populationServed != null">
+            ${{org.meta.populationServed}}</dd>
+
+        <dt ng-if="org.meta.numberOfCustomers != null">
+            Number of Customers (directly billed)</dt>
+        <dd ng-if="org.meta.numberOfCustomers != null">
             {{org.meta.numberOfCustomers}}</dd>
+
+        <dt ng-if="org.meta.volumeSupplied != null">
+            Volume of Water Supplied (ML/year)</dt>
+        <dd ng-if="org.meta.volumeSupplied != null">
+            ${{org.meta.volumeSupplied}}</dd>
+
+        <dt ng-if="org.meta.volumeCollected != null">
+            Volume of Wastewater Collected (ML/year)</dt>
+        <dd ng-if="org.meta.volumeCollected != null">
+            ${{org.meta.volumeCollected}}</dd>
     </dl>
 </div>
 

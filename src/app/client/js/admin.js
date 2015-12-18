@@ -438,6 +438,54 @@ angular.module('wsaa.admin', [
         });
     };
 
+    $scope.ownershipTypes = [
+        {name: 'government run', desc: "Government owned and run"},
+        {name: 'government owned', desc: "Government owned"},
+        {name: 'private', desc: "Privately owned"},
+        {name: 'shareholder', desc: "Shareholder owned"},
+    ];
+    $scope.getDesc = function(collection, name) {
+        return collection
+            .filter(function(ot) {return ot.name == name})
+            [0].desc;
+    };
+    $scope.structureTypes = [{
+        name: 'internal',
+        desc: "Internal department - department of a larger organisation,"
+              + " e.g. local government",
+    }, {
+        name: 'corporation',
+        desc: "Corporation - stand-alone corporation or statutory authority",
+    }];
+    $scope.assetTypes = [{
+        name: 'water wholesale',
+        desc: "Water, wholesale (catchments, storage, treament or transmission)",
+    }, {
+        name: 'water local',
+        desc: "Water, local distribution",
+    }, {
+        name: 'wastewater wholesale',
+        desc: "Wastewater, wholesale (trunks, treatment or disposal)",
+    }, {
+        name: 'wastewater local',
+        desc: "Wastewater, local collection",
+    }];
+    $scope.regulationLevels = [{
+        name: 'extensive',
+        desc:
+            "Extensive - economic regulation of revenues and/or prices,"
+            + " and performance regulation of customer services, water"
+            + " quality and/or wastewater effluent/re-use quality",
+    }, {
+        name: 'partial',
+        desc:
+            "Regulation of service performance or standards but not"
+            + " economic regulation",
+    }, {
+        name: 'none',
+        desc: "None",
+    }];
+
     $scope.checkRole = orgAuthz(Current, $scope.org);
 }])
 
