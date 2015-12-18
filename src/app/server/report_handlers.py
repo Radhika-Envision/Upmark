@@ -64,8 +64,10 @@ class DiffHandler(handlers.BaseHandler):
         if hierarchy_id == '':
             raise handlers.ModelError("Hierarchy ID required")
 
+        include_scores = self.current_user.role != 'clerk'
+
         son, details = yield self.background_task(
-            survey_id_a, survey_id_b, hierarchy_id, ignore_tags)
+            survey_id_a, survey_id_b, hierarchy_id, ignore_tags, include_scores)
 
         for i, message in enumerate(details):
             self.add_header('Profiling', "%d %s" % (i, message))
@@ -76,16 +78,15 @@ class DiffHandler(handlers.BaseHandler):
 
     @run_on_executor
     def background_task(
-            self, survey_id_a, survey_id_b, hierarchy_id, ignore_tags):
+            self, survey_id_a, survey_id_b, hierarchy_id, ignore_tags,
+            include_scores):
 
         with model.session_scope() as session:
-            if survey_id_a != '':
-                self.check_browse_survey(session, survey_id_a, hierarchy_id)
-                if survey_id_b != '':
-                    self.check_browse_survey(session, survey_id_b, hierarchy_id)
+            self.check_browse_survey(session, survey_id_a, hierarchy_id)
+            self.check_browse_survey(session, survey_id_b, hierarchy_id)
 
             diff_engine = DiffEngine(
-                session, survey_id_a, survey_id_b, hierarchy_id)
+                session, survey_id_a, survey_id_b, hierarchy_id, include_scores)
             diff = diff_engine.execute()
             diff = [di for di in diff
                     if len(set().union(di['tags']).difference(ignore_tags)) > 0]
@@ -96,18 +97,20 @@ class DiffHandler(handlers.BaseHandler):
 
 
 class DiffEngine:
-    def __init__(self, session, survey_id_a, survey_id_b, hierarchy_id):
+    def __init__(self, session, survey_id_a, survey_id_b, hierarchy_id,
+                 include_scores=True):
         self.session = session
         self.survey_id_a = survey_id_a
         self.survey_id_b = survey_id_b
         self.hierarchy_id = hierarchy_id
+        self.include_scores = include_scores
         self.timing = []
 
     def execute(self):
         qnode_pairs = self.get_qnodes()
         measure_pairs = self.get_measures()
 
-        to_son = ToSon(include=[
+        include=[
             r'/id$',
             r'/parent_id$',
             r'/title$',
@@ -116,13 +119,18 @@ class DiffEngine:
             r'/inputs$',
             r'/scenario$',
             r'/questions$',
-            r'/weight$',
             r'/response_type$',
             r'/seq$',
             # Descend
             r'/[0-9]+$',
             r'^/[0-9]+/[^/]+$',
-        ])
+        ]
+
+        if self.include_scores:
+            include += [
+                r'/weight$',
+            ]
+        to_son = ToSon(include=include)
 
         qnode_diff = [{
                 'type': 'qnode',
