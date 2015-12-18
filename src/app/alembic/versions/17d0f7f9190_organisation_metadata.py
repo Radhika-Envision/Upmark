@@ -77,9 +77,9 @@ def upgrade():
         sa.Column('regulation_level', sa.Enum(
             'extensive', 'partial', 'none',
             native_enum=False)),
-        sa.Column('value_water_hs', sa.Float),
+        sa.Column('value_water_ws', sa.Float),
         sa.Column('value_water_l', sa.Float),
-        sa.Column('value_wastewater_hs', sa.Float),
+        sa.Column('value_wastewater_ws', sa.Float),
         sa.Column('value_wastewater_l', sa.Float),
         sa.Column('operating_cost', sa.Float),
         sa.Column('revenue', sa.Float),

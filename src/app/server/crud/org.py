@@ -164,8 +164,10 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
         update = updater(org)
         update('name', son)
         update('url', son)
-        update('number_of_customers', son)
+        self._save_locations(org, son['locations'])
+        self._save_meta(org, son['meta'])
 
+    def _save_locations(self, org, sons):
         column_names = {c.name
                         for c in sqlalchemy.inspect(model.OrgLocation).columns
                         if c.name not in {'id', 'organisation_id'}}
@@ -174,7 +176,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
             return all(a[n] == getattr(b, n) for n in column_names)
 
         locs = []
-        for l in son['locations']:
+        for l in sons:
             # Try to find an existing location object that matches the one
             # provided by the user
             matching_locs = [l_existing for l_existing in org.locations
@@ -192,6 +194,15 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
         # Replace locations collection. The relationship will automatically
         # delete old locations that are no longer referenced.
         org.locations = locs
+
+    def _save_meta(self, org, son):
+        column_names = {c.name
+                        for c in sqlalchemy.inspect(model.OrgMeta).columns
+                        if c.name not in {'id', 'organisation_id'}}
+        if not org.meta:
+            org.meta = model.OrgMeta()
+        for n in column_names:
+            setattr(org.meta, n, son.get(n))
 
 
 class PurchasedSurveyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):

@@ -4,7 +4,7 @@ angular.module('wsaa.aquamark',
                ['ngRoute', 'ngAnimate', 'ui.bootstrap', 'cfp.hotkeys',
                 'ui.bootstrap.showErrors', 'validation.match', 'settings',
                 'yaru22.angular-timeago', 'angular-select-text',
-                'angular-medium-editor',
+                'angular-medium-editor', 'msieurtoph.ngCheckboxes',
                 'wsaa.survey', 'wsaa.admin', 'wsaa.home', 'wsaa.subscription',
                 'wsaa.surveyQuestions', 'wsaa.surveyAnswers',
                 'vpac.utils', 'vpac.widgets', 'diff-match-patch'])

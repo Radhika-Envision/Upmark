@@ -38,7 +38,8 @@
     "domador": "~2.1.1",
     "angular-medium-editor": "https://github.com/z0u/angular-medium-editor.git#d2470b6fc47b3ca0d137d830c74cda467e1a964e",
     "angular-diff-match-patch": "~0.1.11",
-    "FileSaver.js": "https://github.com/eligrey/FileSaver.js.git#f23c4a66dc9fa1af818322f08eb29a371ccb4ccf"
+    "FileSaver.js": "https://github.com/eligrey/FileSaver.js.git#f23c4a66dc9fa1af818322f08eb29a371ccb4ccf",
+    "angular-checkboxes": "https://github.com/msieurtoph/angular-checkboxes.git#1.0.2"
   },
   "resolutions": {
     "angular": "~1.4.1",

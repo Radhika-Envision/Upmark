@@ -154,9 +154,9 @@ class OrgMeta(Base):
     regulation_level = Column(Enum(
         'extensive', 'partial', 'none', native_enum=False))
 
-    value_water_hs = Column(Float)
+    value_water_ws = Column(Float)
     value_water_l = Column(Float)
-    value_wastewater_hs = Column(Float)
+    value_wastewater_ws = Column(Float)
     value_wastewater_l = Column(Float)
 
     operating_cost = Column(Float)

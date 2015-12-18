@@ -420,7 +420,7 @@ angular.module('wsaa.admin', [
         var attributions = [];
         locations.forEach(function(loc) {
             if (loc.licence && attributions.indexOf(loc.licence) < 0)
-                attributions.push({text: loc.licence});
+                attributions.push(loc.licence);
         });
         $scope.attributions = attributions;
     });
