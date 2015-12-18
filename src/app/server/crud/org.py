@@ -294,7 +294,7 @@ class LocationSearchHandler(handlers.BaseHandler):
 
     @tornado.gen.coroutine
     def location_search(self, search_str):
-        search_parm = urllib.parse.quote_plus(search_str)
+        search_parm = urllib.parse.quote(search_str, safe='')
         url = ('https://nominatim.openstreetmap.org/search/{}?'
                'format=json&addressdetails=1&limit=7'
                .format(search_parm))

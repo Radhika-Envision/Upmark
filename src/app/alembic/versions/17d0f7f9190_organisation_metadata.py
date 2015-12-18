@@ -55,8 +55,9 @@ class OrgLocation(Base):
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     organisation_id = Column(
         GUID, ForeignKey("organisation.id"), nullable=False)
+    description = Column(Text, nullable=False)
     region = Column(Text)
-    organisation = relationship(Organisation, backref='regions')
+    organisation = relationship(Organisation, backref='locations')
 
 
 def upgrade():
@@ -116,9 +117,9 @@ def upgrade():
         org.meta = OrgMeta()
         org.meta.number_of_customers = org.number_of_customers
         if org.region:
-            org_location = OrgLocation(organisation=org)
-            org_location.description = org.region
-            org_location.region = org.region
+            org_location = OrgLocation(
+                description=org.region,
+                region=org.region)
             org.locations.append(org_location)
     session.flush()
 
