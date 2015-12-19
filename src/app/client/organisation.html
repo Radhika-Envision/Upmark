@@ -363,49 +363,55 @@ suburb: {{loc.suburb}}">
         </dd>
 
         <dt ng-if="org.meta.valueWaterWs != null">
-            Replacement Cost of Wholesale Water Assets (USD)</dt>
+            Replacement Cost of Wholesale Water Assets</dt>
         <dd ng-if="org.meta.valueWaterWs != null">
-            ${{org.meta.valueWaterWs | number}}</dd>
+            ${{org.meta.valueWaterWs | number}}
+            <span class="text-muted">USD</span></dd>
 
         <dt ng-if="org.meta.valueWaterL != null">
-            Replacement Cost of Local Water Assets (USD)</dt>
+            Replacement Cost of Local Water Assets</dt>
         <dd ng-if="org.meta.valueWaterL != null">
-            ${{org.meta.valueWaterL | number}}</dd>
+            ${{org.meta.valueWaterL | number}}
+            <span class="text-muted">USD</span></dd>
 
         <dt ng-if="org.meta.valueWastewaterWs != null">
-            Replacement Cost of Wholesale Wastewater Assets (USD)</dt>
+            Replacement Cost of Wholesale Wastewater Assets</dt>
         <dd ng-if="org.meta.valueWastewaterWs != null">
-            ${{org.meta.valueWastewaterWs | number}}</dd>
+            ${{org.meta.valueWastewaterWs | number}}
+            <span class="text-muted">USD</span></dd>
 
         <dt ng-if="org.meta.valueWastewaterL != null">
-            Replacement Cost of Local Wastewater Assets (USD)</dt>
+            Replacement Cost of Local Wastewater Assets</dt>
         <dd ng-if="org.meta.valueWastewaterL != null">
-            ${{org.meta.valueWastewaterL | number}}</dd>
+            ${{org.meta.valueWastewaterL | number}}
+            <span class="text-muted">USD</span></dd>
 
         <dt ng-if="org.meta.operatingCost != null">
-            Operating Cost (USD, ex. depreciation)</dt>
+            Operating Cost (ex. depreciation)</dt>
         <dd ng-if="org.meta.operatingCost != null">
-            ${{org.meta.operatingCost | number}}</dd>
+            ${{org.meta.operatingCost | number}}
+            <span class="text-muted">USD</span></dd>
 
         <dt ng-if="org.meta.revenue != null">
-            Revenue (USD)</dt>
+            Revenue</dt>
         <dd ng-if="org.meta.revenue != null">
-            ${{org.meta.revenue | number}}</dd>
+            ${{org.meta.revenue | number}}
+            <span class="text-muted">USD</span></dd>
 
         <dt ng-if="org.meta.numberFte != null">
             Number of FTEs (internal)</dt>
         <dd ng-if="org.meta.numberFte != null">
-            ${{org.meta.numberFte}}</dd>
+            {{org.meta.numberFte}}</dd>
 
         <dt ng-if="org.meta.numberFteExt != null">
             Number of FTEs (outsourced)</dt>
         <dd ng-if="org.meta.numberFteExt != null">
-            ${{org.meta.numberFteExt}}</dd>
+            {{org.meta.numberFteExt}}</dd>
 
         <dt ng-if="org.meta.populationServed != null">
             Population Served</dt>
         <dd ng-if="org.meta.populationServed != null">
-            ${{org.meta.populationServed}}</dd>
+            {{org.meta.populationServed}}</dd>
 
         <dt ng-if="org.meta.numberOfCustomers != null">
             Number of Customers (directly billed)</dt>
@@ -413,14 +419,16 @@ suburb: {{loc.suburb}}">
             {{org.meta.numberOfCustomers}}</dd>
 
         <dt ng-if="org.meta.volumeSupplied != null">
-            Volume of Water Supplied (ML/year)</dt>
+            Volume of Water Supplied</dt>
         <dd ng-if="org.meta.volumeSupplied != null">
-            ${{org.meta.volumeSupplied}}</dd>
+            {{org.meta.volumeSupplied}}
+            <span class="text-muted">ML/year</span></dd>
 
         <dt ng-if="org.meta.volumeCollected != null">
-            Volume of Wastewater Collected (ML/year)</dt>
+            Volume of Wastewater Collected</dt>
         <dd ng-if="org.meta.volumeCollected != null">
-            ${{org.meta.volumeCollected}}</dd>
+            {{org.meta.volumeCollected}}
+            <span class="text-muted">ML/year</span></dd>
     </dl>
 </div>
 
