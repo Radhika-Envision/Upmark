@@ -1,3 +1,4 @@
+import collections
 import datetime
 import logging
 import re
@@ -213,3 +214,47 @@ def reorder(collection, son, id_attr='id'):
     order = {m['id']: i for i, m in enumerate(son)}
     collection.sort(key=lambda m: order[str(getattr(m, id_attr))])
     collection.reorder()
+
+
+class CacheEntry:
+    def __init__(self, ob, t):
+        self.ob = ob
+        self.t = t
+
+
+class LruCache(collections.OrderedDict):
+    def __init__(self, items=tuple(), size=150, max_age=None):
+        self.size = size
+        if max_age is not None:
+            self.max_age = max_age
+        else:
+            self.max_age = datetime.timedelta(days=1)
+        super().__init__(items)
+
+    def __getitem__(self, k):
+        item = super().__getitem__(k)
+        t = datetime.datetime.utcnow()
+        if t - item.t > self.max_age:
+            del self[k]
+            raise KeyError
+        item.t = datetime.datetime.utcnow()
+        self.move_to_end(k)
+        return item.ob
+
+    def __setitem__(self, k, ob):
+        item = CacheEntry(ob, datetime.datetime.utcnow())
+        super().__setitem__(k, item)
+        self.move_to_end(k)
+        if len(self) > self.size:
+            self.popitem(last=False)
+
+    def __contains__(self, k):
+        try:
+            item = super().__getitem__(k)
+        except KeyError:
+            return False
+        t = datetime.datetime.utcnow()
+        if t - item.t > self.max_age:
+            del self[k]
+            return False
+        return True

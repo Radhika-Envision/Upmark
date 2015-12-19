@@ -1,5 +1,3 @@
-<div>
-
 <div class="header">
 <div class="container">
     <div class="toolbar">
@@ -34,8 +32,7 @@
 </div>
 </div>
 
-<div ng-if="edit.model">
-<div class="container">
+<div ng-if="edit.model" class="container">
     <form novalidate name="form" id="editor" form-nav-warn>
         <div class="form-group" show-errors>
             <label for="org_name">Name</label>
@@ -53,51 +50,391 @@
                     id="org_url" name="org_url"
                     ng-model="edit.model.url" required />
         </div>
+
+        <!-- Location metadata -->
+        <div class="section">
+            <div class="toolbar">
+                <a class="btn btn-default btn-round" title="Add location"
+                        ng-click="edit.model.locations.push(null)">
+                    <i class="fa fa-fw fa-plus"></i>
+                </a>
+            </div>
+            <h2>
+                Locations
+            </h2>
+        </div>
+        <table class="table" ng-if="boxed_locations.length">
+            <tr class="form-row" ng-repeat="loc in boxed_locations">
+                <td>
+                    <ui-select ng-model="loc.data" reset-search-input="false">
+                        <ui-select-match placeholder="Type to select a location">
+                            {{loc.data.description}}
+                        </ui-select-match>
+                        <ui-select-choices
+                                repeat="l in locations"
+                                refresh="searchLoc($select.search)"
+                                refresh-delay="1000">
+                            <div ng-bind-html="l.description |
+                                               highlight: $select.search">
+                            </div>
+                        </ui-select-choices>
+                    </ui-select>
+                    <p class="text-muted commasep">
+                        <span class="" ng-if="loc.data.country">
+                            country:
+                            {{loc.data.country}}</span><!--
+                     --><span class="" ng-if="loc.data.state">
+                            state:
+                            {{loc.data.state}}</span><!--
+                     --><span class="" ng-if="loc.data.region">
+                            region/state district:
+                            {{loc.data.region}}</span><!--
+                     --><span class="" ng-if="loc.data.county">
+                            county:
+                            {{loc.data.county}}</span><!--
+                     --><span class="" ng-if="loc.data.postcode">
+                            postcode:
+                            {{loc.data.postcode}}</span><!--
+                     --><span class="" ng-if="loc.data.city">
+                            city/town:
+                            {{loc.data.city}}</span><!--
+                     --><span class="" ng-if="loc.data.suburb">
+                            suburb:
+                            {{loc.data.suburb}}</span>
+                    </p>
+                </td>
+                <td class="shrink">
+                    <button class="btn btn-default btn-round"
+                            title="Remove"
+                            ng-click="deleteLocation(loc)">
+                        <i class="fa fa-fw fa-trash-o"></i></button>
+                </td>
+            </tr>
+        </table>
+        <p ng-if="!boxed_locations.length">
+            No locations have been selected. Press the
+            <i class="fa fa-plus"></i> button to add one.
+        </p>
+
+        <!-- Water metadata -->
+        <div class="section">
+            <h2>
+                Water Utility Metadata
+            </h2>
+        </div>
         <div class="form-group" show-errors>
-            <label for="org_customers">Number of customers</label>
-            <span class="help-label" ng-if="form.org_customers.$error.required">
-                *</span>
+            <label for="org_ownership">Ownership</label>
+            <select type="text" class="form-control"
+                id="org_ownership" name="org_ownership"
+                ng-model="edit.model.meta.ownership">
+                <option value="government run">Government owned and run</option>
+                <option value="government owned">Government owned</option>
+                <option value="private">Private</option>
+                <option value="shareholder">Shareholder owned</option>
+            </select>
+        </div>
+        <div class="form-group" show-errors>
+            <label for="org_structure">Operational Structure</label>
+            <select type="text" class="form-control"
+                id="org_structure" name="org_structure"
+                ng-model="edit.model.meta.structure">
+                <option ng-repeat="r in structureTypes" value="{{r.name}}">
+                    {{r.desc}}
+                </option>
+            </select>
+        </div>
+        <div class="form-group" show-errors>
+            <label for="org_regulation">Level of Regulation</label>
+            <select type="text" class="form-control"
+                id="org_regulation" name="org_regulation"
+                ng-model="edit.model.meta.regulationLevel">
+                <option ng-repeat="r in regulationLevels" value="{{r.name}}">
+                    {{r.desc}}
+                </option>
+            </select>
+        </div>
+
+        <div class="form-group" mt-to="edit.model.meta.assetTypes">
+            <label>Asset Types</label>
+            <div class="checkbox" ng-repeat="a in assetTypes"><label>
+                <input type="checkbox" mt-checkbox="a.name" />
+                {{a.desc}}
+            </label></div>
+        </div>
+        <div class="form-group" show-errors
+                ng-if="edit.model.meta.assetTypes
+                       .indexOf('water wholesale') >= 0">
+            <label for="org_value_water_ws">
+                Replacement Cost of Wholesale Water Assets (USD)</label>
+            <span class="help-label" ng-if="form.org_value_water_ws.$error.min">
+                Negative numbers are not allowed</span>
+            <span class="help-label" ng-if="form.org_value_water_ws.$error.number">
+                Must be a number</span>
+            <input type="number" class="form-control"
+                    id="org_value_water_ws" name="org_value_water_ws"
+                    ng-model="edit.model.meta.valueWaterWs"
+                    min="0" />
+        </div>
+        <div class="form-group" show-errors
+                ng-if="edit.model.meta.assetTypes
+                       .indexOf('water local') >= 0">
+            <label for="org_value_water_l">
+                Replacement Cost of Local Water Assets (USD)</label>
+            <span class="help-label" ng-if="form.org_value_water_l.$error.min">
+                Negative numbers are not allowed</span>
+            <span class="help-label" ng-if="form.org_value_water_l.$error.number">
+                Must be a number</span>
+            <input type="number" class="form-control"
+                    id="org_value_water_l" name="org_value_water_l"
+                    ng-model="edit.model.meta.valueWaterL"
+                    min="0" />
+        </div>
+        <div class="form-group" show-errors
+                ng-if="edit.model.meta.assetTypes
+                       .indexOf('wastewater wholesale') >= 0">
+            <label for="org_value_wastewater_ws">
+                Replacement Cost of Wholesale Wastewater Assets (USD)</label>
+            <span class="help-label" ng-if="form.org_value_wastewater_ws.$error.min">
+                Negative numbers are not allowed</span>
+            <span class="help-label" ng-if="form.org_value_wastewater_ws.$error.number">
+                Must be a number</span>
+            <input type="number" class="form-control"
+                    id="org_value_wastewater_ws" name="org_value_wastewater_ws"
+                    ng-model="edit.model.meta.valueWastewaterWs"
+                    min="0" />
+        </div>
+        <div class="form-group" show-errors
+                ng-if="edit.model.meta.assetTypes
+                       .indexOf('wastewater local') >= 0">
+            <label for="org_value_wastewater_l">
+                Replacement Cost of Local Wastewater Assets (USD)</label>
+            <span class="help-label" ng-if="form.org_value_wastewater_l.$error.min">
+                Negative numbers are not allowed</span>
+            <span class="help-label" ng-if="form.org_value_wastewater_l.$error.number">
+                Must be a number</span>
+            <input type="number" class="form-control"
+                    id="org_value_wastewater_l" name="org_value_wastewater_l"
+                    ng-model="edit.model.meta.valueWastewaterL"
+                    min="0" />
+        </div>
+
+        <div class="form-group" show-errors>
+            <label for="org_operating_cost">Operating Cost (USD, ex. depreciation)</label>
+            <span class="help-label" ng-if="form.org_operating_cost.$error.min">
+                Negative numbers are not allowed</span>
+            <span class="help-label" ng-if="form.org_operating_cost.$error.number">
+                Must be a number</span>
+            <input type="number" class="form-control"
+                    id="org_operating_cost" name="org_operating_cost"
+                    ng-model="edit.model.meta.operatingCost"
+                    min="0" />
+        </div>
+        <div class="form-group" show-errors>
+            <label for="org_revenue">Revenue (USD)</label>
+            <span class="help-label" ng-if="form.org_revenue.$error.min">
+                Negative numbers are not allowed</span>
+            <span class="help-label" ng-if="form.org_revenue.$error.number">
+                Must be a number</span>
+            <input type="number" class="form-control"
+                    id="org_revenue" name="org_revenue"
+                    ng-model="edit.model.meta.revenue"
+                    min="0" />
+        </div>
+        <div class="form-group" show-errors>
+            <label for="org_number_fte">Number of FTEs (internal)</label>
+            <span class="help-label" ng-if="form.org_number_fte.$error.min">
+                Negative numbers are not allowed</span>
+            <span class="help-label" ng-if="form.org_number_fte.$error.number">
+                Must be a number</span>
+            <input type="number" class="form-control"
+                    id="org_number_fte" name="org_number_fte"
+                    ng-model="edit.model.meta.numberFte"
+                    min="0" />
+        </div>
+        <div class="form-group" show-errors>
+            <label for="org_number_fte_ext">Number of FTEs (outsourced)</label>
+            <span class="help-label" ng-if="form.org_number_fte_ext.$error.min">
+                Negative numbers are not allowed</span>
+            <span class="help-label" ng-if="form.org_number_fte_ext.$error.number">
+                Must be a number</span>
+            <input type="number" class="form-control"
+                    id="org_number_fte_ext" name="org_number_fte_ext"
+                    ng-model="edit.model.meta.numberFteExt"
+                    min="0" />
+        </div>
+
+        <div class="form-group" show-errors>
+            <label for="org_population_served">Population Served</label>
+            <span class="help-label" ng-if="form.org_population_served.$error.min">
+                Negative numbers are not allowed</span>
+            <span class="help-label" ng-if="form.org_population_served.$error.number">
+                Must be a number</span>
+            <input type="number" class="form-control"
+                    id="org_population_served" name="org_population_served"
+                    ng-model="edit.model.meta.populationServed"
+                    min="0" />
+        </div>
+        <div class="form-group" show-errors>
+            <label for="org_customers">Number of Customers (directly billed)</label>
             <span class="help-label" ng-if="form.org_customers.$error.min">
                 Negative numbers are not allowed</span>
             <span class="help-label" ng-if="form.org_customers.$error.number">
                 Must be a number</span>
             <input type="number" class="form-control"
                     id="org_customers" name="org_customers"
-                    ng-model="edit.model.numberOfCustomers"
-                    required min="0" />
+                    ng-model="edit.model.meta.numberOfCustomers"
+                    min="0" />
         </div>
         <div class="form-group" show-errors>
-            <label for="org_region">Region</label>
-            <span class="help-label" ng-if="form.org_region.$error.required">
-                *</span>
-            <input type="text" class="form-control"
-                    id="org_region" name="org_region"
-                    ng-model="edit.model.region" required />
+            <label for="org_volume_supplied">Volume of Water Supplied (ML/year)</label>
+            <span class="help-label" ng-if="form.org_volume_supplied.$error.min">
+                Negative numbers are not allowed</span>
+            <span class="help-label" ng-if="form.org_volume_supplied.$error.number">
+                Must be a number</span>
+            <input type="number" class="form-control"
+                    id="org_volume_supplied" name="org_volume_supplied"
+                    ng-model="edit.model.meta.volumeSupplied"
+                    min="0" />
+        </div>
+        <div class="form-group" show-errors>
+            <label for="org_volume_collected">Volume of Wastewater Collected (ML/year)</label>
+            <span class="help-label" ng-if="form.org_volume_collected.$error.min">
+                Negative numbers are not allowed</span>
+            <span class="help-label" ng-if="form.org_volume_collected.$error.number">
+                Must be a number</span>
+            <input type="number" class="form-control"
+                    id="org_volume_collected" name="org_volume_collected"
+                    ng-model="edit.model.meta.volumeCollected"
+                    min="0" />
         </div>
     </form>
 </div>
-</div>
 
-<div ng-if="!edit.model">
-<div class="container">
-    <dl ng-if="org.url">
-        <dt>Web site</dt>
-        <dd><a ng-href="{{org.url}}">{{org.url}}</a></dd>
+<div ng-if="!edit.model" class="container">
+    <dl>
+        <dt ng-if="org.url">
+            Web Site</dt>
+        <dd ng-if="org.url">
+            <a ng-href="{{org.url}}">{{org.url}}</a></dd>
+
+        <dt ng-if="org.meta.ownership">
+            Ownership</dt>
+        <dd ng-if="org.meta.ownership">
+            {{getDesc(ownershipTypes, org.meta.ownership)}}</dd>
+
+        <dt ng-if="org.meta.structure">
+            Operational Structure</dt>
+        <dd ng-if="org.meta.structure">
+            {{getDesc(structureTypes, org.meta.structure)}}</dd>
+
+        <dt ng-if="org.locations.length">
+            <ng-pluralize
+                count="org.locations.length"
+                when="{'1': 'Location','other': 'Locations'}"></ng-pluralize>
+        </dt>
+        <dd ng-if="org.locations.length">
+            <ul class="list-unstyled">
+                <li ng-repeat="loc in org.locations"
+                    title="country: {{loc.country}}
+state: {{loc.state}}
+region/state district: {{loc.region}}
+county: {{loc.county}}
+postcode: {{loc.postcode}}
+city/town: {{loc.city}}
+suburb: {{loc.suburb}}">
+                    {{loc.description}}
+                </li>
+            </ul>
+        </dd>
+
+        <dt ng-if="org.meta.regulationLevel">
+            Regulation Level</dt>
+        <dd ng-if="org.meta.regulationLevel">
+            {{getDesc(regulationLevels, org.meta.regulationLevel)}}</dd>
+
+        <dt ng-if="org.meta.assetTypes.length">
+            Asset Types</dt>
+        <dd ng-if="org.meta.assetTypes.length">
+            <ul class="list-unstyled">
+                <li ng-repeat="a in org.meta.assetTypes">
+                    {{getDesc(assetTypes, a)}}
+                </li>
+            </ul>
+        </dd>
+
+        <dt ng-if="org.meta.valueWaterWs != null">
+            Replacement Cost of Wholesale Water Assets</dt>
+        <dd ng-if="org.meta.valueWaterWs != null">
+            ${{org.meta.valueWaterWs | number}}
+            <span class="text-muted">USD</span></dd>
+
+        <dt ng-if="org.meta.valueWaterL != null">
+            Replacement Cost of Local Water Assets</dt>
+        <dd ng-if="org.meta.valueWaterL != null">
+            ${{org.meta.valueWaterL | number}}
+            <span class="text-muted">USD</span></dd>
+
+        <dt ng-if="org.meta.valueWastewaterWs != null">
+            Replacement Cost of Wholesale Wastewater Assets</dt>
+        <dd ng-if="org.meta.valueWastewaterWs != null">
+            ${{org.meta.valueWastewaterWs | number}}
+            <span class="text-muted">USD</span></dd>
+
+        <dt ng-if="org.meta.valueWastewaterL != null">
+            Replacement Cost of Local Wastewater Assets</dt>
+        <dd ng-if="org.meta.valueWastewaterL != null">
+            ${{org.meta.valueWastewaterL | number}}
+            <span class="text-muted">USD</span></dd>
+
+        <dt ng-if="org.meta.operatingCost != null">
+            Operating Cost (ex. depreciation)</dt>
+        <dd ng-if="org.meta.operatingCost != null">
+            ${{org.meta.operatingCost | number}}
+            <span class="text-muted">USD</span></dd>
+
+        <dt ng-if="org.meta.revenue != null">
+            Revenue</dt>
+        <dd ng-if="org.meta.revenue != null">
+            ${{org.meta.revenue | number}}
+            <span class="text-muted">USD</span></dd>
+
+        <dt ng-if="org.meta.numberFte != null">
+            Number of FTEs (internal)</dt>
+        <dd ng-if="org.meta.numberFte != null">
+            {{org.meta.numberFte}}</dd>
+
+        <dt ng-if="org.meta.numberFteExt != null">
+            Number of FTEs (outsourced)</dt>
+        <dd ng-if="org.meta.numberFteExt != null">
+            {{org.meta.numberFteExt}}</dd>
+
+        <dt ng-if="org.meta.populationServed != null">
+            Population Served</dt>
+        <dd ng-if="org.meta.populationServed != null">
+            {{org.meta.populationServed}}</dd>
+
+        <dt ng-if="org.meta.numberOfCustomers != null">
+            Number of Customers (directly billed)</dt>
+        <dd ng-if="org.meta.numberOfCustomers != null">
+            {{org.meta.numberOfCustomers}}</dd>
+
+        <dt ng-if="org.meta.volumeSupplied != null">
+            Volume of Water Supplied</dt>
+        <dd ng-if="org.meta.volumeSupplied != null">
+            {{org.meta.volumeSupplied}}
+            <span class="text-muted">ML/year</span></dd>
+
+        <dt ng-if="org.meta.volumeCollected != null">
+            Volume of Wastewater Collected</dt>
+        <dd ng-if="org.meta.volumeCollected != null">
+            {{org.meta.volumeCollected}}
+            <span class="text-muted">ML/year</span></dd>
     </dl>
-    <dl ng-if="org.numberOfCustomers">
-        <dt>Number of customers</dt>
-        <dd>{{org.numberOfCustomers}}</dd>
-    </dl>
-    <dl ng-if="org.region">
-        <dt>Region</dt>
-        <dd>{{org.region}}</dd>
-    </dl>
-</div>
 </div>
 
 
 <div class="container" ng-controller="PurchasedSurveyCtrl"
-        ng-if="checkRole('assessment_browse')">
+        ng-if="!edit.model && checkRole('assessment_browse')">
     <div class="section">
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="Add new"
@@ -130,5 +467,9 @@
 
 <user-list class="nested" ng-if="!edit.model" org="org" hide-org></user-list>
 
-
+<div class="container" ng-if="!edit.model">
+    <h4 class="section" ng-if="attributions.length">Location data copyright</h4>
+    <p class="text-muted" ng-repeat="a in attributions">
+        {{a}}
+    </p>
 </div>

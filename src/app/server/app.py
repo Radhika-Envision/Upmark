@@ -13,6 +13,7 @@ from sqlalchemy import func
 import sqlalchemy.engine.reflection
 import sqlalchemy.orm
 import tornado
+import tornado.httpclient
 import tornado.httpserver
 import tornado.options
 import tornado.web
@@ -211,6 +212,7 @@ def get_mappings():
         (r"/organisation/?([^/]*).json", crud.org.OrgHandler, {}),
         (r"/organisation/?([^/]*)/hierarchy/?([^/]*).json",
             crud.org.PurchasedSurveyHandler, {}),
+        (r"/geo/(.*).json", crud.org.LocationSearchHandler, {}),
         (r"/user/?([^/]*).json", crud.user.UserHandler, {}),
         (r"/subscription/()([^/]*).json",
             crud.activity.SubscriptionHandler, {}),
@@ -320,11 +322,22 @@ def read_app_version():
     handlers.aq_version = version
 
 
+def configure_http_client():
+    if handlers.aq_version:
+        user_agent = "Aquamark %s" % handlers.aq_version
+    else:
+        user_agent = "Aquamark"
+
+    tornado.httpclient.AsyncHTTPClient.configure(
+        None, defaults=dict(user_agent=user_agent))
+
+
 if __name__ == "__main__":
     try:
         parse_options()
         connect_db()
         read_app_version()
+        configure_http_client()
         signal.signal(signal.SIGTERM, signal_handler)
         start_web_server()
     except KeyboardInterrupt:

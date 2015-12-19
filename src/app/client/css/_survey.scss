@@ -364,6 +364,19 @@ ul.list-results {
                 color: #777;
             }
         }
+        > h4 {
+            font-weight: bold;
+        }
+        > h4, > p {
+            padding-left: 8px;
+            padding-right: 8px;
+        }
+        > h4:first-child, > p:first-child {
+            padding-top: 8px;
+        }
+        > h4:last-child, > p:last-child {
+            padding-bottom: 8px;
+        }
 
         a:hover {
             text-decoration: none;

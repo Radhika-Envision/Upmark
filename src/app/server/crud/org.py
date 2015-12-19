@@ -1,8 +1,11 @@
 import datetime
 import time
 import uuid
+import urllib.parse
 
 from tornado.escape import json_decode, json_encode
+from tornado.httpclient import AsyncHTTPClient
+import tornado.gen
 import tornado.web
 import sqlalchemy
 from sqlalchemy.orm import joinedload
@@ -12,8 +15,7 @@ import crud.survey
 import handlers
 import model
 import logging
-
-from utils import ToSon, updater
+from utils import LruCache, ToSon, updater
 
 class OrgHandler(handlers.Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
@@ -34,8 +36,13 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/id$',
                 r'/name$',
                 r'/url$',
-                r'/region$',
-                r'/number_of_customers$'
+                r'/locations.*$',
+                r'/meta.*$',
+            ], exclude=[
+                r'/locations/.*/organisation(_id)?$',
+                r'/locations/.*/id$',
+                r'/meta/organisation(_id)?$',
+                r'/meta/id$',
             ])
             son = to_son(org)
         self.set_header("Content-Type", "application/json")
@@ -115,6 +122,8 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                 self._update(org, self.request_son)
 
                 act = Activities(session)
+                # is_modified checks nested collections too:
+                # http://docs.sqlalchemy.org/en/latest/orm/session_api.html#sqlalchemy.orm.session.Session.is_modified
                 if session.is_modified(org):
                     act.record(self.current_user, org, ['update'])
                 if not act.has_subscription(self.current_user, org):
@@ -155,8 +164,45 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
         update = updater(org)
         update('name', son)
         update('url', son)
-        update('number_of_customers', son)
-        update('region', son)
+        self._save_locations(org, son['locations'])
+        self._save_meta(org, son['meta'])
+
+    def _save_locations(self, org, sons):
+        column_names = {c.name
+                        for c in sqlalchemy.inspect(model.OrgLocation).columns
+                        if c.name not in {'id', 'organisation_id'}}
+
+        def loc_eq(a, b):
+            return all(a[n] == getattr(b, n) for n in column_names)
+
+        locs = []
+        for l in sons:
+            # Try to find an existing location object that matches the one
+            # provided by the user
+            matching_locs = [l_existing for l_existing in org.locations
+                             if loc_eq(l, l_existing)]
+            if len(matching_locs) > 0:
+                locs.append(matching_locs[0])
+                continue
+
+            # No match, so create a new one
+            l = {k: l[k]
+                 for k in l
+                 if k in column_names}
+            locs.append(model.OrgLocation(**l))
+
+        # Replace locations collection. The relationship will automatically
+        # delete old locations that are no longer referenced.
+        org.locations = locs
+
+    def _save_meta(self, org, son):
+        column_names = {c.name
+                        for c in sqlalchemy.inspect(model.OrgMeta).columns
+                        if c.name not in {'id', 'organisation_id'}}
+        if not org.meta:
+            org.meta = model.OrgMeta()
+        for n in column_names:
+            setattr(org.meta, n, son.get(n))
 
 
 class PurchasedSurveyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
@@ -241,3 +287,58 @@ class PurchasedSurveyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             if not self.has_privillege('consultant'):
                 raise handlers.AuthzError(
                     "You can't access another organisation's surveys")
+
+
+class LocationSearchHandler(handlers.BaseHandler):
+    cache = LruCache()
+
+    @tornado.gen.coroutine
+    def get(self, search_str):
+        if search_str not in self.cache:
+            locations = yield self.location_search(search_str)
+            self.cache[search_str] = locations
+        else:
+            locations = self.cache[search_str]
+
+        self.set_header('Content-Type', 'application/json')
+        self.write(json_encode(locations))
+
+    @tornado.gen.coroutine
+    def location_search(self, search_str):
+        search_parm = urllib.parse.quote(search_str, safe='')
+        url = ('https://nominatim.openstreetmap.org/search/{}?'
+               'format=json&addressdetails=1&limit=7'
+               .format(search_parm))
+        client = AsyncHTTPClient()
+        response = yield client.fetch(url)
+        nominatim = json_decode(response.body)
+
+        locations = []
+        for nom in nominatim:
+            if nom['type'] in {'political'}:
+                continue
+
+            a = nom['address']
+            try:
+                lon = float(nom['lon'])
+                lat = float(nom['lat'])
+            except (KeyError, ValueError):
+                lon = None
+                lat = None
+
+            location = {
+                'description': nom['display_name'],
+                'licence': nom['licence'],
+                'lon': lon,
+                'lat': lat,
+                'country': a.get('country'),
+                'region': a.get('region') or a.get('state_district'),
+                'state': a.get('state'),
+                'county': a.get('county'),
+                'postcode': a.get('postcode'),
+                'city': a.get('city') or a.get('town'),
+                'suburb': a.get('suburb'),
+            }
+            locations.append(location)
+
+        return locations
