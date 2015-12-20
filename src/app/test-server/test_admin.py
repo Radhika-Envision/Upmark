@@ -57,13 +57,21 @@ class OrgTest(base.AqHttpTestBase):
         del orgs_son[1]['id']
         expected = [
             {
-                'numberOfCustomers': 10,
                 'name': 'Primary',
-                'region': 'Nowhere'
+                'locations': [{
+                    'description': 'Nowhere',
+                }],
+                'meta': {
+                    'assetTypes': ['water wholesale'],
+                }
             }, {
-                'numberOfCustomers': 1000,
                 'name': 'Utility',
-                'region': 'Somewhere'
+                'locations': [{
+                    'description': 'Somewhere',
+                }],
+                'meta': {
+                    'assetTypes': ['water local'],
+                }
             }
         ]
         self.assertEqual(orgs_son, expected)
@@ -117,8 +125,13 @@ class OrgAuthzTest(base.AqHttpTestBase):
             post_data = {
                 "name": "Foo %d" % i,
                 "url": "http://foo%d.com" % i,
-                "numberOfCustomers": 0,
-                "region": "Foo"
+                'locations': [{
+                    'description': 'Foo',
+                    'region': 'Foo',
+                }],
+                'meta': {
+                    'numberOfCustomers': 0,
+                }
             }
             with base.mock_user(user):
                 response = self.fetch(
@@ -156,16 +169,25 @@ class OrgAuthzTest(base.AqHttpTestBase):
             org = session.query(model.Organisation).\
                 filter(func.lower(model.Organisation.name) ==
                        func.lower(org_name)).one()
-            session.expunge(org)
 
-        to_son = ToSon(include=[r'/id$', r'/name$'])
-        org_son = to_son(org)
+            to_son = ToSon(include=[
+                r'/id$',
+                r'/name$',
+                r'/locations.*$',
+                r'/meta.*$',
+            ], exclude=[
+                r'/locations/[0-9]+/id$',
+                r'/locations/[0-9]+/organisation.*$',
+                r'/meta/id$',
+                r'/meta/organisation.*$',
+            ])
+            org_son = to_son(org)
 
         with base.mock_user(user_email):
 
             post_data = org_son.copy()
             response = self.fetch(
-                "/organisation/%s.json" % org.id, method='PUT',
+                "/organisation/%s.json" % org_son['id'], method='PUT',
                 body=json_encode(post_data))
         self.assertIn(reason, response.reason)
         self.assertEqual(code, response.code)
@@ -352,7 +374,7 @@ class UserAuthzTest(base.AqHttpTestBase):
                     filter(func.lower(model.AppUser.email) ==
                            func.lower(user_email)).one()
 
-            to_son = ToSon(exclude=[r'/password$', r'/organisation.*$'])
+            to_son = ToSon(include=[r'/id$', r'/name$'])
             user_son = to_son(user)
             user_son['organisation'] = org_son
 

@@ -70,16 +70,18 @@ class AqModelTestBase(unittest.TestCase):
             org1 = model.Organisation(
                 name='Primary',
                 url='http://primary.org',
-                region="Nowhere",
-                number_of_customers = 10)
+                locations=[model.OrgLocation(
+                    description="Nowhere", region="Nowhere")],
+                meta=model.OrgMeta(asset_types=['water wholesale']))
             session.add(org1)
             session.flush()
 
             org2 = model.Organisation(
                 name='Utility',
                 url='http://utility.org',
-                region="Somewhere",
-                number_of_customers = 1000)
+                locations=[model.OrgLocation(
+                    description="Somewhere", region="Somewhere")],
+                meta=model.OrgMeta(asset_types=['water local']))
             session.add(org2)
             session.flush()
 

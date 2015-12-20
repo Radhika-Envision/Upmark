@@ -347,14 +347,17 @@ class MeasureHandler(
                         continue
                     self.reason('Added to %s' % new_parent.title)
                     has_relocated = True
-                    for old_parent in list(measure.parents):
-                        if str(old_parent.hierarchy_id) == str(new_parent.hierarchy_id):
-                            old_parent.measures.remove(measure)
+                    for old_qm in list(measure.qnode_measures):
+                        old_parent = old_qm.qnode
+                        old_hid = old_parent.hierarchy_id
+                        if str(old_hid) == str(new_parent.hierarchy_id):
+                            old_parent.qnode_measures.remove(old_qm)
+                            measure.qnode_measures.remove(old_qm)
+                            session.delete(old_qm)
                             old_parent.qnode_measures.reorder()
                             self.reason('Moved from %s' % old_parent.title)
                     new_parent.measures.append(measure)
                     new_parent.qnode_measures.reorder()
-                    new_parent.update_stats_ancestors()
                     affected_parents.add(new_parent)
                 if has_relocated:
                     verbs.append('relation')

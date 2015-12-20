@@ -107,7 +107,8 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 # Exclude password from response. Not really necessary because
                 # 1. it's hashed and 2. it's not in the list above. But just to
                 # be safe.
-                r'password'
+                r'password',
+                r'/organisation/deleted$'
             ])
 
             sons = to_son(query.all())

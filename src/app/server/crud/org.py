@@ -61,10 +61,12 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
             query = self.paginate(query)
 
             to_son = ToSon(include=[
-                r'/id$',
+                r'^/[0-9]+/id$',
                 r'/name$',
-                r'/region$',
-                r'/number_of_customers$',
+                r'/locations$',
+                r'/locations/0/description$',
+                r'/meta$',
+                r'/meta/asset_types.*$',
                 # Descend into list
                 r'/[0-9]+$'
             ])

@@ -654,7 +654,7 @@ class Measure(Observable, Base):
 
     @property
     def action_lineage(self):
-        hs = [qm.qnode.hierarchy for qm in self.qnode_measures]
+        hs = [p.hierarchy for p in self.parents]
         return [self.survey] + hs + self.lineage()
 
     def __repr__(self):
