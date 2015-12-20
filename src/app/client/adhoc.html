@@ -95,8 +95,9 @@
             <dt>organisation</dt>
             <dd>
                 <p>PK: <code>id</code>.</p>
-                Stores details and metadata about organisations - both those
-                taking part in surveys, and those authoring them.
+                Basic details about organisations - both those taking part in
+                surveys, and those authoring them. Has a one-to-one relationship
+                with <code>org_meta</code>, and one-to-many mappings with <code>appuser</code> and <code>org_location</code>.
             </dd>
 
             <dt>appuser</dt>
@@ -108,6 +109,18 @@
                 running <code>SELECT * FROM appuser</code> will fail. List the
                 fields you want explicitly.
                 <p>Email addresses are case-insensitive and unique.</p>
+            </dd>
+
+            <dt>org_location</dt>
+            <dd>
+                <p>PK: <code>id</code>.</p>
+                The locations that organisations operate in.
+            </dd>
+
+            <dt>org_meta</dt>
+            <dd>
+                <p>PK: <code>id</code>.</p>
+                Water utility-specific metadata about organisations.
             </dd>
         </dl>
     </docs>
