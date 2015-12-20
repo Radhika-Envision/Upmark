@@ -229,9 +229,9 @@ angular.module('wsaa.admin', [
         );
     };
 
-    $scope.toggleEnabled = function() {
-        var original = $scope.user.enabled;
-        $scope.user.enabled = !$scope.user.enabled;
+    $scope.toggleDeleted = function() {
+        var original = $scope.user.deleted;
+        $scope.user.deleted = !$scope.user.deleted;
         $scope.user.$save(
             function success(user, getResponseHeaders) {
                 var message = "Saved";
@@ -240,7 +240,7 @@ angular.module('wsaa.admin', [
                 Notifications.set('edit', 'success', message, 5000);
             },
             function failure(details) {
-                $scope.user.enabled = original;
+                $scope.user.deleted = original;
                 Notifications.set('edit', 'error',
                     "Could not save object: " + details.statusText);
                 return $q.reject(details);
@@ -278,7 +278,7 @@ angular.module('wsaa.admin', [
     $scope.search = {
         term: "",
         org_id: $scope.org && $scope.org.id,
-        enabled: true,
+        deleted: false,
         page: 0,
         pageSize: 10
     };
@@ -295,16 +295,16 @@ angular.module('wsaa.admin', [
         );
     }, true);
 
-    $scope.cycleEnabled = function() {
-        switch ($scope.search.enabled) {
+    $scope.cycleDeleted = function() {
+        switch ($scope.search.deleted) {
             case true:
-                $scope.search.enabled = null;
+                $scope.search.deleted = null;
                 break;
             case null:
-                $scope.search.enabled = false;
+                $scope.search.deleted = false;
                 break;
             case false:
-                $scope.search.enabled = true;
+                $scope.search.deleted = true;
                 break;
         }
     };

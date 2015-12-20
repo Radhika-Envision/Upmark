@@ -86,13 +86,13 @@ class UserTest(base.AqHttpTestBase):
         expected = [
             {
                 'name': 'Admin',
-                'enabled': True,
+                'deleted': False,
                 'organisation': {
                     'name': 'Primary'
                 }
             }, {
                 'name': 'Author',
-                'enabled': True,
+                'deleted': False,
                 'organisation': {
                     'name': 'Primary'
                 }
@@ -318,7 +318,7 @@ class UserAuthzTest(base.AqHttpTestBase):
         for user_email, code, reason in users:
             post_data = user_son.copy()
             post_data['organisation'] = post_data['organisation'].copy()
-            post_data['enabled'] = False
+            post_data['deleted'] = True
             with base.mock_user(user_email):
                 response = self.fetch(
                     "/user/%s.json" % user_son['id'], method='PUT',

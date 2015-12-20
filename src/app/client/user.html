@@ -12,11 +12,11 @@
                 ng-if="checkRole('user_impersonate')">
             <i class="fa fa-paw"></i></button>
         <button class="btn btn-default btn-round"
-                title="{{user.enabled ? 'Deactivate' : 'Activate'}}"
-                ng-click="toggleEnabled()"
+                title="{{!user.deleted ? 'Deactivate' : 'Activate'}}"
+                ng-click="toggleDeleted()"
                 ng-if="!edit.model && checkRole('user_enable')">
             <i class="fa fa-lock"
-                ng-class="user.enabled ? 'fa-lock' : 'fa-unlock'"></i></button>
+                ng-class="!user.deleted ? 'fa-lock' : 'fa-unlock'"></i></button>
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
                 ng-if="edit.model && edit.model.id">
@@ -42,7 +42,7 @@
 </div>
 
 <div class="subheader bg-warning text-warning"
-        ng-if="user.id && !user.enabled">
+        ng-if="user.id && user.deleted">
     <div class="container">
         <i class="fa fa-lock"></i>
         This user is inactive.

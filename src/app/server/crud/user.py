@@ -55,7 +55,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/name$',
                 r'/email$',
                 r'/role$',
-                r'/enabled$',
+                r'/deleted$',
                 # Descend into nested objects
                 r'/organisation$',
             ], exclude=[
@@ -88,10 +88,10 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 query = query.filter(
                     model.AppUser.name.ilike(r'%{}%'.format(term)))
 
-            enabled = self.get_argument('enabled', None)
-            if enabled is not None:
-                enable = truthy(enabled)
-                query = query.filter(model.AppUser.enabled == enabled)
+            deleted = self.get_argument('deleted', None)
+            if deleted is not None:
+                deleted = truthy(deleted)
+                query = query.filter(model.AppUser.deleted == deleted)
 
             query = query.order_by(model.AppUser.name)
             query = self.paginate(query)
@@ -99,7 +99,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
             to_son = ToSon(include=[
                 r'/id$',
                 r'/name$',
-                r'/enabled$',
+                r'/deleted$',
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/organisation$',
@@ -226,7 +226,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 raise handlers.AuthzError(
                     "You can't change your role.")
 
-        if 'enabled' in son and son['enabled'] != user.enabled:
+        if 'deleted' in son and son['deleted'] != user.deleted:
             if str(self.current_user.id) == str(user.id):
                 raise handlers.AuthzError(
                     "You can't enable or disable yourself.")
@@ -259,7 +259,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
         update('email', son)
         update('name', son)
         update('role', son)
-        update('enabled', son)
+        update('deleted', son)
 
         if son.get('organisation', '') != '':
             user.organisation_id = son['organisation']['id']

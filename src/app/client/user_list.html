@@ -17,16 +17,16 @@
 <div class="container" surrogate-height-target>
     <search-box model="search" result="users">
         <button class="btn btn-default hidden-print" type="button"
-                title="{{search.enabled === true ?
+                title="{{search.deleted === false ?
                     'Only show active users' :
-                        search.enabled === false ?
+                        search.deleted === true ?
                         'Only show inactive users' :
                         'Show both active and inactive users'}}"
-                ng-click="cycleEnabled()">
+                ng-click="cycleDeleted()">
             <i class="fa fa-user">
-                <i ng-if="search.enabled === true"
+                <i ng-if="search.deleted === false"
                     class="fa fa-circle-o fa-badge text-success"></i>
-                <i ng-if="search.enabled === false"
+                <i ng-if="search.deleted === true"
                     class="fa fa-ban fa-badge text-danger"></i>
             </i>
             <span class="hidden-xs">Active</span>
@@ -42,7 +42,7 @@
     </thead>
     <tbody>
       <tr ng-repeat="user in users"
-            ng-class="{strike: !user.enabled}"
+            ng-class="{strike: user.deleted}"
             any-href='/user/{{user.id}}'">
         <td>{{user.name}}</td>
         <td ng-if="!hideOrg">{{user.organisation.name}}</td>
@@ -52,11 +52,11 @@
 
     <div>
     <p class="text-muted">
-        <span ng-if="search.enabled === false">
+        <span ng-if="search.deleted === true">
             Displaying only <i>inactive</i> users.</span>
-        <span ng-if="search.enabled === true">
+        <span ng-if="search.deleted === false">
             Displaying only <i>active</i> users.</span>
-        <span ng-if="search.enabled == null">
+        <span ng-if="search.deleted == null">
             Displaying both <i>active and inactive</i> users.</span>
 
         <span ng-if="!users.length">
