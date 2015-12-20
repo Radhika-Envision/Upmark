@@ -31,6 +31,9 @@
                 ng-click="edit.edit()"
                 ng-if="!edit.model && checkRole('user_edit')">
             <i class="fa fa-pencil"></i></button>
+        <a class="btn btn-default btn-round" title="Subscriptions"
+                ng-href="#/subscription/user?id={{user.id}}">
+            <i class="fa fa-envelope"></i></a>
     </div>
     <h2 page-title>
         <i class="fa fa-fw fa-user"></i>

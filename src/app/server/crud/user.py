@@ -129,23 +129,27 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
 
         try:
             with model.session_scope() as session:
-                user = model.AppUser()
-                user.organisation_id = self.request_son['organisation']['id']
+                org = (session.query(model.Organisation)
+                    .get(self.request_son['organisation']['id']))
+                if org is None:
+                    raise handlers.ModelError("No such organisation")
+                user = model.AppUser(organisation=org)
                 self._check_update(self.request_son, None)
-                self._update(user, self.request_son)
+                self._update(user, self.request_son, session)
                 session.add(user)
-                session.flush()
 
                 act = Activities(session)
                 act.record(self.current_user, user, ['create'])
                 if not act.has_subscription(self.current_user, user):
                     act.subscribe(self.current_user, user.organisation)
                     self.reason("Subscribed to organisation")
+                act.subscribe(user, user.organisation)
+                self.reason("New user subscribed to organisation")
 
-                session.expunge(user)
+                user_id = user.id
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.get(user.id)
+        self.get(user_id)
 
     @tornado.web.authenticated
     def put(self, user_id):
@@ -161,14 +165,26 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 if user is None:
                     raise ValueError("No such object")
                 self._check_update(self.request_son, user)
-                self._update(user, self.request_son)
+
+                verbs = []
+                oid = self.request_son.get('organisation', {}).get('id')
+                if oid and oid != str(user.organisation_id):
+                    verbs.append('relation')
+                self._update(user, self.request_son, session)
 
                 act = Activities(session)
                 if session.is_modified(user):
-                    act.record(self.current_user, user, ['update'])
-                if not act.has_subscription(self.current_user, user):
-                    act.subscribe(self.current_user, user.organisation)
-                    self.reason("Subscribed to organisation")
+                    verbs.append('update')
+
+                session.flush()
+                if len(verbs) > 0:
+                    act.record(self.current_user, user, verbs)
+                    if not act.has_subscription(self.current_user, user):
+                        act.subscribe(self.current_user, user.organisation)
+                        self.reason("Subscribed to organisation")
+                    if not act.has_subscription(user, user):
+                        act.subscribe(user, user.organisation)
+                        self.reason("User subscribed to organisation")
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
@@ -252,7 +268,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.AuthzError(
                 "You can't delete another user.")
 
-    def _update(self, user, son):
+    def _update(self, user, son, session):
         '''
         Apply user-provided data to the saved model.
         '''
@@ -262,10 +278,15 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
         update('role', son)
         update('deleted', son)
 
-        if son.get('organisation', '') != '':
-            user.organisation_id = son['organisation']['id']
         if son.get('password', '') != '':
             user.set_password(son['password'])
+
+        if son.get('organisation', '') != '':
+            org = (session.query(model.Organisation)
+                .get(self.request_son['organisation']['id']))
+            if org is None:
+                raise handlers.ModelError("No such organisation")
+            user.organisation = org
 
 
 class PasswordHandler(handlers.BaseHandler):
