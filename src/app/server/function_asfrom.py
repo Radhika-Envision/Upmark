@@ -25,7 +25,6 @@ class FunctionColumn(ColumnClause):
 
     def _make_proxy(self, selectable, name=None, attach=True,
                     name_is_truncatable=False, **kw):
-        print('_make_proxy')
         if self.name == self.function.name:
             name = selectable.name
         else:
