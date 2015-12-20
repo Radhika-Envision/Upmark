@@ -583,8 +583,8 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
     def parse_cols(self, cursor):
         return [{
                 'name': c.name,
-                'type': AdHocHandler.TYPES.get(c.type_code, None)[0],
-                'rich_type': AdHocHandler.TYPES.get(c.type_code, None)[1],
+                'type': AdHocHandler.TYPES.get(c.type_code, (None, None))[0],
+                'rich_type': AdHocHandler.TYPES.get(c.type_code, (None, None))[1],
                 'type_code': c.type_code
             } for c in cursor.description]
 
