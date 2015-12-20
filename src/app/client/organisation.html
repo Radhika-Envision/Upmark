@@ -111,7 +111,7 @@
                 </td>
             </tr>
         </table>
-        <p ng-if="!boxed_locations.length">
+        <p ng-if="!boxed_locations.length" class="text-muted">
             No locations have been selected. Press the
             <i class="fa fa-plus"></i> button to add one.
         </p>
@@ -126,31 +126,27 @@
             <label for="org_ownership">Ownership</label>
             <select type="text" class="form-control"
                 id="org_ownership" name="org_ownership"
-                ng-model="edit.model.meta.ownership">
-                <option value="government run">Government owned and run</option>
-                <option value="government owned">Government owned</option>
-                <option value="private">Private</option>
-                <option value="shareholder">Shareholder owned</option>
+                ng-model="edit.model.meta.ownership"
+                ng-options="a.name as a.desc for a in ownershipTypes">
+                <option value="">(unspecified)</option>
             </select>
         </div>
         <div class="form-group" show-errors>
             <label for="org_structure">Operational Structure</label>
             <select type="text" class="form-control"
                 id="org_structure" name="org_structure"
-                ng-model="edit.model.meta.structure">
-                <option ng-repeat="r in structureTypes" value="{{r.name}}">
-                    {{r.desc}}
-                </option>
+                ng-model="edit.model.meta.structure"
+                ng-options="a.name as a.desc for a in structureTypes">
+                <option value="">(unspecified)</option>
             </select>
         </div>
         <div class="form-group" show-errors>
             <label for="org_regulation">Level of Regulation</label>
             <select type="text" class="form-control"
                 id="org_regulation" name="org_regulation"
-                ng-model="edit.model.meta.regulationLevel">
-                <option ng-repeat="r in regulationLevels" value="{{r.name}}">
-                    {{r.desc}}
-                </option>
+                ng-model="edit.model.meta.regulationLevel"
+                ng-options="a.name as a.desc for a in regulationLevels">
+                <option value="">(unspecified)</option>
             </select>
         </div>
 
