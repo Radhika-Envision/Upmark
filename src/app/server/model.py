@@ -112,7 +112,7 @@ class Organisation(Observable, Base):
     name = Column(Text, nullable=False)
     url = Column(Text, nullable=True)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
-    deleted = Column(DateTime, nullable=True)
+    deleted = Column(Boolean, default=False, nullable=False)
 
     @property
     def ob_title(self):
@@ -218,7 +218,7 @@ class AppUser(Observable, Base):
             'admin', 'author', 'authority', 'consultant', 'org_admin', 'clerk',
             native_enum=False), nullable=False)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
-    deleted = Column(DateTime, nullable=True)
+    deleted = Column(Boolean, default=False, nullable=False)
 
     def set_password(self, plaintext):
         self.password = sha256_crypt.encrypt(plaintext)
@@ -283,7 +283,7 @@ class Survey(Observable, Base):
     tracking_id = Column(GUID, default=uuid.uuid4, nullable=False)
 
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
-    deleted = Column(DateTime, nullable=True)
+    deleted = Column(Boolean, default=False, nullable=False)
     # Survey is not editable after being finalised.
     finalised_date = Column(DateTime)
     title = Column(Text, nullable=False)
@@ -412,7 +412,7 @@ class Hierarchy(Observable, Base):
     title = Column(Text, nullable=False)
     description = Column(Text)
     modified = Column(DateTime, nullable=True)
-    deleted = Column(DateTime, nullable=True)
+    deleted = Column(Boolean, default=False, nullable=False)
 
     _structure = Column('structure', JSON, nullable=False)
 
@@ -478,7 +478,7 @@ class QuestionNode(Observable, Base):
     hierarchy_id = Column(GUID, nullable=False)
     parent_id = Column(GUID)
 
-    deleted = Column(DateTime, nullable=True)
+    deleted = Column(Boolean, default=False, nullable=False)
     seq = Column(Integer)
     n_measures = Column(Integer, default=0, nullable=False)
     total_weight = Column(Float, default=0, nullable=False)
@@ -568,7 +568,7 @@ class Measure(Observable, Base):
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(
         GUID, ForeignKey("survey.id"), nullable=False, primary_key=True)
-    deleted = Column(DateTime, nullable=True)
+    deleted = Column(Boolean, default=False, nullable=False)
 
     title = Column(Text, nullable=False)
     weight = Column(Float, nullable=False)
@@ -730,7 +730,7 @@ class Assessment(Observable, Base):
         nullable=False)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
     modified = Column(DateTime, nullable=True)
-    deleted = Column(DateTime, nullable=True)
+    deleted = Column(Boolean, default=False, nullable=False)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -1382,7 +1382,7 @@ def create_user_and_privilege():
             "GRANT USAGE ON SCHEMA public TO analyst")
         session.execute(
             "GRANT SELECT"
-            " (id, organisation_id, email, name, role, created, enabled)"
+            " (id, organisation_id, email, name, role, created, deleted)"
             " ON appuser to analyst")
         for table in Base.metadata.tables:
             if str(table) not in {'appuser', 'systemconfig', 'alembic_version'}:

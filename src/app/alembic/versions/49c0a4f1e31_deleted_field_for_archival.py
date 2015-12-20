@@ -19,33 +19,50 @@ import sqlalchemy as sa
 appuser = sa.sql.table(
     'appuser',
     sa.Column('enabled', sa.Boolean),
-    sa.Column('deleted', sa.DateTime)
+    sa.Column('deleted', sa.Boolean)
 )
+
+other_tables = ['assessment', 'hierarchy', 'measure', 'organisation', 'qnode',
+                'survey']
 
 
 def upgrade():
-    op.add_column('appuser', sa.Column('deleted', sa.DateTime))
+    op.execute(
+        "REVOKE SELECT"
+        " ON appuser FROM analyst")
+
+    op.add_column('appuser', sa.Column('deleted', sa.Boolean))
     op.execute(appuser.update()
-        .where(appuser.c.enabled == False)
-        .values({'deleted': sa.func.now()}))
+        .values({'deleted': appuser.c.enabled == False}))
     op.drop_column('appuser', 'enabled')
-    op.add_column('assessment', sa.Column('deleted', sa.DateTime))
-    op.add_column('hierarchy', sa.Column('deleted', sa.DateTime))
-    op.add_column('measure', sa.Column('deleted', sa.DateTime))
-    op.add_column('organisation', sa.Column('deleted', sa.DateTime))
-    op.add_column('qnode', sa.Column('deleted', sa.DateTime))
-    op.add_column('survey', sa.Column('deleted', sa.DateTime))
+
+    for t in other_tables:
+        table = sa.sql.table(t, sa.Column('deleted', sa.Boolean))
+        op.add_column(t, sa.Column('deleted', sa.Boolean))
+        op.execute(table.update().values({'deleted': False}))
+        op.alter_column(t, 'deleted', nullable=False)
+
+    op.execute(
+        "GRANT SELECT"
+        " (id, organisation_id, email, name, role, created, deleted)"
+        " ON appuser TO analyst")
 
 
 def downgrade():
-    op.drop_column('survey', 'deleted')
-    op.drop_column('qnode', 'deleted')
-    op.drop_column('organisation', 'deleted')
-    op.drop_column('measure', 'deleted')
-    op.drop_column('hierarchy', 'deleted')
-    op.drop_column('assessment', 'deleted')
+    op.execute(
+        "REVOKE SELECT"
+        " ON appuser FROM analyst")
+
+    for t in other_tables:
+        op.drop_column(t, 'deleted')
+
     op.add_column('appuser', sa.Column('enabled', sa.Boolean))
     op.execute(appuser.update()
-        .values({'enabled': appuser.c.deleted == None}))
+        .values({'enabled': appuser.c.deleted == False}))
     op.drop_column('appuser', 'deleted')
     op.alter_column('appuser', 'enabled', nullable=False)
+
+    op.execute(
+        "GRANT SELECT"
+        " (id, organisation_id, email, name, role, created, enabled)"
+        " ON appuser TO analyst")
