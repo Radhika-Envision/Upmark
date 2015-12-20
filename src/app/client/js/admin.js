@@ -425,8 +425,7 @@ angular.module('wsaa.admin', [
         $scope.attributions = attributions;
     });
 
-    $scope.deleteLocation = function(loc) {
-        var i = $scope.edit.model.locations.indexOf(loc);
+    $scope.deleteLocation = function(i) {
         $scope.edit.model.locations.splice(i, 1);
     };
 

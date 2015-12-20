@@ -119,12 +119,15 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                 org = session.query(model.Organisation).get(org_id)
                 if org is None:
                     raise ValueError("No such object")
+                old_locations = list(org.locations)
                 self._update(org, self.request_son)
 
                 act = Activities(session)
                 # is_modified checks nested collections too:
                 # http://docs.sqlalchemy.org/en/latest/orm/session_api.html#sqlalchemy.orm.session.Session.is_modified
-                if session.is_modified(org):
+                if (session.is_modified(org)
+                        or org.locations != old_locations
+                        or session.is_modified(org.meta)):
                     act.record(self.current_user, org, ['update'])
                 if not act.has_subscription(self.current_user, org):
                     act.subscribe(self.current_user, org)
