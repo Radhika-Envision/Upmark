@@ -125,7 +125,6 @@
 <div class="container">
     <div class="section">
         <div class="toolbar">
-            <delete-cycle class="btn-round" model="search.deleted"></delete-cycle>
             <a class="btn btn-default btn-round" title="Search for measures"
                     ng-href="#/measures?survey={{survey.id}}">
                 <i class="fa fa-fw fa-search"></i></a>
@@ -133,6 +132,7 @@
                     ng-href="#/hierarchy/new?survey={{survey.id}}"
                     ng-if="survey.isEditable && checkRole('hierarchy_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
+            <delete-cycle class="btn-round" model="search.deleted"></delete-cycle>
         </div>
         <h2 label="Sv">
             Surveys

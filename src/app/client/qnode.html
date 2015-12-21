@@ -2,10 +2,6 @@
     ng-class="{'deleted': structure.deletedItem}">
 <div class="container">
     <div class="toolbar">
-        <button class="btn btn-default btn-round" title="Delete"
-                ng-click="edit.del()"
-                ng-if="editable && !edit.model && checkRole('qnode_del')">
-            <i class="fa fa-trash-o"></i></button>
         <button class="btn btn-default btn-round" title="Collapse"
                 ng-click="layout.expandHeader = !layout.expandHeader">
             <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
@@ -16,6 +12,10 @@
                 onclick="print()">
             <i class="fa fa-print"></i>
         </button>
+
+        <delete-button model="qnode" editor="edit"
+                ng-if="!edit.model && checkRole('qnode_del')"></delete-button>
+
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
                 ng-if="edit.model && edit.model.id">

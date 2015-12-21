@@ -437,14 +437,6 @@ angular.module('wsaa.aquamark',
                                 $route.current.params.survey,
                         }).$promise;
                     }],
-                    children: ['QuestionNode', '$route', 'assessment',
-                            function(QuestionNode, $route, assessment) {
-                        return QuestionNode.query({
-                            parentId: $route.current.params.qnode,
-                            surveyId: assessment ? assessment.survey.id :
-                                $route.current.params.survey,
-                        }).$promise;
-                    }],
                     measures: ['Measure', '$route', 'assessment',
                             function(Measure, $route, assessment) {
                         return Measure.query({

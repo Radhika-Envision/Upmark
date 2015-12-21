@@ -105,6 +105,7 @@ class QuestionNodeHandler(
         root = self.get_argument('root', None)
         term = self.get_argument('term', '')
         parent_not = self.get_argument('parent__not', '')
+        deleted = self.get_argument('deleted', '')
 
         if root is not None and parent_id != '':
             raise handlers.ModelError(
@@ -114,8 +115,8 @@ class QuestionNodeHandler(
                 "Hierarchy or parent ID required")
 
         with model.session_scope() as session:
-            query = session.query(model.QuestionNode)\
-                .filter_by(survey_id=self.survey_id)
+            query = (session.query(model.QuestionNode)
+                .filter(model.QuestionNode.survey_id == self.survey_id))
 
             if hierarchy_id != '':
                 self.check_browse_survey(session, self.survey_id, hierarchy_id)
@@ -129,6 +130,10 @@ class QuestionNodeHandler(
                     model.QuestionNode.title.ilike('%{}%'.format(term)))
             if parent_not != '':
                 query = query.filter(model.QuestionNode.parent_id != parent_not)
+
+            if deleted != '':
+                deleted = truthy(deleted)
+                query = query.filter(model.QuestionNode.deleted == deleted)
 
             query = query.order_by(model.QuestionNode.seq)
 
@@ -340,20 +345,18 @@ class QuestionNodeHandler(
                     raise ValueError("No such object")
                 log.debug("deleting: %s", qnode)
 
-                if len(qnode.qnode_measures) > 0:
-                    raise handlers.ModelError("Question node is in use")
+                survey = qnode.survey
+                hierarchy = qnode.hierarchy
+                parent = qnode.parent
 
-                hierarchy = None
-                parent = None
-                if qnode.hierarchy is not None:
-                    hierarchy = qnode.hierarchy
-                if qnode.parent is not None:
-                    parent = qnode.parent
+                qnode.deleted = True
 
                 act = Activities(session)
-                act.record(self.current_user, qnode, ['delete'])
-
-                session.delete(qnode)
+                if session.is_modified(qnode):
+                    act.record(self.current_user, qnode, ['delete'])
+                if not act.has_subscription(self.current_user, qnode):
+                    act.subscribe(self.current_user, survey)
+                    self.reason("Subscribed to program")
 
                 if hierarchy is not None:
                     hierarchy.qnodes.reorder()
@@ -390,6 +393,10 @@ class QuestionNodeHandler(
                 verbs = []
                 if session.is_modified(qnode):
                     verbs.append('update')
+
+                if qnode.deleted:
+                    qnode.deleted = False
+                    verbs.append('undelete')
 
                 if parent_id != '' and str(qnode.parent_id) != parent_id:
                     # Change parent

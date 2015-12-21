@@ -924,7 +924,12 @@ angular.module('wsaa.surveyQuestions', [
         $scope.children = null;
         $scope.edit.edit();
     }
-    $scope.structure = Structure($scope.hierarchy);
+    $scope.$watchGroup(['hierarchy', 'hierarchy.deleted'], function() {
+        $scope.structure = Structure($scope.hierarchy);
+        $scope.editable = ($scope.survey.isEditable &&
+            !$scope.structure.deletedItem &&
+            $scope.checkRole('survey_node_edit'));
+    });
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
@@ -959,9 +964,6 @@ angular.module('wsaa.surveyQuestions', [
     $scope.checkRole = authz(current, $scope.survey);
     $scope.QuestionNode = QuestionNode;
     $scope.Hierarchy = Hierarchy;
-
-    $scope.editable = ($scope.survey.isEditable &&
-        $scope.checkRole('survey_node_edit'));
 }])
 
 
@@ -993,19 +995,27 @@ angular.module('wsaa.surveyQuestions', [
         $scope.measures = null;
     }
 
-    $scope.structure = Structure($scope.qnode);
-    $scope.survey = $scope.structure.survey;
-    $scope.edit = Editor('qnode', $scope, {
-        parentId: routeData.parent && routeData.parent.id,
-        hierarchyId: routeData.hierarchy && routeData.hierarchy.id,
-        surveyId: $scope.survey.id
-    });
-    if (!$scope.qnode.id)
-        $scope.edit.edit();
+    $scope.$watchGroup(['qnode', 'qnode.deleted'], function() {
+        $scope.structure = Structure($scope.qnode);
+        $scope.survey = $scope.structure.survey;
+        $scope.edit = Editor('qnode', $scope, {
+            parentId: routeData.parent && routeData.parent.id,
+            hierarchyId: routeData.hierarchy && routeData.hierarchy.id,
+            surveyId: $scope.survey.id
+        });
+        if (!$scope.qnode.id)
+            $scope.edit.edit();
 
-    var levels = $scope.structure.hierarchy.structure.levels;
-    $scope.currentLevel = levels[$scope.structure.qnodes.length - 1];
-    $scope.nextLevel = levels[$scope.structure.qnodes.length];
+        var levels = $scope.structure.hierarchy.structure.levels;
+        $scope.currentLevel = levels[$scope.structure.qnodes.length - 1];
+        $scope.nextLevel = levels[$scope.structure.qnodes.length];
+
+        $scope.editable = ($scope.survey.isEditable &&
+            !$scope.structure.deletedItem &&
+            !$scope.assessment &&
+            $scope.checkRole('survey_node_edit'));
+        $scope.checkRole = authz(current, $scope.survey, $scope.assessment);
+    });
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
@@ -1025,10 +1035,6 @@ angular.module('wsaa.surveyQuestions', [
 
     // Used to get history
     $scope.QuestionNode = QuestionNode;
-
-    $scope.checkRole = authz(current, $scope.survey, $scope.assessment);
-    $scope.editable = ($scope.survey.isEditable &&
-        !$scope.assessment && $scope.checkRole('survey_node_edit'));
 
     if ($scope.assessment) {
         $scope.rnode = ResponseNode.get({
@@ -1628,6 +1634,22 @@ angular.module('wsaa.surveyQuestions', [
         }
     }
 
+    $scope.search = {
+        deleted: false
+    };
+    $scope.$watchGroup(['search.deleted', 'qnode.id'], function() {
+        if (!$scope.qnode.id)
+            return;
+
+        QuestionNode.query({
+            parentId: $scope.qnode.id,
+            surveyId: $scope.survey.id,
+            deleted: $scope.search.deleted
+        }, function(children) {
+            $scope.children = children;
+        });
+    });
+
     $scope.$watchGroup(['hierarchy', 'structure'], function(vars) {
         var level;
         if ($scope.assessment && !$scope.qnode)
@@ -2217,6 +2239,7 @@ angular.module('wsaa.surveyQuestions', [
 
         $scope.checkRole = authz(current, $scope.survey, $scope.assessment);
         $scope.editable = ($scope.survey.isEditable &&
+            !$scope.structure.deletedItem &&
             !$scope.assessment && $scope.checkRole('measure_edit'));
     });
     $scope.$watchGroup(['measure.responseType', 'structure.survey.responseTypes'],
