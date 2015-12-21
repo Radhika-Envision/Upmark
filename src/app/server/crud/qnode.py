@@ -174,6 +174,11 @@ class QuestionNodeHandler(
         hierarchy_id = self.get_argument('hierarchyId', '')
         term = self.get_argument('term', '')
         parent_not = self.get_argument('parent__not', None)
+        deleted = self.get_argument('deleted', '')
+        if deleted != '':
+            deleted = truthy(deleted)
+        else:
+            deleted = None
 
         if hierarchy_id == '':
             raise handlers.ModelError("Hierarchy ID required")
@@ -189,7 +194,8 @@ class QuestionNodeHandler(
             start = (session.query(QN1,
                                    literal(0).label('level'),
                                    array([QN1.seq]).label('path'),
-                                   (QN1.seq + 1).concat('.').label('pathstr'))
+                                   (QN1.seq + 1).concat('.').label('pathstr'),
+                                   (QN1.deleted).label('any_deleted'))
                 .filter(QN1.parent_id == None,
                         QN1.survey_id == self.survey_id,
                         QN1.hierarchy_id == hierarchy_id)
@@ -201,7 +207,9 @@ class QuestionNodeHandler(
                                      (start.c.level + 1).label('level'),
                                      start.c.path.concat(QN2.seq).label('path'),
                                      start.c.pathstr.concat(QN2.seq + 1)
-                                        .concat('.').label('pathstr'))
+                                        .concat('.').label('pathstr'),
+                                     (start.c.any_deleted | QN2.deleted)
+                                        .label('any_deleted'))
                 .filter(QN2.parent_id == start.c.id,
                         QN2.survey_id == start.c.survey_id,
                         QN2.hierarchy_id == start.c.hierarchy_id,
@@ -211,16 +219,17 @@ class QuestionNodeHandler(
             cte = start.union_all(recurse)
 
             # Discard all but the lowest level
-            query = (session.query(cte.c.id, cte.c.pathstr)
+            subquery = (session.query(cte.c.id, cte.c.pathstr, cte.c.any_deleted)
                 .filter(cte.c.level == level)
                 .order_by(cte.c.path)
                 .subquery())
 
             # Select again to get the actual qnodes
-            query = (session.query(model.QuestionNode, query.c.pathstr)
+            query = (session.query(
+                    model.QuestionNode, subquery.c.pathstr, subquery.c.any_deleted)
                 .filter(model.QuestionNode.survey_id == self.survey_id)
-                .join(query,
-                      model.QuestionNode.id == query.c.id))
+                .join(subquery,
+                      model.QuestionNode.id == subquery.c.id))
 
             if parent_not == '':
                 query = query.filter(model.QuestionNode.parent_id != None)
@@ -230,6 +239,9 @@ class QuestionNodeHandler(
             if term != '':
                 query = query.filter(
                     model.QuestionNode.title.ilike('%{}%'.format(term)))
+
+            if deleted is not None:
+                query = query.filter(subquery.c.any_deleted == deleted)
 
             query = self.paginate(query)
 
@@ -241,6 +253,7 @@ class QuestionNodeHandler(
                 # Fields to match from any visited object
                 r'/id$',
                 r'/title$',
+                r'/deleted$',
                 r'/n_measures$'
             ]
             if truthy(self.get_argument('desc', False)):
@@ -248,9 +261,10 @@ class QuestionNodeHandler(
 
             to_son = ToSon(include=include, exclude=exclude)
             sons = []
-            for qnode, path in query.all():
+            for qnode, path, deleted in query.all():
                 son = to_son(qnode)
                 son['path'] = path
+                son['anyDeleted'] = deleted
                 sons.append(son)
 
         self.set_header("Content-Type", "application/json")

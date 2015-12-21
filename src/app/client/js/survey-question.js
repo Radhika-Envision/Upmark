@@ -1967,6 +1967,7 @@ angular.module('wsaa.surveyQuestions', [
         level: $scope.structure.qnodes.length - 1,
         parent__not: $scope.parent ? $scope.parent.id : '',
         term: "",
+        deleted: false,
         surveyId: $scope.survey.id,
         hierarchyId: $scope.structure.hierarchy.id,
         desc: true,

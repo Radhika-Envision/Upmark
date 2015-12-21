@@ -24,12 +24,15 @@
         and only if they aren't already children of this category.
     </p>
 
-    <search-box model="search" result="qnodes"></search-box>
+    <search-box model="search" result="qnodes">
+        <delete-cycle model="search.deleted"></delete-cycle>
+    </search-box>
 
   <table class="table table-hover">
     <tbody>
       <tr ng-repeat="qnode in qnodes"
-            ng-click="select(qnode)">
+            ng-click="select(qnode)"
+            ng-class="{strike: qnode.anyDeleted}">
         <td class="truncate">
             {{qnode.path}}
             {{qnode.title}}
