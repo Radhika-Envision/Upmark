@@ -13,6 +13,24 @@
 </div>
 </div>
 
+<div class="subheader bg-warning text-warning"
+        ng-if="hierarchy.deleted">
+    <div class="container">
+        <i class="fa fa-trash"></i>
+        This survey has been deleted.
+    </div>
+</div>
+
+<div class="subheader bg-warning text-warning"
+        ng-if="!hierarchy.deleted && survey.deleted">
+    <div class="container">
+        <i class="fa fa-trash"></i>
+        <a ng-href="#/survey/{{survey.id}}">
+            This survey's program</a>
+        has been deleted.
+    </div>
+</div>
+
 <div class="container" ng-if="structure.hierarchy.description">
     <p>{{structure.hierarchy.description}}</p>
 </div>

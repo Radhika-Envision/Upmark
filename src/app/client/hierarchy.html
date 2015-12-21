@@ -67,6 +67,16 @@
     </div>
 </div>
 
+<div class="subheader bg-warning text-warning"
+        ng-if="!hierarchy.deleted && survey.deleted">
+    <div class="container">
+        <i class="fa fa-trash"></i>
+        <a ng-href="#/survey/{{survey.id}}">
+            This survey's program</a>
+        has been deleted.
+    </div>
+</div>
+
 
 <assessment-header></assessment-header>
 

@@ -130,6 +130,9 @@ h2.pull-left {
             @include transform(scale(19/16));
             @include transform-origin(9px 1px);
         }
+        &.strike {
+            text-decoration: line-through;
+        }
     }
 
     h2, h3, h4 {

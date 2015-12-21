@@ -265,6 +265,7 @@ class PurchasedSurveyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             to_son = ToSon(include=[
                 r'/id$',
                 r'/title$',
+                r'/deleted$',
                 r'/n_measures$',
                 r'/survey/tracking_id$',
                 # Descend into list

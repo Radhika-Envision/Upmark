@@ -53,6 +53,7 @@ class QuestionNodeHandler(
                 r'/id$',
                 r'/title$',
                 r'/seq$',
+                r'/deleted$',
                 r'/total_weight$',
                 r'/n_measures$',
                 r'/is_editable$',
@@ -142,6 +143,7 @@ class QuestionNodeHandler(
                 r'/id$',
                 r'/title$',
                 r'/seq$',
+                r'/deleted$',
                 r'/n_measures$',
                 r'/total_weight$',
                 # Descend into nested objects
