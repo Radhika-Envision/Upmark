@@ -114,6 +114,10 @@ h2.pull-left {
     }
 }
 
+h2.strike, span.strike, a.strike {
+    text-decoration: line-through;
+}
+
 .header {
     background: $primary-colour;
     &.deleted {
@@ -133,9 +137,6 @@ h2.pull-left {
         .clock-progress {
             @include transform(scale(19/16));
             @include transform-origin(9px 1px);
-        }
-        &.strike, > span.strike, > a.strike {
-            text-decoration: line-through;
         }
     }
 

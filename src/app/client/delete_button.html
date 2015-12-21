@@ -1,5 +1,7 @@
 <button class="btn btn-default btn-round"
-        title="{{model.deleted ? 'Undelete' : 'Delete'}}"
+        title="{{model.deleted ?
+            'Deleted. Click to undelete' :
+            'Click to delete'}}"
         ng-class="model.deleted ? 'btn-on-danger active' : null"
         ng-click="model.deleted ? edit.undelete() : edit.del()">
     <i class="fa fa-trash-o" ng-if="!model.deleted"></i>

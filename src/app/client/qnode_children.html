@@ -58,3 +58,6 @@
         </tr>
     </tbody>
 </table>
+<p ng-if="!edit.model && !model.length">
+    There are no <span ng-if="search.deleted">deleted</span> {{level.title}}.
+</p>

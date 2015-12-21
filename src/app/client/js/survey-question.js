@@ -1010,11 +1010,11 @@ angular.module('wsaa.surveyQuestions', [
         $scope.currentLevel = levels[$scope.structure.qnodes.length - 1];
         $scope.nextLevel = levels[$scope.structure.qnodes.length];
 
+        $scope.checkRole = authz(current, $scope.survey, $scope.assessment);
         $scope.editable = ($scope.survey.isEditable &&
             !$scope.structure.deletedItem &&
             !$scope.assessment &&
             $scope.checkRole('survey_node_edit'));
-        $scope.checkRole = authz(current, $scope.survey, $scope.assessment);
     });
 
     $scope.$on('EditSaved', function(event, model) {
@@ -1638,7 +1638,7 @@ angular.module('wsaa.surveyQuestions', [
         deleted: false
     };
     $scope.$watchGroup(['search.deleted', 'qnode.id'], function() {
-        if (!$scope.qnode.id)
+        if (!$scope.qnode || !$scope.qnode.id)
             return;
 
         QuestionNode.query({

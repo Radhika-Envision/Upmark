@@ -117,26 +117,32 @@
         <i class="fa-li fa fa-trash fa-border"></i>
         <h3>Deleted</h3>
         <p>
-            This measure, or one of its parents, has been deleted.
+            This measure, or one of its parents, has been deleted. It is still
+            accessible for archival reasons, but it will not be included in
+            survey score calculations.
         </p>
     </docs>
 </div>
 
 <docs ng-if="!edit.model && parents && checkRole('measure_edit')">
     <i class="fa-li fa fa-sitemap fa-border"></i>
+    <h3>Hierarchy</h3>
     A program's measures can be shared between its surveys.
     Respondents can use the following category paths to reach this
     measure:
     <ul ng-if="parents.length">
         <li ng-repeat="parent in parents">
             <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}&parent={{parent.qnodes[parent.qnodes.length - 1].id}}">
-            {{parent.hierarchy.title}}
-            <span ng-repeat="item in parent.qnodes">
-                &raquo;
-                <span ng-if="item.seq != null">
-                    {{item.seq + 1}}.</span>
-                {{item.title}}
-            </span>
+                <span ng-class="{strike: parent.hierarchy.deleted}">
+                    {{parent.hierarchy.title}}
+                </span>
+                <span ng-repeat="item in parent.qnodes"
+                        ng-class="{strike: item.deleted}">
+                    &raquo;
+                    <span ng-if="item.seq != null">
+                        {{item.seq + 1}}.</span>
+                    {{item.title}}
+                </span>
             </a>
         </li>
     </ul>
