@@ -759,13 +759,21 @@ angular.module('wsaa.surveyQuestions', [
             }
         }
 
+        var deletedItem = null;
+        for (var i = 0; i < hstack.length; i++) {
+            var item = hstack[i];
+            if (item.entity.deleted)
+                deletedItem = item;
+        }
+
         return {
             survey: survey,
             hierarchy: hierarchy,
             assessment: assessment,
             qnodes: qnodes,
             measure: measure,
-            hstack: hstack
+            hstack: hstack,
+            deletedItem: deletedItem
         };
     };
 })

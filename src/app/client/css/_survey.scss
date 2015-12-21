@@ -116,6 +116,10 @@ h2.pull-left {
 
 .header {
     background: $primary-colour;
+    &.deleted {
+        background: $secondary-colour;
+    }
+
     position: relative;
     padding-top: 10px;
     padding-bottom: 10px;
@@ -130,7 +134,7 @@ h2.pull-left {
             @include transform(scale(19/16));
             @include transform-origin(9px 1px);
         }
-        &.strike {
+        &.strike, > span.strike, > a.strike {
             text-decoration: line-through;
         }
     }

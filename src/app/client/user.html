@@ -1,6 +1,5 @@
-<div>
-
-<div class="header">
+<div class="header"
+    ng-class="{'deleted': user.deleted || user.organisation.deleted}">
 <div class="container">
     <div class="toolbar">
         <delete-button model="user" editor="edit"
@@ -29,30 +28,24 @@
     </div>
     <h2 page-title>
         <i class="fa fa-fw fa-user"></i>
-        <a href="#/users">Users</a> &raquo;
-        <span ng-if="user.name">{{user.name}}</span>
+        <a href="#/org/{{user.organisation.id}}"
+                ng-if="user.organisation"
+                ng-class="{strike: user.organisation.deleted}">
+            {{user.organisation.name}}</a>
+        <a href="#/org/{{user.organisation.id}}"
+                ng-if="!user.organisation">
+            Users</a>
+        &raquo;
+        <span ng-if="user.name"
+                ng-class="{strike: user.deleted}">
+            {{user.name}}</span>
         <span ng-if="!user.name">New user</span>
     </h2>
 </div>
 </div>
 
-<div class="subheader bg-warning text-warning"
-        ng-if="user.deleted || user.organisation.deleted">
-    <div class="container">
-        <i class="fa fa-trash"></i>
-        This user is inactive.
-        <span ng-if="user.organisation.deleted">
-            <a ng-href="#/org/{{user.organisation.id}}">
-                Their organisation
-            </a>
-            has been deleted.
-        </span>
-    </div>
-</div>
 
-
-<div ng-if="edit.model">
-<div class="container">
+<div ng-if="edit.model" class="container">
     <form novalidate name="form" id="editor" form-nav-warn>
         <div class="form-group" show-errors>
             <label for="user_name">Name</label>
@@ -124,10 +117,8 @@
         </div>
     </form>
 </div>
-</div>
 
-<div ng-if="!edit.model">
-<div class="container">
+<div ng-if="!edit.model" class="container">
     <dl>
         <dt>Role</dt>
         <dd>{{roleDict[user.role].name}}
@@ -142,5 +133,13 @@
         <dt>Organisation</dt>
         <dd><a ng-href="#/org/{{user.organisation.id}}">{{user.organisation.name}}</a></dd>
     </dl>
-</div>
+
+    <docs ng-if="user.deleted || user.organisation.deleted">
+        <i class="fa-li fa fa-trash fa-border"></i>
+        <h3>Deleted</h3>
+        <p>
+            This user, or their organisation, has been deleted. They can't log
+            in any more, but the data they created still exists.
+        </p>
+    </docs>
 </div>

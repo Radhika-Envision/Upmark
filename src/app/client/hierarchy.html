@@ -1,4 +1,5 @@
-<div class="header">
+<div class="header"
+    ng-class="{'deleted': structure.deletedItem}">
 <div class="container">
     <div class="toolbar">
         <button class="btn btn-default btn-round" title="Collapse"
@@ -57,24 +58,6 @@
     </div>
     <question-header entity="hierarchy"></question-header>
 </div>
-</div>
-
-<div class="subheader bg-warning text-warning"
-        ng-if="hierarchy.deleted">
-    <div class="container">
-        <i class="fa fa-trash"></i>
-        This survey has been deleted.
-    </div>
-</div>
-
-<div class="subheader bg-warning text-warning"
-        ng-if="!hierarchy.deleted && survey.deleted">
-    <div class="container">
-        <i class="fa fa-trash"></i>
-        <a ng-href="#/survey/{{survey.id}}">
-            This survey's program</a>
-        has been deleted.
-    </div>
 </div>
 
 
@@ -222,6 +205,15 @@
         </span>
     </p>
 </div>
+
+
+<docs ng-if="structure.deletedItem">
+    <i class="fa-li fa fa-trash fa-border"></i>
+    <h3>Deleted</h3>
+    <p>
+        This survey, or its program, has been deleted.
+    </p>
+</docs>
 
 
 </div> <!-- if !edit.model -->

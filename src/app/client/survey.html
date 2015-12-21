@@ -1,4 +1,5 @@
-<div class="header">
+<div class="header"
+    ng-class="{'deleted': survey.deleted}">
 <div class="container">
     <div class="toolbar">
         <button class="btn btn-default btn-round" title="Print"
@@ -36,14 +37,6 @@
     </div>
     <question-header entity="survey" type="survey"></question-header>
 </div>
-</div>
-
-<div class="subheader bg-warning text-warning"
-        ng-if="survey.deleted">
-    <div class="container">
-        <i class="fa fa-trash"></i>
-        This program has been deleted.
-    </div>
 </div>
 
 <div ng-if="edit.model" class="container">
@@ -161,5 +154,13 @@
     </p>
 </div>
 
+
+<docs ng-if="survey.deleted">
+    <i class="fa-li fa fa-trash fa-border"></i>
+    <h3>Deleted</h3>
+    <p>
+        This program has been deleted.
+    </p>
+</docs>
 
 </div><!-- !edit.model -->

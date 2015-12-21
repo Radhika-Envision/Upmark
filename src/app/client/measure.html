@@ -1,6 +1,5 @@
-<div>
-
-<div class="header">
+<div class="header"
+    ng-class="{'deleted': structure.deletedItem}">
 <div class="container">
     <div class="toolbar">
         <button class="btn btn-default btn-round"
@@ -51,8 +50,7 @@
 
 <assessment-header></assessment-header>
 
-<div ng-if="edit.model">
-<div class="container">
+<div ng-if="edit.model" class="container">
     <form novalidate name="form" id="editor" form-nav-warn>
         <div class="form-group" show-errors>
             <label for="title">Name</label>
@@ -103,10 +101,8 @@
         </div>
     </form>
 </div>
-</div>
 
-<div ng-if="!edit.model">
-<div class="container">
+<div ng-if="!edit.model" class="container">
     <!-- Don't wrap the contents of these tags! -->
     <h3 ng-if="measure.intent">Intent</h3>
     <p ng-if="measure.intent" class="formatted">{{measure.intent}}</p>
@@ -116,7 +112,14 @@
     <p ng-if="measure.scenario" class="formatted">{{measure.scenario}}</p>
     <h3 ng-if="measure.questions">Questions</h3>
     <p ng-if="measure.questions" class="formatted">{{measure.questions}}</p>
-</div>
+
+    <docs ng-if="structure.deletedItem">
+        <i class="fa-li fa fa-trash fa-border"></i>
+        <h3>Deleted</h3>
+        <p>
+            This measure, or one of its parents, has been deleted.
+        </p>
+    </docs>
 </div>
 
 <docs ng-if="!edit.model && parents && checkRole('measure_edit')">
@@ -451,6 +454,4 @@
         Attachments are not scanned for viruses.
     </small></p>
     </div>
-</div>
-
 </div>
