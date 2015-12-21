@@ -377,6 +377,15 @@ ul.list-results {
         > h4:last-child, > p:last-child {
             padding-bottom: 8px;
         }
+        &.strike > a > h4:after, &.strike > h4:after {
+            border-top: solid red 2px;
+            top: 0.5em;
+            left: 0;
+            right: 0;
+            position: absolute;
+            content: '';
+            opacity: 0.5;
+        }
 
         a:hover {
             text-decoration: none;

@@ -15,7 +15,7 @@ import crud.survey
 import handlers
 import model
 import logging
-from utils import LruCache, ToSon, updater
+from utils import LruCache, ToSon, truthy, updater
 
 class OrgHandler(handlers.Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
@@ -35,6 +35,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
             to_son = ToSon(include=[
                 r'/id$',
                 r'/name$',
+                r'/deleted$',
                 r'/url$',
                 r'/locations.*$',
                 r'/meta.*$',
@@ -57,12 +58,19 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
             if term is not None:
                 query = query.filter(
                     model.Organisation.name.ilike(r'%{}%'.format(term)))
+
+            deleted = self.get_argument('deleted', '')
+            if deleted != '':
+                deleted = truthy(deleted)
+                query = query.filter(model.Organisation.deleted == deleted)
+
             query = query.order_by(model.Organisation.name)
             query = self.paginate(query)
 
             to_son = ToSon(include=[
                 r'^/[0-9]+/id$',
                 r'/name$',
+                r'/deleted$',
                 r'/locations$',
                 r'/locations/0/description$',
                 r'/meta$',
@@ -124,13 +132,18 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                 old_locations = list(org.locations)
                 self._update(org, self.request_son)
 
-                act = Activities(session)
-                # is_modified checks nested collections too:
-                # http://docs.sqlalchemy.org/en/latest/orm/session_api.html#sqlalchemy.orm.session.Session.is_modified
+                verbs = []
                 if (session.is_modified(org)
                         or org.locations != old_locations
                         or session.is_modified(org.meta)):
-                    act.record(self.current_user, org, ['update'])
+                    verbs.append('update')
+
+                if org.deleted:
+                    org.deleted = False
+                    verbs.append('undelete')
+
+                act = Activities(session)
+                act.record(self.current_user, org, verbs)
                 if not act.has_subscription(self.current_user, org):
                     act.subscribe(self.current_user, org)
                     self.reason("Subscribed to organisation")
@@ -141,6 +154,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.MissingDocError("No such organisation")
         self.get(org_id)
 
+    @handlers.authz('admin')
     def delete(self, org_id):
         if org_id == '':
             raise handlers.MethodError("Organisation ID required")
@@ -148,15 +162,21 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
             with model.session_scope() as session:
                 org = session.query(model.Organisation).get(org_id)
                 if org is None:
-                    raise ValueError("No such object")
+                    raise handlers.MissingDocError("No such organisation")
+
+                if org.id == self.organisation.id:
+                    raise handlers.ModelError(
+                        "You can't delete your own organisation")
+
+                org.deleted = True
 
                 act = Activities(session)
-                act.record(self.current_user, org, ['delete'])
+                if session.is_modified(org):
+                    act.record(self.current_user, org, ['delete'])
+                if not act.has_subscription(self.current_user, org):
+                    act.subscribe(self.current_user, org)
+                    self.reason("Subscribed to organisation")
 
-                session.delete(org)
-        except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError(
-                "Organisation owns content and can not be deleted")
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such organisation")
 

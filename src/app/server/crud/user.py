@@ -76,12 +76,14 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
 
         sons = []
         with model.session_scope() as session:
-            query = session.query(model.AppUser)\
-                .options(joinedload('organisation'))
+            query = (session.query(model.AppUser)
+                .join(
+                    model.Organisation,
+                    model.Organisation.id == model.AppUser.organisation_id))
 
             org_id = self.get_argument("org_id", None)
             if org_id is not None:
-                query = query.filter_by(organisation_id=org_id)
+                query = query.filter(model.Organisation.id == org_id)
 
             term = self.get_argument('term', None)
             if term is not None:
@@ -91,7 +93,21 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
             deleted = self.get_argument('deleted', None)
             if deleted is not None:
                 deleted = truthy(deleted)
-                query = query.filter(model.AppUser.deleted == deleted)
+
+            # Filter deleted users. If org_id is not specified, users inherit
+            # their organisation's deleted flag too.
+            if deleted == True and not org_id:
+                query = query.filter(
+                    (model.AppUser.deleted == True) |
+                    (model.Organisation.deleted == True))
+            elif deleted == False and not org_id:
+                query = query.filter(
+                    (model.AppUser.deleted == False) &
+                    (model.Organisation.deleted == False))
+            elif deleted == True:
+                query = query.filter(model.AppUser.deleted == True)
+            elif deleted == False:
+                query = query.filter(model.AppUser.deleted == False)
 
             query = query.order_by(model.AppUser.name)
             query = self.paginate(query)
@@ -107,8 +123,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 # Exclude password from response. Not really necessary because
                 # 1. it's hashed and 2. it's not in the list above. But just to
                 # be safe.
-                r'password',
-                r'/organisation/deleted$'
+                r'password'
             ])
 
             sons = to_son(query.all())
@@ -176,6 +191,10 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 if session.is_modified(user):
                     verbs.append('update')
 
+                if user.deleted:
+                    user.deleted = False
+                    verbs.append('undelete')
+
                 session.flush()
                 if len(verbs) > 0:
                     act.record(self.current_user, user, verbs)
@@ -202,11 +221,15 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 if user is None:
                     raise ValueError("No such object")
                 self._check_delete(user)
+                user.deleted = True
 
                 act = Activities(session)
-                act.record(self.current_user, user, ['delete'])
+                if session.is_modified(user):
+                    act.record(self.current_user, user, ['delete'])
+                if not act.has_subscription(self.current_user, user):
+                    act.subscribe(self.current_user, user.organisation)
+                    self.reason("Subscribed to organisation")
 
-                session.delete(user)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError(
                 "User owns content and can not be deleted")
@@ -276,7 +299,6 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
         update('email', son)
         update('name', son)
         update('role', son)
-        update('deleted', son)
 
         if son.get('password', '') != '':
             user.set_password(son['password'])

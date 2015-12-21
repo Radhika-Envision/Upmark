@@ -1159,7 +1159,7 @@ class Activity(Base):
     verbs = Column(
         ARRAY(Enum(
             'broadcast',
-            'create', 'update', 'state', 'delete',
+            'create', 'update', 'state', 'delete', 'undelete',
             'relation', 'reorder_children',
             native_enum=False)),
         nullable=False)

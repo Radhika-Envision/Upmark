@@ -3,20 +3,12 @@
 <div class="header">
 <div class="container">
     <div class="toolbar">
-        <button class="btn btn-default btn-round" title="Delete"
-                ng-click="edit.del()"
-                ng-if="!edit.model && checkRole('user_del')">
-            <i class="fa fa-trash-o"></i></button>
+        <delete-button model="user" editor="edit"
+            ng-if="!edit.model && checkRole('user_del')"></delete-button>
         <button class="btn btn-default btn-round" title="Impersonate"
                 ng-click="impersonate()"
                 ng-if="checkRole('user_impersonate')">
             <i class="fa fa-paw"></i></button>
-        <button class="btn btn-default btn-round"
-                title="{{!user.deleted ? 'Deactivate' : 'Activate'}}"
-                ng-click="toggleDeleted()"
-                ng-if="!edit.model && checkRole('user_enable')">
-            <i class="fa fa-lock"
-                ng-class="!user.deleted ? 'fa-lock' : 'fa-unlock'"></i></button>
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
                 ng-if="edit.model && edit.model.id">
@@ -45,10 +37,16 @@
 </div>
 
 <div class="subheader bg-warning text-warning"
-        ng-if="user.id && user.deleted">
+        ng-if="user.deleted || user.organisation.deleted">
     <div class="container">
-        <i class="fa fa-lock"></i>
+        <i class="fa fa-trash"></i>
         This user is inactive.
+        <span ng-if="user.organisation.deleted">
+            <a ng-href="#/org/{{user.organisation.id}}">
+                Their organisation
+            </a>
+            has been deleted.
+        </span>
     </div>
 </div>
 

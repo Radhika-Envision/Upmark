@@ -668,4 +668,18 @@ angular.module('vpac.utils', [])
     }
 }])
 
+
+.factory('tricycle', [function() {
+    return function(value) {
+        switch (value) {
+            case true:
+                return null;
+            case null:
+                return false;
+            case false:
+                return true;
+        }
+    };
+}])
+
 ;

@@ -12,10 +12,13 @@
     </div>
 </div>
 <div class="container">
-    <search-box model="search" result="orgs"></search-box>
+    <search-box model="search" result="orgs">
+        <delete-cycle model="search.deleted"></delete-cycle>
+    </search-box>
 
     <ul class="list-results">
-        <li ng-repeat="org in orgs">
+        <li ng-repeat="org in orgs"
+                ng-class="{strike: org.deleted}">
             <a ng-href="#/org/{{org.id}}">
                 <h4>{{org.name}}</h4>
                 <p class="truncate" ng-if="org.locations.length">

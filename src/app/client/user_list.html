@@ -16,21 +16,7 @@
 <div surrogate-height>
 <div class="container" surrogate-height-target>
     <search-box model="search" result="users">
-        <button class="btn btn-default hidden-print" type="button"
-                title="{{search.deleted === false ?
-                    'Only show active users' :
-                        search.deleted === true ?
-                        'Only show inactive users' :
-                        'Show both active and inactive users'}}"
-                ng-click="cycleDeleted()">
-            <i class="fa fa-user">
-                <i ng-if="search.deleted === false"
-                    class="fa fa-circle-o fa-badge text-success"></i>
-                <i ng-if="search.deleted === true"
-                    class="fa fa-ban fa-badge text-danger"></i>
-            </i>
-            <span class="hidden-xs">Active</span>
-        </button>
+        <delete-cycle model="search.deleted"></delete-cycle>
     </search-box>
 
   <table class="table table-hover">
@@ -42,7 +28,7 @@
     </thead>
     <tbody>
       <tr ng-repeat="user in users"
-            ng-class="{strike: user.deleted}"
+            ng-class="{strike: user.deleted || user.organisation.deleted}"
             any-href='/user/{{user.id}}'">
         <td>{{user.name}}</td>
         <td ng-if="!hideOrg">{{user.organisation.name}}</td>
