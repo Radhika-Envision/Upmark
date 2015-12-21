@@ -132,6 +132,7 @@
 <div class="container">
     <div class="section">
         <div class="toolbar">
+            <delete-cycle class="btn-round" model="search.deleted"></delete-cycle>
             <a class="btn btn-default btn-round" title="Search for measures"
                     ng-href="#/measures?survey={{survey.id}}">
                 <i class="fa fa-fw fa-search"></i></a>
@@ -146,7 +147,8 @@
     </div>
 
     <ul class="list-results">
-        <li ng-repeat="hierarchy in hierarchies">
+        <li ng-repeat="hierarchy in hierarchies"
+                ng-class="{strike: hierarchy.deleted}">
             <a ng-href="#/hierarchy/{{hierarchy.id}}/choice?survey={{survey.id}}">
                 <h4>{{hierarchy.title}}</h4>
                 <p class="truncate">{{hierarchy.nMeasures}} measures</p>

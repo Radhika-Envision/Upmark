@@ -11,11 +11,6 @@
                 onclick="print()">
             <i class="fa fa-print"></i>
         </button>
-        <button class="btn btn-default btn-round" title="Delete"
-                ng-click="edit.del()"
-                ng-if="survey.isEditable && !edit.model &&
-                    checkRole('hierarchy_del')">
-            <i class="fa fa-trash-o"></i></button>
 
         <span dropdown dropdown-append-to-body ng-if="!edit.model">
             <button class="btn btn-default btn-round"
@@ -34,6 +29,10 @@
                 </li>
             </ul>
         </span>
+
+        <delete-button model="hierarchy" editor="edit"
+            ng-if="survey.isEditable && !edit.model &&
+                checkRole('hierarchy_del')"></delete-button>
 
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
@@ -58,6 +57,14 @@
     </div>
     <question-header entity="hierarchy"></question-header>
 </div>
+</div>
+
+<div class="subheader bg-warning text-warning"
+        ng-if="hierarchy.deleted">
+    <div class="container">
+        <i class="fa fa-trash"></i>
+        This survey has been deleted.
+    </div>
 </div>
 
 

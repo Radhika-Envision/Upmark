@@ -226,12 +226,6 @@ angular.module('wsaa.aquamark',
                         return Survey.get({
                             id: $route.current.params.survey
                         }).$promise;
-                    }],
-                    hierarchies: ['Hierarchy', 'survey',
-                            function(Hierarchy, survey) {
-                        return Hierarchy.query({
-                            surveyId: survey.id
-                        }).$promise;
                     }]
                 })}
             })

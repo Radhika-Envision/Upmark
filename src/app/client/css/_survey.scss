@@ -288,6 +288,10 @@ dt.active:before {
 .header+.subheader {
     margin-top: -20px;
 }
+.subheader+.subheader {
+    margin-top: -20px;
+    border-top: solid 1px #ECECEC;
+}
 .jumbotron+.subheader {
     margin-top: -30px;
 }

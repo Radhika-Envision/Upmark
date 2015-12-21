@@ -208,9 +208,6 @@ angular.module('vpac.widgets', [])
         },
         controller: ['$scope', 'tricycle', function($scope, tricycle) {
             $scope.tricycle = tricycle;
-            $scope.$watch('model', function(model, oldModel) {
-                console.log(model)
-            })
         }]
     };
 }])

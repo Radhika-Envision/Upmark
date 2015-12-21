@@ -286,6 +286,21 @@ angular.module('wsaa.surveyQuestions', [
         );
     };
 
+    $scope.search = {
+        deleted: false
+    };
+    $scope.$watch('search.deleted', function() {
+        Hierarchy.query({
+            surveyId: $scope.survey.id,
+            deleted: $scope.search.deleted
+        }, function success(hierarchies) {
+            $scope.hierarchies = hierarchies
+        }, function failure(details) {
+                Notifications.set('edit', 'error',
+                    "Could not get list of surveys: " + details.statusText);
+        });
+    });
+
     $scope.Survey = Survey;
 
     hotkeys.bindTo($scope)
