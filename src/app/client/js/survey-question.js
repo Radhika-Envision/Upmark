@@ -470,6 +470,7 @@ angular.module('wsaa.surveyQuestions', [
     $scope.search = {
         term: "",
         editable: $scope.checkRole('survey_edit'),
+        deleted: false,
         page: 0,
         pageSize: 10
     };
@@ -588,7 +589,8 @@ angular.module('wsaa.surveyQuestions', [
             $scope.toggled = function(open) {
                 if (open) {
                     $scope.surveys = $scope.service.history({
-                        id: $scope.entity.id
+                        id: $scope.entity.id,
+                        deleted: false
                     });
                 }
             };

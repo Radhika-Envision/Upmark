@@ -29,12 +29,13 @@
             </i>
             <span class="hidden-xs">Editable</span>
         </button>
+        <delete-cycle model="search.deleted"></delete-cycle>
     </search-box>
 
     <ul class="list-results">
-        <li>
-            <a ng-repeat="survey in surveys"
-                    ng-href="#/survey/{{survey.id}}">
+        <li ng-repeat="survey in surveys"
+                ng-class="{strike: survey.deleted}">
+            <a ng-href="#/survey/{{survey.id}}">
                 <h4>{{survey.title}}</h4>
                 <p class="truncate">{{survey.description}}</p>
             </a>

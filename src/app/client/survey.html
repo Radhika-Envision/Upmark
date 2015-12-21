@@ -10,11 +10,9 @@
                 ng-href="#/survey/new?duplicate={{survey.id}}"
                 ng-if="!edit.model && checkRole('survey_dup')">
             <small><i class="fa fa-clone"></i></small></button></a>
-        <button class="btn btn-default btn-round" title="Delete"
-                ng-click="edit.del()"
-                ng-if="survey.isEditable && !edit.model &&
-                    checkRole('survey_del')">
-            <i class="fa fa-trash-o"></i></button>
+        <delete-button model="survey" editor="edit"
+            ng-if="survey.isEditable && !edit.model &&
+                checkRole('survey_del')"></delete-button>
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
                 ng-if="edit.model && edit.model.id && !rtEdit.rt">
@@ -38,6 +36,14 @@
     </div>
     <question-header entity="survey" type="survey"></question-header>
 </div>
+</div>
+
+<div class="subheader bg-warning text-warning"
+        ng-if="survey.deleted">
+    <div class="container">
+        <i class="fa fa-trash"></i>
+        This program has been deleted.
+    </div>
 </div>
 
 <div ng-if="edit.model" class="container">
@@ -94,7 +100,7 @@
     <p class="formatted">{{survey.description}}</p>
 </div>
 
-<div class="container" ng-if="checkRole('survey_edit')">
+<div class="container hidden-print" ng-if="checkRole('survey_edit')">
     <p>
         <span ng-if="survey.isEditable">
             This program is editable.

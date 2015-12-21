@@ -671,14 +671,13 @@ angular.module('vpac.utils', [])
 
 .factory('tricycle', [function() {
     return function(value) {
-        switch (value) {
-            case true:
-                return null;
-            case null:
-                return false;
-            case false:
-                return true;
-        }
+        // null -> false -> true -> null etc.
+        if (value == null)
+            return false;
+        else if (value)
+            return null;
+        else
+            return true;
     };
 }])
 

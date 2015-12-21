@@ -30,6 +30,14 @@
 </div>
 </div>
 
+<div class="subheader bg-warning text-warning"
+        ng-if="org.deleted">
+    <div class="container">
+        <i class="fa fa-trash"></i>
+        This organisation has been deleted.
+    </div>
+</div>
+
 <div ng-if="edit.model" class="container">
     <form novalidate name="form" id="editor" form-nav-warn>
         <div class="form-group" show-errors>
