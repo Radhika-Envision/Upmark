@@ -1637,10 +1637,11 @@ angular.module('wsaa.surveyQuestions', [
     $scope.search = {
         deleted: false
     };
-    $scope.$watchGroup(['search.deleted', 'hierarchy.id', 'qnode.id'], function(vars) {
+    $scope.$watchGroup(['search.deleted', 'hierarchy.id',
+                        'assessment.hierarchy.id', 'qnode.id'], function(vars) {
         var deleted = vars[0];
-        var hid = vars[1];
-        var qid = vars[2];
+        var hid = vars[1] || vars[2];
+        var qid = vars[3];
         if (!hid && !qid)
             return;
 
