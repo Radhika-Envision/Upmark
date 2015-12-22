@@ -14,7 +14,7 @@
         </button>
 
         <delete-button model="qnode" editor="edit"
-                ng-if="!edit.model && checkRole('qnode_del')"></delete-button>
+                ng-if="!assessment && !edit.model && checkRole('qnode_del')"></delete-button>
 
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"

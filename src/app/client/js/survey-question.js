@@ -1637,14 +1637,19 @@ angular.module('wsaa.surveyQuestions', [
     $scope.search = {
         deleted: false
     };
-    $scope.$watchGroup(['search.deleted', 'qnode.id'], function() {
-        if (!$scope.qnode || !$scope.qnode.id)
+    $scope.$watchGroup(['search.deleted', 'hierarchy.id', 'qnode.id'], function(vars) {
+        var deleted = vars[0];
+        var hid = vars[1];
+        var qid = vars[2];
+        if (!hid && !qid)
             return;
 
         QuestionNode.query({
-            parentId: $scope.qnode.id,
+            parentId: qid,
+            hierarchyId: hid,
             surveyId: $scope.survey.id,
-            deleted: $scope.search.deleted
+            root: qid ? undefined : '',
+            deleted: deleted
         }, function(children) {
             $scope.children = children;
         });

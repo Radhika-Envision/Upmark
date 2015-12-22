@@ -278,14 +278,6 @@ angular.module('wsaa.aquamark',
                     }],
                     survey: ['hierarchy', function(hierarchy) {
                         return hierarchy.survey;
-                    }],
-                    qnodes: ['QuestionNode', 'hierarchy', 'survey',
-                            function(QuestionNode, hierarchy, survey) {
-                        return QuestionNode.query({
-                            hierarchyId: hierarchy.id,
-                            surveyId: survey.id,
-                            root: ''
-                        }).$promise;
                     }]
                 })}
             })
