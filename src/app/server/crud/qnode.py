@@ -72,8 +72,9 @@ class QuestionNodeHandler(
             son = to_son(qnode)
 
             sibling_query = (session.query(model.QuestionNode)
-                .filter(model.QuestionNode.survey_id==qnode.survey_id,
-                        model.QuestionNode.parent_id==qnode.parent_id))
+                .filter(model.QuestionNode.survey_id == qnode.survey_id,
+                        model.QuestionNode.parent_id == qnode.parent_id,
+                        model.QuestionNode.deleted == False))
 
             prev = (sibling_query
                 .filter(model.QuestionNode.seq < qnode.seq)
