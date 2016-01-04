@@ -58,6 +58,7 @@ class OrgTest(base.AqHttpTestBase):
         expected = [
             {
                 'name': 'Primary',
+                'deleted': False,
                 'locations': [{
                     'description': 'Nowhere',
                 }],
@@ -66,6 +67,7 @@ class OrgTest(base.AqHttpTestBase):
                 }
             }, {
                 'name': 'Utility',
+                'deleted': False,
                 'locations': [{
                     'description': 'Somewhere',
                 }],
@@ -96,13 +98,15 @@ class UserTest(base.AqHttpTestBase):
                 'name': 'Admin',
                 'deleted': False,
                 'organisation': {
-                    'name': 'Primary'
+                    'name': 'Primary',
+                    'deleted': False,
                 }
             }, {
                 'name': 'Author',
                 'deleted': False,
                 'organisation': {
-                    'name': 'Primary'
+                    'name': 'Primary',
+                    'deleted': False,
                 }
             }
         ]

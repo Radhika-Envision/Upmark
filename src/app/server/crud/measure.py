@@ -233,6 +233,8 @@ class MeasureHandler(
                 measure = model.Measure(survey_id=self.survey_id)
                 session.add(measure)
                 self._update(measure, self.request_son)
+
+                # Need to flush so object has an ID to record action against.
                 session.flush()
 
                 parents = []

@@ -97,6 +97,8 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                 org = model.Organisation()
                 self._update(org, self.request_son)
                 session.add(org)
+
+                # Need to flush so object has an ID to record action against.
                 session.flush()
 
                 act = Activities(session)

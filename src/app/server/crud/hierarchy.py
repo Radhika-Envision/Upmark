@@ -103,6 +103,8 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 hierarchy = model.Hierarchy(survey_id=self.survey_id)
                 self._update(hierarchy, self.request_son)
                 session.add(hierarchy)
+
+                # Need to flush so object has an ID to record action against.
                 session.flush()
 
                 act = Activities(session)

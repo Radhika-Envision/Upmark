@@ -155,6 +155,8 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 survey = model.Survey()
                 self._update(survey, self.request_son)
                 session.add(survey)
+
+                # Need to flush so object has an ID to record action against.
                 session.flush()
                 survey_id = str(survey.id)
 

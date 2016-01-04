@@ -328,7 +328,9 @@ class QuestionNodeHandler(
                 else:
                     raise handlers.ModelError("Parent or hierarchy ID required")
 
+                # Need to flush so object has an ID to record action against.
                 session.flush()
+
                 qnode.update_stats_ancestors()
                 qnode_id = str(qnode.id)
 

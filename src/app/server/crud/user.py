@@ -153,6 +153,9 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 self._update(user, self.request_son, session)
                 session.add(user)
 
+                # Need to flush so object has an ID to record action against.
+                session.flush()
+
                 act = Activities(session)
                 act.record(self.current_user, user, ['create'])
                 if not act.has_subscription(self.current_user, user):

@@ -74,7 +74,6 @@ class AqModelTestBase(unittest.TestCase):
                     description="Nowhere", region="Nowhere")],
                 meta=model.OrgMeta(asset_types=['water wholesale']))
             session.add(org1)
-            session.flush()
 
             org2 = model.Organisation(
                 name='Utility',
@@ -83,41 +82,40 @@ class AqModelTestBase(unittest.TestCase):
                     description="Somewhere", region="Somewhere")],
                 meta=model.OrgMeta(asset_types=['water local']))
             session.add(org2)
-            session.flush()
 
             user = model.AppUser(
                 name='Admin', email='admin', role='admin',
-                organisation_id=org1.id)
+                organisation=org1)
             user.set_password('foo')
             session.add(user)
 
             user = model.AppUser(
                 name='Author', email='author', role='author',
-                organisation_id=org1.id)
+                organisation=org1)
             user.set_password('bar')
             session.add(user)
 
             user = model.AppUser(
                 name='Authority', email='authority', role='authority',
-                organisation_id=org1.id)
+                organisation=org1)
             user.set_password('bar')
             session.add(user)
 
             user = model.AppUser(
                 name='Consultant', email='consultant', role='consultant',
-                organisation_id=org1.id)
+                organisation=org1)
             user.set_password('bar')
             session.add(user)
 
             user = model.AppUser(
                 name='Org Admin', email='org_admin', role='org_admin',
-                organisation_id=org2.id)
+                organisation=org2)
             user.set_password('bar')
             session.add(user)
 
             user = model.AppUser(
                 name='Clerk', email='clerk', role='clerk',
-                organisation_id=org2.id)
+                organisation=org2)
             user.set_password('bar')
             session.add(user)
 
@@ -225,9 +223,10 @@ class AqModelTestBase(unittest.TestCase):
                 qnode = model.QuestionNode(
                     hierarchy_id=hierarchy_id,
                     parent_id=parent_id,
-                    survey_id=survey_id)
-                qnode.title = qson['title']
-                qnode.description = qson['description']
+                    survey_id=survey_id,
+                    title=qson['title'],
+                    description=qson['description'],
+                    deleted=qson.get('deleted', False))
                 qnodes.append(qnode)
                 session.add(qnode)
                 session.flush()
@@ -250,9 +249,11 @@ class AqModelTestBase(unittest.TestCase):
         def create_hierarchies(hsons, session):
             hierarchies = []
             for hson in hsons:
-                hierarchy = model.Hierarchy(survey_id=survey_id)
-                hierarchy.title = hson['title']
-                hierarchy.description = hson['description']
+                hierarchy = model.Hierarchy(
+                    survey_id=survey_id,
+                    title=hson['title'],
+                    description=hson['description'],
+                    deleted=hson.get('deleted', False))
                 session.add(hierarchy)
                 session.flush()
                 hierarchy.qnodes = create_qnodes(
