@@ -20,7 +20,6 @@ from sqlalchemy.orm.session import object_session
 from sqlalchemy.schema import CheckConstraint, ForeignKeyConstraint, \
     Index, MetaData, UniqueConstraint
 from sqlalchemy.sql import func
-from sqlalchemy.sql.expression import and_
 from passlib.hash import sha256_crypt
 from voluptuous import All, Any, Coerce, Length, Optional, Range, Required, \
     Schema
@@ -1274,8 +1273,8 @@ Survey.hierarchies = relationship(
 # http://docs.sqlalchemy.org/en/latest/orm/backref.html#one-way-backrefs
 QuestionNode.hierarchy = relationship(
     Hierarchy,
-    primaryjoin=and_(foreign(QuestionNode.hierarchy_id) == remote(Hierarchy.id),
-                     QuestionNode.survey_id == remote(Hierarchy.survey_id)))
+    primaryjoin=(foreign(QuestionNode.hierarchy_id) == remote(Hierarchy.id)) &
+                (QuestionNode.survey_id == remote(Hierarchy.survey_id)))
 
 
 # "Children" of the hierarchy: these are roots of the qnode tree. Use
@@ -1283,9 +1282,9 @@ QuestionNode.hierarchy = relationship(
 Hierarchy.qnodes = relationship(
     QuestionNode, back_populates='hierarchy', passive_deletes=True,
     order_by=QuestionNode.seq, collection_class=ordering_list('seq'),
-    primaryjoin=and_(and_(foreign(QuestionNode.hierarchy_id) == Hierarchy.id,
-                          QuestionNode.survey_id == Hierarchy.survey_id),
-                     QuestionNode.parent_id == None))
+    primaryjoin=(foreign(QuestionNode.hierarchy_id) == Hierarchy.id) &
+                (QuestionNode.survey_id == Hierarchy.survey_id) &
+                (QuestionNode.parent_id == None))
 
 
 # The remote_side argument needs to be set on the many-to-one side, so it's
@@ -1297,21 +1296,21 @@ QuestionNode.parent = relationship(
     QuestionNode, backref=backref(
         'children', passive_deletes=True,
         order_by=QuestionNode.seq, collection_class=ordering_list('seq')),
-    primaryjoin=and_(foreign(QuestionNode.parent_id) == remote(QuestionNode.id),
-                     QuestionNode.survey_id == remote(QuestionNode.survey_id)))
+    primaryjoin=(foreign(QuestionNode.parent_id) == remote(QuestionNode.id)) &
+                (QuestionNode.survey_id == remote(QuestionNode.survey_id)))
 
 
 QuestionNode.qnode_measures = relationship(
     QnodeMeasure, backref='qnode', cascade='all, delete-orphan',
     order_by=QnodeMeasure.seq, collection_class=ordering_list('seq'),
-    primaryjoin=and_(foreign(QnodeMeasure.qnode_id) == QuestionNode.id,
-                     QnodeMeasure.survey_id == QuestionNode.survey_id))
+    primaryjoin=(foreign(QnodeMeasure.qnode_id) == QuestionNode.id) &
+                (QnodeMeasure.survey_id == QuestionNode.survey_id))
 
 
 Measure.qnode_measures = relationship(
     QnodeMeasure, backref='measure',
-    primaryjoin=and_(foreign(QnodeMeasure.measure_id) == Measure.id,
-                     QnodeMeasure.survey_id == Measure.survey_id))
+    primaryjoin=(foreign(QnodeMeasure.measure_id) == Measure.id) &
+                (QnodeMeasure.survey_id == Measure.survey_id))
 
 
 QuestionNode.measures = association_proxy('qnode_measures', 'measure')
@@ -1321,8 +1320,8 @@ Measure.parents = association_proxy('qnode_measures', 'qnode')
 
 Assessment.hierarchy = relationship(
     Hierarchy,
-    primaryjoin=and_(foreign(Assessment.hierarchy_id) == Hierarchy.id,
-                     Assessment.survey_id == Hierarchy.survey_id))
+    primaryjoin=(foreign(Assessment.hierarchy_id) == Hierarchy.id) &
+                (Assessment.survey_id == Hierarchy.survey_id))
 
 
 Assessment.responses = relationship(
@@ -1331,14 +1330,14 @@ Assessment.responses = relationship(
 
 ResponseNode.qnode = relationship(
     QuestionNode,
-    primaryjoin=and_(foreign(ResponseNode.qnode_id) == QuestionNode.id,
-                     ResponseNode.survey_id == QuestionNode.survey_id))
+    primaryjoin=(foreign(ResponseNode.qnode_id) == QuestionNode.id) &
+                (ResponseNode.survey_id == QuestionNode.survey_id))
 
 
 Response.measure = relationship(
     Measure,
-    primaryjoin=and_(foreign(Response.measure_id) == Measure.id,
-                     Response.survey_id == Measure.survey_id))
+    primaryjoin=(foreign(Response.measure_id) == Measure.id) &
+                (Response.survey_id == Measure.survey_id))
 
 
 ResponseHistory.user = relationship(
