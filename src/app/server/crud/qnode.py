@@ -136,7 +136,8 @@ class QuestionNodeHandler(
                 deleted = truthy(deleted)
                 query = query.filter(model.QuestionNode.deleted == deleted)
 
-            query = query.order_by(model.QuestionNode.seq)
+            query = query.order_by(model.QuestionNode.seq,
+                                   model.QuestionNode.deleted.desc())
 
             query = self.paginate(query, optional=True)
 
@@ -411,10 +412,6 @@ class QuestionNodeHandler(
                 if session.is_modified(qnode):
                     verbs.append('update')
 
-                if qnode.deleted:
-                    qnode.deleted = False
-                    verbs.append('undelete')
-
                 if parent_id != '' and str(qnode.parent_id) != parent_id:
                     # Change parent
                     old_parent = qnode.parent
@@ -431,6 +428,21 @@ class QuestionNodeHandler(
                     self.reason("Moved from %s to %s" % (
                         old_parent.title, new_parent.title))
                     verbs.append('relation')
+
+                if qnode.deleted:
+                    # Get a reference to the collection before changing the
+                    # deleted flag - otherwise, if a query is needed to
+                    # instantiate the collection, it will seem as if the object
+                    # is already in the collection and insert will not work as
+                    # expected.
+                    if qnode.parent:
+                        collection = qnode.parent.children
+                    else:
+                        collection = qnode.hierarchy.qnodes
+                    qnode.deleted = False
+                    collection.insert(qnode.seq, qnode)
+                    collection.reorder()
+                    verbs.append('undelete')
 
                 act = Activities(session)
                 act.record(self.current_user, qnode, verbs)
