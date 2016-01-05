@@ -258,7 +258,7 @@ class SurveyTest(base.AqHttpTestBase):
                 method='GET', expected=200, decode=True)
             self.assertAlmostEqual(q_son['total_weight'], 400)
 
-            # Add another measure and check qnode weight
+            # Check current weights of qnode and measure
             q2_son = self.fetch(
                 "/qnode/{}.json?surveyId={}".format(qid2, sid),
                 method='GET', expected=200, decode=True)
@@ -267,11 +267,17 @@ class SurveyTest(base.AqHttpTestBase):
                 "/measure/{}.json?surveyId={}".format(mid3, sid),
                 method='GET', expected=200, decode=True)
             self.assertAlmostEqual(m_son['weight'], 300)
+            self.assertIn(qid2, (p['id'] for p in m_son['parents']))
+            self.assertNotIn(qid, (p['id'] for p in m_son['parents']))
+
+            # Move measure to different parent and check that weights have moved
             m_son = self.fetch(
                 "/measure/{}.json?surveyId={}&parentId={}".format(
                     mid3, sid, qid),
                 method='PUT', body=json_encode(m_son),
                 expected=200, decode=True)
+            self.assertIn(qid, (p['id'] for p in m_son['parents']))
+            self.assertNotIn(qid2, (p['id'] for p in m_son['parents']))
             q_son = self.fetch(
                 "/qnode/{}.json?surveyId={}".format(qid, sid),
                 method='GET', expected=200, decode=True)
@@ -337,16 +343,20 @@ class SurveyTest(base.AqHttpTestBase):
                 with base.mock_user('author'):
                     # Check duplicated qnodes
                     url = "/qnode.json?surveyId=%s&hierarchyId=%s&parentId=%s"
+                    if not parent_id:
+                        url += '&root='
+                    url1 = url % (original_survey_id, hierarchy_id, parent_id)
+                    url2 = url % (new_survey_id, hierarchy_id, parent_id)
                     original_qnode_sons = self.fetch(
-                        url % (original_survey_id, hierarchy_id, parent_id),
-                        method='GET', expected=200, decode=True)
+                        url1, method='GET', expected=200, decode=True)
                     new_qnode_sons = self.fetch(
-                        url % (new_survey_id, hierarchy_id, parent_id),
-                        method='GET', expected=200, decode=True)
+                        url2, method='GET', expected=200, decode=True)
 
+                    self.assertEqual(original_qnode_sons, new_qnode_sons,
+                        "URL 1: %s\n" % url1
+                        + "URL 2: %s" % url2)
                     for q1, q2 in zip(original_qnode_sons, new_qnode_sons):
                         log.info("q1: %s, q2: %s", q1, q2)
-                        self.assertEqual(q1['id'], q2['id'])
                         self.assertEqual(q1['title'], q2['title'])
                         check_qnodes(hierarchy_id, q1['id'])
                         check_measures(q1['id'])

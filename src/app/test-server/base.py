@@ -127,17 +127,7 @@ class AqModelTestBase(unittest.TestCase):
                 proj_dir, 'client', 'default_response_types.json')) as file:
             response_types = json.load(file)
 
-        # Create survey
-        with model.session_scope() as session:
-            survey = entity = model.Survey(
-                title='Test Survey 1',
-                description="This is a test survey")
-            survey.response_types = response_types
-            session.add(survey)
-            session.flush()
-            survey_id = survey.id
-
-        # Create measures
+        # Measure declaration, separate from hierarchy to allow cross-linking
         msons = [
             {
                 'title': "Foo Measure",
@@ -158,15 +148,8 @@ class AqModelTestBase(unittest.TestCase):
                 'response_type': 'yes-no'
             },
         ]
-        measure_ids = []
-        with model.session_scope() as session:
-            for mson in msons:
-                measure = model.Measure(survey_id=survey_id, **mson)
-                session.add(measure)
-                session.flush()
-                measure_ids.append(measure.id)
 
-        # Create hierarchy, with qnodes and measures as descendants
+        # Hierarchy declaration, with qnodes and measures as descendants
         hsons = [
             {
                 'title': "Hierarchy 1",
@@ -217,54 +200,66 @@ class AqModelTestBase(unittest.TestCase):
             },
         ]
 
-        def create_qnodes(qsons, session, hierarchy_id, parent_id=None):
-            qnodes = []
-            for qson in qsons:
-                qnode = model.QuestionNode(
-                    hierarchy_id=hierarchy_id,
-                    parent_id=parent_id,
-                    survey_id=survey_id,
-                    title=qson['title'],
-                    description=qson['description'],
-                    deleted=qson.get('deleted', False))
-                qnodes.append(qnode)
-                session.add(qnode)
-                session.flush()
-
-                if 'children' in qson:
-                    qnode.children = create_qnodes(
-                        qson['children'], session, hierarchy_id,
-                        parent_id=qnode.id)
-                    qnode.children.reorder()
-
-                for i in qson.get('measures', []):
-                    mi = measure_ids[i]
-                    measure = session.query(model.Measure)\
-                        .get((mi, survey_id))
-                    qnode.measures.append(measure)
-                    qnode.qnode_measures.reorder()
-            session.flush()
-            return qnodes
-
-        def create_hierarchies(hsons, session):
-            hierarchies = []
-            for hson in hsons:
-                hierarchy = model.Hierarchy(
-                    survey_id=survey_id,
-                    title=hson['title'],
-                    description=hson['description'],
-                    deleted=hson.get('deleted', False))
-                session.add(hierarchy)
-                session.flush()
-                hierarchy.qnodes = create_qnodes(
-                    hson['qnodes'], session, hierarchy.id)
-                hierarchy.qnodes.reorder()
-            session.flush()
-            return hierarchies
-
         with model.session_scope() as session:
-            survey = session.query(model.Survey).first()
-            create_hierarchies(hsons, session)
+            # Create survey
+            survey = entity = model.Survey(
+                title='Test Survey 1',
+                description="This is a test survey")
+            survey.response_types = response_types
+            session.add(survey)
+
+            # Create measures
+            all_measures = []
+            for mson in msons:
+                measure = model.Measure(survey=survey, **mson)
+                all_measures.append(measure)
+            survey.measures = all_measures
+
+            # Create hierarchy and qnodes
+            def create_qnodes(qsons, hierarchy, parent=None):
+                qnodes = []
+                for qson in qsons:
+                    qnode = model.QuestionNode(
+                        hierarchy=hierarchy,
+                        parent=parent,
+                        survey=survey,
+                        title=qson['title'],
+                        description=qson['description'],
+                        deleted=qson.get('deleted', False))
+
+                    # Explicitly add to collection because backref is one-way.
+                    if not qson.get('deleted', False):
+                        qnodes.append(qnode)
+
+                    if 'children' in qson:
+                        qnode.children = create_qnodes(
+                            qson['children'], hierarchy, parent=qnode)
+                        qnode.children.reorder()
+
+                    qnode.measures = [all_measures[i]
+                                      for i in qson.get('measures', [])]
+                    qnode.qnode_measures.reorder()
+                return qnodes
+
+            def create_hierarchies(hsons):
+                hierarchies = []
+                for hson in hsons:
+                    hierarchy = model.Hierarchy(
+                        survey=survey,
+                        title=hson['title'],
+                        description=hson['description'],
+                        deleted=hson.get('deleted', False))
+
+                    # Explicitly add to collection because backref is one-way.
+                    if not hson.get('deleted', False):
+                        survey.hierarchies.append(hierarchy)
+
+                    hierarchy.qnodes = create_qnodes(
+                        hson['qnodes'], hierarchy)
+                    hierarchy.qnodes.reorder()
+                return hierarchies
+
+            create_hierarchies(hsons)
             survey.update_stats_descendants()
 
 

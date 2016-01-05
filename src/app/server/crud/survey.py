@@ -201,12 +201,11 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
             return entity
 
         def dup_hierarchies(hierarchies):
-            for hierarchy in source_survey.hierarchies:
+            for hierarchy in hierarchies:
                 log.debug('Duplicating %s', hierarchy)
                 qs = hierarchy.qnodes
                 dissociate(hierarchy)
                 hierarchy.survey_id = target_survey.id
-                session.flush()
                 dup_qnodes(qs)
 
         def dup_qnodes(qnodes):
@@ -216,7 +215,6 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 qnode_measures = qnode.qnode_measures
                 dissociate(qnode)
                 qnode.survey_id = target_survey.id
-                session.flush()
                 dup_qnodes(children)
                 dup_qnode_measures(qnode_measures)
 
@@ -225,14 +223,12 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 log.debug('Duplicating %s', qnode_measure)
                 dissociate(qnode_measure)
                 qnode_measure.survey_id = target_survey.id
-            session.flush()
 
         def dup_measures(measures):
             for measure in measures:
                 log.debug('Duplicating %s', measure)
                 dissociate(measure)
                 measure.survey_id = target_survey.id
-            session.flush()
 
         dup_measures(source_survey.measures)
         dup_hierarchies(source_survey.hierarchies)

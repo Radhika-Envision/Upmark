@@ -698,12 +698,24 @@ class QnodeMeasure(Base):
         self.measure = measure
         self.qnode = qnode
         self.seq = seq
-        if survey is not None:
-            self.survey_id = survey.id
-        elif measure is not None:
-            self.survey_id = measure.survey_id
-        elif qnode is not None:
-            self.survey_id = qnode.survey_id
+
+        # Accessing measure.survey or qnode.survey may cause a flush if it
+        # hasn't been initialised yet - but we don't want that to happen now,
+        # because this object hasn't been fully initialised, which would mean
+        # the insertion would fail and cause a rollback. Instead, fall back to
+        # assigning the survey ID instead of using the relationship.
+        with object_session(self).no_autoflush:
+            if survey:
+                self.survey = survey
+            elif measure:
+                self.survey = measure.survey
+                if not self.survey:
+                    self.survey_id = measure.survey_id
+            elif qnode:
+                self.survey = qnode.survey
+                if not self.survey:
+                    self.survey_id = qnode.survey_id
+
         super().__init__(**kwargs)
 
     def get_path(self):

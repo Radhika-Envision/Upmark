@@ -331,7 +331,7 @@ class MeasureHandler(
                 measure = session.query(model.Measure)\
                     .get((measure_id, self.survey_id))
                 if measure is None:
-                    raise ValueError("No such object")
+                    raise handlers.MissingDocError("No such measure")
                 self._update(measure, self.request_son)
 
                 verbs = []
@@ -376,8 +376,6 @@ class MeasureHandler(
                     act.subscribe(self.current_user, measure.survey)
                     self.reason("Subscribed to program")
 
-        except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such measure")
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(measure_id)
