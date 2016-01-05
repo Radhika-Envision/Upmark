@@ -131,8 +131,15 @@ class ExportResponseHandler(handlers.BaseHandler):
         with model.session_scope() as session:
             assessment = (session.query(model.Assessment)
                           .get(assessment_id))
+            if not assessment:
+                raise handlers.MissingDocError("No such submission")
+            elif assessment.deleted:
+                raise handlers.MissingDocError(
+                    "That submission has been deleted")
+
             if assessment.organisation.id != self.organisation.id:
                 self.check_privillege('consultant')
+
             hierarchy_id = str(assessment.hierarchy_id)
             survey_id = str(assessment.survey_id)
             self.check_browse_survey(session, survey_id, hierarchy_id)
@@ -195,20 +202,26 @@ class Exporter():
         with model.session_scope() as session:
             survey = session.query(model.Survey).get(survey_id)
             if survey is None:
-                raise Exception("There is no Survey.")
+                raise handlers.MissingDocError("No such program")
+            elif survey.deleted:
+                raise handlers.MissingDocError("That program has been deleted")
 
             hierarchy = session.query(model.Hierarchy).get((
                 hierarchy_id, survey_id))
             if hierarchy is None:
-                raise Exception("There is no Hierarchy.")
+                raise handlers.MissingDocError("No such survey")
+            elif hierarchy.deleted:
+                raise handlers.MissingDocError("That survey has been deleted")
 
             self.response_types = survey._response_types
 
             prefix = ""
 
-            list1 = session.query(model.QuestionNode).filter(
-                model.QuestionNode.survey_id == survey_id,
-                model.QuestionNode.hierarchy_id == hierarchy.id).all()
+            list1 = (session.query(model.QuestionNode)
+                .filter(model.QuestionNode.survey_id == survey_id,
+                        model.QuestionNode.hierarchy_id == hierarchy.id,
+                        model.QuestionNode.deleted == False)
+                .all())
 
             qnode_list = [{"id": str(item.id),
                            "parent_id": str(item.parent_id),
@@ -266,9 +279,10 @@ class Exporter():
 
         workbook.close()
 
-    def write_qnode_to_worksheet(self, session, workbook, worksheet,
-                                 qnode_list, response_qnode_list, measure_list, response_list,
-                                 parent_id, prefix, depth, user_role):
+    def write_qnode_to_worksheet(
+            self, session, workbook, worksheet,
+            qnode_list, response_qnode_list, measure_list, response_list,
+            parent_id, prefix, depth, user_role):
 
         filtered = [node for node in qnode_list
                     if node["parent_id"] == parent_id]

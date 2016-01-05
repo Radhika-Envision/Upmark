@@ -1269,19 +1269,55 @@ class Subscription(Base):
 # http://docs.sqlalchemy.org/en/rel_1_0/orm/self_referential.html#composite-adjacency-lists
 
 
-Organisation.users = relationship(
-    AppUser, backref="organisation", passive_deletes=True)
+# Use verbose back_populates instead of backref because the relationships are
+# asymmetric: a deleted hierarchy still has a survey, but a survey has no
+# deleted hierarchies.
+#
+# http://docs.sqlalchemy.org/en/latest/orm/backref.html#one-way-backrefs
+#
+# It is therefore possible to create an inconsistent in-memory model:
+#
+#     s = Survey(title="Program 1")
+#     h = Hierarchy(title="Survey 1", deleted=True)
+#     s.hierarchies.append(h)
+#     print(s.hierarchies)
+#     # prints [Hierarchy(title=Survey 1, survey=Program 1)]
+#
+# After calling `session.flush()`, the list of hierarchies will be empty.
+# Maintaining consistency is the responsibility of the programmer. In this
+# example, the programmer should have either:
+#
+#  - Not set `h.deleted = True`, to avoid violating the join condition.
+#  - Used `h.survey = s`, which does not back-populate `Survey.hierarchies`.
+#
+# When soft-deleting an entry, the programmer should:
+#
+#  1. Set `h.deleted = True`.
+#  2. Remove it from the collection with `s.hierarchies.remove(h)`.
+#  3. Reinstate the link to the owning program with `h.survey = s`.
 
+
+AppUser.organisation = relationship(Organisation)
+
+Organisation.users = relationship(
+    AppUser, back_populates="organisation", passive_deletes=True,
+    primaryjoin=(Organisation.id == AppUser.organisation_id) &
+                (AppUser.deleted == False))
+
+
+Hierarchy.survey = relationship(Survey)
 
 Survey.hierarchies = relationship(
-    Hierarchy, backref="survey", passive_deletes=True,
-    order_by='Hierarchy.title')
+    Hierarchy, back_populates="survey", passive_deletes=True,
+    order_by='Hierarchy.title',
+    primaryjoin=(Survey.id == Hierarchy.survey_id) &
+                (Hierarchy.deleted == False))
 
 
-# The link from a node to a hierarchy uses a one-way backref. Although this is
-# kind of the backref of Hierarchy.qnodes (below), we don't want modifications
-# to this attribute to affect the other side of the relationship: otherwise non-
-# root nodes couldn't have their hierarchies set easily.
+# The link from a node to a hierarchy uses a one-way backref for another reason.
+# We don't want modifications to this attribute to affect the other side of the
+# relationship: otherwise non-root nodes couldn't have their hierarchies set
+# easily.
 # http://docs.sqlalchemy.org/en/latest/orm/backref.html#one-way-backrefs
 QuestionNode.hierarchy = relationship(
     Hierarchy,
@@ -1296,7 +1332,8 @@ Hierarchy.qnodes = relationship(
     order_by=QuestionNode.seq, collection_class=ordering_list('seq'),
     primaryjoin=(foreign(QuestionNode.hierarchy_id) == Hierarchy.id) &
                 (QuestionNode.survey_id == Hierarchy.survey_id) &
-                (QuestionNode.parent_id == None))
+                (QuestionNode.parent_id == None) &
+                (QuestionNode.deleted == False))
 
 
 # The remote_side argument needs to be set on the many-to-one side, so it's
@@ -1305,11 +1342,17 @@ Hierarchy.qnodes = relationship(
 # works. The collection arguments (passive_deletes, order_by, etc) need to be
 # placed on the one-to-many side, so they are nested in the backref argument.
 QuestionNode.parent = relationship(
-    QuestionNode, backref=backref(
-        'children', passive_deletes=True,
-        order_by=QuestionNode.seq, collection_class=ordering_list('seq')),
+    QuestionNode,
     primaryjoin=(foreign(QuestionNode.parent_id) == remote(QuestionNode.id)) &
                 (QuestionNode.survey_id == remote(QuestionNode.survey_id)))
+
+
+QuestionNode.children = relationship(
+    QuestionNode, back_populates='parent', passive_deletes=True,
+    order_by=QuestionNode.seq, collection_class=ordering_list('seq'),
+    primaryjoin=(foreign(remote(QuestionNode.parent_id)) == QuestionNode.id) &
+                (remote(QuestionNode.survey_id) == QuestionNode.survey_id) &
+                (remote(QuestionNode.deleted) == False))
 
 
 QuestionNode.qnode_measures = relationship(

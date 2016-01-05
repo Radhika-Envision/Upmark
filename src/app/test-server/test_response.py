@@ -299,14 +299,17 @@ class AssessmentTest(base.AqHttpTestBase):
             self.assertNotEqual(assessment_1.hierarchy_id,
                 assessment_3.hierarchy_id)
 
+            # Assessment 1 has responses against five measures. Two are
+            # descendants of deleted qnodes.
             # Assessment 2 uses the same hierarchy as the source assessment,
-            # so it should have the same number of responses (three).
+            # so it should have the same number of responses (three, because
+            # the deleted ones are not copied).
             # Assessment 3 uses a different hierarchy with only one common
             # measure, so it should have a different number of responses (two).
-            self.assertEqual(len(assessment_1.responses), 3)
+            self.assertEqual(len(assessment_1.responses), 5)
             self.assertEqual(len(assessment_2.responses), 3)
             self.assertEqual(len(assessment_3.responses), 2)
-            self.assertEqual(session.query(model.Response).count(), 8)
+            self.assertEqual(session.query(model.Response).count(), 10)
 
             # Make sure the number of rnodes matches the number of qnodes in the
             # hierarchy (no leftovers).

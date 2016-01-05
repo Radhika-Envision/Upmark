@@ -168,14 +168,14 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 if hierarchy is None:
                     raise ValueError("No such object")
 
-                hierarchy.deleted = True
-
                 act = Activities(session)
                 if session.is_modified(hierarchy):
                     act.record(self.current_user, hierarchy, ['delete'])
                 if not act.has_subscription(self.current_user, hierarchy):
                     act.subscribe(self.current_user, hierarchy.survey)
                     self.reason("Subscribed to program")
+
+                hierarchy.deleted = True
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("This hierarchy is in use")

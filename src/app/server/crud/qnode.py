@@ -366,14 +366,14 @@ class QuestionNodeHandler(
                 hierarchy = qnode.hierarchy
                 parent = qnode.parent
 
-                qnode.deleted = True
-
                 act = Activities(session)
                 if session.is_modified(qnode):
                     act.record(self.current_user, qnode, ['delete'])
                 if not act.has_subscription(self.current_user, qnode):
                     act.subscribe(self.current_user, survey)
                     self.reason("Subscribed to program")
+
+                qnode.deleted = True
 
                 if hierarchy is not None:
                     hierarchy.qnodes.reorder()

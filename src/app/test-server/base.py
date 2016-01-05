@@ -147,6 +147,18 @@ class AqModelTestBase(unittest.TestCase):
                 'weight': 300,
                 'response_type': 'yes-no'
             },
+            {
+                'title': "Unreferenced Measure 1",
+                'intent': "Deleted",
+                'weight': 300,
+                'response_type': 'yes-no'
+            },
+            {
+                'title': "Unreferenced Measure 2",
+                'intent': "Deleted",
+                'weight': 600,
+                'response_type': 'yes-no'
+            },
         ]
 
         # Hierarchy declaration, with qnodes and measures as descendants
@@ -156,24 +168,58 @@ class AqModelTestBase(unittest.TestCase):
                 'description': "Test",
                 'qnodes': [
                     {
+                        'title': "Function 0",
+                        'description': "deleted",
+                        'deleted': True,
+                    },
+                    {
                         'title': "Function 1",
                         'description': "Test",
                         'children': [
                             {
-                                'title': "Process 1",
+                                'title': "Process 1.0",
+                                'description': "deleted",
+                                'measures': [],
+                                'deleted': True,
+                            },
+                            {
+                                'title': "Process 1.1",
                                 'description': "Test",
                                 'measures': [0, 1],
                             },
                             {
-                                'title': "Process 2",
+                                'title': "Process 1.2",
                                 'description': "Test 2",
                                 'measures': [2],
+                            },
+                            {
+                                'title': "Process 1.3",
+                                'description': "deleted",
+                                'measures': [3],
+                                'deleted': True,
                             },
                         ],
                     },
                     {
                         'title': "Function 2",
                         'description': "Test",
+                    },
+                    {
+                        'title': "Function 3",
+                        'description': "deleted",
+                        'deleted': True,
+                        'children': [
+                            {
+                                'title': "Process 3.1",
+                                'description': "deleted parent",
+                                'measures': [4],
+                            },
+                            {
+                                'title': "Process 3.2",
+                                'description': "deleted parent",
+                                'measures': [],
+                            },
+                        ],
                     },
                 ],
             },
@@ -198,6 +244,28 @@ class AqModelTestBase(unittest.TestCase):
                     },
                 ],
             },
+            {
+                'title': "Hierarchy 3",
+                'description': "Test",
+                'deleted': True,
+                'qnodes': [
+                    {
+                        'title': "Division 1",
+                        'description': "Test",
+                        'children': [
+                            {
+                                'title': "Division 1",
+                                'description': "Test",
+                                'measures': [1, 2],
+                            },
+                        ],
+                    },
+                    {
+                        'title': "Division 2",
+                        'description': "Test",
+                    },
+                ],
+            },
         ]
 
         with model.session_scope() as session:
@@ -212,6 +280,7 @@ class AqModelTestBase(unittest.TestCase):
             all_measures = []
             for mson in msons:
                 measure = model.Measure(survey=survey, **mson)
+                session.add(measure)
                 all_measures.append(measure)
             survey.measures = all_measures
 
@@ -226,6 +295,7 @@ class AqModelTestBase(unittest.TestCase):
                         title=qson['title'],
                         description=qson['description'],
                         deleted=qson.get('deleted', False))
+                    session.add(qnode)
 
                     # Explicitly add to collection because backref is one-way.
                     if not qson.get('deleted', False):
@@ -249,6 +319,7 @@ class AqModelTestBase(unittest.TestCase):
                         title=hson['title'],
                         description=hson['description'],
                         deleted=hson.get('deleted', False))
+                    session.add(hierarchy)
 
                     # Explicitly add to collection because backref is one-way.
                     if not hson.get('deleted', False):

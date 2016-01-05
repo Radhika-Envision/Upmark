@@ -251,14 +251,14 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                     raise handlers.MethodError(
                         "This survey is closed for editing")
 
-                survey.deleted = True
-
                 act = Activities(session)
                 if session.is_modified(survey):
                     act.record(self.current_user, survey, ['delete'])
                 if not act.has_subscription(self.current_user, survey):
                     act.subscribe(self.current_user, survey)
                     self.reason("Subscribed to program")
+
+                survey.deleted = True
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Survey is in use")
         except (sqlalchemy.exc.StatementError, ValueError):
