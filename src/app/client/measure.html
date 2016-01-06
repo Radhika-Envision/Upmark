@@ -158,7 +158,8 @@
 </docs>
 
 <div class="container spaced" ng-if="!edit.model && assessment">
-    <response type="responseType" model="response" weight="measure.weight">
+    <response type="responseType" model="response" weight="measure.weight"
+            readonly="!!structure.deletedItem">
         <span ng-controller="ResponseHistory" dropdown
                 on-toggle="toggled(open)" dropdown-append-to-body>
             <button class="btn btn-default btn-round" title="History"
@@ -220,7 +221,8 @@
 
         <button class="btn btn-default btn-round"
                 title="Reset"
-                ng-click="resetResponse()">
+                ng-click="resetResponse()"
+                ng-if="!structure.deletedItem">
             <i class="fa fa-times fa-fw"></i></button>
 
         <button class="btn btn-round"
@@ -228,7 +230,8 @@
                 ng-click="saveResponse()"
                 ng-class="response.$dirty ?
                           'btn-primary btn-alert' :
-                          'btn-default'">
+                          'btn-default'"
+                ng-if="!structure.deletedItem">
             <i class="fa fa-check fa-fw"></i></button>
     </response>
 
@@ -255,7 +258,8 @@
     </div>
 
     <div class="spaced btn-group btn-group-justified hidden-print
-                btn-group-arrow-right">
+                btn-group-arrow-right"
+            ng-if="!structure.deletedItem">
         <div class="btn-group">
             <button class="btn btn-default"
                     ng-class="{active: response.approval == 'draft'}"
@@ -297,7 +301,7 @@
             </button>
         </div>
     </div>
-    <div class="visible-print-block">
+    <div class="structure.deletedItem ? null : 'visible-print-block'">
         Response status: {{response.approval}}
     </div>
     <docs>
@@ -339,7 +343,7 @@
 
     <div ng-controller="ResponseAttachmentCtrl">
     <div class="section">
-        <div class="toolbar">
+        <div class="toolbar" ng-if="!structure.deletedItem">
             <button class="btn btn-default btn-round"
                     title="Upload"
                     ng-if="!showFileDrop && !externals.length"
@@ -374,7 +378,8 @@
                 <button class="btn btn-default btn-round pull-right"
                         title="Remove"
                         ng-click="deleteAttachment(attachment);
-                                  $event.preventDefault()">
+                                  $event.preventDefault()"
+                        ng-if="!structure.deletedItem">
                     <i class="fa fa-fw fa-trash-o"></i></button>
                 <h4>
                     <i class="fa fa-li fa-cloud-download text-muted"></i>
@@ -387,7 +392,8 @@
                 <button class="btn btn-default btn-round pull-right"
                         title="Remove"
                         ng-click="deleteAttachment(attachment);
-                                  $event.preventDefault()">
+                                  $event.preventDefault()"
+                        ng-if="!structure.deletedItem">
                     <i class="fa fa-fw fa-trash-o"></i></button>
                 <h4>
                     <i class="fa fa-li fa-link text-muted"></i>
@@ -400,7 +406,8 @@
                 <button class="btn btn-default btn-round pull-right"
                         title="Remove"
                         ng-click="deleteAttachment(attachment);
-                                  $event.preventDefault()">
+                                  $event.preventDefault()"
+                        ng-if="!structure.deletedItem">
                     <i class="fa fa-fw fa-trash-o"></i></button>
                 <h4>
                     <i class="fa fa-li fa-paperclip text-muted"></i>

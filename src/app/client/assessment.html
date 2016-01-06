@@ -130,7 +130,8 @@
             class="formatted">Submission against {{assessment.hierarchy.description}}</p>
 
     <div class="btn-group btn-group-justified hidden-print
-                btn-group-arrow-right">
+                btn-group-arrow-right"
+            ng-if="!structure.deletedItem">
         <div class="btn-group">
             <button class="btn btn-default"
                     ng-class="{active: assessment.approval == 'draft'}"
@@ -169,7 +170,9 @@
         </div>
     </div>
 
-    <p class="visible-print">Status: {{assessment.approval}}.</p>
+    <p ng-class="structure.deletedItem ? null : 'visible-print'">
+        Status: {{assessment.approval}}.
+   </p>
 </div>
 
 <div class="container"

@@ -282,7 +282,8 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         scope: {
             responseType: '=type',
             response: '=model',
-            weight: '='
+            weight: '=',
+            readonly: '='
         },
         replace: true,
         templateUrl: 'response.html',

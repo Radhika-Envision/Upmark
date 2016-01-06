@@ -122,6 +122,21 @@ h2.strike, span.strike, a.strike {
     background: $primary-colour;
     &.deleted {
         background: $secondary-colour;
+        &:after {
+            @include fontawesome("\f014");
+            position: fixed;
+            font-size: 200px;
+            left: 50%;
+            top: 50%;
+            margin: -100px;
+            opacity: 0.2;
+            pointer-events: none;
+            line-height: 200px;
+            width: 200px;
+            text-align: center;
+            color: red;
+            z-index: 5000;
+        }
     }
 
     position: relative;

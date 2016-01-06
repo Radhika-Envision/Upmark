@@ -201,6 +201,15 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
         self.get(assessment_id)
 
     def _check_open(self, survey_id, hierarchy_id, org_id, session):
+        hierarchy = (session.query(model.Hierarchy)
+            .get((hierarchy_id, survey_id)))
+        if not hierarchy:
+            raise handlers.ModelError("No such survey")
+        if hierarchy.deleted:
+            raise handlers.ModelError("That survey has been deleted")
+        if hierarchy.survey.deleted:
+            raise handlers.ModelError("That program has been deleted")
+
         purchased_survey = (session.query(model.PurchasedSurvey)
             .filter_by(survey_id=survey_id,
                        hierarchy_id=hierarchy_id,
