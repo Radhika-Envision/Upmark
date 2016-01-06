@@ -48,6 +48,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 r'/title$',
                 r'/seq$',
                 r'/created$',
+                r'/deleted$',
                 r'/is_editable$',
                 r'/n_measures$',
                 r'/survey/tracking_id$',
@@ -70,9 +71,15 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 .filter_by(survey_id=self.survey_id)\
                 .order_by(model.Hierarchy.title)
 
+            deleted = self.get_argument('deleted', '')
+            if deleted != '':
+                deleted = truthy(deleted)
+                query = query.filter(model.Hierarchy.deleted == deleted)
+
             to_son = ToSon(include=[
                 r'/id$',
                 r'/title$',
+                r'/deleted$',
                 r'/n_measures$',
                 # Descend
                 r'/[0-9]+$'
@@ -96,6 +103,8 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 hierarchy = model.Hierarchy(survey_id=self.survey_id)
                 self._update(hierarchy, self.request_son)
                 session.add(hierarchy)
+
+                # Need to flush so object has an ID to record action against.
                 session.flush()
 
                 act = Activities(session)
@@ -125,9 +134,16 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     raise ValueError("No such object")
                 self._update(hierarchy, self.request_son)
 
-                act = Activities(session)
+                verbs = []
                 if session.is_modified(hierarchy):
-                    act.record(self.current_user, hierarchy, ['update'])
+                    verbs.append('update')
+
+                if hierarchy.deleted:
+                    hierarchy.deleted = False
+                    verbs.append('undelete')
+
+                act = Activities(session)
+                act.record(self.current_user, hierarchy, verbs)
                 if not act.has_subscription(self.current_user, hierarchy):
                     act.subscribe(self.current_user, hierarchy.survey)
                     self.reason("Subscribed to program")
@@ -153,9 +169,14 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     raise ValueError("No such object")
 
                 act = Activities(session)
-                act.record(self.current_user, hierarchy, ['delete'])
+                if not hierarchy.deleted:
+                    act.record(self.current_user, hierarchy, ['delete'])
+                if not act.has_subscription(self.current_user, hierarchy):
+                    act.subscribe(self.current_user, hierarchy.survey)
+                    self.reason("Subscribed to program")
 
-                session.delete(hierarchy)
+                hierarchy.deleted = True
+
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("This hierarchy is in use")
         except (sqlalchemy.exc.StatementError, ValueError):

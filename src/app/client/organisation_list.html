@@ -12,22 +12,19 @@
     </div>
 </div>
 <div class="container">
-    <search-box model="search" result="orgs"></search-box>
+    <search-box model="search" result="orgs">
+        <delete-cycle model="search.deleted"></delete-cycle>
+    </search-box>
 
-  <table class="table table-hover">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Region</th>
-        <th class="shrink">Customers</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr ng-repeat="org in orgs" any-href="/org/{{org.id}}">
-        <td>{{org.name}}</td>
-        <td>{{org.region}}</td>
-        <td class="shrink">{{org.numberOfCustomers}}</td>
-      </tr>
-    </tbody>
-  </table>
+    <ul class="list-results">
+        <li ng-repeat="org in orgs"
+                ng-class="{strike: org.deleted}">
+            <a ng-href="#/org/{{org.id}}">
+                <h4>{{org.name}}</h4>
+                <p class="truncate" ng-if="org.locations.length">
+                    {{org.locations[0].description}}
+                </p>
+            </a>
+        </li>
+    </ul>
 </div>

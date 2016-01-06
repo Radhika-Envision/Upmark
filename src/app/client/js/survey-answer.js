@@ -63,14 +63,24 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         $scope.edit.params.surveyId = $scope.survey.id;
         $scope.edit.params.orgId = routeData.organisation.id;
         $scope.hierarchies = routeData.hierarchies;
-        if ($scope.hierarchies.length == 1)
+        if ($scope.hierarchies.length == 1) {
             $scope.assessment.hierarchy = $scope.hierarchies[0];
+            // Patch in survey, which is needed by Structure by is not provided
+            // by the web service when requesting a list.
+            $scope.assessment.hierarchy.survey = $scope.survey;
+        }
         $scope.duplicate = routeData.duplicate;
         if ($scope.duplicate)
             $scope.edit.params.duplicateId = $scope.duplicate.id;
         $scope.edit.edit();
     }
-    $scope.structure = Structure($scope.assessment);
+
+    $scope.$watchGroup(['assessment', 'assessment.deleted'], function(vars) {
+        var assessment = vars[0];
+        if (!assessment)
+            return;
+        $scope.structure = Structure(assessment);
+    });
 
     $scope.$watch('edit.model.hierarchy', function(hierarchy) {
         // Generate title first time
@@ -276,7 +286,8 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         scope: {
             responseType: '=type',
             response: '=model',
-            weight: '='
+            weight: '=',
+            readonly: '='
         },
         replace: true,
         templateUrl: 'response.html',

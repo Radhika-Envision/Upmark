@@ -56,6 +56,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/name$',
                 r'/description$',
                 r'/approval$',
+                r'/created$',
+                r'/deleted$',
                 r'/n_measures$',
                 r'/survey/tracking_id$',
                 # Nested
@@ -78,6 +80,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
         hierarchy_id = self.get_argument('hierarchyId', '')
         approval = self.get_argument('approval', '')
         tracking_id = self.get_argument('trackingId', '')
+        deleted = self.get_argument('deleted', '')
 
         org_id = self.get_argument('orgId', '')
         if self.current_user.role in {'clerk', 'org_admin'}:
@@ -113,6 +116,10 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 query = query.join(model.Survey)
                 query = query.filter(model.Survey.tracking_id == tracking_id)
 
+            if deleted != '':
+                deleted = truthy(deleted)
+                query = query.filter(model.Assessment.deleted == deleted)
+
             query = query.order_by(model.Assessment.created.desc())
             query = self.paginate(query)
 
@@ -122,6 +129,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/name$',
                 r'/approval$',
                 r'/created$',
+                r'/deleted$',
                 r'/survey/tracking_id$',
                 # Descend
                 r'/[0-9]+$',
@@ -185,14 +193,23 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 act = Activities(session)
                 act.record(self.current_user, assessment, ['create'])
                 if not act.has_subscription(self.current_user, assessment):
-                    act.subscribe(self.current_user, assessment)
-                    self.reason("Subscribed to submission")
+                    act.subscribe(self.current_user, assessment.organisation)
+                    self.reason("Subscribed to organisation")
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(assessment_id)
 
     def _check_open(self, survey_id, hierarchy_id, org_id, session):
+        hierarchy = (session.query(model.Hierarchy)
+            .get((hierarchy_id, survey_id)))
+        if not hierarchy:
+            raise handlers.ModelError("No such survey")
+        if hierarchy.deleted:
+            raise handlers.ModelError("That survey has been deleted")
+        if hierarchy.survey.deleted:
+            raise handlers.ModelError("That program has been deleted")
+
         purchased_survey = (session.query(model.PurchasedSurvey)
             .filter_by(survey_id=survey_id,
                        hierarchy_id=hierarchy_id,
@@ -346,11 +363,15 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 if session.is_modified(assessment):
                     verbs.append('update')
 
+                if assessment.deleted:
+                    assessment.deleted = False
+                    verbs.append('undelete')
+
                 act = Activities(session)
                 act.record(self.current_user, assessment, verbs)
                 if not act.has_subscription(self.current_user, assessment):
-                    act.subscribe(self.current_user, assessment)
-                    self.reason("Subscribed to submission")
+                    act.subscribe(self.current_user, assessment.organisation)
+                    self.reason("Subscribed to organisation")
 
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such submission")
@@ -372,9 +393,13 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 self._check_delete(assessment)
 
                 act = Activities(session)
-                act.record(self.current_user, assessment, ['delete'])
+                if not assessment.deleted:
+                    act.record(self.current_user, assessment, ['delete'])
+                if not act.has_subscription(self.current_user, assessment):
+                    act.subscribe(self.current_user, assessment.organisation)
+                    self.reason("Subscribed to organisation")
 
-                session.delete(assessment)
+                assessment.deleted = True
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("This submission is in use")
         except (sqlalchemy.exc.StatementError, ValueError):

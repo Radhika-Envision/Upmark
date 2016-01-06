@@ -226,12 +226,6 @@ angular.module('wsaa.aquamark',
                         return Survey.get({
                             id: $route.current.params.survey
                         }).$promise;
-                    }],
-                    hierarchies: ['Hierarchy', 'survey',
-                            function(Hierarchy, survey) {
-                        return Hierarchy.query({
-                            surveyId: survey.id
-                        }).$promise;
                     }]
                 })}
             })
@@ -284,14 +278,6 @@ angular.module('wsaa.aquamark',
                     }],
                     survey: ['hierarchy', function(hierarchy) {
                         return hierarchy.survey;
-                    }],
-                    qnodes: ['QuestionNode', 'hierarchy', 'survey',
-                            function(QuestionNode, hierarchy, survey) {
-                        return QuestionNode.query({
-                            hierarchyId: hierarchy.id,
-                            surveyId: survey.id,
-                            root: ''
-                        }).$promise;
                     }]
                 })}
             })
@@ -385,14 +371,6 @@ angular.module('wsaa.aquamark',
                     }],
                     survey: ['assessment', function(assessment) {
                         return assessment.survey;
-                    }],
-                    qnodes: ['QuestionNode', 'assessment', 'survey',
-                            function(QuestionNode, assessment, survey) {
-                        return QuestionNode.query({
-                            hierarchyId: assessment.hierarchy.id,
-                            surveyId: survey.id,
-                            root: ''
-                        }).$promise;
                     }]
                 })}
             })
@@ -439,14 +417,6 @@ angular.module('wsaa.aquamark',
                             function(QuestionNode, $route, assessment) {
                         return QuestionNode.get({
                             id: $route.current.params.qnode,
-                            surveyId: assessment ? assessment.survey.id :
-                                $route.current.params.survey,
-                        }).$promise;
-                    }],
-                    children: ['QuestionNode', '$route', 'assessment',
-                            function(QuestionNode, $route, assessment) {
-                        return QuestionNode.query({
-                            parentId: $route.current.params.qnode,
                             surveyId: assessment ? assessment.survey.id :
                                 $route.current.params.survey,
                         }).$promise;

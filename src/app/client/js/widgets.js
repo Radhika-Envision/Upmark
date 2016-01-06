@@ -198,6 +198,34 @@ angular.module('vpac.widgets', [])
 }])
 
 
+.directive('deleteCycle', [function() {
+    return {
+        restrict: 'E',
+        templateUrl: 'delete_cycle.html',
+        replace: true,
+        scope: {
+            model: '='
+        },
+        controller: ['$scope', 'tricycle', function($scope, tricycle) {
+            $scope.tricycle = tricycle;
+        }]
+    };
+}])
+
+
+.directive('deleteButton', [function() {
+    return {
+        restrict: 'E',
+        templateUrl: 'delete_button.html',
+        replace: true,
+        scope: {
+            model: '=',
+            edit: '=editor'
+        }
+    };
+}])
+
+
 .factory('checkLogin', ['$q', 'User', '$cookies', '$http',
          function($q, User, $cookies, $http) {
     return function checkLogin() {
@@ -338,6 +366,53 @@ angular.module('vpac.widgets', [])
 
         this.saving = true;
         Notifications.set('edit', 'info', "Deleting");
+    };
+
+    Editor.prototype.undelete = function() {
+        var that = this;
+        var success = function(model, getResponseHeaders) {
+            try {
+                log.debug("Success");
+                that.model = null;
+                that.scope.$emit('EditSaved', model);
+                var message = "Restored";
+                if (getResponseHeaders('Operation-Details'))
+                    message += ": " + getResponseHeaders('Operation-Details');
+                Notifications.set('edit', 'success', message, 5000);
+            } finally {
+                that.saving = false;
+                that = null;
+            }
+        };
+        var failure = function(details) {
+            var normalError = function() {
+                Notifications.set('edit', 'error',
+                    "Could not restore object: " + details.statusText);
+            };
+            var loginError = function() {
+                Notifications.set('edit', 'error',
+                    "Could not restore object: your session has expired.");
+            };
+            try {
+                that.scope.$emit('EditError');
+                if (details.status == 403) {
+                    checkLogin().then(normalError, loginError);
+                } else {
+                    normalError();
+                }
+            } finally {
+                that.saving = false;
+                that = null;
+                return $q.reject(details);
+            }
+        };
+
+        log.info("Deleting");
+        var model = this.getter(this.scope);
+        model.$save(this.params, success, failure);
+
+        this.saving = true;
+        Notifications.set('edit', 'info', "Restoring");
     };
 
     Editor.prototype.destroy = function() {

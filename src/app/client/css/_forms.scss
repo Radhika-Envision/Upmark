@@ -354,9 +354,9 @@ div[textarea-label] {
         border-bottom-color: rgba($danger-col, 0.5);
     }
     &:active, &.active, &.active:focus, &:active.focus, &:active:focus {
-        border-bottom-color: transparent;
-        background: lighten($danger-col, 10%);
-        color: white;
+        border-bottom-color: transparent !important;
+        background-color: lighten($danger-col, 10%) !important;
+        color: white !important;
     }
 }
 

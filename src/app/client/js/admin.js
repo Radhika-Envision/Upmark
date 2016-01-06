@@ -229,25 +229,6 @@ angular.module('wsaa.admin', [
         );
     };
 
-    $scope.toggleEnabled = function() {
-        var original = $scope.user.enabled;
-        $scope.user.enabled = !$scope.user.enabled;
-        $scope.user.$save(
-            function success(user, getResponseHeaders) {
-                var message = "Saved";
-                if (getResponseHeaders('Operation-Details'))
-                    message += ": " + getResponseHeaders('Operation-Details');
-                Notifications.set('edit', 'success', message, 5000);
-            },
-            function failure(details) {
-                $scope.user.enabled = original;
-                Notifications.set('edit', 'error',
-                    "Could not save object: " + details.statusText);
-                return $q.reject(details);
-            }
-        );
-    };
-
     $scope.$watch('edit.model.password', function(password) {
         if (!password) {
             $scope.passwordCheck = null;
@@ -278,7 +259,7 @@ angular.module('wsaa.admin', [
     $scope.search = {
         term: "",
         org_id: $scope.org && $scope.org.id,
-        enabled: true,
+        deleted: $scope.org && $scope.org.deleted ? null : false,
         page: 0,
         pageSize: 10
     };
@@ -294,20 +275,6 @@ angular.module('wsaa.admin', [
             }
         );
     }, true);
-
-    $scope.cycleEnabled = function() {
-        switch ($scope.search.enabled) {
-            case true:
-                $scope.search.enabled = null;
-                break;
-            case null:
-                $scope.search.enabled = false;
-                break;
-            case false:
-                $scope.search.enabled = true;
-                break;
-        }
-    };
 }])
 
 
@@ -501,6 +468,7 @@ angular.module('wsaa.admin', [
     if (!$scope.survey) {
         $scope.search = {
             term: "",
+            deleted: false,
             pageSize: 10
         };
 
@@ -568,6 +536,7 @@ angular.module('wsaa.admin', [
 
     $scope.search = {
         term: "",
+        deleted: false,
         page: 0,
         pageSize: 10
     };

@@ -20,7 +20,6 @@ from sqlalchemy.orm.session import object_session
 from sqlalchemy.schema import CheckConstraint, ForeignKeyConstraint, \
     Index, MetaData, UniqueConstraint
 from sqlalchemy.sql import func
-from sqlalchemy.sql.expression import and_
 from passlib.hash import sha256_crypt
 from voluptuous import All, Any, Coerce, Length, Optional, Range, Required, \
     Schema
@@ -112,6 +111,7 @@ class Organisation(Observable, Base):
     name = Column(Text, nullable=False)
     url = Column(Text, nullable=True)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
+    deleted = Column(Boolean, default=False, nullable=False)
 
     @property
     def ob_title(self):
@@ -217,7 +217,7 @@ class AppUser(Observable, Base):
             'admin', 'author', 'authority', 'consultant', 'org_admin', 'clerk',
             native_enum=False), nullable=False)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
-    enabled = Column(Boolean, nullable=False, default=True)
+    deleted = Column(Boolean, default=False, nullable=False)
 
     def set_password(self, plaintext):
         self.password = sha256_crypt.encrypt(plaintext)
@@ -282,6 +282,7 @@ class Survey(Observable, Base):
     tracking_id = Column(GUID, default=uuid.uuid4, nullable=False)
 
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
+    deleted = Column(Boolean, default=False, nullable=False)
     # Survey is not editable after being finalised.
     finalised_date = Column(DateTime)
     title = Column(Text, nullable=False)
@@ -410,6 +411,7 @@ class Hierarchy(Observable, Base):
     title = Column(Text, nullable=False)
     description = Column(Text)
     modified = Column(DateTime, nullable=True)
+    deleted = Column(Boolean, default=False, nullable=False)
 
     _structure = Column('structure', JSON, nullable=False)
 
@@ -475,6 +477,7 @@ class QuestionNode(Observable, Base):
     hierarchy_id = Column(GUID, nullable=False)
     parent_id = Column(GUID)
 
+    deleted = Column(Boolean, default=False, nullable=False)
     seq = Column(Integer)
     n_measures = Column(Integer, default=0, nullable=False)
     total_weight = Column(Float, default=0, nullable=False)
@@ -542,6 +545,9 @@ class QuestionNode(Observable, Base):
     def get_path(self):
         return " ".join(["%d." % (q.seq + 1) for q in self.lineage()])
 
+    def any_deleted(self):
+        return self.deleted or self.parent_id and self.parent.any_deleted()
+
     @property
     def ob_type(self):
         return 'qnode'
@@ -564,6 +570,7 @@ class Measure(Observable, Base):
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(
         GUID, ForeignKey("survey.id"), nullable=False, primary_key=True)
+    deleted = Column(Boolean, default=False, nullable=False)
 
     title = Column(Text, nullable=False)
     weight = Column(Float, nullable=False)
@@ -649,7 +656,7 @@ class Measure(Observable, Base):
 
     @property
     def action_lineage(self):
-        hs = [qm.qnode.hierarchy for qm in self.qnode_measures]
+        hs = [p.hierarchy for p in self.parents]
         return [self.survey] + hs + self.lineage()
 
     def __repr__(self):
@@ -694,12 +701,24 @@ class QnodeMeasure(Base):
         self.measure = measure
         self.qnode = qnode
         self.seq = seq
-        if survey is not None:
-            self.survey_id = survey.id
-        elif measure is not None:
-            self.survey_id = measure.survey_id
-        elif qnode is not None:
-            self.survey_id = qnode.survey_id
+
+        # Accessing measure.survey or qnode.survey may cause a flush if it
+        # hasn't been initialised yet - but we don't want that to happen now,
+        # because this object hasn't been fully initialised, which would mean
+        # the insertion would fail and cause a rollback. Instead, fall back to
+        # assigning the survey ID instead of using the relationship.
+        with object_session(self).no_autoflush:
+            if survey:
+                self.survey = survey
+            elif measure:
+                self.survey = measure.survey
+                if not self.survey:
+                    self.survey_id = measure.survey_id
+            elif qnode:
+                self.survey = qnode.survey
+                if not self.survey:
+                    self.survey_id = qnode.survey_id
+
         super().__init__(**kwargs)
 
     def get_path(self):
@@ -725,7 +744,7 @@ class Assessment(Observable, Base):
         nullable=False)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
     modified = Column(DateTime, nullable=True)
-
+    deleted = Column(Boolean, default=False, nullable=False)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -774,7 +793,7 @@ class Assessment(Observable, Base):
         # It would be nice to include the program and survey in this list, but
         # then everyone who was subscribed to a survey would get spammed with
         # all the submissions against it.
-        return [self]
+        return [self.organisation, self]
 
     def update_stats_descendants(self):
         for qnode in self.hierarchy.qnodes:
@@ -878,7 +897,7 @@ class ResponseNode(Observable, Base):
         # It would be nice to include the program and survey in this list, but
         # then everyone who was subscribed to a survey would get spammed with
         # all the submissions against it.
-        return [self.assessment] + self.lineage()
+        return [self.assessment.organisation, self.assessment] + self.lineage()
 
     @property
     def action_descriptor(self):
@@ -1067,7 +1086,7 @@ class Response(Observable, Versioned, Base):
         # It would be nice to include the program and survey in this list, but
         # then everyone who was subscribed to a survey would get spammed with
         # all the submissions against it.
-        return [self.assessment] + self.lineage()
+        return [self.assessment.organisation, self.assessment] + self.lineage()
 
     @property
     def action_descriptor(self):
@@ -1154,7 +1173,7 @@ class Activity(Base):
     verbs = Column(
         ARRAY(Enum(
             'broadcast',
-            'create', 'update', 'state', 'delete',
+            'create', 'update', 'state', 'delete', 'undelete',
             'relation', 'reorder_children',
             native_enum=False)),
         nullable=False)
@@ -1253,24 +1272,60 @@ class Subscription(Base):
 # http://docs.sqlalchemy.org/en/rel_1_0/orm/self_referential.html#composite-adjacency-lists
 
 
-Organisation.users = relationship(
-    AppUser, backref="organisation", passive_deletes=True)
+# Use verbose back_populates instead of backref because the relationships are
+# asymmetric: a deleted hierarchy still has a survey, but a survey has no
+# deleted hierarchies.
+#
+# http://docs.sqlalchemy.org/en/latest/orm/backref.html#one-way-backrefs
+#
+# It is therefore possible to create an inconsistent in-memory model:
+#
+#     s = Survey(title="Program 1")
+#     h = Hierarchy(title="Survey 1", deleted=True)
+#     s.hierarchies.append(h)
+#     print(s.hierarchies)
+#     # prints [Hierarchy(title=Survey 1, survey=Program 1)]
+#
+# After calling `session.flush()`, the list of hierarchies will be empty.
+# Maintaining consistency is the responsibility of the programmer. In this
+# example, the programmer should have either:
+#
+#  - Not set `h.deleted = True`, to avoid violating the join condition.
+#  - Used `h.survey = s`, which does not back-populate `Survey.hierarchies`.
+#
+# When soft-deleting an entry, the programmer should:
+#
+#  1. Set `h.deleted = True`.
+#  2. Remove it from the collection with `s.hierarchies.remove(h)`.
+#  3. Reinstate the link to the owning program with `h.survey = s`.
 
+
+AppUser.organisation = relationship(Organisation)
+
+Organisation.users = relationship(
+    AppUser, back_populates="organisation", passive_deletes=True,
+    primaryjoin=(Organisation.id == AppUser.organisation_id) &
+                (AppUser.deleted == False))
+
+
+Hierarchy.survey = relationship(Survey)
 
 Survey.hierarchies = relationship(
-    Hierarchy, backref="survey", passive_deletes=True,
-    order_by='Hierarchy.title')
+    Hierarchy, back_populates="survey", passive_deletes=True,
+    order_by='Hierarchy.title',
+    primaryjoin=(Survey.id == Hierarchy.survey_id) &
+                (Hierarchy.deleted == False))
 
 
-# The link from a node to a hierarchy uses a one-way backref. Although this is
-# kind of the backref of Hierarchy.qnodes (below), we don't want modifications
-# to this attribute to affect the other side of the relationship: otherwise non-
-# root nodes couldn't have their hierarchies set easily.
+# The link from a node to a hierarchy uses a one-way backref for another reason.
+# We don't want modifications to this attribute to affect the other side of the
+# relationship: otherwise non-root nodes couldn't have their hierarchies set
+# easily.
 # http://docs.sqlalchemy.org/en/latest/orm/backref.html#one-way-backrefs
 QuestionNode.hierarchy = relationship(
     Hierarchy,
-    primaryjoin=and_(foreign(QuestionNode.hierarchy_id) == remote(Hierarchy.id),
-                     QuestionNode.survey_id == remote(Hierarchy.survey_id)))
+    primaryjoin=(foreign(QuestionNode.hierarchy_id) == remote(Hierarchy.id)) &
+                (QuestionNode.survey_id == remote(Hierarchy.survey_id)))
 
 
 # "Children" of the hierarchy: these are roots of the qnode tree. Use
@@ -1278,9 +1333,10 @@ QuestionNode.hierarchy = relationship(
 Hierarchy.qnodes = relationship(
     QuestionNode, back_populates='hierarchy', passive_deletes=True,
     order_by=QuestionNode.seq, collection_class=ordering_list('seq'),
-    primaryjoin=and_(and_(foreign(QuestionNode.hierarchy_id) == Hierarchy.id,
-                          QuestionNode.survey_id == Hierarchy.survey_id),
-                     QuestionNode.parent_id == None))
+    primaryjoin=(foreign(QuestionNode.hierarchy_id) == Hierarchy.id) &
+                (QuestionNode.survey_id == Hierarchy.survey_id) &
+                (QuestionNode.parent_id == None) &
+                (QuestionNode.deleted == False))
 
 
 # The remote_side argument needs to be set on the many-to-one side, so it's
@@ -1289,24 +1345,30 @@ Hierarchy.qnodes = relationship(
 # works. The collection arguments (passive_deletes, order_by, etc) need to be
 # placed on the one-to-many side, so they are nested in the backref argument.
 QuestionNode.parent = relationship(
-    QuestionNode, backref=backref(
-        'children', passive_deletes=True,
-        order_by=QuestionNode.seq, collection_class=ordering_list('seq')),
-    primaryjoin=and_(foreign(QuestionNode.parent_id) == remote(QuestionNode.id),
-                     QuestionNode.survey_id == remote(QuestionNode.survey_id)))
+    QuestionNode,
+    primaryjoin=(foreign(QuestionNode.parent_id) == remote(QuestionNode.id)) &
+                (QuestionNode.survey_id == remote(QuestionNode.survey_id)))
+
+
+QuestionNode.children = relationship(
+    QuestionNode, back_populates='parent', passive_deletes=True,
+    order_by=QuestionNode.seq, collection_class=ordering_list('seq'),
+    primaryjoin=(foreign(remote(QuestionNode.parent_id)) == QuestionNode.id) &
+                (remote(QuestionNode.survey_id) == QuestionNode.survey_id) &
+                (remote(QuestionNode.deleted) == False))
 
 
 QuestionNode.qnode_measures = relationship(
     QnodeMeasure, backref='qnode', cascade='all, delete-orphan',
     order_by=QnodeMeasure.seq, collection_class=ordering_list('seq'),
-    primaryjoin=and_(foreign(QnodeMeasure.qnode_id) == QuestionNode.id,
-                     QnodeMeasure.survey_id == QuestionNode.survey_id))
+    primaryjoin=(foreign(QnodeMeasure.qnode_id) == QuestionNode.id) &
+                (QnodeMeasure.survey_id == QuestionNode.survey_id))
 
 
 Measure.qnode_measures = relationship(
     QnodeMeasure, backref='measure',
-    primaryjoin=and_(foreign(QnodeMeasure.measure_id) == Measure.id,
-                     QnodeMeasure.survey_id == Measure.survey_id))
+    primaryjoin=(foreign(QnodeMeasure.measure_id) == Measure.id) &
+                (QnodeMeasure.survey_id == Measure.survey_id))
 
 
 QuestionNode.measures = association_proxy('qnode_measures', 'measure')
@@ -1316,8 +1378,8 @@ Measure.parents = association_proxy('qnode_measures', 'qnode')
 
 Assessment.hierarchy = relationship(
     Hierarchy,
-    primaryjoin=and_(foreign(Assessment.hierarchy_id) == Hierarchy.id,
-                     Assessment.survey_id == Hierarchy.survey_id))
+    primaryjoin=(foreign(Assessment.hierarchy_id) == Hierarchy.id) &
+                (Assessment.survey_id == Hierarchy.survey_id))
 
 
 Assessment.responses = relationship(
@@ -1326,14 +1388,14 @@ Assessment.responses = relationship(
 
 ResponseNode.qnode = relationship(
     QuestionNode,
-    primaryjoin=and_(foreign(ResponseNode.qnode_id) == QuestionNode.id,
-                     ResponseNode.survey_id == QuestionNode.survey_id))
+    primaryjoin=(foreign(ResponseNode.qnode_id) == QuestionNode.id) &
+                (ResponseNode.survey_id == QuestionNode.survey_id))
 
 
 Response.measure = relationship(
     Measure,
-    primaryjoin=and_(foreign(Response.measure_id) == Measure.id,
-                     Response.survey_id == Measure.survey_id))
+    primaryjoin=(foreign(Response.measure_id) == Measure.id) &
+                (Response.survey_id == Measure.survey_id))
 
 
 ResponseHistory.user = relationship(
@@ -1377,7 +1439,7 @@ def create_user_and_privilege():
             "GRANT USAGE ON SCHEMA public TO analyst")
         session.execute(
             "GRANT SELECT"
-            " (id, organisation_id, email, name, role, created, enabled)"
+            " (id, organisation_id, email, name, role, created, deleted)"
             " ON appuser to analyst")
         for table in Base.metadata.tables:
             if str(table) not in {'appuser', 'systemconfig', 'alembic_version'}:

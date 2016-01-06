@@ -218,7 +218,7 @@ class BaseHandler(tornado.web.RequestHandler):
         with model.session_scope() as session:
             try:
                 user = session.query(model.AppUser).get(uid)
-                if not user.enabled:
+                if user.deleted:
                     superuser = self.get_secure_cookie('superuser')
                     if superuser is None:
                         return None
@@ -415,6 +415,7 @@ class AuthLoginHandler(MainHandler):
                     one()
                 if not user.check_password(password):
                     raise ValueError("Login incorrect")
+                deleted = user.deleted or user.organisation.deleted
                 session.expunge(user)
         except (sqlalchemy.orm.exc.NoResultFound, ValueError):
             self.clear_cookie("user")
@@ -423,7 +424,7 @@ class AuthLoginHandler(MainHandler):
             self.redirect("/login/" + error_msg)
             return
 
-        if not user.enabled:
+        if deleted:
             self.clear_cookie("user")
             self.clear_cookie("superuser")
             error_msg = "?error=" + tornado.escape.url_escape(

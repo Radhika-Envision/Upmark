@@ -10,7 +10,8 @@
             <i class="fa fa-fw fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Change order"
                 ng-click="edit.edit()"
-                ng-if="editable && model.length > 1 && !edit.model">
+                ng-if="editable && model.length > 1 &&
+                       !edit.model && search.deleted === false">
             <i class="fa fa-fw fa-unsorted"></i></button>
         <a class="btn btn-default btn-round" title="Add new"
                 ng-href="#/qnode/new?{{query}}&parent={{qnode.id}}"
@@ -20,6 +21,8 @@
                 ng-href="#/qnode-link?{{query}}&parent={{qnode.id}}"
                 ng-if="editable && !edit.model">
             <i class="fa fa-fw fa-link"></i></a>
+        <delete-cycle class="btn-round" model="search.deleted"
+            ng-if="!edit.model"></delete-cycle>
     </div>
     <h2 label="{{level.label}}" ng-class="'survey-' + level.level">
         {{level.title}}</h2>
@@ -28,7 +31,8 @@
     <tbody ui-sortable="dragOpts" ng-model="edit.model">
         <tr ng-repeat="item in edit.model || model"
                 any-href="/qnode/{{item.id}}?{{query}}"
-                ng-disabled="edit.model">
+                ng-disabled="edit.model"
+                ng-class="{strike: item.deleted}">
             <td class="shrink">{{item.seq + 1}}</td>
             <td>{{item.title}}</td>
             <td class="shrink text-muted">
@@ -54,3 +58,6 @@
         </tr>
     </tbody>
 </table>
+<p ng-if="!edit.model && !model.length">
+    There are no <span ng-if="search.deleted">deleted</span> {{level.title}}.
+</p>

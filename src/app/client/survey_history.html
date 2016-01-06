@@ -4,9 +4,11 @@
 
     <ul class="dropdown-menu dropdown-menu-right">
         <li class="dropdown-header">Related programs</li>
-        <li ng-if="!surveys.length" class="dropdown-header">Loading...</li>
+        <li ng-if="!surveys.length && !surveys.$resolved" class="dropdown-header">Loading...</li>
+        <li ng-if="!surveys.length && surveys.$resolved"
+                class="dropdown-header">None.</li>
         <li ng-repeat="survey in surveys"
-                ng-class="{active: isActive(survey)}">
+                ng-class="{active: isActive(survey), strike: survey.deleted}">
             <a href ng-click="navigate(survey)">
                 {{survey.title}}
                 <span class="pull-right nudge-right text-muted"

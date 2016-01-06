@@ -132,6 +132,8 @@ class DiffEngine:
             ]
         to_son = ToSon(include=include)
 
+        qnode_pairs = self.realise_soft_deletion(qnode_pairs)
+        qnode_pairs = self.remove_soft_deletion_dups(qnode_pairs)
         qnode_diff = [{
                 'type': 'qnode',
                 'tags': [],
@@ -144,6 +146,8 @@ class DiffEngine:
         self.timing.append("Qnode metadata took %gs" % duration)
         self.remove_unchanged_fields(qnode_diff)
 
+        measure_pairs = self.realise_soft_deletion(measure_pairs)
+        measure_pairs = self.remove_soft_deletion_dups(measure_pairs)
         measure_diff = [{
                 'type': 'measure',
                 'tags': [],
@@ -233,7 +237,8 @@ class DiffEngine:
                     ~QA.id.in_(
                         self.session.query(QB.id)
                             .filter(QB.survey_id == self.survey_id_b,
-                                    QB.hierarchy_id == self.hierarchy_id)))
+                                    QB.hierarchy_id == self.hierarchy_id,
+                                    QB.deleted == False)))
         )
 
         # Find added qnodes
@@ -244,7 +249,8 @@ class DiffEngine:
                     ~QB.id.in_(
                         self.session.query(QA.id)
                             .filter(QA.survey_id == self.survey_id_a,
-                                    QA.hierarchy_id == self.hierarchy_id)))
+                                    QA.hierarchy_id == self.hierarchy_id,
+                                    QA.deleted == False)))
         )
 
         qnodes = list(qnode_mod_query.all()
@@ -347,6 +353,33 @@ class DiffEngine:
         self.timing.append("Primary measure query took %gs" % duration)
         return measures
 
+    def realise_soft_deletion(self, pairs):
+        def realise(x):
+            if not x:
+                return None
+
+            if hasattr(x, 'get_parent'):
+                # measure
+                if x.deleted:
+                    return None
+                q = x.get_parent(self.hierarchy_id)
+            else:
+                # qnode
+                q = x
+
+            if q.any_deleted():
+                return None
+
+            return x
+
+        return [(realise(a), realise(b)) for (a, b) in pairs]
+
+    def remove_soft_deletion_dups(self, qnode_pairs):
+        # Items that are soft-deleted in the old program will not be copied to
+        # the new program. So filter out pairs where both items are effectively
+        # deleted.
+        return [(a, b) for (a, b) in qnode_pairs if a or b]
+
     def add_qnode_metadata(self, qnode_pairs, qnode_diff):
         # Create sets of ids; group by transform type
         deleted = {str(a.id) for a, b in qnode_pairs if b is None}
@@ -368,7 +401,7 @@ class DiffEngine:
             if a and b and str(a.parent_id) == str(b.parent_id):
                 start = perf()
                 if self.qnode_was_reordered(a, b, reorder_ignore):
-                   diff_item['tags'].append('reordered')
+                    diff_item['tags'].append('reordered')
                 reorder_time += perf() - start
         self.timing.append("Qnode reorder filter took %gs" % reorder_time)
 
@@ -399,7 +432,7 @@ class DiffEngine:
             if a and b and a_son['parentId'] == b_son['parentId']:
                 start = perf()
                 if self.measure_was_reordered(a, b, reorder_ignore):
-                   diff_item['tags'].append('reordered')
+                    diff_item['tags'].append('reordered')
                 reorder_time += perf() - start
         self.timing.append("Measure reorder filter took %gs" % reorder_time)
 
@@ -583,8 +616,8 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
     def parse_cols(self, cursor):
         return [{
                 'name': c.name,
-                'type': AdHocHandler.TYPES.get(c.type_code, None)[0],
-                'rich_type': AdHocHandler.TYPES.get(c.type_code, None)[1],
+                'type': AdHocHandler.TYPES.get(c.type_code, (None, None))[0],
+                'rich_type': AdHocHandler.TYPES.get(c.type_code, (None, None))[1],
                 'type_code': c.type_code
             } for c in cursor.description]
 

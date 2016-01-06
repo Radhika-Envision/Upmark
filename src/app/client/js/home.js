@@ -68,6 +68,9 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
             case 'delete':
                 verb = 'deleted';
                 break;
+            case 'undelete':
+                verb = 'undeleted';
+                break;
             case 'relation':
                 verb = '(re)linked';
                 break;
@@ -176,6 +179,7 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
                 icons.push('fa-chevron-right');
                 break;
             case 'delete':
+            case 'undelete':
                 icons.push('fa-trash-o');
                 break;
             case 'relation':

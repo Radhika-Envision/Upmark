@@ -126,8 +126,14 @@ def upgrade():
     op.drop_column('organisation', 'region')
     op.drop_column('organisation', 'number_of_customers')
 
+    op.execute("GRANT SELECT ON org_meta to analyst")
+    op.execute("GRANT SELECT ON org_location to analyst")
+
 
 def downgrade():
+    op.execute("REVOKE SELECT ON org_meta FROM analyst")
+    op.execute("REVOKE SELECT ON org_location FROM analyst")
+
     op.add_column('organisation', sa.Column('number_of_customers', sa.INTEGER))
     op.add_column('organisation', sa.Column('region', sa.TEXT))
 

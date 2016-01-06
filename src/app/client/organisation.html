@@ -1,10 +1,9 @@
-<div class="header">
+<div class="header"
+    ng-class="{'deleted': org.deleted}">
 <div class="container">
     <div class="toolbar">
-        <button class="btn btn-default btn-round" title="Delete"
-                ng-click="edit.del()"
-                ng-if="!edit.model && checkRole('org_del')">
-            <i class="fa fa-trash-o"></i></button>
+        <delete-button model="org" editor="edit"
+            ng-if="!edit.model && checkRole('org_del')"></delete-button>
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
                 ng-if="edit.model && edit.model.id">
@@ -26,7 +25,9 @@
     <h2 page-title>
         <i class="fa fa-fw fa-university"></i>
         <a href="#/orgs">Organisations</a> &raquo;
-        <span ng-if="org.name">{{org.name}}</span>
+        <span ng-if="org.name"
+                ng-class="{strike: org.deleted}">
+            {{org.name}}</span>
         <span ng-if="!org.name">New organisation</span>
     </h2>
 </div>
@@ -111,7 +112,7 @@
                 </td>
             </tr>
         </table>
-        <p ng-if="!boxed_locations.length">
+        <p ng-if="!boxed_locations.length" class="text-muted">
             No locations have been selected. Press the
             <i class="fa fa-plus"></i> button to add one.
         </p>
@@ -126,31 +127,27 @@
             <label for="org_ownership">Ownership</label>
             <select type="text" class="form-control"
                 id="org_ownership" name="org_ownership"
-                ng-model="edit.model.meta.ownership">
-                <option value="government run">Government owned and run</option>
-                <option value="government owned">Government owned</option>
-                <option value="private">Private</option>
-                <option value="shareholder">Shareholder owned</option>
+                ng-model="edit.model.meta.ownership"
+                ng-options="a.name as a.desc for a in ownershipTypes">
+                <option value="">(unspecified)</option>
             </select>
         </div>
         <div class="form-group" show-errors>
             <label for="org_structure">Operational Structure</label>
             <select type="text" class="form-control"
                 id="org_structure" name="org_structure"
-                ng-model="edit.model.meta.structure">
-                <option ng-repeat="r in structureTypes" value="{{r.name}}">
-                    {{r.desc}}
-                </option>
+                ng-model="edit.model.meta.structure"
+                ng-options="a.name as a.desc for a in structureTypes">
+                <option value="">(unspecified)</option>
             </select>
         </div>
         <div class="form-group" show-errors>
             <label for="org_regulation">Level of Regulation</label>
             <select type="text" class="form-control"
                 id="org_regulation" name="org_regulation"
-                ng-model="edit.model.meta.regulationLevel">
-                <option ng-repeat="r in regulationLevels" value="{{r.name}}">
-                    {{r.desc}}
-                </option>
+                ng-model="edit.model.meta.regulationLevel"
+                ng-options="a.name as a.desc for a in regulationLevels">
+                <option value="">(unspecified)</option>
             </select>
         </div>
 
@@ -430,6 +427,16 @@ suburb: {{loc.suburb}}">
             {{org.meta.volumeCollected}}
             <span class="text-muted">ML/year</span></dd>
     </dl>
+
+    <docs ng-if="org.deleted">
+        <i class="fa-li fa fa-trash fa-border"></i>
+        <h3>Deleted</h3>
+        <p>
+            This organisation has been deleted. It can't complete any more
+            surveys, but the surveys it completed in the past are still included
+            in results.
+        </p>
+    </docs>
 </div>
 
 
@@ -450,7 +457,8 @@ suburb: {{loc.suburb}}">
     </div>
 
     <ul class="list-results">
-        <li ng-repeat="hierarchy in hierarchies">
+        <li ng-repeat="hierarchy in hierarchies"
+                ng-class="{strike: hierarchy.deleted || hierarchy.survey.deleted}">
             <a ng-href="#/hierarchy/{{hierarchy.id}}/choice?survey={{hierarchy.survey.id}}&organisation={{org.id}}">
                 <h4>{{hierarchy.title}}</h4>
                 <p class="truncate">In {{hierarchy.survey.title}} -

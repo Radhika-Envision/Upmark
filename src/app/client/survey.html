@@ -1,4 +1,5 @@
-<div class="header">
+<div class="header"
+    ng-class="{'deleted': survey.deleted}">
 <div class="container">
     <div class="toolbar">
         <button class="btn btn-default btn-round" title="Print"
@@ -10,11 +11,9 @@
                 ng-href="#/survey/new?duplicate={{survey.id}}"
                 ng-if="!edit.model && checkRole('survey_dup')">
             <small><i class="fa fa-clone"></i></small></button></a>
-        <button class="btn btn-default btn-round" title="Delete"
-                ng-click="edit.del()"
-                ng-if="survey.isEditable && !edit.model &&
-                    checkRole('survey_del')">
-            <i class="fa fa-trash-o"></i></button>
+        <delete-button model="survey" editor="edit"
+            ng-if="survey.isEditable && !edit.model &&
+                checkRole('survey_del')"></delete-button>
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
                 ng-if="edit.model && edit.model.id && !rtEdit.rt">
@@ -94,7 +93,7 @@
     <p class="formatted">{{survey.description}}</p>
 </div>
 
-<div class="container" ng-if="checkRole('survey_edit')">
+<div class="container hidden-print" ng-if="checkRole('survey_edit')">
     <p>
         <span ng-if="survey.isEditable">
             This program is editable.
@@ -133,6 +132,7 @@
                     ng-href="#/hierarchy/new?survey={{survey.id}}"
                     ng-if="survey.isEditable && checkRole('hierarchy_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
+            <delete-cycle class="btn-round" model="search.deleted"></delete-cycle>
         </div>
         <h2 label="Sv">
             Surveys
@@ -140,7 +140,8 @@
     </div>
 
     <ul class="list-results">
-        <li ng-repeat="hierarchy in hierarchies">
+        <li ng-repeat="hierarchy in hierarchies"
+                ng-class="{strike: hierarchy.deleted}">
             <a ng-href="#/hierarchy/{{hierarchy.id}}/choice?survey={{survey.id}}">
                 <h4>{{hierarchy.title}}</h4>
                 <p class="truncate">{{hierarchy.nMeasures}} measures</p>
@@ -149,9 +150,17 @@
     </ul>
 
     <p ng-if="!hierarchies.length">
-        There are no surveys yet.
+        There are no <span ng-if="search.deleted">deleted</span> surveys.
     </p>
 </div>
 
+
+<docs ng-if="survey.deleted">
+    <i class="fa-li fa fa-trash fa-border"></i>
+    <h3>Deleted</h3>
+    <p>
+        This program has been deleted.
+    </p>
+</docs>
 
 </div><!-- !edit.model -->

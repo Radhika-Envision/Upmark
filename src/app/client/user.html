@@ -1,22 +1,13 @@
-<div>
-
-<div class="header">
+<div class="header"
+    ng-class="{'deleted': user.deleted || user.organisation.deleted}">
 <div class="container">
     <div class="toolbar">
-        <button class="btn btn-default btn-round" title="Delete"
-                ng-click="edit.del()"
-                ng-if="!edit.model && checkRole('user_del')">
-            <i class="fa fa-trash-o"></i></button>
+        <delete-button model="user" editor="edit"
+            ng-if="!edit.model && checkRole('user_del')"></delete-button>
         <button class="btn btn-default btn-round" title="Impersonate"
                 ng-click="impersonate()"
                 ng-if="checkRole('user_impersonate')">
             <i class="fa fa-paw"></i></button>
-        <button class="btn btn-default btn-round"
-                title="{{user.enabled ? 'Deactivate' : 'Activate'}}"
-                ng-click="toggleEnabled()"
-                ng-if="!edit.model && checkRole('user_enable')">
-            <i class="fa fa-lock"
-                ng-class="user.enabled ? 'fa-lock' : 'fa-unlock'"></i></button>
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
                 ng-if="edit.model && edit.model.id">
@@ -31,27 +22,30 @@
                 ng-click="edit.edit()"
                 ng-if="!edit.model && checkRole('user_edit')">
             <i class="fa fa-pencil"></i></button>
+        <a class="btn btn-default btn-round" title="Subscriptions"
+                ng-href="#/subscription/user?id={{user.id}}">
+            <i class="fa fa-envelope"></i></a>
     </div>
     <h2 page-title>
         <i class="fa fa-fw fa-user"></i>
-        <a href="#/users">Users</a> &raquo;
-        <span ng-if="user.name">{{user.name}}</span>
+        <a href="#/org/{{user.organisation.id}}"
+                ng-if="user.organisation"
+                ng-class="{strike: user.organisation.deleted}">
+            {{user.organisation.name}}</a>
+        <a href="#/org/{{user.organisation.id}}"
+                ng-if="!user.organisation">
+            Users</a>
+        &raquo;
+        <span ng-if="user.name"
+                ng-class="{strike: user.deleted}">
+            {{user.name}}</span>
         <span ng-if="!user.name">New user</span>
     </h2>
 </div>
 </div>
 
-<div class="subheader bg-warning text-warning"
-        ng-if="user.id && !user.enabled">
-    <div class="container">
-        <i class="fa fa-lock"></i>
-        This user is inactive.
-    </div>
-</div>
 
-
-<div ng-if="edit.model">
-<div class="container">
+<div ng-if="edit.model" class="container">
     <form novalidate name="form" id="editor" form-nav-warn>
         <div class="form-group" show-errors>
             <label for="user_name">Name</label>
@@ -123,10 +117,8 @@
         </div>
     </form>
 </div>
-</div>
 
-<div ng-if="!edit.model">
-<div class="container">
+<div ng-if="!edit.model" class="container">
     <dl>
         <dt>Role</dt>
         <dd>{{roleDict[user.role].name}}
@@ -141,5 +133,13 @@
         <dt>Organisation</dt>
         <dd><a ng-href="#/org/{{user.organisation.id}}">{{user.organisation.name}}</a></dd>
     </dl>
-</div>
+
+    <docs ng-if="user.deleted || user.organisation.deleted">
+        <i class="fa-li fa fa-trash fa-border"></i>
+        <h3>Deleted</h3>
+        <p>
+            This user, or their organisation, has been deleted. They can't log
+            in any more, but the data they created still exists.
+        </p>
+    </docs>
 </div>

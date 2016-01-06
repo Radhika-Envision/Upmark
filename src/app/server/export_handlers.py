@@ -131,8 +131,15 @@ class ExportResponseHandler(handlers.BaseHandler):
         with model.session_scope() as session:
             assessment = (session.query(model.Assessment)
                           .get(assessment_id))
+            if not assessment:
+                raise handlers.MissingDocError("No such submission")
+            elif assessment.deleted:
+                raise handlers.MissingDocError(
+                    "That submission has been deleted")
+
             if assessment.organisation.id != self.organisation.id:
                 self.check_privillege('consultant')
+
             hierarchy_id = str(assessment.hierarchy_id)
             survey_id = str(assessment.survey_id)
             self.check_browse_survey(session, survey_id, hierarchy_id)
@@ -184,7 +191,6 @@ class Exporter():
         """
         Open and write an Excel file
         """
-        model.connect_db(os.environ.get('DATABASE_URL'))
         workbook = xlsxwriter.Workbook(file_name)
         worksheet = workbook.add_worksheet('Scoring')
         worksheet.set_column(0, 0, 12)
@@ -195,20 +201,26 @@ class Exporter():
         with model.session_scope() as session:
             survey = session.query(model.Survey).get(survey_id)
             if survey is None:
-                raise Exception("There is no Survey.")
+                raise handlers.MissingDocError("No such program")
+            elif survey.deleted:
+                raise handlers.MissingDocError("That program has been deleted")
 
             hierarchy = session.query(model.Hierarchy).get((
                 hierarchy_id, survey_id))
             if hierarchy is None:
-                raise Exception("There is no Hierarchy.")
+                raise handlers.MissingDocError("No such survey")
+            elif hierarchy.deleted:
+                raise handlers.MissingDocError("That survey has been deleted")
 
             self.response_types = survey._response_types
 
             prefix = ""
 
-            list1 = session.query(model.QuestionNode).filter(
-                model.QuestionNode.survey_id == survey_id,
-                model.QuestionNode.hierarchy_id == hierarchy.id).all()
+            list1 = (session.query(model.QuestionNode)
+                .filter(model.QuestionNode.survey_id == survey_id,
+                        model.QuestionNode.hierarchy_id == hierarchy.id,
+                        model.QuestionNode.deleted == False)
+                .all())
 
             qnode_list = [{"id": str(item.id),
                            "parent_id": str(item.parent_id),
@@ -266,9 +278,10 @@ class Exporter():
 
         workbook.close()
 
-    def write_qnode_to_worksheet(self, session, workbook, worksheet,
-                                 qnode_list, response_qnode_list, measure_list, response_list,
-                                 parent_id, prefix, depth, user_role):
+    def write_qnode_to_worksheet(
+            self, session, workbook, worksheet,
+            qnode_list, response_qnode_list, measure_list, response_list,
+            parent_id, prefix, depth, user_role):
 
         filtered = [node for node in qnode_list
                     if node["parent_id"] == parent_id]
@@ -488,7 +501,6 @@ class Exporter():
         """
         Open and write an Excel file
         """
-        model.connect_db(os.environ.get('DATABASE_URL'))
         workbook = xlsxwriter.Workbook(file_name)
         worksheet = workbook.add_worksheet('Response')
         worksheet_metadata = workbook.add_worksheet('Metadata')
@@ -510,7 +522,6 @@ class Exporter():
             'underline':  1
         })
 
-
         line = 1
         with model.session_scope() as session:
             assessment = session.query(model.Assessment)\
@@ -526,12 +537,17 @@ class Exporter():
                 level_length = len(levels)
                 worksheet.set_column(0, level_length, 50)
                 # Find max response number and write to header
-                max_len_of_response = max(
-                    [len(response.response_parts) 
-                        for response in assessment.ordered_responses])
-                response_types = [part["parts"] for part in assessment.survey._response_types
-                                    if len(part["parts"]) == max_len_of_response][0]
-                response_parts = [part['name'] for part in  response_types]
+                responses = list(assessment.ordered_responses)
+                if len(responses) > 0:
+                    max_len_of_response = max(
+                        [len(response.response_parts) for response in responses])
+                    response_types = [part["parts"]
+                                      for part in assessment.survey._response_types
+                                      if len(part["parts"]) == max_len_of_response][0]
+                    response_parts = [part['name'] for part in  response_types]
+                else:
+                    max_len_of_response = 0
+                    response_parts = []
 
                 worksheet.set_column(level_length + 1, 
                     level_length + max_len_of_response + 8, 15)
@@ -543,7 +559,7 @@ class Exporter():
                     workbook, worksheet, levels, max_len_of_response,
                     response_parts)
 
-                for response in assessment.ordered_responses:
+                for response in responses:
                     # log.info("response: %s", response.measure.id)
                     qnode = response.measure.get_parent(
                         assessment.hierarchy_id)

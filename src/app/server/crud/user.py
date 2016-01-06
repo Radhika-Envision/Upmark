@@ -55,7 +55,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/name$',
                 r'/email$',
                 r'/role$',
-                r'/enabled$',
+                r'/deleted$',
                 # Descend into nested objects
                 r'/organisation$',
             ], exclude=[
@@ -76,22 +76,38 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
 
         sons = []
         with model.session_scope() as session:
-            query = session.query(model.AppUser)\
-                .options(joinedload('organisation'))
+            query = (session.query(model.AppUser)
+                .join(
+                    model.Organisation,
+                    model.Organisation.id == model.AppUser.organisation_id))
 
             org_id = self.get_argument("org_id", None)
             if org_id is not None:
-                query = query.filter_by(organisation_id=org_id)
+                query = query.filter(model.Organisation.id == org_id)
 
             term = self.get_argument('term', None)
             if term is not None:
                 query = query.filter(
                     model.AppUser.name.ilike(r'%{}%'.format(term)))
 
-            enabled = self.get_argument('enabled', None)
-            if enabled is not None:
-                enable = truthy(enabled)
-                query = query.filter(model.AppUser.enabled == enabled)
+            deleted = self.get_argument('deleted', None)
+            if deleted is not None:
+                deleted = truthy(deleted)
+
+            # Filter deleted users. If org_id is not specified, users inherit
+            # their organisation's deleted flag too.
+            if deleted == True and not org_id:
+                query = query.filter(
+                    (model.AppUser.deleted == True) |
+                    (model.Organisation.deleted == True))
+            elif deleted == False and not org_id:
+                query = query.filter(
+                    (model.AppUser.deleted == False) &
+                    (model.Organisation.deleted == False))
+            elif deleted == True:
+                query = query.filter(model.AppUser.deleted == True)
+            elif deleted == False:
+                query = query.filter(model.AppUser.deleted == False)
 
             query = query.order_by(model.AppUser.name)
             query = self.paginate(query)
@@ -99,7 +115,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
             to_son = ToSon(include=[
                 r'/id$',
                 r'/name$',
-                r'/enabled$',
+                r'/deleted$',
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/organisation$',
@@ -128,11 +144,16 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
 
         try:
             with model.session_scope() as session:
-                user = model.AppUser()
-                user.organisation_id = self.request_son['organisation']['id']
+                org = (session.query(model.Organisation)
+                    .get(self.request_son['organisation']['id']))
+                if org is None:
+                    raise handlers.ModelError("No such organisation")
+                user = model.AppUser(organisation=org)
                 self._check_update(self.request_son, None)
-                self._update(user, self.request_son)
+                self._update(user, self.request_son, session)
                 session.add(user)
+
+                # Need to flush so object has an ID to record action against.
                 session.flush()
 
                 act = Activities(session)
@@ -140,11 +161,13 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 if not act.has_subscription(self.current_user, user):
                     act.subscribe(self.current_user, user.organisation)
                     self.reason("Subscribed to organisation")
+                act.subscribe(user, user.organisation)
+                self.reason("New user subscribed to organisation")
 
-                session.expunge(user)
+                user_id = user.id
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.get(user.id)
+        self.get(user_id)
 
     @tornado.web.authenticated
     def put(self, user_id):
@@ -160,14 +183,30 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 if user is None:
                     raise ValueError("No such object")
                 self._check_update(self.request_son, user)
-                self._update(user, self.request_son)
+
+                verbs = []
+                oid = self.request_son.get('organisation', {}).get('id')
+                if oid and oid != str(user.organisation_id):
+                    verbs.append('relation')
+                self._update(user, self.request_son, session)
 
                 act = Activities(session)
                 if session.is_modified(user):
-                    act.record(self.current_user, user, ['update'])
-                if not act.has_subscription(self.current_user, user):
-                    act.subscribe(self.current_user, user.organisation)
-                    self.reason("Subscribed to organisation")
+                    verbs.append('update')
+
+                if user.deleted:
+                    user.deleted = False
+                    verbs.append('undelete')
+
+                session.flush()
+                if len(verbs) > 0:
+                    act.record(self.current_user, user, verbs)
+                    if not act.has_subscription(self.current_user, user):
+                        act.subscribe(self.current_user, user.organisation)
+                        self.reason("Subscribed to organisation")
+                    if not act.has_subscription(user, user):
+                        act.subscribe(user, user.organisation)
+                        self.reason("User subscribed to organisation")
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
@@ -185,12 +224,16 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 if user is None:
                     raise ValueError("No such object")
                 self._check_delete(user)
-                user.organisation.users.remove(user)
 
                 act = Activities(session)
-                act.record(self.current_user, user, ['delete'])
+                if not user.deleted:
+                    act.record(self.current_user, user, ['delete'])
+                if not act.has_subscription(self.current_user, user):
+                    act.subscribe(self.current_user, user.organisation)
+                    self.reason("Subscribed to organisation")
 
-                session.delete(user)
+                user.deleted = True
+
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError(
                 "User owns content and can not be deleted")
@@ -227,7 +270,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 raise handlers.AuthzError(
                     "You can't change your role.")
 
-        if 'enabled' in son and son['enabled'] != user.enabled:
+        if 'deleted' in son and son['deleted'] != user.deleted:
             if str(self.current_user.id) == str(user.id):
                 raise handlers.AuthzError(
                     "You can't enable or disable yourself.")
@@ -252,7 +295,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.AuthzError(
                 "You can't delete another user.")
 
-    def _update(self, user, son):
+    def _update(self, user, son, session):
         '''
         Apply user-provided data to the saved model.
         '''
@@ -260,12 +303,16 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
         update('email', son)
         update('name', son)
         update('role', son)
-        update('enabled', son)
 
-        if son.get('organisation', '') != '':
-            user.organisation_id = son['organisation']['id']
         if son.get('password', '') != '':
             user.set_password(son['password'])
+
+        if son.get('organisation', '') != '':
+            org = (session.query(model.Organisation)
+                .get(self.request_son['organisation']['id']))
+            if org is None:
+                raise handlers.ModelError("No such organisation")
+            user.organisation = org
 
 
 class PasswordHandler(handlers.BaseHandler):

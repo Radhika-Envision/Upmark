@@ -53,6 +53,7 @@ class QuestionNodeHandler(
                 r'/id$',
                 r'/title$',
                 r'/seq$',
+                r'/deleted$',
                 r'/total_weight$',
                 r'/n_measures$',
                 r'/is_editable$',
@@ -71,8 +72,9 @@ class QuestionNodeHandler(
             son = to_son(qnode)
 
             sibling_query = (session.query(model.QuestionNode)
-                .filter(model.QuestionNode.survey_id==qnode.survey_id,
-                        model.QuestionNode.parent_id==qnode.parent_id))
+                .filter(model.QuestionNode.survey_id == qnode.survey_id,
+                        model.QuestionNode.parent_id == qnode.parent_id,
+                        model.QuestionNode.deleted == False))
 
             prev = (sibling_query
                 .filter(model.QuestionNode.seq < qnode.seq)
@@ -104,6 +106,7 @@ class QuestionNodeHandler(
         root = self.get_argument('root', None)
         term = self.get_argument('term', '')
         parent_not = self.get_argument('parent__not', '')
+        deleted = self.get_argument('deleted', '')
 
         if root is not None and parent_id != '':
             raise handlers.ModelError(
@@ -113,8 +116,8 @@ class QuestionNodeHandler(
                 "Hierarchy or parent ID required")
 
         with model.session_scope() as session:
-            query = session.query(model.QuestionNode)\
-                .filter_by(survey_id=self.survey_id)
+            query = (session.query(model.QuestionNode)
+                .filter(model.QuestionNode.survey_id == self.survey_id))
 
             if hierarchy_id != '':
                 self.check_browse_survey(session, self.survey_id, hierarchy_id)
@@ -129,7 +132,12 @@ class QuestionNodeHandler(
             if parent_not != '':
                 query = query.filter(model.QuestionNode.parent_id != parent_not)
 
-            query = query.order_by(model.QuestionNode.seq)
+            if deleted != '':
+                deleted = truthy(deleted)
+                query = query.filter(model.QuestionNode.deleted == deleted)
+
+            query = query.order_by(model.QuestionNode.seq,
+                                   model.QuestionNode.deleted.desc())
 
             query = self.paginate(query, optional=True)
 
@@ -142,6 +150,7 @@ class QuestionNodeHandler(
                 r'/id$',
                 r'/title$',
                 r'/seq$',
+                r'/deleted$',
                 r'/n_measures$',
                 r'/total_weight$',
                 # Descend into nested objects
@@ -167,6 +176,11 @@ class QuestionNodeHandler(
         hierarchy_id = self.get_argument('hierarchyId', '')
         term = self.get_argument('term', '')
         parent_not = self.get_argument('parent__not', None)
+        deleted = self.get_argument('deleted', '')
+        if deleted != '':
+            deleted = truthy(deleted)
+        else:
+            deleted = None
 
         if hierarchy_id == '':
             raise handlers.ModelError("Hierarchy ID required")
@@ -182,7 +196,8 @@ class QuestionNodeHandler(
             start = (session.query(QN1,
                                    literal(0).label('level'),
                                    array([QN1.seq]).label('path'),
-                                   (QN1.seq + 1).concat('.').label('pathstr'))
+                                   (QN1.seq + 1).concat('.').label('pathstr'),
+                                   (QN1.deleted).label('any_deleted'))
                 .filter(QN1.parent_id == None,
                         QN1.survey_id == self.survey_id,
                         QN1.hierarchy_id == hierarchy_id)
@@ -194,7 +209,9 @@ class QuestionNodeHandler(
                                      (start.c.level + 1).label('level'),
                                      start.c.path.concat(QN2.seq).label('path'),
                                      start.c.pathstr.concat(QN2.seq + 1)
-                                        .concat('.').label('pathstr'))
+                                        .concat('.').label('pathstr'),
+                                     (start.c.any_deleted | QN2.deleted)
+                                        .label('any_deleted'))
                 .filter(QN2.parent_id == start.c.id,
                         QN2.survey_id == start.c.survey_id,
                         QN2.hierarchy_id == start.c.hierarchy_id,
@@ -204,16 +221,17 @@ class QuestionNodeHandler(
             cte = start.union_all(recurse)
 
             # Discard all but the lowest level
-            query = (session.query(cte.c.id, cte.c.pathstr)
+            subquery = (session.query(cte.c.id, cte.c.pathstr, cte.c.any_deleted)
                 .filter(cte.c.level == level)
                 .order_by(cte.c.path)
                 .subquery())
 
             # Select again to get the actual qnodes
-            query = (session.query(model.QuestionNode, query.c.pathstr)
+            query = (session.query(
+                    model.QuestionNode, subquery.c.pathstr, subquery.c.any_deleted)
                 .filter(model.QuestionNode.survey_id == self.survey_id)
-                .join(query,
-                      model.QuestionNode.id == query.c.id))
+                .join(subquery,
+                      model.QuestionNode.id == subquery.c.id))
 
             if parent_not == '':
                 query = query.filter(model.QuestionNode.parent_id != None)
@@ -223,6 +241,9 @@ class QuestionNodeHandler(
             if term != '':
                 query = query.filter(
                     model.QuestionNode.title.ilike('%{}%'.format(term)))
+
+            if deleted is not None:
+                query = query.filter(subquery.c.any_deleted == deleted)
 
             query = self.paginate(query)
 
@@ -234,6 +255,7 @@ class QuestionNodeHandler(
                 # Fields to match from any visited object
                 r'/id$',
                 r'/title$',
+                r'/deleted$',
                 r'/n_measures$'
             ]
             if truthy(self.get_argument('desc', False)):
@@ -241,9 +263,10 @@ class QuestionNodeHandler(
 
             to_son = ToSon(include=include, exclude=exclude)
             sons = []
-            for qnode, path in query.all():
+            for qnode, path, deleted in query.all():
                 son = to_son(qnode)
                 son['path'] = path
+                son['anyDeleted'] = deleted
                 sons.append(son)
 
         self.set_header("Content-Type", "application/json")
@@ -306,7 +329,9 @@ class QuestionNodeHandler(
                 else:
                     raise handlers.ModelError("Parent or hierarchy ID required")
 
+                # Need to flush so object has an ID to record action against.
                 session.flush()
+
                 qnode.update_stats_ancestors()
                 qnode_id = str(qnode.id)
 
@@ -338,20 +363,18 @@ class QuestionNodeHandler(
                     raise ValueError("No such object")
                 log.debug("deleting: %s", qnode)
 
-                if len(qnode.qnode_measures) > 0:
-                    raise handlers.ModelError("Question node is in use")
-
-                hierarchy = None
-                parent = None
-                if qnode.hierarchy is not None:
-                    hierarchy = qnode.hierarchy
-                if qnode.parent is not None:
-                    parent = qnode.parent
+                survey = qnode.survey
+                hierarchy = qnode.hierarchy
+                parent = qnode.parent
 
                 act = Activities(session)
-                act.record(self.current_user, qnode, ['delete'])
+                if not qnode.deleted:
+                    act.record(self.current_user, qnode, ['delete'])
+                if not act.has_subscription(self.current_user, qnode):
+                    act.subscribe(self.current_user, survey)
+                    self.reason("Subscribed to program")
 
-                session.delete(qnode)
+                qnode.deleted = True
 
                 if hierarchy is not None:
                     hierarchy.qnodes.reorder()
@@ -405,6 +428,21 @@ class QuestionNodeHandler(
                     self.reason("Moved from %s to %s" % (
                         old_parent.title, new_parent.title))
                     verbs.append('relation')
+
+                if qnode.deleted:
+                    # Get a reference to the collection before changing the
+                    # deleted flag - otherwise, if a query is needed to
+                    # instantiate the collection, it will seem as if the object
+                    # is already in the collection and insert will not work as
+                    # expected.
+                    if qnode.parent:
+                        collection = qnode.parent.children
+                    else:
+                        collection = qnode.hierarchy.qnodes
+                    qnode.deleted = False
+                    collection.insert(qnode.seq, qnode)
+                    collection.reorder()
+                    verbs.append('undelete')
 
                 act = Activities(session)
                 act.record(self.current_user, qnode, verbs)

@@ -69,6 +69,7 @@ class MeasureHandler(
                 r'/id$',
                 r'/title$',
                 r'/seq$',
+                r'/deleted$',
                 r'/is_editable$',
                 r'/survey/tracking_id$',
                 r'/survey/created$',
@@ -169,6 +170,7 @@ class MeasureHandler(
                 r'/title$',
                 r'/intent$',
                 r'/seq$',
+                r'/deleted$',
                 r'/survey/tracking_id$',
                 # Descend into nested objects
                 r'/[0-9]+$',
@@ -195,6 +197,7 @@ class MeasureHandler(
                 r'/id$',
                 r'/title$',
                 r'/seq$',
+                r'/deleted$',
                 r'/survey/tracking_id$',
                 # Descend into nested objects
                 r'/[0-9]+$',
@@ -230,6 +233,8 @@ class MeasureHandler(
                 measure = model.Measure(survey_id=self.survey_id)
                 session.add(measure)
                 self._update(measure, self.request_son)
+
+                # Need to flush so object has an ID to record action against.
                 session.flush()
 
                 parents = []
@@ -268,6 +273,9 @@ class MeasureHandler(
         parent_ids = [p for p in self.get_arguments('parentId')
                       if p != '']
 
+        if len(parent_ids) == 0:
+            raise handlers.ModelError("Please specify a parent to unlink from")
+
         self.check_editable()
 
         try:
@@ -278,29 +286,25 @@ class MeasureHandler(
                     raise handlers.MissingDocError("No such measure")
 
                 act = Activities(session)
-                if len(parent_ids) > 0:
-                    # Just unlink from qnodes
-                    for parent_id in parent_ids:
-                        qnode = session.query(model.QuestionNode)\
-                            .get((parent_id, self.survey_id))
-                        if qnode is None:
-                            raise handlers.MissingDocError(
-                                "No such question node")
-                        if measure not in qnode.measures:
-                            raise handlers.ModelError(
-                                "Measure does not belong to that question node")
-                        qnode.measures.remove(measure)
-                        qnode.qnode_measures.reorder()
-                        qnode.update_stats_ancestors()
-                    act.record(self.current_user, measure, ['relation'])
-                    if not act.has_subscription(self.current_user, measure):
-                        act.subscribe(self.current_user, measure.survey)
-                        self.reason("Subscribed to program")
-                else:
-                    if len(measure.parents) > 0:
-                        raise handlers.ModelError("Measure is in use")
-                    act.record(self.current_user, measure, ['delete'])
-                    session.delete(measure)
+
+                # Just unlink from qnodes
+                for parent_id in parent_ids:
+                    qnode = session.query(model.QuestionNode)\
+                        .get((parent_id, self.survey_id))
+                    if qnode is None:
+                        raise handlers.MissingDocError(
+                            "No such question node")
+                    if measure not in qnode.measures:
+                        raise handlers.ModelError(
+                            "Measure does not belong to that question node")
+                    qnode.measures.remove(measure)
+                    qnode.qnode_measures.reorder()
+                    qnode.update_stats_ancestors()
+                act.record(self.current_user, measure, ['delete'])
+                if not act.has_subscription(self.current_user, measure):
+                    act.subscribe(self.current_user, measure.survey)
+                    self.reason("Subscribed to program")
+
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Measure is in use")
         except sqlalchemy.exc.StatementError:
@@ -326,7 +330,7 @@ class MeasureHandler(
                 measure = session.query(model.Measure)\
                     .get((measure_id, self.survey_id))
                 if measure is None:
-                    raise ValueError("No such object")
+                    raise handlers.MissingDocError("No such measure")
                 self._update(measure, self.request_son)
 
                 verbs = []
@@ -347,14 +351,17 @@ class MeasureHandler(
                         continue
                     self.reason('Added to %s' % new_parent.title)
                     has_relocated = True
-                    for old_parent in list(measure.parents):
-                        if str(old_parent.hierarchy_id) == str(new_parent.hierarchy_id):
-                            old_parent.measures.remove(measure)
+                    for old_qm in list(measure.qnode_measures):
+                        old_parent = old_qm.qnode
+                        old_hid = old_parent.hierarchy_id
+                        if str(old_hid) == str(new_parent.hierarchy_id):
+                            old_parent.qnode_measures.remove(old_qm)
+                            measure.qnode_measures.remove(old_qm)
+                            session.delete(old_qm)
                             old_parent.qnode_measures.reorder()
                             self.reason('Moved from %s' % old_parent.title)
                     new_parent.measures.append(measure)
                     new_parent.qnode_measures.reorder()
-                    new_parent.update_stats_ancestors()
                     affected_parents.add(new_parent)
                 if has_relocated:
                     verbs.append('relation')
@@ -368,8 +375,6 @@ class MeasureHandler(
                     act.subscribe(self.current_user, measure.survey)
                     self.reason("Subscribed to program")
 
-        except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such measure")
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(measure_id)

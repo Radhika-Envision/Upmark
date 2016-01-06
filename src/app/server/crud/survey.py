@@ -90,6 +90,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/title$',
                 r'/description$',
                 r'/created$',
+                r'/deleted$',
                 r'/is_editable$',
                 r'/response_types.*$'
             ], exclude=exclude)
@@ -117,6 +118,11 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
             if is_editable:
                 query = query.filter(model.Survey.finalised_date==None)
 
+            deleted = self.get_argument('deleted', '')
+            if deleted != '':
+                deleted = truthy(deleted)
+                query = query.filter(model.Survey.deleted == deleted)
+
             query = query.order_by(model.Survey.created.desc())
             query = self.paginate(query)
 
@@ -124,6 +130,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/id$',
                 r'/title$',
                 r'/description$',
+                r'/deleted$',
                 r'/[0-9]+$'
             ])
             sons = to_son(query.all())
@@ -148,6 +155,8 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 survey = model.Survey()
                 self._update(survey, self.request_son)
                 session.add(survey)
+
+                # Need to flush so object has an ID to record action against.
                 session.flush()
                 survey_id = str(survey.id)
 
@@ -192,40 +201,45 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
             return entity
 
         def dup_hierarchies(hierarchies):
-            for hierarchy in source_survey.hierarchies:
+            for hierarchy in hierarchies:
+                if hierarchy.deleted:
+                    continue
                 log.debug('Duplicating %s', hierarchy)
                 qs = hierarchy.qnodes
                 dissociate(hierarchy)
                 hierarchy.survey_id = target_survey.id
-                session.flush()
                 dup_qnodes(qs)
 
         def dup_qnodes(qnodes):
             for qnode in qnodes:
+                if qnode.deleted:
+                    continue
                 log.debug('Duplicating %s', qnode)
                 children = qnode.children
                 qnode_measures = qnode.qnode_measures
                 dissociate(qnode)
                 qnode.survey_id = target_survey.id
-                session.flush()
                 dup_qnodes(children)
                 dup_qnode_measures(qnode_measures)
+
+        # Measures are shared, so we keep track of which ones have already been
+        # duplicated.
+        processed_measure_ids = set()
 
         def dup_qnode_measures(qnode_measures):
             for qnode_measure in qnode_measures:
                 log.debug('Duplicating %s', qnode_measure)
+                if qnode_measure.measure_id not in processed_measure_ids:
+                    dup_measure(qnode_measure.measure)
                 dissociate(qnode_measure)
                 qnode_measure.survey_id = target_survey.id
-            session.flush()
 
-        def dup_measures(measures):
-            for measure in measures:
-                log.debug('Duplicating %s', measure)
-                dissociate(measure)
-                measure.survey_id = target_survey.id
-            session.flush()
+        def dup_measure(measure):
+            log.debug('Duplicating %s', measure)
+            dissociate(measure)
+            measure.survey_id = target_survey.id
+            processed_measure_ids.add(measure.id)
 
-        dup_measures(source_survey.measures)
         dup_hierarchies(source_survey.hierarchies)
 
     @handlers.authz('author')
@@ -245,9 +259,15 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 if not survey.is_editable:
                     raise handlers.MethodError(
                         "This survey is closed for editing")
+
                 act = Activities(session)
-                act.record(self.current_user, survey, ['delete'])
-                session.delete(survey)
+                if not survey.deleted:
+                    act.record(self.current_user, survey, ['delete'])
+                if not act.has_subscription(self.current_user, survey):
+                    act.subscribe(self.current_user, survey)
+                    self.reason("Subscribed to program")
+
+                survey.deleted = True
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Survey is in use")
         except (sqlalchemy.exc.StatementError, ValueError):
@@ -280,9 +300,16 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                         "This survey is closed for editing")
                 self._update(survey, self.request_son)
 
-                act = Activities(session)
+                verbs = []
                 if session.is_modified(survey):
-                    act.record(self.current_user, survey, ['update'])
+                    verbs.append('update')
+
+                if survey.deleted:
+                    survey.deleted = False
+                    verbs.append('undelete')
+
+                act = Activities(session)
+                act.record(self.current_user, survey, verbs)
                 if not act.has_subscription(self.current_user, survey):
                     act.subscribe(self.current_user, survey)
                     self.reason("Subscribed to program")
@@ -351,13 +378,19 @@ class SurveyTrackingHandler(handlers.BaseHandler):
                 raise handlers.MissingDocError("No such survey")
 
             query = (session.query(model.Survey)
-                .filter(model.Survey.tracking_id==survey.tracking_id)
+                .filter(model.Survey.tracking_id == survey.tracking_id)
                 .order_by(model.Survey.created))
+
+            deleted = self.get_argument('deleted', '')
+            if deleted != '':
+                deleted = truthy(deleted)
+                query = query.filter(model.Survey.deleted == deleted)
 
             to_son = ToSon(include=[
                 r'/id$',
                 r'/title$',
                 r'/is_editable$',
+                r'/deleted$',
                 # Descend
                 r'/[0-9]+$',
             ])
@@ -381,14 +414,20 @@ class SurveyHistoryHandler(handlers.BaseHandler):
         with model.session_scope() as session:
             query = (session.query(model.Survey)
                 .join(self.mapper)
-                .filter(self.mapper.id==entity_id)
+                .filter(self.mapper.id == entity_id)
                 .order_by(model.Survey.created))
+
+            deleted = self.get_argument('deleted', '')
+            if deleted != '':
+                deleted = truthy(deleted)
+                query = query.filter(model.Survey.deleted == deleted)
 
             to_son = ToSon(include=[
                 r'/id$',
                 r'/title$',
                 r'/is_editable$',
                 r'/created$',
+                r'/deleted$',
                 # Descend
                 r'/[0-9]+$',
             ])

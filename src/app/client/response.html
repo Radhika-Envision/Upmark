@@ -18,11 +18,11 @@
     <li ng-repeat="part in responseType.parts" class="clearfix"
             ng-class="{active: $index == state.active}"
             title="{{part.description}}">
-        <div ng-if="part.name" class="hidden-print">
+        <div ng-if="part.name" class="hidden-print" ng-hide="readonly">
             <label ng-click="state.active = $index">{{part.name}}</label>
         </div>
-        <div>
-            <div class="btn-group btn-group-justified hidden-print"
+        <div class="hidden-print" ng-hide="readonly">
+            <div class="btn-group btn-group-justified"
                     ng-init="pi = $index">
                 <div class="btn-group"
                         ng-repeat="o in part.options">
@@ -38,7 +38,7 @@
                 </div>
             </div>
         </div>
-        <div class="visible-print-block">
+        <div ng-class="readonly ? null : 'visible-print-block'">
             <span ng-if="part.name">{{part.name}}:</span>
             <span ng-if="getActiveOption($index)">
                 {{getActiveOption($index).index + 1}}
@@ -76,12 +76,14 @@
 </docs>
 
 <label for="comments" class="sr-only">Comments</label>
-<p class="visible-print-block">Comments:</p>
-<div textarea-label="{{!response.comment ? 'Comments' : ''}}">
+<p ng-class="readonly ? null : 'visible-print-block'">Comments:</p>
+<div ng-if="!readonly"
+        textarea-label="{{!response.comment ? 'Comments' : ''}}">
     <markdown-editor id="comments"
         ng-model="response.comment" placeholder="''"
         markdown-editor-focus-on="focus-comment" title="Comments"
         markdown-editor-blur-on="blur-comment"></markdown-editor>
 </div>
+<p ng-if="readonly">{{response.comment || 'None'}}</p>
 
 </div>

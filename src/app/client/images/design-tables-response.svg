@@ -11,7 +11,7 @@
    viewBox="0 0 1130 420"
    stroke-miterlimit="10"
    id="svg3412"
-   inkscape:version="0.91 r13725"
+   inkscape:version="0.48.5 r10040"
    width="1130"
    height="420"
    sodipodi:docname="design-tables-response.svg"
@@ -97,7 +97,7 @@
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
      inkscape:window-width="1920"
-     inkscape:window-height="1145"
+     inkscape:window-height="1014"
      id="namedview3491"
      showgrid="true"
      fit-margin-top="0"
@@ -152,10 +152,10 @@
     <rect
        y="740"
        x="360"
-       height="150"
+       height="170"
        width="180"
        id="rect4910"
-       style="fill:#ededed;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.73205078;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1" />
+       style="fill:#ededed;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.73205078;stroke-miterlimit:10;stroke-opacity:1;stroke-dasharray:none" />
     <rect
        style="color:#000000;fill:#ededed;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:2.06155276;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
        id="rect4912"
@@ -207,7 +207,7 @@
        id="text4934"
        y="790"
        x="370"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+       style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
        xml:space="preserve"><tspan
          id="tspan4944"
          style="font-size:12px"
@@ -241,6 +241,11 @@
          id="tspan5169">created</tspan><tspan
          style="font-size:12px"
          y="880"
+         x="370"
+         sodipodi:role="line"
+         id="tspan4816">deleted</tspan><tspan
+         style="font-size:12px"
+         y="895"
          x="370"
          sodipodi:role="line"
          id="tspan5175">approval</tspan></text>
@@ -588,17 +593,17 @@
        sodipodi:cy="710"
        sodipodi:rx="10"
        sodipodi:ry="10"
-       d="M 80,710 A 10,10 0 0 1 70,720 10,10 0 0 1 60,710 10,10 0 0 1 70,700 10,10 0 0 1 80,710 Z"
+       d="m 80,710 c 0,5.52285 -4.477153,10 -10,10 -5.522847,0 -10,-4.47715 -10,-10 0,-5.52285 4.477153,-10 10,-10 5.522847,0 10,4.47715 10,10 z"
        transform="translate(740,-20)" />
     <path
        style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 420,890 0,109"
+       d="m 420,910 0,89"
        id="path5375"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 480,890 0,90 410,0 0,-20"
+       d="m 480,910 0,70 410,0 0,-20"
        id="path5377"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cccc" />
@@ -683,7 +688,7 @@
          sodipodi:role="line">datetime</tspan></text>
     <text
        xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+       style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
        x="460"
        y="789"
        id="text5531"
@@ -718,10 +723,15 @@
          x="460"
          y="864"
          style="font-size:12px">datetime</tspan><tspan
-         id="tspan5547"
          sodipodi:role="line"
          x="460"
          y="879"
+         style="font-size:12px"
+         id="tspan4818">boolean</tspan><tspan
+         id="tspan5547"
+         sodipodi:role="line"
+         x="460"
+         y="894"
          style="font-size:12px">enum</tspan></text>
     <text
        sodipodi:linespacing="125%"
@@ -901,7 +911,8 @@
        cx="1190"
        cy="940.35712"
        rx="39.5"
-       ry="9.8571453" />
+       ry="9.8571453"
+       d="m 1229.5,940.35712 c 0,5.44395 -17.6848,9.85714 -39.5,9.85714 -21.8152,0 -39.5,-4.41319 -39.5,-9.85714 0,-5.44395 17.6848,-9.85715 39.5,-9.85715 21.8152,0 39.5,4.4132 39.5,9.85715 z" />
     <text
        xml:space="preserve"
        style="color:#000000;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14px;line-height:125%;font-family:FontAwesome;-inkscape-font-specification:FontAwesome;text-indent:0;text-align:center;text-decoration:none;text-decoration-line:none;letter-spacing:0px;word-spacing:0px;text-transform:none;direction:ltr;block-progression:tb;writing-mode:lr-tb;baseline-shift:baseline;text-anchor:middle;display:inline;overflow:visible;visibility:visible;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker:none;enable-background:accumulate"
