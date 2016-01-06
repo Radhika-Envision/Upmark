@@ -531,11 +531,17 @@ class SurveyTest(base.AqHttpTestBase):
                     self.assertIn(pb, b.parents)
                     self.assertNotIn(pb, a.parents)
 
-            self.assertEqual(len(sa.measures), len(sb.measures))
-            for a, b in zip(sa.measures, sb.measures):
+            # A has five measures, but two are only referenced by deleted nodes.
+            self.assertEqual(len(sa.measures), 5)
+            self.assertEqual(len(sb.measures), 3)
+            measures_in_a = {m.id: m for m in sa.measures}
+            for b in sb.measures:
+                a = measures_in_a[b.id]
                 visit_measure(a, b, None, None, None, None)
 
-            self.assertEqual(len(sa.hierarchies), len(sb.hierarchies))
+            # A has three hierarchies, but one is deleted.
+            self.assertEqual(len(sa.hierarchies), 2)
+            self.assertEqual(len(sb.hierarchies), 2)
             for a, b in zip(sa.hierarchies, sb.hierarchies):
                 visit_hierarchy(a, b)
 

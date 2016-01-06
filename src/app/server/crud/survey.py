@@ -202,6 +202,8 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
 
         def dup_hierarchies(hierarchies):
             for hierarchy in hierarchies:
+                if hierarchy.deleted:
+                    continue
                 log.debug('Duplicating %s', hierarchy)
                 qs = hierarchy.qnodes
                 dissociate(hierarchy)
@@ -210,6 +212,8 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
 
         def dup_qnodes(qnodes):
             for qnode in qnodes:
+                if qnode.deleted:
+                    continue
                 log.debug('Duplicating %s', qnode)
                 children = qnode.children
                 qnode_measures = qnode.qnode_measures
@@ -218,19 +222,24 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 dup_qnodes(children)
                 dup_qnode_measures(qnode_measures)
 
+        # Measures are shared, so we keep track of which ones have already been
+        # duplicated.
+        processed_measure_ids = set()
+
         def dup_qnode_measures(qnode_measures):
             for qnode_measure in qnode_measures:
                 log.debug('Duplicating %s', qnode_measure)
+                if qnode_measure.measure_id not in processed_measure_ids:
+                    dup_measure(qnode_measure.measure)
                 dissociate(qnode_measure)
                 qnode_measure.survey_id = target_survey.id
 
-        def dup_measures(measures):
-            for measure in measures:
-                log.debug('Duplicating %s', measure)
-                dissociate(measure)
-                measure.survey_id = target_survey.id
+        def dup_measure(measure):
+            log.debug('Duplicating %s', measure)
+            dissociate(measure)
+            measure.survey_id = target_survey.id
+            processed_measure_ids.add(measure.id)
 
-        dup_measures(source_survey.measures)
         dup_hierarchies(source_survey.hierarchies)
 
     @handlers.authz('author')

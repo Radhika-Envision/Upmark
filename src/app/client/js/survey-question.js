@@ -290,6 +290,8 @@ angular.module('wsaa.surveyQuestions', [
         deleted: false
     };
     $scope.$watch('search.deleted', function() {
+        if (!$scope.survey.id)
+            return;
         Hierarchy.query({
             surveyId: $scope.survey.id,
             deleted: $scope.search.deleted
