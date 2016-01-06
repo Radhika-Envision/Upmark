@@ -545,6 +545,9 @@ class QuestionNode(Observable, Base):
     def get_path(self):
         return " ".join(["%d." % (q.seq + 1) for q in self.lineage()])
 
+    def any_deleted(self):
+        return self.deleted or self.parent_id and self.parent.any_deleted()
+
     @property
     def ob_type(self):
         return 'qnode'
