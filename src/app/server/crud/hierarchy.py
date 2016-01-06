@@ -169,7 +169,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     raise ValueError("No such object")
 
                 act = Activities(session)
-                if session.is_modified(hierarchy):
+                if not hierarchy.deleted:
                     act.record(self.current_user, hierarchy, ['delete'])
                 if not act.has_subscription(self.current_user, hierarchy):
                     act.subscribe(self.current_user, hierarchy.survey)

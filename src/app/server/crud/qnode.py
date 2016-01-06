@@ -368,7 +368,7 @@ class QuestionNodeHandler(
                 parent = qnode.parent
 
                 act = Activities(session)
-                if session.is_modified(qnode):
+                if not qnode.deleted:
                     act.record(self.current_user, qnode, ['delete'])
                 if not act.has_subscription(self.current_user, qnode):
                     act.subscribe(self.current_user, survey)

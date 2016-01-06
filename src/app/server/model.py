@@ -790,7 +790,7 @@ class Assessment(Observable, Base):
         # It would be nice to include the program and survey in this list, but
         # then everyone who was subscribed to a survey would get spammed with
         # all the submissions against it.
-        return [self]
+        return [self.organisation, self]
 
     def update_stats_descendants(self):
         for qnode in self.hierarchy.qnodes:
@@ -894,7 +894,7 @@ class ResponseNode(Observable, Base):
         # It would be nice to include the program and survey in this list, but
         # then everyone who was subscribed to a survey would get spammed with
         # all the submissions against it.
-        return [self.assessment] + self.lineage()
+        return [self.assessment.organisation, self.assessment] + self.lineage()
 
     @property
     def action_descriptor(self):
@@ -1083,7 +1083,7 @@ class Response(Observable, Versioned, Base):
         # It would be nice to include the program and survey in this list, but
         # then everyone who was subscribed to a survey would get spammed with
         # all the submissions against it.
-        return [self.assessment] + self.lineage()
+        return [self.assessment.organisation, self.assessment] + self.lineage()
 
     @property
     def action_descriptor(self):

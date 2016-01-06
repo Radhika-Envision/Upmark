@@ -252,7 +252,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                         "This survey is closed for editing")
 
                 act = Activities(session)
-                if session.is_modified(survey):
+                if not survey.deleted:
                     act.record(self.current_user, survey, ['delete'])
                 if not act.has_subscription(self.current_user, survey):
                     act.subscribe(self.current_user, survey)

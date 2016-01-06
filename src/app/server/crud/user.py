@@ -224,14 +224,15 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 if user is None:
                     raise ValueError("No such object")
                 self._check_delete(user)
-                user.deleted = True
 
                 act = Activities(session)
-                if session.is_modified(user):
+                if not user.deleted:
                     act.record(self.current_user, user, ['delete'])
                 if not act.has_subscription(self.current_user, user):
                     act.subscribe(self.current_user, user.organisation)
                     self.reason("Subscribed to organisation")
+
+                user.deleted = True
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError(

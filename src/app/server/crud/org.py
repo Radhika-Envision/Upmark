@@ -170,14 +170,14 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                     raise handlers.ModelError(
                         "You can't delete your own organisation")
 
-                org.deleted = True
-
                 act = Activities(session)
-                if session.is_modified(org):
+                if not org.deleted:
                     act.record(self.current_user, org, ['delete'])
                 if not act.has_subscription(self.current_user, org):
                     act.subscribe(self.current_user, org)
                     self.reason("Subscribed to organisation")
+
+                org.deleted = True
 
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such organisation")

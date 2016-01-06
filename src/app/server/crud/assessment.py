@@ -193,8 +193,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 act = Activities(session)
                 act.record(self.current_user, assessment, ['create'])
                 if not act.has_subscription(self.current_user, assessment):
-                    act.subscribe(self.current_user, assessment)
-                    self.reason("Subscribed to submission")
+                    act.subscribe(self.current_user, assessment.organisation)
+                    self.reason("Subscribed to organisation")
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
@@ -370,8 +370,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 act = Activities(session)
                 act.record(self.current_user, assessment, verbs)
                 if not act.has_subscription(self.current_user, assessment):
-                    act.subscribe(self.current_user, assessment)
-                    self.reason("Subscribed to submission")
+                    act.subscribe(self.current_user, assessment.organisation)
+                    self.reason("Subscribed to organisation")
 
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such submission")
@@ -393,7 +393,11 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 self._check_delete(assessment)
 
                 act = Activities(session)
-                act.record(self.current_user, assessment, ['delete'])
+                if not assessment.deleted:
+                    act.record(self.current_user, assessment, ['delete'])
+                if not act.has_subscription(self.current_user, assessment):
+                    act.subscribe(self.current_user, assessment.organisation)
+                    self.reason("Subscribed to organisation")
 
                 assessment.deleted = True
         except sqlalchemy.exc.IntegrityError as e:
