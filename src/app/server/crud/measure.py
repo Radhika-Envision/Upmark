@@ -273,6 +273,9 @@ class MeasureHandler(
         parent_ids = [p for p in self.get_arguments('parentId')
                       if p != '']
 
+        if len(parent_ids) == 0:
+            raise handlers.ModelError("Please specify a parent to unlink from")
+
         self.check_editable()
 
         try:
@@ -283,29 +286,25 @@ class MeasureHandler(
                     raise handlers.MissingDocError("No such measure")
 
                 act = Activities(session)
-                if len(parent_ids) > 0:
-                    # Just unlink from qnodes
-                    for parent_id in parent_ids:
-                        qnode = session.query(model.QuestionNode)\
-                            .get((parent_id, self.survey_id))
-                        if qnode is None:
-                            raise handlers.MissingDocError(
-                                "No such question node")
-                        if measure not in qnode.measures:
-                            raise handlers.ModelError(
-                                "Measure does not belong to that question node")
-                        qnode.measures.remove(measure)
-                        qnode.qnode_measures.reorder()
-                        qnode.update_stats_ancestors()
-                    act.record(self.current_user, measure, ['relation'])
-                    if not act.has_subscription(self.current_user, measure):
-                        act.subscribe(self.current_user, measure.survey)
-                        self.reason("Subscribed to program")
-                else:
-                    if len(measure.parents) > 0:
-                        raise handlers.ModelError("Measure is in use")
-                    act.record(self.current_user, measure, ['delete'])
-                    session.delete(measure)
+
+                # Just unlink from qnodes
+                for parent_id in parent_ids:
+                    qnode = session.query(model.QuestionNode)\
+                        .get((parent_id, self.survey_id))
+                    if qnode is None:
+                        raise handlers.MissingDocError(
+                            "No such question node")
+                    if measure not in qnode.measures:
+                        raise handlers.ModelError(
+                            "Measure does not belong to that question node")
+                    qnode.measures.remove(measure)
+                    qnode.qnode_measures.reorder()
+                    qnode.update_stats_ancestors()
+                act.record(self.current_user, measure, ['delete'])
+                if not act.has_subscription(self.current_user, measure):
+                    act.subscribe(self.current_user, measure.survey)
+                    self.reason("Subscribed to program")
+
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Measure is in use")
         except sqlalchemy.exc.StatementError:

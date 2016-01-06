@@ -3,11 +3,10 @@
 <div class="container">
     <div class="toolbar">
         <button class="btn btn-default btn-round"
-                title="{{parent ? 'Unlink from parent' : 'Delete'}}"
+                title="Unlink from parent"
                 ng-click="edit.del()"
-                ng-if="editable && !edit.model && checkRole('measure_del')">
-            <i class="fa fa-trash-o"
-                    ng-class="parent ? 'fa-unlink' : 'fa-trash-o'"></i>
+                ng-if="parent && editable && !edit.model && checkRole('measure_del')">
+            <i class="fa fa-trash-o"></i>
         </button>
         <button class="btn btn-default btn-round" title="Collapse"
                 ng-click="layout.expandHeader = !layout.expandHeader">
