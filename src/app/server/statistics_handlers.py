@@ -46,13 +46,15 @@ class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
         included_approval_status=approval_status[approval_index:4]
         with model.session_scope() as session:
             try:
-                responseNodes = session.query(model.ResponseNode)\
-                    .join(model.ResponseNode.qnode)\
-                    .join(model.ResponseNode.assessment)\
-                    .options(joinedload(model.ResponseNode.qnode))\
-                    .filter(model.ResponseNode.survey_id==survey_id)\
-                    .filter(model.QuestionNode.parent_id==parent_id)\
-                    .filter(model.Assessment.approval.in_(included_approval_status))
+                responseNodes = (session.query(model.ResponseNode)
+                    .join(model.ResponseNode.qnode)
+                    .join(model.ResponseNode.assessment)
+                    .options(joinedload(model.ResponseNode.qnode))
+                    .filter(model.ResponseNode.survey_id == survey_id,
+                            model.QuestionNode.parent_id == parent_id,
+                            model.Assessment.approval.in_(included_approval_status),
+                            model.Assessment.deleted == False,
+                            model.QuestionNode.deleted == False))
 
                 if responseNodes is None:
                     raise ValueError("No such object")
