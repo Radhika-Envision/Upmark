@@ -191,7 +191,6 @@ class Exporter():
         """
         Open and write an Excel file
         """
-        model.connect_db(os.environ.get('DATABASE_URL'))
         workbook = xlsxwriter.Workbook(file_name)
         worksheet = workbook.add_worksheet('Scoring')
         worksheet.set_column(0, 0, 12)
@@ -502,7 +501,6 @@ class Exporter():
         """
         Open and write an Excel file
         """
-        model.connect_db(os.environ.get('DATABASE_URL'))
         workbook = xlsxwriter.Workbook(file_name)
         worksheet = workbook.add_worksheet('Response')
         worksheet_metadata = workbook.add_worksheet('Metadata')
@@ -524,7 +522,6 @@ class Exporter():
             'underline':  1
         })
 
-
         line = 1
         with model.session_scope() as session:
             assessment = session.query(model.Assessment)\
@@ -540,12 +537,17 @@ class Exporter():
                 level_length = len(levels)
                 worksheet.set_column(0, level_length, 50)
                 # Find max response number and write to header
-                max_len_of_response = max(
-                    [len(response.response_parts) 
-                        for response in assessment.ordered_responses])
-                response_types = [part["parts"] for part in assessment.survey._response_types
-                                    if len(part["parts"]) == max_len_of_response][0]
-                response_parts = [part['name'] for part in  response_types]
+                responses = list(assessment.ordered_responses)
+                if len(responses) > 0:
+                    max_len_of_response = max(
+                        [len(response.response_parts) for response in responses])
+                    response_types = [part["parts"]
+                                      for part in assessment.survey._response_types
+                                      if len(part["parts"]) == max_len_of_response][0]
+                    response_parts = [part['name'] for part in  response_types]
+                else:
+                    max_len_of_response = 0
+                    response_parts = []
 
                 worksheet.set_column(level_length + 1, 
                     level_length + max_len_of_response + 8, 15)
@@ -557,7 +559,7 @@ class Exporter():
                     workbook, worksheet, levels, max_len_of_response,
                     response_parts)
 
-                for response in assessment.ordered_responses:
+                for response in responses:
                     # log.info("response: %s", response.measure.id)
                     qnode = response.measure.get_parent(
                         assessment.hierarchy_id)
