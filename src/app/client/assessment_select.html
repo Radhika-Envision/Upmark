@@ -55,11 +55,13 @@
 
             <span class="sr-only">Related</span>
         </button>
+        <delete-cycle model="search.deleted"></delete-cycle>
     </search-box>
 
     <ul class="list-results spaced">
         <li ng-repeat="a in assessments"
-                ng-class="{active: a.id == assessment.id}">
+                ng-class="{active: a.id == assessment.id,
+                           strike: a.deleted}">
             <a ng-href="#{{getAssessmentUrl(a)}}"
                     ng-click="toggleDropdown()">
                 <h4>{{a.title}}

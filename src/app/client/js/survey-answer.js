@@ -70,7 +70,13 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
             $scope.edit.params.duplicateId = $scope.duplicate.id;
         $scope.edit.edit();
     }
-    $scope.structure = Structure($scope.assessment);
+
+    $scope.$watchGroup(['assessment', 'assessment.deleted'], function(vars) {
+        var assessment = vars[0];
+        if (!assessment)
+            return;
+        $scope.structure = Structure(assessment);
+    });
 
     $scope.$watch('edit.model.hierarchy', function(hierarchy) {
         // Generate title first time

@@ -1,8 +1,10 @@
-<div class="header">
+<div class="header"
+    ng-class="{'deleted': structure.deletedItem}">
 <div class="container">
     <div class="toolbar">
 
-        <span dropdown dropdown-append-to-body ng-if="!edit.model">
+        <span dropdown dropdown-append-to-body
+                ng-if="!structure.deletedItem && !edit.model">
             <button class="btn btn-default btn-round"
                     title="Export" dropdown-toggle>
                 <i class="fa fa-cloud-download"></i></button>
@@ -30,22 +32,23 @@
 
         <a class="btn btn-default btn-round" title="Statistics"
                 ng-href="#/statistics?assessment1={{assessment.id}}"
-                ng-if="!edit.model && checkRole('assessment_admin')">
+                ng-if="!structure.deletedItem && !edit.model &&
+                       checkRole('assessment_admin')">
             <i class="fa fa-sml fa-bar-chart-o"></i></a>
-        <button class="btn btn-default btn-round" title="Delete"
-                ng-click="edit.del()"
-                ng-if="!edit.model && checkRole('assessment_admin')">
-            <i class="fa fa-trash-o"></i></button>
         <button class="btn btn-default btn-round" title="Collapse"
                 ng-click="layout.expandHeader = !layout.expandHeader">
             <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
             <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
         </button>
         <button class="btn btn-default btn-round" title="Print"
-                ng-if="!edit.model"
+                ng-if="!structure.deletedItem && !edit.model"
                 onclick="print()">
             <i class="fa fa-print"></i>
         </button>
+
+        <delete-button model="assessment" editor="edit"
+                ng-if="!edit.model && checkRole('assessment_admin')"></delete-button>
+
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
                 ng-if="edit.model && edit.model.id">
@@ -62,7 +65,8 @@
             <i class="fa fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
-                ng-if="!edit.model && checkRole('assessment_edit')">
+                ng-if="!structure.deletedItem && !edit.model &&
+                       checkRole('assessment_edit')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
                 ng-href="#/subscription/submission?id={{assessment.id}}"
@@ -101,7 +105,7 @@
                 ng-model="edit.model.title" required />
         </div>
         <div class="checkbox" show-errors
-                ng-if="!$scope.duplicate && checkRole('survey_edit')">
+                ng-if="!edit.model.id && !duplicate && checkRole('survey_edit')">
             <label>
                 <input type="checkbox" id="fillRandom" name="fillRandom"
                     ng-model="edit.params.fillRandom" />

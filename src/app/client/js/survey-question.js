@@ -409,6 +409,7 @@ angular.module('wsaa.surveyQuestions', [
                 hierarchyId: null,
                 surveyId: null,
                 trackingId: null,
+                deleted: false,
                 page: 0,
                 pageSize: 5
             };
@@ -996,7 +997,7 @@ angular.module('wsaa.surveyQuestions', [
     }
 
     $scope.$watchGroup(['qnode', 'qnode.deleted'], function() {
-        $scope.structure = Structure($scope.qnode);
+        $scope.structure = Structure($scope.qnode, $scope.assessment);
         $scope.survey = $scope.structure.survey;
         $scope.edit = Editor('qnode', $scope, {
             parentId: routeData.parent && routeData.parent.id,
@@ -2196,7 +2197,7 @@ angular.module('wsaa.surveyQuestions', [
     }
 
     $scope.$watch('measure', function(measure) {
-        $scope.structure = Structure(measure);
+        $scope.structure = Structure(measure, $scope.assessment);
         $scope.survey = $scope.structure.survey;
         $scope.edit = Editor('measure', $scope, {
             parentId: $scope.parent && $scope.parent.id,
