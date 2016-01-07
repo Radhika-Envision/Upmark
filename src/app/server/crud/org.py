@@ -200,7 +200,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                         if c.name not in {'id', 'organisation_id'}}
 
         def loc_eq(a, b):
-            return all(a[n] == getattr(b, n) for n in column_names)
+            return all(a.get(n, None) == getattr(b, n) for n in column_names)
 
         locs = []
         for l in sons:
