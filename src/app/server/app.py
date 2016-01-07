@@ -290,7 +290,17 @@ def start_web_server():
     except ValueError:
         port = tornado.options.options.port
     max_buffer_size = 10 * 1024**2 # 10MB
-    http_server = tornado.httpserver.HTTPServer(application, max_body_size=max_buffer_size)
+
+    if os.path.isdir("/etc/letsencrypt/live/aquamark"):
+        ssl_opts = {
+            "certfile": "/etc/letsencrypt/live/aquamark/fullchain.pem",
+            "keyfile": "/etc/letsencrypt/live/aquamark/privkey.pem"
+        }
+    else:
+        ssl_opts = None
+
+    http_server = tornado.httpserver.HTTPServer(
+        application, max_body_size=max_buffer_size, ssl_options=ssl_opts)
     http_server.listen(port)
 
     if log.isEnabledFor(logging.INFO):
