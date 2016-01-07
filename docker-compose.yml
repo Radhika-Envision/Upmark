@@ -3,10 +3,25 @@ web:
   ports:
    - "8000:8000"
   environment:
-    DEV_MODE: True
-    AQ_XSRF: True
+    DEV_MODE: 'True'
+    AQ_XSRF: 'True'
   volumes:
    - ./src/app:/usr/share/aquamark/app
+  links:
+   - postgres:postgres
+
+webssl:
+  build: ./src/app/
+  ports:
+   - "80:8000"
+   - "443:8000"
+  environment:
+    DEV_MODE: 'True'
+    AQ_XSRF: 'True'
+  volumes:
+   - ./src/app:/usr/share/aquamark/app
+   - /etc/letsencrypt/live/aquamark.vpac-innovations.com.au:/etc/letsencrypt/live/aquamark
+   - /etc/letsencrypt/archive/aquamark.vpac-innovations.com.au:/etc/letsencrypt/archive/aquamark.vpac-innovations.com.au
   links:
    - postgres:postgres
 
