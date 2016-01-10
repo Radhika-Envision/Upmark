@@ -54,6 +54,20 @@
             <input type="text" class="form-control" id="user_name" name="user_name"
                 ng-model="edit.model.name" required />
         </div>
+        <div class="form-group">
+            <label for="user_org">Organisation</label>
+            <ui-select ng-model="edit.model.organisation"
+                    ng-disabled="!checkRole('user_change_org')"
+                    reset-search-input="false">
+                <ui-select-match placeholder="Type to select organisation">{{edit.model.organisation.name}}</ui-select-match>
+                <ui-select-choices
+                        repeat="organisation in organisations | filter: $select.search"
+                        refresh="searchOrg($select.search)"
+                        refresh-delay="0">
+                    <div ng-bind-html="organisation.name | highlight: $select.search"></div>
+                </ui-select-choices>
+            </ui-select>
+        </div>
         <div class="form-group" show-errors>
             <label for="user_role">Role</label>
             <select type="text" class="form-control" id="user_role" name="user_role"
@@ -69,20 +83,28 @@
             <input type="email" class="form-control" id="user_email" name="user_email"
                 ng-model="edit.model.email" required />
         </div>
-        <div class="form-group">
-            <label for="user_org">Organisation</label>
-            <ui-select ng-model="edit.model.organisation"
-                    ng-disabled="!checkRole('user_change_org')"
-                    reset-search-input="false">
-                <ui-select-match placeholder="Type to select organisation">{{edit.model.organisation.name}}</ui-select-match>
-                <ui-select-choices
-                        repeat="organisation in organisations | filter: $select.search"
-                        refresh="searchOrg($select.search)"
-                        refresh-delay="0">
-                    <div ng-bind-html="organisation.name | highlight: $select.search"></div>
-                </ui-select-choices>
-            </ui-select>
+        <div class="form-group" show-errors>
+            <label for="user_email_interval">Timeline email frequency (days)</label>
+            <span class="help-label" ng-if="form.user_email_interval.$error.required">
+                *</span>
+            <span class="help-label" ng-if="form.user_email_interval.$error.min">
+                Negative numbers are not allowed</span>
+            <span class="help-label" ng-if="form.user_email_interval.$error.number">
+                Must be a number</span>
+            <input type="number" class="form-control" seconds-as-days
+                    id="user_email_interval" name="user_email_interval"
+                    ng-model="edit.model.emailInterval"
+                    required min="0" />
         </div>
+        <docs>
+            <i class="fa fa-li fa-border fa-envelope-o"></i>
+            <h3>Email notifications</h3>
+            <p>
+                Notifications can be sent to your email address when activity
+                in <a href="/#/">your timeline</a> changes. To opt out, set the
+                email frequency to zero. The maximum interval is two weeks.
+            </p>
+        </docs>
 
         <div class="form-group" show-errors>
             <label for="user_pwd">Password</label>
@@ -120,6 +142,13 @@
 
 <div ng-if="!edit.model" class="container">
     <dl>
+        <dt>Organisation</dt>
+        <dd>
+            <a ng-href="#/org/{{user.organisation.id}}">
+                {{user.organisation.name}}</a>
+        </dd>
+    </dl>
+    <dl>
         <dt>Role</dt>
         <dd>{{roleDict[user.role].name}}
             <span class="text-muted">- {{roleDict[user.role].description}}</span>
@@ -127,11 +156,21 @@
     </dl>
     <dl ng-if="user.email">
         <dt>Email</dt>
-        <dd><a ng-href="mailto:{{user.email}}" target="_blank">{{user.email}}</a></dd>
+        <dd>
+            <a ng-href="mailto:{{user.email}}" target="_blank">
+                {{user.email}}</a>
+        </dd>
     </dl>
-    <dl>
-        <dt>Organisation</dt>
-        <dd><a ng-href="#/org/{{user.organisation.id}}">{{user.organisation.name}}</a></dd>
+    <dl ng-if="checkRole('user_edit')">
+        <dt>Timeline email frequency</dt>
+        <dd ng-if="user.emailInterval > 0">
+            <ng-pluralize count="user.emailInterval / (60 * 60 * 24)"
+                 when="{'0': 'Notifications are disabled.',
+                        '1': 'Notifications will be sent once per day.',
+                        'other': 'Notifications will be sent every {} days.'}">
+            </ng-pluralize>
+        </dd>
+        <dd ng-if="user.emailInterval <= 0">Email notifications are disabled.</dd>
     </dl>
 
     <docs ng-if="user.deleted || user.organisation.deleted">

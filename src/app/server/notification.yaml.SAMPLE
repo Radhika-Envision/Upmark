@@ -1,0 +1,30 @@
+SMTP_SERVER: <YOUR SMTP SERVER>
+SMTP_PORT: 587
+SMTP_USERNAME: <SMTP SERVER USERNAME>
+SMTP_PASSWORD: <SMTP SERVER PASSWORD>
+
+MESSAGE_SEND_FROM: <SENDER EMAIL>
+
+JOB_INTERVAL_SECONDS: 3600
+MAX_ACTIVITIES: 1000
+
+MESSAGE_SUBJECT: Aquamark - Activity Notification
+MESSAGE_CONTENT: |
+    The following changes have been made to your subscriptions.
+
+    ${activities}
+
+    ${messages}
+
+    To opt out of these notifications, visit your profile page at:
+    https://aquamark.wsaa.asn.au/#/user/${user_id}
+
+MESSAGE_BROADCAST: |
+    ${user_name} said:
+    ${message}
+    ${date}
+
+MESSAGE_STANDARD: |
+    ${message}
+    ${user_name} ${verbs} this ${ob_type}
+    ${date}

@@ -204,6 +204,9 @@ class OrgLocation(Base):
         backref=backref('locations', cascade="all, delete-orphan"))
 
 
+ONE_DAY_S = 60 * 60 * 24
+
+
 class AppUser(Observable, Base):
     __tablename__ = 'appuser'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
@@ -218,6 +221,14 @@ class AppUser(Observable, Base):
             native_enum=False), nullable=False)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
     deleted = Column(Boolean, default=False, nullable=False)
+
+    # Notification metadata.
+    # NULL email_time means no notifications have ever been sent.
+    email_time = Column(DateTime, nullable=True)
+    # Email interval is the time between sending details of the activities a
+    # user is subscribed to. Units are seconds. 0 means notifications are
+    # disabled.
+    email_interval = Column(Integer, default=ONE_DAY_S, nullable=False)
 
     def set_password(self, plaintext):
         self.password = sha256_crypt.encrypt(plaintext)
@@ -245,6 +256,9 @@ class AppUser(Observable, Base):
         Index('appuser_email_key', func.lower(email), unique=True),
         # Index on name because it's used for sorting
         Index('appuser_name_index', func.lower(name)),
+        CheckConstraint(
+            'email_interval BETWEEN 0 AND 1209600',
+            name='appuser_email_interval_constraint'),
     )
 
     def __repr__(self):
@@ -1439,12 +1453,13 @@ def create_user_and_privilege():
             "GRANT USAGE ON SCHEMA public TO analyst")
         session.execute(
             "GRANT SELECT"
-            " (id, organisation_id, email, name, role, created, deleted)"
-            " ON appuser to analyst")
+            " (id, organisation_id, email, name, role, created, deleted,"
+            "  email_time, email_interval)"
+            " ON appuser TO analyst")
         for table in Base.metadata.tables:
             if str(table) not in {'appuser', 'systemconfig', 'alembic_version'}:
                 session.execute(
-                    "GRANT SELECT ON {} to analyst".format(table))
+                    "GRANT SELECT ON {} TO analyst".format(table))
 
         pwd_conf = SystemConfig(name='analyst_password')
         pwd_conf.human_name = "Analyst password"

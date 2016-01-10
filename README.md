@@ -226,6 +226,28 @@ docker run -d --name recalc \
 [rd]: src/app/server/recalculate.py
 
 
+### Notification daemon
+
+Notification daemon provides regular activity notification for user. For each
+user will receive email about recent activity of aquamark.
+Before start this process might need to set Email confidential settings on 
+[notification.yaml][noti] 
+It happens every hours in a background service with Docker container on the
+[backup machine][db]. It uses same Docker image as the currently working web
+app, so it should be upgraded at the same time as the web app.
+
+
+```bash
+docker run -d --name noti \
+    -e DATABASE_URL=<DATABASE_URL> \
+    --restart=always \
+    vpac/aquamark python3 ./app/server/notification.py
+```
+
+[db]: database/README.md
+[noti]: src/app/server/notification.yaml
+
+
 ### Upgrading
 
 Create an instance from the former Aquamark AMI: in the AWS console, choose
