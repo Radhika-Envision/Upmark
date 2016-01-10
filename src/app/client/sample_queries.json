@@ -1,7 +1,7 @@
 [
     {
         "name": "List users",
-        "query": "SELECT u.name,\n   o.name\nFROM appuser AS u\nJOIN organisation AS o ON u.organisation_id = o.id\nORDER BY u.name"
+        "query": "SELECT u.name,\n   o.name\nFROM appuser AS u\nJOIN organisation AS o ON u.organisation_id = o.id\nWHERE u.deleted = FALSE AND o.deleted = FALSE\nORDER BY u.name"
     },
     {
         "name": "Recursive category tree",
