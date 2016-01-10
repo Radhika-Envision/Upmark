@@ -23,6 +23,8 @@ appuser = table('appuser', column('email_interval', sa.Integer))
 
 
 def upgrade():
+    op.execute("REVOKE SELECT ON appuser FROM analyst")
+
     op.add_column('appuser', sa.Column('email_time', sa.DateTime(), nullable=True))
     op.add_column('appuser', sa.Column('email_interval', sa.Integer(), nullable=True))
     op.execute(
@@ -32,9 +34,22 @@ def upgrade():
     op.alter_column('appuser', 'email_interval', nullable=False)
     op.create_check_constraint(
         'appuser_email_interval_constraint', 'appuser',
-        'email_interval BETWEEN 0 AND 1209600'),
+        'email_interval BETWEEN 0 AND 1209600')
+
+    op.execute(
+        "GRANT SELECT"
+        " (id, organisation_id, email, name, role, created, deleted,"
+        "  email_time, email_interval)"
+        " ON appuser TO analyst")
 
 
 def downgrade():
+    op.execute("REVOKE SELECT ON appuser FROM analyst")
+
     op.drop_column('appuser', 'email_interval')
     op.drop_column('appuser', 'email_time')
+
+    op.execute(
+        "GRANT SELECT"
+        " (id, organisation_id, email, name, role, created, deleted)"
+        " ON appuser TO analyst")

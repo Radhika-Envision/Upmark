@@ -1453,12 +1453,13 @@ def create_user_and_privilege():
             "GRANT USAGE ON SCHEMA public TO analyst")
         session.execute(
             "GRANT SELECT"
-            " (id, organisation_id, email, name, role, created, deleted)"
-            " ON appuser to analyst")
+            " (id, organisation_id, email, name, role, created, deleted,"
+            "  email_time, email_interval)"
+            " ON appuser TO analyst")
         for table in Base.metadata.tables:
             if str(table) not in {'appuser', 'systemconfig', 'alembic_version'}:
                 session.execute(
-                    "GRANT SELECT ON {} to analyst".format(table))
+                    "GRANT SELECT ON {} TO analyst".format(table))
 
         pwd_conf = SystemConfig(name='analyst_password')
         pwd_conf.human_name = "Analyst password"
