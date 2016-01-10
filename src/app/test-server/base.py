@@ -91,7 +91,7 @@ class AqModelTestBase(unittest.TestCase):
 
             user = model.AppUser(
                 name='Author', email='author', role='author',
-                organisation=org1)
+                organisation=org1, email_interval=model.ONE_DAY_S)
             user.set_password('bar')
             session.add(user)
 

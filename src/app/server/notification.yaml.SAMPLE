@@ -6,11 +6,11 @@ SMTP_PASSWORD: <SMTP SERVER PASSWORD>
 MESSAGE_SEND_FROM: <SENDER EMAIL>
 
 JOB_INTERVAL_SECONDS: 3600
+MAX_ACTIVITIES: 1000
 
 MESSAGE_SUBJECT: Aquamark - Activity Notification
 MESSAGE_CONTENT: |
-    The following changes have been made to your subscriptions since
-    ${last_time}.
+    The following changes have been made to your subscriptions.
 
     ${activities}
 
@@ -26,5 +26,5 @@ MESSAGE_BROADCAST: |
 
 MESSAGE_STANDARD: |
     ${message}
-    ${user_name} ${verbs} ${ob_type}
+    ${user_name} ${verbs} this ${ob_type}
     ${date}
