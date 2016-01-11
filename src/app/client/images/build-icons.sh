@@ -11,7 +11,7 @@ done
 
 # Low-res icons show clipped image
 for size in 32 36 48 64; do
-    inkscape -z -w $size -h $size --export-area=25:48:167:190 \
+    inkscape -z -w $size -h $size --export-area=3.5:94:97.5:190 \
         --export-png=${imgdir}/logo-monogram-$size.png \
         ${imgdir}/logo-monogram.svg
 done
