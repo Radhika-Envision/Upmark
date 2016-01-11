@@ -1,7 +1,12 @@
-This is the Aquamark application - a web-based survey tool for assessing
-water management utilities.
+This is the Asset Management Customer Value (AMCV) application - a web-based
+survey tool for comparing organisations that manage large numbers of assets,
+such as water utilities.
 
-![Aquamark Logo](doc/aquamark_logo.png)
+![AMCV Logo](doc/amcv_logo.png)
+
+For historical reasons, the source code and build instructions may refer to
+AMCV's former name, "Aquamark". Generally "AMCV" is only used in the user
+interface.
 
 ## Deployment
 
@@ -228,14 +233,20 @@ docker run -d --name recalc \
 
 ### Notification daemon
 
-Notification daemon provides regular activity notification for user. For each
-user will receive email about recent activity of aquamark.
-Before start this process might need to set Email confidential settings on 
-[notification.yaml][noti] 
-It happens every hours in a background service with Docker container on the
-[backup machine][db]. It uses same Docker image as the currently working web
-app, so it should be upgraded at the same time as the web app.
+The notification daemon provides regular activity notification to users. Each
+user will receive emails about recent activity in AMCV. The process runs
+often (every hour or so), but only sends emails according to each user's
+nominated notification frequency. It uses the same Docker image as the web
+app - and it connects to the same database - so it should be upgraded at the
+same time as the web app.
 
+First, copy [the config file][noti] and edit it to contain your preferred mail
+settings:
+
+```bash
+cp src/app/server/notification.yaml.SAMPLE src/app/server/notification.yaml
+nano src/app/server/notification.yaml
+```
 
 ```bash
 docker run -d --name noti \
@@ -245,7 +256,7 @@ docker run -d --name noti \
 ```
 
 [db]: database/README.md
-[noti]: src/app/server/notification.yaml
+[noti]: src/app/server/notification.yaml.SAMPLE
 
 
 ### Upgrading

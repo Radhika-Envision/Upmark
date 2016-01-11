@@ -513,7 +513,7 @@ angular.module('wsaa.surveyQuestions', [
     };
     Notifications.remove('import');
     $scope.survey = {
-        title: "Aquamark Import",
+        title: "AMCV Import",
         description: ""
     };
 
