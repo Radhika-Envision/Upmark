@@ -8,7 +8,7 @@ MESSAGE_SEND_FROM: <SENDER EMAIL>
 JOB_INTERVAL_SECONDS: 3600
 MAX_ACTIVITIES: 1000
 
-MESSAGE_SUBJECT: Aquamark - Activity Notification
+MESSAGE_SUBJECT: AMCV - Activity Notification
 MESSAGE_CONTENT: |
     The following changes have been made to your subscriptions.
 

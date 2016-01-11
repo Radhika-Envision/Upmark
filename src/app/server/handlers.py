@@ -24,8 +24,7 @@ from tornado.escape import json_decode, json_encode, url_escape, url_unescape
 
 log = logging.getLogger('app.handlers')
 
-# A string to break through caches. This changes each time Landblade is
-# deployed.
+# A string to break through caches. This changes each time the app is deployed.
 DEPLOY_ID = str(time.time())
 aq_version = None
 
@@ -378,7 +377,15 @@ class MainHandler(BaseHandler):
             template, user=self.current_user, organisation=self.organisation,
             scripts=self.scripts, stylesheets=self.stylesheets,
             analytics_id=tornado.options.options.analytics_id,
+            # Conditionally use a deplyment ID; this is for assets that may need
+            # breakpoints. Under dev mode the URLs will never change, and it's
+            # up to the developer to clear their own cache. Under deployment
+            # the URLs will change.
             deploy_id=self.deploy_id,
+            # Always use a dev ID; this is for assets that don't need to be
+            # debugged but do need cache busting like favicons. Under dev mode
+            # and deployment the URLs will change.
+            dev_id_query="?v=%s" % DEPLOY_ID,
             aq_version=aq_version)
 
 
@@ -400,6 +407,10 @@ class AuthLoginHandler(MainHandler):
             stylesheets=self.stylesheets,
             analytics_id=tornado.options.options.analytics_id,
             next=next,
+            # Always use a dev ID; this is for assets that don't need to be
+            # debugged but do need cache busting like favicons. Under dev mode
+            # and deployment the URLs will change.
+            dev_id_query="?v=%s" % DEPLOY_ID,
             error=errormessage)
 
     def post(self, user_id):
