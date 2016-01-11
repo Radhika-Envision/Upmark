@@ -407,6 +407,10 @@ class AuthLoginHandler(MainHandler):
             stylesheets=self.stylesheets,
             analytics_id=tornado.options.options.analytics_id,
             next=next,
+            # Always use a dev ID; this is for assets that don't need to be
+            # debugged but do need cache busting like favicons. Under dev mode
+            # and deployment the URLs will change.
+            dev_id_query="?v=%s" % DEPLOY_ID,
             error=errormessage)
 
     def post(self, user_id):
