@@ -16,6 +16,8 @@ logging.basicConfig(format='%(asctime)s %(message)s')
 log = logging.getLogger('notifications')
 log.setLevel(logging.INFO)
 
+STARTUP_DELAY = 300
+
 
 def mail_content(config, activities):
     content = ''
@@ -161,7 +163,7 @@ if __name__ == "__main__":
     try:
         log.info("Starting notification service: %s", datetime.datetime.utcnow())
         connect_db()
-        time.sleep(interval)
+        time.sleep(STARTUP_DELAY)
         process_loop()
     except KeyboardInterrupt:
         log.info("Shutting down due to user request (e.g. Ctrl-C)")

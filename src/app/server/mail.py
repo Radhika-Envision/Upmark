@@ -19,6 +19,6 @@ def get_config(yaml_file_name):
         return yaml.load(stream)
 
 def send(config, message):
-    with smtplib.SMTP(config['SMTP_SERVER']) as smtp:
+    with smtplib.SMTP('{}:{}'.format(config['SMTP_SERVER'], config['SMTP_PORT'])) as smtp:
         smtp.login(config['SMTP_USERNAME'], config['SMTP_PASSWORD'])
         smtp.sendmail(config['MESSAGE_SEND_FROM'], message['To'], message.as_string())
