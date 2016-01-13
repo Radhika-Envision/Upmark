@@ -3,7 +3,6 @@ from email.mime.text import MIMEText
 import logging
 from mail import send, get_config
 import os
-from string import Template
 import time
 
 from sqlalchemy import extract, func
@@ -13,7 +12,7 @@ import model
 
 
 logging.basicConfig(format='%(asctime)s %(message)s')
-log = logging.getLogger('notifications')
+log = logging.getLogger('app.notifications')
 log.setLevel(logging.INFO)
 
 STARTUP_DELAY = 300
@@ -21,18 +20,18 @@ STARTUP_DELAY = 300
 
 def mail_content(config, activities):
     content = ''
-    template_bc = Template(config['MESSAGE_BROADCAST'])
-    template_std = Template(config['MESSAGE_STANDARD'])
+    template_bc = config['MESSAGE_BROADCAST']
+    template_std = config['MESSAGE_STANDARD']
     for act in activities:
         if 'broadcast' in act.verbs:
             template = template_bc
         else:
             template = template_std
 
-        content += template.substitute(
+        content += template.format(
             user_name=act.subject.name, message=act.message,
             ob_type=ob_type(act), verbs=verbs(act),
-            date=str(act.created))
+            date=config['DATE_FORMAT'].format(act.created))
         content += "\n"
 
     return content
@@ -74,11 +73,11 @@ def verbs(action):
 
 
 def send_email(config, user, activities, messages):
-    template = Template(config['MESSAGE_CONTENT'])
+    template = config['MESSAGE_CONTENT']
     content = mail_content(config, activities)
     message_str = "\n".join(messages)
     msg = MIMEText(
-        template.substitute(
+        template.format(
             activities=content, messages=message_str, user_id=user.id),
         'text/plain')
 
@@ -89,22 +88,23 @@ def send_email(config, user, activities, messages):
     send(config, msg)
 
 
-def get_activities(session, user, until_date, messages, limit):
+def get_activities(session, user, until_date, messages, limit, date_template):
     activities = activity.Activities(session)
     from_date = user.email_time
     earliest_from_date = until_date - datetime.timedelta(days=15)
 
     if from_date is None:
-        from_date = earliest_from_date
-        messages.append("Showing events from %s." % from_date)
-    elif from_date is not None and from_date < earliest_from_date:
+        from_date = until_date - datetime.timedelta(seconds=user.email_interval)
+
+    if from_date < earliest_from_date:
         messages.append(
-            "Requested start date was too early (%s).\n"
-            "Showing events from %s instead." % (
-                from_date, earliest_from_date))
+            "Requested start date was too early {}.".format(
+                date_template.format(from_date)))
         from_date = earliest_from_date
-    else:
-        messages.append("Showing events from %s." % from_date)
+
+    messages.append(
+        "Showing events from {}. All times are in UTC.".format(
+            date_template.format(from_date)))
 
     activity_query = activities.timeline_query(
         user.id, from_date, until_date, {'at_top'})
@@ -135,7 +135,8 @@ def process_once(config):
         for user, now in user_list:
             messages = []
             activities = get_activities(
-                session, user, now, messages, config['MAX_ACTIVITIES'])
+                session, user, now, messages, config['MAX_ACTIVITIES'],
+                config['DATE_FORMAT'])
             if len(activities) > 0:
                 send_email(config, user, activities, messages)
                 n_sent += 1

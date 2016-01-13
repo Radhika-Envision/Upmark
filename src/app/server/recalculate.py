@@ -12,7 +12,7 @@ import model
 
 
 logging.basicConfig(format='%(asctime)s %(message)s')
-log = logging.getLogger('recalculate')
+log = logging.getLogger('app.recalculate')
 log.setLevel(logging.INFO)
 
 interval = 300
