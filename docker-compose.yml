@@ -13,7 +13,6 @@ web:
 webssl:
   build: ./src/app/
   ports:
-   - "80:8000"
    - "443:8000"
   environment:
     DEV_MODE: 'True'
@@ -23,7 +22,13 @@ webssl:
    - /etc/letsencrypt/live/aquamark.vpac-innovations.com.au:/etc/letsencrypt/live/aquamark
    - /etc/letsencrypt/archive/aquamark.vpac-innovations.com.au:/etc/letsencrypt/archive/aquamark.vpac-innovations.com.au
   links:
-   - postgres:postgres
+   - postgres
+   - redirect
+
+redirect:
+  image: geldim/https-redirect
+  ports:
+   - 80:80
 
 test:
   build: ./src/app/
