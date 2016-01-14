@@ -14,7 +14,6 @@ from sqlalchemy.sql.expression import cast, literal
 import sqlparse
 from tornado import gen
 from tornado.escape import json_decode, json_encode, utf8, to_basestring
-from tornado import gen
 import tornado.web
 from tornado.concurrent import run_on_executor
 import xlsxwriter

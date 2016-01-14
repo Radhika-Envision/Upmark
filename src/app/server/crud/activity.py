@@ -1,6 +1,9 @@
+from concurrent.futures import ThreadPoolExecutor
 import datetime
 import logging
 
+from tornado import gen
+from tornado.concurrent import run_on_executor
 from tornado.escape import json_encode
 import tornado.web
 import sqlalchemy
@@ -11,10 +14,14 @@ import model
 from utils import ToSon, truthy, updater
 
 
+MAX_WORKERS = 4
+
 log = logging.getLogger('app.crud.activity')
 
 
 class ActivityHandler(handlers.BaseHandler):
+
+    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     TO_SON = ToSon(include=[
         r'/id$',
@@ -33,12 +40,14 @@ class ActivityHandler(handlers.BaseHandler):
     ])
 
     @tornado.web.authenticated
+    @gen.coroutine
     def get(self, activity_id):
         if activity_id == '':
-            return self.query()
+            yield self.query()
 
         raise handlers.MethodError("GET for single activity is not implemented")
 
+    @gen.coroutine
     def query(self):
         until_date = self.get_argument('until', '')
         if until_date != '':
@@ -61,6 +70,14 @@ class ActivityHandler(handlers.BaseHandler):
         offset = abs((until_date - datetime.datetime.utcnow()).total_seconds())
         include_sticky = offset < period.total_seconds() / 2
 
+        son = yield self.fetch_activities(from_date, until_date, include_sticky)
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(son))
+        self.finish()
+
+    @run_on_executor
+    def fetch_activities(self, from_date, until_date, include_sticky):
         with model.session_scope() as session:
             act = Activities(session)
             sticky_flags = {'filter'}
@@ -77,9 +94,7 @@ class ActivityHandler(handlers.BaseHandler):
                 'actions': ActivityHandler.TO_SON(activities)
             }
 
-        self.set_header("Content-Type", "application/json")
-        self.write(json_encode(son))
-        self.finish()
+        return son
 
     @tornado.web.authenticated
     def post(self, activity_id):
