@@ -93,29 +93,47 @@ servers to trigger a fresh schema upgrade (alembic).
 The backups stored in RDS are not accessible for download. To get a copy of a
 backup, you need to:
 
-1. Restore a backup to a new RDS instance using the AWS console. You
-   will need to make it publicly accessible (but password-protected).
-1. Use [`pg_dump`] to pull all the data out of the new, temporary instance.
-   [Use SSL] to encrypt your connection.
+1. Create an EC2 instance that has Docker installed on it, in the same AZ and
+   local network as the RDS server.
+1. SSH to the instance.
+1. Create a directory to write to, start a Postgres docker container, and run
+   [`pg_dump`].
 
     ```bash
-    # Get AWS root CA public key
-    wget https://s3.amazonaws.com/rds-downloads/rds-combined-ca-bundle.pem
+    mkdir -p ~/backup
+    sudo docker run --rm -it -v ~/backup:/backup postgres:9 bash
 
-    # Construct connection string
-    PG_USER=postgres
-    PG_PASSWORD=postgres
-    PG_DATABASE=postgres
+    # Now in the container
     ENDPOINT=postgres.aiojafojipawefoij.ap-southeast-2.rds.amazonaws.com:5432
-    QUERY="sslmode=verify-full&sslrootcert=rds-combined-ca-bundle.pem"
-    CONN=postgres://$PG_USER:$PG_PASSWORD@$ENDPOINT/$PG_DATABASE?$QUERY
-
-    pg_dump --format custom --blobs --verbose ${CONN} --file aq_dump
+    CONN=postgresql://postgres@$ENDPOINT/postgres
+    pg_dump --format custom --blobs --verbose ${CONN} --file /backup/aq_dump
     ```
 
-    You can get the ENDPOINT and password from the AWS console.
+1. Disconnect from the container and the EC2 instance, and then copy the file to
+    your local computer.
 
-1. Delete the temporary RDS instance (because it's publicly accessible).
+    ```bash
+    mkdir backup
+    scp -i aquamark.pem ubuntu@<EC2 INSTANCE>:backup/aq_dump backup/
+    ```
+
+1. Delete the temporary RDS instance if you don't need it any more.
+
+Once downloaded, backups can be loaded into a local Postgres/Docker container
+using [`pg_restore`]. For example, if your local Aquamark Postgres instance is
+in a container called `postgres_aq`, the contents of the database can be
+**replaced** with the backup by running:
+
+```bash
+sudo docker run --rm -it -v $PWD/backup:/backup \
+    --link postgres_aq:postgres_aq \
+    postgres bash
+
+# Now in the container
+dropdb -h postgres_aq -U postgres postgres
+createdb -h postgres_aq -U postgres postgres
+pg_restore -h postgres_aq -U postgres -d postgres /backup/aq_dump
+```
 
 
 ## Files Stored in S3
@@ -134,6 +152,7 @@ details.
 [deployment key]: https://github.com/blog/2024-read-only-deploy-keys
 [AWS help]: https://console.aws.amazon.com/iam/home?nc2=h_m_sc#security_credential
 [`pg_dump`]: http://www.postgresql.org/docs/9.4/static/app-pgdump.html
+[`pg_restore`]: http://www.postgresql.org/docs/9.4/static/app-pgrestore.html
 [Use SSL]: http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.SSL.html
 [cron job]: cron_backup
 [versioning functionality]: http://docs.aws.amazon.com/AmazonS3/latest/dev/Versioning.html
