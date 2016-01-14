@@ -1,12 +1,14 @@
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 import logging
+import time
 
 from tornado import gen
 from tornado.concurrent import run_on_executor
 from tornado.escape import json_encode
 import tornado.web
 import sqlalchemy
+from sqlalchemy.orm import defer, noload, joinedload
 
 from activity import Activities
 import handlers
@@ -17,6 +19,20 @@ from utils import ToSon, truthy, updater
 MAX_WORKERS = 4
 
 log = logging.getLogger('app.crud.activity')
+
+
+perf_time = time.perf_counter()
+perf_start = None
+def perf():
+    global perf_start, perf_time
+    if perf_start is None:
+        perf_start = time.perf_counter()
+        perf_time = 0.0
+    else:
+        now = time.perf_counter()
+        perf_time += now - perf_start
+        perf_start = now
+    return perf_time
 
 
 class ActivityHandler(handlers.BaseHandler):
@@ -70,7 +86,11 @@ class ActivityHandler(handlers.BaseHandler):
         offset = abs((until_date - datetime.datetime.utcnow()).total_seconds())
         include_sticky = offset < period.total_seconds() / 2
 
-        son = yield self.fetch_activities(from_date, until_date, include_sticky)
+        son, details = yield self.fetch_activities(
+            from_date, until_date, include_sticky)
+
+        for i, message in enumerate(details):
+            self.add_header('Profiling', "%d %s" % (i, message))
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -78,23 +98,81 @@ class ActivityHandler(handlers.BaseHandler):
 
     @run_on_executor
     def fetch_activities(self, from_date, until_date, include_sticky):
+        start_super = perf()
+        timing = []
         with model.session_scope() as session:
             act = Activities(session)
             sticky_flags = {'filter'}
             if include_sticky:
                 sticky_flags.update({'include', 'at_top'})
+
+            start = perf()
             query = act.timeline_query(
                 self.current_user.id, from_date, until_date,
                 sticky_flags=sticky_flags)
+            query = (query
+                .options(
+                    joinedload(model.Activity.subject)
+                    .defer(model.AppUser.email)
+                    .defer(model.AppUser.organisation_id)
+                    .defer(model.AppUser.password)
+                    .defer(model.AppUser.role)
+                    .defer(model.AppUser.created)
+                    .defer(model.AppUser.deleted)
+                    .defer(model.AppUser.email_time)
+                    .defer(model.AppUser.email_interval)
+                    .noload(model.AppUser.organisation))
+                .options(
+                    defer(model.Activity.subject_id)
+                    .defer(model.Activity.ob_refs)))
+            duration = perf() - start
+            timing.append("Query construction took %gs" % duration)
+
+            start = perf()
             activities = query.all()
+            duration = perf() - start
+            timing.append("Query execution took %gs" % duration)
+
+            # Use hand-written serialisation code, because the reflection done
+            # in ToSon is too slow for this large number of items.
+            # (5ms vs 300ms)
+            start = perf()
+            user_sons = {}
+            activity_sons = []
+            for a in activities:
+                a_son = {
+                    'id': str(a.id),
+                    'created': a.created.timestamp(),
+                    'message': a.message,
+                    'obIds': [str(id_) for id_ in a.ob_ids],
+                    'obType': a.ob_type,
+                    'sticky': a.sticky,
+                    'verbs': list(a.verbs),
+                }
+                user = a.subject
+                if user in user_sons:
+                    user_son = user_sons[user]
+                else:
+                    user_son = {
+                        'id': str(user.id),
+                        'name': user.name,
+                    }
+                    user_sons[a.subject] = user_son
+                a_son['subject'] = user_son
+                activity_sons.append(a_son)
 
             son = {
                 'from': from_date.timestamp(),
                 'until': until_date.timestamp(),
-                'actions': ActivityHandler.TO_SON(activities)
+                'actions': activity_sons
             }
+            duration = perf() - start
+            timing.append("Serialization took %gs" % duration)
 
-        return son
+        duration = perf() - start_super
+        timing.append("Total: %gs" % duration)
+
+        return son, timing
 
     @tornado.web.authenticated
     def post(self, activity_id):
