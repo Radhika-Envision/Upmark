@@ -127,7 +127,7 @@ in a container called `postgres_aq`, the contents of the database can be
 ```bash
 sudo docker run --rm -it -v $PWD/backup:/backup \
     --link postgres_aq:postgres_aq \
-    postgres bash
+    postgres:9 bash
 
 # Now in the container
 dropdb -h postgres_aq -U postgres postgres
