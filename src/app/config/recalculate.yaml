@@ -14,4 +14,4 @@ MESSAGE_CONTENT: |
 
     Some errors were encountered when updating submission scores:
 
-    ${message}
+    {message}

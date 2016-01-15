@@ -12,6 +12,7 @@ from tornado.web import Application
 import base
 import model
 import notifications
+import utils
 
 
 log = logging.getLogger('app.test_daemon')
@@ -74,7 +75,7 @@ class NotificationTest(base.AqHttpTestBase):
                     'message': "Foo"
                 }))
 
-        config = notifications.get_config("notification.yaml.SAMPLE")
+        config = utils.get_config("notification.yaml")
         messages = None
         def send(config, msg):
             messages.append(msg)

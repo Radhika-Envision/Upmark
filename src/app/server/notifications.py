@@ -1,14 +1,15 @@
 import datetime
 from email.mime.text import MIMEText
 import logging
-from mail import send, get_config
 import os
 import time
 
 from sqlalchemy import extract, func
 
 import activity
+from mail import send
 import model
+import utils
 
 
 logging.basicConfig(format='%(asctime)s %(message)s')
@@ -150,7 +151,7 @@ def process_once(config):
 
 
 def process_loop():
-    config = get_config("notification.yaml")
+    config = utils.get_config("notification.yaml")
     while True:
         process_once(config)
         time.sleep(config['JOB_INTERVAL_SECONDS'])

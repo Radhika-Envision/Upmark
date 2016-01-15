@@ -2,12 +2,11 @@ import datetime
 from email.mime.text import MIMEText
 import logging
 import os
-from string import Template
 import time
 
 from sqlalchemy import or_
 
-from mail import get_config, send
+from mail import send
 import model
 
 
@@ -29,8 +28,8 @@ def mail_content(errors):
 
 def send_email(config, errors):
 
-    template = Template(config['MESSAGE_CONTENT'])
-    msg = MIMEText(template.substitute(message=mail_content(errors)), 'text/plain')
+    template = config['MESSAGE_CONTENT']
+    msg = MIMEText(template.format(message=mail_content(errors)), 'text/plain')
 
     msg['Subject'] = config['MESSAGE_SUBJECT']
     msg['From'] = config['MESSAGE_SEND_FROM']
