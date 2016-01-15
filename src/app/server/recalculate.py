@@ -48,6 +48,7 @@ def process_once(config):
                 .filter(or_(model.Hierarchy.modified > model.Assessment.modified,
                     model.Assessment.modified == None))
                 .first())
+            log.info("Processing %s", sub)
             if sub is None:
                 break
             if count == 0 and len(errors) == 0:
@@ -68,10 +69,9 @@ def process_once(config):
     if len(errors) != 0:
         send_email(config, errors)
 
-    log.info("Job finished")
     log.info("Successfully recalculated scores for %d submissions.",
              count)
-    log.info("Fail to recalculate scores for %d submissions.",
+    log.info("Failed to recalculate scores for %d submissions.",
              len(errors))
 
 
@@ -79,6 +79,7 @@ def process_loop():
     config = get_config("recalculate.yaml")
     while True:
         process_once(config)
+        log.info("Sleeping for %ds", config['JOB_INTERVAL_SECONDS'])
         time.sleep(config['JOB_INTERVAL_SECONDS'])
 
 
@@ -90,6 +91,7 @@ if __name__ == "__main__":
     try:
         log.info("Starting service...:%s", datetime.datetime.utcnow())
         connect_db()
+        log.info("Sleeping for %ds", STARTUP_DELAY)
         time.sleep(STARTUP_DELAY)
         process_loop()
     except KeyboardInterrupt:

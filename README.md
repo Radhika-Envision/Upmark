@@ -231,7 +231,7 @@ Make sure the image has been built, and launch the script in a container:
 
 ```bash
 make
-docker run -d --name recalc \
+sudo docker run -d --name recalc \
     -e DATABASE_URL=<DATABASE_URL> \
     -v $HOME/aq_config:/usr/share/aquamark/app/config \
     --restart=always \
@@ -266,11 +266,11 @@ Now make sure the image has been built, and launch the script in a container:
 
 ```bash
 make
-docker run -d --name noti \
+sudo docker run -d --name notify \
     -e DATABASE_URL=<DATABASE_URL> \
     --restart=always \
     -v $HOME/aq_config:/usr/share/aquamark/app/config \
-    vpac/aquamark:latest python3 ./app/server/notification.py
+    vpac/aquamark:latest python3 ./app/server/notifications.py
 ```
 
 [db]: database/README.md

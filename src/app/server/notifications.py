@@ -154,6 +154,7 @@ def process_loop():
     config = utils.get_config("notification.yaml")
     while True:
         process_once(config)
+        log.info("Sleeping for %ds", config['JOB_INTERVAL_SECONDS'])
         time.sleep(config['JOB_INTERVAL_SECONDS'])
 
 
@@ -165,6 +166,7 @@ if __name__ == "__main__":
     try:
         log.info("Starting notification service: %s", datetime.datetime.utcnow())
         connect_db()
+        log.info("Sleeping for %ds", STARTUP_DELAY)
         time.sleep(STARTUP_DELAY)
         process_loop()
     except KeyboardInterrupt:
