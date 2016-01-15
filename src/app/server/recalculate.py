@@ -8,6 +8,7 @@ from sqlalchemy import or_
 
 from mail import send
 import model
+import utils
 
 
 logging.basicConfig(format='%(asctime)s %(message)s')
@@ -76,7 +77,7 @@ def process_once(config):
 
 
 def process_loop():
-    config = get_config("recalculate.yaml")
+    config = utils.get_config("recalculate.yaml")
     while True:
         process_once(config)
         log.info("Sleeping for %ds", config['JOB_INTERVAL_SECONDS'])

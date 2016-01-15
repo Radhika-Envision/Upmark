@@ -97,6 +97,9 @@ def get_activities(session, user, until_date, messages, limit, date_template):
     if from_date is None:
         from_date = until_date - datetime.timedelta(seconds=user.email_interval)
 
+    if not from_date.tzinfo:
+        from_date.replace(tzinfo=until_date.tzinfo)
+
     if from_date < earliest_from_date:
         messages.append(
             "Requested start date was too early {}.".format(
