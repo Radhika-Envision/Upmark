@@ -91,6 +91,6 @@ if __name__ == "__main__":
         log.info("Starting service...:%s", datetime.datetime.utcnow())
         connect_db()
         time.sleep(STARTUP_DELAY)
-        process()
+        process_loop()
     except KeyboardInterrupt:
         log.info("Shutting down due to user request (e.g. Ctrl-C)")
