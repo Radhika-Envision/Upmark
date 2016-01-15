@@ -15,7 +15,7 @@ logging.basicConfig(format='%(asctime)s %(message)s')
 log = logging.getLogger('app.recalculate')
 log.setLevel(logging.INFO)
 
-STARTUP_DELAY = 300
+STARTUP_DELAY = 60
 
 
 def mail_content(errors):
@@ -90,7 +90,7 @@ def connect_db():
 
 if __name__ == "__main__":
     try:
-        log.info("Starting service...:%s", datetime.datetime.utcnow())
+        log.info("Starting service")
         connect_db()
         log.info("Sleeping for %ds", STARTUP_DELAY)
         time.sleep(STARTUP_DELAY)

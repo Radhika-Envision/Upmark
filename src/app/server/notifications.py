@@ -16,7 +16,7 @@ logging.basicConfig(format='%(asctime)s %(message)s')
 log = logging.getLogger('app.notifications')
 log.setLevel(logging.INFO)
 
-STARTUP_DELAY = 300
+STARTUP_DELAY = 60
 
 
 def mail_content(config, activities):
@@ -98,7 +98,7 @@ def get_activities(session, user, until_date, messages, limit, date_template):
         from_date = until_date - datetime.timedelta(seconds=user.email_interval)
 
     if not from_date.tzinfo:
-        from_date.replace(tzinfo=until_date.tzinfo)
+        from_date = from_date.replace(tzinfo=until_date.tzinfo)
 
     if from_date < earliest_from_date:
         messages.append(
@@ -167,7 +167,7 @@ def connect_db():
 
 if __name__ == "__main__":
     try:
-        log.info("Starting notification service: %s", datetime.datetime.utcnow())
+        log.info("Starting service")
         connect_db()
         log.info("Sleeping for %ds", STARTUP_DELAY)
         time.sleep(STARTUP_DELAY)

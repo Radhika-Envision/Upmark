@@ -225,6 +225,7 @@ settings:
 mkdir -p ~/aq_config
 cp src/app/config/recalculate.yaml ~/aq_config/
 nano ~/aq_config/recalculate.yaml
+echo DATABASE_URL="<DATABASE_URL>" > ~/aq_config/aq.conf
 ```
 
 Make sure the image has been built, and launch the script in a container:
@@ -232,7 +233,7 @@ Make sure the image has been built, and launch the script in a container:
 ```bash
 make
 sudo docker run -d --name recalc \
-    -e DATABASE_URL=<DATABASE_URL> \
+    --env-file=../aq_config/aq.conf \
     -v $HOME/aq_config:/usr/share/aquamark/app/config \
     --restart=always \
     vpac/aquamark:latest python3 ./app/server/recalculate.py
@@ -260,6 +261,7 @@ settings:
 mkdir -p ~/aq_config
 cp src/app/config/notification.yaml ~/aq_config/
 nano ~/aq_config/notification.yaml
+echo DATABASE_URL="<DATABASE_URL>" > ~/aq_config/aq.conf
 ```
 
 Now make sure the image has been built, and launch the script in a container:
@@ -267,9 +269,9 @@ Now make sure the image has been built, and launch the script in a container:
 ```bash
 make
 sudo docker run -d --name notify \
-    -e DATABASE_URL=<DATABASE_URL> \
-    --restart=always \
+    --env-file=../aq_config/aq.conf \
     -v $HOME/aq_config:/usr/share/aquamark/app/config \
+    --restart=always \
     vpac/aquamark:latest python3 ./app/server/notifications.py
 ```
 

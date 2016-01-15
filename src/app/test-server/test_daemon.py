@@ -1,4 +1,6 @@
+import datetime
 import logging
+import time
 import unittest
 from unittest import mock
 
@@ -37,7 +39,8 @@ class DaemonTest(base.AqHttpTestBase):
             url = "/qnode.json?surveyId=%s&hierarchyId=%s&root=" % (sid, hid)
             qnode_sons = self.fetch(
                 url, method='GET', expected=200, decode=True)
-            qid = qnode_sons[0]['id']
+            qid1 = qnode_sons[0]['id']
+            qid2 = qnode_sons[1]['id']
 
             a_son = self.fetch(
                 "/activity.json?period=604800",
@@ -45,17 +48,17 @@ class DaemonTest(base.AqHttpTestBase):
             self.assertEqual(len(a_son['actions']), 0)
 
             sub_son = self.fetch(
-                "/subscription/qnode/{},{}.json".format(qid, sid),
+                "/subscription/qnode/{},{}.json".format(qid1, sid),
                 method='GET', expected=200, decode=True)
             ss = [sub['subscribed'] for sub in sub_son]
             self.assertTrue(all(s is None for s in ss))
 
             q_son = self.fetch(
-                "/qnode/{}.json?surveyId={}".format(qid, sid),
+                "/qnode/{}.json?surveyId={}".format(qid1, sid),
                 method='DELETE', expected=200)
 
             sub_son = self.fetch(
-                "/subscription/qnode/{},{}.json".format(qid, sid),
+                "/subscription/qnode/{},{}.json".format(qid1, sid),
                 method='GET', expected=200, decode=True)
             ss = [sub['subscribed'] for sub in sub_son]
             self.assertTrue(any(s is not None for s in ss))
@@ -87,18 +90,59 @@ class DaemonTest(base.AqHttpTestBase):
             self.assertEqual(n_sent, 6)
             self.assertEqual(len(messages), 6)
 
+        author_checked = False
         for m in messages:
             self.assertIn("\nTo: %s\n" % m['to'], str(m))
-            self.assertIn("\nAdmin said:\nFoo", str(m))
+            self.assertIn("\nAdmin said:\nFoo\n", str(m))
             if m['to'] == 'author':
-                self.assertIn('\nAuthor deleted this survey category\n', str(m))
+                self.assertIn(
+                    '\nFunction 1\nAuthor deleted this survey category\n',
+                    str(m))
                 log.info("Notification email: %s", str(m))
+                author_checked = True
+        self.assertTrue(author_checked)
 
+        time.sleep(0.1)
+
+        # Delete another qnode
+        with base.mock_user('author'):
+            q_son = self.fetch(
+                "/qnode/{}.json?surveyId={}".format(qid2, sid),
+                method='DELETE', expected=200)
+
+        # Run again, and make sure no nofications send (because not enough time
+        # has elapsed since the last email)
         messages = []
         with mock.patch('notifications.send', send):
             n_sent = notifications.process_once(config)
             self.assertEqual(n_sent, 0)
             self.assertEqual(len(messages), 0)
+
+        time.sleep(0.1)
+
+        sa_func_now = sa.func.now
+        def next_week():
+            return sa_func_now() + datetime.timedelta(days=7)
+
+        # Run again, pretending to be in the future, and check that another
+        # notification is sent
+        messages = []
+        with mock.patch('notifications.send', send), \
+                mock.patch('notifications.func.now', next_week):
+            n_sent = notifications.process_once(config)
+            self.assertEqual(n_sent, 1)
+            self.assertEqual(len(messages), 1)
+
+        author_checked = False
+        for m in messages:
+            self.assertIn("\nTo: %s\n" % m['to'], str(m))
+            if m['to'] == 'author':
+                self.assertIn(
+                    '\nFunction 2\nAuthor deleted this survey category\n',
+                    str(m))
+                log.info("Notification email: %s", str(m))
+                author_checked = True
+        self.assertTrue(author_checked)
 
     def create_assessment(self):
         # Respond to a survey
