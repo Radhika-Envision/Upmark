@@ -6,6 +6,8 @@ SMTP_PASSWORD: <SMTP SERVER PASSWORD>
 MESSAGE_SEND_FROM: <SENDER EMAIL>
 MESSAGE_SEND_TO: <RECEIVER EMAIL>
 
+JOB_INTERVAL_SECONDS: 300
+
 MESSAGE_SUBJECT: AMCV - Submission score calculation error
 MESSAGE_CONTENT: |
     This is a notification from an automated process that updates the scores of

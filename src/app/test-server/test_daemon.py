@@ -2,7 +2,7 @@ import logging
 import unittest
 from unittest import mock
 
-import sqlalchemy
+import sqlalchemy as sa
 from sqlalchemy.sql import func
 from sqlalchemy.orm.session import make_transient
 from tornado.escape import json_encode
@@ -12,13 +12,14 @@ from tornado.web import Application
 import base
 import model
 import notifications
+import recalculate
 import utils
 
 
 log = logging.getLogger('app.test_daemon')
 
 
-class NotificationTest(base.AqHttpTestBase):
+class DaemonTest(base.AqHttpTestBase):
     def test_timeline(self):
         # Delete a qnode; this should subscribe to the survey and add an event
         # to the timeline
@@ -98,3 +99,130 @@ class NotificationTest(base.AqHttpTestBase):
             n_sent = notifications.process_once(config)
             self.assertEqual(n_sent, 0)
             self.assertEqual(len(messages), 0)
+
+    def create_assessment(self):
+        # Respond to a survey
+        with model.session_scope() as session:
+            survey = session.query(model.Survey).one()
+            user = (session.query(model.AppUser)
+                    .filter_by(email='clerk')
+                    .one())
+            organisation = (session.query(model.Organisation)
+                    .filter_by(name='Utility')
+                    .one())
+            hierarchy = (session.query(model.Hierarchy)
+                    .filter_by(title='Hierarchy 1')
+                    .one())
+            assessment = model.Assessment(
+                survey_id=survey.id,
+                organisation_id=organisation.id,
+                hierarchy_id=hierarchy.id,
+                title="Submission",
+                approval='draft')
+            session.add(assessment)
+
+            for m in survey.measures:
+                if not any(p.hierarchy_id == hierarchy.id for p in m.parents):
+                    continue
+                response = model.Response(
+                    survey_id=survey.id,
+                    measure_id=m.id,
+                    assessment=assessment,
+                    user_id=user.id)
+                response.attachments = []
+                response.not_relevant = False
+                response.modified = sa.func.now()
+                response.approval = 'final'
+                response.comment = "Response for %s" % m.title
+                session.add(response)
+                response.response_parts = [{'index': 1, 'note': "Yes"}]
+
+            assessment.update_stats_descendants()
+            functions = list(assessment.rnodes)
+            self.assertAlmostEqual(functions[0].score, 600)
+            self.assertAlmostEqual(functions[1].score, 0)
+            self.assertAlmostEqual(functions[0].qnode.total_weight, 600)
+            self.assertAlmostEqual(functions[1].qnode.total_weight, 0)
+
+            return assessment.id
+
+    def test_recalculate(self):
+        aid = self.create_assessment()
+        with model.session_scope() as session:
+            assessment = session.query(model.Assessment).get(aid)
+            sid = assessment.survey_id
+            process_id = assessment.hierarchy.qnodes[0].children[0].id
+            function_2_id = assessment.hierarchy.qnodes[1].id
+
+        # Move a process (qnode) to a different function
+        with base.mock_user('author'):
+            url = "/qnode/{}.json?surveyId={}".format(process_id, sid)
+            qnode_son = self.fetch(
+                url, method='GET', expected=200, decode=True)
+            qnode_son = self.fetch(
+                url + "&parentId={}".format(function_2_id),
+                method='PUT', expected=200, decode=True,
+                body=json_encode(qnode_son))
+
+        # Check that rnode score is out of date
+        with model.session_scope() as session:
+            assessment = session.query(model.Assessment).get(aid)
+            functions = list(assessment.rnodes)
+            self.assertAlmostEqual(functions[0].score, 600)
+            self.assertAlmostEqual(functions[1].score, 0)
+            self.assertAlmostEqual(functions[0].qnode.total_weight, 300)
+            self.assertAlmostEqual(functions[1].qnode.total_weight, 300)
+
+        # Run recalculation script
+        config = utils.get_config("recalculate.yaml")
+        messages = None
+        def send(config, msg):
+            messages.append(msg)
+
+        messages = []
+        with mock.patch('recalculate.send', send):
+            recalculate.process_once(config)
+            self.assertEqual(len(messages), 0)
+
+        # Check that rnode score is no longer out of date
+        with model.session_scope() as session:
+            assessment = session.query(model.Assessment).get(aid)
+            functions = list(assessment.rnodes)
+            self.assertAlmostEqual(functions[0].score, 300)
+            self.assertAlmostEqual(functions[1].score, 300)
+            self.assertAlmostEqual(functions[0].qnode.total_weight, 300)
+            self.assertAlmostEqual(functions[1].qnode.total_weight, 300)
+
+    def test_recalculate_failure(self):
+        aid = self.create_assessment()
+        with model.session_scope() as session:
+            assessment = session.query(model.Assessment).get(aid)
+            sid = assessment.survey_id
+            process_id = assessment.hierarchy.qnodes[0].children[0].id
+            function_2_id = assessment.hierarchy.qnodes[1].id
+
+        # Move a process (qnode) to a different function
+        with base.mock_user('author'):
+            url = "/qnode/{}.json?surveyId={}".format(process_id, sid)
+            qnode_son = self.fetch(
+                url, method='GET', expected=200, decode=True)
+            qnode_son = self.fetch(
+                url + "&parentId={}".format(function_2_id),
+                method='PUT', expected=200, decode=True,
+                body=json_encode(qnode_son))
+
+        # Run recalculation script
+        config = utils.get_config("recalculate.yaml")
+        messages = None
+        def send(config, msg):
+            messages.append(msg)
+
+        def update_stats_descendants(self):
+            raise model.ModelError("Test failure")
+
+        messages = []
+        with mock.patch('recalculate.send', send), \
+                mock.patch('model.Assessment.update_stats_descendants',
+                           update_stats_descendants):
+            recalculate.process_once(config)
+            self.assertEqual(len(messages), 1)
