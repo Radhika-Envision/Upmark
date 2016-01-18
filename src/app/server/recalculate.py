@@ -30,12 +30,12 @@ def mail_content(errors):
 
 def send_email(config, errors):
 
-    template = config['MESSAGE_CONTENT']
-    msg = MIMEText(template.format(message=mail_content(errors)), 'text/plain')
+    template = config['ERROR_CONTENT']
+    msg = MIMEText(template.format(message=errors), 'text/plain')
 
-    msg['Subject'] = config['MESSAGE_SUBJECT']
+    msg['Subject'] = config['ERROR_SUBJECT']
     msg['From'] = config['MESSAGE_SEND_FROM']
-    msg['To'] = config['MESSAGE_SEND_TO']
+    msg['To'] = config['ERROR_SEND_TO']
 
     send(config, msg)
 
@@ -74,7 +74,7 @@ def process_once(config):
             session.commit()
 
     if len(errors) != 0:
-        send_email(config, errors)
+        send_email(config, mail_content(errors))
 
     log.info("Successfully recalculated scores for %d submissions.",
              count)
@@ -84,10 +84,16 @@ def process_once(config):
 
 def process_loop():
     config = utils.get_config("recalculate.yaml")
-    while True:
-        process_once(config)
-        log.info("Sleeping for %ds", config['JOB_INTERVAL_SECONDS'])
-        time.sleep(config['JOB_INTERVAL_SECONDS'])
+    try:
+        while True:
+            process_once(config)
+            log.info("Sleeping for %ds", config['JOB_INTERVAL_SECONDS'])
+            time.sleep(config['JOB_INTERVAL_SECONDS'])
+    except Exception as e:
+        send_email(config,
+             "FATAL ERROR. Daemon will need to be fixed.\n%s" %
+             str(e))
+        raise
 
 
 def connect_db():

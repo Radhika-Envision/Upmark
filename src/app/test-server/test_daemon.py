@@ -21,6 +21,13 @@ import utils
 log = logging.getLogger('app.test_daemon')
 
 
+class ExpectedError(Exception):
+    pass
+
+class UnexpectedError(Exception):
+    pass
+
+
 class DaemonTest(base.AqHttpTestBase):
     def test_timeline(self):
         # Delete a qnode; this should subscribe to the survey and add an event
@@ -144,6 +151,21 @@ class DaemonTest(base.AqHttpTestBase):
                 author_checked = True
         self.assertTrue(author_checked)
 
+    def test_timeline_failure(self):
+        messages = None
+        def send(config, msg):
+            messages.append(msg)
+
+        messages = []
+        with mock.patch('notifications.send', send), \
+                mock.patch('notifications.process_once',
+                           side_effect=ExpectedError), \
+                self.assertRaises(ExpectedError), \
+                mock.patch('notifications.time.sleep',
+                           side_effect=UnexpectedError):
+            notifications.process_loop()
+        self.assertEqual(len(messages), 1)
+
     def create_assessment(self):
         # Respond to a survey
         with model.session_scope() as session:
@@ -261,12 +283,19 @@ class DaemonTest(base.AqHttpTestBase):
         def send(config, msg):
             messages.append(msg)
 
-        def update_stats_descendants(self):
-            raise model.ModelError("Test failure")
-
         messages = []
         with mock.patch('recalculate.send', send), \
                 mock.patch('model.Assessment.update_stats_descendants',
-                           update_stats_descendants):
+                           side_effect=model.ModelError):
             recalculate.process_once(config)
             self.assertEqual(len(messages), 1)
+
+        messages = []
+        with mock.patch('recalculate.send', send), \
+                mock.patch('recalculate.process_once',
+                           side_effect=ExpectedError), \
+                self.assertRaises(ExpectedError), \
+                mock.patch('recalculate.time.sleep',
+                           side_effect=UnexpectedError):
+            recalculate.process_loop()
+        self.assertEqual(len(messages), 1)

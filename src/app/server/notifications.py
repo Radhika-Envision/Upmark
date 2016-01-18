@@ -90,6 +90,18 @@ def send_email(config, user, activities, messages):
     send(config, msg)
 
 
+def send_error(config, errors):
+
+    template = config['ERROR_CONTENT']
+    msg = MIMEText(template.format(message=errors), 'text/plain')
+
+    msg['Subject'] = config['ERROR_SUBJECT']
+    msg['From'] = config['MESSAGE_SEND_FROM']
+    msg['To'] = config['ERROR_SEND_TO']
+
+    send(config, msg)
+
+
 def get_activities(session, user, until_date, messages, limit, date_template):
     activities = activity.Activities(session)
     from_date = user.email_time
@@ -156,10 +168,16 @@ def process_once(config):
 
 def process_loop():
     config = utils.get_config("notification.yaml")
-    while True:
-        process_once(config)
-        log.info("Sleeping for %ds", config['JOB_INTERVAL_SECONDS'])
-        time.sleep(config['JOB_INTERVAL_SECONDS'])
+    try:
+        while True:
+            process_once(config)
+            log.info("Sleeping for %ds", config['JOB_INTERVAL_SECONDS'])
+            time.sleep(config['JOB_INTERVAL_SECONDS'])
+    except Exception as e:
+        send_error(config,
+             "FATAL ERROR. Daemon will need to be fixed.\n%s" %
+             str(e))
+        raise
 
 
 def connect_db():
