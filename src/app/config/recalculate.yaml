@@ -4,14 +4,16 @@ SMTP_USERNAME: <SMTP SERVER USERNAME>
 SMTP_PASSWORD: <SMTP SERVER PASSWORD>
 
 MESSAGE_SEND_FROM: <SENDER EMAIL>
-MESSAGE_SEND_TO: <RECEIVER EMAIL>
+ERROR_SEND_TO: <RECEIVER EMAIL>
 
-MESSAGE_SUBJECT: AMCV - Submission score calculation error
-MESSAGE_CONTENT: |
+JOB_INTERVAL_SECONDS: 300
+
+ERROR_SUBJECT: AMCV - Submission score calculation error
+ERROR_CONTENT: |
     This is a notification from an automated process that updates the scores of
     submissions in AMCV. The process runs when a survey changes, e.g. when
     a measure's weight is modified.
 
     Some errors were encountered when updating submission scores:
 
-    ${message}
+    {message}

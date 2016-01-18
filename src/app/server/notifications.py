@@ -1,21 +1,23 @@
 import datetime
 from email.mime.text import MIMEText
 import logging
-from mail import send, get_config
 import os
+import sys
 import time
 
 from sqlalchemy import extract, func
 
 import activity
+from mail import send
 import model
+import utils
 
 
 logging.basicConfig(format='%(asctime)s %(message)s')
 log = logging.getLogger('app.notifications')
 log.setLevel(logging.INFO)
 
-STARTUP_DELAY = 300
+STARTUP_DELAY = 60
 
 
 def mail_content(config, activities):
@@ -88,6 +90,18 @@ def send_email(config, user, activities, messages):
     send(config, msg)
 
 
+def send_error(config, errors):
+
+    template = config['ERROR_CONTENT']
+    msg = MIMEText(template.format(message=errors), 'text/plain')
+
+    msg['Subject'] = config['ERROR_SUBJECT']
+    msg['From'] = config['MESSAGE_SEND_FROM']
+    msg['To'] = config['ERROR_SEND_TO']
+
+    send(config, msg)
+
+
 def get_activities(session, user, until_date, messages, limit, date_template):
     activities = activity.Activities(session)
     from_date = user.email_time
@@ -95,6 +109,9 @@ def get_activities(session, user, until_date, messages, limit, date_template):
 
     if from_date is None:
         from_date = until_date - datetime.timedelta(seconds=user.email_interval)
+
+    if not from_date.tzinfo:
+        from_date = from_date.replace(tzinfo=until_date.tzinfo)
 
     if from_date < earliest_from_date:
         messages.append(
@@ -150,10 +167,17 @@ def process_once(config):
 
 
 def process_loop():
-    config = get_config("notification.yaml")
-    while True:
-        process_once(config)
-        time.sleep(config['JOB_INTERVAL_SECONDS'])
+    config = utils.get_config("notification.yaml")
+    try:
+        while True:
+            process_once(config)
+            log.info("Sleeping for %ds", config['JOB_INTERVAL_SECONDS'])
+            time.sleep(config['JOB_INTERVAL_SECONDS'])
+    except Exception as e:
+        send_error(config,
+             "FATAL ERROR. Daemon will need to be fixed.\n%s" %
+             str(e))
+        raise
 
 
 def connect_db():
@@ -162,9 +186,11 @@ def connect_db():
 
 if __name__ == "__main__":
     try:
-        log.info("Starting notification service: %s", datetime.datetime.utcnow())
+        log.info("Starting service")
         connect_db()
-        time.sleep(STARTUP_DELAY)
+        if not '--no-delay' in sys.argv:
+            log.info("Sleeping for %ds", STARTUP_DELAY)
+            time.sleep(STARTUP_DELAY)
         process_loop()
     except KeyboardInterrupt:
         log.info("Shutting down due to user request (e.g. Ctrl-C)")

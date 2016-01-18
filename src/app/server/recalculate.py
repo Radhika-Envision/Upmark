@@ -2,20 +2,21 @@ import datetime
 from email.mime.text import MIMEText
 import logging
 import os
-from string import Template
+import sys
 import time
 
 from sqlalchemy import or_
 
-from mail import get_config, send
+from mail import send
 import model
+import utils
 
 
 logging.basicConfig(format='%(asctime)s %(message)s')
 log = logging.getLogger('app.recalculate')
 log.setLevel(logging.INFO)
 
-interval = 300
+STARTUP_DELAY = 60
 
 
 def mail_content(errors):
@@ -29,55 +30,70 @@ def mail_content(errors):
 
 def send_email(config, errors):
 
-    template = Template(config['MESSAGE_CONTENT'])
-    msg = MIMEText(template.substitute(message=mail_content(errors)), 'text/plain')
+    template = config['ERROR_CONTENT']
+    msg = MIMEText(template.format(message=errors), 'text/plain')
 
-    msg['Subject'] = config['MESSAGE_SUBJECT']
+    msg['Subject'] = config['ERROR_SUBJECT']
     msg['From'] = config['MESSAGE_SEND_FROM']
-    msg['To'] = config['MESSAGE_SEND_TO']
+    msg['To'] = config['ERROR_SEND_TO']
 
     send(config, msg)
 
 
-def process():
-    config = get_config("recalculate.yaml")
+def process_once(config):
+    count = 0
+    errors = []
     while True:
-        count = 0
-        errors = []
+        with model.session_scope() as session:
+            record = (session.query(model.Assessment,
+                                   model.Hierarchy.modified)
+                .join(model.Hierarchy)
+                .filter((model.Assessment.modified < model.Hierarchy.modified) |
+                        ((model.Assessment.modified == None) &
+                         (model.Hierarchy.modified != None)))
+                .first())
+            if record is None:
+                break
+            sub, htime = record
+            log.info(
+                "Processing %s, %s < %s", sub,
+                sub and sub.modified, htime)
+            if count == 0 and len(errors) == 0:
+                log.info("Starting new job")
+
+            try:
+                sub.update_stats_descendants()
+                count += 1
+            except model.ModelError as error:
+                errors.append({"submission_id": sub.id,
+                               "submission_title": sub.title,
+                               "error": str(error)})
+                sub = session.query(model.Assessment).get(sub.id)
+
+            sub.modified = sub.hierarchy.modified
+            session.commit()
+
+    if len(errors) != 0:
+        send_email(config, mail_content(errors))
+
+    log.info("Successfully recalculated scores for %d submissions.",
+             count)
+    log.info("Failed to recalculate scores for %d submissions.",
+             len(errors))
+
+
+def process_loop():
+    config = utils.get_config("recalculate.yaml")
+    try:
         while True:
-            with model.session_scope() as session:
-                sub = (session.query(model.Assessment)
-                    .join(model.Hierarchy)
-                    .filter(or_(model.Hierarchy.modified > model.Assessment.modified,
-                        model.Assessment.modified == None))
-                    .first())
-                if sub is None:
-                    break
-                if count == 0 and len(errors) == 0:
-                    log.info("Starting new job")
-
-                try:
-                    sub.update_stats_descendants()
-                    count += 1
-                except model.ModelError as error:
-                    errors.append({"submission_id": sub.id,
-                                   "submission_title": sub.title,
-                                   "error": str(error)})
-                    sub = session.query(model.Assessment).get(sub.id)
-
-                sub.modified = sub.hierarchy.modified
-                session.commit()
-
-        if len(errors) != 0:
-            send_email(config, errors)
-
-        log.info("Job finished")
-        log.info("Successfully recalculated scores for %d submissions.",
-                 count)
-        log.info("Fail to recalculate scores for %d submissions.",
-                 len(errors))
-
-        time.sleep(interval)
+            process_once(config)
+            log.info("Sleeping for %ds", config['JOB_INTERVAL_SECONDS'])
+            time.sleep(config['JOB_INTERVAL_SECONDS'])
+    except Exception as e:
+        send_email(config,
+             "FATAL ERROR. Daemon will need to be fixed.\n%s" %
+             str(e))
+        raise
 
 
 def connect_db():
@@ -86,9 +102,11 @@ def connect_db():
 
 if __name__ == "__main__":
     try:
-        log.info("Starting service...:%s", datetime.datetime.utcnow())
+        log.info("Starting service")
         connect_db()
-        time.sleep(interval)
-        process()
+        if not '--no-delay' in sys.argv:
+            log.info("Sleeping for %ds", STARTUP_DELAY)
+            time.sleep(STARTUP_DELAY)
+        process_loop()
     except KeyboardInterrupt:
         log.info("Shutting down due to user request (e.g. Ctrl-C)")

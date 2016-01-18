@@ -215,20 +215,34 @@ Recalculation of scores takes a long time, so when the survey structure changes
 the [recalculation is done by a daemon][rd], instead of when the author saves
 their changes.
 It happens every so often in a background service with Docker container on the
-[backup machine][db]. It uses same Docker image as the currently working web
+[backup machine][db]. It uses the same Docker image as the currently working web
 app, so it should be upgraded at the same time as the web app.
 
+First, copy [the config file][recalc] and edit it to contain your preferred mail
+settings:
 
 ```bash
-docker run -d --name recalc \
-    -e DATABASE_URL=<DATABASE_URL> \
+mkdir -p ~/aq_config
+cp src/app/config/recalculate.yaml ~/aq_config/
+nano ~/aq_config/recalculate.yaml
+echo DATABASE_URL="<DATABASE_URL>" > ~/aq_config/aq.conf
+```
+
+Make sure the image has been built, and launch the script in a container:
+
+```bash
+make
+sudo docker run -d --name recalc \
+    --env-file=$HOME/aq_config/aq.conf \
+    -v $HOME/aq_config:/usr/share/aquamark/app/config \
     --restart=always \
-    vpac/aquamark python3 ./app/server/recalculate.py
+    vpac/aquamark:latest python3 ./app/server/recalculate.py
 ```
 
 [ec]: https://en.wikipedia.org/wiki/Eventual_consistency
 [db]: database/README.md
 [rd]: src/app/server/recalculate.py
+[recalc]: src/app/config/recalculate.yaml
 
 
 ### Notification daemon
@@ -244,19 +258,25 @@ First, copy [the config file][noti] and edit it to contain your preferred mail
 settings:
 
 ```bash
-cp src/app/server/notification.yaml.SAMPLE src/app/server/notification.yaml
-nano src/app/server/notification.yaml
+mkdir -p ~/aq_config
+cp src/app/config/notification.yaml ~/aq_config/
+nano ~/aq_config/notification.yaml
+echo DATABASE_URL="<DATABASE_URL>" > ~/aq_config/aq.conf
 ```
 
+Now make sure the image has been built, and launch the script in a container:
+
 ```bash
-docker run -d --name noti \
-    -e DATABASE_URL=<DATABASE_URL> \
+make
+sudo docker run -d --name notify \
+    --env-file=$HOME/aq_config/aq.conf \
+    -v $HOME/aq_config:/usr/share/aquamark/app/config \
     --restart=always \
-    vpac/aquamark python3 ./app/server/notification.py
+    vpac/aquamark:latest python3 ./app/server/notifications.py
 ```
 
 [db]: database/README.md
-[noti]: src/app/server/notification.yaml.SAMPLE
+[noti]: src/app/config/notification.yaml
 
 
 ### Upgrading
@@ -367,11 +387,14 @@ Run `admin.py -h` for more options.
 ## Dependencies
 
 Client-side scripts are managed with Bower, which will automatically download
-them when the application stats (see `start.sh`). When running in release
-mode, the application will automatically use CDNs for some scripts and CSS
+them when building with Docker. When not running in dev mode (see [aq.conf]),
+the application will automatically use CDNs for some scripts and CSS
 files, and will minify the others. If you add a dependency or change its
 version number, you **must** make sure the versions specified in `bower.json`
 and in `server/handlers.py` are the same.
+
+
+[aq.conf]: src/app/config/aq.conf
 
 
 ## Debugging

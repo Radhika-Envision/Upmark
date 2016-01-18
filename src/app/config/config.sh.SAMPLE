@@ -1,4 +1,0 @@
-export PORT=8000
-export DEV_MODE=True
-#export ANALYTICS_ID=
-export DATABASE_URL=postgresql://user:password@host/aquamark

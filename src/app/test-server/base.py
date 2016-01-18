@@ -45,6 +45,29 @@ def mock_user(email):
                 get_secure_cookie(user_email=email))
 
 
+def print_hierarchy(hierarchy):
+
+    def print_measure(qnode_measure, indent=""):
+        print("{}{}".format(indent, qnode_measure.measure))
+        indent += "  "
+        print("{}seq: {}".format(indent, qnode_measure.seq))
+        print("{}weight: {}".format(indent, qnode_measure.measure.weight))
+
+    def print_qnode(qnode, indent=""):
+        print("{}{}".format(indent, qnode))
+        indent += "  "
+        print("{}seq: {}".format(indent, qnode.seq))
+        print("{}total_weight: {}".format(indent, qnode.total_weight))
+        for c in qnode.children:
+            print_qnode(c, indent)
+        for m in qnode.qnode_measures:
+            print_measure(m, indent)
+
+    print(hierarchy)
+    for qnode in hierarchy.qnodes:
+        print_qnode(qnode, indent="  ")
+
+
 class AqModelTestBase(unittest.TestCase):
 
     def setUp(self):

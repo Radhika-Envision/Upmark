@@ -1,9 +1,12 @@
 import collections
 import datetime
+import inspect
 import logging
+import os
 import re
 import time
 import uuid
+import yaml
 
 import model
 
@@ -13,6 +16,17 @@ from sqlalchemy.engine.result import RowProxy
 
 
 log = logging.getLogger('app.utils')
+
+
+def get_package_dir():
+    frameinfo = inspect.getframeinfo(inspect.currentframe())
+    return os.path.dirname(frameinfo.filename)
+
+
+def get_config(file_name):
+    file_path = os.path.join(get_package_dir(), '..', 'config', file_name)
+    with open(file_path, 'r') as f:
+        return yaml.load(f)
 
 
 def truthy(value):

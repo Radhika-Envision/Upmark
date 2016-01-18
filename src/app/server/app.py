@@ -2,7 +2,6 @@
 
 import base64
 from configparser import ConfigParser
-import inspect
 import logging.config
 import os
 import signal
@@ -18,13 +17,10 @@ import tornado.httpserver
 import tornado.options
 import tornado.web
 
+from utils import get_package_dir
+
 
 log = logging.getLogger('app')
-
-
-def get_package_dir():
-    frameinfo = inspect.getframeinfo(inspect.currentframe())
-    return os.path.dirname(frameinfo.filename)
 
 
 def configure_logging():
