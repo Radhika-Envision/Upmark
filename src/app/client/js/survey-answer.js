@@ -124,7 +124,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
             url = '/export/response/' + assessment_id + '.xlsx';
 
         // console.log(assessment_id, export_type);
-        $http.get(url, { responseType: "arraybuffer" }).then(
+        $http.get(url, { responseType: "arraybuffer", cache: false }).then(
             function success(response) {
                 var message = "Export finished";
                 Notifications.set('export', 'info', message, 5000);
