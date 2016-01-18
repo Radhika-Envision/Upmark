@@ -233,7 +233,7 @@ Make sure the image has been built, and launch the script in a container:
 ```bash
 make
 sudo docker run -d --name recalc \
-    --env-file=../aq_config/aq.conf \
+    --env-file=$HOME/aq_config/aq.conf \
     -v $HOME/aq_config:/usr/share/aquamark/app/config \
     --restart=always \
     vpac/aquamark:latest python3 ./app/server/recalculate.py
@@ -269,7 +269,7 @@ Now make sure the image has been built, and launch the script in a container:
 ```bash
 make
 sudo docker run -d --name notify \
-    --env-file=../aq_config/aq.conf \
+    --env-file=$HOME/aq_config/aq.conf \
     -v $HOME/aq_config:/usr/share/aquamark/app/config \
     --restart=always \
     vpac/aquamark:latest python3 ./app/server/notifications.py

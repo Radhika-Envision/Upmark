@@ -2,6 +2,7 @@ import datetime
 from email.mime.text import MIMEText
 import logging
 import os
+import sys
 import time
 
 from sqlalchemy import extract, func
@@ -169,8 +170,9 @@ if __name__ == "__main__":
     try:
         log.info("Starting service")
         connect_db()
-        log.info("Sleeping for %ds", STARTUP_DELAY)
-        time.sleep(STARTUP_DELAY)
+        if not '--no-delay' in sys.argv:
+            log.info("Sleeping for %ds", STARTUP_DELAY)
+            time.sleep(STARTUP_DELAY)
         process_loop()
     except KeyboardInterrupt:
         log.info("Shutting down due to user request (e.g. Ctrl-C)")

@@ -2,6 +2,7 @@ import datetime
 from email.mime.text import MIMEText
 import logging
 import os
+import sys
 import time
 
 from sqlalchemy import or_
@@ -44,14 +45,19 @@ def process_once(config):
     errors = []
     while True:
         with model.session_scope() as session:
-            sub = (session.query(model.Assessment)
+            record = (session.query(model.Assessment,
+                                   model.Hierarchy.modified)
                 .join(model.Hierarchy)
-                .filter(or_(model.Hierarchy.modified > model.Assessment.modified,
-                    model.Assessment.modified == None))
+                .filter((model.Assessment.modified < model.Hierarchy.modified) |
+                        ((model.Assessment.modified == None) &
+                         (model.Hierarchy.modified != None)))
                 .first())
-            log.info("Processing %s", sub)
-            if sub is None:
+            if record is None:
                 break
+            sub, htime = record
+            log.info(
+                "Processing %s, %s < %s", sub,
+                sub and sub.modified, htime)
             if count == 0 and len(errors) == 0:
                 log.info("Starting new job")
 
@@ -92,8 +98,9 @@ if __name__ == "__main__":
     try:
         log.info("Starting service")
         connect_db()
-        log.info("Sleeping for %ds", STARTUP_DELAY)
-        time.sleep(STARTUP_DELAY)
+        if not '--no-delay' in sys.argv:
+            log.info("Sleeping for %ds", STARTUP_DELAY)
+            time.sleep(STARTUP_DELAY)
         process_loop()
     except KeyboardInterrupt:
         log.info("Shutting down due to user request (e.g. Ctrl-C)")
