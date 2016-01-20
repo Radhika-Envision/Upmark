@@ -26,6 +26,13 @@ def upgrade():
     op.add_column('rnode', sa.Column('max_importance', sa.Float(), nullable=True))
     op.add_column('rnode', sa.Column('max_urgency', sa.Float(), nullable=True))
 
+    op.execute('UPDATE rnode SET max_importance = 0.0, max_urgency = 0.0')
+
+    op.alter_column(
+        'rnode', 'max_importance', existing_type=sa.Float(), nullable=False)
+    op.alter_column(
+        'rnode', 'max_urgency', existing_type=sa.Float(), nullable=False)
+
 
 def downgrade():
     op.drop_column('rnode', 'max_urgency')

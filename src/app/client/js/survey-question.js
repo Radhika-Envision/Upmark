@@ -973,10 +973,10 @@ angular.module('wsaa.surveyQuestions', [
 .controller('QuestionNodeCtrl', [
         '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'format', 'Structure',
-        'layout', 'Arrays', 'ResponseNode', 'Enqueue',
+        'layout', 'Arrays', 'ResponseNode', 'Enqueue', '$timeout',
         function($scope, QuestionNode, routeData, Editor, authz,
                  $location, Notifications, current, format, Structure,
-                 layout, Arrays, ResponseNode, Enqueue) {
+                 layout, Arrays, ResponseNode, Enqueue, $timeout) {
 
     // routeData.parent and routeData.hierarchy will only be defined when
     // creating a new qnode.
@@ -1044,6 +1044,19 @@ angular.module('wsaa.surveyQuestions', [
             assessmentId: $scope.assessment.id,
             qnodeId: $scope.qnode.id
         });
+
+        var disableUpdate = false;
+        var importanceToView = function() {
+            var rnode = $scope.rnode;
+            $scope.stats.importance = rnode.importance || rnode.maxImportance;
+            $scope.stats.urgency = rnode.urgency || rnode.maxUrgency;
+
+            disableUpdate = true;
+            $timeout(function() {
+                disableUpdate = false;
+            });
+        };
+
         $scope.rnode.$promise.then(
             function success(rnode) {
                 $scope.rnodeDup = angular.copy(rnode);
@@ -1065,10 +1078,9 @@ angular.module('wsaa.surveyQuestions', [
                             value: rnode.nApproved,
                             fraction: rnode.nApproved / $scope.qnode.nMeasures
                         },
-                    ],
-                    importance: rnode.importance || rnode.maxImportance,
-                    urgency: rnode.urgency || rnode.maxUrgency,
+                    ]
                 };
+                importanceToView();
             },
             function failure(details) {
                 if (details.status != 404) {
@@ -1093,6 +1105,7 @@ angular.module('wsaa.surveyQuestions', [
             $scope.rnode.$save().then(
                 function success(rnode) {
                     $scope.rnodeDup = angular.copy(rnode);
+                    importanceToView();
                     Notifications.set('edit', 'success', "Saved", 5000);
                 },
                 function failure(details) {
@@ -1102,12 +1115,12 @@ angular.module('wsaa.surveyQuestions', [
                 });
         }, 1500);
         $scope.$watch('stats.importance', function(v, vOld) {
-            if (vOld === undefined)
+            if (disableUpdate || vOld === undefined)
                 return;
             $scope.rnode.importance = v;
         });
         $scope.$watch('stats.urgency', function(v, vOld) {
-            if (vOld === undefined)
+            if (disableUpdate || vOld === undefined)
                 return;
             $scope.rnode.urgency = v;
         });
@@ -1115,6 +1128,8 @@ angular.module('wsaa.surveyQuestions', [
                 ['rnode.notRelevant', 'rnode.importance', 'rnode.urgency'],
                 function(vals, oldVals) {
             if (oldVals.every(function(v) { return v === undefined }))
+                return;
+            if (disableUpdate)
                 return;
             $scope.saveRnode();
         });
@@ -1720,7 +1735,9 @@ angular.module('wsaa.surveyQuestions', [
                                 value: rnode.nApproved,
                                 fraction: rnode.nApproved / nm
                             },
-                        ]
+                        ],
+                        importance: rnode.maxImportance,
+                        urgency: rnode.maxUrgency,
                     };
                 }
                 $scope.rnodeMap = rmap;
@@ -1751,7 +1768,9 @@ angular.module('wsaa.surveyQuestions', [
                 value: 0,
                 fraction: 0
             },
-        ]
+        ],
+        importance: 0,
+        urgency: 0,
     };
     $scope.getStats = function(qnodeId) {
         if ($scope.rnodeMap && $scope.rnodeMap[qnodeId])

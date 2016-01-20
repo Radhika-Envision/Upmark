@@ -943,8 +943,8 @@ class ResponseNode(Observable, Base):
         n_reviewed = 0
         n_submitted = 0
         n_not_relevant = 0
-        max_importance = self.importance or 0.0
-        max_urgency = self.urgency or 0.0
+        max_importance = 0.0
+        max_urgency = 0.0
 
         for c in self.children:
             score += c.score
@@ -971,8 +971,8 @@ class ResponseNode(Observable, Base):
         self.n_reviewed = n_reviewed
         self.n_submitted = n_submitted
         self.n_not_relevant = n_not_relevant
-        self.max_importance = max_importance
-        self.max_urgency = max_urgency
+        self.max_importance = self.importance or max_importance
+        self.max_urgency = self.urgency or max_urgency
 
     def update_stats_descendants(self):
         for qchild in self.qnode.children:

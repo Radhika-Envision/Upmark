@@ -40,6 +40,20 @@
                         ng-if="getStats(item.id).notRelevant"
                         title="Not relevant"></i>
             </td>
+            <td class="shrink text-muted numeric" title="Importance"
+                    ng-if="assessment">
+                <span ng-if="getStats(item.id).importance">
+                    <i class="fa fa-star text-muted"></i>
+                    {{getStats(item.id).importance}}
+                </span>
+            </td>
+            <td class="shrink text-muted numeric" title="Urgency"
+                    ng-if="assessment">
+                <span ng-if="getStats(item.id).urgency">
+                    <i class="fa fa-circle text-muted"></i>
+                    {{getStats(item.id).urgency}}
+                </span>
+            </td>
             <td class="shrink text-muted numeric" title="Score"
                     ng-if="assessment && checkRole('view_aggregate_score')">
                 {{getStats(item.id).score | number:0}} /
