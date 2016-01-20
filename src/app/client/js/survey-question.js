@@ -973,10 +973,10 @@ angular.module('wsaa.surveyQuestions', [
 .controller('QuestionNodeCtrl', [
         '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'format', 'Structure',
-        'layout', 'Arrays', 'ResponseNode',
+        'layout', 'Arrays', 'ResponseNode', 'Enqueue',
         function($scope, QuestionNode, routeData, Editor, authz,
                  $location, Notifications, current, format, Structure,
-                 layout, Arrays, ResponseNode) {
+                 layout, Arrays, ResponseNode, Enqueue) {
 
     // routeData.parent and routeData.hierarchy will only be defined when
     // creating a new qnode.
@@ -1044,48 +1044,68 @@ angular.module('wsaa.surveyQuestions', [
             assessmentId: $scope.assessment.id,
             qnodeId: $scope.qnode.id
         });
-        $scope.rnode.$promise.catch(function failure(details) {
-            if (details.status != 404) {
-                Notifications.set('edit', 'error',
-                    "Failed to get response details: " + details.statusText);
-                return;
+        $scope.rnode.$promise.then(
+            function success(rnode) {
+                $scope.rnodeDup = angular.copy(rnode);
+                $scope.stats = {
+                    score: rnode.score,
+                    progressItems: [
+                        {
+                            name: 'Final',
+                            value: rnode.nSubmitted,
+                            fraction: rnode.nSubmitted / $scope.qnode.nMeasures
+                        },
+                        {
+                            name: 'Reviewed',
+                            value: rnode.nReviewed,
+                            fraction: rnode.nReviewed / $scope.qnode.nMeasures
+                        },
+                        {
+                            name: 'Approved',
+                            value: rnode.nApproved,
+                            fraction: rnode.nApproved / $scope.qnode.nMeasures
+                        },
+                    ]
+                };
+            },
+            function failure(details) {
+                if (details.status != 404) {
+                    Notifications.set('edit', 'error',
+                        "Failed to get response details: " + details.statusText);
+                    return;
+                }
+                $scope.rnode = new ResponseNode({
+                    qnodeId: $scope.qnode.id,
+                    assessmentId: $scope.assessment.id,
+                    score: 0.0,
+                    nSubmitted: 0,
+                    nReviewed: 0,
+                    nApproved: 0,
+                    nNotRelevant: 0,
+                    notRelevant: false
+                });
             }
-            $scope.rnode = new ResponseNode({
-                qnodeId: $scope.qnode.id,
-                assessmentId: $scope.assessment.id,
-                score: 0.0,
-                nSubmitted: 0,
-                nReviewed: 0,
-                nApproved: 0,
-                nNotRelevant: 0,
-                notRelevant: false
-            });
-        });
-        $scope.$watch('rnode', function(rnode) {
-            if (!rnode)
+        );
+
+        $scope.saveRnode = Enqueue(function() {
+            $scope.rnode.$save().then(
+                function success(rnode) {
+                    $scope.rnodeDup = angular.copy(rnode);
+                    Notifications.set('edit', 'success', "Saved", 5000);
+                },
+                function failure(details) {
+                    angular.copy($scope.rnodeDup, $scope.rnode)
+                    Notifications.set('edit', 'error',
+                        "Could not save response node: " + details.statusText);
+                });
+        }, 1500);
+        $scope.$watchGroup(
+                ['rnode.notRelevant', 'rnode.importance', 'rnode.urgency'],
+                function(vals, oldVals) {
+            if (oldVals.every(function(v) { return v === undefined }))
                 return;
-            $scope.rnode = rnode;
-            $scope.stats = {
-                score: rnode.score,
-                progressItems: [
-                    {
-                        name: 'Final',
-                        value: rnode.nSubmitted,
-                        fraction: rnode.nSubmitted / $scope.qnode.nMeasures
-                    },
-                    {
-                        name: 'Reviewed',
-                        value: rnode.nReviewed,
-                        fraction: rnode.nReviewed / $scope.qnode.nMeasures
-                    },
-                    {
-                        name: 'Approved',
-                        value: rnode.nApproved,
-                        fraction: rnode.nApproved / $scope.qnode.nMeasures
-                    },
-                ]
-            };
-        }, true);
+            $scope.saveRnode();
+        });
     }
 
     $scope.getAssessmentUrl = function(assessment) {
@@ -1096,20 +1116,6 @@ angular.module('wsaa.surveyQuestions', [
             return format('/qnode/{}?survey={}',
                 $scope.qnode.id, $scope.survey.id);
         }
-    };
-
-    $scope.toggleNotRelevant = function() {
-        var oldValue = $scope.rnode.notRelevant;
-        $scope.rnode.notRelevant = !oldValue;
-        $scope.rnode.$save().then(
-            function success() {
-                Notifications.set('edit', 'success', "Saved", 5000);
-            },
-            function failure(details) {
-                $scope.rnode.notRelevant = oldValue;
-                Notifications.set('edit', 'error',
-                    "Could not save response node: " + details.statusText);
-            });
     };
 }])
 

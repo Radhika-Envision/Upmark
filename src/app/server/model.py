@@ -842,6 +842,9 @@ class ResponseNode(Observable, Base):
     n_not_relevant = Column(Integer, default=0, nullable=False)
     not_relevant = Column(Boolean, default=False, nullable=False)
 
+    importance = Column(Float)
+    urgency = Column(Float)
+
     __table_args__ = (
         ForeignKeyConstraint(
             ['qnode_id', 'survey_id'],

@@ -59,6 +59,8 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 r'/n_measures$',
                 r'/n_not_relevant$',
                 r'/not_relevant$',
+                r'/importance$',
+                r'/urgency$',
                 # Descend into nested objects
                 r'/qnode$',
             ], exclude=exclude)
@@ -120,6 +122,8 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 r'/n_measures$',
                 r'/n_not_relevant$',
                 r'/not_relevant$',
+                r'/importance$',
+                r'/urgency$',
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/qnode$',
@@ -162,6 +166,18 @@ class ResponseNodeHandler(handlers.BaseHandler):
                         not_relevant=False)
                     session.add(rnode)
 
+                importance = self.request_son.get('importance')
+                if importance is not None:
+                    if importance <= 0:
+                        self.request_son['importance'] = None
+                    elif importance > 5:
+                        self.request_son['importance'] = 5
+                urgency = self.request_son.get('urgency')
+                if urgency is not None:
+                    if urgency <= 0:
+                        self.request_son['urgency'] = None
+                    elif urgency > 5:
+                        self.request_son['urgency'] = 5
                 self._update(rnode, self.request_son)
                 session.flush()
 
@@ -192,3 +208,5 @@ class ResponseNodeHandler(handlers.BaseHandler):
         '''
         update = updater(rnode)
         update('not_relevant', son)
+        update('importance', son)
+        update('urgency', son)
