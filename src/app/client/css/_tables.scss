@@ -28,6 +28,9 @@
         &.truncate {
             max-width: 0;
         }
+        &.text-muted .text-muted {
+            color: #ccc;
+        }
     }
     .str-wrap {
         min-width: 40ex;

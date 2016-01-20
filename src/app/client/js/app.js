@@ -5,6 +5,7 @@ angular.module('wsaa.aquamark',
                 'ui.bootstrap.showErrors', 'validation.match', 'settings',
                 'yaru22.angular-timeago', 'angular-select-text',
                 'angular-medium-editor', 'msieurtoph.ngCheckboxes',
+                'angular-input-stars',
                 'wsaa.survey', 'wsaa.admin', 'wsaa.home', 'wsaa.subscription',
                 'wsaa.surveyQuestions', 'wsaa.surveyAnswers',
                 'vpac.utils', 'vpac.widgets', 'diff-match-patch'])

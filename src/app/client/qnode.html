@@ -71,7 +71,7 @@
     <div ng-if="rnode" class="stats">
         <button class="btn btn-on-danger btn-round pull-right hidden-print"
                 title="Toggle not relevant"
-                ng-click="toggleNotRelevant()"
+                ng-click="rnode.notRelevant = !rnode.notRelevant"
                 ng-class="{active: rnode.notRelevant}">
             <i class="fa fa-fw fa-ban"></i></button>
         <docs ng-if="!edit.model && rnode.notRelevant">
@@ -99,6 +99,15 @@
         <span title="Measures">
             <span class="text-muted" title="Total number of measures">
                 {{qnode.nMeasures}}</span>
+        </span>
+        <span title="Importance"
+                ng-class="{inherited: rnode.importance == null}">
+            <input-stars ng-model="stats.importance"></input-stars>
+        </span>
+        <span title="Urgency"
+                ng-class="{inherited: rnode.urgency == null}">
+            <input-stars ng-model="stats.urgency"
+                icon-empty="fa-circle-thin" icon-full="fa-circle"></input-stars>
         </span>
     </div>
 

@@ -179,7 +179,8 @@ SCRIPTS = [
             '/.bower_components/google-diff-match-patch/diff_match_patch.js',
             '/.bower_components/domador/dist/domador.js',
             '/.bower_components/FileSaver.js/FileSaver.js',
-            '/.bower_components/angular-checkboxes/angular-checkboxes.js'
+            '/.bower_components/angular-checkboxes/angular-checkboxes.js',
+            '/.bower_components/angular-input-stars/angular-input-stars.js',
         ]
     },
     {

@@ -479,3 +479,50 @@ markdown-editor {
 .angular-medium-editor img {
     max-width: 100%;
 }
+
+.angular-input-stars {
+    display: inline-block;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    position: relative;
+
+    > li {
+        font-size: 17px;
+        display: inline-block;
+        padding-right: 1px;
+        padding-left: 1px;
+        cursor: pointer;
+        color: mix(white, $aq-bar1, 20%);
+
+        &:first-child {
+            color: mix(white, red, 60%);
+            position: absolute;
+            left: -20px;
+
+            &:hover {
+                color: mix(white, red, 50%);
+            }
+        }
+
+        .active {
+            color: mix(white, $aq-bar1, 30%);
+        }
+        .active.angular-input-stars-hover {
+            color: mix(white, $aq-bar1, 40%);
+        }
+    }
+
+    &:not(:hover) > li:first-child {
+        display: none;
+    }
+}
+.inherited .angular-input-stars > li {
+    color: mix(white, $aq-bar2, 30%);
+    .active {
+        color: mix(white, $aq-bar2, 40%);
+    }
+    &:first-child {
+        display: none;
+    }
+}
