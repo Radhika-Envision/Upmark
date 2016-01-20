@@ -100,11 +100,13 @@
             <span class="text-muted" title="Total number of measures">
                 {{qnode.nMeasures}}</span>
         </span>
-        <span title="Importance">
-            <input-stars ng-model="rnode.importance"></input-stars>
+        <span title="Importance"
+                ng-class="{inherited: rnode.importance == null}">
+            <input-stars ng-model="stats.importance"></input-stars>
         </span>
-        <span title="Urgency">
-            <input-stars ng-model="rnode.urgency"
+        <span title="Urgency"
+                ng-class="{inherited: rnode.urgency == null}">
+            <input-stars ng-model="stats.urgency"
                 icon-empty="fa-circle-thin" icon-full="fa-circle"></input-stars>
         </span>
     </div>

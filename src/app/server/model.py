@@ -844,6 +844,8 @@ class ResponseNode(Observable, Base):
 
     importance = Column(Float)
     urgency = Column(Float)
+    max_importance = Column(Float)
+    max_urgency = Column(Float)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -932,6 +934,8 @@ class ResponseNode(Observable, Base):
             self.n_reviewed = self.qnode.n_measures
             self.n_submitted = self.qnode.n_measures
             self.n_not_relevant = self.qnode.n_measures
+            self.max_importance = 0.0
+            self.max_urgency = 0.0
             return
 
         score = 0.0
@@ -939,6 +943,8 @@ class ResponseNode(Observable, Base):
         n_reviewed = 0
         n_submitted = 0
         n_not_relevant = 0
+        max_importance = self.importance or 0.0
+        max_urgency = self.urgency or 0.0
 
         for c in self.children:
             score += c.score
@@ -946,6 +952,8 @@ class ResponseNode(Observable, Base):
             n_reviewed += c.n_reviewed
             n_submitted += c.n_submitted
             n_not_relevant += c.n_not_relevant
+            max_importance = max(max_importance, c.max_importance or 0.0)
+            max_urgency = max(max_urgency, c.max_urgency or 0.0)
 
         for r in self.responses:
             score += r.score
@@ -963,6 +971,8 @@ class ResponseNode(Observable, Base):
         self.n_reviewed = n_reviewed
         self.n_submitted = n_submitted
         self.n_not_relevant = n_not_relevant
+        self.max_importance = max_importance
+        self.max_urgency = max_urgency
 
     def update_stats_descendants(self):
         for qchild in self.qnode.children:

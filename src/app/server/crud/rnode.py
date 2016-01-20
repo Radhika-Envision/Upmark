@@ -59,8 +59,8 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 r'/n_measures$',
                 r'/n_not_relevant$',
                 r'/not_relevant$',
-                r'/importance$',
-                r'/urgency$',
+                r'/(max_)?importance$',
+                r'/(max_)?urgency$',
                 # Descend into nested objects
                 r'/qnode$',
             ], exclude=exclude)
@@ -122,8 +122,8 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 r'/n_measures$',
                 r'/n_not_relevant$',
                 r'/not_relevant$',
-                r'/importance$',
-                r'/urgency$',
+                r'/max_importance$',
+                r'/max_urgency$',
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/qnode$',

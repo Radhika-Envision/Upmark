@@ -1065,7 +1065,9 @@ angular.module('wsaa.surveyQuestions', [
                             value: rnode.nApproved,
                             fraction: rnode.nApproved / $scope.qnode.nMeasures
                         },
-                    ]
+                    ],
+                    importance: rnode.importance || rnode.maxImportance,
+                    urgency: rnode.urgency || rnode.maxUrgency,
                 };
             },
             function failure(details) {
@@ -1099,6 +1101,16 @@ angular.module('wsaa.surveyQuestions', [
                         "Could not save response node: " + details.statusText);
                 });
         }, 1500);
+        $scope.$watch('stats.importance', function(v, vOld) {
+            if (vOld === undefined)
+                return;
+            $scope.rnode.importance = v;
+        });
+        $scope.$watch('stats.urgency', function(v, vOld) {
+            if (vOld === undefined)
+                return;
+            $scope.rnode.urgency = v;
+        });
         $scope.$watchGroup(
                 ['rnode.notRelevant', 'rnode.importance', 'rnode.urgency'],
                 function(vals, oldVals) {
