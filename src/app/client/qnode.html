@@ -120,6 +120,14 @@
                 <em class="text-bar3">approved</em> measures.
                 Click on a graph to see the details as numbers.
             </p>
+            <p class="text-center text-huge spaced">
+                <column-progress items="demoStats"></column-progress>
+            </p>
+            <p class="spaced">
+                A white stripe through a bar means 100% of the measures have
+                reached that level of approval (because otherwise it's a bit
+                hard to see if the bar is full).
+            </p>
         </docs>
 
         <span title="Importance"
@@ -153,7 +161,7 @@
                 You can tell if a rating has been inherited by its colour:
                 inherited ratings are orange
                 <i class="fa fa-star text-bar2-light"></i>,
-                while set ratings are yellow
+                while explicitly-set ratings are yellow
                 <i class="fa fa-star text-bar1-light"></i>.
                 To un-set a rating, hover over the stars and then click the
                 <i class="fa fa-times"></i> that appears.

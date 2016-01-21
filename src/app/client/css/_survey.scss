@@ -717,6 +717,10 @@ column-progress {
     }
 }
 
+.text-huge {
+    font-size: 200%;
+}
+
 @include keyframes(sine-height) {
     0% {
         height: 60%;

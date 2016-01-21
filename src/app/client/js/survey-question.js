@@ -1133,6 +1133,24 @@ angular.module('wsaa.surveyQuestions', [
                 return;
             $scope.saveRnode();
         });
+
+        $scope.demoStats = [
+            {
+                name: 'Final',
+                value: 120,
+                fraction: 1.0
+            },
+            {
+                name: 'Reviewed',
+                value: 80,
+                fraction: 0.75
+            },
+            {
+                name: 'Approved',
+                value: 60,
+                fraction: 0.5
+            },
+        ];
     }
 
     $scope.getAssessmentUrl = function(assessment) {
