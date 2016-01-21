@@ -74,7 +74,7 @@
                 ng-click="rnode.notRelevant = !rnode.notRelevant"
                 ng-class="{active: rnode.notRelevant}">
             <i class="fa fa-fw fa-ban"></i></button>
-        <docs ng-if="!edit.model && rnode.notRelevant">
+        <docs ng-if="rnode.notRelevant">
             <i class="fa-li fa fa-ban fa-border"></i>
             <p>
                 This category is marked as not relevant. It does not
@@ -100,6 +100,28 @@
             <span class="text-muted" title="Total number of measures">
                 {{qnode.nMeasures}}</span>
         </span>
+
+        <docs>
+            <i class="fa-li fa fa-bar-chart fa-border"></i>
+            <h3>Scores and Progress</h3>
+            <p>
+                The score of a survey category is the sum of the scores of its
+                measures and child categories. To fill out this category,
+                <abbr title="click through to lower/deeper categories and measures">
+                    drill-down</abbr>
+                to the measures.
+            </p>
+            <p>
+                The little bar charts show the progress through the survey. Each
+                bar shows how many measures have been given a certain level of
+                approval. From left to right: the number of
+                <em class="text-bar1">final</em>,
+                <em class="text-bar2">reviewed</em> and
+                <em class="text-bar3">approved</em> measures.
+                Click on a graph to see the details as numbers.
+            </p>
+        </docs>
+
         <span title="Importance"
                 ng-class="{inherited: rnode.importance == null}">
             <input-stars ng-model="stats.importance"></input-stars>
@@ -109,6 +131,34 @@
             <input-stars ng-model="stats.urgency"
                 icon-empty="fa-circle-thin" icon-full="fa-circle"></input-stars>
         </span>
+        <docs>
+            <i class="fa-li fa fa-star-o fa-border"></i>
+            <h3>Importance and Urgency</h3>
+            <p>
+                You can give ratings to categories in the survey. These ratings
+                are to help you prioritise how you fill out the survey. They
+                don't affect the score, and they can't be seen by other
+                participants. Importance uses star ratings
+                <i class="fa fa-star"></i>, while urgency uses circles
+                <i class="fa fa-circle"></i>.
+            </p>
+            <p>
+                Ratings deeper in the survey
+                <abbr title="aggregate">
+                    bubble up</abbr> to higher levels so you can quickly
+                <abbr title="click through to lower/deeper categories">
+                    drill-down</abbr> to the
+                most important categories. If you don't set a rating for a
+                category, it will inherit the highest rating of its children.
+                You can tell if a rating has been inherited by its colour:
+                inherited ratings are orange
+                <i class="fa fa-star text-bar2-light"></i>,
+                while set ratings are yellow
+                <i class="fa fa-star text-bar1-light"></i>.
+                To un-set a rating, hover over the stars and then click the
+                <i class="fa fa-times"></i> that appears.
+            </p>
+        </docs>
     </div>
 
     <!-- Don't wrap the contents of this tag! -->

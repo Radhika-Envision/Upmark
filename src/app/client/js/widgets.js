@@ -831,12 +831,12 @@ angular.module('vpac.widgets', [])
     return {
         restrict: 'EA',
         scope: {},
-        template: '<h3 ng-show="ndocs > 0">Documentation</h3>' +
-                  '<ul class="docs fa-ul fa-ul-big"></ul>',
+        templateUrl: 'docs.html',
         link: function(scope, elem, attrs) {
             scope.ndocs = 0;
+            scope.isCollapsed = true;
             docsService.add = function(transcludeElem) {
-                var container = elem.children('ul.docs');
+                var container = elem.children().children('ul.docs');
                 var path = scopeUtils.path(transcludeElem.scope());
                 var child = container.children().first();
                 while (child.length) {

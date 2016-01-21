@@ -288,6 +288,10 @@ ul.docs > li:not(.printable) {
         display: none;
     }
 }
+ul.docs > li > i.fa-li.fa-border {
+    background: white;
+    border-color: white;
+}
 dt {
     margin-top: 8px;
 }
@@ -1082,4 +1086,29 @@ ul.fa-ul.timeline {
 
 .text-muted .underline > span {
     color: #777;
+}
+
+.text-bar1 {
+    color: $aq-bar1;
+}
+.text-bar1-light {
+    color: mix(white, $aq-bar1, 20);
+}
+.text-bar2 {
+    color: $aq-bar2;
+}
+.text-bar2-light {
+    color: mix(white, $aq-bar2, 20);
+}
+.text-bar3 {
+    color: $aq-bar3;
+}
+.text-bar3-light {
+    color: mix(white, $aq-bar3, 20);
+}
+.text-bar4 {
+    color: $aq-bar4;
+}
+.text-bar4-light {
+    color: mix(white, $aq-bar4, 20);
 }
