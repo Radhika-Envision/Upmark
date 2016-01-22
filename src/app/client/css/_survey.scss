@@ -716,7 +716,9 @@ column-progress {
         right: 0;
     }
 }
-
+.table column-progress {
+    margin-top: -2px;
+}
 .text-huge {
     font-size: 200%;
 }
@@ -819,28 +821,23 @@ $spinner-height: 16px;
 .stats {
     font-size: 120%;
     text-align: center;
-    margin-bottom: 14px;
 
     column-progress {
         margin-right: 0.5em;
     }
 
-    > span {
-        margin: 0 1em;
-        position: relative;
+    .stats-group {
         display: inline-block;
-    }
-    .stats-bar1 {
-        color: darken($aq-bar1, 10%);
-    }
-    .stats-bar2 {
-        color: darken($aq-bar2, 10%);
-    }
-    .stats-bar3 {
-        color: darken($aq-bar3, 10%);
+        margin-bottom: 14px;
+
+        > span {
+            margin: 0 1em;
+            position: relative;
+            display: inline-block;
+        }
     }
 }
-.stats:hover > span:before {
+.stats:hover .stats-group > span:before {
     content: attr(title);
     font-size: 10px;
     position: absolute;
@@ -1093,26 +1090,26 @@ ul.fa-ul.timeline {
 }
 
 .text-bar1 {
-    color: $aq-bar1;
+    color: darken($aq-bar1, 10%);
 }
 .text-bar1-light {
-    color: mix(white, $aq-bar1, 20);
+    color: lighten($aq-bar1, 20%);
 }
 .text-bar2 {
-    color: $aq-bar2;
+    color: darken($aq-bar2, 10%);
 }
 .text-bar2-light {
-    color: mix(white, $aq-bar2, 20);
+    color: lighten($aq-bar2, 20%);
 }
 .text-bar3 {
-    color: $aq-bar3;
+    color: darken($aq-bar3, 10%);
 }
 .text-bar3-light {
-    color: mix(white, $aq-bar3, 20);
+    color: lighten($aq-bar3, 20%);
 }
 .text-bar4 {
-    color: $aq-bar4;
+    color: darken($aq-bar4, 10%);
 }
 .text-bar4-light {
-    color: mix(white, $aq-bar4, 20);
+    color: lighten($aq-bar4, 20%);
 }

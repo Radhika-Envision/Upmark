@@ -31,6 +31,9 @@
         &.text-muted .text-muted {
             color: #ccc;
         }
+        &.vmid {
+            vertical-align: middle;
+        }
     }
     .str-wrap {
         min-width: 40ex;
@@ -42,6 +45,19 @@
     .numeric {
         max-width: 12ex;
         text-align: right;
+        font-family: monospace;
+        @media (max-width: 991px) and (min-width: 768px) {
+            font-size: 12px;
+            > .denominator-sm {
+                border-top: 1px solid;
+            }
+        }
+        @media (max-width: 767px) {
+            font-size: 12px;
+            > .denominator-xs {
+                border-top: 1px solid;
+            }
+        }
     }
     .med-truncated {
         max-width: 12ex;
@@ -116,6 +132,7 @@ tr.strike {
             border-bottom: 2px solid red;
             width: 100%;
             opacity: 0.5;
+            z-index: 1;
         }
     }
 }

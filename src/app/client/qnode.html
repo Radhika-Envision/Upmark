@@ -82,91 +82,91 @@
             </p>
         </docs>
 
-        <span title="Score">
-            {{rnode.score | number:0}}
-        </span>
-        <span title="Progress">
-            <column-progress items="stats.progressItems"></column-progress>
-            <span class="stats-bar1" title="Number of final responses">
-                {{rnode.nSubmitted}}</span>
-            <span class="stats-bar2" title="Number of reviewed responses">
-                {{rnode.nReviewed}}</span>
-            <span class="stats-bar3" title="Number of approved responses">
-                {{rnode.nApproved}}</span>
-            <span title="Number of not-relevant responses">
-                <s>{{rnode.nNotRelevant}}</s></span>
-        </span>
-        <span title="Measures">
-            <span class="text-muted" title="Total number of measures">
-                {{qnode.nMeasures}}</span>
-        </span>
+        <div class="stats-group">
+            <span title="Score">
+                {{rnode.score | number:0}}
+            </span>
+            <span title="Progress">
+                <column-progress items="stats.progressItems"></column-progress>
+            </span>
+            <span title="Measures">
+                <span class="text-muted" title="Total number of measures">
+                    {{qnode.nMeasures}}</span>
+            </span>
+            <span title="N/A">
+                <span title="Number of not-relevant responses">
+                    <s>{{rnode.nNotRelevant}}</s></span>
+            </span>
+        </div> <!-- class="stats-group"-->
 
-        <docs>
-            <i class="fa-li fa fa-bar-chart fa-border"></i>
-            <h3>Scores and Progress</h3>
-            <p>
-                The score of a survey category is the sum of the scores of its
-                measures and child categories. To fill out this category,
-                <abbr title="click through to lower/deeper categories and measures">
-                    drill-down</abbr>
-                to the measures.
-            </p>
-            <p>
-                The little bar charts show the progress through the survey. Each
-                bar shows how many measures have been given a certain level of
-                approval. From left to right: the number of
-                <em class="text-bar1">final</em>,
-                <em class="text-bar2">reviewed</em> and
-                <em class="text-bar3">approved</em> measures.
-                Click on a graph to see the details as numbers.
-            </p>
-            <p class="text-center text-huge spaced">
-                <column-progress items="demoStats"></column-progress>
-            </p>
-            <p class="spaced">
-                A white stripe through a bar means 100% of the measures have
-                reached that level of approval (because otherwise it's a bit
-                hard to see if the bar is full).
-            </p>
-        </docs>
+        <div class="stats-group">
+            <docs>
+                <i class="fa-li fa fa-bar-chart fa-border"></i>
+                <h3>Scores and Progress</h3>
+                <p>
+                    The score of a survey category is the sum of the scores of its
+                    measures and child categories. To fill out this category,
+                    <abbr title="click through to lower/deeper categories and measures">
+                        drill-down</abbr>
+                    to the measures.
+                </p>
+                <p>
+                    The little bar charts show the progress through the survey. Each
+                    bar shows how many measures have been given a certain level of
+                    approval. From left to right: the number of
+                    <em class="text-bar1">final</em>,
+                    <em class="text-bar2">reviewed</em> and
+                    <em class="text-bar3">approved</em> measures.
+                    Click on a graph to see the details as numbers.
+                </p>
+                <p class="text-center text-huge spaced">
+                    <column-progress items="demoStats"></column-progress>
+                </p>
+                <p class="spaced">
+                    A white stripe through a bar means 100% of the measures have
+                    reached that level of approval (because otherwise it's a bit
+                    hard to see if the bar is full).
+                </p>
+            </docs>
 
-        <span title="Importance"
-                ng-class="{inherited: rnode.importance == null}">
-            <input-stars ng-model="stats.importance"></input-stars>
-        </span>
-        <span title="Urgency"
-                ng-class="{inherited: rnode.urgency == null}">
-            <input-stars ng-model="stats.urgency"
-                icon-empty="fa-circle-thin" icon-full="fa-circle"></input-stars>
-        </span>
-        <docs>
-            <i class="fa-li fa fa-star-o fa-border"></i>
-            <h3>Importance and Urgency</h3>
-            <p>
-                You can give ratings to categories in the survey. These ratings
-                are to help you prioritise how you fill out the survey. They
-                don't affect the score, and they can't be seen by other
-                participants. Importance uses star ratings
-                <i class="fa fa-star"></i>, while urgency uses circles
-                <i class="fa fa-circle"></i>.
-            </p>
-            <p>
-                Ratings deeper in the survey
-                <abbr title="aggregate">
-                    bubble up</abbr> to higher levels so you can quickly
-                <abbr title="click through to lower/deeper categories">
-                    drill-down</abbr> to the
-                most important categories. If you don't set a rating for a
-                category, it will inherit the highest rating of its children.
-                You can tell if a rating has been inherited by its colour:
-                inherited ratings are orange
-                <i class="fa fa-star text-bar2-light"></i>,
-                while explicitly-set ratings are yellow
-                <i class="fa fa-star text-bar1-light"></i>.
-                To un-set a rating, hover over the stars and then click the
-                <i class="fa fa-times"></i> that appears.
-            </p>
-        </docs>
+            <span title="Importance"
+                    ng-class="{inherited: rnode.importance == null}">
+                <input-stars ng-model="stats.importance"></input-stars>
+            </span>
+            <span title="Urgency"
+                    ng-class="{inherited: rnode.urgency == null}">
+                <input-stars ng-model="stats.urgency"
+                    icon-empty="fa-circle-thin" icon-full="fa-circle"></input-stars>
+            </span>
+            <docs>
+                <i class="fa-li fa fa-star-o fa-border"></i>
+                <h3>Importance and Urgency</h3>
+                <p>
+                    You can give ratings to categories in the survey. These ratings
+                    are to help you prioritise how you fill out the survey. They
+                    don't affect the score, and they can't be seen by other
+                    participants. Importance uses star ratings
+                    <i class="fa fa-star"></i>, while urgency uses circles
+                    <i class="fa fa-circle"></i>.
+                </p>
+                <p>
+                    Ratings deeper in the survey
+                    <abbr title="aggregate">
+                        bubble up</abbr> to higher levels so you can quickly
+                    <abbr title="click through to lower/deeper categories">
+                        drill-down</abbr> to the
+                    most important categories. If you don't set a rating for a
+                    category, it will inherit the highest rating of its children.
+                    You can tell if a rating has been inherited by its colour:
+                    inherited ratings are orange
+                    <i class="fa fa-star text-bar2-light"></i>,
+                    while explicitly-set ratings are yellow
+                    <i class="fa fa-star text-bar1-light"></i>.
+                    To un-set a rating, hover over the stars and then click the
+                    <i class="fa fa-times"></i> that appears.
+                </p>
+            </docs>
+        </div> <!-- class="stats-group"-->
     </div>
 
     <!-- Don't wrap the contents of this tag! -->
