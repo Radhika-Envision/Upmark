@@ -90,7 +90,7 @@
         </docs>
 
         <div class="stats-group">
-            <span title="Score">
+            <span title="Score" ng-if="rnode.score != null">
                 {{rnode.score | number:0}}
             </span>
             <span title="Progress">
