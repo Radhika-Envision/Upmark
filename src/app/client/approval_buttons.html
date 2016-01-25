@@ -1,0 +1,43 @@
+<div class="btn-group btn-group-justified hidden-print
+            btn-group-arrow-right">
+    <div class="btn-group">
+        <button class="btn btn-default"
+                ng-class="{active: model.approval == 'draft'}"
+                ng-click="setState({state: 'draft'})"
+                title="Set as 'draft'">
+            <approval model="model.approval"
+                ng-if="model.approval == 'draft'"></approval>
+            Draft
+        </button>
+    </div>
+    <div class="btn-group">
+        <button class="btn btn-default"
+                ng-class="{active: model.approval == 'final'}"
+                ng-click="setState({state: 'final'})"
+                title="Set as 'final'">
+            <approval model="model.approval"
+                ng-if="model.approval == 'final'"></approval>
+            Final
+        </button>
+    </div>
+    <div class="btn-group">
+        <button class="btn btn-default"
+                ng-class="{active: model.approval == 'reviewed'}"
+                ng-click="setState({state: 'reviewed'})"
+                title="Set as 'reviewed'">
+            <approval model="model.approval"
+                ng-if="model.approval == 'reviewed'"></approval>
+            Reviewed
+        </button>
+    </div>
+    <div class="btn-group">
+        <button class="btn btn-default"
+                ng-class="{active: model.approval == 'approved'}"
+                ng-click="setState({state: 'approved'})"
+                title="Set as 'approved'">
+            <approval model="model.approval"
+                ng-if="model.approval == 'approved'"></approval>
+            Approved
+        </button>
+    </div>
+</div>

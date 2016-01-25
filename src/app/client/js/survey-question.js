@@ -973,10 +973,12 @@ angular.module('wsaa.surveyQuestions', [
 .controller('QuestionNodeCtrl', [
         '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'format', 'Structure',
-        'layout', 'Arrays', 'ResponseNode', 'Enqueue', '$timeout',
+        'layout', 'Arrays', 'ResponseNode', 'Enqueue', '$timeout', '$route',
+        'dimmer',
         function($scope, QuestionNode, routeData, Editor, authz,
                  $location, Notifications, current, format, Structure,
-                 layout, Arrays, ResponseNode, Enqueue, $timeout) {
+                 layout, Arrays, ResponseNode, Enqueue, $timeout, $route,
+                 dimmer) {
 
     // routeData.parent and routeData.hierarchy will only be defined when
     // creating a new qnode.
@@ -1047,6 +1049,8 @@ angular.module('wsaa.surveyQuestions', [
 
         var disableUpdate = false;
         var importanceToView = function() {
+            // When saving, the server may choose to change these values.
+            // Temporarily disable updates to prevent a save-loop.
             var rnode = $scope.rnode;
             $scope.stats.importance = rnode.importance || rnode.maxImportance;
             $scope.stats.urgency = rnode.urgency || rnode.maxUrgency;
@@ -1057,30 +1061,43 @@ angular.module('wsaa.surveyQuestions', [
             });
         };
 
+        $scope.updateStats = function(rnode) {
+            $scope.stats = {
+                score: rnode.score,
+                progressItems: [
+                    {
+                        name: 'Final',
+                        value: rnode.nSubmitted,
+                        fraction: rnode.nSubmitted / $scope.qnode.nMeasures
+                    },
+                    {
+                        name: 'Reviewed',
+                        value: rnode.nReviewed,
+                        fraction: rnode.nReviewed / $scope.qnode.nMeasures
+                    },
+                    {
+                        name: 'Approved',
+                        value: rnode.nApproved,
+                        fraction: rnode.nApproved / $scope.qnode.nMeasures
+                    },
+                ],
+                approval: rnode.nApproved >= $scope.qnode.nMeasures ?
+                        'approved' :
+                    rnode.nReviewed >= $scope.qnode.nMeasures ?
+                        'reviewed' :
+                    rnode.nSubmitted >= $scope.qnode.nMeasures ?
+                        'final' :
+                        'draft',
+                promote: 'BOTH',
+                missing: 'CREATE',
+            };
+            importanceToView();
+        };
+
         $scope.rnode.$promise.then(
             function success(rnode) {
                 $scope.rnodeDup = angular.copy(rnode);
-                $scope.stats = {
-                    score: rnode.score,
-                    progressItems: [
-                        {
-                            name: 'Final',
-                            value: rnode.nSubmitted,
-                            fraction: rnode.nSubmitted / $scope.qnode.nMeasures
-                        },
-                        {
-                            name: 'Reviewed',
-                            value: rnode.nReviewed,
-                            fraction: rnode.nReviewed / $scope.qnode.nMeasures
-                        },
-                        {
-                            name: 'Approved',
-                            value: rnode.nApproved,
-                            fraction: rnode.nApproved / $scope.qnode.nMeasures
-                        },
-                    ]
-                };
-                importanceToView();
+                $scope.updateStats(rnode);
             },
             function failure(details) {
                 if (details.status != 404) {
@@ -1105,13 +1122,13 @@ angular.module('wsaa.surveyQuestions', [
             $scope.rnode.$save().then(
                 function success(rnode) {
                     $scope.rnodeDup = angular.copy(rnode);
-                    importanceToView();
+                    $scope.updateStats(rnode);
                     Notifications.set('edit', 'success', "Saved", 5000);
                 },
                 function failure(details) {
                     angular.copy($scope.rnodeDup, $scope.rnode)
                     Notifications.set('edit', 'error',
-                        "Could not save response node: " + details.statusText);
+                        "Could not save submission category: " + details.statusText);
                 });
         }, 1500);
         $scope.$watch('stats.importance', function(v, vOld) {
@@ -1133,6 +1150,62 @@ angular.module('wsaa.surveyQuestions', [
                 return;
             $scope.saveRnode();
         });
+
+        $scope.dim = dimmer.toggler($scope);
+        $scope.showBulkApproval = false;
+        $scope.toggleBulk = function() {
+            $scope.showBulkApproval = !$scope.showBulkApproval;
+            $scope.dim($scope.showBulkApproval);
+        };
+
+        $scope.promotionOptions = [{
+            name: 'BOTH',
+            desc: "Promote and demote existing responses to match chosen state",
+        }, {
+            name: 'PROMOTE',
+            desc: "Only promote existing responses",
+        }, {
+            name: 'DEMOTE',
+            desc: "Only demote existing responses",
+        },];
+
+        $scope.missingOptions = [{
+            name: 'CREATE',
+            desc: "Create responses where they are missing and mark as Not Relevant",
+        }, {
+            name: 'IGNORE',
+            desc: "Don't create missing responses",
+        },];
+
+        $scope.setState = function(approval) {
+            var promote;
+            if ($scope.stats.promote == 'BOTH')
+                promote = ['PROMOTE', 'DEMOTE'];
+            else if ($scope.stats.promote == 'PROMOTE')
+                promote = ['PROMOTE'];
+            else
+                promote = ['DEMOTE'];
+            $scope.rnode.$save({
+                    approval: approval,
+                    promote: promote,
+                    missing: $scope.stats.missing,
+                },
+                function success(rnode, getResponseHeaders) {
+                    var message = "Saved";
+                    if (getResponseHeaders('Operation-Details'))
+                        message += ": " + getResponseHeaders('Operation-Details');
+                    Notifications.set('edit', 'success', message, 5000);
+                    // Need to actually reload the route because the list of
+                    // children and measures will have changed too.
+                    $route.reload();
+                },
+                function failure(details) {
+                    angular.copy($scope.rnodeDup, $scope.rnode)
+                    Notifications.set('edit', 'error',
+                        "Could not save submission category: " + details.statusText);
+                }
+            );
+        };
 
         $scope.demoStats = [
             {
@@ -1736,7 +1809,7 @@ angular.module('wsaa.surveyQuestions', [
                     var nm = rnode.qnode.nMeasures;
                     rmap[rnode.qnode.id] = {
                         score: rnode.score,
-                        notRelevant: rnode.notRelevant,
+                        notRelevant: rnode.nNotRelevant >= nm,
                         progressItems: [
                             {
                                 name: 'Final',
@@ -2609,42 +2682,6 @@ angular.module('wsaa.surveyQuestions', [
     };
     $scope.isActive = function(version) {
         return version.version == $scope.response.version;
-    };
-}])
-
-
-.directive('approval', [function() {
-    return {
-        restrict: 'E',
-        scope: {
-            model: '='
-        },
-        template: '<i class="boxed" ng-class="cls" title="{{model}}">' +
-                    '{{initial}}</i>',
-        replace: true,
-        controller: ['$scope', function($scope) {
-            $scope.$watch('model', function(approval) {
-                $scope.initial = approval[0].toUpperCase();
-                switch (approval) {
-                case 'draft':
-                    $scope.initial = 'D';
-                    $scope.cls = 'aq-0';
-                    break;
-                case 'final':
-                    $scope.initial = 'F';
-                    $scope.cls = 'aq-1';
-                    break;
-                case 'reviewed':
-                    $scope.initial = 'R';
-                    $scope.cls = 'aq-2';
-                    break;
-                case 'approved':
-                    $scope.initial = 'A';
-                    $scope.cls = 'aq-3';
-                    break;
-                }
-            });
-        }]
     };
 }])
 
