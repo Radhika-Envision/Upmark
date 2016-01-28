@@ -110,21 +110,6 @@ class ActivityHandler(handlers.BaseHandler):
             query = act.timeline_query(
                 self.current_user.id, from_date, until_date,
                 sticky_flags=sticky_flags)
-            query = (query
-                .options(
-                    joinedload(model.Activity.subject)
-                    .defer(model.AppUser.email)
-                    .defer(model.AppUser.organisation_id)
-                    .defer(model.AppUser.password)
-                    .defer(model.AppUser.role)
-                    .defer(model.AppUser.created)
-                    .defer(model.AppUser.deleted)
-                    .defer(model.AppUser.email_time)
-                    .defer(model.AppUser.email_interval)
-                    .noload(model.AppUser.organisation))
-                .options(
-                    defer(model.Activity.subject_id)
-                    .defer(model.Activity.ob_refs)))
             duration = perf() - start
             timing.append("Query construction took %gs" % duration)
 

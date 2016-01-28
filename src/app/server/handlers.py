@@ -482,12 +482,12 @@ class AuthLoginHandler(MainHandler):
             superuser = session.query(model.AppUser).get(superuser_id)
             if superuser is None or not model.has_privillege(
                     superuser.role, 'admin'):
-                raise handlers.MissingDocError(
+                raise MissingDocError(
                     "Not authorised: you are not a superuser")
 
             user = session.query(model.AppUser).get(user_id)
             if user is None:
-                raise handlers.MissingDocError("No such user")
+                raise MissingDocError("No such user")
 
             self._store_last_user(session);
 
@@ -740,18 +740,18 @@ class Paginate:
         try:
             page_size = int(page_size)
         except ValueError:
-            raise handlers.ModelError("Invalid page size")
+            raise ModelError("Invalid page size")
         if page_size > Paginate.MAX_PAGE_SIZE:
-            raise handlers.ModelError(
+            raise ModelError(
                 "Page size is too large (max %d)" % Paginate.MAX_PAGE_SIZE)
 
         page = self.get_argument("page", "0")
         try:
             page = int(page)
         except ValueError:
-            raise handlers.ModelError("Invalid page")
+            raise ModelError("Invalid page")
         if page < 0:
-            raise handlers.ModelError("Page must be non-negative")
+            raise ModelError("Page must be non-negative")
 
         num_items = query.count()
         self.set_header('Page-Count', "%d" % ceil(num_items / page_size))

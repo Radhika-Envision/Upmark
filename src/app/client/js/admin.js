@@ -189,7 +189,8 @@ angular.module('wsaa.admin', [
         }
         $scope.user = new User({
             role: 'clerk',
-            organisation: org
+            organisation: org,
+            emailInterval: 86400,
         });
         $scope.edit.edit();
     }

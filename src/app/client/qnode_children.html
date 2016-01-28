@@ -32,43 +32,40 @@
         <tr ng-repeat="item in edit.model || model"
                 any-href="/qnode/{{item.id}}?{{query}}"
                 ng-disabled="edit.model"
-                ng-class="{strike: item.deleted}">
+                ng-class="{strike: item.deleted || getStats(item.id).notRelevant}">
             <td class="shrink">{{item.seq + 1}}</td>
             <td>{{item.title}}</td>
-            <td class="shrink text-muted">
-                <i class="fa fa-fw fa-ban fa-lg text-muted"
-                        ng-if="getStats(item.id).notRelevant"
-                        title="Not relevant"></i>
-            </td>
-            <td class="shrink text-muted numeric" title="Importance"
-                    ng-if="assessment">
-                <span ng-if="getStats(item.id).importance">
-                    <i class="fa fa-star text-muted"></i>
-                    {{getStats(item.id).importance}}
-                </span>
-            </td>
-            <td class="shrink text-muted numeric" title="Urgency"
-                    ng-if="assessment">
-                <span ng-if="getStats(item.id).urgency">
-                    <i class="fa fa-circle text-muted"></i>
-                    {{getStats(item.id).urgency}}
-                </span>
+            <td class="shrink text-muted numeric" title="Importance and Urgency"
+                    ng-if="assessment"
+               ><span ng-if="getStats(item.id).importance"
+                   ><i class="fa fa-star text-muted"></i>
+                    {{getStats(item.id).importance}}</span
+               ><br class="visible-sm visible-xs">
+                <span ng-if="getStats(item.id).urgency"
+                   ><i class="fa fa-circle text-muted"></i>
+                    {{getStats(item.id).urgency}}</span>
             </td>
             <td class="shrink text-muted numeric" title="Score"
                     ng-if="assessment && checkRole('view_aggregate_score')">
-                {{getStats(item.id).score | number:0}} /
+                <span>{{getStats(item.id).score | number:0}}</span
+               ><span class="text-muted hidden-sm hidden-xs">/</span
+               ><br class="visible-sm visible-xs"
+               ><span class="denominator-sm denominator-xs"
+                   >{{item.totalWeight | number:0}}</span>
             </td>
-            <td class="shrink text-muted numeric" title="Total score">
+            <td class="shrink text-muted numeric" title="Weight"
+                    ng-if="!assessment && checkRole('view_aggregate_score')">
                 {{item.totalWeight | number:0}}
             </td>
             <td class="shrink" ng-if="assessment">
                 <column-progress items="getStats(item.id).progressItems">
                  </column-progress>
             </td>
-            <td class="shrink text-muted numeric" title="Number of measures">
-                {{item.nMeasures}}</td>
-            <td class="shrink grab-handle" ng-if="edit.model">
-                <i class="fa fa-fw fa-unsorted"></i></td>
+            <td class="shrink text-muted numeric"
+                title="Number of measures"
+                >{{item.nMeasures}}</td>
+            <td class="shrink grab-handle" ng-if="edit.model"
+               ><i class="fa fa-fw fa-unsorted"></i></td>
         </tr>
     </tbody>
 </table>
