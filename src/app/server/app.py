@@ -298,12 +298,26 @@ def start_web_server():
     http_server.listen(port)
 
     if log.isEnabledFor(logging.INFO):
-        import socket
+        import re, socket
         log.info("Tornado version: %s", tornado.version)
         log.info("Tornado settings: %s", settings)
         log.info(
             "Starting web application. Will be available on port %s", port)
-        log.info("Try opening http://%s:%s", socket.gethostname(), port)
+        hostname = socket.gethostname()
+        ip = None
+        try:
+            # Try to get Docker container IP
+            with open('/etc/hosts', 'r') as f:
+                for line in f:
+                    match = re.match(r'^(\S+)\s+%s$' % hostname, line)
+                    if match:
+                        ip = match.group(1)
+                        break
+        except OSError:
+            pass
+        log.info("Try opening http://%s:%s", hostname, port)
+        if ip:
+            log.info("         or http://%s:%s", ip, port)
     tornado.ioloop.IOLoop.instance().start()
 
 
