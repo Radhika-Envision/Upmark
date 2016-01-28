@@ -12,8 +12,8 @@ import smtplib
 import socket
 from string import Template
 import sys
-import docker
 
+import docker
 from docker import Client
 from docker.utils import kwargs_from_env
 from dateutil.parser import parse

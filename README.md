@@ -53,9 +53,11 @@ Docker image.
 1. Install dependencies:
 
     ```bash
-    sudo apt-get install git make
+    sudo apt-get install git make python3-pip
     wget -qO- https://get.docker.com/ | sudo sh
     ```
+
+    `python3-pip` is only needed for the watchdog script.
 
 1. [Create a deployment key][ck] for the git repository:
 
@@ -70,21 +72,13 @@ Docker image.
     ```bash
     cd /home/ubuntu
 
-    git clone https://github.com/vpac-innovations/aquamark.git
+    git clone git@github.com:vpac-innovations/aquamark.git
     cd aquamark
     make
     ```
 
 [ck]: https://help.github.com/articles/generating-ssh-keys/
 [ak]: https://developer.github.com/guides/managing-deploy-keys/#deploy-keys
-
-Edit the watchdog config file and add your email credentials. Then test that the
-email function works.
-
-```bash
-nano /home/ubuntu/aquamark/src/util/watchdog.config
-/home/ubuntu/aquamark/src/util/watchdog.py --test
-```
 
 Create a file `/home/ubuntu/aq.conf` to contain environment variables so they
 can be easily reused for future deployments. The file should contain the
@@ -97,7 +91,7 @@ AWS_ACCESS_KEY_ID=<KEY ID> \
 AWS_SECRET_ACCESS_KEY=<ACCESS KEY> \
 ```
 
-Now start the container with restart option, and install the watchdog task.
+Now start the container with restart option.
 
 ```bash
 sudo docker run -d --name aquamark \
@@ -105,7 +99,6 @@ sudo docker run -d --name aquamark \
     --env-file=/home/ubuntu/aq.conf \
     -p 80:8000 \
     vpac/aquamark
-crontab /home/ubuntu/aquamark/src/util/watchdog
 ```
 
 The database URL will be something like
@@ -116,6 +109,21 @@ Check that it's running:
 ```bash
 curl -w "\n" http://localhost/ping
 # Should print "Web services are UP"
+```
+
+Edit the watchdog config file and add your email credentials. Then test that the
+email function works.
+
+```bash
+nano src/util/watchdog.yaml
+sudo ./src/util/watchdog-install-deps.sh
+./src/util/watchdog.py --test
+```
+
+If the test passes (you should receive an email), install the cron job:
+
+```bash
+./src/util/watchdog-install.sh
 ```
 
 Now create an AMI of the instance from the AWS console. This AMI will be used by
