@@ -15,8 +15,9 @@ webssl:
   ports:
    - "443:8000"
   environment:
-    DEV_MODE: 'True'
+    DEV_MODE: "${DEV_MODE}"
     AQ_XSRF: 'True'
+    ANALYTICS_ID: "${ANALYTICS_ID}"
   volumes:
    - ./src/app:/usr/share/aquamark/app
    - /etc/letsencrypt/live/aquamark.vpac-innovations.com.au:/etc/letsencrypt/live/aquamark

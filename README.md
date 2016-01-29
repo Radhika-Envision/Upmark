@@ -347,6 +347,104 @@ old site.
 [SSH tunnel]: http://blog.trackets.com/2014/05/17/ssh-tunnel-local-and-remote-port-forwarding-explained-with-examples.html
 
 
+## Test Deployments / Staging
+
+Test deployments can be started using `docker-compose`. SSL is supported using
+[Let's Encrypt]. To set up a secure staging/testing/training environment:
+
+ 1. Start a new instance on AWS, and set up the environment as you would for
+    an AWS deployment (see above). Ensure port 80 and 443 are open in the
+    security group (firewall rules). Also, install [`docker-compose`].
+
+ 1. Configure a domain name e.g. `aquamark.vpac-innovations.com.au` to point to
+    the instance. Confirm this is done by running:
+
+    ```bash
+    nslookup aquamark.vpac-innovations.com.au
+    ```
+
+    It should print the *public* IP address of your instance. If this is not the
+    case, then Let's Encrypt will not work.
+
+ 1. Install the [Let's Encrypt client].
+
+    ```bash
+    cd
+    git clone https://github.com/letsencrypt/letsencrypt
+    ```
+
+ 1. Run Let's Encrypt to get a certificate. First make sure port 80 and 443 are
+    available (stop other web servers), then run:
+
+    ```bash
+    cd ~/letsencrypt
+    ./letsencrypt-auto certonly --standalone -d aquamark.vpac-innovations.com.au
+    ```
+
+    Enter your email address read the terms and conditions when promted. It
+    should say something like:
+
+    > Congratulations! Your certificate and chain have been saved at
+      `/etc/letsencrypt/live/aquamark.vpac-innovations.com.au/fullchain.pem`.
+      Your cert will expire on 2016-04-27. To obtain a new version of the
+      certificate in the future, simply run Let's Encrypt again.
+
+ 1. Start the Docker containers **\***:
+
+    ```bash
+    cd ~/aquamark
+    sudo docker-compose build webssl
+    sudo ANALYTICS_ID=<ANALYTICS_ID> docker-compose up -d webssl
+    ```
+
+    The analytics ID is optional. Then check that the web services are running:
+
+    ```bash
+    curl -w "\n" -k https://localhost/ping
+    ```
+
+    > `Web services are UP`
+
+ 1. Copy a database (optional)
+
+    Follow the instructions in the [database docs] to download a snapshot of the
+    database, and then load them into the `aquamark_postgres_1` container. The
+    following commands are customised for running in this staging environment:
+
+    First launch a temporary postgres container to run the commands in, linking
+    to the target postgres container:
+
+    ```bash
+    sudo docker run --rm -it \
+        --link aquamark_postgres_1:postgres_aq \
+        postgres:9 bash
+    ```
+
+    Now in the temporary container, dump the primary database, and restore it
+    into your staging container (see AWS RDS console for the ENDPOINT value):
+
+    ```bash
+    ENDPOINT=postgres.aiojafojipawefoij.ap-southeast-2.rds.amazonaws.com:5432
+    CONN=postgresql://postgres@$ENDPOINT/postgres
+    pg_dump --format custom --blobs --verbose ${CONN} --file aq_dump
+
+    # Be very careful not to run these commands against the primary database:
+    dropdb -h postgres_aq -U postgres postgres
+    createdb -h postgres_aq -U postgres postgres
+    pg_restore -h postgres_aq -U postgres -d postgres aq_dump
+
+    exit
+    ```
+
+    The password of the staging database defaults to `postgres`.
+
+**\*** To upgrade your staging instance, just repeat steps marked with a \*.
+
+[database docs]: database/README.md
+[`docker-compose`]: https://github.com/docker/compose/releases
+[Let's Encrypt]: https://letsencrypt.org/
+[Let's Encrypt client]: https://letsencrypt.readthedocs.org/en/latest/using.html#installation
+
 ## Development
 
 The easiest way to run during development is to start a Docker container as

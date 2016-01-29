@@ -117,8 +117,6 @@ backup, you need to:
     scp -i aquamark.pem ubuntu@<EC2 INSTANCE>:backup/aq_dump backup/
     ```
 
-1. Delete the temporary RDS instance if you don't need it any more.
-
 Once downloaded, backups can be loaded into a local Postgres/Docker container
 using [`pg_restore`]. For example, if your local Aquamark Postgres instance is
 in a container called `postgres_aq`, the contents of the database can be
