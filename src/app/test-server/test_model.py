@@ -387,8 +387,33 @@ class ModifySurveyTest(base.AqHttpTestBase):
                 method='GET', expected=200, decode=True)
             self.assertAlmostEqual(q_son['total_weight'], 11)
 
-            # Move a measure out of the deleted qnode, and undelete it...
-        self.verify_stats()
+            # Move a measure out of the deleted qnode...
+            m_son = self.fetch(
+                "/measure/{}.json?surveyId={}&parentId={}".format(
+                    self.midAAA, self.sid, self.qidB),
+                method='PUT', body=json_encode({}),
+                expected=200, decode=True)
+            q_son = self.fetch(
+                "/qnode/{}.json?surveyId={}".format(self.qidA, self.sid),
+                method='GET', expected=200, decode=True)
+            self.assertAlmostEqual(q_son['total_weight'], 11)
+            q_son = self.fetch(
+                "/qnode/{}.json?surveyId={}".format(self.qidB, self.sid),
+                method='GET', expected=200, decode=True)
+            self.assertAlmostEqual(q_son['total_weight'], 3)
+
+            self.verify_stats()
+
+            # Undelete the qnode
+            self.fetch(
+                "/qnode/{}.json?surveyId={}".format(self.qidAA, self.sid),
+                method='PUT', body=json_encode({}), expected=200)
+            q_son = self.fetch(
+                "/qnode/{}.json?surveyId={}".format(self.qidA, self.sid),
+                method='GET', expected=200, decode=True)
+            self.assertAlmostEqual(q_son['total_weight'], 17)
+
+            self.verify_stats()
 
     def test_delete_measure(self):
         with base.mock_user('author'):
