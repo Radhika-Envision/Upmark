@@ -150,36 +150,37 @@ class AqModelTestBase(unittest.TestCase):
                 proj_dir, 'client', 'default_response_types.json')) as file:
             response_types = json.load(file)
 
-        # Measure declaration, separate from hierarchy to allow cross-linking
+        # Measure declaration, separate from hierarchy to allow cross-linking.
+        # Weights are chosen so that each combination gives a different sum.
         msons = [
             {
                 'title': "Foo Measure",
                 'intent': "Foo",
-                'weight': 100,
+                'weight': 3,
                 'response_type': 'yes-no'
             },
             {
                 'title': "Bar Measure",
                 'intent': "Bar",
-                'weight': 200,
+                'weight': 6,
                 'response_type': 'yes-no'
             },
             {
                 'title': "Baz Measure",
                 'intent': "Baz",
-                'weight': 300,
+                'weight': 11,
                 'response_type': 'yes-no'
             },
             {
                 'title': "Unreferenced Measure 1",
                 'intent': "Deleted",
-                'weight': 300,
+                'weight': 12,
                 'response_type': 'yes-no'
             },
             {
                 'title': "Unreferenced Measure 2",
                 'intent': "Deleted",
-                'weight': 600,
+                'weight': 13,
                 'response_type': 'yes-no'
             },
         ]
