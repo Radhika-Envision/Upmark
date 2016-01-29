@@ -137,6 +137,7 @@ def get_activities(session, user, until_date, messages, limit, date_template):
 
 
 def process_once(config):
+    rate_limit_interval = 1.0 / config.get('MAX_EMAILS_PER_SECOND', 10)
     n_sent = 0
     with model.session_scope() as session:
         interval = extract('epoch', func.now() - model.AppUser.email_time)
@@ -161,6 +162,9 @@ def process_once(config):
             # Commit after each email to avoid multiple emails in case a
             # later iteration fails
             session.commit()
+
+            log.debug("Sleeping for %ds", rate_limit_interval)
+            time.sleep(rate_limit_interval)
 
     log.info("Job finished. %d notification emails sent.", n_sent)
     return n_sent
