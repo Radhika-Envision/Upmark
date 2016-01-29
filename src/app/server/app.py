@@ -142,9 +142,7 @@ def default_settings():
         count = session.query(func.count(model.AppUser.id)).scalar()
         if count == 0:
             log.info("First start. Creating default user %s", 'admin')
-            org = model.Organisation(
-                name="DEFAULT ORGANISATION", number_of_customers=0,
-                region="NOWHERE")
+            org = model.Organisation(name="DEFAULT ORGANISATION")
             session.add(org)
             session.flush()
             user = model.AppUser(
