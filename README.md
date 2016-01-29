@@ -389,12 +389,12 @@ Test deployments can be started using `docker-compose`. SSL is supported using
       Your cert will expire on 2016-04-27. To obtain a new version of the
       certificate in the future, simply run Let's Encrypt again.
 
- 1. Start the Docker containers **\***:
+ 1. Start the Docker containers __\*__:
 
     ```bash
     cd ~/aquamark
     sudo docker-compose build webssl
-    sudo ANALYTICS_ID=<ANALYTICS_ID> docker-compose up -d webssl
+    sudo ANALYTICS_ID=<ANALYTICS_ID> DEV_MODE=False docker-compose up -d webssl
     ```
 
     The analytics ID is optional. Then check that the web services are running:
@@ -438,7 +438,7 @@ Test deployments can be started using `docker-compose`. SSL is supported using
 
     The password of the staging database defaults to `postgres`.
 
-**\*** To upgrade your staging instance, just repeat steps marked with a \*.
+__\*__ To upgrade your staging instance, just repeat steps marked with a __\*__.
 
 [database docs]: database/README.md
 [`docker-compose`]: https://github.com/docker/compose/releases
