@@ -104,9 +104,7 @@
                 <span title="Number of not-relevant responses">
                     <s>{{rnode.nNotRelevant}}</s></span>
             </span>
-        </div> <!-- class="stats-group"-->
 
-        <div class="stats-group">
             <docs>
                 <i class="fa-li fa fa-bar-chart fa-border"></i>
                 <h3>Scores and Progress</h3>
@@ -135,7 +133,9 @@
                     hard to see if the bar is full).
                 </p>
             </docs>
+        </div> <!-- class="stats-group"-->
 
+        <div class="stats-group">
             <span title="Importance"
                     ng-class="{inherited: rnode.importance == null}">
                 <input-stars ng-model="stats.importance"></input-stars>
@@ -170,7 +170,7 @@
                     while explicitly-set ratings are yellow
                     <i class="fa fa-star text-bar1-light"></i>.
                     To un-set a rating, hover over the stars and then click the
-                    <i class="fa fa-times"></i> that appears.
+                    <i class="fa docs-button fa-times"></i> that appears.
                 </p>
             </docs>
         </div> <!-- class="stats-group"-->
@@ -215,10 +215,28 @@
             </span>
 
             <strong>This action cannot be undone</strong>. If you change your
-            mind, you will need to manually reset the approval status of each
+            mind, you may need to manually reset the approval status of each
             response.
         </p>
     </form>
+
+    <docs>
+        <i class="fa-li fa fa-chevron-right fa-border"></i>
+        <h3>Approval</h3>
+        <p>
+            Submissions progress through approval
+            states
+            <em>draft</em> &raquo;
+            <em class="text-bar1">final</em> &raquo;
+            <em class="text-bar2">reviewed</em> &raquo;
+            <em class="text-bar3">approved</em>.
+            A submission can only progress to the next state when all of its
+            measures have at least that state. You can change the state of all
+            measures in this category by pressing the <em>bulk approval</em>
+            <i class="fa docs-button fa-angle-right"></i>
+            button.
+        </p>
+    </docs>
 
     <!-- Don't wrap the contents of this tag! -->
     <p class="formatted">{{qnode.description}}</p>

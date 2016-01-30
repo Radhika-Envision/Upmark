@@ -254,7 +254,8 @@ class ResponseNodeHandler(handlers.BaseHandler):
                             survey=assessment.survey,
                             approval=approval,
                             not_relevant=True,
-                            comment="Created during bulk approval")
+                            comment="*Marked Not Relevant by bulk approval "
+                                    "process (was previously empty)*")
                         response.modified = func.now()
                         session.add(response)
                         created += 1

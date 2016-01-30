@@ -79,6 +79,13 @@ $anim-time: 0.3s;
 .form-control:focus {
     box-shadow: none;
 }
+form p {
+    // Align paragraph edges with contents of inputs
+    border: solid transparent;
+    border-width: 0 1px;
+    padding-left: 12px;
+    padding-right: 12px;
+}
 
 textarea.autoresize {
     // Actual resizing is done in a script.

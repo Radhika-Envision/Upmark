@@ -342,6 +342,14 @@ ul.docs > li > i.fa-li.fa-border {
     background: white;
     border-color: white;
 }
+ul.docs .fa.docs-button {
+    background: white;
+    height: 1.28571429em;
+    width: 1.28571429em;
+    border-radius: 50%;
+    border: 2px solid white;
+    text-align: center;
+}
 dt {
     margin-top: 8px;
 }
