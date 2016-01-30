@@ -43,7 +43,27 @@ class ResponseNodeHandler(handlers.BaseHandler):
                     .first())
 
             if rnode is None:
-                raise handlers.MissingDocError("No such response node")
+                # Create an empty one, and roll back later
+                qnode, assessment = (session.query(
+                        model.QuestionNode, model.Assessment)
+                    .join(model.Survey)
+                    .join(model.Assessment)
+                    .filter(model.QuestionNode.id == qnode_id,
+                            model.Assessment.id == assessment_id)
+                    .first())
+                if qnode is None:
+                    raise handlers.MissingDocError("No such category")
+                rnode = model.ResponseNode(
+                    qnode=qnode,
+                    qnode_id=qnode_id,
+                    assessment=assessment,
+                    assessment_id=assessment_id,
+                    score=0,
+                    n_submitted=0,
+                    n_reviewed=0,
+                    n_approved=0,
+                    n_not_relevant=0,
+                    not_relevant=False)
 
             self._check_authz(rnode.assessment)
 
@@ -74,6 +94,9 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 r'/qnode$',
             ], exclude=exclude)
             son = to_son(rnode)
+
+            # Don't commit empty rnode here: GET should not change anything!
+            session.rollback()
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))

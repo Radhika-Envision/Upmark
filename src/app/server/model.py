@@ -844,8 +844,8 @@ class ResponseNode(Observable, Base):
 
     importance = Column(Float)
     urgency = Column(Float)
-    max_importance = Column(Float)
-    max_urgency = Column(Float)
+    max_importance = Column(Float, default=0.0, nullable=False)
+    max_urgency = Column(Float, default=0.0, nullable=False)
 
     __table_args__ = (
         ForeignKeyConstraint(

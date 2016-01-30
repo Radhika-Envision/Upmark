@@ -1100,21 +1100,9 @@ angular.module('wsaa.surveyQuestions', [
                 $scope.updateStats(rnode);
             },
             function failure(details) {
-                if (details.status != 404) {
-                    Notifications.set('edit', 'error',
-                        "Failed to get response details: " + details.statusText);
-                    return;
-                }
-                $scope.rnode = new ResponseNode({
-                    qnodeId: $scope.qnode.id,
-                    assessmentId: $scope.assessment.id,
-                    score: 0.0,
-                    nSubmitted: 0,
-                    nReviewed: 0,
-                    nApproved: 0,
-                    nNotRelevant: 0,
-                    notRelevant: false
-                });
+                Notifications.set('edit', 'error',
+                    "Failed to get response details: " + details.statusText);
+                return;
             }
         );
 
@@ -2213,14 +2201,23 @@ angular.module('wsaa.surveyQuestions', [
         // doesn't create its own.
         $scope.lastSavedResponse = null;
         $scope.setResponse = function(response) {
+            if (!response.responseParts)
+                response.responseParts = [];
             $scope.response = response;
             $scope.lastSavedResponse = angular.copy(response);
         };
 
-        $scope.setResponse({
-            responseParts: [],
-            comment: ''
-        });
+        var nullResponse = function(measure, assessment) {
+            return new Response({
+                measureId: $scope.measure ? $scope.measure.id : null,
+                assessmentId: $scope.assessment ? $scope.assessment.id : null,
+                responseParts: [],
+                comment: '',
+                notRelevant: false,
+                approval: 'draft'
+            });
+        };
+        $scope.setResponse(nullResponse());
         Response.get({
             measureId: $scope.measure.id,
             assessmentId: $scope.assessment.id
@@ -2234,14 +2231,8 @@ angular.module('wsaa.surveyQuestions', [
                         "Failed to get response details: " + details.statusText);
                     return;
                 }
-                $scope.setResponse(new Response({
-                    measureId: $scope.measure.id,
-                    assessmentId: $scope.assessment.id,
-                    responseParts: [],
-                    comment: '',
-                    notRelevant: false,
-                    approval: 'draft'
-                }));
+                $scope.setResponse(nullResponse(
+                    $scope.measure, $scope.assessment));
             }
         );
 
@@ -2301,6 +2292,10 @@ angular.module('wsaa.surveyQuestions', [
                     if (details.status == 403) {
                         Notifications.set('edit', 'info',
                             "Not saved yet: " + details.statusText);
+                        if (!$scope.response) {
+                            $scope.setResponse(nullResponse(
+                                $scope.measure, $scope.assessment));
+                        }
                     } else {
                         $scope.response.notRelevant = oldValue;
                         Notifications.set('edit', 'error',
