@@ -26,22 +26,22 @@ STATES = ['draft', 'final', 'reviewed', 'approved']
 def check_approval_change(role, assessment, approval):
     if STATES.index(assessment.approval) > STATES.index(approval):
         raise handlers.ModelError(
-            "This response belongs to a submission with a state of '%s'."
+            "The submission has a state of '%s'."
             % assessment.approval)
 
     if role in {'org_admin', 'clerk'}:
         if approval not in {'draft', 'final'}:
             raise handlers.AuthzError(
-                "You can't mark this response as %s." % approval)
+                "You can't mark this as %s." % approval)
     elif role == 'consultant':
         if approval not in {'draft', 'final', 'reviewed'}:
             raise handlers.AuthzError(
-                "You can't mark this response as %s." % approval)
+                "You can't mark this as %s." % approval)
     elif model.has_privillege(role, 'authority'):
         pass
     else:
         raise handlers.AuthzError(
-            "You can't mark this response as %s." % approval)
+            "You can't mark this as %s." % approval)
 
 class ResponseHandler(handlers.BaseHandler):
 

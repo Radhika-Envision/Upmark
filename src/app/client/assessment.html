@@ -129,7 +129,7 @@
     <p ng-if="assessment.hierarchy.description"
             class="formatted">Submission against {{assessment.hierarchy.description}}</p>
 
-    <approval-buttons class="spaced" model="assessment"
+    <approval-buttons class="spaced" model="assessment.approval"
             ng-if="!structure.deletedItem"
             set-state="setState(state)"></approval-buttons>
     <p ng-class="structure.deletedItem ? null : 'visible-print'">

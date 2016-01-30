@@ -263,6 +263,7 @@ angular.module('vpac.widgets', [])
 
 
 .directive('approvalButtons', [function() {
+    var order = ['draft', 'final', 'reviewed', 'approved'];
     return {
         restrict: 'E',
         templateUrl: 'approval_buttons.html',
@@ -270,6 +271,26 @@ angular.module('vpac.widgets', [])
         scope: {
             model: '=',
             setState: '&',
+        },
+        link: function(scope, elem, attrs) {
+            scope.updateView = function() {
+                var index = order.indexOf(scope.model);
+                var active = {};
+                if (index < 0) {
+                    // pass
+                } else if (attrs.mode == 'greater-or-equal') {
+                    for (var i = index; i < order.length; i++)
+                        active[order[i]] = true;
+                } else if (attrs.mode == 'less-than-or-equal') {
+                    for (var i = index; i >= 0; i--)
+                        active[order[i]] = true;
+                } else {
+                    active[order[index]] = true;
+                }
+                scope.active = active;
+            };
+            scope.$watch('model', scope.updateView);
+            attrs.$observe('mode', scope.updateView);
         }
     };
 }])

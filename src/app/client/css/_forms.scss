@@ -167,7 +167,6 @@ div[textarea-label] {
 .btn-default {
     &.active, &.active:focus, &:active.focus, &:active:focus {
         &:not([disabled]):not(.btn-round) {
-            box-shadow: 1px 1px 4px 5px rgba(255, 255, 255, 0.5);
             color: $button-fg;
             background-color: $primary-colour;
             @include transform(scale(1.01, 1.05));

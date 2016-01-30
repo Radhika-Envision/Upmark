@@ -2,41 +2,41 @@
             btn-group-arrow-right">
     <div class="btn-group">
         <button class="btn btn-default"
-                ng-class="{active: model.approval == 'draft'}"
+                ng-class="{active: active.draft}"
                 ng-click="setState({state: 'draft'})"
                 title="Set as 'draft'">
-            <approval model="model.approval"
-                ng-if="model.approval == 'draft'"></approval>
+            <approval model="model"
+                ng-if="model == 'draft'"></approval>
             Draft
         </button>
     </div>
     <div class="btn-group">
         <button class="btn btn-default"
-                ng-class="{active: model.approval == 'final'}"
+                ng-class="{active: active.final}"
                 ng-click="setState({state: 'final'})"
                 title="Set as 'final'">
-            <approval model="model.approval"
-                ng-if="model.approval == 'final'"></approval>
+            <approval model="model"
+                ng-if="model == 'final'"></approval>
             Final
         </button>
     </div>
     <div class="btn-group">
         <button class="btn btn-default"
-                ng-class="{active: model.approval == 'reviewed'}"
+                ng-class="{active: active.reviewed}"
                 ng-click="setState({state: 'reviewed'})"
                 title="Set as 'reviewed'">
-            <approval model="model.approval"
-                ng-if="model.approval == 'reviewed'"></approval>
+            <approval model="model"
+                ng-if="model == 'reviewed'"></approval>
             Reviewed
         </button>
     </div>
     <div class="btn-group">
         <button class="btn btn-default"
-                ng-class="{active: model.approval == 'approved'}"
+                ng-class="{active: active.approved}"
                 ng-click="setState({state: 'approved'})"
                 title="Set as 'approved'">
-            <approval model="model.approval"
-                ng-if="model.approval == 'approved'"></approval>
+            <approval model="model"
+                ng-if="model == 'approved'"></approval>
             Approved
         </button>
     </div>

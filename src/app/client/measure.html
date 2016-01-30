@@ -256,7 +256,7 @@
         </p>
     </div>
 
-    <approval-buttons model="response"
+    <approval-buttons model="response.approval"
             ng-if="!structure.deletedItem"
             set-state="setState(state)"></approval-buttons>
 
@@ -300,8 +300,12 @@
         <p>
             Submissions progress through the same states. When all the
             responses in a survey are <i>Final</i>, the submission
-            can be marked as <i>Final</i>, and so on. After that
-            it is not possible to reduce the state of the responses.
+            can be marked as <i>Final</i>, and so on.
+        </p>
+        <p>
+            You can't give a response a lesser approval than the submission they
+            belong to. However you can demote the submission, and <em>then</em>
+            demote the response.
         </p>
     </docs>
 

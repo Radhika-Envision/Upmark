@@ -178,7 +178,7 @@
 
     <form novalidate class="dialog undim spaced" ng-if="showBulkApproval">
         <h3>Bulk Approval</h3>
-        <approval-buttons model="stats"
+        <approval-buttons model="stats.approval"
                 class="spaced-below"
                 set-state="setState(state)"></approval-buttons>
         <div class="form-group" show-errors>
@@ -235,6 +235,12 @@
             measures in this category by pressing the <em>bulk approval</em>
             <i class="fa docs-button fa-angle-right"></i>
             button.
+        </p>
+        <p>
+            You can't give the responses in a category a lesser approval
+            than the submission they belong to. However you can demote the
+            submission, and <em>then</em> demote the responses. This also
+            applies when performing a bulk approval.
         </p>
     </docs>
 
