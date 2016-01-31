@@ -41,7 +41,7 @@ class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
 
         parent_id = self.get_argument("parentId", None)
         approval=self.get_argument("approval", "draft")
-        approval_status = ['draft', 'reviewed', 'final', 'approved']
+        approval_status = ['draft', 'final', 'reviewed', 'approved']
         approval_index = approval_status.index(approval)
         included_approval_status=approval_status[approval_index:4]
         with model.session_scope() as session:

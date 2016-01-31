@@ -20,6 +20,29 @@ from utils import falsy, reorder, ToSon, truthy, updater
 log = logging.getLogger('app.crud.response')
 
 
+STATES = ['draft', 'final', 'reviewed', 'approved']
+
+
+def check_approval_change(role, assessment, approval):
+    if STATES.index(assessment.approval) > STATES.index(approval):
+        raise handlers.ModelError(
+            "The submission has a state of '%s'."
+            % assessment.approval)
+
+    if role in {'org_admin', 'clerk'}:
+        if approval not in {'draft', 'final'}:
+            raise handlers.AuthzError(
+                "You can't mark this as %s." % approval)
+    elif role == 'consultant':
+        if approval not in {'draft', 'final', 'reviewed'}:
+            raise handlers.AuthzError(
+                "You can't mark this as %s." % approval)
+    elif model.has_privillege(role, 'authority'):
+        pass
+    else:
+        raise handlers.AuthzError(
+            "You can't mark this as %s." % approval)
+
 class ResponseHandler(handlers.BaseHandler):
 
     @tornado.web.authenticated
@@ -214,7 +237,8 @@ class ResponseHandler(handlers.BaseHandler):
                     verbs.append('update')
 
                 if approval != '':
-                    self._check_approval_change(response, assessment, approval)
+                    check_approval_change(
+                        self.current_user.role, assessment, approval)
 
                     if approval != response.approval:
                         verbs.append('state')
@@ -248,42 +272,6 @@ class ResponseHandler(handlers.BaseHandler):
             if assessment.organisation.id != self.organisation.id:
                 raise handlers.AuthzError(
                     "You can't modify another organisation's response")
-
-    def _check_approval_change(self, response, assessment, approval):
-        if assessment.approval == 'draft':
-            pass
-        elif assessment.approval == 'final':
-            if not self.has_privillege('org_admin', 'consultant'):
-                raise handlers.AuthzError(
-                    "This submission has already been finalised")
-        elif assessment.approval == 'reviewed':
-            if not self.has_privillege('consultant'):
-                raise handlers.AuthzError(
-                    "This submission has already been reviewed")
-        else:
-            if not self.has_privillege('authority'):
-                raise handlers.AuthzError(
-                    "This submission has already been approved")
-
-        order = ['draft', 'final', 'reviewed', 'approved']
-        if order.index(assessment.approval) > order.index(approval):
-            raise handlers.ModelError(
-                "This response belongs to an submission with a state of '%s'."
-                % assessment.approval)
-
-        if self.current_user.role in {'org_admin', 'clerk'}:
-            if approval not in {'draft', 'final'}:
-                raise handlers.AuthzError(
-                    "You can't mark this response as %s." % approval)
-        elif self.current_user.role == 'consultant':
-            if approval not in {'draft', 'final', 'reviewed'}:
-                raise handlers.AuthzError(
-                    "You can't mark this response as %s." % approval)
-        elif self.has_privillege('authority'):
-            pass
-        else:
-            raise handlers.AuthzError(
-                "You can't mark this response as %s." % approval)
 
     def _check_approval_state(self, response):
         if response.approval in {'draft', 'final'}:

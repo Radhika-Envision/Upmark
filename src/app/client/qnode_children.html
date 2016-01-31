@@ -32,7 +32,8 @@
         <tr ng-repeat="item in edit.model || model"
                 any-href="/qnode/{{item.id}}?{{query}}"
                 ng-disabled="edit.model"
-                ng-class="{strike: item.deleted || getStats(item.id).notRelevant}">
+                ng-class="{strike: item.deleted,
+                           'strike-black': getStats(item.id).notRelevant}">
             <td class="shrink">{{item.seq + 1}}</td>
             <td>{{item.title}}</td>
             <td class="shrink text-muted numeric" title="Importance and Urgency"

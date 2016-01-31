@@ -181,6 +181,56 @@ a.stealth {
     color: inherit;
 }
 
+.dialog {
+    h3 {
+        text-align: center;
+        margin-bottom: 12px;
+    }
+}
+
+.dimmer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: black;
+    z-index: 1000;
+    opacity: 0;
+    display: none;
+    pointer-events: none;
+}
+.dimmer.dim {
+    display: block;
+    opacity: .2;
+}
+.dimmer.dim-add {
+    @include transition(opacity 0.3s);
+    display: block;
+    opacity: 0;
+}
+.dimmer.dim-add-active {
+    opacity: .2;
+}
+.dimmer.dim-remove {
+    @include transition(opacity 0.3s);
+    display: block;
+    opacity: .2;
+}
+.dimmer.dim-remove-active {
+    opacity: 0;
+}
+
+.undim {
+    background: white;
+    border-radius: 1px;
+}
+.undim, .btn.pull-right.undim {
+    position: relative;
+    z-index: 1001;
+    box-shadow: 0 0 0 12px white, 0 0 20px 12px rgba(0, 0, 0, 0.1);
+}
+
 ul.dropdown-menu {
     border: none;
 
@@ -291,6 +341,14 @@ ul.docs > li:not(.printable) {
 ul.docs > li > i.fa-li.fa-border {
     background: white;
     border-color: white;
+}
+ul.docs .fa.docs-button {
+    background: white;
+    height: 1.28571429em;
+    width: 1.28571429em;
+    border-radius: 50%;
+    border: 2px solid white;
+    text-align: center;
 }
 dt {
     margin-top: 8px;
@@ -451,6 +509,9 @@ ul.list-results {
 
 .spaced {
     margin-top: 18px;
+}
+.spaced-below {
+    margin-bottom: 18px;
 }
 
 .response {
@@ -747,7 +808,7 @@ $spinner-height: 16px;
     height: $spinner-height;
     margin-left: 0 - $spinner-height / 2;
     margin-top: 0 - $spinner-height / 2;
-    transform: skewX(-10deg);
+    @include transform(skewX(-10deg));
     /*
      * Fix for jagged edges
      * http://stackoverflow.com/a/6898097/320036
@@ -1112,4 +1173,8 @@ ul.fa-ul.timeline {
 }
 .text-bar4-light {
     color: lighten($aq-bar4, 20%);
+}
+
+.fa-rotate {
+    @include transition(transform 0.3s);
 }

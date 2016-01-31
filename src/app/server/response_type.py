@@ -38,7 +38,7 @@ class ResponseType:
         self.formula = rt_def.get('formula', None)
 
     def calculate_score(self, response):
-        if len(response) != len(self.parts):
+        if response is None or len(response) != len(self.parts):
             raise ResponseError("Response is incomplete")
 
         score = 0.0

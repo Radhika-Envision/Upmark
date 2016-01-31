@@ -256,60 +256,25 @@
         </p>
     </div>
 
-    <div class="spaced btn-group btn-group-justified hidden-print
-                btn-group-arrow-right"
-            ng-if="!structure.deletedItem">
-        <div class="btn-group">
-            <button class="btn btn-default"
-                    ng-class="{active: response.approval == 'draft'}"
-                    ng-click="setState('draft')"
-                    title="Set as 'draft' and save">
-                <approval model="response.approval"
-                    ng-if="response.approval == 'draft'"></approval>
-                Draft
-            </button>
-        </div>
-        <div class="btn-group">
-            <button class="btn btn-default"
-                    ng-class="{active: response.approval == 'final'}"
-                    ng-click="setState('final')"
-                    title="Set as 'final' and save">
-                <approval model="response.approval"
-                    ng-if="response.approval == 'final'"></approval>
-                Final
-            </button>
-        </div>
-        <div class="btn-group">
-            <button class="btn btn-default"
-                    ng-class="{active: response.approval == 'reviewed'}"
-                    ng-click="setState('reviewed')"
-                    title="Set as 'reviewed' and save">
-                <approval model="response.approval"
-                    ng-if="response.approval == 'reviewed'"></approval>
-                Reviewed
-            </button>
-        </div>
-        <div class="btn-group">
-            <button class="btn btn-default"
-                    ng-class="{active: response.approval == 'approved'}"
-                    ng-click="setState('approved')"
-                    title="Set as 'approved' and save">
-                <approval model="response.approval"
-                    ng-if="response.approval == 'approved'"></approval>
-                Approved
-            </button>
-        </div>
-    </div>
-    <div class="structure.deletedItem ? null : 'visible-print-block'">
+    <approval-buttons model="response.approval"
+            ng-if="!structure.deletedItem"
+            set-state="setState(state)"></approval-buttons>
+
+    <div ng-class="structure.deletedItem ? null : 'visible-print-block'">
         Response status: {{response.approval}}
     </div>
+
     <docs>
         <i class="fa-li fa fa-chevron-right fa-border"></i>
+        <h3>Approval</h3>
         <p>
             Responses progress through approval
-            states <i>draft</i> &raquo; <i>final</i> &raquo;
-            <i>reviewed</i> &raquo; <i>approved</i>. Approval states
-            are resticted to roles as follows:
+            states
+            <em>draft</em> &raquo;
+            <em class="text-bar1">final</em> &raquo;
+            <em class="text-bar2">reviewed</em> &raquo;
+            <em class="text-bar3">approved</em>.
+            Approval states are resticted to roles as follows:
         </p>
         <ul>
             <li>
@@ -335,8 +300,12 @@
         <p>
             Submissions progress through the same states. When all the
             responses in a survey are <i>Final</i>, the submission
-            can be marked as <i>Final</i>, and so on. After that
-            it is not possible to reduce the state of the responses.
+            can be marked as <i>Final</i>, and so on.
+        </p>
+        <p>
+            You can't give a response a lesser approval than the submission they
+            belong to. However you can demote the submission, and <em>then</em>
+            demote the response.
         </p>
     </docs>
 

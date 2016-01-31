@@ -205,9 +205,9 @@ class DaemonTest(base.AqHttpTestBase):
 
             assessment.update_stats_descendants()
             functions = list(assessment.rnodes)
-            self.assertAlmostEqual(functions[0].score, 600)
+            self.assertAlmostEqual(functions[0].score, 20)
             self.assertAlmostEqual(functions[1].score, 0)
-            self.assertAlmostEqual(functions[0].qnode.total_weight, 600)
+            self.assertAlmostEqual(functions[0].qnode.total_weight, 20)
             self.assertAlmostEqual(functions[1].qnode.total_weight, 0)
 
             return assessment.id
@@ -234,10 +234,10 @@ class DaemonTest(base.AqHttpTestBase):
         with model.session_scope() as session:
             assessment = session.query(model.Assessment).get(aid)
             functions = list(assessment.rnodes)
-            self.assertAlmostEqual(functions[0].score, 600)
+            self.assertAlmostEqual(functions[0].score, 20)
             self.assertAlmostEqual(functions[1].score, 0)
-            self.assertAlmostEqual(functions[0].qnode.total_weight, 300)
-            self.assertAlmostEqual(functions[1].qnode.total_weight, 300)
+            self.assertAlmostEqual(functions[0].qnode.total_weight, 11)
+            self.assertAlmostEqual(functions[1].qnode.total_weight, 9)
 
         # Run recalculation script
         config = utils.get_config("recalculate.yaml")
@@ -254,10 +254,10 @@ class DaemonTest(base.AqHttpTestBase):
         with model.session_scope() as session:
             assessment = session.query(model.Assessment).get(aid)
             functions = list(assessment.rnodes)
-            self.assertAlmostEqual(functions[0].score, 300)
-            self.assertAlmostEqual(functions[1].score, 300)
-            self.assertAlmostEqual(functions[0].qnode.total_weight, 300)
-            self.assertAlmostEqual(functions[1].qnode.total_weight, 300)
+            self.assertAlmostEqual(functions[0].score, 11)
+            self.assertAlmostEqual(functions[1].score, 9)
+            self.assertAlmostEqual(functions[0].qnode.total_weight, 11)
+            self.assertAlmostEqual(functions[1].qnode.total_weight, 9)
 
     def test_recalculate_failure(self):
         aid = self.create_assessment()

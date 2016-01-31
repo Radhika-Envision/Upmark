@@ -120,7 +120,7 @@
 
 }
 
-tr.strike {
+tr.strike, tr.strike-black {
     td {
         position: relative;
 
@@ -135,6 +135,9 @@ tr.strike {
             z-index: 1;
         }
     }
+}
+tr.strike-black td:before {
+    border-color: black;
 }
 
 .scroll-x {

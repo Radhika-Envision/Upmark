@@ -412,6 +412,7 @@ class QuestionNodeHandler(
                 if session.is_modified(qnode):
                     verbs.append('update')
 
+                nodes_requiring_update = set()
                 if parent_id != '' and str(qnode.parent_id) != parent_id:
                     # Change parent
                     old_parent = qnode.parent
@@ -423,8 +424,8 @@ class QuestionNodeHandler(
                     old_parent.children.reorder()
                     new_parent.children.append(qnode)
                     new_parent.children.reorder()
-                    old_parent.update_stats_ancestors()
-                    new_parent.update_stats_ancestors()
+                    nodes_requiring_update.add(old_parent)
+                    nodes_requiring_update.add(qnode)
                     self.reason("Moved from %s to %s" % (
                         old_parent.title, new_parent.title))
                     verbs.append('relation')
@@ -442,7 +443,11 @@ class QuestionNodeHandler(
                     qnode.deleted = False
                     collection.insert(qnode.seq, qnode)
                     collection.reorder()
+                    nodes_requiring_update.add(qnode)
                     verbs.append('undelete')
+
+                for n in nodes_requiring_update:
+                    n.update_stats_ancestors()
 
                 act = Activities(session)
                 act.record(self.current_user, qnode, verbs)

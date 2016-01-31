@@ -1,14 +1,19 @@
+from concurrent.futures import ThreadPoolExecutor
 import datetime
 import logging
 import time
 import uuid
 
+from tornado import gen
+from tornado.concurrent import run_on_executor
 from tornado.escape import json_decode, json_encode
 import tornado.web
 import sqlalchemy
+from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 from activity import Activities
+import crud.response
 import crud.survey
 import handlers
 import model
@@ -18,8 +23,12 @@ from utils import reorder, ToSon, truthy, updater
 
 log = logging.getLogger('app.crud.rnode')
 
+MAX_WORKERS = 4
+
 
 class ResponseNodeHandler(handlers.BaseHandler):
+
+    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated
     def get(self, assessment_id, qnode_id):
@@ -34,7 +43,27 @@ class ResponseNodeHandler(handlers.BaseHandler):
                     .first())
 
             if rnode is None:
-                raise handlers.MissingDocError("No such response node")
+                # Create an empty one, and roll back later
+                qnode, assessment = (session.query(
+                        model.QuestionNode, model.Assessment)
+                    .join(model.Survey)
+                    .join(model.Assessment)
+                    .filter(model.QuestionNode.id == qnode_id,
+                            model.Assessment.id == assessment_id)
+                    .first())
+                if qnode is None:
+                    raise handlers.MissingDocError("No such category")
+                rnode = model.ResponseNode(
+                    qnode=qnode,
+                    qnode_id=qnode_id,
+                    assessment=assessment,
+                    assessment_id=assessment_id,
+                    score=0,
+                    n_submitted=0,
+                    n_reviewed=0,
+                    n_approved=0,
+                    n_not_relevant=0,
+                    not_relevant=False)
 
             self._check_authz(rnode.assessment)
 
@@ -65,6 +94,9 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 r'/qnode$',
             ], exclude=exclude)
             son = to_son(rnode)
+
+            # Don't commit empty rnode here: GET should not change anything!
+            session.rollback()
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -138,8 +170,11 @@ class ResponseNodeHandler(handlers.BaseHandler):
     # instead of by their own ID.
 
     @tornado.web.authenticated
+    @gen.coroutine
     def put(self, assessment_id, qnode_id):
         '''Save (create or update).'''
+
+        approval = self.get_argument('approval', '')
 
         try:
             with model.session_scope() as session:
@@ -153,6 +188,8 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 query = (session.query(model.ResponseNode).filter_by(
                      assessment_id=assessment_id, qnode_id=qnode_id))
                 rnode = query.first()
+
+                verbs = []
 
                 if rnode is None:
                     qnode = (session.query(model.QuestionNode)
@@ -179,7 +216,13 @@ class ResponseNodeHandler(handlers.BaseHandler):
                     elif urgency > 5:
                         self.request_son['urgency'] = 5
                 self._update(rnode, self.request_son)
+                if session.is_modified(rnode):
+                    verbs.append('update')
                 session.flush()
+
+                if approval != '':
+                    yield self.set_approval(session, rnode, approval)
+                    verbs.append('state')
 
                 try:
                     rnode.update_stats_ancestors()
@@ -187,7 +230,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                     raise handlers.ModelError(str(e))
 
                 act = Activities(session)
-                act.record(self.current_user, rnode, ['update'])
+                act.record(self.current_user, rnode, verbs)
                 if not act.has_subscription(self.current_user, rnode):
                     act.subscribe(self.current_user, rnode.assessment)
                     self.reason("Subscribed to submission")
@@ -195,6 +238,75 @@ class ResponseNodeHandler(handlers.BaseHandler):
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(assessment_id, qnode_id)
+
+    @run_on_executor
+    def set_approval(self, session, rnode, approval):
+        crud.response.check_approval_change(
+            self.current_user.role, rnode.assessment, approval)
+
+        promote = self.get_arguments('promote')
+        missing = self.get_argument('missing', '')
+
+        assessment = rnode.assessment
+        def update_approval_descendants(qnode):
+            # This is like model.ResponseNode.update_stats_descendants, but it:
+            # - Creates Not Relevant responses when they don't already exist
+            # - Doesn't recalculate scores (just sets approval state)
+            promoted = 0
+            demoted = 0
+            created = 0
+
+            rnode = qnode.get_rnode(assessment)
+            if rnode and rnode.not_relevant:
+                return promoted, demoted, created
+
+            for child in qnode.children:
+                p, d, c = update_approval_descendants(child)
+                promoted += p
+                demoted += d
+                created += c
+
+            for measure in qnode.measures:
+                response = measure.get_response(assessment)
+                if not response:
+                    if missing == 'CREATE':
+                        response = model.Response(
+                            user_id=self.current_user.id,
+                            assessment=assessment,
+                            measure=measure,
+                            survey=assessment.survey,
+                            approval=approval,
+                            not_relevant=True,
+                            comment="*Marked Not Relevant by bulk approval "
+                                    "process (was previously empty)*")
+                        response.modified = func.now()
+                        session.add(response)
+                        created += 1
+                else:
+                    i1 = crud.response.STATES.index(response.approval)
+                    i2 = crud.response.STATES.index(approval)
+                    if i1 < i2 and 'PROMOTE' in promote:
+                        response.approval = approval
+                        response.modified = func.now()
+                        promoted += 1
+                    elif i1 > i2 and 'DEMOTE' in promote:
+                        response.approval = approval
+                        response.modified = func.now()
+                        demoted += 1
+            return promoted, demoted, created
+
+        promoted, demoted, created = update_approval_descendants(rnode.qnode)
+        rnode.update_stats_descendants()
+
+        if created:
+            self.reason("Created %d (NA)" % created)
+        if demoted:
+            self.reason("Demoted %d" % demoted)
+        if promoted:
+            self.reason("Promoted %d" % promoted)
+
+        if created == promoted == demoted == 0:
+            self.reason("No changes to approval status")
 
     def _check_authz(self, assessment):
         if not self.has_privillege('consultant'):

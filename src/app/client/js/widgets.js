@@ -226,6 +226,131 @@ angular.module('vpac.widgets', [])
 }])
 
 
+.directive('approval', [function() {
+    return {
+        restrict: 'E',
+        scope: {
+            model: '='
+        },
+        template: '<i class="boxed" ng-class="cls" title="{{model}}">' +
+                    '{{initial}}</i>',
+        replace: true,
+        controller: ['$scope', function($scope) {
+            $scope.$watch('model', function(approval) {
+                $scope.initial = approval[0].toUpperCase();
+                switch (approval) {
+                case 'draft':
+                    $scope.initial = 'D';
+                    $scope.cls = 'aq-0';
+                    break;
+                case 'final':
+                    $scope.initial = 'F';
+                    $scope.cls = 'aq-1';
+                    break;
+                case 'reviewed':
+                    $scope.initial = 'R';
+                    $scope.cls = 'aq-2';
+                    break;
+                case 'approved':
+                    $scope.initial = 'A';
+                    $scope.cls = 'aq-3';
+                    break;
+                }
+            });
+        }]
+    };
+}])
+
+
+.directive('approvalButtons', [function() {
+    var order = ['draft', 'final', 'reviewed', 'approved'];
+    return {
+        restrict: 'E',
+        templateUrl: 'approval_buttons.html',
+        replace: true,
+        scope: {
+            model: '=',
+            setState: '&',
+        },
+        link: function(scope, elem, attrs) {
+            scope.updateView = function() {
+                var index = order.indexOf(scope.model);
+                var active = {};
+                if (index < 0) {
+                    // pass
+                } else if (attrs.mode == 'greater-or-equal') {
+                    for (var i = index; i < order.length; i++)
+                        active[order[i]] = true;
+                } else if (attrs.mode == 'less-than-or-equal') {
+                    for (var i = index; i >= 0; i--)
+                        active[order[i]] = true;
+                } else {
+                    active[order[index]] = true;
+                }
+                scope.active = active;
+            };
+            scope.$watch('model', scope.updateView);
+            attrs.$observe('mode', scope.updateView);
+        }
+    };
+}])
+
+
+.service('dimmer', [function() {
+    function DimmerError(message) {
+       this.message = message;
+       this.toString = function() {
+          return this.message;
+       };
+    }
+    this.dimmers = [];
+    this.toggler = function(scope) {
+        if (!scope || scope.$$destroyed)
+            throw new DimmerError("A dimmer must be bound to a scope");
+
+        var that = this;
+        var toggle = function(dim) {
+            if (dim === undefined)
+                dim = that.dimmers.indexOf(scope) < 0;
+
+            if (dim) {
+                that.dimmers.push(scope);
+                scope.$dim = true;
+            } else {
+                var i = that.dimmers.indexOf(scope);
+                if (i >= 0)
+                    that.dimmers.splice(i, 1);
+                scope.$dim = that.dimmers.indexOf(scope) >= 0;
+            }
+        };
+        scope.$on('$destroy', function() {
+            toggle(false);
+            scope = null;
+            that = null;
+        });
+        return toggle;
+    };
+}])
+
+
+.directive('dimmer', ['dimmer', function(dimmer) {
+    return {
+        restrict: 'C',
+        link: function(scope, elem, attrs) {
+            scope.$watch(function() {
+                    return dimmer.dimmers.length > 0;
+                },
+                function onDim(dim) {
+                    scope.dim = dim;
+                });
+            scope.$on('$destroy', function() {
+                elem = null;
+            });
+        }
+    };
+}])
+
+
 .factory('checkLogin', ['$q', 'User', '$cookies', '$http',
          function($q, User, $cookies, $http) {
     return function checkLogin() {

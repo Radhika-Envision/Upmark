@@ -28,14 +28,10 @@
     <tbody ui-sortable="dragOpts" ng-model="edit.model">
         <tr ng-repeat="item in edit.model || model"
                 any-href="/measure/{{item.id}}?{{query}}"
-                ng-disabled="edit.model">
+                ng-disabled="edit.model"
+                ng-class="{'strike-black': getStats(item.id).notRelevant}">
             <td class="shrink numeric">{{item.seq + 1}}</td>
             <td>{{item.title}}</td>
-            <td class="shrink text-muted">
-                <i class="fa fa-fw fa-ban fa-lg text-muted"
-                        ng-if="getStats(item.id).notRelevant"
-                        title="Not relevant"></i>
-            </td>
             <td class="shrink text-muted numeric" title="Score"
                     ng-if="assessment && checkRole('view_aggregate_score')">
                 {{getStats(item.id).score | number:0}}

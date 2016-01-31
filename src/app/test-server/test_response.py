@@ -327,18 +327,18 @@ class AssessmentTest(base.AqHttpTestBase):
             # 100 + 200 = 300 (due to weighting of the measures). Assessment 3
             # should have just 200.
             self.assertEqual([r.score for r in assessment_1.ordered_responses],
-                             [100.0, 200.0, 300.0])
-            self.assertEqual(list(assessment_1.rnodes)[0].score, 600)
+                             [3, 6, 11])
+            self.assertEqual(list(assessment_1.rnodes)[0].score, 20)
             self.assertEqual(list(assessment_1.rnodes)[1].score, 0)
 
             self.assertEqual([r.score for r in assessment_2.ordered_responses],
-                             [100.0, 200.0, 300.0])
-            self.assertEqual(list(assessment_2.rnodes)[0].score, 600)
+                             [3, 6, 11])
+            self.assertEqual(list(assessment_2.rnodes)[0].score, 20)
             self.assertEqual(list(assessment_2.rnodes)[1].score, 0)
 
             self.assertEqual([r.score for r in assessment_3.ordered_responses],
-                             [200.0, 300.0])
-            self.assertEqual(list(assessment_3.rnodes)[0].score, 500)
+                             [6, 11])
+            self.assertEqual(list(assessment_3.rnodes)[0].score, 17)
             self.assertEqual(list(assessment_3.rnodes)[1].score, 0)
 
             # When an assessment is duplicated, all of its responses are set to

@@ -74,6 +74,13 @@
                 ng-click="rnode.notRelevant = !rnode.notRelevant"
                 ng-class="{active: rnode.notRelevant}">
             <i class="fa fa-fw fa-ban"></i></button>
+        <button class="btn btn-default btn-round pull-right hidden-print"
+                title="Bulk approval"
+                ng-click="toggleBulk()"
+                ng-class="showBulkApproval ? 'undim' : null">
+            <i class="fa fa-fw fa-rotate fa-angle-right"
+                ng-class="showBulkApproval ? 'fa-rotate-90' : null"></i></button>
+
         <docs ng-if="rnode.notRelevant">
             <i class="fa-li fa fa-ban fa-border"></i>
             <p>
@@ -83,7 +90,7 @@
         </docs>
 
         <div class="stats-group">
-            <span title="Score">
+            <span title="Score" ng-if="rnode.score != null">
                 {{rnode.score | number:0}}
             </span>
             <span title="Progress">
@@ -97,9 +104,7 @@
                 <span title="Number of not-relevant responses">
                     <s>{{rnode.nNotRelevant}}</s></span>
             </span>
-        </div> <!-- class="stats-group"-->
 
-        <div class="stats-group">
             <docs>
                 <i class="fa-li fa fa-bar-chart fa-border"></i>
                 <h3>Scores and Progress</h3>
@@ -128,7 +133,9 @@
                     hard to see if the bar is full).
                 </p>
             </docs>
+        </div> <!-- class="stats-group"-->
 
+        <div class="stats-group">
             <span title="Importance"
                     ng-class="{inherited: rnode.importance == null}">
                 <input-stars ng-model="stats.importance"></input-stars>
@@ -163,11 +170,79 @@
                     while explicitly-set ratings are yellow
                     <i class="fa fa-star text-bar1-light"></i>.
                     To un-set a rating, hover over the stars and then click the
-                    <i class="fa fa-times"></i> that appears.
+                    <i class="fa docs-button fa-times"></i> that appears.
                 </p>
             </docs>
         </div> <!-- class="stats-group"-->
     </div>
+
+    <form novalidate class="dialog undim spaced" ng-if="showBulkApproval">
+        <h3>Bulk Approval</h3>
+        <approval-buttons model="stats.approval"
+                class="spaced-below"
+                set-state="setState(state)"></approval-buttons>
+        <div class="form-group" show-errors>
+            <select class="form-control"
+                id="promote" name="promote"
+                ng-model="stats.promote"
+                ng-options="o.name as o.desc for o in promotionOptions">
+            </select>
+        </div>
+        <div class="form-group" show-errors>
+            <select class="form-control"
+                id="missing" name="missing"
+                ng-model="stats.missing"
+                ng-options="o.name as o.desc for o in missingOptions">
+            </select>
+        </div>
+        <p class="text-warning">
+            <i class="fa fa-warning"></i>
+            Select an approval state above to force
+            <span ng-if="stats.promote == 'BOTH'">
+                all responses (measures)
+            </span>
+            <span ng-if="stats.promote == 'PROMOTE'">
+                lesser responses (measures with lower approval)
+            </span>
+            <span ng-if="stats.promote == 'DEMOTE'">
+                greater responses (measures with higher approval)
+            </span>
+            in this category to be that state.
+
+            <span ng-if="stats.missing == 'CREATE'">
+                Responses that are incomplete will be marked
+                <em>Not Relevant</em>.
+            </span>
+
+            <strong>This action cannot be undone</strong>. If you change your
+            mind, you may need to manually reset the approval status of each
+            response.
+        </p>
+    </form>
+
+    <docs>
+        <i class="fa-li fa fa-chevron-right fa-border"></i>
+        <h3>Approval</h3>
+        <p>
+            Submissions progress through approval
+            states
+            <em>draft</em> &raquo;
+            <em class="text-bar1">final</em> &raquo;
+            <em class="text-bar2">reviewed</em> &raquo;
+            <em class="text-bar3">approved</em>.
+            A submission can only progress to the next state when all of its
+            measures have at least that state. You can change the state of all
+            measures in this category by pressing the <em>bulk approval</em>
+            <i class="fa docs-button fa-angle-right"></i>
+            button.
+        </p>
+        <p>
+            You can't give the responses in a category a lesser approval
+            than the submission they belong to. However you can demote the
+            submission, and <em>then</em> demote the responses. This also
+            applies when performing a bulk approval.
+        </p>
+    </docs>
 
     <!-- Don't wrap the contents of this tag! -->
     <p class="formatted">{{qnode.description}}</p>

@@ -79,6 +79,13 @@ $anim-time: 0.3s;
 .form-control:focus {
     box-shadow: none;
 }
+form p {
+    // Align paragraph edges with contents of inputs
+    border: solid transparent;
+    border-width: 0 1px;
+    padding-left: 12px;
+    padding-right: 12px;
+}
 
 textarea.autoresize {
     // Actual resizing is done in a script.
@@ -160,7 +167,6 @@ div[textarea-label] {
 .btn-default {
     &.active, &.active:focus, &:active.focus, &:active:focus {
         &:not([disabled]):not(.btn-round) {
-            box-shadow: 1px 1px 4px 5px rgba(255, 255, 255, 0.5);
             color: $button-fg;
             background-color: $primary-colour;
             @include transform(scale(1.01, 1.05));

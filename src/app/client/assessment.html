@@ -129,50 +129,28 @@
     <p ng-if="assessment.hierarchy.description"
             class="formatted">Submission against {{assessment.hierarchy.description}}</p>
 
-    <div class="btn-group btn-group-justified hidden-print
-                btn-group-arrow-right"
-            ng-if="!structure.deletedItem">
-        <div class="btn-group">
-            <button class="btn btn-default"
-                    ng-class="{active: assessment.approval == 'draft'}"
-                    ng-click="setState('draft')">
-                <approval model="assessment.approval"
-                    ng-if="assessment.approval == 'draft'"></approval>
-                Draft
-            </button>
-        </div>
-        <div class="btn-group">
-            <button class="btn btn-default"
-                    ng-class="{active: assessment.approval == 'final'}"
-                    ng-click="setState('final')">
-                <approval model="assessment.approval"
-                    ng-if="assessment.approval == 'final'"></approval>
-                Final
-            </button>
-        </div>
-        <div class="btn-group">
-            <button class="btn btn-default"
-                    ng-class="{active: assessment.approval == 'reviewed'}"
-                    ng-click="setState('reviewed')">
-                <approval model="assessment.approval"
-                    ng-if="assessment.approval == 'reviewed'"></approval>
-                Reviewed
-            </button>
-        </div>
-        <div class="btn-group">
-            <button class="btn btn-default"
-                    ng-class="{active: assessment.approval == 'approved'}"
-                    ng-click="setState('approved')">
-                <approval model="assessment.approval"
-                    ng-if="assessment.approval == 'approved'"></approval>
-                Approved
-            </button>
-        </div>
-    </div>
-
+    <approval-buttons class="spaced" model="assessment.approval"
+            ng-if="!structure.deletedItem"
+            set-state="setState(state)"></approval-buttons>
     <p ng-class="structure.deletedItem ? null : 'visible-print'">
         Status: {{assessment.approval}}.
-   </p>
+    </p>
+    <docs>
+        <i class="fa-li fa fa-chevron-right fa-border"></i>
+        <h3>Approval</h3>
+        <p>
+            Submissions progress through approval
+            states
+            <em>draft</em> &raquo;
+            <em class="text-bar1">final</em> &raquo;
+            <em class="text-bar2">reviewed</em> &raquo;
+            <em class="text-bar3">approved</em>.
+            A submission can only progress to the next state when all of its
+            measures have at least that state. Measures can be promoted in bulk
+            from the category screen; click on a category to move to that
+            screen.
+        </p>
+    </docs>
 </div>
 
 <div class="container"
