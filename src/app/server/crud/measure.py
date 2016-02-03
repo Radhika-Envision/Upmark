@@ -74,10 +74,7 @@ class MeasureHandler(
                 r'/survey/tracking_id$',
                 r'/survey/created$',
                 # Fields to match from only the root object
-                r'^/intent$',
-                r'^/inputs$',
-                r'^/scenario$',
-                r'^/questions$',
+                r'^/description$',
                 r'^/weight$',
                 r'^/response_type$',
                 # Descend into nested objects
@@ -168,7 +165,7 @@ class MeasureHandler(
                 # Fields to match from any visited object
                 r'/id$',
                 r'/title$',
-                r'/intent$',
+                r'/description$',
                 r'/seq$',
                 r'/weight$',
                 r'/deleted$',
@@ -417,8 +414,5 @@ class MeasureHandler(
         update = updater(measure)
         update('title', son)
         update('weight', son)
-        update('intent', son)
-        update('inputs', son)
-        update('scenario', son)
-        update('questions', son)
+        update('description', son)
         update('response_type', son)

@@ -415,6 +415,9 @@ class PurchasedSurvey(Base):
 
 
 class Hierarchy(Observable, Base):
+    '''
+    A collection of categories; root node in the survey structure.
+    '''
     __tablename__ = 'hierarchy'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(
@@ -492,6 +495,10 @@ Organisation.hierarchies = association_proxy('purchased_surveys', 'hierarchy')
 
 
 class QuestionNode(Observable, Base):
+    '''
+    A survey category; contains sub-categories and measures. Gives a survey its
+    structure. Both measures and sub-categories are ordered.
+    '''
     __tablename__ = 'qnode'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     survey_id = Column(GUID, nullable=False, primary_key=True)
@@ -603,11 +610,8 @@ class Measure(Observable, Base):
     deleted = Column(Boolean, default=False, nullable=False)
 
     title = Column(Text, nullable=False)
+    description = Column(Text, nullable=True)
     weight = Column(Float, nullable=False)
-    intent = Column(Text, nullable=True)
-    inputs = Column(Text, nullable=True)
-    scenario = Column(Text, nullable=True)
-    questions = Column(Text, nullable=True)
     response_type = Column(Text, nullable=False)
 
     survey = relationship(

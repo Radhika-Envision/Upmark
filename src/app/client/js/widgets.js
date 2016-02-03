@@ -813,6 +813,13 @@ angular.module('vpac.widgets', [])
 })
 
 
+.filter('markdown', function() {
+    return function(text) {
+        return megamark(text);
+    };
+})
+
+
 .directive('markdownEditor', [function() {
     function postLink(scope, elem, attrs, ngModel) {
         scope.model = {

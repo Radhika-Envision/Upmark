@@ -74,43 +74,17 @@
                 ng-options="rt.id as (rt.name + ' - ' + rt.description) for rt in responseTypes"
                 ng-model="edit.model.responseType"></select>
         </div>
-        <div class="form-group" show-errors>
-            <label for="intent">Intent</label>
-            <textarea id="intent" name="intent"
-                class="autoresize form-control"
-                ng-model="edit.model.intent"></textarea>
-        </div>
-        <div class="form-group" show-errors>
-            <label for="inputs">Inputs</label>
-            <textarea id="inputs" name="inputs"
-                class="autoresize form-control"
-                ng-model="edit.model.inputs"></textarea>
-        </div>
-        <div class="form-group" show-errors>
-            <label for="scenario">Scenario</label>
-            <textarea id="scenario" name="scenario"
-                class="autoresize form-control"
-                ng-model="edit.model.scenario"></textarea>
-        </div>
-        <div class="form-group" show-errors>
-            <label for="questions">Questions</label>
-            <textarea id="questions" name="questions"
-                class="autoresize form-control"
-                ng-model="edit.model.questions"></textarea>
+        <div class="form-group">
+            <label for="description">Description</label>
+            <markdown-editor id="description"
+                ng-model="edit.model.description"
+                title="Description"></markdown-editor>
         </div>
     </form>
 </div>
 
 <div ng-if="!edit.model" class="container">
-    <!-- Don't wrap the contents of these tags! -->
-    <h3 ng-if="measure.intent">Intent</h3>
-    <p ng-if="measure.intent" class="formatted">{{measure.intent}}</p>
-    <h3 ng-if="measure.inputs">Inputs</h3>
-    <p ng-if="measure.inputs" class="formatted">{{measure.inputs}}</p>
-    <h3 ng-if="measure.scenario">Scenario</h3>
-    <p ng-if="measure.scenario" class="formatted">{{measure.scenario}}</p>
-    <h3 ng-if="measure.questions">Questions</h3>
-    <p ng-if="measure.questions" class="formatted">{{measure.questions}}</p>
+    <div ng-bind-html="measure.description | markdown"></div>
 
     <docs ng-if="structure.deletedItem">
         <i class="fa-li fa fa-trash fa-border"></i>
