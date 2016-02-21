@@ -1106,7 +1106,7 @@ angular.module('wsaa.surveyQuestions', [
             }
         );
 
-        $scope.saveRnode = Enqueue(function() {
+        $scope.saveRnode = function() {
             $scope.rnode.$save().then(
                 function success(rnode) {
                     $scope.rnodeDup = angular.copy(rnode);
@@ -1118,7 +1118,7 @@ angular.module('wsaa.surveyQuestions', [
                     Notifications.set('edit', 'error',
                         "Could not save submission category: " + details.statusText);
                 });
-        }, 1500);
+        };
         $scope.$watch('stats.importance', function(v, vOld) {
             if (disableUpdate || vOld === undefined)
                 return;
