@@ -344,6 +344,7 @@ angular.module('wsaa.admin', [
         // Creating new
         $scope.org = new Organisation({});
         $scope.org.locations = [];
+        $scope.org.meta = {};
         $scope.edit.edit();
     }
     $scope.attributions = [];

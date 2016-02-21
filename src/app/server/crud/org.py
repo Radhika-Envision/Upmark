@@ -191,8 +191,8 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
         update = updater(org)
         update('name', son)
         update('url', son)
-        self._save_locations(org, son['locations'])
-        self._save_meta(org, son['meta'])
+        self._save_locations(org, son.get('locations', []))
+        self._save_meta(org, son.get('meta', {}))
 
     def _save_locations(self, org, sons):
         column_names = {c.name
