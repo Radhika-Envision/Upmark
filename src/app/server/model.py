@@ -451,6 +451,13 @@ class Hierarchy(Observable, Base):
     def structure(self, s):
         self._structure = Hierarchy._structure_schema(s)
 
+    @property
+    def ordered_measures(self):
+        '''Returns all measures in depth-first order'''
+        for qnode in self.qnodes:
+            for measure in qnode.ordered_measures:
+                yield measure
+
     def update_stats(self):
         '''Updates the stats this hierarchy.'''
         n_measures = sum(qnode.n_measures for qnode in self.qnodes)
@@ -561,6 +568,15 @@ class QuestionNode(Observable, Base):
 
     def any_deleted(self):
         return self.deleted or self.parent_id and self.parent.any_deleted()
+
+    @property
+    def ordered_measures(self):
+        '''Returns all measures in depth-first order'''
+        for child in self.children:
+            for measure in child.ordered_measures:
+                yield measure
+        for measure in self.measures:
+            yield measure
 
     @property
     def ob_type(self):

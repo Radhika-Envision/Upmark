@@ -20,6 +20,7 @@ from concurrent.futures import ThreadPoolExecutor
 from tornado.escape import json_decode, json_encode, url_escape, url_unescape
 import numpy
 
+
 BUF_SIZE = 4096
 MAX_WORKERS = 4
 
@@ -95,7 +96,8 @@ class ExportAssessmentHandler(handlers.BaseHandler):
         with tempfile.TemporaryDirectory() as tmpdirname:
             output_path = os.path.join(tmpdirname, output_file)
             yield self.background_task(
-                output_path, survey_id, hierarchy_id, assessment_id, self.current_user.role)
+                output_path, survey_id, hierarchy_id, assessment_id,
+                self.current_user.role)
             self.set_header('Content-Type', 'application/octet-stream')
             self.set_header('Content-Disposition', 'attachment; filename='
                             + output_file)
@@ -143,7 +145,6 @@ class ExportResponseHandler(handlers.BaseHandler):
             hierarchy_id = str(assessment.hierarchy_id)
             survey_id = str(assessment.survey_id)
             self.check_browse_survey(session, survey_id, hierarchy_id)
-
 
         output_file = 'submission_response_{0}.xlsx'.format(assessment_id)
 
@@ -524,95 +525,107 @@ class Exporter():
 
         line = 1
         with model.session_scope() as session:
-            assessment = session.query(model.Assessment)\
-                .get(assessment_id)
+            assessment = (session.query(model.Assessment)
+                .get(assessment_id))
 
-            if assessment and \
-                assessment.hierarchy and \
-                assessment.hierarchy.structure and \
-                assessment.hierarchy.structure.get('levels'):
+            if not assessment:
+                raise handlers.MissingDocError("No such assessment")
 
-                self.write_metadata(workbook, worksheet_metadata, assessment)
-                levels = assessment.hierarchy.structure["levels"]
-                level_length = len(levels)
-                worksheet.set_column(0, level_length, 50)
-                # Find max response number and write to header
-                responses = list(assessment.ordered_responses)
-                if len(responses) > 0:
-                    max_len_of_response = max(
-                        [len(response.response_parts) for response in responses])
-                    response_types = [part["parts"]
-                                      for part in assessment.survey._response_types
-                                      if len(part["parts"]) == max_len_of_response][0]
-                    response_parts = [part['name'] for part in  response_types]
-                else:
-                    max_len_of_response = 0
-                    response_parts = []
+            if not 'levels' in assessment.hierarchy.structure:
+                raise handlers.InternalModelError("Survey is misconfigured")
 
-                worksheet.set_column(level_length + 1, 
-                    level_length + max_len_of_response + 8, 15)
-                worksheet.set_column(level_length + max_len_of_response + 9,
-                    level_length + max_len_of_response + 9, 100)
+            self.write_metadata(workbook, worksheet_metadata, assessment)
+            levels = assessment.hierarchy.structure["levels"]
+            level_length = len(levels)
+            worksheet.set_column(0, level_length, 50)
 
-                # Header from heirarchy levels
-                self.write_response_header(
-                    workbook, worksheet, levels, max_len_of_response,
-                    response_parts)
+            measures = list(assessment.hierarchy.ordered_measures)
 
-                for response in responses:
-                    # log.info("response: %s", response.measure.id)
-                    qnode = response.measure.get_parent(
-                        assessment.hierarchy_id)
-                    self.write_qnode(
-                        worksheet, qnode, line, format, level_length - 1)
+            max_parts = 0
+            longest_response_type = None
+            for m in measures:
+                rt = assessment.survey.materialised_response_types[m.response_type]
+                if len(rt.parts) > max_parts:
+                    longest_response_type = rt
+                    max_parts = len(rt.parts)
 
-                    qnode_measure = [qm for qm in response.measure.qnode_measures]
+            if longest_response_type:
+                response_parts = [
+                    p.name or "Part %s" % string.ascii_uppercase[i]
+                    for i, p in enumerate(longest_response_type.parts)]
+            else:
+                response_parts = []
 
-                    worksheet.write(
-                        line, level_length, str(qnode_measure[0].seq + 1)
-                            + ". " + response.measure.title, format)
-                    self.write_response_parts(
-                        worksheet, response.response_parts, line, format_no_wrap,
-                            level_length + 1)
-                    score = 0
-                    if response.measure.weight != 0:
-                        score = response.score / response.measure.weight
+            worksheet.set_column(level_length + 1, 
+                level_length + max_parts + 8, 15)
+            worksheet.set_column(level_length + max_parts + 9,
+                level_length + max_parts + 9, 100)
 
-                    export_approval_status = ['final', 'reviewed', 'approved']
+            # Header from heirarchy levels
+            self.write_response_header(
+                workbook, worksheet, levels, max_parts, response_parts)
 
-                    self.write_approval(worksheet, line, 
-                                level_length + max_len_of_response, response,
-                                response.user, format, format_date)
-                    if response.approval in export_approval_status:
-                        export_approval_status.remove(response.approval)
+            for measure in measures:
+                qnode = measure.get_parent(assessment.hierarchy)
+                self.write_qnode(
+                    worksheet, qnode, line, format, level_length - 1)
 
-                    for approval_status in export_approval_status:
-                        res = session.query(model.ResponseHistory).\
-                            filter_by(id=response.id, approval=approval_status).\
-                            order_by(model.ResponseHistory.modified.desc()).\
-                            first()
-                        if res:
-                            user = session.query(model.AppUser).\
-                                filter_by(id=res.user_id).\
-                                first()
+                seq = measure.get_seq(assessment.hierarchy) + 1
 
-                            self.write_approval(worksheet, line, 
-                                level_length + max_len_of_response, res,
-                                user, format, format_date)
+                worksheet.write(
+                    line, level_length, "%d. %s" % (seq, measure.title), format)
 
-                    worksheet.write(line, level_length + max_len_of_response + 7,
-                            score, format_percent)
-                    worksheet.write(line, level_length + max_len_of_response + 8,
-                            qnode.total_weight, format_no_wrap)
-                    worksheet.write(line, level_length + max_len_of_response + 9,
-                            response.comment, format_comment)
-
-                    url = base_url + "/#/measure/{0}?assessment={1}".format(
-                          response.measure.id, assessment.id)
-
-                    worksheet.write_url(line, level_length + max_len_of_response + 10,
-                            url, url_format, "Link")
+                response = measure.get_response(assessment)
+                if not response:
                     line = line + 1
+                    continue
+
+                self.write_response_parts(
+                    worksheet, response.response_parts, line, format_no_wrap,
+                        level_length + 1)
+                score = 0
+                if response.measure.weight != 0:
+                    score = response.score / response.measure.weight
+
+                export_approval_status = ['final', 'reviewed', 'approved']
+
+                self.write_approval(
+                    worksheet, line,
+                    level_length + max_parts, response,
+                    response.user, format, format_date)
+                if response.approval in export_approval_status:
+                    export_approval_status.remove(response.approval)
+
+                for approval_status in export_approval_status:
+                    res = (session.query(model.ResponseHistory)
+                        .filter_by(id=response.id, approval=approval_status)
+                        .order_by(model.ResponseHistory.modified.desc())
+                        .first())
+                    if res:
+                        user = session.query(model.AppUser).\
+                            filter_by(id=res.user_id).\
+                            first()
+
+                        self.write_approval(worksheet, line, 
+                            level_length + max_parts, res,
+                            user, format, format_date)
+
+                worksheet.write(
+                        line, level_length + max_parts + 7,
+                        score, format_percent)
+                worksheet.write(
+                        line, level_length + max_parts + 8,
+                        qnode.total_weight, format_no_wrap)
+                worksheet.write(
+                        line, level_length + max_parts + 9,
+                        response.comment, format_comment)
+
+                url = base_url + "/#/measure/{0}?assessment={1}".format(
+                      response.measure.id, assessment.id)
+
+                worksheet.write_url(line, level_length + max_parts + 10,
+                        url, url_format, "Link")
+                line = line + 1
 
         workbook.close()
 
