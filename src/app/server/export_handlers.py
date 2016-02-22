@@ -32,10 +32,13 @@ class ExportSurveyHandler(handlers.BaseHandler):
 
     @tornado.web.authenticated
     @gen.coroutine
-    def get(self, survey_id, hierarchy_id, extension):
+    def get(self, survey_id, hierarchy_id, fmt, extension):
         if extension != 'xlsx':
             raise handlers.MissingDocError(
                 "File type not supported: %s" % extension)
+        if fmt not in {'tabular', 'nested'}:
+            raise handlers.MissingDocError(
+                "Unrecognised format: %s" % fmt)
 
         with model.session_scope() as session:
             self.check_browse_survey(session, survey_id, hierarchy_id)
@@ -46,13 +49,21 @@ class ExportSurveyHandler(handlers.BaseHandler):
                 raise handlers.ModelError(
                     "Survey does not belong to specified program.")
 
-        output_file = 'program_{0}_survey_{1}.xlsx'.format(
-            survey_id, hierarchy_id)
+        output_file = 'program_{0}_survey_{1}_{2}.xlsx'.format(
+            survey_id, hierarchy_id, fmt)
+        base_url = ("%s://%s" % (self.request.protocol,
+                self.request.host))
 
         with tempfile.TemporaryDirectory() as tmpdirname:
             output_path = os.path.join(tmpdirname, output_file)
-            yield self.background_task(
-                output_path, survey_id, hierarchy_id)
+            if fmt == 'tabular':
+                yield self.export_tabular(
+                    output_path, survey_id, hierarchy_id,
+                    self.current_user.role, base_url)
+            else:
+                yield self.export_nested(
+                    output_path, survey_id, hierarchy_id,
+                    self.current_user.role, base_url)
             self.set_header('Content-Type', 'application/octet-stream')
             self.set_header('Content-Disposition', 'attachment; filename='
                             + output_file)
@@ -67,9 +78,16 @@ class ExportSurveyHandler(handlers.BaseHandler):
         self.finish()
 
     @run_on_executor
-    def background_task(self, path, survey_id, hierarchy_id):
+    def export_tabular(self, path, survey_id, hierarchy_id, user_role, base_url):
         e = Exporter()
-        survey_id = e.process_structure_file(path, survey_id, hierarchy_id)
+        survey_id = e.process_tabular(
+            path, survey_id, hierarchy_id, None, user_role, base_url)
+
+    @run_on_executor
+    def export_nested(self, path, survey_id, hierarchy_id, user_role, base_url):
+        e = Exporter()
+        survey_id = e.process_nested(
+            path, survey_id, hierarchy_id, None, user_role, base_url)
 
 
 class ExportAssessmentHandler(handlers.BaseHandler):
@@ -77,62 +95,18 @@ class ExportAssessmentHandler(handlers.BaseHandler):
 
     @tornado.web.authenticated
     @gen.coroutine
-    def get(self, assessment_id, extension):
+    def get(self, assessment_id, fmt, extension):
         if extension != 'xlsx':
             raise handlers.MissingDocError(
                 "File type not supported: %s" % extension)
+        if fmt not in {'tabular', 'nested'}:
+            raise handlers.MissingDocError(
+                "Unrecognised format: %s" % fmt)
 
         with model.session_scope() as session:
             assessment = (session.query(model.Assessment)
                           .get(assessment_id))
-            if assessment.organisation.id != self.organisation.id:
-                self.check_privillege('consultant')
-            hierarchy_id = str(assessment.hierarchy_id)
-            survey_id = str(assessment.survey_id)
-            self.check_browse_survey(session, survey_id, hierarchy_id)
 
-        output_file = 'submission_{0}.xlsx'.format(assessment_id)
-
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            output_path = os.path.join(tmpdirname, output_file)
-            yield self.background_task(
-                output_path, survey_id, hierarchy_id, assessment_id,
-                self.current_user.role)
-            self.set_header('Content-Type', 'application/octet-stream')
-            self.set_header('Content-Disposition', 'attachment; filename='
-                            + output_file)
-
-            with open(output_path, 'rb') as f:
-                while True:
-                    data = f.read(BUF_SIZE)
-                    if not data:
-                        break
-                    self.write(data)
-
-        self.finish()
-
-    @run_on_executor
-    def background_task(self, path, survey_id, hierarchy_id,
-                        assessment_id, user_role):
-        e = Exporter()
-        survey_id = e.process_structure_file(
-            path, survey_id, hierarchy_id, assessment_id,
-            user_role)
-
-
-class ExportResponseHandler(handlers.BaseHandler):
-    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
-
-    @tornado.web.authenticated
-    @gen.coroutine
-    def get(self, assessment_id, extension):
-        if extension != 'xlsx':
-            raise handlers.MissingDocError(
-                "File type not supported: %s" % extension)
-
-        with model.session_scope() as session:
-            assessment = (session.query(model.Assessment)
-                          .get(assessment_id))
             if not assessment:
                 raise handlers.MissingDocError("No such submission")
             elif assessment.deleted:
@@ -146,12 +120,20 @@ class ExportResponseHandler(handlers.BaseHandler):
             survey_id = str(assessment.survey_id)
             self.check_browse_survey(session, survey_id, hierarchy_id)
 
-        output_file = 'submission_response_{0}.xlsx'.format(assessment_id)
+        output_file = 'submission_{0}_{1}.xlsx'.format(assessment_id, fmt)
+        base_url = ("%s://%s" % (self.request.protocol,
+                self.request.host))
 
         with tempfile.TemporaryDirectory() as tmpdirname:
             output_path = os.path.join(tmpdirname, output_file)
-            yield self.background_task(
-                output_path, survey_id, hierarchy_id, assessment_id)
+            if fmt == 'tabular':
+                yield self.export_tabular(
+                    output_path, survey_id, hierarchy_id, assessment_id,
+                    self.current_user.role, base_url)
+            else:
+                yield self.export_nested(
+                    output_path, survey_id, hierarchy_id, assessment_id,
+                    self.current_user.role, base_url)
             self.set_header('Content-Type', 'application/octet-stream')
             self.set_header('Content-Disposition', 'attachment; filename='
                             + output_file)
@@ -166,14 +148,20 @@ class ExportResponseHandler(handlers.BaseHandler):
         self.finish()
 
     @run_on_executor
-    def background_task(self, path, survey_id, hierarchy_id,
-                        assessment_id):
+    def export_tabular(self, path, survey_id, hierarchy_id,
+                       assessment_id, user_role, base_url):
         e = Exporter()
-        base_url = ("%s://%s" % (self.request.protocol,
-                self.request.host,))
+        survey_id = e.process_tabular(
+            path, survey_id, hierarchy_id, assessment_id,
+            user_role, base_url)
 
-        survey_id = e.process_response_file(path, survey_id,
-                                            assessment_id, base_url)
+    @run_on_executor
+    def export_nested(self, path, survey_id, hierarchy_id,
+                      assessment_id, user_role, base_url):
+        e = Exporter()
+        survey_id = e.process_nested(
+            path, survey_id, hierarchy_id, assessment_id,
+            user_role, base_url)
 
 
 class Exporter():
@@ -187,8 +175,9 @@ class Exporter():
                 num = num * 26 + (ord(c.upper()) - ord('A'))
         return num
 
-    def process_structure_file(self, file_name, survey_id, hierarchy_id,
-                               assessment_id='', user_role=''):
+    def process_nested(
+            self, file_name, survey_id, hierarchy_id, assessment_id,
+            user_role, base_url):
         """
         Open and write an Excel file
         """
@@ -427,13 +416,18 @@ class Exporter():
 
             response = [r for r in response_list
                         if r["measure_id"] == qnode_measure["measure_id"]]
+            if response:
+                response = response[0]
+            else:
+                response = None
+
             percentage = None
             comment = None
             not_relevant = None
-            if response and response[0]["weight"] != 0:
-                percentage = response[0]["score"] / response[0]["weight"]
-                comment = response[0]["comment"]
-                if response[0]["not_relevant"]:
+            if response and response["weight"] != 0:
+                percentage = response["score"] / response["weight"]
+                comment = response["comment"]
+                if response["not_relevant"]:
                     not_relevant = "Yes"
                 else:
                     not_relevant = "No"
@@ -480,12 +474,9 @@ class Exporter():
                                     part["name"], format_part)
                 index = index + 1
 
-            measure_response = [r for r in response_list
-                                if r["measure_id"] == qnode_measure["measure_id"]]
-
             index = 0
-            if measure_response:
-                for part in measure_response[0]["response_parts"]:
+            if response and response["response_parts"]:
+                for part in response["response_parts"]:
                     worksheet.write(self.line - parts_len + index, 3,
                                     "%d - %s" % (part["index"] + 1, part["note"]),
                                     format_part_answer)
@@ -498,7 +489,9 @@ class Exporter():
 
             self.line = self.line + 1
 
-    def process_response_file(self, file_name, survey_id, assessment_id, base_url):
+    def process_tabular(
+            self, file_name, survey_id, hierarchy_id, assessment_id,
+            user_role, base_url):
         """
         Open and write an Excel file
         """
@@ -525,26 +518,36 @@ class Exporter():
 
         line = 1
         with model.session_scope() as session:
-            assessment = (session.query(model.Assessment)
-                .get(assessment_id))
+            hierarchy = (session.query(model.Hierarchy)
+                .get((hierarchy_id, survey_id)))
 
-            if not assessment:
-                raise handlers.MissingDocError("No such assessment")
+            if not hierarchy:
+                raise handlers.MissingDocError("No such survey")
 
-            if not 'levels' in assessment.hierarchy.structure:
+            if not 'levels' in hierarchy.structure:
                 raise handlers.InternalModelError("Survey is misconfigured")
 
-            self.write_metadata(workbook, worksheet_metadata, assessment)
-            levels = assessment.hierarchy.structure["levels"]
+            if assessment_id:
+                assessment = (session.query(model.Assessment)
+                    .get(assessment_id))
+                if assessment.hierarchy_id != hierarchy.id:
+                    raise handlers.MissingDocError(
+                        "That submission does not belong to that survey")
+                self.write_metadata(workbook, worksheet_metadata, assessment)
+            else:
+                assessment = None
+
+            levels = hierarchy.structure["levels"]
             level_length = len(levels)
             worksheet.set_column(0, level_length, 50)
 
-            measures = list(assessment.hierarchy.ordered_measures)
+            measures = list(hierarchy.ordered_measures)
 
             max_parts = 0
             longest_response_type = None
             for m in measures:
-                rt = assessment.survey.materialised_response_types[m.response_type]
+                rt = hierarchy.survey.materialised_response_types[
+                    m.response_type]
                 if len(rt.parts) > max_parts:
                     longest_response_type = rt
                     max_parts = len(rt.parts)
@@ -566,62 +569,76 @@ class Exporter():
                 workbook, worksheet, levels, max_parts, response_parts)
 
             for measure in measures:
-                qnode = measure.get_parent(assessment.hierarchy)
+                qnode = measure.get_parent(hierarchy)
                 self.write_qnode(
                     worksheet, qnode, line, format, level_length - 1)
 
-                seq = measure.get_seq(assessment.hierarchy) + 1
+                seq = measure.get_seq(hierarchy) + 1
 
                 worksheet.write(
                     line, level_length, "%d. %s" % (seq, measure.title), format)
 
-                response = measure.get_response(assessment)
-                if not response:
-                    line = line + 1
-                    continue
+                if assessment:
+                    response = measure.get_response(assessment)
+                    url = base_url + "/#/measure/{}?assessment={}".format(
+                        measure.id, assessment.id)
+                else:
+                    response = None
+                    url = base_url + '/#/measure/{}?survey={}&parent={}'.format(
+                        measure.id, survey_id, qnode.id)
 
-                self.write_response_parts(
-                    worksheet, response.response_parts, line, format_no_wrap,
-                        level_length + 1)
-                score = 0
-                if response.measure.weight != 0:
-                    score = response.score / response.measure.weight
+                score = None
+                comment = None
+                if response:
+                    self.write_response_parts(
+                        worksheet, response.response_parts, line, format_no_wrap,
+                            level_length + 1)
 
-                export_approval_status = ['final', 'reviewed', 'approved']
+                    export_approval_status = ['final', 'reviewed', 'approved']
 
-                self.write_approval(
-                    worksheet, line,
-                    level_length + max_parts, response,
-                    response.user, format, format_date)
-                if response.approval in export_approval_status:
-                    export_approval_status.remove(response.approval)
+                    self.write_approval(
+                        worksheet, line,
+                        level_length + max_parts, response,
+                        response.user, format, format_date)
+                    if response.approval in export_approval_status:
+                        export_approval_status.remove(response.approval)
 
-                for approval_status in export_approval_status:
-                    res = (session.query(model.ResponseHistory)
-                        .filter_by(id=response.id, approval=approval_status)
-                        .order_by(model.ResponseHistory.modified.desc())
-                        .first())
-                    if res:
-                        user = session.query(model.AppUser).\
-                            filter_by(id=res.user_id).\
-                            first()
+                    for approval_status in export_approval_status:
+                        res = (session.query(model.ResponseHistory)
+                            .filter_by(id=response.id, approval=approval_status)
+                            .order_by(model.ResponseHistory.modified.desc())
+                            .first())
+                        if res:
+                            user = session.query(model.AppUser).\
+                                filter_by(id=res.user_id).\
+                                first()
 
-                        self.write_approval(worksheet, line, 
-                            level_length + max_parts, res,
-                            user, format, format_date)
+                            self.write_approval(worksheet, line,
+                                level_length + max_parts, res,
+                                user, format, format_date)
+
+                    if user_role != 'clerk':
+                        if response.measure.weight != 0:
+                            score = response.score / response.measure.weight
+                        else:
+                            score = 0
+                    comment = response.comment
+
+                if user_role == 'clerk':
+                    weight = None
+                else:
+                    weight = measure.weight
 
                 worksheet.write(
                         line, level_length + max_parts + 7,
                         score, format_percent)
                 worksheet.write(
                         line, level_length + max_parts + 8,
-                        qnode.total_weight, format_no_wrap)
+                        weight, format_no_wrap)
+
                 worksheet.write(
                         line, level_length + max_parts + 9,
-                        response.comment, format_comment)
-
-                url = base_url + "/#/measure/{0}?assessment={1}".format(
-                      response.measure.id, assessment.id)
+                        comment, format_comment)
 
                 worksheet.write_url(line, level_length + max_parts + 10,
                         url, url_format, "Link")

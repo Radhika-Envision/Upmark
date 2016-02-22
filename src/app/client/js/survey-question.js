@@ -897,9 +897,11 @@ angular.module('wsaa.surveyQuestions', [
 
 .controller('HierarchyCtrl', [
         '$scope', 'Hierarchy', 'routeData', 'Editor', 'questionAuthz', 'layout',
-        '$location', 'Current', 'format', 'QuestionNode', 'Structure',
+        '$location', 'Current', 'format', 'QuestionNode', 'Structure', '$http',
+        'Notifications',
         function($scope, Hierarchy, routeData, Editor, authz, layout,
-                 $location, current, format, QuestionNode, Structure) {
+                 $location, current, format, QuestionNode, Structure, $http,
+                 Notifications) {
 
     $scope.layout = layout;
     $scope.survey = routeData.survey;
@@ -962,6 +964,28 @@ angular.module('wsaa.surveyQuestions', [
         model.structure.levels.splice(i, 1);
         if (model.structure.levels.length == 1)
             model.structure.levels[0].hasMeasures = true;
+    };
+
+    $scope.download = function(export_type) {
+        var url = '/export/survey/' + $scope.survey.id;
+        url += '/hierarchy/' + $scope.hierarchy.id;
+        url += '/' + export_type + '.xlsx';
+
+        $http.get(url, { responseType: "arraybuffer", cache: false }).then(
+            function success(response) {
+                var message = "Export finished";
+                Notifications.set('export', 'info', message, 5000);
+                var blob = new Blob(
+                    [response.data], {type: response.headers('Content-Type')});
+                var name = /filename=(.*)/.exec(
+                    response.headers('Content-Disposition'))[1];
+                saveAs(blob, name);
+            },
+            function failure(response) {
+                Notifications.set('export', 'error',
+                    "Error: " + response.statusText);
+            }
+        );
     };
 
     $scope.checkRole = authz(current, $scope.survey);

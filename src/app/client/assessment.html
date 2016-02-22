@@ -13,7 +13,7 @@
                 <li class="dropdown-header">Export submission</li>
                 <li>
                     <a title="Download Excel file"
-                            ng-click="download(assessment.id, 'structure')"
+                            ng-click="download('nested')"
                             download>
                         <i class="fa fa-th-list"></i>
                         Colourful spreadsheet
@@ -21,7 +21,7 @@
                 </li>
                 <li>
                     <a title="Download Excel file"
-                            ng-click="download(assessment.id, 'response')"
+                            ng-click="download('tabular')"
                             download>
                         <i class="fa fa-list-ol"></i>
                         One measure per row
@@ -104,7 +104,7 @@
             <input type="text" class="form-control" id="title" name="title"
                 ng-model="edit.model.title" required />
         </div>
-        <div class="checkbox" show-errors
+        <div class="checkbox"
                 ng-if="!edit.model.id && !duplicate && checkRole('survey_edit')">
             <label>
                 <input type="checkbox" id="fillRandom" name="fillRandom"
