@@ -116,19 +116,14 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 
     $scope.checkRole = authz(current, $scope.survey, $scope.assessment);
 
-    $scope.download = function(assessment_id, export_type) {
-        var url = null;
-        if (export_type == 'structure')
-            url = '/export/assessment/' + assessment_id + '.xlsx';
-        else
-            url = '/export/response/' + assessment_id + '.xlsx';
+    $scope.download = function(export_type) {
+        var url = '/export/assessment/' + $scope.assessment.id;
+        url += '/' + export_type + '.xlsx';
 
-        // console.log(assessment_id, export_type);
         $http.get(url, { responseType: "arraybuffer", cache: false }).then(
             function success(response) {
                 var message = "Export finished";
                 Notifications.set('export', 'info', message, 5000);
-                console.log(response);
                 var blob = new Blob(
                     [response.data], {type: response.headers('Content-Type')});
                 var name = /filename=(.*)/.exec(

@@ -190,6 +190,24 @@ class AqModelTestBase(unittest.TestCase):
             {
                 'title': "Hierarchy 1",
                 'description': "Test",
+                'structure': {
+                    'levels': [
+                        {
+                            'title': 'Functions',
+                            'label': 'F',
+                            'has_measures': False
+                        },
+                        {
+                            'title': 'Processes',
+                            'label': 'P',
+                            'has_measures': True
+                        },
+                    ],
+                    'measure': {
+                        'title': 'Measures',
+                        'label': 'M'
+                    }
+                },
                 'qnodes': [
                     {
                         'title': "Function 0",
@@ -250,6 +268,24 @@ class AqModelTestBase(unittest.TestCase):
             {
                 'title': "Hierarchy 2",
                 'description': "Test",
+                'structure': {
+                    'levels': [
+                        {
+                            'title': 'Sections',
+                            'label': 'S',
+                            'has_measures': False
+                        },
+                        {
+                            'title': 'Sub-Sections',
+                            'label': 'Ss',
+                            'has_measures': True
+                        },
+                    ],
+                    'measure': {
+                        'title': 'Measures',
+                        'label': 'M'
+                    }
+                },
                 'qnodes': [
                     {
                         'title': "Section 1",
@@ -272,6 +308,24 @@ class AqModelTestBase(unittest.TestCase):
                 'title': "Hierarchy 3",
                 'description': "Test",
                 'deleted': True,
+                'structure': {
+                    'levels': [
+                        {
+                            'title': 'Divisions',
+                            'label': 'D',
+                            'has_measures': False
+                        },
+                        {
+                            'title': 'Sub-Divisions',
+                            'label': 'Sd',
+                            'has_measures': True
+                        },
+                    ],
+                    'measure': {
+                        'title': 'Measures',
+                        'label': 'M'
+                    }
+                },
                 'qnodes': [
                     {
                         'title': "Division 1",
@@ -343,6 +397,7 @@ class AqModelTestBase(unittest.TestCase):
                         title=hson['title'],
                         description=hson['description'],
                         deleted=hson.get('deleted', False))
+                    hierarchy.structure = hson['structure']
                     session.add(hierarchy)
 
                     # Explicitly add to collection because backref is one-way.

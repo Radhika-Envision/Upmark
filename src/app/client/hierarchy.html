@@ -22,10 +22,18 @@
                 <li class="dropdown-header">Export survey structure</li>
                 <li>
                     <a title="Download Excel file"
-                            ng-href="/export/survey/{{survey.id}}/hierarchy/{{hierarchy.id}}.xlsx"
+                            ng-click="download('nested')"
                             download>
                         <i class="fa fa-th-list"></i>
                         Colourful spreadsheet
+                    </a>
+                </li>
+                <li>
+                    <a title="Download Excel file"
+                            ng-click="download('tabular')"
+                            download>
+                        <i class="fa fa-list-ol"></i>
+                        One measure per row
                     </a>
                 </li>
             </ul>

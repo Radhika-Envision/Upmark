@@ -101,7 +101,10 @@ class ExporterAuthzTest(base.AqHttpTestBase):
 
     def test_structure_exporter_with_purchase(self):
         with base.mock_user('admin'):
-            self.fetch("/export/survey/%s/hierarchy/%s.xlsx" %
+            self.fetch("/export/survey/%s/hierarchy/%s/nested.xlsx" %
+                (self.survey_id, self.hierarchy_id),
+                method='GET', expected=200, encoding=None)
+            self.fetch("/export/survey/%s/hierarchy/%s/tabular.xlsx" %
                 (self.survey_id, self.hierarchy_id),
                 method='GET', expected=200, encoding=None)
 
@@ -119,46 +122,26 @@ class ExporterAuthzTest(base.AqHttpTestBase):
 
         with base.mock_user('author'):
             self.fetch(
-                "/export/assessment/%s.xlsx" % assessment_id,
+                "/export/assessment/%s/tabular.xlsx" % assessment_id,
+                method='GET', expected=403, decode=False, encoding=None)
+            self.fetch(
+                "/export/assessment/%s/nested.xlsx" % assessment_id,
                 method='GET', expected=403, decode=False, encoding=None)
 
         with base.mock_user('consultant'):
             self.fetch(
-                "/export/assessment/%s.xlsx" % assessment_id,
+                "/export/assessment/%s/tabular.xlsx" % assessment_id,
+                method='GET', expected=200, decode=False, encoding=None)
+            self.fetch(
+                "/export/assessment/%s/nested.xlsx" % assessment_id,
                 method='GET', expected=200, decode=False, encoding=None)
 
         with base.mock_user('clerk'):
             self.fetch(
-                "/export/assessment/%s.xlsx" % assessment_id,
+                "/export/assessment/%s/tabular.xlsx" % assessment_id,
                 method='GET', expected=200, decode=False, encoding=None)
-
-
-    def test_response_exporter(self):
-        with base.mock_user('admin'):
-            self.purchase_survey()
-            self.add_assessment()
-
-        with model.session_scope() as session:
-            assessment = session.query(model.Assessment).filter(
-                            model.Assessment.survey_id==self.survey_id,
-                            model.Assessment.organisation_id==self.organisation_id,
-                            model.Assessment.hierarchy_id==self.hierarchy_id).first()
-            assessment_id = assessment.id
-            log.info("assessment:%s", assessment)
-
-        with base.mock_user('author'):
             self.fetch(
-                "/export/response/%s.xlsx" % assessment_id,
-                method='GET', expected=403, decode=False, encoding=None)
-
-        with base.mock_user('consultant'):
-            self.fetch(
-                "/export/response/%s.xlsx" % assessment_id,
-                method='GET', expected=200, decode=False, encoding=None)
-
-        with base.mock_user('clerk'):
-            self.fetch(
-                "/export/response/%s.xlsx" % assessment_id,
+                "/export/assessment/%s/nested.xlsx" % assessment_id,
                 method='GET', expected=200, decode=False, encoding=None)
 
     def purchase_survey(self):

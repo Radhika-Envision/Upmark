@@ -24,7 +24,14 @@ angular.module('settings', [])
         '^/?.*\.html$',
         '^/?images/',
         '^/?css/',
-        '^/?\.bower_components/'
+        '^/?\.bower_components/',
+    ],
+    volatile: [
+        // Fix for aggressive IE caching
+        '\.json',
+        '^/export/',
+        '^/adhoc_query',
+        '\.sql',
     ]
 })
 
