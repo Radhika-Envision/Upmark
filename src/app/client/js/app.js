@@ -748,9 +748,14 @@ angular.module('wsaa.aquamark',
         var includes = versionedResources.include.map(function(r) {
             return new RegExp(r);
         });
+        var volatile = versionedResources.volatile.map(function(r) {
+            return new RegExp(r);
+        });
         var excludes = versionedResources.exclude.map(function(r) {
             return new RegExp(r);
         });
+
+        var vseq = 0;
 
         $httpProvider.interceptors.push([function() {
             return {
@@ -758,12 +763,22 @@ angular.module('wsaa.aquamark',
                     var test = function(r) {
                         return r.test(config.url);
                     };
-                    if (includes.some(test) && !excludes.some(test)) {
+
+                    var cacheBustId = null;
+                    if (volatile.some(test) && !excludes.some(test)) {
+                        cacheBustId = 'volatile-' + (Date.now() / 1000)
+                        cacheBustId += '-' + vseq;
+                        vseq = (vseq + 1) % 100;
+                    } else if (includes.some(test) && !excludes.some(test)) {
+                        cacheBustId = 'static-' + deployId;
+                    }
+
+                    if (cacheBustId) {
                         var query;
                         if (config.url.indexOf('?') == -1)
-                            query = '?v=' + deployId;
+                            query = '?v=' + cacheBustId;
                         else
-                            query = '&v=' + deployId;
+                            query = '&v=' + cacheBustId;
                         config.url += query;
                     }
                     return config;

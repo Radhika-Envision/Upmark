@@ -356,7 +356,8 @@ class MainHandler(BaseHandler):
             # Add a resource deployment version number to bust the cache, except
             # for CDN links.
             if self.deploy_id and k != 'cdn':
-                hrefs = ['%s?v=%s' % (href, self.deploy_id) for href in hrefs]
+                hrefs = ['%s?v=static-%s' % (href, self.deploy_id)
+                         for href in hrefs]
 
             if dev_mode and k in {'cdn', 'min-href'}:
                 print('Warning: using release resource in dev mode')
@@ -378,7 +379,7 @@ class MainHandler(BaseHandler):
             template, user=self.current_user, organisation=self.organisation,
             scripts=self.scripts, stylesheets=self.stylesheets,
             analytics_id=tornado.options.options.analytics_id,
-            # Conditionally use a deplyment ID; this is for assets that may need
+            # Conditionally use a deployment ID; this is for assets that may need
             # breakpoints. Under dev mode the URLs will never change, and it's
             # up to the developer to clear their own cache. Under deployment
             # the URLs will change.
@@ -386,7 +387,7 @@ class MainHandler(BaseHandler):
             # Always use a dev ID; this is for assets that don't need to be
             # debugged but do need cache busting like favicons. Under dev mode
             # and deployment the URLs will change.
-            dev_id_query="?v=%s" % DEPLOY_ID,
+            dev_id_query="?v=static-%s" % DEPLOY_ID,
             aq_version=aq_version)
 
 
@@ -411,7 +412,7 @@ class AuthLoginHandler(MainHandler):
             # Always use a dev ID; this is for assets that don't need to be
             # debugged but do need cache busting like favicons. Under dev mode
             # and deployment the URLs will change.
-            dev_id_query="?v=%s" % DEPLOY_ID,
+            dev_id_query="?v=static-%s" % DEPLOY_ID,
             error=errormessage)
 
     def post(self, user_id):

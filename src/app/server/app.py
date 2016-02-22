@@ -57,15 +57,15 @@ def parse_options():
         help="Bind to this port")
 
     tornado.options.define(
-        "xsrf", default=os.environ.get('AQ_XSRF', 'True'),
+        "xsrf", default=os.environ.get('AQ_XSRF') or 'True',
         help="Protect against XSRF attacks (default: True)")
 
     tornado.options.define(
-        "dev", default=os.environ.get('DEV_MODE', 'True'),
+        "dev", default=os.environ.get('DEV_MODE') or 'True',
         help="Development mode (default: True)")
 
     tornado.options.define(
-        "force_https", default=os.environ.get('FORCE_HTTPS', 'True'),
+        "force_https", default=os.environ.get('FORCE_HTTPS') or 'True',
         help="Redirect to HTTPS when running on AWS (default: True)")
 
     tornado.options.define(
