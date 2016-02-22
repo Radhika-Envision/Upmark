@@ -27,6 +27,7 @@ log = logging.getLogger('app.handlers')
 # A string to break through caches. This changes each time the app is deployed.
 DEPLOY_ID = str(time.time())
 aq_version = None
+database_type = None
 
 
 def deploy_id():
@@ -388,7 +389,9 @@ class MainHandler(BaseHandler):
             # debugged but do need cache busting like favicons. Under dev mode
             # and deployment the URLs will change.
             dev_id_query="?v=static-%s" % DEPLOY_ID,
-            aq_version=aq_version)
+            aq_version=aq_version,
+            dev_mode=truthy(tornado.options.options.dev) and 'true' or 'false',
+            database_type=database_type)
 
 
 class AuthLoginHandler(MainHandler):

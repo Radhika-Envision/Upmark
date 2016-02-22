@@ -134,7 +134,15 @@ def connect_db():
         log.info("Upgrading database (if required)")
         command.upgrade(alembic_cfg, "head")
 
-    model.connect_db_ro(os.environ.get('DATABASE_URL'))
+    db_url = os.environ.get('DATABASE_URL')
+    model.connect_db_ro(db_url)
+
+    if 'rds.amazonws.com:' in db_url:
+        handlers.database_type = 'rds'
+    elif '@postgres' in db_url:
+        handlers.database_type = 'local'
+    else:
+        handlers.database_type = 'unknown'
 
 
 def default_settings():

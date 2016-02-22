@@ -863,9 +863,9 @@ angular.module('wsaa.aquamark',
 
 
 .controller('RootCtrl', ['$scope', 'hotkeys', '$cookies', 'User',
-        'Notifications', '$window', 'aqVersion',
+        'Notifications', '$window', 'aqVersion', 'releaseMode',
         function($scope, hotkeys, $cookies, User, Notifications, $window,
-            aqVersion) {
+            aqVersion, releaseMode) {
     $scope.aqVersion = aqVersion;
     $scope.hotkeyHelp = hotkeys.toggleCheatSheet;
 
@@ -892,6 +892,8 @@ angular.module('wsaa.aquamark',
             }
         );
     };
+
+    $scope.trainingMode = releaseMode.databaseType == 'local';
 }])
 .controller('HeaderCtrl', ['$scope', 'confAuthz', 'Current',
         function($scope, confAuthz, Current) {

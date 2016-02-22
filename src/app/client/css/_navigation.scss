@@ -67,3 +67,16 @@ nav.navbar.navbar-static-top {
 g#logo-text-subtitle {
     display: none;
 }
+
+.training-mode {
+    position: fixed;
+    top: 5px;
+    left: 190px;
+    right: 0;
+    z-index: 10000;
+    font-size: 40px;
+    opacity: 0.5;
+    color: #FF784D;
+    text-shadow: 1px 1px 0 white;
+    pointer-events: none;
+}
