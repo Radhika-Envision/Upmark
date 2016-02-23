@@ -16,7 +16,7 @@ import tornado.web
 import sqlalchemy
 from sqlalchemy.sql import func
 
-import model 
+import model
 
 from utils import denormalise, falsy, truthy
 from tornado.escape import json_decode, json_encode, url_escape, url_unescape
@@ -765,4 +765,3 @@ class Paginate:
         query = query.limit(page_size)
         query = query.offset(page * page_size)
         return query
-
