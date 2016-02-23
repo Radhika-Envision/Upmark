@@ -137,7 +137,7 @@ def connect_db():
     db_url = os.environ.get('DATABASE_URL')
     model.connect_db_ro(db_url)
 
-    if 'rds.amazonws.com:' in db_url:
+    if 'rds.amazonaws.com:' in db_url:
         handlers.database_type = 'rds'
     elif '@postgres' in db_url:
         handlers.database_type = 'local'
