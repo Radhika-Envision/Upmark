@@ -894,6 +894,11 @@ angular.module('wsaa.aquamark',
     };
 
     $scope.trainingMode = releaseMode.databaseType == 'local';
+    $scope.trainingDocs = "In training mode, data is stored in a separate"
+        + " database. You can make changes without affecting the"
+        + " main database. Sometimes, data is copied from the"
+        + " main database - when that happens, changes you have"
+        + " made here will be overwritten.";
 }])
 .controller('HeaderCtrl', ['$scope', 'confAuthz', 'Current',
         function($scope, confAuthz, Current) {

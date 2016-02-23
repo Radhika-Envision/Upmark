@@ -31,6 +31,12 @@
                         title="Asset Management Customer Value">
                     {% include images/logo.min.svg %}
                 </a>
+                <span class="training-mode" ng-if="trainingMode"
+                      title="Training mode"
+                      tooltip="{{!trainingDocs}}"
+                      tooltip-placement="bottom">
+                    <i class="fa fa-graduation-cap"></i>
+                </span>
             </div>
             <div class="collapse navbar-collapse">
                 <ul class="nav navbar-nav navbar-right">
@@ -153,10 +159,6 @@
     <span></span>
     <span></span>
     <span></span>
-</div>
-
-<div class="training-mode" ng-show="trainingMode">
-    <i class="fa fa-graduation-cap"></i>
 </div>
 
 <script>

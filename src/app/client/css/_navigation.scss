@@ -69,14 +69,7 @@ g#logo-text-subtitle {
 }
 
 .training-mode {
-    position: fixed;
-    top: 5px;
-    left: 190px;
-    right: 0;
-    z-index: 10000;
     font-size: 40px;
-    opacity: 0.5;
-    color: #FF784D;
-    text-shadow: 1px 1px 0 white;
-    pointer-events: none;
+    color: mix($aq-bar2, white, 50%);
+    line-height: 60px;
 }
