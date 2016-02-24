@@ -291,7 +291,17 @@ def start_web_server():
         port = tornado.options.options.port
     max_buffer_size = 10 * 1024**2 # 10MB
 
-    if os.path.isdir("/etc/letsencrypt/live/aquamark"):
+    config_dir = os.path.join(get_package_dir(), '..', 'config')
+    if os.path.isfile(os.path.join(config_dir, "fullchain.pem")):
+        # Some certificate. `fullchain.pem` should contain all the certificates
+        # concatenated together:
+        # https://docs.python.org/3.4/library/ssl.html#certificate-chains
+        ssl_opts = {
+            "certfile": os.path.join(config_dir, "fullchain.pem"),
+            "keyfile": os.path.join(config_dir, "privkey.pem")
+        }
+    elif os.path.isdir("/etc/letsencrypt/live/aquamark"):
+        # Certificate provided by Let's Encrypt
         ssl_opts = {
             "certfile": "/etc/letsencrypt/live/aquamark/fullchain.pem",
             "keyfile": "/etc/letsencrypt/live/aquamark/privkey.pem"
