@@ -2,9 +2,8 @@ web:
   build: ./src/app/
   ports:
    - "8000:8000"
-  environment:
-    DEV_MODE: "${DEV_MODE}"
-    AQ_XSRF: 'True'
+  env_file:
+   - ../aq_config/aq.conf
   volumes:
    - ./src/app:/usr/share/aquamark/app
   links:
@@ -14,10 +13,8 @@ webssl:
   build: ./src/app/
   ports:
    - "443:8000"
-  environment:
-    DEV_MODE: "${DEV_MODE}"
-    AQ_XSRF: 'True'
-    ANALYTICS_ID: "${ANALYTICS_ID}"
+  env_file:
+   - ../aq_config/aq.conf
   volumes:
    - ./src/app:/usr/share/aquamark/app
    - ../aq_config:/usr/share/aquamark/app/config
@@ -29,10 +26,8 @@ webletsencrypt:
   build: ./src/app/
   ports:
    - "443:8000"
-  environment:
-    DEV_MODE: "${DEV_MODE}"
-    AQ_XSRF: 'True'
-    ANALYTICS_ID: "${ANALYTICS_ID}"
+  env_file:
+   - ../aq_config/aq.conf
   volumes:
    - ./src/app:/usr/share/aquamark/app
    - /etc/letsencrypt/live/aquamark.vpac-innovations.com.au:/etc/letsencrypt/live/aquamark
