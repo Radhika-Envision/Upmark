@@ -20,6 +20,21 @@ webssl:
     ANALYTICS_ID: "${ANALYTICS_ID}"
   volumes:
    - ./src/app:/usr/share/aquamark/app
+   - ../aq_config:/usr/share/aquamark/app/config
+  links:
+   - postgres
+   - redirect
+
+webletsencrypt:
+  build: ./src/app/
+  ports:
+   - "443:8000"
+  environment:
+    DEV_MODE: "${DEV_MODE}"
+    AQ_XSRF: 'True'
+    ANALYTICS_ID: "${ANALYTICS_ID}"
+  volumes:
+   - ./src/app:/usr/share/aquamark/app
    - /etc/letsencrypt/live/aquamark.vpac-innovations.com.au:/etc/letsencrypt/live/aquamark
    - /etc/letsencrypt/archive/aquamark.vpac-innovations.com.au:/etc/letsencrypt/archive/aquamark.vpac-innovations.com.au
   links:
