@@ -894,10 +894,10 @@ angular.module('wsaa.aquamark',
     };
 
     $scope.trainingMode = releaseMode.databaseType == 'local';
-    $scope.trainingDocs = "In training mode, data is stored in a separate"
-        + " database. You can make changes without affecting the"
-        + " main database. Sometimes, data is copied from the"
-        + " main database - when that happens, changes you have"
+    $scope.trainingDocs = "This is the AMCV training site."
+        + " You can make changes without affecting the"
+        + " main site. Sometimes, information is copied from the"
+        + " main site to this one. When that happens, changes you have"
         + " made here will be overwritten.";
 }])
 .controller('HeaderCtrl', ['$scope', 'confAuthz', 'Current',
