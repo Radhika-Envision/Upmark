@@ -81,25 +81,19 @@ def send_email(config, user, activities, messages):
     msg = MIMEText(
         template.format(
             activities=content, messages=message_str, user_id=user.id),
-        'text/plain')
-
+        'plain')
     msg['Subject'] = config['MESSAGE_SUBJECT']
-    msg['From'] = config['MESSAGE_SEND_FROM']
-    msg['To'] = user.email
 
-    send(config, msg)
+    send(config, msg, user.email)
 
 
 def send_error(config, errors):
 
     template = config['ERROR_CONTENT']
-    msg = MIMEText(template.format(message=errors), 'text/plain')
-
+    msg = MIMEText(template.format(message=errors), 'plain')
     msg['Subject'] = config['ERROR_SUBJECT']
-    msg['From'] = config['MESSAGE_SEND_FROM']
-    msg['To'] = config['ERROR_SEND_TO']
 
-    send(config, msg)
+    send(config, msg, config['ERROR_SEND_TO'])
 
 
 def get_activities(session, user, until_date, messages, limit, date_template):

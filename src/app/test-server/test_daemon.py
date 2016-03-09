@@ -88,20 +88,19 @@ class DaemonTest(base.AqHttpTestBase):
 
         config = utils.get_config("notification.yaml")
         messages = None
-        def send(config, msg):
-            messages.append(msg)
+        def send(config, msg, to):
+            messages[to] = msg
 
-        messages = []
+        messages = {}
         with mock.patch('notifications.send', send):
             n_sent = notifications.process_once(config)
             self.assertEqual(n_sent, 6)
             self.assertEqual(len(messages), 6)
 
         author_checked = False
-        for m in messages:
-            self.assertIn("\nTo: %s\n" % m['to'], str(m))
+        for to, m in messages.items():
             self.assertIn("\nAdmin said:\nFoo\n", str(m))
-            if m['to'] == 'author':
+            if to == 'author':
                 self.assertIn(
                     '\nFunction 1\nAuthor deleted this survey category\n',
                     str(m))
@@ -119,7 +118,7 @@ class DaemonTest(base.AqHttpTestBase):
 
         # Run again, and make sure no nofications send (because not enough time
         # has elapsed since the last email)
-        messages = []
+        messages = {}
         with mock.patch('notifications.send', send):
             n_sent = notifications.process_once(config)
             self.assertEqual(n_sent, 0)
@@ -133,7 +132,7 @@ class DaemonTest(base.AqHttpTestBase):
 
         # Run again, pretending to be in the future, and check that another
         # notification is sent
-        messages = []
+        messages = {}
         with mock.patch('notifications.send', send), \
                 mock.patch('notifications.func.now', next_week):
             n_sent = notifications.process_once(config)
@@ -141,9 +140,8 @@ class DaemonTest(base.AqHttpTestBase):
             self.assertEqual(len(messages), 1)
 
         author_checked = False
-        for m in messages:
-            self.assertIn("\nTo: %s\n" % m['to'], str(m))
-            if m['to'] == 'author':
+        for to, m in messages.items():
+            if to == 'author':
                 self.assertIn(
                     '\nFunction 2\nAuthor deleted this survey category\n',
                     str(m))
@@ -153,7 +151,7 @@ class DaemonTest(base.AqHttpTestBase):
 
     def test_timeline_failure(self):
         messages = None
-        def send(config, msg):
+        def send(config, msg, to):
             messages.append(msg)
 
         messages = []
@@ -280,7 +278,7 @@ class DaemonTest(base.AqHttpTestBase):
         # Run recalculation script
         config = utils.get_config("recalculate.yaml")
         messages = None
-        def send(config, msg):
+        def send(config, msg, to):
             messages.append(msg)
 
         messages = []

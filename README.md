@@ -236,6 +236,9 @@ nano ~/aq_config/recalculate.yaml
 echo DATABASE_URL="<DATABASE_URL>" > ~/aq_config/aq.conf
 ```
 
+Important: If you are using Amazon SES, don't use port 25 for SMTP, because it's
+throttled. [Use 587 instead][587].
+
 Make sure the image has been built, and launch the script in a container:
 
 ```bash
@@ -251,6 +254,7 @@ sudo docker run -d --name recalc \
 [db]: database/README.md
 [rd]: src/app/server/recalculate.py
 [recalc]: src/app/config/recalculate.yaml
+[587]: http://docs.aws.amazon.com/ses/latest/DeveloperGuide/smtp-connect.html
 
 
 ### Notification daemon
@@ -271,6 +275,9 @@ cp src/app/config/notification.yaml ~/aq_config/
 nano ~/aq_config/notification.yaml
 echo DATABASE_URL="<DATABASE_URL>" > ~/aq_config/aq.conf
 ```
+
+Important: If you are using Amazon SES, don't use port 25 for SMTP, because it's
+throttled. [Use 587 instead][587].
 
 Now make sure the image has been built, and launch the script in a container:
 

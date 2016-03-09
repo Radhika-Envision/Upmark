@@ -3,6 +3,7 @@ MINIMUM_UPTIME_MS: 60000
 
 SMTP_SERVER: <YOUR SMTP SERVER>
 SMTP_PORT: 587
+SMTP_USE_TLS: True
 SMTP_USERNAME: <SMTP SERVER USERNAME>
 SMTP_PASSWORD: <SMTP SERVER PASSWORD>
 
@@ -13,14 +14,14 @@ N_LOG_LINES: 100
 MESSAGE_SUBJECT_CRASHED: AMCV has CRASHED
 MESSAGE_CONTENT_CRASHED: |
     The AMCV server ${server} has CRASHED.
-    
+
     Here are the last ${n_log_lines} lines from the logs:
     ${logs}
 
 MESSAGE_SUBJECT_RECOVERED: AMCV is RUNNING
 MESSAGE_CONTENT_RECOVERED: |
     The AMCV server ${server} has recovered.
-    
+
     Here are the last ${n_log_lines} lines from the logs:
     ${logs}
 

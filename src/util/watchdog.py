@@ -154,11 +154,12 @@ def send_email(message_type, logs):
 
     template = Template(config['MESSAGE_CONTENT_%s' % message_type.upper()])
     n_log_lines = config['N_LOG_LINES']
-    msg = MIMEText(template.substitute(server=socket.gethostname(), logs=logs, n_log_lines=n_log_lines), 'text/plain')
+    msg = MIMEText(
+        template.substitute(
+            server=socket.gethostname(), logs=logs, n_log_lines=n_log_lines),
+        'plain')
 
     msg['Subject'] = config['MESSAGE_SUBJECT_%s' % message_type.upper()]
-    msg['From'] = config['MESSAGE_SEND_FROM']
-    msg['To'] = str(config['MESSAGE_SEND_TO'])
 
     _send(msg)
 
@@ -167,6 +168,8 @@ def _send(message):
     log.info("Communicating with SMTP server")
     config = get_config()
     with smtplib.SMTP(config['SMTP_SERVER']) as smtp:
+        if config['SMTP_USE_TLS']:
+            smtp.starttls()
         smtp.login(config['SMTP_USERNAME'], config['SMTP_PASSWORD'])
         smtp.sendmail(config['MESSAGE_SEND_FROM'], config['MESSAGE_SEND_TO'], message.as_string())
 

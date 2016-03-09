@@ -22,7 +22,7 @@ STARTUP_DELAY = 60
 def mail_content(errors):
     content = ''
     for err in errors:
-        content += "Submission: %s\n" % str(err['submission_id']) 
+        content += "Submission: %s\n" % str(err['submission_id'])
         content += "Title: %s\n" % err['submission_title']
         content += "Message: %s\n\n" % err['error']
     return content
@@ -32,12 +32,9 @@ def send_email(config, errors):
 
     template = config['ERROR_CONTENT']
     msg = MIMEText(template.format(message=errors), 'text/plain')
-
     msg['Subject'] = config['ERROR_SUBJECT']
-    msg['From'] = config['MESSAGE_SEND_FROM']
-    msg['To'] = config['ERROR_SEND_TO']
 
-    send(config, msg)
+    send(config, msg, config['ERROR_SEND_TO'])
 
 
 def process_once(config):
