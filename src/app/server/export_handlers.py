@@ -262,7 +262,7 @@ class Exporter():
                                            for item in response_nodes]
 
             self.write_qnode_to_worksheet(session, workbook, worksheet,
-                                          qnode_list, response_qnode_list, 
+                                          qnode_list, response_qnode_list,
                                           measure_list, response_list,
                                           'None', prefix, 0, user_role)
 
@@ -320,13 +320,20 @@ class Exporter():
             numbering = prefix + str(qnode["seq"] + 1) + ". "
             worksheet.merge_range("A{0}:B{0}".format(self.line + 1),
                                   numbering + qnode["title"], format)
-            # this column should not be displayed for user 'clerk'
-            if user_role == 'clerk':
-                worksheet.write(self.line, 2, '', format)
-                worksheet.write(self.line, 3, '', format_percent)
+
+            # Hide some data from certain users
+            if user_role in {'clerk', 'org_admin'}:
+                weight = None
             else:
-                worksheet.write(self.line, 2, qnode["total_weight"], format)
-                worksheet.write(self.line, 3, percent, format_percent)
+                weight = qnode['total_weight']
+
+            if user_role == 'clerk':
+                score = None
+            else:
+                score = percent
+
+            worksheet.write(self.line, 2, weight, format)
+            worksheet.write(self.line, 3, score, format_percent)
 
             self.line = self.line + 1
             worksheet.write(self.line, 0, '', format2)
@@ -335,12 +342,12 @@ class Exporter():
             worksheet.write(self.line, 3, '', format2)
             self.line = self.line + 1
             self.write_qnode_to_worksheet(session, workbook, worksheet,
-                                          qnode_list, response_qnode_list, 
+                                          qnode_list, response_qnode_list,
                                           measure_list, response_list,
                                           qnode["id"], numbering, depth + 1,
                                           user_role)
             self.write_measure_to_worksheet(session, workbook, worksheet,
-                                            measure_list, response_list, 
+                                            measure_list, response_list,
                                             qnode["id"], numbering, user_role)
 
     def write_measure_to_worksheet(self, session, workbook, worksheet,
@@ -421,28 +428,39 @@ class Exporter():
             else:
                 response = None
 
-            percentage = None
-            comment = None
-            not_relevant = None
-            if response and response["weight"] != 0:
-                percentage = response["score"] / response["weight"]
+            if response:
+                if qnode_measure["weight"] != 0:
+                    percentage = response["score"] / response["weight"]
+                else:
+                    percentage = None
                 comment = response["comment"]
                 if response["not_relevant"]:
                     not_relevant = "Yes"
                 else:
                     not_relevant = "No"
+            else:
+                percentage = None
+                comment = None
+                not_relevant = None
 
             numbering = prefix + str(qnode_measure["seq"] + 1) + ". "
             worksheet.write(self.line, 0, '', format_header)
             worksheet.write(
                 self.line, 1, numbering + qnode_measure["title"], format_bold_header)
-            # this column should not be displayed for user 'clerk'
-            if user_role == 'clerk':
-                worksheet.write(self.line, 2, '', format)
-                worksheet.write(self.line, 3, '', format_percent)
+
+            # Hide some columns from certain users
+            if user_role in {'clerk', 'org_admin'}:
+                weight = None
             else:
-                worksheet.write(self.line, 2, qnode_measure["weight"], format)
-                worksheet.write(self.line, 3, percentage, format_percent)
+                weight = qnode_measure["weight"]
+
+            if user_role == 'clerk':
+                score = None
+            else:
+                score = percentage
+
+            worksheet.write(self.line, 2, weight, format)
+            worksheet.write(self.line, 3, score, format_percent)
 
             self.line = self.line + 1
             worksheet.write(self.line, 0, "intent", format_header)
@@ -559,7 +577,7 @@ class Exporter():
             else:
                 response_parts = []
 
-            worksheet.set_column(level_length + 1, 
+            worksheet.set_column(level_length + 1,
                 level_length + max_parts + 8, 15)
             worksheet.set_column(level_length + max_parts + 9,
                 level_length + max_parts + 9, 100)
@@ -624,7 +642,7 @@ class Exporter():
                             score = 0
                     comment = response.comment
 
-                if user_role == 'clerk':
+                if user_role in {'clerk', 'org_admin'}:
                     weight = None
                 else:
                     weight = measure.weight
@@ -646,7 +664,7 @@ class Exporter():
 
         workbook.close()
 
-    def write_approval(self, worksheet, line, column_num, response, user, 
+    def write_approval(self, worksheet, line, column_num, response, user,
                        format, format_date):
 
         pad = None
