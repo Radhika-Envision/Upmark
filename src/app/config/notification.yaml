@@ -22,7 +22,7 @@ MESSAGE_CONTENT: |
     {messages}
 
     To opt out of these notifications, visit your profile page at:
-    https://aquamark.wsaa.asn.au/#/user/{user_id}
+    https://app.amcv.wsaa.asn.au/#/user/{user_id}
 
 MESSAGE_BROADCAST: |
     {user_name} said:
