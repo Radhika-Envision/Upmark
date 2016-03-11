@@ -19,7 +19,13 @@ RUN DEBIAN_FRONTEND=noninteractive \
     npm install -g bower && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install -vU setuptools
+# An up-to-date version of setuptools is needed in order to play nicely with
+# newer packages.
+# But setuptools 20.2.2 has a problem with parsing requirements with spaces in
+# them, e.g. for the dependency boto3->futures.
+# https://bitbucket.org/pypa/setuptools/issues/502/packaging-164-does-not-allow-whitepace
+# Remove the version qualifier once this issue is fixed.
+RUN pip3 install -vU 'setuptools<20.2.2'
 
 # Install dependencies before copying full source directory. This speeds up
 # Docker rebuilds.
