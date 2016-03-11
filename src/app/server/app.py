@@ -187,7 +187,7 @@ def default_settings():
         if setting is None:
             setting = model.SystemConfig(name='adhoc_timeout')
             setting.human_name = "Custom Query Time Limit"
-            setting.description = "The maxium number of seconds a custom "\
+            setting.description = "The maximum number of seconds a custom "\
                 "query is allowed to run for (default 1.5)."
             setting.user_defined = True
             setting.value = 1.5
@@ -197,7 +197,7 @@ def default_settings():
         if setting is None:
             setting = model.SystemConfig(name='adhoc_max_limit')
             setting.human_name = "Custom Query Row Limit"
-            setting.description = "The maxium number of rows a query can "\
+            setting.description = "The maximum number of rows a query can "\
                 "return (default 2500)."
             setting.user_defined = True
             setting.value = 2500
