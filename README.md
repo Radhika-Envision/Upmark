@@ -46,15 +46,27 @@ organisation.
 
 ## Deployment on AWS
 
-Create an instance (e.g. t1.micro). Choose *ubuntu-trusty-14.04* as the base
+First, create an RDS instance. Choose Postgres as the engine and an appropriate
+instance type. You might like to start with a *db.t2.medium* instance type with
+100GB of SSD. Set the DB Instance Identifier to something meaningful, like
+"aquamark", and don't allow public access.
+Make sure automated backups are enabled and stored for 7 days (the maximum).
+
+After creation, you will probably need to configure the RDS instance's security
+group to allow connections from hosts in the subnet you're using for the web
+servers.
+
+Then create an instance that will be used to build the application, using a
+*t2.small* instance type. Choose *ubuntu-trusty-14.04* as the base
 image (AMI). Then log in to the new machine, clone the repository and build the
 Docker image.
 
 1. Install dependencies:
 
     ```bash
-    sudo apt-get install git make python3-pip
-    wget -qO- https://get.docker.com/ | sudo sh
+    sudo locale-gen en_AU en_AU.UTF-8
+    sudo apt-get install git make curl python3-pip
+    curl -fsSL https://get.docker.com/ | sh
     ```
 
     `python3-pip` is only needed for the watchdog script.
@@ -65,7 +77,13 @@ Docker image.
     ssh-keygen -t rsa -b 4096 -C "aws+your@email.com"
     ```
 
-    Then [add the key][ak] to the GitHub project.
+   It doesn't need a password, because:
+
+      1. It's only going to be used to get the source of the application.
+      1. It won't have write access to the repository.
+      1. The source code will be cloned to the instance anyway.
+
+   Then [add the key][ak] to the GitHub project as a read-only deployment key.
 
 1. Build the Docker image:
 
