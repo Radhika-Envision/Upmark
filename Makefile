@@ -12,5 +12,5 @@ all: build
 build:
 	echo $(VERSION) > src/app/version.txt
 	$(DOCKER_BIN) build -t $(DOCKER_TAG) src/app
-	$(DOCKER_BIN) tag -f $(DOCKER_TAG) $(DOCKER_TAG):latest
-	$(DOCKER_BIN) tag -f $(DOCKER_TAG) $(DOCKER_TAG):$(VERSION)
+	$(DOCKER_BIN) tag $(DOCKER_TAG) $(DOCKER_TAG):latest
+	$(DOCKER_BIN) tag $(DOCKER_TAG) $(DOCKER_TAG):$(VERSION)
