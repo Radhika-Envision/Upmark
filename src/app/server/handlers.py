@@ -219,14 +219,15 @@ class BaseHandler(tornado.web.RequestHandler):
         with model.session_scope() as session:
             try:
                 user = session.query(model.AppUser).get(uid)
+                if user is None:
+                    return None
                 if user.deleted:
                     superuser = self.get_secure_cookie('superuser')
                     if superuser is None:
                         return None
             except sqlalchemy.exc.StatementError:
                 return None
-            if user is not None:
-                session.expunge(user)
+            session.expunge(user)
             return user
 
     def has_privillege(self, *roles):
