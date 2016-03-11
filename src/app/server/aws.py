@@ -37,10 +37,12 @@ def initialise_session():
         aws_secret_access_key=aws_secret_access_key,
         region_name=region_name)
 
+    bucket_name = os.environ.get('AWS_BUCKET', '')
+
     # Try to connect just to check that the credentials are OK. If not, this
     # will throw an exception during initialisation and the web server should
     # fail to start.
-    session.resource('s3').Bucket('aquamark').load()
+    session.resource('s3').Bucket(bucket_name).load()
 
 
 def monkeypatch_method(cls):

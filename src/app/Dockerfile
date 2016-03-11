@@ -52,6 +52,7 @@ ENV PORT=8000 \
     DATABASE_URL=postgresql://postgres:postgres@postgres/postgres \
     ANALYTICS_ID= \
     AWS_REGION_NAME=ap-southeast-2 \
+    AWS_BUCKET=aquamark \
     AWS_ACCESS_KEY_ID= \
     AWS_SECRET_ACCESS_KEY= \
     PYTHONPATH=.:/usr/share/aquamark/app/server/

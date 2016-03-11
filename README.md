@@ -95,32 +95,32 @@ Docker image.
     make
     ```
 
+1. Copy the config files to a new directory, and edit them to suit your needs:
+
+    ```
+    cp -a src/app/config ~/aq_conf
+    nano ~/aq_conf/aq.conf
+    ```
+
+    - `ANALYTICS_ID` is your Google Analytics ID (if you have one).
+    - `DATABASE_URL` should be updated to use the RDS endpoint. It should be
+      something like `postgresql://postgres:PASSWORD@postgres.foo.ap-southeast-2.rds.amazonaws.com:5432/postgres`
+    - `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are the credentials of
+      the AWS IAM user who has access to the aquamark bucket.
+
 [ck]: https://help.github.com/articles/generating-ssh-keys/
 [ak]: https://developer.github.com/guides/managing-deploy-keys/#deploy-keys
 
-Create a file `/home/ubuntu/aq.conf` to contain environment variables so they
-can be easily reused for future deployments. The file should contain the
-following data:
-
-```bash
-ANALYTICS_ID=<your analytics ID> \
-DATABASE_URL=<as specified by AWS RDS> \
-AWS_ACCESS_KEY_ID=<KEY ID> \
-AWS_SECRET_ACCESS_KEY=<ACCESS KEY> \
-```
-
-Now start the container with restart option.
+Now start the container. Tell it to restart if it goes down, so when we spin up
+a new instance from the AMI it will start automatically.
 
 ```bash
 sudo docker run -d --name aquamark \
     --restart=always \
-    --env-file=/home/ubuntu/aq.conf \
+    --env-file=/home/ubuntu/aq_conf/aq.conf \
     -p 80:8000 \
     vpac/aquamark
 ```
-
-The database URL will be something like
-`postgresql://postgres:PASSWORD@postgres.foo.ap-southeast-2.rds.amazonaws.com:5432/postgres`.
 
 Check that it's running:
 
