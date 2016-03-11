@@ -595,32 +595,34 @@ class Exporter():
                 worksheet.write(
                     line, level_length, "%d. %s" % (seq, measure.title), format)
 
+                importance = None
+                urgency = None
                 if assessment:
                     response = measure.get_response(assessment)
                     url = base_url + "/#/measure/{}?assessment={}".format(
                         measure.id, assessment.id)
+
+                    # Walk up the tree to get the importance and urgency from the
+                    # parent rnodes
+                    parent = qnode
+                    while parent and (importance is None or urgency is None):
+                        rnode = parent.get_rnode(assessment)
+                        if rnode is not None:
+                            if importance is None:
+                                importance = rnode.importance
+                            if urgency is None:
+                                urgency = rnode.urgency
+                        parent = parent.parent
+
                 else:
                     response = None
                     url = base_url + '/#/measure/{}?survey={}&parent={}'.format(
                         measure.id, survey_id, qnode.id)
 
-                # Walk up the tree to get the importance and urgency from the
-                # parent rnodes
-                importance = None
-                urgency = None
-                parent = qnode
-                while parent and (importance is None or urgency is None):
-                    rnode = parent.get_rnode(assessment)
-                    if rnode is not None:
-                        if importance is None:
-                            importance = rnode.importance
-                        if urgency is None:
-                            urgency = rnode.urgency
-                    parent = parent.parent
                 worksheet.write(
-                    line, level_length + max_parts + 1, importance, format_int)
+                line, level_length + max_parts + 1, importance, format_int)
                 worksheet.write(
-                    line, level_length + max_parts + 2, urgency, format_int)
+                line, level_length + max_parts + 2, urgency, format_int)
 
                 score = None
                 comment = None
