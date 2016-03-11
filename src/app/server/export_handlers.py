@@ -522,12 +522,11 @@ class Exporter():
         format_no_wrap = workbook.add_format()
         format_comment = workbook.add_format()
         format_comment.set_text_wrap()
-        format_percent = workbook.add_format()
-        format_percent.set_num_format(10)
         format_no_wrap = workbook.add_format()
-        format_comment = workbook.add_format()
         format_percent = workbook.add_format()
         format_percent.set_num_format(10)
+        format_int = workbook.add_format()
+        format_int.set_num_format(1)
         format_date = workbook.add_format({'num_format': 'dd/mmm/yy'})
         url_format = workbook.add_format({
             'font_color': 'blue',
@@ -578,9 +577,9 @@ class Exporter():
                 response_parts = []
 
             worksheet.set_column(level_length + 1,
-                level_length + max_parts + 8, 15)
-            worksheet.set_column(level_length + max_parts + 9,
-                level_length + max_parts + 9, 100)
+                level_length + max_parts + 10, 15)
+            worksheet.set_column(level_length + max_parts + 11,
+                level_length + max_parts + 11, 100)
 
             # Header from heirarchy levels
             self.write_response_header(
@@ -605,6 +604,24 @@ class Exporter():
                     url = base_url + '/#/measure/{}?survey={}&parent={}'.format(
                         measure.id, survey_id, qnode.id)
 
+                # Walk up the tree to get the importance and urgency from the
+                # parent rnodes
+                importance = None
+                urgency = None
+                parent = qnode
+                while parent and (importance is None or urgency is None):
+                    rnode = parent.get_rnode(assessment)
+                    if rnode is not None:
+                        if importance is None:
+                            importance = rnode.importance
+                        if urgency is None:
+                            urgency = rnode.urgency
+                    parent = parent.parent
+                worksheet.write(
+                    line, level_length + max_parts + 1, importance, format_int)
+                worksheet.write(
+                    line, level_length + max_parts + 2, urgency, format_int)
+
                 score = None
                 comment = None
                 if response:
@@ -616,7 +633,7 @@ class Exporter():
 
                     self.write_approval(
                         worksheet, line,
-                        level_length + max_parts, response,
+                        level_length + max_parts + 2, response,
                         response.user, format, format_date)
                     if response.approval in export_approval_status:
                         export_approval_status.remove(response.approval)
@@ -632,7 +649,7 @@ class Exporter():
                                 first()
 
                             self.write_approval(worksheet, line,
-                                level_length + max_parts, res,
+                                level_length + max_parts + 2, res,
                                 user, format, format_date)
 
                     if user_role != 'clerk':
@@ -648,17 +665,17 @@ class Exporter():
                     weight = measure.weight
 
                 worksheet.write(
-                        line, level_length + max_parts + 7,
+                        line, level_length + max_parts + 9,
                         score, format_percent)
                 worksheet.write(
-                        line, level_length + max_parts + 8,
+                        line, level_length + max_parts + 10,
                         weight, format_no_wrap)
 
                 worksheet.write(
-                        line, level_length + max_parts + 9,
+                        line, level_length + max_parts + 11,
                         comment, format_comment)
 
-                worksheet.write_url(line, level_length + max_parts + 10,
+                worksheet.write_url(line, level_length + max_parts + 12,
                         url, url_format, "Link")
                 line = line + 1
 
@@ -719,17 +736,19 @@ class Exporter():
         for index in range(len(response_parts)):
             sheet.write(0, len(levels) + index + 1, response_parts[index],
                 format)
-        sheet.write(0, len(levels) + max_response + 1, "Final Report By", format)
-        sheet.write(0, len(levels) + max_response + 2, "Final Report Date", format)
-        sheet.write(0, len(levels) + max_response + 3, "Review By", format)
-        sheet.write(0, len(levels) + max_response + 4, "Reviewed Date", format)
-        sheet.write(0, len(levels) + max_response + 5, "Approved By", format)
-        sheet.write(0, len(levels) + max_response + 6, "Approved Date", format)
+        sheet.write(0, len(levels) + max_response + 1, "Importance", format)
+        sheet.write(0, len(levels) + max_response + 2, "Urgency", format)
+        sheet.write(0, len(levels) + max_response + 3, "Final Report By", format)
+        sheet.write(0, len(levels) + max_response + 4, "Final Report Date", format)
+        sheet.write(0, len(levels) + max_response + 5, "Review By", format)
+        sheet.write(0, len(levels) + max_response + 6, "Reviewed Date", format)
+        sheet.write(0, len(levels) + max_response + 7, "Approved By", format)
+        sheet.write(0, len(levels) + max_response + 8, "Approved Date", format)
 
-        sheet.write(0, len(levels) + max_response + 7, "Score", format)
-        sheet.write(0, len(levels) + max_response + 8, "Weight", format)
-        sheet.write(0, len(levels) + max_response + 9, "Comment", format)
-        sheet.write(0, len(levels) + max_response + 10, "URL", format)
+        sheet.write(0, len(levels) + max_response + 9, "Score", format)
+        sheet.write(0, len(levels) + max_response + 10, "Weight", format)
+        sheet.write(0, len(levels) + max_response + 11, "Comment", format)
+        sheet.write(0, len(levels) + max_response + 12, "URL", format)
 
     def write_qnode(self, sheet, qnode, line, format, col):
         if qnode.parent != None:
