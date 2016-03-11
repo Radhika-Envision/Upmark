@@ -1473,9 +1473,16 @@ def session_scope(version=False, readonly=False):
         session.close()
 
 
-def create_user_and_privilege():
-     with session_scope() as session:
+def create_analyst_user():
+    '''
+    For arbitary queries on the web, create a new user named 'analyst'
+    and give SELECT permission to all tables except the appuser.password
+    column.
+    '''
+
+    with session_scope() as session:
         password = base64.b32encode(os.urandom(30)).decode('ascii')
+        store_analyst_password(password, session)
         session.execute(
             "CREATE USER analyst WITH PASSWORD :pwd", {'pwd': password})
         session.execute(
@@ -1490,12 +1497,24 @@ def create_user_and_privilege():
                 session.execute(
                     "GRANT SELECT ON {} TO analyst".format(table))
 
+
+def reset_analyst_password():
+     with session_scope() as session:
+        password = base64.b32encode(os.urandom(30)).decode('ascii')
+        store_analyst_password(password, session)
+        session.execute(
+            "ALTER ROLE analyst WITH PASSWORD :pwd", {'pwd': password})
+
+
+def store_analyst_password(password, session):
+    pwd_conf = session.query(SystemConfig).get('analyst_password')
+    if pwd_conf is None:
         pwd_conf = SystemConfig(name='analyst_password')
         pwd_conf.human_name = "Analyst password"
         pwd_conf.description = "Password for read-only database access"
-        pwd_conf.value = password
         pwd_conf.user_defined = False
         session.add(pwd_conf)
+    pwd_conf.value = password
 
 
 def connect_db(url):
@@ -1511,10 +1530,27 @@ def connect_db(url):
     return engine
 
 
+class MissingUser(ModelError):
+    pass
+
+
+class WrongPassword(ModelError):
+    pass
+
+
 def connect_db_ro(base_url):
     global ReadonlySession
 
     with session_scope() as session:
+        count = (session.execute(
+                '''SELECT count(*)
+                   FROM pg_catalog.pg_user u
+                   WHERE u.usename = :usename''',
+                {'usename': 'analyst'})
+            .scalar())
+        if count != 1:
+            raise MissingUser("analyst user does not exist")
+
         password = (session.query(SystemConfig.value)
                 .filter(SystemConfig.name == 'analyst_password')
                 .scalar())
@@ -1530,14 +1566,19 @@ def connect_db_ro(base_url):
     engine_readonly = create_engine(readonly_url)
     ReadonlySession = sessionmaker(bind=engine_readonly)
 
+    # Try to connect now so we know if the password is OK
+    with session_scope(readonly=True) as session:
+        try:
+            count = session.query(Survey).count()
+        except sqlalchemy.exc.OperationalError as e:
+            raise WrongPassword(e)
+
     return engine_readonly
 
 
 def initialise_schema(engine):
     Base.metadata.create_all(engine)
-
-    # For arbitary query on the web create new user named 'analyst'
-    # and give select permission to all the tables 
-    # except password column on appuser
-    create_user_and_privilege()
-
+    # Analyst user creation *must* be done here. Schema upgrades need to adjust
+    # permissions of the analyst user, therefore that user is part of the
+    # schema.
+    create_analyst_user()

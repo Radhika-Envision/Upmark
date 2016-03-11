@@ -125,7 +125,7 @@ def connect_db():
     engine = model.connect_db(os.environ.get('DATABASE_URL'))
     inspector = sqlalchemy.engine.reflection.Inspector.from_engine(engine)
 
-    # TODO: Don't use Alembic's command-line API! It also overrides stdout :(
+    # TODO: Don't use Alembic's command-line API!
     if 'alembic_version' not in inspector.get_table_names():
         log.info("Initialising database")
         model.initialise_schema(engine)
@@ -135,7 +135,20 @@ def connect_db():
         command.upgrade(alembic_cfg, "head")
 
     db_url = os.environ.get('DATABASE_URL')
-    model.connect_db_ro(db_url)
+    try:
+        model.connect_db_ro(db_url)
+    except model.MissingUser:
+        # This shouldn't happen because the user is created as part of the
+        # schema. However if the user is accidentally deleted - or if the
+        # database is restored from backup before the app is started for the
+        # first time - then this is the easiest way to get the user back.
+        model.create_analyst_user()
+        model.connect_db_ro(db_url)
+    except model.WrongPassword:
+        # If the database is restored from a backup, the analyst password might
+        # be wrong.
+        model.reset_analyst_password()
+        model.connect_db_ro(db_url)
 
     if 'rds.amazonaws.com:' in db_url:
         handlers.database_type = 'rds'

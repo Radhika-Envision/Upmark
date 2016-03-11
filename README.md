@@ -431,14 +431,27 @@ Test deployments can be started using `docker-compose`. SSL is supported using
     into your staging container (see AWS RDS console for the ENDPOINT value):
 
     ```bash
-    ENDPOINT=postgres.aiojafojipawefoij.ap-southeast-2.rds.amazonaws.com:5432
-    CONN=postgresql://postgres@$ENDPOINT/postgres
-    pg_dump --format custom --blobs --verbose ${CONN} --file aq_dump
+    PG_SRC_OPTS=( \
+        -U "postgres" \
+        -h "postgres.aiojafojipawefoij.ap-southeast-2.rds.amazonaws.com" \
+        -p 5432
+    )
+    PG_TGT_OPTS=( \
+        -U "postgres" \
+        -h "postgres_aq" \
+        -p 5432
+    )
+    DB_NAME="postgres"
 
-    # Be very careful not to run these commands against the primary database:
-    dropdb -h postgres_aq -U postgres postgres
-    createdb -h postgres_aq -U postgres postgres
-    pg_restore -h postgres_aq -U postgres -d postgres aq_dump
+    # Dump schema and data. Roles (globals) are not required - they will be
+    # created automatically if they are missing or out of date.
+    pg_dump -Fp -sc -v ${PG_SRC_OPTS[@]} ${DB_NAME} -f db-schema.sql
+    pg_dump -Fc -b -v ${PG_SRC_OPTS[@]} ${DB_NAME} -f full.dump
+
+    # Restore schema and data.
+    # Be very careful not to run these commands against the primary database.
+    psql ${PG_TGT_OPTS[@]} ${DB_NAME} -f db-schema.sql
+    pg_restore ${PG_TGT_OPTS[@]} -a -d ${DB_NAME} -Fc full.dump
 
     exit
     ```
