@@ -23,44 +23,28 @@ not much else running.
 
 These are the steps of create job on web instance.
 
-1. Create EC2 instance on AWS. A tiny instance should be big enough.
-1. Get a private SSH key from AWS, call it `aquamark.pem`.
-1. SSH to backup instance using the private key.
+1. Create EC2 instance on AWS. A nano instance should be big enough.
+1. Check out the Aquamark source, as described in [../README.md](../README.md).
+1. Build the backup Docker image:
 
     ```
-    ssh -i aquamark.pem ubuntu@<INSTANCE IP OR DNS>`
+    cd aquamark/database
+    sudo docker build vpac/aquamark-db
     ```
 
-1. Clone the git repository. You can get a [deployment key] for GitHub to avoid entering your password.
+1. Configure it with your IAM [access key][ac]:
 
     ```
-    git clone git@github.com:vpac-innovations/aquamark.git`
+    mkdir -p ~/aq_conf
+    cp aq_backup_config ~/aq_conf/
+    nano ~/aq_conf/aq_backup_config
     ```
 
-1. Install dependencies and cron job
+1. Run the Docker container:
 
     ```
-    ./aquamark/database/setup-backup.sh
+    sudo docker run -d vpac/aquamark-db -t aquamark-backup
     ```
-
-    The script will ask you for your AWS credentials and the region. For an
-    Australian Aquamark deployment, use the `ap-southeast-2` region. For
-    example:
-
-    ```
-    AWS Access Key ID []: <your key id>
-    AWS Secret Access Key []: <your key secret>
-    Default region name [None]: ap-southeast-2
-    Default output format [None]:
-    ```
-
-    Refer to [`../doc/aws_credentials.md`][ac] for details on setting up
-    permissions.
-    Details for creating an AWS API key are available in [AWS help]. If you
-    need to edit them, the files are `~/.aws/config` and
-    `~/.aws/credentials`.
-
-    The script will install the [cron job].
 
 
 [ac]: ../doc/aws_credentials.md
@@ -154,4 +138,3 @@ details.
 [Use SSL]: http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.SSL.html
 [cron job]: cron_backup
 [versioning functionality]: http://docs.aws.amazon.com/AmazonS3/latest/dev/Versioning.html
-
