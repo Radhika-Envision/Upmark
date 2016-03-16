@@ -44,6 +44,7 @@ These are the steps of create job on web instance.
 
     ```
     sudo docker run -d --name backup \
+        --restart=always \
         --env-file=${HOME}/aq_conf/aq_backup_config \
         vpac/aquamark-db
     ```
