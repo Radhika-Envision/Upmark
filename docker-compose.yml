@@ -3,7 +3,7 @@ web:
   ports:
    - "8000:8000"
   env_file:
-   - ../aq_config/aq.conf
+   - ../aq_conf/aq.conf
   volumes:
    - ./src/app:/usr/share/aquamark/app
   links:
@@ -14,10 +14,10 @@ webssl:
   ports:
    - "443:8000"
   env_file:
-   - ../aq_config/aq.conf
+   - ../aq_conf/aq.conf
   volumes:
    - ./src/app:/usr/share/aquamark/app
-   - ../aq_config:/usr/share/aquamark/app/config
+   - ../aq_conf:/usr/share/aquamark/app/config
   links:
    - postgres
    - redirect
@@ -27,7 +27,7 @@ webletsencrypt:
   ports:
    - "443:8000"
   env_file:
-   - ../aq_config/aq.conf
+   - ../aq_conf/aq.conf
   volumes:
    - ./src/app:/usr/share/aquamark/app
    - /etc/letsencrypt/live/aquamark.vpac-innovations.com.au:/etc/letsencrypt/live/aquamark

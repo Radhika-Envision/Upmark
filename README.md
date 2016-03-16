@@ -381,48 +381,68 @@ Test deployments can be started using `docker-compose`. SSL is supported using
     an AWS deployment (see above). Ensure port 80 and 443 are open in the
     security group (firewall rules). Also, install [`docker-compose`].
 
- 1. Configure a domain name e.g. `aquamark.vpac-innovations.com.au` to point to
-    the instance. Confirm this is done by running:
+  1. Configure a domain name e.g. `aquamark.vpac-innovations.com.au` to point to
+     the instance. Confirm this is done by running:
 
-    ```bash
-    nslookup aquamark.vpac-innovations.com.au
-    ```
+     ```bash
+     nslookup aquamark.vpac-innovations.com.au
+     ```
 
-    It should print the *public* IP address of your instance. If this is not the
-    case, then Let's Encrypt will not work.
+     It should print the *public* IP address of your instance.
 
- 1. Install the [Let's Encrypt client].
+ 1. *Optional:* use Let's Encrypt to get an SSL certificate:
 
-    ```bash
-    cd
-    git clone https://github.com/letsencrypt/letsencrypt
-    ```
+     1. Make sure the domain name is propery set up, or this will not work.
 
- 1. Run Let's Encrypt to get a certificate. First make sure port 80 and 443 are
-    available (stop other web servers), then run:
+     1. Install the [Let's Encrypt client].
 
-    ```bash
-    cd ~/letsencrypt
-    ./letsencrypt-auto certonly --standalone -d aquamark.vpac-innovations.com.au
-    ```
+        ```bash
+        cd
+        git clone https://github.com/letsencrypt/letsencrypt
+        ```
 
-    Enter your email address read the terms and conditions when promted. It
-    should say something like:
+     1. Run Let's Encrypt to get a certificate. First make sure port 80 and 443 are
+        available (stop other web servers), then run:
 
-    > Congratulations! Your certificate and chain have been saved at
-      `/etc/letsencrypt/live/aquamark.vpac-innovations.com.au/fullchain.pem`.
-      Your cert will expire on 2016-04-27. To obtain a new version of the
-      certificate in the future, simply run Let's Encrypt again.
+        ```bash
+        cd ~/letsencrypt
+        ./letsencrypt-auto certonly --standalone -d aquamark.vpac-innovations.com.au
+        ```
 
- 1. Start the Docker containers __\*__:
+        Enter your email address read the terms and conditions when promted. It
+        should say something like:
 
-    ```bash
-    cd ~/aquamark
-    sudo docker-compose build webssl
-    sudo ANALYTICS_ID=<ANALYTICS_ID> DEV_MODE=False docker-compose up -d webssl
-    ```
+        > Congratulations! Your certificate and chain have been saved at
+          `/etc/letsencrypt/live/aquamark.vpac-innovations.com.au/fullchain.pem`.
+          Your cert will expire on 2016-04-27. To obtain a new version of the
+          certificate in the future, simply run Let's Encrypt again.
 
-    The analytics ID is optional. Then check that the web services are running:
+     1. Start the Docker containers __\*__:
+
+        ```bash
+        cd ~/aquamark
+        sudo docker-compose build webletsencrypt
+        sudo docker-compose up -d webletsencrypt
+        ```
+
+ 1. *Optional:* provide an SSL certificate from some other source:
+
+    1. Put the private key and certificate *chain* in the config directory:
+
+        ```
+        ~/aq_conf/privkey.pem
+        ~/aq_conf/fullchain.pem
+        ```
+
+    1. Start the Docker containers __\*__:
+
+      ```bash
+      cd ~/aquamark
+      sudo docker-compose build webssl
+      sudo docker-compose up -d webssl
+      ```
+
+ 1. Check that the web services are running:
 
     ```bash
     curl -w "\n" -k https://localhost/ping
@@ -430,7 +450,7 @@ Test deployments can be started using `docker-compose`. SSL is supported using
 
     > `Web services are UP`
 
- 1. Copy a database (optional)
+ 1. *Optional:* copy a database
 
     Follow the instructions in the [database docs] to download a snapshot of the
     database, and then load them into the `aquamark_postgres_1` container. The
@@ -449,27 +469,14 @@ Test deployments can be started using `docker-compose`. SSL is supported using
     into your staging container (see AWS RDS console for the ENDPOINT value):
 
     ```bash
-    PG_SRC_OPTS=( \
-        -U "postgres" \
-        -h "postgres.aiojafojipawefoij.ap-southeast-2.rds.amazonaws.com" \
-        -p 5432
-    )
-    PG_TGT_OPTS=( \
-        -U "postgres" \
-        -h "postgres_aq" \
-        -p 5432
-    )
-    DB_NAME="postgres"
+    ENDPOINT=postgres.aiojafojipawefoij.ap-southeast-2.rds.amazonaws.com:5432
+    CONN=postgresql://postgres@$ENDPOINT/postgres
+    pg_dump --format custom --blobs --verbose ${CONN} --file aq_dump
 
-    # Dump schema and data. Roles (globals) are not required - they will be
-    # created automatically if they are missing or out of date.
-    pg_dump -Fp -sc -v ${PG_SRC_OPTS[@]} ${DB_NAME} -f db-schema.sql
-    pg_dump -Fc -b -v ${PG_SRC_OPTS[@]} ${DB_NAME} -f full.dump
-
-    # Restore schema and data.
-    # Be very careful not to run these commands against the primary database.
-    psql ${PG_TGT_OPTS[@]} ${DB_NAME} -f db-schema.sql
-    pg_restore ${PG_TGT_OPTS[@]} -a -d ${DB_NAME} -Fc full.dump
+    # Be very careful not to run these commands against the primary database:
+    dropdb -h postgres_aq -U postgres postgres
+    createdb -h postgres_aq -U postgres postgres
+    pg_restore -h postgres_aq -U postgres -d postgres aq_dump
 
     exit
     ```
