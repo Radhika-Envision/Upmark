@@ -8,6 +8,7 @@ web:
    - ./src/app:/usr/share/aquamark/app
   links:
    - postgres:postgres
+  restart: always
 
 webssl:
   build: ./src/app/
@@ -21,6 +22,7 @@ webssl:
   links:
    - postgres
    - redirect
+  restart: always
 
 webletsencrypt:
   build: ./src/app/
@@ -35,11 +37,13 @@ webletsencrypt:
   links:
    - postgres
    - redirect
+  restart: always
 
 redirect:
   image: geldim/https-redirect
   ports:
    - 80:80
+  restart: always
 
 test:
   build: ./src/app/
@@ -55,6 +59,7 @@ postgres:
   image: postgres:9
   environment:
     POSTGRES_PASSWORD: postgres
+  restart: always
 
 postgresTest:
   image: postgres:9

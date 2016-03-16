@@ -4,6 +4,7 @@ import base64
 from configparser import ConfigParser
 import logging.config
 import os
+import time
 import signal
 
 from alembic.config import Config
@@ -123,7 +124,12 @@ def connect_db():
         alembic_cfg.set_main_option("sqlalchemy.url", os.environ.get('DATABASE_URL'))
 
     engine = model.connect_db(os.environ.get('DATABASE_URL'))
-    inspector = sqlalchemy.engine.reflection.Inspector.from_engine(engine)
+    try:
+        inspector = sqlalchemy.engine.reflection.Inspector.from_engine(engine)
+    except sqlalchemy.exc.OperationalError:
+        log.info("Failed to connect to database. Will try again in 5s")
+        time.sleep(5)
+        inspector = sqlalchemy.engine.reflection.Inspector.from_engine(engine)
 
     # TODO: Don't use Alembic's command-line API!
     if 'alembic_version' not in inspector.get_table_names():
