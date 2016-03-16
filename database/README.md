@@ -29,10 +29,10 @@ These are the steps of create job on web instance.
 
     ```
     cd aquamark/database
-    sudo docker build vpac/aquamark-db
+    sudo docker build -t vpac/aquamark-db .
     ```
 
-1. Configure it with your IAM [access key][ac]:
+1. Configure it with your [access key][ac] for the `aq-backup` user:
 
     ```
     mkdir -p ~/aq_conf
@@ -43,7 +43,9 @@ These are the steps of create job on web instance.
 1. Run the Docker container:
 
     ```
-    sudo docker run -d vpac/aquamark-db -t aquamark-backup
+    sudo docker run -d --name backup \
+        --env-file=${HOME}/aq_conf/aq_backup_config \
+        vpac/aquamark-db
     ```
 
 

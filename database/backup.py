@@ -17,8 +17,9 @@ log = logging.getLogger('app.backup')
 log.setLevel(logging.INFO)
 
 
-def last_backup_time(identifier):
-    response = session.resource('rds').describe_db_snapshots(
+def last_backup_time(identifier, now):
+    client = session.client('rds')
+    response = client.describe_db_snapshots(
         DBInstanceIdentifier=identifier,
     )
     response = [r for r in response["DBSnapshots"]
@@ -27,12 +28,13 @@ def last_backup_time(identifier):
     if not response:
         return None
 
-    last_snapshot = min(response, key=lambda r: r['SnapshotCreateTime'])
+    last_snapshot = min(response, key=lambda r: r.get('SnapshotCreateTime', now))
     return last_snapshot['SnapshotCreateTime'].replace(tzinfo=None)
 
 
-def create_weekly_backup(identifier):
-    session.resource('rds').create_db_snapshot(
+def create_weekly_backup(identifier, now):
+    client = session.client('rds')
+    client.create_db_snapshot(
         DBSnapshotIdentifier='WeeklyBackup-{0:04d}-{1:02d}-{2:02d}'.format(
             now.year, now.month, now.day),
         DBInstanceIdentifier=identifier,
@@ -40,18 +42,19 @@ def create_weekly_backup(identifier):
 
 
 def process_once():
-    last_time = last_backup_time()
+    identifier = os.environ.get('AWS_RDS_IDENTIFIER', '')
     now = datetime.datetime.now().replace(tzinfo=None)
+    last_time = last_backup_time(identifier, now)
     week_ago = now + datetime.timedelta(days=-7)
     if last_time is None or last_time < week_ago:
-        create_weekly_backup()
+        create_weekly_backup(identifier, now)
 
 
 def process_loop():
     interval = int(os.environ.get('BACKUP_CRON_INTERVAL', '300'))
     while True:
         try:
-            process_once(config)
+            process_once()
         except KeyboardInterrupt:
             raise
         except Exception as e:
@@ -82,4 +85,4 @@ def initialise_session():
 if __name__ == '__main__':
     initialise_session()
     time.sleep(3)
-    process()
+    process_loop()
