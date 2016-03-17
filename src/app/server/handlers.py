@@ -1,5 +1,4 @@
-# Handlers
-
+import datetime
 import functools
 import logging
 from math import ceil
@@ -8,18 +7,17 @@ import re
 import time
 
 import sass
+import sqlalchemy
+from sqlalchemy.sql import func
+from tornado.escape import json_decode, json_encode, url_escape, url_unescape
 import tornado.gen
 import tornado.httpclient
 import tornado.httputil
 import tornado.options
 import tornado.web
-import sqlalchemy
-from sqlalchemy.sql import func
 
 import model
-
 from utils import denormalise, falsy, truthy
-from tornado.escape import json_decode, json_encode, url_escape, url_unescape
 
 
 log = logging.getLogger('app.handlers')
@@ -396,7 +394,11 @@ class MainHandler(BaseHandler):
 
 
 class AuthLoginHandler(MainHandler):
-    EXPIRE_DAYS = 30
+    SESSION_LENGTH = datetime.timedelta(days=30)
+
+    def prepare(self):
+        self.session_expires = datetime.datetime.utcnow() + \
+            AuthLoginHandler.SESSION_LENGTH
 
     def get(self, user_id):
         '''
@@ -451,11 +453,14 @@ class AuthLoginHandler(MainHandler):
 
         self.set_secure_cookie(
             "user", str(user.id).encode('utf8'),
-            expires_days=AuthLoginHandler.EXPIRE_DAYS)
+            expires=self.session_expires)
         if model.has_privillege(user.role, 'admin'):
             self.set_secure_cookie(
                 "superuser", str(user.id).encode('utf8'),
-                expires_days=AuthLoginHandler.EXPIRE_DAYS)
+                expires=self.session_expires)
+
+        # Make sure the XSRF token expires at the same time
+        self.xsrf_token
 
         self.redirect('/' + self.get_argument("next", "#/"))
 
@@ -469,7 +474,7 @@ class AuthLoginHandler(MainHandler):
         token = super().xsrf_token
         self.set_cookie(
             '_xsrf', token,
-            expires_days=AuthLoginHandler.EXPIRE_DAYS)
+            expires=self.session_expires)
         return token
 
     @tornado.web.authenticated
@@ -500,7 +505,7 @@ class AuthLoginHandler(MainHandler):
             log.warn('User %s is impersonating %s', superuser.email, user.email)
             self.set_secure_cookie(
                 "user", str(user.id).encode('utf8'),
-                expires_days=AuthLoginHandler.EXPIRE_DAYS)
+                expires=self.session_expires)
             # Make sure the XSRF token expires at the same time
             self.xsrf_token
 
