@@ -150,7 +150,7 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
 
             if aws.session is not None:
                 s3 = aws.session.resource('s3', verify=False)
-                bucket = "aquamark"
+                bucket = os.environ.get('AWS_BUCKET')
                 hex_key = hashlib.sha256(bytes(fileinfo['body'])).hexdigest()
                 s3_path = "{0}/{1}".format(
                     response.assessment.organisation_id, hex_key)
