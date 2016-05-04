@@ -45,7 +45,7 @@ class QuestionNodeHandler(
             if self.current_user.role == 'clerk':
                 exclude.append(r'/total_weight$')
 
-            self.check_browse_survey(session, self.survey_id, 
+            self.check_browse_survey(session, self.survey_id,
                                      qnode.hierarchy_id)
 
             to_son = ToSon(include=[
@@ -73,6 +73,7 @@ class QuestionNodeHandler(
 
             sibling_query = (session.query(model.QuestionNode)
                 .filter(model.QuestionNode.survey_id == qnode.survey_id,
+                        model.QuestionNode.hierarchy_id == qnode.hierarchy_id,
                         model.QuestionNode.parent_id == qnode.parent_id,
                         model.QuestionNode.deleted == False))
 
