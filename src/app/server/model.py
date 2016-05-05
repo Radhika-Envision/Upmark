@@ -26,7 +26,7 @@ from voluptuous import All, Any, Coerce, Length, Optional, Range, Required, \
 
 from guid import GUID
 from history_meta import Versioned, versioned_session
-from response_type import ResponseTypeCache
+from response_type import ResponseError, ResponseTypeCache
 
 
 log = logging.getLogger('app.model')
@@ -1152,7 +1152,13 @@ class Response(Observable, Versioned, Base):
                 raise ModelError(
                     "Measure '%s': response type is not defined." %
                     self.measure.title)
-            score = rt.calculate_score(self.response_parts)
+            try:
+                score = rt.calculate_score(self.response_parts)
+            except ResponseError as e:
+                raise ModelError(
+                    "Could not calculate score for response %s %s: %s" %
+                    (self.measure.get_path(self.assessment.hierarchy),
+                     self.measure.title, str(e)))
         self.score = score * self.measure.weight
 
     def update_stats_ancestors(self):

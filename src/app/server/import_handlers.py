@@ -1,10 +1,7 @@
 import xlrd
 import string
-import model
-import app
 import os
 from parse import parse
-import handlers
 import logging
 import tempfile
 import threading
@@ -18,10 +15,19 @@ from tornado.web import asynchronous
 from tornado.concurrent import run_on_executor
 from concurrent.futures import ThreadPoolExecutor
 
+import app
+import handlers
+import model
+import response_type
+
 
 MAX_WORKERS = 4
 
 log = logging.getLogger('app.import_handler')
+
+
+class ImportError(Exception):
+    pass
 
 
 class ImportStructureHandler(handlers.BaseHandler):
@@ -85,7 +91,7 @@ class ImportAssessmentHandler(handlers.BaseHandler):
         fd = tempfile.NamedTemporaryFile()
         try:
             fd.write(fileinfo['body'])
-            survey_id = yield self.background_task(fd.name)            
+            survey_id = yield self.background_task(fd.name)
         finally:
             fd.close()
 
@@ -144,7 +150,7 @@ class Importer():
             hierarchy.survey_id = survey.id
             hierarchy.title = "AMCV (Imported)"
             hierarchy.description = "WSAA's own 4-level hierarchy."
-            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                 'aquamark_hierarchy.json')) as data_file:
                 hierarchy.structure = json.load(data_file)
             session.add(hierarchy)
@@ -344,19 +350,20 @@ class Importer():
 
             try:
                 # for row_num in range(0, 1):
+                order = title = ''
                 for row_num in range(0, len(all_rows)-1):
                     order, title = self.parse_order_title(all_rows, row_num, "A", "{order} {title}")
                     function = survey_qnodes.filter_by(parent_id=None, title=title).one()
-                    log.info("function: %s", function)
+                    log.debug("function: %s", function)
                     function_order = order
 
                     order, title = self.parse_order_title(all_rows, row_num, "B", "{order} {title}")
                     process = survey_qnodes.filter_by(parent_id=function.id, title=title).one()
-                    log.info("process: %s", process)
+                    log.debug("process: %s", process)
 
                     order, title = self.parse_order_title(all_rows, row_num, "C", "{order} {title}")
                     subprocess = survey_qnodes.filter_by(parent_id=process.id, title=title).one()
-                    log.info("subprocess: %s", subprocess)
+                    log.debug("subprocess: %s", subprocess)
 
                     order, title = self.parse_order_title(all_rows, row_num, "D", "{order} {title}")
                     measure = [m for m in subprocess.measures if m.title == title]
@@ -365,10 +372,10 @@ class Importer():
                         measure = measure[0]
                     else:
                         raise Exception("This survey is not matching current open survey. ")
-                    log.info("measure: %s", measure)
-        
+                    log.debug("measure: %s", measure)
 
-                    log.info("measure response_type: %s", [r for r in response_types if r["id"] == measure.response_type][0])
+
+                    log.debug("measure response_type: %s", [r for r in response_types if r["id"] == measure.response_type][0])
                     r_types = [r for r in response_types if r["id"] == measure.response_type][0]
 
                     response = model.Response()
@@ -391,17 +398,45 @@ class Importer():
                     response.audit_reason = "Import"
                     session.add(response)
             except sqlalchemy.orm.exc.NoResultFound:
-                raise Exception("This survey is not matching current open survey. ", all_rows[row_num], title)
+                raise handlers.ModelError(
+                    "Survey structure does not match: Row %d: %s %s" %
+                    (row_num + 2, order, title))
+            except ImportError as e:
+                raise handlers.ModelError(
+                    "Row %d: %s %s: %s" %
+                    (row_num + 2, order, title, str(e)))
+            except Exception as e:
+                raise handlers.InternalModelError(
+                    "Row %d: %s %s: %s" %
+                    (row_num + 2, order, title, str(e)))
 
-            assessment.update_stats_descendants()
+            try:
+                assessment.update_stats_descendants()
+            except model.ModelError as e:
+                raise handlers.ModelError(str(e))
 
         return survey_id
 
     def parse_response_type(self, all_rows, row_num, types, col_chr):
         response_text = all_rows[row_num][self.col2num(col_chr)]
         index =  ord(col_chr) - ord("E")
-        response_options = [r["name"].replace(" ", "").lower() for r in types["parts"][index]["options"]]
-        response_index = response_options.index(response_text.replace(" ", "").lower())
+
+        try:
+            response_options = [
+                r["name"].replace(" ", "").lower()
+                for r in types["parts"][index]["options"]]
+        except IndexError:
+            raise ImportError(
+                "This measure only has %d part(s)" %
+                len(types["parts"]))
+
+        try:
+            response_index = response_options.index(response_text.replace(" ", "").lower())
+        except (AttributeError, ValueError) as e:
+            raise ImportError(
+                "Response %d: '%s' is not a valid option" %
+                (index + 1, response_text))
+
         return {"index": response_index, "note": response_text}
 
 
@@ -409,9 +444,11 @@ class Importer():
         col_num = self.col2num(col_chr)
         column = all_rows[row_num][col_num]
         column_object = parse(parse_expression, column)
+        if column_object is None:
+            raise ImportError("Could not parse column '%s'" % col_chr)
         order = column_object["order"]
         title = column_object["title"].replace("\n", chr(10))
-        return order, title        
+        return order, title
 
 
     def parse_description(self, all_rows, starting_row_num, prev_column = None, paragraph=None):

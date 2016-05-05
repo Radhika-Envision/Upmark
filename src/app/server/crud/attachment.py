@@ -154,13 +154,20 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
                 hex_key = hashlib.sha256(bytes(fileinfo['body'])).hexdigest()
                 s3_path = "{0}/{1}".format(
                     response.assessment.organisation_id, hex_key)
+
+                # Metadata can not contain non-ASCII characters - so encode
+                # higher Unicode characters :/
+                # https://github.com/boto/boto3/issues/478#issuecomment-180608544
+                file_name_enc = (fileinfo["filename"]
+                    .encode('ascii', errors='backslashreplace')
+                    .decode('ascii')
+                    [:1024])
+
                 try:
                     s3.Bucket(bucket).put_object(
-                                        Key=s3_path,
-                                        Metadata={
-                                            'filename': fileinfo["filename"]
-                                        }, 
-                                        Body=bytes(fileinfo['body']))
+                        Key=s3_path,
+                        Metadata={'filename': file_name_enc},
+                        Body=bytes(fileinfo['body']))
                 except botocore.exceptions.ClientError as e:
                     raise handlers.InternalModelError(
                         "Failed to write to data store", log_message=str(e))
@@ -173,8 +180,8 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
             if aws.session is not None:
                 attachment.storage = "aws"
                 aws_url = aws.s3_url.format(
-                            region=aws.region_name, 
-                            bucket=bucket, 
+                            region=aws.region_name,
+                            bucket=bucket,
                             s3_path=s3_path)
                 attachment.url = aws_url
             else:
