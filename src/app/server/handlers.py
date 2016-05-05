@@ -36,12 +36,18 @@ def deploy_id():
 
 
 class AuthzError(tornado.web.HTTPError):
+    '''
+    The user tried to do something they're not allowed to.
+    '''
     def __init__(self, reason="Not authorised", log_message=None, *args, **kwargs):
         tornado.web.HTTPError.__init__(
             self, 403, reason=reason, log_message=log_message, *args, **kwargs)
 
 
 class ModelError(tornado.web.HTTPError):
+    '''
+    The user's input doesn't conform to the API spec.
+    '''
     def __init__(self, reason="Arguments are invalid", log_message=None, *args, **kwargs):
         tornado.web.HTTPError.__init__(
             self, 403, reason=reason, log_message=log_message, *args, **kwargs)
@@ -71,6 +77,11 @@ class MethodError(tornado.web.HTTPError):
 
 
 class InternalModelError(tornado.web.HTTPError):
+    '''
+    Unexpected error. Throw one of these if you don't know *why* the
+    exception occurred, but you want to add a message to explain *where* it
+    happened.
+    '''
     def __init__(self, reason="Bug in data model", log_message=None, *args, **kwargs):
         tornado.web.HTTPError.__init__(
             self, 500, reason=reason, log_message=log_message, *args, **kwargs)
@@ -279,6 +290,16 @@ class BaseHandler(tornado.web.RequestHandler):
 
     def reason(self, message):
         self.add_header("Operation-Details", message)
+
+    def log_exception(self, typ, value, tb):
+        # Print stack trace for InternalModelErrors, since they are very similar
+        # to uncaught errors.
+        if isinstance(value, InternalModelError):
+            log.error(
+                "Partially-handled, unexpected error: %s\n%r",
+                self._request_summary(), self.request,
+                exc_info=(typ, value, tb))
+        super().log_exception(typ, value, tb)
 
 
 class PingHandler(BaseHandler):
