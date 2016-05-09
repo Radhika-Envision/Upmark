@@ -822,11 +822,14 @@ angular.module('vpac.widgets', [])
 
         scope.options = {
             placeholder: {text: ""},
-            buttons: [
-                "bold", "italic", "anchor", "image",
-                "header1", "header2", "quote",
-                "orderedlist", "unorderedlist",
-                "removeFormat"],
+            toolbar: {
+                buttons: [
+                    "bold", "italic", "anchor", "image",
+                    "header1", "header2", "quote",
+                    "orderedlist", "unorderedlist",
+                    "removeFormat"
+                ],
+            },
             imageDragging: false
         };
         scope.$watch('placeholder', function(placeholder) {
