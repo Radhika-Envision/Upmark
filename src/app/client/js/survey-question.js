@@ -1090,9 +1090,14 @@ angular.module('wsaa.surveyQuestions', [
                 score: rnode.score,
                 progressItems: [
                     {
+                        name: 'Draft',
+                        value: rnode.nDraft,
+                        fraction: rnode.nDraft / $scope.qnode.nMeasures
+                    },
+                    {
                         name: 'Final',
-                        value: rnode.nSubmitted,
-                        fraction: rnode.nSubmitted / $scope.qnode.nMeasures
+                        value: rnode.nFinal,
+                        fraction: rnode.nFinal / $scope.qnode.nMeasures
                     },
                     {
                         name: 'Reviewed',
@@ -1109,7 +1114,7 @@ angular.module('wsaa.surveyQuestions', [
                         'approved' :
                     rnode.nReviewed >= $scope.qnode.nMeasures ?
                         'reviewed' :
-                    rnode.nSubmitted >= $scope.qnode.nMeasures ?
+                    rnode.nFinal >= $scope.qnode.nMeasures ?
                         'final' :
                         'draft',
                 promote: 'BOTH',
@@ -1824,9 +1829,14 @@ angular.module('wsaa.surveyQuestions', [
                         notRelevant: rnode.nNotRelevant >= nm,
                         progressItems: [
                             {
+                                name: 'Draft',
+                                value: rnode.nDraft,
+                                fraction: rnode.nDraft / nm
+                            },
+                            {
                                 name: 'Final',
-                                value: rnode.nSubmitted,
-                                fraction: rnode.nSubmitted / nm
+                                value: rnode.nFinal,
+                                fraction: rnode.nFinal / nm
                             },
                             {
                                 name: 'Reviewed',
@@ -1926,15 +1936,21 @@ angular.module('wsaa.surveyQuestions', [
                     var r = responses[i];
                     var nApproved = r.approval == 'approved' ? 1 : 0;
                     var nReviewed = r.approval == 'reviewed' ? 1 : nApproved;
-                    var nSubmitted = r.approval == 'final' ? 1 : nReviewed;
+                    var nFinal = r.approval == 'final' ? 1 : nReviewed;
+                    var nDraft = r.approval == 'draft' ? 1 : nFinal;
                     rmap[r.measure.id] = {
                         score: r.score,
                         notRelevant: r.notRelevant,
                         progressItems: [
                             {
+                                name: 'Draft',
+                                value: nDraft,
+                                fraction: nDraft
+                            },
+                            {
                                 name: 'Final',
-                                value: nSubmitted,
-                                fraction: nSubmitted
+                                value: nFinal,
+                                fraction: nFinal
                             },
                             {
                                 name: 'Reviewed',

@@ -265,7 +265,7 @@
        style="fill:#ededed;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:2.12132025;stroke-miterlimit:10;stroke-opacity:1;stroke-dasharray:none"
        id="rect4950"
        width="180"
-       height="200"
+       height="211"
        x="600"
        y="739" />
     <text
@@ -309,20 +309,25 @@
          x="610"
          y="879"
          style="font-size:12px"
-         id="tspan5231">n_submitted</tspan><tspan
+         id="tspan3354">n_draft</tspan><tspan
          sodipodi:role="line"
          x="610"
          y="894"
          style="font-size:12px"
-         id="tspan5233">n_reviewed</tspan><tspan
+         id="tspan5231">n_final</tspan><tspan
          sodipodi:role="line"
          x="610"
          y="909"
          style="font-size:12px"
-         id="tspan5235">n_approved</tspan><tspan
+         id="tspan5233">n_reviewed</tspan><tspan
          sodipodi:role="line"
          x="610"
          y="924"
+         style="font-size:12px"
+         id="tspan5235">n_approved</tspan><tspan
+         sodipodi:role="line"
+         x="610"
+         y="939"
          style="font-size:12px"
          id="tspan5237">n_not_relevant</tspan></text>
     <text
@@ -775,19 +780,24 @@
          y="879"
          x="720"
          sodipodi:role="line">int</tspan><tspan
-         id="tspan5570"
          style="font-size:12px"
          y="894"
          x="720"
-         sodipodi:role="line">int</tspan><tspan
-         id="tspan5572"
+         sodipodi:role="line"
+         id="tspan3356">int</tspan><tspan
+         id="tspan5570"
          style="font-size:12px"
          y="909"
          x="720"
          sodipodi:role="line">int</tspan><tspan
-         id="tspan5574"
+         id="tspan5572"
          style="font-size:12px"
          y="924"
+         x="720"
+         sodipodi:role="line">int</tspan><tspan
+         id="tspan5574"
+         style="font-size:12px"
+         y="939"
          x="720"
          sodipodi:role="line">int</tspan></text>
     <text
