@@ -1328,11 +1328,11 @@ angular.module('wsaa.surveyQuestions', [
                 var g = d3.select(this),
                     n = d.length;
 
-                var checkOverlapping = 
+                var checkOverlapping =
                     function(tickValues, itemValue, itemIndex, yAxis) {
                         var gap = 0;
                         angular.forEach(tickValues, function(tick, index) {
-                            if (index != itemIndex && 
+                            if (index != itemIndex &&
                                 Math.abs(yAxis(itemValue)-yAxis(tick)) < 7)
                                 gap = 10;
                         });
@@ -1350,13 +1350,13 @@ angular.module('wsaa.surveyQuestions', [
                      // Compute the tick format.
                     var format = tickFormat || yAxis.tickFormat(8);
                     var line20 = (data.max - data.min) * 0.2;
-                    var borderData = [data.min, 
-                                      data.min + line20, 
-                                      data.min + line20 * 2, 
-                                      data.min + line20 * 3, 
-                                      data.min + line20 * 4, 
+                    var borderData = [data.min,
+                                      data.min + line20,
+                                      data.min + line20 * 2,
+                                      data.min + line20 * 3,
+                                      data.min + line20 * 4,
                                       data.max];
-                    var borderClass = ["border", 
+                    var borderClass = ["border",
                                        "border20",
                                        "border20",
                                        "border20",
@@ -1368,8 +1368,8 @@ angular.module('wsaa.surveyQuestions', [
                             .data(borderData);
 
                         border.enter().insert("line")
-                            .attr("class", function(item, i) { 
-                                return borderClass[i]; 
+                            .attr("class", function(item, i) {
+                                return borderClass[i];
                             })
                             .attr("x1", -50)
                             .attr("y1", yAxis)
@@ -1422,17 +1422,17 @@ angular.module('wsaa.surveyQuestions', [
                         .attr("x", width)
                         .attr("y", function(item, index) {
                             // top and bottom value display
-                            if (index==0) 
+                            if (index==0)
                                 return yAxis(item)+13;
-                            if (index==5) 
+                            if (index==5)
                                 return yAxis(item)-10;
                             var gap = 0;
                             if (index != 3)
-                                gap = checkOverlapping(tickData, item, index, 
+                                gap = checkOverlapping(tickData, item, index,
                                     yAxis);
 
                             return yAxis(item) + gap;
- 
+
                         })
                         .attr("text-anchor", dataIndex==0 ? "end":"start")
                         .text(format);
@@ -1451,12 +1451,12 @@ angular.module('wsaa.surveyQuestions', [
                         .data(lineData)
                         .enter().append("line")
                         .attr("class", function(item, index) {
-                            return lineClass[index]; 
+                            return lineClass[index];
                         })
                         .attr("x1", function(item, index) {
                             if(index == 3)
                                 return dataIndex==0 ? -4:width/2;
-                            return dataIndex==0 ? 0:width/2; 
+                            return dataIndex==0 ? 0:width/2;
                         })
                         .attr("y1", function(item, index) {
                             return Math.round(yAxis(item));
@@ -1682,7 +1682,7 @@ angular.module('wsaa.surveyQuestions', [
                 });
                 if (stat.length) {
                     stat = stat[0];
-                    var item = {'id': node.qnode.id, 'compareMode': false, 
+                    var item = {'id': node.qnode.id, 'compareMode': false,
                              'data': [], 'title' : stat.title };
                     item['data'].push({
                                         'current': node.score,
