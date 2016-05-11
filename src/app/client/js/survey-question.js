@@ -1872,6 +1872,11 @@ angular.module('wsaa.surveyQuestions', [
         notRelevant: false,
         progressItems: [
             {
+                name: 'Draft',
+                value: 0,
+                fraction: 0
+            },
+            {
                 name: 'Final',
                 value: 0,
                 fraction: 0
@@ -1983,6 +1988,11 @@ angular.module('wsaa.surveyQuestions', [
         score: 0,
         notRelevant: false,
         progressItems: [
+            {
+                name: 'Draft',
+                value: 0,
+                fraction: 0
+            },
             {
                 name: 'Final',
                 value: 0,
