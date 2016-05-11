@@ -63,8 +63,19 @@
                  </column-progress>
             </td>
             <td class="shrink text-muted numeric"
-                title="Number of measures"
-                >{{item.nMeasures}}</td>
+                    title="Number of measures"
+                    ng-if="assessment"
+                ><span>{{getStats(item.id).progressItems[0].value | number:0}}</span
+                ><span class="text-muted hidden-sm hidden-xs">/</span
+                ><br class="visible-sm visible-xs"
+                ><span class="denominator-sm denominator-xs"
+                    >{{item.nMeasures}}</span>
+            </td>
+            <td class="shrink text-muted numeric"
+                    title="Number of measures"
+                    ng-if="!assessment">
+                {{item.nMeasures}}
+            </td>
             <td class="shrink grab-handle" ng-if="edit.model"
                ><i class="fa fa-fw fa-unsorted"></i></td>
         </tr>

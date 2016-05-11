@@ -170,6 +170,7 @@ class MeasureHandler(
                 r'/title$',
                 r'/intent$',
                 r'/seq$',
+                r'/weight$',
                 r'/deleted$',
                 r'/survey/tracking_id$',
                 # Descend into nested objects
@@ -197,6 +198,7 @@ class MeasureHandler(
                 r'/id$',
                 r'/title$',
                 r'/seq$',
+                r'/weight$',
                 r'/deleted$',
                 r'/survey/tracking_id$',
                 # Descend into nested objects
