@@ -241,19 +241,19 @@ angular.module('vpac.widgets', [])
                 switch (approval) {
                 case 'draft':
                     $scope.initial = 'D';
-                    $scope.cls = 'aq-0';
+                    $scope.cls = 'aq-1';
                     break;
                 case 'final':
                     $scope.initial = 'F';
-                    $scope.cls = 'aq-1';
+                    $scope.cls = 'aq-2';
                     break;
                 case 'reviewed':
                     $scope.initial = 'R';
-                    $scope.cls = 'aq-2';
+                    $scope.cls = 'aq-3';
                     break;
                 case 'approved':
                     $scope.initial = 'A';
-                    $scope.cls = 'aq-3';
+                    $scope.cls = 'aq-4';
                     break;
                 }
             });

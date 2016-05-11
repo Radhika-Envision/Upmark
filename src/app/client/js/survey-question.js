@@ -1226,19 +1226,24 @@ angular.module('wsaa.surveyQuestions', [
 
         $scope.demoStats = [
             {
-                name: 'Final',
+                name: 'Draft',
                 value: 120,
-                fraction: 1.0
+                fraction: 12/12
+            },
+            {
+                name: 'Final',
+                value: 100,
+                fraction: 10/12
             },
             {
                 name: 'Reviewed',
                 value: 80,
-                fraction: 0.75
+                fraction: 8/12
             },
             {
                 name: 'Approved',
                 value: 60,
-                fraction: 0.5
+                fraction: 6/12
             },
         ];
     }
