@@ -1090,9 +1090,14 @@ angular.module('wsaa.surveyQuestions', [
                 score: rnode.score,
                 progressItems: [
                     {
+                        name: 'Draft',
+                        value: rnode.nDraft,
+                        fraction: rnode.nDraft / $scope.qnode.nMeasures
+                    },
+                    {
                         name: 'Final',
-                        value: rnode.nSubmitted,
-                        fraction: rnode.nSubmitted / $scope.qnode.nMeasures
+                        value: rnode.nFinal,
+                        fraction: rnode.nFinal / $scope.qnode.nMeasures
                     },
                     {
                         name: 'Reviewed',
@@ -1109,7 +1114,7 @@ angular.module('wsaa.surveyQuestions', [
                         'approved' :
                     rnode.nReviewed >= $scope.qnode.nMeasures ?
                         'reviewed' :
-                    rnode.nSubmitted >= $scope.qnode.nMeasures ?
+                    rnode.nFinal >= $scope.qnode.nMeasures ?
                         'final' :
                         'draft',
                 promote: 'BOTH',
@@ -1221,19 +1226,24 @@ angular.module('wsaa.surveyQuestions', [
 
         $scope.demoStats = [
             {
-                name: 'Final',
+                name: 'Draft',
                 value: 120,
-                fraction: 1.0
+                fraction: 12/12
+            },
+            {
+                name: 'Final',
+                value: 100,
+                fraction: 10/12
             },
             {
                 name: 'Reviewed',
                 value: 80,
-                fraction: 0.75
+                fraction: 8/12
             },
             {
                 name: 'Approved',
                 value: 60,
-                fraction: 0.5
+                fraction: 6/12
             },
         ];
     }
@@ -1323,11 +1333,11 @@ angular.module('wsaa.surveyQuestions', [
                 var g = d3.select(this),
                     n = d.length;
 
-                var checkOverlapping = 
+                var checkOverlapping =
                     function(tickValues, itemValue, itemIndex, yAxis) {
                         var gap = 0;
                         angular.forEach(tickValues, function(tick, index) {
-                            if (index != itemIndex && 
+                            if (index != itemIndex &&
                                 Math.abs(yAxis(itemValue)-yAxis(tick)) < 7)
                                 gap = 10;
                         });
@@ -1345,13 +1355,13 @@ angular.module('wsaa.surveyQuestions', [
                      // Compute the tick format.
                     var format = tickFormat || yAxis.tickFormat(8);
                     var line20 = (data.max - data.min) * 0.2;
-                    var borderData = [data.min, 
-                                      data.min + line20, 
-                                      data.min + line20 * 2, 
-                                      data.min + line20 * 3, 
-                                      data.min + line20 * 4, 
+                    var borderData = [data.min,
+                                      data.min + line20,
+                                      data.min + line20 * 2,
+                                      data.min + line20 * 3,
+                                      data.min + line20 * 4,
                                       data.max];
-                    var borderClass = ["border", 
+                    var borderClass = ["border",
                                        "border20",
                                        "border20",
                                        "border20",
@@ -1363,8 +1373,8 @@ angular.module('wsaa.surveyQuestions', [
                             .data(borderData);
 
                         border.enter().insert("line")
-                            .attr("class", function(item, i) { 
-                                return borderClass[i]; 
+                            .attr("class", function(item, i) {
+                                return borderClass[i];
                             })
                             .attr("x1", -50)
                             .attr("y1", yAxis)
@@ -1417,17 +1427,17 @@ angular.module('wsaa.surveyQuestions', [
                         .attr("x", width)
                         .attr("y", function(item, index) {
                             // top and bottom value display
-                            if (index==0) 
+                            if (index==0)
                                 return yAxis(item)+13;
-                            if (index==5) 
+                            if (index==5)
                                 return yAxis(item)-10;
                             var gap = 0;
                             if (index != 3)
-                                gap = checkOverlapping(tickData, item, index, 
+                                gap = checkOverlapping(tickData, item, index,
                                     yAxis);
 
                             return yAxis(item) + gap;
- 
+
                         })
                         .attr("text-anchor", dataIndex==0 ? "end":"start")
                         .text(format);
@@ -1446,12 +1456,12 @@ angular.module('wsaa.surveyQuestions', [
                         .data(lineData)
                         .enter().append("line")
                         .attr("class", function(item, index) {
-                            return lineClass[index]; 
+                            return lineClass[index];
                         })
                         .attr("x1", function(item, index) {
                             if(index == 3)
                                 return dataIndex==0 ? -4:width/2;
-                            return dataIndex==0 ? 0:width/2; 
+                            return dataIndex==0 ? 0:width/2;
                         })
                         .attr("y1", function(item, index) {
                             return Math.round(yAxis(item));
@@ -1677,7 +1687,7 @@ angular.module('wsaa.surveyQuestions', [
                 });
                 if (stat.length) {
                     stat = stat[0];
-                    var item = {'id': node.qnode.id, 'compareMode': false, 
+                    var item = {'id': node.qnode.id, 'compareMode': false,
                              'data': [], 'title' : stat.title };
                     item['data'].push({
                                         'current': node.score,
@@ -1824,9 +1834,14 @@ angular.module('wsaa.surveyQuestions', [
                         notRelevant: rnode.nNotRelevant >= nm,
                         progressItems: [
                             {
+                                name: 'Draft',
+                                value: rnode.nDraft,
+                                fraction: rnode.nDraft / nm
+                            },
+                            {
                                 name: 'Final',
-                                value: rnode.nSubmitted,
-                                fraction: rnode.nSubmitted / nm
+                                value: rnode.nFinal,
+                                fraction: rnode.nFinal / nm
                             },
                             {
                                 name: 'Reviewed',
@@ -1856,6 +1871,11 @@ angular.module('wsaa.surveyQuestions', [
         score: 0,
         notRelevant: false,
         progressItems: [
+            {
+                name: 'Draft',
+                value: 0,
+                fraction: 0
+            },
             {
                 name: 'Final',
                 value: 0,
@@ -1926,15 +1946,21 @@ angular.module('wsaa.surveyQuestions', [
                     var r = responses[i];
                     var nApproved = r.approval == 'approved' ? 1 : 0;
                     var nReviewed = r.approval == 'reviewed' ? 1 : nApproved;
-                    var nSubmitted = r.approval == 'final' ? 1 : nReviewed;
+                    var nFinal = r.approval == 'final' ? 1 : nReviewed;
+                    var nDraft = r.approval == 'draft' ? 1 : nFinal;
                     rmap[r.measure.id] = {
                         score: r.score,
                         notRelevant: r.notRelevant,
                         progressItems: [
                             {
+                                name: 'Draft',
+                                value: nDraft,
+                                fraction: nDraft
+                            },
+                            {
                                 name: 'Final',
-                                value: nSubmitted,
-                                fraction: nSubmitted
+                                value: nFinal,
+                                fraction: nFinal
                             },
                             {
                                 name: 'Reviewed',
@@ -1962,6 +1988,11 @@ angular.module('wsaa.surveyQuestions', [
         score: 0,
         notRelevant: false,
         progressItems: [
+            {
+                name: 'Draft',
+                value: 0,
+                fraction: 0
+            },
             {
                 name: 'Final',
                 value: 0,

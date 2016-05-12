@@ -765,6 +765,9 @@ column-progress {
         + span + span > [column-progress-column] {
             border-color: $aq-bar3;
         }
+        + span + span + span > [column-progress-column] {
+            border-color: $aq-bar4;
+        }
     }
 
     [column-progress-column].complete:after {

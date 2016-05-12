@@ -109,28 +109,29 @@
                 <i class="fa-li fa fa-bar-chart fa-border"></i>
                 <h3>Scores and Progress</h3>
                 <p>
-                    The score of a survey category is the sum of the scores of its
-                    measures and child categories. To fill out this category,
+                    The score of a survey category is the sum of the scores of
+                    the responses to its measures. To fill out this category,
                     <abbr title="click through to lower/deeper categories and measures">
                         drill-down</abbr>
-                    to the measures.
+                    to the measures and respond to them.
                 </p>
                 <p>
-                    The little bar charts show the progress through the survey. Each
-                    bar shows how many measures have been given a certain level of
-                    approval. From left to right: the number of
-                    <em class="text-bar1">final</em>,
-                    <em class="text-bar2">reviewed</em> and
-                    <em class="text-bar3">approved</em> measures.
+                    The little bar charts show the progress through the survey.
+                    Each bar shows how many responses have been given a
+                    certain level of approval. From left to right: the number of
+                    <em class="text-bar1">draft</em>,
+                    <em class="text-bar2">final</em>,
+                    <em class="text-bar3">reviewed</em> and
+                    <em class="text-bar4">approved</em> responses.
                     Click on a graph to see the details as numbers.
                 </p>
                 <p class="text-center text-huge spaced">
                     <column-progress items="demoStats"></column-progress>
                 </p>
                 <p class="spaced">
-                    A white stripe through a bar means 100% of the measures have
-                    reached that level of approval (because otherwise it's a bit
-                    hard to see if the bar is full).
+                    A white stripe through a bar means 100% of the responses
+                    have reached that level of approval (because otherwise it's
+                    a bit hard to see if the bar is full).
                 </p>
             </docs>
         </div> <!-- class="stats-group"-->
@@ -226,13 +227,14 @@
         <p>
             Submissions progress through approval
             states
-            <em>draft</em> &raquo;
-            <em class="text-bar1">final</em> &raquo;
-            <em class="text-bar2">reviewed</em> &raquo;
-            <em class="text-bar3">approved</em>.
+            <em class="text-bar1">draft</em> &raquo;
+            <em class="text-bar2">final</em> &raquo;
+            <em class="text-bar3">reviewed</em> &raquo;
+            <em class="text-bar4">approved</em>.
             A submission can only progress to the next state when all of its
-            measures have at least that state. You can change the state of all
-            measures in this category by pressing the <em>bulk approval</em>
+            measure's responses have at least that state. You can change the
+            state of all responses in this category by pressing the
+            <em>bulk approval</em>
             <i class="fa docs-button fa-angle-right"></i>
             button.
         </p>

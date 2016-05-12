@@ -1,3 +1,67 @@
+"""Added count of draft responses
+
+Revision ID: 38ca8597c70
+Revises: 4ec77533136
+Create Date: 2016-05-09 06:42:02.238151
+
+"""
+
+# revision identifiers, used by Alembic.
+revision = '38ca8597c70'
+down_revision = '4ec77533136'
+branch_labels = None
+depends_on = None
+
+import logging
+import time
+
+from alembic import op
+import sqlalchemy as sa
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import foreign, relationship, remote, sessionmaker
+from sqlalchemy.schema import ForeignKeyConstraint, MetaData
+
+
+metadata = MetaData()
+Base = declarative_base(metadata=metadata)
+Session = sessionmaker()
+
+log_migration = logging.getLogger('app.migration')
+
+
+def upgrade():
+    op.add_column('rnode', sa.Column('n_draft', sa.Integer()))
+    op.alter_column('rnode', 'n_submitted', new_column_name='n_final')
+
+    session = Session(bind=op.get_bind())
+    assessments = session.query(Assessment).all()
+    duration = None
+    time_remaining = -1
+    for i, assessment in enumerate(assessments):
+        log_migration.info(
+            "Assessment %d/%d T-%.1fs", i + 1, len(assessments), time_remaining)
+        start = time.process_time()
+        assessment.update_stats_descendants()
+        end = time.process_time()
+        if duration is None:
+            duration = end - start
+        else:
+            duration = (duration * 0.8) + ((end - start) * 0.2)
+        time_remaining = (len(assessments) - (i + 1)) * duration
+
+    session.flush()
+
+    op.alter_column('rnode', 'n_draft', nullable=False)
+
+
+def downgrade():
+    op.alter_column('rnode', 'n_final', new_column_name='n_submitted')
+    op.drop_column('rnode', 'n_draft')
+
+
+# What follows is a FROZEN copy of model.py.
+
+
 import base64
 from collections import namedtuple
 from contextlib import contextmanager
@@ -1189,129 +1253,6 @@ class Response(Observable, Versioned, Base):
             getattr(org, 'name', None))
 
 
-ResponseHistory = Response.__history_mapper__.class_
-ResponseHistory.response_parts = Response.response_parts
-
-
-class Attachment(Base):
-    __tablename__ = 'attachment'
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    organisation_id = Column(
-        GUID, ForeignKey("organisation.id"), nullable=False)
-    response_id = Column(GUID, ForeignKey("response.id"), nullable=False)
-
-    storage = Column(
-        Enum('external', 'aws', 'database', native_enum=False),
-        nullable=False)
-    file_name = Column(Text, nullable=True)
-    url = Column(Text, nullable=True)
-    blob = Column(LargeBinary, nullable=True)
-
-    __table_args__ = (
-        Index('attachment_response_id_index', response_id),
-    )
-
-    response = relationship(Response, backref='attachments')
-    organisation = relationship(Organisation)
-
-
-class Activity(Base):
-    '''
-    An event in the activity stream (timeline). This forms a kind of logging
-    that can be filtered based on users' subscriptions.
-    '''
-    __tablename__ = 'activity'
-    id = Column(GUID, default=uuid.uuid4, nullable=False, primary_key=True)
-    created = Column(DateTime, default=datetime.utcnow, nullable=False)
-    # Subject is the user performing the action. The object may also be a user.
-    subject_id = Column(GUID, ForeignKey("appuser.id"), nullable=False)
-    # Verb is the action being performed by the subject on the object.
-    verbs = Column(
-        ARRAY(Enum(
-            'broadcast',
-            'create', 'update', 'state', 'delete', 'undelete',
-            'relation', 'reorder_children',
-            native_enum=False)),
-        nullable=False)
-    # A snapshot of some defining feature of the object at the time the event
-    # happened (e.g. title of a measure before it was deleted).
-    message = Column(Text)
-    sticky = Column(Boolean, nullable=False, default=False)
-
-    # Object reference (the entity being acted upon). The ob_type and ob_id_*
-    # columns are for looking up the target object (e.g. to create a hyperlink).
-    ob_type = Column(Enum(
-        'organisation', 'user',
-        'program', 'survey', 'qnode', 'measure',
-        'submission', 'rnode', 'response',
-        native_enum=False))
-    ob_ids = Column(ARRAY(GUID), nullable=False)
-    # The ob_refs column contains all relevant IDs including e.g. parent
-    # categories, and is used for filtering.
-    ob_refs = Column(ARRAY(GUID), nullable=False)
-
-    __table_args__ = (
-        # Index `created` column to allow fast filtering by date ranges across
-        # all users.
-        # Note Postgres' default index is btree, which supports ordered index
-        # scanning.
-        Index('activity_created_index', created),
-        # A multi-column index that has the subject's ID first, so we can
-        # quickly list the recent activity of a user.
-        Index('activity_subject_id_created_index', subject_id, created),
-        # Sticky activities are queried without respect to time, so a separate
-        # index is needed for them.
-        Index('activity_sticky_index', sticky,
-              postgresql_where=(sticky == True)),
-        CheckConstraint(
-            "(verbs @> ARRAY['broadcast']::varchar[] or ob_type != null)",
-            name='activity_broadcast_constraint'),
-        CheckConstraint(
-            'ob_type = null or array_length(verbs, 1) > 0',
-            name='activity_verbs_length_constraint'),
-        CheckConstraint(
-            'ob_type = null or array_length(ob_ids, 1) > 0',
-            name='activity_ob_ids_length_constraint'),
-        CheckConstraint(
-            'ob_type = null or array_length(ob_refs, 1) > 0',
-            name='activity_ob_refs_length_constraint'),
-    )
-
-    subject = relationship(AppUser)
-
-
-class Subscription(Base):
-    '''Subscribes a user to events related to some object'''
-    __tablename__ = 'subscription'
-    id = Column(GUID, default=uuid.uuid4, nullable=False, primary_key=True)
-    created = Column(DateTime, default=datetime.utcnow, nullable=False)
-    user_id = Column(GUID, ForeignKey("appuser.id"), nullable=False)
-    subscribed = Column(Boolean, nullable=False)
-
-    # Object reference; does not include parent objects. One day an index might
-    # be needed on the ob_refs column; if you want to use GIN, see:
-    # http://www.postgresql.org/docs/9.4/static/gin-intro.html
-    # http://stackoverflow.com/questions/19959735/postgresql-gin-index-on-array-of-uuid
-    ob_type = Column(Enum(
-        'organisation', 'user',
-        'program', 'survey', 'qnode', 'measure',
-        'submission', 'rnode', 'response',
-        native_enum=False))
-    ob_refs = Column(ARRAY(GUID), nullable=False)
-
-    __table_args__ = (
-        # Index to allow quick lookups of subscribed objects for a given user
-        Index('subscription_user_id_index', user_id),
-        UniqueConstraint(
-            user_id, ob_refs,
-            name='subscription_user_ob_refs_unique_constraint'),
-        CheckConstraint(
-            'ob_type = null or array_length(ob_refs, 1) > 0',
-            name='subscription_ob_refs_length_constraint'),
-    )
-
-    user = relationship(AppUser, backref='subscriptions')
-
 
 # Lists and Complex Relationships
 #
@@ -1452,146 +1393,3 @@ Response.measure = relationship(
     Measure,
     primaryjoin=(foreign(Response.measure_id) == Measure.id) &
                 (Response.survey_id == Measure.survey_id))
-
-
-ResponseHistory.user = relationship(
-    AppUser, backref='user', passive_deletes=True)
-
-## assessment_id, measure_id
-## version fileds need to have index on ResponseHistory
-
-Session = None
-VersionedSession = None
-ReadonlySession = None
-
-
-@contextmanager
-def session_scope(version=False, readonly=False):
-    # http://docs.sqlalchemy.org/en/latest/orm/session_basics.html#when-do-i-construct-a-session-when-do-i-commit-it-and-when-do-i-close-it
-    """Provide a transactional scope around a series of operations."""
-    if readonly:
-        session = ReadonlySession()
-    elif version:
-        session = VersionedSession()
-    else:
-        session = Session()
-
-    try:
-        yield session
-        session.commit()
-    except:
-        session.rollback()
-        raise
-    finally:
-        session.close()
-
-
-def create_analyst_user():
-    '''
-    For arbitary queries on the web, create a new user named 'analyst'
-    and give SELECT permission to all tables except the appuser.password
-    column.
-    '''
-
-    with session_scope() as session:
-        password = base64.b32encode(os.urandom(30)).decode('ascii')
-        store_analyst_password(password, session)
-        session.execute(
-            "CREATE USER analyst WITH PASSWORD :pwd", {'pwd': password})
-        session.execute(
-            "GRANT USAGE ON SCHEMA public TO analyst")
-        session.execute(
-            "GRANT SELECT"
-            " (id, organisation_id, email, name, role, created, deleted,"
-            "  email_time, email_interval)"
-            " ON appuser TO analyst")
-        for table in Base.metadata.tables:
-            if str(table) not in {'appuser', 'systemconfig', 'alembic_version'}:
-                session.execute(
-                    "GRANT SELECT ON {} TO analyst".format(table))
-
-
-def reset_analyst_password():
-     with session_scope() as session:
-        password = base64.b32encode(os.urandom(30)).decode('ascii')
-        store_analyst_password(password, session)
-        session.execute(
-            "ALTER ROLE analyst WITH PASSWORD :pwd", {'pwd': password})
-
-
-def store_analyst_password(password, session):
-    pwd_conf = session.query(SystemConfig).get('analyst_password')
-    if pwd_conf is None:
-        pwd_conf = SystemConfig(name='analyst_password')
-        pwd_conf.human_name = "Analyst password"
-        pwd_conf.description = "Password for read-only database access"
-        pwd_conf.user_defined = False
-        session.add(pwd_conf)
-    pwd_conf.value = password
-
-
-def connect_db(url):
-    global Session, VersionedSession
-    engine = create_engine(url)
-    # Never drop the schema here.
-    # - For short-term testing, use psql.
-    # - For breaking changes, add migration code to the alembic scripts.
-    Session = sessionmaker(bind=engine)
-    VersionedSession = sessionmaker(bind=engine)
-    versioned_session(VersionedSession)
-
-    return engine
-
-
-class MissingUser(ModelError):
-    pass
-
-
-class WrongPassword(ModelError):
-    pass
-
-
-def connect_db_ro(base_url):
-    global ReadonlySession
-
-    with session_scope() as session:
-        count = (session.execute(
-                '''SELECT count(*)
-                   FROM pg_catalog.pg_user u
-                   WHERE u.usename = :usename''',
-                {'usename': 'analyst'})
-            .scalar())
-        if count != 1:
-            raise MissingUser("analyst user does not exist")
-
-        password = (session.query(SystemConfig.value)
-                .filter(SystemConfig.name == 'analyst_password')
-                .scalar())
-
-    parsed_url = sqlalchemy.engine.url.make_url(base_url)
-    readonly_url = sqlalchemy.engine.url.URL(
-        parsed_url.drivername,
-        username='analyst',
-        password=password,
-        host=parsed_url.host,
-        port=parsed_url.port,
-        database=parsed_url.database)
-    engine_readonly = create_engine(readonly_url)
-    ReadonlySession = sessionmaker(bind=engine_readonly)
-
-    # Try to connect now so we know if the password is OK
-    with session_scope(readonly=True) as session:
-        try:
-            count = session.query(Survey).count()
-        except sqlalchemy.exc.OperationalError as e:
-            raise WrongPassword(e)
-
-    return engine_readonly
-
-
-def initialise_schema(engine):
-    Base.metadata.create_all(engine)
-    # Analyst user creation *must* be done here. Schema upgrades need to adjust
-    # permissions of the analyst user, therefore that user is part of the
-    # schema.
-    create_analyst_user()
