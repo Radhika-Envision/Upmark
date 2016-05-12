@@ -1066,6 +1066,10 @@ angular.module('vpac.widgets', [])
             scope.$watch(
                 function watch() {
                     var tElem = $('#' + scope.target);
+                    // Ignore if element is missing - this can happen if the
+                    // form is inside a disabled ng-if, etc.
+                    if (!tElem.length)
+                        return false;
                     var tField = tElem.attr('name');
                     return tElem.scope()[tField].$dirty;
                 }, function(dirty) {

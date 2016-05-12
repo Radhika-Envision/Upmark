@@ -346,6 +346,8 @@ class AssessmentTest(base.AqHttpTestBase):
             self.assertEqual(assessment_1.approval, 'final')
             self.assertTrue(all(r.approval == 'final'
                                 for r in assessment_1.responses))
+            self.assertEqual(list(assessment_1.rnodes)[0].n_draft, 3)
+            self.assertEqual(list(assessment_1.rnodes)[1].n_draft, 0)
             self.assertEqual(list(assessment_1.rnodes)[0].n_final, 3)
             self.assertEqual(list(assessment_1.rnodes)[1].n_final, 0)
 
@@ -360,8 +362,8 @@ class AssessmentTest(base.AqHttpTestBase):
             self.assertEqual(assessment_3.approval, 'draft')
             self.assertTrue(all(r.approval == 'draft'
                                 for r in assessment_3.responses))
-            self.assertEqual(list(assessment_2.rnodes)[0].n_draft, 3)
-            self.assertEqual(list(assessment_2.rnodes)[1].n_draft, 0)
+            self.assertEqual(list(assessment_3.rnodes)[0].n_draft, 2)
+            self.assertEqual(list(assessment_3.rnodes)[1].n_draft, 0)
             self.assertEqual(list(assessment_3.rnodes)[0].n_final, 0)
             self.assertEqual(list(assessment_3.rnodes)[1].n_final, 0)
 
