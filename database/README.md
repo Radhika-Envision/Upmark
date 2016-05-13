@@ -5,9 +5,7 @@ RDS has a default backup system. By default, 7 days of full backup everyday is k
 
 This document describes how to set up a backup solution that lasts for longer
 than RDS' maximum 35 days. This directory contains a script that should be run
-as a cron job; the script creates regular manual backups that do not expire.
-
-During the backup(manual or automatic), the instance of RDS can have a trouble of service. So RDS support [Multi-AZ Deployments](http://aws.amazon.com/rds/details/multi-az/).
+as a separate Docker container.
 
 Do not deploy this script on the main web instance. Because the web instance
 has more open ports and runs our own custom code, it is more vulnerable to
@@ -24,11 +22,9 @@ not much else running.
 These are the steps of create job on web instance.
 
 1. Create EC2 instance on AWS. A nano instance should be big enough.
-1. Check out the Aquamark source, as described in [../README.md](../README.md).
-1. Build the backup Docker image:
+1. Build the backup Docker image from this directory:
 
     ```
-    cd aquamark/database
     sudo docker build -t vpac/aquamark-db .
     ```
 
@@ -104,21 +100,8 @@ backup, you need to:
     scp -i aquamark.pem ubuntu@<EC2 INSTANCE>:backup/aq_dump backup/
     ```
 
-Once downloaded, backups can be loaded into a local Postgres/Docker container
-using [`pg_restore`]. For example, if your local Aquamark Postgres instance is
-in a container called `postgres_aq`, the contents of the database can be
-**replaced** with the backup by running:
-
-```bash
-sudo docker run --rm -it -v $PWD/backup:/backup \
-    --link postgres_aq:postgres_aq \
-    postgres:9 bash
-
-# Now in the container
-dropdb -h postgres_aq -U postgres postgres
-createdb -h postgres_aq -U postgres postgres
-pg_restore -h postgres_aq -U postgres -d postgres /backup/aq_dump
-```
+Once downloaded, backups can be loaded into a local Postgres/Docker container;
+see [Database Backups](backup.md) for details.
 
 
 ## Files Stored in S3
