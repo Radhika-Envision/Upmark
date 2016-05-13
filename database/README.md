@@ -101,7 +101,7 @@ backup, you need to:
     ```
 
 Once downloaded, backups can be loaded into a local Postgres/Docker container;
-see [Database Backups](backup.md) for details.
+see [Database Backups][backup] for details.
 
 
 ## Files Stored in S3
@@ -111,7 +111,7 @@ AWS S3 stores files attached on responses. And also S3 has
 once it enabled only suspension versionning is possible. But if we give all
 the permission to the user, that user could suspend versioning and then delete
 a file. So a special policy is created that does not allow the
-`s3:SetBucketVersioning` permission. See [`../doc/aws_credentials.md`][ac] for
+`s3:SetBucketVersioning` permission. See [AWS Credentials][ac] for
 details.
 
 
@@ -124,3 +124,4 @@ details.
 [Use SSL]: http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.SSL.html
 [cron job]: cron_backup
 [versioning functionality]: http://docs.aws.amazon.com/AmazonS3/latest/dev/Versioning.html
+[backup]: ../doc/backup.md
