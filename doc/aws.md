@@ -221,9 +221,9 @@ sudo docker run -d --name recalc \
 ```
 
 [ec]: https://en.wikipedia.org/wiki/Eventual_consistency
-[db]: database/README.md
-[rd]: src/app/server/recalculate.py
-[recalc]: src/app/config/recalculate.yaml
+[db]: ../database/README.md
+[rd]: ../src/app/server/recalculate.py
+[recalc]: ../src/app/config/recalculate.yaml
 [587]: http://docs.aws.amazon.com/ses/latest/DeveloperGuide/smtp-connect.html
 
 
@@ -260,8 +260,8 @@ sudo docker run -d --name notify \
     vpac/aquamark:latest python3 ./app/server/notifications.py
 ```
 
-[db]: database/README.md
-[noti]: src/app/config/notification.yaml
+[db]: ../database/README.md
+[noti]: ../src/app/config/notification.yaml
 
 
 ### Upgrading
