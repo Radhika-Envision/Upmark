@@ -25,6 +25,18 @@ sudo docker-compose run --rm web
 Open the URL suggested by the app in your browser. The default username
 and password are `admin`/`admin`.
 
+When you run in `DEV_MODE`:
+
+ - The aggressive cache-busting mechanism for most resources is disabled. This
+   makes it easier to set breakpoints in your browser's debugger - but it means
+   you'll probably need to [disable caching] in your browser.
+ - The app will reload every time the source code changes. The `web` service is
+   configured to read the source code directly from the host (using Docker
+   volumes).
+ - Exception tracebacks will be sent to the client in the HTTP response body.
+
+
+[disable caching]: http://stackoverflow.com/a/7000899/320036
 
 ## Single-machine Deployment
 
