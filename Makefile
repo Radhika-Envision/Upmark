@@ -9,8 +9,13 @@ DOCKER_TAG := vpac/aquamark
 all: build
 
 .PHONY: build
-build:
-	echo $(VERSION) > src/app/version.txt
+build: src/app/version.txt
 	$(DOCKER_BIN) build -t $(DOCKER_TAG) src/app
 	$(DOCKER_BIN) tag $(DOCKER_TAG) $(DOCKER_TAG):latest
 	$(DOCKER_BIN) tag $(DOCKER_TAG) $(DOCKER_TAG):$(VERSION)
+
+.PHONY: version
+version: src/app/version.txt
+
+src/app/version.txt:
+	echo $(VERSION) > src/app/version.txt
