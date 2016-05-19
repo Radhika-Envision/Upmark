@@ -328,6 +328,11 @@ def start_web_server():
     else:
         ssl_opts = None
 
+    if ssl_opts is not None:
+        # Disable old, vulnerable SSL versions
+        # https://blog.qualys.com/ssllabs/2014/10/15/ssl-3-is-dead-killed-by-the-poodle-attack
+        ssl_opts['ciphers'] = 'DEFAULT:!SSLv2:!SSLv3:!RC4:!EXPORT:!DES'
+
     http_server = tornado.httpserver.HTTPServer(
         application, max_body_size=max_buffer_size, ssl_options=ssl_opts)
     http_server.listen(port)
@@ -350,9 +355,10 @@ def start_web_server():
                         break
         except OSError:
             pass
-        log.info("Try opening http://%s:%s", hostname, port)
+        protocol = ssl_opts and 'https' or 'http'
+        log.info("Try opening %s://%s:%s", protocol, hostname, port)
         if ip:
-            log.info("         or http://%s:%s", ip, port)
+            log.info("         or %s://%s:%s", protocol, ip, port)
     tornado.ioloop.IOLoop.instance().start()
 
 
