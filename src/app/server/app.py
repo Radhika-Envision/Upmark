@@ -6,6 +6,7 @@ import logging.config
 import os
 import time
 import signal
+from ssl import SSLError, SSLEOFError
 
 from alembic.config import Config
 from alembic import command
@@ -35,6 +36,28 @@ def configure_logging():
 
 
 configure_logging()
+
+
+def ssl_log_filter(record):
+    '''
+    Ignore some SSL errors which may occur if a client tries to use unsupported
+    ciphers/protocols.
+    '''
+    # http://stackoverflow.com/a/26936729/320036
+    if record.exc_info is not None:
+        e = record.exc_info[1]
+    elif len(record.args) >= 3 and isinstance(record.args[2], Exception):
+        e = record.args[2]
+    else:
+        e = None
+
+    if isinstance(e, SSLEOFError):
+        return False
+    if isinstance(e, SSLError):
+        if e.reason in {'NO_SHARED_CIPHER'}:
+            return False
+
+    return True
 
 
 import crud
@@ -329,6 +352,7 @@ def start_web_server():
         ssl_opts = None
 
     if ssl_opts is not None:
+        logging.getLogger('tornado.general').addFilter(ssl_log_filter)
         # Disable old, vulnerable SSL versions
         # https://blog.qualys.com/ssllabs/2014/10/15/ssl-3-is-dead-killed-by-the-poodle-attack
         ssl_opts['ciphers'] = 'DEFAULT:!SSLv2:!SSLv3:!RC4:!EXPORT:!DES'
