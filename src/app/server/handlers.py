@@ -257,7 +257,7 @@ class BaseHandler(tornado.web.RequestHandler):
             .count())
 
         if n_purchased_surveys == 0:
-            raise AuthzError("This survey has not been purchsed yet")
+            raise AuthzError("This survey has not been purchased yet")
 
     @property
     def organisation(self):
