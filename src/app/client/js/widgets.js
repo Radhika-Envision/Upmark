@@ -813,14 +813,20 @@ angular.module('vpac.widgets', [])
 })
 
 
-.filter('markdown', function() {
+.filter('markdown', function($sanitize) {
+    var converter = new showdown.Converter();
     return function(text) {
-        return megamark(text);
+        return $sanitize(converter.makeHtml(text));
     };
 })
 
 
-.directive('markdownEditor', [function() {
+.directive('markdownEditor', function($sanitize) {
+    var converter = new showdown.Converter({
+        strikethrough: true,
+        tables: true,
+        tasklists: true,
+    });
     function postLink(scope, elem, attrs, ngModel) {
         scope.model = {
             mode: 'rendered',
@@ -860,7 +866,7 @@ angular.module('vpac.widgets', [])
         // View to model
         ngModel.$parsers.unshift(function (inputValue) {
             if (scope.model.mode == 'rendered')
-                return domador(inputValue);
+                return toMarkdown(inputValue, {gfm: true});
             else
                 return inputValue;
         });
@@ -868,7 +874,7 @@ angular.module('vpac.widgets', [])
         // Model to view
         ngModel.$formatters.unshift(function (inputValue) {
             if (scope.model.mode == 'rendered')
-                return megamark(inputValue);
+                return $sanitize(converter.makeHtml(inputValue));
             else
                 return inputValue;
         });
@@ -924,7 +930,7 @@ angular.module('vpac.widgets', [])
             return postLink;
         }
     };
-}])
+})
 
 
 .service('docsService', [function() {
