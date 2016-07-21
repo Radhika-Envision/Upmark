@@ -831,6 +831,20 @@ angular.module('vpac.widgets', [])
             placeholder: {text: ""},
             toolbar: {
                 buttons: [
+                    {
+                        name: 'h1',
+                        action: 'append-h3',
+                        aria: 'header type 1',
+                        tagNames: ['h3'],
+                        contentDefault: '<b>H1</b>',
+                    },
+                    {
+                        name: 'h2',
+                        action: 'append-h4',
+                        aria: 'header type 2',
+                        tagNames: ['h4'],
+                        contentDefault: '<b>H2</b>',
+                    },
                     "bold", "italic", "anchor", "image",
                     "header1", "header2", "quote",
                     "orderedlist", "unorderedlist",
