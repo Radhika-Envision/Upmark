@@ -813,10 +813,14 @@ angular.module('vpac.widgets', [])
 })
 
 
-.filter('markdown', function($sanitize) {
-    var converter = new showdown.Converter();
+.filter('markdown', function() {
+    var converter = new showdown.Converter({
+        strikethrough: true,
+        tables: true,
+        tasklists: true,
+    });
     return function(text) {
-        return $sanitize(converter.makeHtml(text));
+        return converter.makeHtml(text);
     };
 })
 
@@ -851,13 +855,18 @@ angular.module('vpac.widgets', [])
                         tagNames: ['h4'],
                         contentDefault: '<b>H2</b>',
                     },
-                    "bold", "italic", "anchor", "image",
+                    "bold", "italic", "strikethrough",
+                    "subscript", "superscript",
+                    "anchor", "image",
                     "header1", "header2", "quote",
                     "orderedlist", "unorderedlist",
                     "removeFormat"
                 ],
             },
-            imageDragging: false
+            imageDragging: false,
+            buttonLabels: 'fontawesome',
+            disableDoubleReturn: true,
+            disableExtraSpaces: true,
         };
         scope.$watch('placeholder', function(placeholder) {
             scope.options.placeholder.text = placeholder;
@@ -865,10 +874,34 @@ angular.module('vpac.widgets', [])
 
         // View to model
         ngModel.$parsers.unshift(function (inputValue) {
-            if (scope.model.mode == 'rendered')
-                return toMarkdown(inputValue, {gfm: true});
-            else
+            if (scope.model.mode == 'rendered') {
+                // Work around messy HTML that gets produced due to use of
+                // contenteditable in medium editor.
+                // https://github.com/yabwe/medium-editor/issues/543
+                var doc = angular.element('<div/>').append(inputValue);
+                // Replace direct span children of list items with paragraphs,
+                // since that's how they'll be converted from Markdown.
+                doc.find('li > span').replaceWith(function() {
+                    return '<p>' + this.innerHTML + '</p>';
+                });
+                // Remove all remaining spans, which are just there to host
+                // troublesome inline styles (see bug above).
+                doc.find('span').replaceWith(function() {
+                    return this.innerHTML;
+                });
+                // Remove all other style attributes for the same reason.
+                doc.find('[style]').attr('style', null);
+                // Convert line breaks to double line breaks, which will then
+                // be saved as a separate paragraph.
+                doc.find('br').replaceWith(function() {
+                    return '<br><br>';
+                });
+                var cleanHtml = doc.html();
+                var md = toMarkdown(cleanHtml, {gfm: true});
+                return md;
+            } else {
                 return inputValue;
+            }
         });
 
         // Model to view

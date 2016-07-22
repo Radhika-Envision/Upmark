@@ -1,0 +1,13 @@
+// Put space after lists, as long as they're followed by another paragraph-like
+// element.
+ol, ul {
+    + p, + ol, + ul {
+        margin-top: 20px;
+    }
+}
+ol {
+    list-style-type: lower-alpha;
+}
+li > p {
+    margin-bottom: 5px;
+}

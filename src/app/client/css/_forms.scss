@@ -485,8 +485,19 @@ markdown-editor {
     }
 }
 
-.angular-medium-editor img {
-    max-width: 100%;
+.angular-medium-editor {
+    img {
+        max-width: 100%;
+    }
+    // Workaround for weirdo spans that get inserted
+    // https://github.com/yabwe/medium-editor/issues/543
+    // Fix also applied in code when saving contents
+    span[style] {
+        font-size: inherit !important;
+        line-height: inherit !important;
+        color: inherit !important;
+        background-color: transparent !important;
+    }
 }
 
 .angular-input-stars {
