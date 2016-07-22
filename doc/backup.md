@@ -1,43 +1,37 @@
-# Database Backups
+# Database Administration
 
 These instructions are for working with backups for your Docker-based Postgres
 database. If you are using [AWS RDS][aws] for your database, you can use its
 automated backup facility.
 
-First launch a temporary Postgres container to run the commands in, linking
-to the target postgres container:
+To work with the local database, use the `dbadmin` service. The `../backup`
+directory gets mapped as a volume, and is used as the default working directory.
 
-```bash
-DATE=$(date '+%Y-%m-%d')
-mkdir -p "backup/$DATE"
-sudo docker run --rm -it \
-    --link aquamark_postgres_1:postgres \
-    -v "$PWD/backup/<DATE>:/backup"
-    postgres:9 bash
+To open a `psql` shell:
+
+```
+mkdir -p ../backup
+sudo docker-compose run --rm dbadmin
 ```
 
-Now in the temporary container, dump the primary database, and restore it
-into your staging container (see AWS RDS console for the ENDPOINT value):
+To make a backup for today:
 
-```bash
-cd /backup
-ENDPOINT=postgres:5432
-CONN=postgresql://postgres@$ENDPOINT/postgres
-pg_dump --format custom --blobs --verbose ${CONN} --file aq_dump
+```
+TODAY=$(date '+%F')
+mkdir -p ../backup
+sudo docker-compose run --rm dbadmin \
+    pg_dump --format custom --blobs --file "local_dump-${TODAY}.psql"
 ```
 
-The password of the staging database defaults to `postgres`.
+To restore a backup from today (be very careful not when running these commands
+on the production database):
 
-You should now have a database dump in the `backup/$DATE` directory.
-
-To restore from backup, start a temporary container as above. Inside it, run:
-
-```bash
-cd /backup
-# Be very careful not to run these commands against the primary database:
-dropdb -h postgres -U postgres postgres
-createdb -h postgres -U postgres postgres
-pg_restore -h postgres -U postgres -d postgres aq_dump
 ```
+sudo docker-compose run --rm dbadmin bash -c "
+    dropdb postgres ;
+    createdb postgres &&
+    pg_restore -d postgres 'local_dump-${TODAY}.psql'"
+```
+
 
 [aws]: aws.md

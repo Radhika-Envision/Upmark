@@ -38,6 +38,7 @@ When you run in `DEV_MODE`:
 
 [disable caching]: http://stackoverflow.com/a/7000899/320036
 
+
 ## Single-machine Deployment
 
 For basic single-machine deployments, use Docker Compose. First copy
@@ -77,7 +78,7 @@ The default username and password are `admin`/`admin`.
 
 See also:
 
-- [Database Backups][backup]
+- [Database Administration][backup]
 - [Deployment on AWS][aws]
 - [Using Let's Encrypt][le]
 
