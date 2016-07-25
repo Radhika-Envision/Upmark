@@ -818,6 +818,7 @@ angular.module('vpac.widgets', [])
         strikethrough: true,
         tables: true,
         tasklists: true,
+        headerLevelStart: 3,
     });
     return function(text) {
         return converter.makeHtml(text);
@@ -830,7 +831,26 @@ angular.module('vpac.widgets', [])
         strikethrough: true,
         tables: true,
         tasklists: true,
+        headerLevelStart: 3,
     });
+    var toMardownOpts = {
+        gfm: true,
+        converters: [
+            {
+                // Start headings at level 3.
+                filter: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
+                replacement: function(innerHTML, node) {
+                    var hLevel = Number(node.tagName.charAt(1)) - 2;
+                    if (hLevel < 1)
+                        hLevel = 1;
+                    var hPrefix = '';
+                    for (var i = 0; i < hLevel; i++)
+                        hPrefix += '#';
+                    return '\n' + hPrefix + ' ' + innerHTML + '\n\n';
+                }
+            },
+        ],
+    }
     function postLink(scope, elem, attrs, ngModel) {
         scope.model = {
             mode: 'rendered',
@@ -897,7 +917,7 @@ angular.module('vpac.widgets', [])
                     return '<br><br>';
                 });
                 var cleanHtml = doc.html();
-                var md = toMarkdown(cleanHtml, {gfm: true});
+                var md = toMarkdown(cleanHtml, toMardownOpts);
                 return md;
             } else {
                 return inputValue;

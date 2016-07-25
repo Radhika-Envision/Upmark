@@ -116,16 +116,16 @@ def downgrade_qnode(qnode):
 def upgrade_measure(measure):
     desc = []
     if measure.intent:
-        desc.append("### Intent")
+        desc.append("# Intent")
         desc.append(plain_text_to_markdown(measure.intent).strip())
     if measure.inputs:
-        desc.append("### Inputs")
+        desc.append("# Inputs")
         desc.append(plain_text_to_markdown(measure.inputs).strip())
     if measure.scenario:
-        desc.append("### Scenario")
+        desc.append("# Scenario")
         desc.append(plain_text_to_markdown(measure.scenario).strip())
     if measure.questions:
-        desc.append("### Questions")
+        desc.append("# Questions")
         desc.append(plain_text_to_markdown(measure.questions).strip())
 
     if desc:
@@ -144,7 +144,7 @@ def downgrade_measure(measure):
     }
     title = 'intent'
     for l in measure.description.split('\n'):
-        match = re.match(r'### (.*)', l)
+        match = re.match(r'# (.*)', l)
         if match:
             new_title = match.group(1).lower()
             if new_title in parts:
