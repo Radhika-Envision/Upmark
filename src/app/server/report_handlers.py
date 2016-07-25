@@ -109,27 +109,22 @@ class DiffEngine:
         qnode_pairs = self.get_qnodes()
         measure_pairs = self.get_measures()
 
-        include=[
+        to_son = ToSon(
             r'/id$',
             r'/parent_id$',
             r'/title$',
-            r'/description$',
-            r'/intent$',
-            r'/inputs$',
-            r'/scenario$',
-            r'/questions$',
+            r'</description$',
             r'/response_type$',
             r'/seq$',
             # Descend
             r'/[0-9]+$',
             r'^/[0-9]+/[^/]+$',
-        ]
+        )
 
         if self.include_scores:
-            include += [
+            to_son.add(
                 r'/weight$',
-            ]
-        to_son = ToSon(include=include)
+            )
 
         qnode_pairs = self.realise_soft_deletion(qnode_pairs)
         qnode_pairs = self.remove_soft_deletion_dups(qnode_pairs)
@@ -184,11 +179,11 @@ class DiffEngine:
                     HB.survey_id == self.survey_id_b,
                     HA.id == self.hierarchy_id)
             .first())
-        to_son = ToSon(include=[
+        to_son = ToSon(
             r'/id$',
             r'/title$',
-            r'/description$'
-        ])
+            r'</description$',
+        )
         top_level_diff = [
             {
                 'type': 'survey',
@@ -295,10 +290,7 @@ class DiffEngine:
 
             # Filter for modified objects
             .filter((MA.title != MB.title) |
-                    (MA.intent != MB.intent) |
-                    (MA.inputs != MB.inputs) |
-                    (MA.scenario != MB.scenario) |
-                    (MA.questions != MB.questions) |
+                    (MA.description != MB.description) |
                     (MA.response_type != MB.response_type) |
                     (MA.weight != MB.weight) |
                     (QMA.qnode_id != QMB.qnode_id) |
@@ -554,7 +546,7 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
 
     @handlers.authz('consultant')
     def get(self, file_type):
-        to_son = ToSon(include=[r'.*'])
+        to_son = ToSon(r'.*')
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(to_son(self.config)))
         self.finish()
@@ -644,16 +636,16 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
                 raise handlers.ModelError.from_sa(e, reason="")
             cols = self.parse_cols(result.context.cursor)
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 r'/[0-9]+$',
-                r'/[0-9]+/[^/]+$'
-            ])
+                r'/[0-9]+/[^/]+$',
+            )
             f.write('{"cols": %s, "rows": [' % json_encode(to_son(cols)))
 
             first = True
-            to_son = ToSon(include=[
-                r'/[0-9]+$'
-            ])
+            to_son = ToSon(
+                r'/[0-9]+$',
+            )
             chunksize = min(limit, AdHocHandler.CHUNKSIZE)
             n_read = 0
             while n_read < limit:

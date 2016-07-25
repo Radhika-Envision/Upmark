@@ -226,10 +226,7 @@ class Exporter():
             measure_list = [{"measure_id": str(item.measure.id),
                              "qnode_id": str(item.qnode_id),
                              "title": item.measure.title,
-                             "intent": item.measure.intent,
-                             "inputs": item.measure.inputs,
-                             "scenario": item.measure.scenario,
-                             "questions": item.measure.questions,
+                             "description": item.measure.description,
                              "weight": item.measure.weight,
                              "response_type": item.measure.response_type,
                              "seq": item.seq}
@@ -463,20 +460,20 @@ class Exporter():
             worksheet.write(self.line, 3, score, format_percent)
 
             self.line = self.line + 1
-            worksheet.write(self.line, 0, "intent", format_header)
-            worksheet.write(self.line, 1, qnode_measure["intent"], format)
+            worksheet.write(self.line, 0, "Description", format_header)
+            worksheet.write(self.line, 1, qnode_measure["description"], format)
             worksheet.write(self.line, 2, '', format)
             self.line = self.line + 1
-            worksheet.write(self.line, 0, "inputs", format_header)
-            worksheet.write(self.line, 1, qnode_measure["inputs"], format)
+            worksheet.write(self.line, 0, '', format_header)
+            worksheet.write(self.line, 1, '', format)
             worksheet.write(self.line, 2, '', format)
             self.line = self.line + 1
-            worksheet.write(self.line, 0, "scenario", format_header)
-            worksheet.write(self.line, 1, qnode_measure["scenario"], format)
+            worksheet.write(self.line, 0, '', format_header)
+            worksheet.write(self.line, 1, '', format)
             worksheet.write(self.line, 2, '', format)
             self.line = self.line + 1
-            worksheet.write(self.line, 0, "questions", format_header)
-            worksheet.write(self.line, 1, qnode_measure["questions"], format)
+            worksheet.write(self.line, 0, '', format_header)
+            worksheet.write(self.line, 1, '', format)
             worksheet.write(self.line, 2, '', format)
             self.line = self.line + 1
             worksheet.write(self.line, 0, "Comments", format_header_end)

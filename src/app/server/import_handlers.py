@@ -9,6 +9,7 @@ import json
 import sqlalchemy
 import datetime
 
+import bleach
 from sqlalchemy.orm import joinedload
 from tornado import gen
 from tornado.web import asynchronous
@@ -138,7 +139,7 @@ class Importer():
 
             survey = model.Survey()
             survey.title = title
-            survey.description = description
+            survey.description = bleach.clean(description, strip=True)
             with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                 'aquamark_response_types.json')) as file:
                 survey.response_types = json.load(file)
@@ -191,7 +192,8 @@ class Importer():
                 qnode_function.hierarchy_id = hierarchy.id
                 qnode_function.seq = function_order - 1
                 qnode_function.title = function_title
-                qnode_function.description = function_description
+                qnode_function.description = bleach.clean(
+                    function_description, strip=True)
 
                 session.add(qnode_function)
                 session.flush()
@@ -214,7 +216,8 @@ class Importer():
                     qnode_process.parent_id = qnode_function.id
                     qnode_process.seq = process_order - 1
                     qnode_process.title = process_title
-                    qnode_process.description = process_description
+                    qnode_process.description = bleach.clean(
+                        process_description, strip=True)
                     # log.info("qnode_process: %s" % qnode_process)
                     session.add(qnode_process)
                     session.flush()
@@ -237,7 +240,8 @@ class Importer():
                         qnode_subprocess.parent_id = qnode_process.id
                         qnode_subprocess.seq = subprocess_order - 1
                         qnode_subprocess.title = subprocess_title
-                        qnode_subprocess.description = subprocess_description
+                        qnode_subprocess.description = bleach.clean(
+                            subprocess_description, strip=True)
 
                         session.add(qnode_subprocess)
                         session.flush()
@@ -255,14 +259,8 @@ class Importer():
                             measure_title = measure['title'].replace("{}.{}.{}.{} - ".format(
                                             function_order, process_order, subprocess_order, measure_order), "")
 
-                            measure_intent = self.parse_description(
-                                all_rows, measure['row_num'], "Intent")
-                            measure_inputs = self.parse_description(
-                                all_rows, measure['row_num'] + 1, "Inputs")
-                            measure_scenario = self.parse_description(
-                                all_rows, measure['row_num'] + 2, "Scenario")
-                            measure_questions = self.parse_description(
-                                all_rows, measure['row_num'] + 3, "Questions")
+                            measure_description = self.parse_description(
+                                all_rows, measure['row_num'], "Description")
                             # Comments are part of the response, so ignore that row
                             measure_weight = measure['weight']
 
@@ -270,10 +268,7 @@ class Importer():
                             m.survey_id = survey.id
                             m.title = measure_title
                             m.weight = measure_weight
-                            m.intent = measure_intent
-                            m.inputs = measure_inputs
-                            m.scenario = measure_scenario
-                            m.questions = measure_questions
+                            m.description = bleach.clean(measure_description, strip=True)
                             response_type = "standard"
                             if function_order == 7:
                                 response_type = "business-support-%s" % int(measure['resp_num'])

@@ -44,8 +44,8 @@
             ng-class="{strike: measure.orphan}"
             any-href="/measure/{{measure.id}}?survey={{survey.id}}">
         <td class="truncate">{{measure.title}}
-            <span class="text-muted" ng-if="measure.intent">
-                - {{measure.intent}}</span>
+            <span class="text-muted" ng-if="measure.description">
+                - {{measure.description}}</span>
         </td>
       </tr>
     </tbody>
