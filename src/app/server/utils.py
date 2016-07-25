@@ -1,3 +1,4 @@
+import bleach
 import collections
 import datetime
 import inspect
@@ -61,11 +62,45 @@ class UtilException(Exception):
 
 
 class ToSon:
-    def __init__(self, include=None, exclude=None, omit=False):
-        self.include = include and [re.compile(x) for x in include] or None
-        self.exclude = exclude and [re.compile(x) for x in exclude] or None
+    def __init__(self, *expressions, omit=False):
+        self._include = []
+        self._exclude = []
+        self._sanitise = []
         self.omit = omit
         self.visited = []
+        self.add(*expressions)
+
+    def add(self, *expressions):
+        '''
+        Add expressions for matching fields for serialisation. The expressions
+        are evaluated against the path to the field. For example:
+            - Any field called 'foo': r'/foo$'
+            - Only 'foo' in the root object: r'^/foo$'
+            - 'foo' in any direct child: r'^/\w/foo$'
+
+        Fields can be excluded by prefixing the expression with a '!':
+            - Never serialise a field called 'bar': r'!/bar$'
+
+        Unsafe fields can be sanitised (HTML) by prefixing with '<':
+            - Include and sanitise 'description' field: r'</description$'
+
+        Prefix with a '\' if you want to use one of the other special characters
+        at the start of the expression.
+        '''
+        for expression in expressions:
+            if expression.startswith('<'):
+                self._sanitise.append(re.compile(expression[1:]))
+                self._include.append(re.compile(expression[1:]))
+            elif expression.startswith('!'):
+                self._exclude.append(re.compile(expression[1:]))
+            elif expression.startswith(r'\\'):
+                self._include.append(re.compile(expression[1:]))
+            else:
+                self._include.append(re.compile(expression))
+
+    def exclude(self, *expressions):
+        for expression in expressions:
+            self._exclude.append(re.compile(expression))
 
     def __call__(self, value, path=""):
         log.debug('Visiting %s', path)
@@ -122,6 +157,9 @@ class ToSon:
         else:
             son = value
 
+        if isinstance(son, str) and any(s.search(path) for s in self._sanitise):
+            son = bleach.clean(son, strip=True)
+
         self.visited.pop()
         return son
 
@@ -134,11 +172,11 @@ class ToSon:
 
         path = "%s/%s" % (basepath, name)
         log.debug('Testing %s', path)
-        if self.include is not None:
-            if not any(item.search(path) for item in self.include):
+        if len(self._include) > 0:
+            if not any(item.search(path) for item in self._include):
                 return False
-        if self.exclude is not None:
-            if any(item.search(path) for item in self.exclude):
+        if len(self._exclude) > 0:
+            if any(item.search(path) for item in self._exclude):
                 return False
         return True
 
@@ -187,12 +225,14 @@ class updater:
         self.model = model
         self.on_absent = on_absent
 
-    def __call__(self, name, son, on_absent=None):
+    def __call__(self, name, son, on_absent=None, sanitise=False):
         if on_absent is None:
             on_absent = self.on_absent
 
         if name in son:
             value = son[name]
+            if sanitise:
+                value = bleach.clean(value, strip=True)
         elif on_absent == updater.NULLIFY:
             value = None
         elif on_absent == updater.DEFAULT:

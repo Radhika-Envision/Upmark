@@ -23,7 +23,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, hierarchy_id):
-        
+
         if hierarchy_id == '':
             self.query()
             return
@@ -42,7 +42,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
 
             self.check_browse_survey(session, self.survey_id, hierarchy_id)
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 # Any
                 r'/id$',
                 r'/title$',
@@ -53,11 +53,11 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 r'/n_measures$',
                 r'/survey/tracking_id$',
                 # Root-only
-                r'^/description$',
+                r'<^/description$',
                 r'^/structure.*',
                 # Nested
                 r'/survey$',
-            ])
+            )
             son = to_son(hierarchy)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -76,14 +76,14 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 deleted = truthy(deleted)
                 query = query.filter(model.Hierarchy.deleted == deleted)
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 r'/id$',
                 r'/title$',
                 r'/deleted$',
                 r'/n_measures$',
                 # Descend
                 r'/[0-9]+$'
-            ])
+            )
             sons = to_son(query.all())
 
         self.set_header("Content-Type", "application/json")
@@ -187,7 +187,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
     def _update(self, hierarchy, son):
         update = updater(hierarchy)
         update('title', son)
-        update('description', son)
+        update('description', son, sanitise=True)
         try:
             update('structure', son)
         except voluptuous.Error as e:

@@ -136,7 +136,7 @@ class ConversionTest(unittest.TestCase):
             },
             'dateCol': time.mktime(input.date_col.timetuple()),
         }
-        to_son = ToSon(exclude=[r'^/string_col', r'parent/int_col'], omit=True)
+        to_son = ToSon(r'!^/string_col', r'!parent/int_col', omit=True)
         self.assertEqual(output, to_son(input))
 
         output = {
@@ -145,7 +145,7 @@ class ConversionTest(unittest.TestCase):
                 'stringCol': "bar"
             }
         }
-        to_son = ToSon(include=[r'^/id_col', r'^/parent$', r'parent/string_col'])
+        to_son = ToSon(r'^/id_col', r'^/parent$', r'parent/string_col')
         self.assertEqual(output, to_son(input))
 
         output = {
@@ -155,8 +155,9 @@ class ConversionTest(unittest.TestCase):
             }
         }
         to_son = ToSon(
-            include=[r'^/id_col', r'^/parent'],
-            exclude=[r'string_col'],
+            r'^/id_col',
+            r'^/parent',
+            r'!string_col',
             omit=True)
         self.assertEqual(output, to_son(input))
 
@@ -192,13 +193,14 @@ class ConversionTest(unittest.TestCase):
         }
         outputs = [item for item in itertools.repeat(output, 3)]
 
-        to_son = ToSon(omit=True, include=[
+        to_son = ToSon(
             # Fields to match in any visisted object
             r'/int_col$',
             r'/string_col$',
             # Descend into nested objects
             r'/[0-9]+$',
-            r'/parent$'])
+            r'/parent$',
+            omit=True)
 
         # List iteration
         inputs = [item for item in itertools.repeat(input, 3)]
@@ -207,3 +209,25 @@ class ConversionTest(unittest.TestCase):
         # Generator iteration
         inputs = (item for item in itertools.repeat(input, 3))
         self.assertEqual(outputs, to_son(inputs))
+
+    def test_son_sanitise(self):
+        input = {
+            'safe_html': '<script>foo</script><a href="http://bar">bar</a><a href="javascript:fn()">baz</a>',
+            'strip_script': '<script>foo</script>',
+            'strip_protocol': '<a href="http://bar">bar</a> <a href="javascript:fn()">baz</a>',
+            'strip_click': '<span onclick="fn()">bar</span> <a onclick="fn()">baz</a>',
+            'a_dict': {
+                'strip_script': '<script>foo</script>',
+            }
+        }
+        output = {
+            'safeHtml': '<script>foo</script><a href="http://bar">bar</a><a href="javascript:fn()">baz</a>',
+            'stripScript': 'foo',
+            'stripProtocol': '<a href="http://bar">bar</a> <a>baz</a>',
+            'stripClick': 'bar <a>baz</a>',
+            'aDict': {
+                'stripScript': 'foo',
+            }
+        }
+        to_son = ToSon(r'/safe_html$', r'</strip.*$', r'^/a_dict$')
+        self.assertEqual(output, to_son(input))

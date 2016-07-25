@@ -20,7 +20,8 @@ class SystemConfigHandler(handlers.BaseHandler):
                     .all()
             except sqlalchemy.exc.StatementError:
                 raise handlers.MissingDocError("No such user")
-            to_son = ToSon(exclude=[r'/user_defined$'])
+            to_son = ToSon()
+            to_son.exclude(r'/user_defined$')
             son = {
                 'id': 'settings',
                 'settings': to_son(settings)

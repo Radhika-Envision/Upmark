@@ -50,7 +50,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
             except (sqlalchemy.exc.StatementError, ValueError):
                 raise handlers.MissingDocError("No such user")
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 r'/id$',
                 r'/name$',
                 r'/email$',
@@ -59,12 +59,11 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/deleted$',
                 # Descend into nested objects
                 r'/organisation$',
-            ], exclude=[
                 # Exclude password from response. Not really necessary because
                 # 1. it's hashed and 2. it's not in the list above. But just to
                 # be safe.
-                r'password'
-            ])
+                r'!password'
+            )
             son = to_son(user)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -113,19 +112,18 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
             query = query.order_by(model.AppUser.name)
             query = self.paginate(query)
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 r'/id$',
                 r'/name$',
                 r'/deleted$',
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/organisation$',
-            ], exclude=[
                 # Exclude password from response. Not really necessary because
                 # 1. it's hashed and 2. it's not in the list above. But just to
                 # be safe.
-                r'password'
-            ])
+                r'!password'
+            )
 
             sons = to_son(query.all())
 

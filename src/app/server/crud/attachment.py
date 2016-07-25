@@ -213,16 +213,16 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
             query = (session.query(model.Attachment)
                     .filter_by(response_id=response.id))
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 r'/id$',
                 r'/file_name$',
                 r'/url$'
-            ])
+            )
             # Don't send internal URLs to client
-            to_son_internal = ToSon(include=[
+            to_son_internal = ToSon(
                 r'/id$',
                 r'/file_name$'
-            ])
+            )
 
             sons = []
             for attachment in query.all():
