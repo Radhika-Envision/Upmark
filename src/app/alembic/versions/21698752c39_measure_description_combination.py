@@ -12,6 +12,7 @@ down_revision = '38ca8597c70'
 branch_labels = None
 depends_on = None
 
+import os
 import re
 import string
 import uuid
@@ -67,10 +68,14 @@ def upgrade():
         sa.Column('description', sa.Text(), nullable=True))
 
     session = Session(bind=op.get_bind())
-    for m in session.query(Measure).all():
-        upgrade_measure(m)
-    for q in session.query(QuestionNode).all():
-        upgrade_qnode(q)
+    os.makedirs('/tmp/aq', exist_ok=True)
+    with open('/tmp/aq/orig_desc.log', 'wb') as orig_log, \
+            open('/tmp/aq/new_desc.log', 'wb') as new_log:
+        logger = ConversionLog(orig_log, new_log)
+        for m in session.query(Measure).all():
+            upgrade_measure(m, logger)
+        for q in session.query(QuestionNode).all():
+            upgrade_qnode(q, logger)
     session.flush()
 
     op.drop_column('measure', 'questions')
@@ -103,9 +108,26 @@ def downgrade():
     op.drop_column('measure', 'description')
 
 
-def upgrade_qnode(qnode):
+class ConversionLog:
+    def __init__(self, orig_f, new_f):
+        self.orig_f = orig_f
+        self.new_f = new_f
+
+    def write(self, url, orig_desc, new_desc):
+        header = "-- {}\n".format(url)
+        self.orig_f.write(header.encode('utf-8'))
+        self.orig_f.write("{}\n\n".format(orig_desc).encode('utf-8'))
+        self.new_f.write(header.encode('utf-8'))
+        self.new_f.write("{}\n\n".format(new_desc).encode('utf-8'))
+
+
+def upgrade_qnode(qnode, logger):
     if qnode.description:
+        orig_desc = qnode.description
         qnode.description = plain_text_to_markdown(qnode.description)
+        logger.write(
+            "/#/qnode/{}?survey={}".format(qnode.id, qnode.survey_id),
+            orig_desc, qnode.description)
 
 
 def downgrade_qnode(qnode):
@@ -113,23 +135,36 @@ def downgrade_qnode(qnode):
         qnode.description = markdown_to_plain_text(qnode.description)
 
 
-def upgrade_measure(measure):
+def upgrade_measure(measure, logger):
+    desc_orig = []
     desc = []
     if measure.intent:
         desc.append("# Intent")
         desc.append(plain_text_to_markdown(measure.intent).strip())
+        desc_orig.append("# Intent")
+        desc_orig.append(measure.intent.strip())
     if measure.inputs:
         desc.append("# Inputs")
         desc.append(plain_text_to_markdown(measure.inputs).strip())
+        desc_orig.append("# Inputs")
+        desc_orig.append(measure.inputs.strip())
     if measure.scenario:
         desc.append("# Scenario")
         desc.append(plain_text_to_markdown(measure.scenario).strip())
+        desc_orig.append("# Scenario")
+        desc_orig.append(measure.scenario.strip())
     if measure.questions:
         desc.append("# Questions")
         desc.append(plain_text_to_markdown(measure.questions).strip())
+        desc_orig.append("# Questions")
+        desc_orig.append(measure.questions.strip())
 
     if desc:
+        orig_desc = '\n\n'.join(desc_orig).strip()
         measure.description = '\n\n'.join(desc).strip()
+        logger.write(
+            "/#/measure/{}?survey={}".format(measure.id, measure.survey_id),
+            orig_desc, measure.description)
 
 
 def downgrade_measure(measure):
@@ -159,6 +194,10 @@ def downgrade_measure(measure):
             setattr(measure, k, text)
 
 
+LIST_PATTERN = re.compile(r'^ *([0-9]{1,2}[.)]|[a-z]{1,2}[.)]|[-‐‑‒–—―•⁃*]) *')
+NEWLINE_PATTERN = re.compile(r'\n+')
+
+
 def plain_text_to_markdown(text):
     # Markdown has no alpha lists, so use numbers. These can be style later
     # using CSS. Also, check for nested lists. Current text uses nested lists
@@ -169,6 +208,8 @@ def plain_text_to_markdown(text):
     # b) Foo two
     # 2. Bar
     # a) Bar one
+    # - Baz one
+    # - Baz two
     #
     # So transform it to:
     #
@@ -177,47 +218,93 @@ def plain_text_to_markdown(text):
     #     1. Foo two
     # 1. Bar
     #     1. Bar one
+    #         - Baz one
+    #         - Baz two
+    #
+    # Some lists are on a single line, like:
+    #
+    # 1. Foo 2. Baz
     #
     # There are no mutli-line paragraphs.
     list_types = []
+
     ls = []
-    LIST_PATTERN = re.compile(r'^ *([0-9]{1,2}\.|[a-z]{1,2}\)|[-–*]) *')
     for l in text.split('\n'):
         if not l:
-            ls.append(l)
+            ls.append("")
             continue
-        match = LIST_PATTERN.match(l)
-        if match:
-            if match.group(1)[0] in string.ascii_letters:
+
+        match_list = LIST_PATTERN.match(l)
+        if match_list:
+            if match_list.group(1)[0] in string.ascii_letters:
+                # Use a special regular expression that only matches the same
+                # type of delimiter within the line.
                 list_type = 'alpha'
-            elif match.group(1)[0] in string.digits:
+                delimiter = match_list.group(1)[-1]
+                match_items = alpha_patterns[delimiter].findall(l)
+            elif match_list.group(1)[0] in string.digits:
+                # Use a special regular expression that only matches the same
+                # type of delimiter within the line.
                 list_type = 'num'
+                delimiter = match_list.group(1)[-1]
+                match_items = num_patterns[delimiter].findall(l)
             else:
+                # Bullets are special: construct a special regular expression
+                # that only matches the same type of bullet within the line.
                 list_type = 'bullet'
+                bullet_char = match_list.group(1)[0]
+                match_items = bullet_pattern(bullet_char).findall(l)
             if len(list_types) == 0 or list_types[-1] != list_type:
                 if list_type in list_types:
                     # Going back to top-level list
                     list_types = [list_type]
                 else:
                     list_types.append(list_type)
+            items = [text for _, text in match_items]
         else:
             list_types = []
+            items = [l]
+
         if len(list_types) > 0:
             prefix = ("    " * (len(list_types) - 1))
             if list_types[-1] in {'alpha', 'num'}:
                 # Markdown always uses numbers for ordered lists
                 prefix += "1. "
             else:
-                # Domador uses dashes for unordered lists
-                prefix += "- "
-            l = LIST_PATTERN.sub(prefix, l)
-        ls.append(l)
+                # to-markdown uses asterisks for unordered lists
+                prefix += "* "
+        else:
+            prefix = ""
+
+        for item in items:
+            ls.append("{}{}".format(prefix, item.strip()))
     text = '\n'.join(ls)
 
     # Assume all line breaks are paragraph endings
-    text = text.replace('\n', '\n\n')
+    text = NEWLINE_PATTERN.sub('\n\n', text)
 
     return text
+
+
+num_patterns = {
+    '.': re.compile(r' *([0-9]{1,2})[.](.*?(?:[^\w]|$))(?=[0-9]{1,2}[.].|$)'),
+    ')': re.compile(r' *([0-9]{1,2})[)](.*?(?:[^\w(]|$))(?=[0-9]{1,2}[)].|$)')
+}
+alpha_patterns = {
+    '.': re.compile(r' *([a-z])[.](.*?(?:[^\w]|$))(?=[a-z][.].|$)'),
+    ')': re.compile(r' *([a-z])[)](.*?(?:[^\w(]|$))(?=[a-z][)].|$)')
+}
+bullet_patterns = {}
+
+
+def bullet_pattern(char):
+    p = bullet_patterns.get(char)
+    if not p:
+        regex = r' *(['']{1,2})[.)](.*?(?:[^\w(]|$))(?=[0-9]{1,2}[.)].|$)'
+        regex = r' *([' + char + '])(.*?(?:\W|$))(?=[' + char + '].|$)'
+        p = re.compile(regex)
+        bullet_patterns[char] = p
+    return p
 
 
 def markdown_to_plain_text(text):
