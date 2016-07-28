@@ -243,11 +243,32 @@ def plain_text_to_markdown(text):
     #
     # 1. Foo 2. Baz
     #
-    # There are no mutli-line paragraphs.
-    list_types = []
+    # Some paragraphs span multiple lines, easily identified by starting with a
+    # lower-case letter.
 
+    ls_prev = text.split('\n')
+
+    # Step 1: Merge wrapped paragraphs
     ls = []
-    for l in text.split('\n'):
+    for l in ls_prev:
+        line = l.strip()
+        match_list = LIST_PATTERN.match(line)
+        if match_list:
+            # Lists will be processed later
+            pass
+        elif ls and ls[-1] and line and ls[-1][-1] != "." and line[0].islower():
+            # Special case: if a line starts with a lower-case letter, and the
+            # previous line didn't end with a full-stop, merge this line onto
+            # the last one.
+            ls[-1] = ls[-1] + " " + line
+            continue
+        ls.append(line)
+
+    # Step 2: identify and transform nested lists
+    list_types = []
+    ls_prev = ls
+    ls = []
+    for l in ls_prev:
         if not l:
             ls.append("")
             continue
@@ -274,17 +295,28 @@ def plain_text_to_markdown(text):
                 match_items = bullet_pattern(bullet_char).findall(l)
             if len(list_types) == 0 or list_types[-1] != list_type:
                 if list_type in list_types:
-                    # Going back to top-level list
-                    list_types = [list_type]
+                    # Going back to higher level list
+                    list_types = list_types[:list_types.index(list_type) + 1]
                 else:
                     list_types.append(list_type)
             items = [text for _, text in match_items]
+        elif ls and ls[-1] and ls[-1][-1] == ':' and l.strip() and l.strip()[-1] in ':;':
+            # Special case: if the previous line:
+            # - Was a list item
+            # - Ended in a colon
+            # And the current line:
+            # - Is superficially not a list item
+            # - Ends in a colon or semicolon
+            # Then this line is a sub-paragraph that introduces a sub-list.
+            prefix = "    " * len(list_types)
+            ls.append(prefix + l.strip())
+            continue
         else:
             list_types = []
             items = [l]
 
         if len(list_types) > 0:
-            prefix = ("    " * (len(list_types) - 1))
+            prefix = "    " * (len(list_types) - 1)
             if list_types[-1] in {'alpha', 'num'}:
                 # Markdown always uses numbers for ordered lists
                 prefix += "1. "
@@ -305,8 +337,8 @@ def plain_text_to_markdown(text):
 
 
 num_patterns = {
-    '.': re.compile(r' *([0-9]{1,2})[.](.*?(?:[^\w]|$))(?=[0-9]{1,2}[.].|$)'),
-    ')': re.compile(r' *([0-9]{1,2})[)](.*?(?:[^\w(]|$))(?=[0-9]{1,2}[)].|$)')
+    '.': re.compile(r' *([0-9]{1,2})[.](.*?(?:[^\w]|$))(?=[0-9]{1,2}[.][^0-9]|$)'),
+    ')': re.compile(r' *([0-9]{1,2})[)](.*?(?:[^\w(]|$))(?=[0-9]{1,2}[)][^0-9]|$)')
 }
 alpha_patterns = {
     '.': re.compile(r' *([a-z])[.](.*?(?:[^\w]|$))(?=[a-z][.].|$)'),
