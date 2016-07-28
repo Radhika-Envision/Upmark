@@ -38,6 +38,16 @@ Session = sessionmaker()
 class Survey(Base):
     __tablename__ = 'survey'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    description = Column(Text)
+
+
+class Hierarchy(Base):
+    __tablename__ = 'hierarchy'
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    survey_id = Column(
+        GUID, ForeignKey('survey.id'), nullable=False, primary_key=True)
+
+    description = Column(Text)
 
 
 class Measure(Base):
@@ -73,9 +83,13 @@ def upgrade():
             open('/tmp/aq/new_desc.log', 'wb') as new_log:
         logger = ConversionLog(orig_log, new_log)
         for m in session.query(Measure).all():
-            upgrade_measure(m, logger)
+            upgrade_measure(m, logger, "/#/measure/{0.id}?survey={0.survey_id}")
         for q in session.query(QuestionNode).all():
-            upgrade_qnode(q, logger)
+            upgrade_basic(q, logger, "/#/qnode/{0.id}?survey={0.survey_id}")
+        for h in session.query(Hierarchy).all():
+            upgrade_basic(h, logger, "/#/hierarchy/{0.id}?survey={0.survey_id}")
+        for s in session.query(Survey).all():
+            upgrade_basic(s, logger, "/#/survey/{0.id}")
     session.flush()
 
     op.drop_column('measure', 'questions')
@@ -99,6 +113,10 @@ def downgrade():
         sa.Column('questions', sa.TEXT()))
 
     session = Session(bind=op.get_bind())
+    for s in session.query(Survey).all():
+        downgrade_basic(s)
+    for h in session.query(Hierarchy).all():
+        downgrade_basic(h)
     for q in session.query(QuestionNode).all():
         downgrade_qnode(q)
     for m in session.query(Measure).all():
@@ -121,21 +139,21 @@ class ConversionLog:
         self.new_f.write("{}\n\n".format(new_desc).encode('utf-8'))
 
 
-def upgrade_qnode(qnode, logger):
-    if qnode.description:
-        orig_desc = qnode.description
-        qnode.description = plain_text_to_markdown(qnode.description)
+def upgrade_basic(entity, logger, header_fmt):
+    if entity.description:
+        orig_desc = entity.description
+        entity.description = plain_text_to_markdown(entity.description)
         logger.write(
-            "/#/qnode/{}?survey={}".format(qnode.id, qnode.survey_id),
-            orig_desc, qnode.description)
+            header_fmt.format(entity),
+            orig_desc, entity.description)
 
 
-def downgrade_qnode(qnode):
-    if qnode.description:
-        qnode.description = markdown_to_plain_text(qnode.description)
+def downgrade_basic(entity):
+    if entity.description:
+        entity.description = markdown_to_plain_text(entity.description)
 
 
-def upgrade_measure(measure, logger):
+def upgrade_measure(measure, logger, header_fmt):
     desc_orig = []
     desc = []
     if measure.intent:
@@ -163,7 +181,7 @@ def upgrade_measure(measure, logger):
         orig_desc = '\n\n'.join(desc_orig).strip()
         measure.description = '\n\n'.join(desc).strip()
         logger.write(
-            "/#/measure/{}?survey={}".format(measure.id, measure.survey_id),
+            header_fmt.format(measure),
             orig_desc, measure.description)
 
 
