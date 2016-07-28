@@ -96,6 +96,7 @@ class ResponseHandler(handlers.BaseHandler):
                 r'^/approval$',
                 r'^/version$',
                 r'^/modified$',
+                r'^/quality$',
                 # Descend
                 r'/parent$',
                 r'/measure$',
@@ -291,6 +292,7 @@ class ResponseHandler(handlers.BaseHandler):
         update('comment', son, sanitise=True)
         update('not_relevant', son)
         update('response_parts', son)
+        update('quality', son)
 
         extras = {
             'modified': datetime.datetime.utcnow(),

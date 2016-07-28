@@ -1050,6 +1050,7 @@ class Response(Observable, Versioned, Base):
     _response_parts = Column('response_parts', JSON, nullable=False)
     audit_reason = Column(Text)
     modified = Column(DateTime, nullable=False)
+    quality = Column(Float)
 
     score = Column(Float, default=0.0, nullable=False)
     approval = Column(
