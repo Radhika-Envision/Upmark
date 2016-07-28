@@ -96,30 +96,6 @@
                     <del>{{item.pair[0].weight}}</del><ins>{{item.pair[1].weight}}</ins>
                 </span>
             </p>
-            <p ng-if="item.pair[0].intent || item.pair[1].intent">
-                <span class="text-muted">Intent:</span>
-                <span semantic-diff
-                    left-obj="item.pair[0].intent || ''"
-                    right-obj="item.pair[1].intent || ''"></span>
-            </p>
-            <p ng-if="item.pair[0].inputs || item.pair[1].inputs">
-                <span class="text-muted">Inputs:</span>
-                <span semantic-diff
-                    left-obj="item.pair[0].inputs || ''"
-                    right-obj="item.pair[1].inputs || ''"></span>
-            </p>
-            <p ng-if="item.pair[0].scenario || item.pair[1].scenario">
-                <span class="text-muted">Scenario:</span>
-                <span semantic-diff
-                    left-obj="item.pair[0].scenario || ''"
-                    right-obj="item.pair[1].scenario || ''"></span>
-            </p>
-            <p ng-if="item.pair[0].questions || item.pair[1].questions">
-                <span class="text-muted">Questions:</span>
-                <span semantic-diff
-                    left-obj="item.pair[0].questions || ''"
-                    right-obj="item.pair[1].questions || ''"></span>
-            </p>
         </li>
     </ul>
 </div>

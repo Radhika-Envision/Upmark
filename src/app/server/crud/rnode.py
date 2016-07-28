@@ -68,15 +68,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
 
             self._check_authz(rnode.assessment)
 
-            exclude = [
-                # The IDs of rnodes and responses are not part of the API
-                r'^/id$',
-            ]
-            if self.current_user.role == 'clerk':
-                exclude.append(r'/score$')
-                exclude.append(r'/total_weight$')
-
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 # Fields to match from any visited object
                 r'/id$',
                 r'/score$',
@@ -94,7 +86,15 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 r'/(max_)?urgency$',
                 # Descend into nested objects
                 r'/qnode$',
-            ], exclude=exclude)
+                # The IDs of rnodes and responses are not part of the API
+                r'!^/id$',
+            )
+            if self.current_user.role == 'clerk':
+                to_son.exclude(
+                    r'/score$',
+                    r'/total_weight$',
+                )
+
             son = to_son(rnode)
 
             # Don't commit empty rnode here: GET should not change anything!
@@ -137,15 +137,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 else:
                     children = rnode.children
 
-            exclude = [
-                # The IDs of rnodes and responses are not part of the API
-                r'^/[0-9]+/id$',
-            ]
-            if self.current_user.role == 'clerk':
-                exclude.append(r'/score$')
-                exclude.append(r'/total_weight$')
-
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 # Fields to match from any visited object
                 r'/id$',
                 r'/score$',
@@ -162,7 +154,14 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/qnode$',
-            ], exclude=exclude)
+                # The IDs of rnodes and responses are not part of the API
+                r'!^/[0-9]+/id$',
+            )
+            if self.current_user.role == 'clerk':
+                to_son.exclude(
+                    r'/score$',
+                    r'/total_weight$'
+                )
             sons = to_son(children)
 
         self.set_header("Content-Type", "application/json")

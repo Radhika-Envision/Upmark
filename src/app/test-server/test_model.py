@@ -59,11 +59,10 @@ class SurveyStructureTest(base.AqModelTestBase):
             # Test association proxy from qnode to measure (via qnode_measure)
             self.assertEqual(m.parents[0], q)
 
-#            to_son = ToSon(include=[
+#            to_son = ToSon(
 #                r'/title$',
-#                r'/description$',
+#                r'</description$',
 #                r'/seq$',
-#                r'/intent$',
 #                r'/weight$',
 #                r'/response_type$',
 #                # Descend
@@ -73,7 +72,7 @@ class SurveyStructureTest(base.AqModelTestBase):
 #                r'/measures$',
 #                r'/measure_seq$',
 #                r'/[0-9]+$',
-#            ])
+#            )
 #            pprint.pprint(to_son(survey), width=120)
 
     def test_list_measures(self):

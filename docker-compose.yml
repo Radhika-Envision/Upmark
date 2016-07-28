@@ -61,6 +61,20 @@ postgres:
     POSTGRES_PASSWORD: postgres
   restart: always
 
+dbadmin:
+  image: postgres:9
+  links:
+    - postgres
+  environment:
+    PGHOST: postgres
+    PGUSER: postgres
+    PGDATABASE: postgres
+    PGPASSWORD: postgres
+  volumes:
+    - ../backup:/backup
+  working_dir: /backup
+  command: ['psql']
+
 postgresTest:
   image: postgres:9
   volumes:

@@ -80,7 +80,7 @@ class ResponseHandler(handlers.BaseHandler):
 
             self._check_authz(response.assessment)
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 # Fields to match from any visited object
                 r'/id$',
                 r'/title$',
@@ -88,7 +88,7 @@ class ResponseHandler(handlers.BaseHandler):
                 # Fields to match from only the root object
                 r'^/assessment_id$',
                 r'^/measure_id$',
-                r'^/comment$',
+                r'<^/comment$',
                 r'^/response_parts.*$',
                 r'^/not_relevant$',
                 r'^/attachments$',
@@ -101,11 +101,12 @@ class ResponseHandler(handlers.BaseHandler):
                 r'/measure$',
                 r'/assessment$',
                 r'/user$',
-            ], exclude=[
+            )
+            to_son.exclude(
                 # The IDs of rnodes and responses are not part of the API
                 r'^/id$',
                 r'/parent/id$'
-            ])
+            )
             if response_history is None:
                 son = to_son(response)
             else:
@@ -159,14 +160,7 @@ class ResponseHandler(handlers.BaseHandler):
             else:
                 responses = rnode.responses
 
-            exclude = [
-                # The IDs of rnodes and responses are not part of the API
-                r'^/[0-9]+/id$',
-            ]
-            if self.current_user.role == 'clerk':
-                exclude.append(r'/score$')
-
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 # Fields to match from any visited object
                 r'/id$',
                 r'/score$',
@@ -176,7 +170,11 @@ class ResponseHandler(handlers.BaseHandler):
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/measure$',
-            ], exclude=exclude)
+                # The IDs of rnodes and responses are not part of the API
+                r'!^/[0-9]+/id$',
+            )
+            if self.current_user.role == 'clerk':
+                to_son.exclude(r'/score$')
             sons = to_son(responses)
 
         self.set_header("Content-Type", "application/json")
@@ -290,13 +288,13 @@ class ResponseHandler(handlers.BaseHandler):
         Apply user-provided data to the saved model.
         '''
         update = updater(response)
-        update('comment', son)
+        update('comment', son, sanitise=True)
         update('not_relevant', son)
         update('response_parts', son)
 
         extras = {
             'modified': datetime.datetime.utcnow(),
-            'user_id': str(self.current_user.id)
+            'user_id': str(self.current_user.id),
         }
         if approval != '':
             extras['approval'] = approval
@@ -331,7 +329,9 @@ class ResponseHistoryHandler(handlers.Paginate, handlers.BaseHandler):
 
             versions += query.all()
 
-            to_son = ToSon(include=[
+            # Important! If you're going to include the comment field here, make
+            # sure it is cleaned first to prevent XSS attacks.
+            to_son = ToSon(
                 r'/id$',
                 r'/name$',
                 r'/approval$',
@@ -341,10 +341,9 @@ class ResponseHistoryHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/[0-9]+$',
                 r'/user$',
                 r'/organisation$',
-            ], exclude=[
                 # The IDs of rnodes and responses are not part of the API
-                r'^/[0-9]+/id$',
-            ])
+                r'!^/[0-9]+/id$',
+            )
             sons = to_son(versions)
 
             for son, version in zip(sons, versions):

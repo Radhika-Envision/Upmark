@@ -174,17 +174,18 @@ class OrgAuthzTest(base.AqHttpTestBase):
                 filter(func.lower(model.Organisation.name) ==
                        func.lower(org_name)).one()
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 r'/id$',
                 r'/name$',
                 r'/locations.*$',
                 r'/meta.*$',
-            ], exclude=[
+            )
+            to_son.exclude(
                 r'/locations/[0-9]+/id$',
                 r'/locations/[0-9]+/organisation.*$',
                 r'/meta/id$',
                 r'/meta/organisation.*$',
-            ])
+            )
             org_son = to_son(org)
 
         with base.mock_user(user_email):
@@ -301,13 +302,13 @@ class UserAuthzTest(base.AqHttpTestBase):
                 filter(func.lower(model.AppUser.email) ==
                        func.lower('clerk')).one()
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 r'/id$',
                 # Root-only: include everything
                 r'^/[^/]+$',
-            ], exclude=[
-                r'/password$'
-            ])
+                # Exclude password
+                r'!/password$'
+            )
             user_son = to_son(user)
 
             org = session.query(model.Organisation).\
@@ -371,14 +372,13 @@ class UserAuthzTest(base.AqHttpTestBase):
                 filter(func.lower(model.Organisation.name) ==
                        func.lower(new_org_name)).one()
 
-            to_son = ToSon(include=[r'/id$', r'/name$'])
+            to_son = ToSon(r'/id$', r'/name$')
             org_son = to_son(org)
 
             user = session.query(model.AppUser).\
                     filter(func.lower(model.AppUser.email) ==
                            func.lower(user_email)).one()
 
-            to_son = ToSon(include=[r'/id$', r'/name$'])
             user_son = to_son(user)
             user_son['organisation'] = org_son
 

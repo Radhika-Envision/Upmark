@@ -39,7 +39,7 @@ class ActivityHandler(handlers.BaseHandler):
 
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-    TO_SON = ToSon(include=[
+    TO_SON = ToSon(
         r'/id$',
         r'/created$',
         r'/message$',
@@ -51,9 +51,9 @@ class ActivityHandler(handlers.BaseHandler):
         r'/ob_ids$',
         r'/object_ids/?.*$',
         r'/[0-9]+$',
-    ], exclude=[
-        r'/subject/created$',
-    ])
+        # Exclusions
+        r'!/subject/created$',
+    )
 
     @tornado.web.authenticated
     @gen.coroutine
@@ -289,13 +289,13 @@ class SubscriptionHandler(handlers.BaseHandler):
                 raise handlers.ModelError(
                     "Can't view another user's subscriptions")
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 r'/created$',
                 r'/user_id$',
                 r'/subscribed$',
                 r'/ob_type$',
                 r'/ob_refs/?.*$',
-            ])
+            )
             son = to_son(subscription)
 
         self.set_header("Content-Type", "application/json")
@@ -325,14 +325,14 @@ class SubscriptionHandler(handlers.BaseHandler):
                 'subscribed': subscription_map.get(tuple(item.ob_ids), None)
             } for item in ob.action_lineage]
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 r'/id$',
                 r'/title$',
                 r'/subscribed$',
                 r'/ob_type$',
                 r'/ob_ids/?.*$',
                 r'/[0-9]+$',
-            ])
+            )
             sons = to_son(lineage)
 
         self.set_header("Content-Type", "application/json")
@@ -427,7 +427,7 @@ class SubscriptionHandler(handlers.BaseHandler):
             if len(ob_refs) < min_ or len(ob_refs) > max_:
                 raise handlers.ModelError(
                     "Wrong number of IDs for %s" % ob_type)
-            
+
         if ob_type == 'organisation':
             arglen(len(ob_refs), 1)
             query = (session.query(model.Organisation)
@@ -532,9 +532,9 @@ class CardHandler(handlers.BaseHandler):
     @tornado.web.authenticated
     def get(self):
         sons = []
-        to_son = ToSon(include=[
+        to_son = ToSon(
             r'.*'
-        ])
+        )
         with model.session_scope() as session:
             org_id = self.current_user.organisation_id
             org = (session.query(model.Organisation).get(org_id))

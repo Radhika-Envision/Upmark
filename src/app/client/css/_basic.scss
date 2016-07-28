@@ -1,0 +1,39 @@
+// Put space after lists, as long as they're followed by another paragraph-like
+// element.
+ol, ul {
+    + p, + ol, + ul {
+        margin-top: 20px;
+    }
+}
+ol {
+    list-style-type: none;
+    counter-reset: item;
+    padding-left: 40px;
+
+    > li {
+        position: relative;
+        counter-increment: item;
+    }
+    > li:before {
+        display: block;
+        position: absolute;
+        left: -40px;
+        width: 40px;
+        text-align: right;
+        padding-right: 1ex;
+        color: #444;
+    }
+    > li:before {
+        content: counter(item, lower-alpha) ')';
+    }
+
+    ol {
+        //list-style-type: roman;
+        > li:before {
+            content: counter(item, lower-roman) '.';
+        }
+    }
+}
+li > p {
+    margin-bottom: 5px;
+}

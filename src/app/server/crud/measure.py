@@ -64,7 +64,7 @@ class MeasureHandler(
                     ValueError):
                 raise handlers.MissingDocError("No such measure")
 
-            include = [
+            to_son = ToSon(
                 # Fields to match from any visited object
                 r'/id$',
                 r'/title$',
@@ -74,10 +74,7 @@ class MeasureHandler(
                 r'/survey/tracking_id$',
                 r'/survey/created$',
                 # Fields to match from only the root object
-                r'^/intent$',
-                r'^/inputs$',
-                r'^/scenario$',
-                r'^/questions$',
+                r'<^/description$',
                 r'^/weight$',
                 r'^/response_type$',
                 # Descend into nested objects
@@ -86,14 +83,12 @@ class MeasureHandler(
                 r'/hierarchy/survey$',
                 r'/hierarchy/structure.*$',
                 r'/response_types.*$'
-            ]
-            exclude = []
+            )
             if not assessment_id:
-                include += [
+                to_son.add(
                     r'/parents$',
                     r'/parents/[0-9]+$',
-                ]
-            to_son = ToSon(include=include)
+                )
             son = to_son(measure)
 
             if hierarchy_id:
@@ -164,11 +159,11 @@ class MeasureHandler(
 
             measures = query.all()
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 # Fields to match from any visited object
                 r'/id$',
                 r'/title$',
-                r'/intent$',
+                r'<^/description$',
                 r'/seq$',
                 r'/weight$',
                 r'/deleted$',
@@ -176,7 +171,7 @@ class MeasureHandler(
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/survey$',
-            ])
+            )
             sons = to_son(measures)
 
             for mson, measure in zip(sons, measures):
@@ -193,7 +188,7 @@ class MeasureHandler(
                 .get((qnode_id, self.survey_id))
             measures = qnode.measures
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 # Fields to match from any visited object
                 r'/id$',
                 r'/title$',
@@ -204,7 +199,7 @@ class MeasureHandler(
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/survey$',
-            ])
+            )
             sons = to_son(measures)
 
             # Add seq field to measures, because it's not available on the
@@ -417,8 +412,5 @@ class MeasureHandler(
         update = updater(measure)
         update('title', son)
         update('weight', son)
-        update('intent', son)
-        update('inputs', son)
-        update('scenario', son)
-        update('questions', son)
+        update('description', son, sanitise=True)
         update('response_type', son)

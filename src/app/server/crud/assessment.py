@@ -49,12 +49,12 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                     ValueError):
                 raise handlers.MissingDocError("No such assessment")
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 # Any
                 r'/id$',
                 r'/title$',
                 r'/name$',
-                r'/description$',
+                r'</description$',
                 r'/approval$',
                 r'/created$',
                 r'/deleted$',
@@ -66,7 +66,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/organisation$',
                 r'/hierarchy$',
                 r'/hierarchy/structure.*$'
-            ])
+            )
             son = to_son(assessment)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -123,7 +123,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             query = query.order_by(model.Assessment.created.desc())
             query = self.paginate(query)
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 r'/id$',
                 r'/title$',
                 r'/name$',
@@ -136,7 +136,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/organisation$',
                 r'/hierarchy$',
                 r'/survey$'
-            ])
+            )
             sons = to_son(query.all())
 
         self.set_header("Content-Type", "application/json")

@@ -155,31 +155,31 @@ class AqModelTestBase(unittest.TestCase):
         msons = [
             {
                 'title': "Foo Measure",
-                'intent': "Foo",
+                'description': "Foo",
                 'weight': 3,
                 'response_type': 'yes-no'
             },
             {
                 'title': "Bar Measure",
-                'intent': "Bar",
+                'description': "Bar",
                 'weight': 6,
                 'response_type': 'yes-no'
             },
             {
                 'title': "Baz Measure",
-                'intent': "Baz",
+                'description': "Baz",
                 'weight': 11,
                 'response_type': 'yes-no'
             },
             {
                 'title': "Unreferenced Measure 1",
-                'intent': "Deleted",
+                'description': "Deleted",
                 'weight': 12,
                 'response_type': 'yes-no'
             },
             {
                 'title': "Unreferenced Measure 2",
-                'intent': "Deleted",
+                'description': "Deleted",
                 'weight': 13,
                 'response_type': 'yes-no'
             },

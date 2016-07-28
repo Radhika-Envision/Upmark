@@ -41,14 +41,10 @@ class QuestionNodeHandler(
                     ValueError):
                 raise handlers.MissingDocError("No such category")
 
-            exclude = []
-            if self.current_user.role == 'clerk':
-                exclude.append(r'/total_weight$')
-
             self.check_browse_survey(session, self.survey_id,
                                      qnode.hierarchy_id)
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 # Fields to match from any visited object
                 r'/id$',
                 r'/title$',
@@ -60,15 +56,17 @@ class QuestionNodeHandler(
                 r'/survey/tracking_id$',
                 r'/survey/created$',
                 # Fields to match from only the root object
-                r'^/description$',
+                r'<^/description$',
                 # Ascend into nested parent objects
                 r'/parent$',
                 r'/hierarchy$',
                 r'/hierarchy/structure.*$',
                 r'/hierarchy/survey$',
                 # Response types needed here when creating a new measure
-                r'/response_types.*$'
-            ], exclude=exclude)
+                r'/response_types.*$',
+            )
+            if self.current_user.role == 'clerk':
+                to_son.exclude(r'/total_weight$')
             son = to_son(qnode)
 
             sibling_query = (session.query(model.QuestionNode)
@@ -142,11 +140,7 @@ class QuestionNodeHandler(
 
             query = self.paginate(query, optional=True)
 
-            exclude = []
-            if self.current_user.role == 'clerk':
-                exclude.append(r'/total_weight$')
-
-            include = [
+            to_son = ToSon(
                 # Fields to match from any visited object
                 r'/id$',
                 r'/title$',
@@ -156,16 +150,17 @@ class QuestionNodeHandler(
                 r'/total_weight$',
                 # Descend into nested objects
                 r'/[0-9]+$',
-            ]
+            )
             if truthy(self.get_argument('desc', False)):
-                include += [r'/description$']
+                to_son.add(r'</description$')
+            if self.current_user.role == 'clerk':
+                to_son.exclude(r'/total_weight$')
 
             qnodes = list(query.all())
             hierarchy_ids = {q.hierarchy_id for q in qnodes}
             for hid in hierarchy_ids:
                 self.check_browse_survey(session, self.survey_id, hid)
 
-            to_son = ToSon(include=include, exclude=exclude)
             sons = to_son(qnodes)
 
         self.set_header("Content-Type", "application/json")
@@ -248,21 +243,18 @@ class QuestionNodeHandler(
 
             query = self.paginate(query)
 
-            exclude = []
-            if self.current_user.role == 'clerk':
-                exclude.append(r'/total_weight$')
-
-            include = [
+            to_son = ToSon(
                 # Fields to match from any visited object
                 r'/id$',
                 r'/title$',
                 r'/deleted$',
                 r'/n_measures$'
-            ]
+            )
             if truthy(self.get_argument('desc', False)):
-                include += [r'/description$']
+                to_son.add(r'</description$')
+            if self.current_user.role == 'clerk':
+                to_son.exclude(r'/total_weight$')
 
-            to_son = ToSon(include=include, exclude=exclude)
             sons = []
             for qnode, path, deleted in query.all():
                 son = to_son(qnode)
@@ -467,7 +459,7 @@ class QuestionNodeHandler(
         '''Apply user-provided data to the saved model.'''
         update = updater(qnode)
         update('title', son)
-        update('description', son)
+        update('description', son, sanitise=True)
 
     def ordering(self):
         '''Change the order of all children in a parent's collection.'''

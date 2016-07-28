@@ -77,23 +77,21 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                     ValueError):
                 raise handlers.MissingDocError("No such survey")
 
-            exclude = []
-            if not self.has_privillege('author'):
-                exclude += [
-                    r'/response_types.*score$',
-                    r'/response_types.*formula$'
-                ]
-
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 r'/id$',
                 r'/tracking_id$',
                 r'/title$',
-                r'/description$',
+                r'</description$',
                 r'/created$',
                 r'/deleted$',
                 r'/is_editable$',
                 r'/response_types.*$'
-            ], exclude=exclude)
+            )
+            if not self.has_privillege('author'):
+                to_son.exclude(
+                    r'/response_types.*score$',
+                    r'/response_types.*formula$',
+                )
             son = to_son(survey)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -126,13 +124,13 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
             query = query.order_by(model.Survey.created.desc())
             query = self.paginate(query)
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 r'/id$',
                 r'/title$',
-                r'/description$',
+                r'</description$',
                 r'/deleted$',
                 r'/[0-9]+$'
-            ])
+            )
             sons = to_son(query.all())
 
         self.set_header("Content-Type", "application/json")
@@ -354,7 +352,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         response_types_changed = survey.response_types != son['response_types']
         update = updater(survey)
         update('title', son)
-        update('description', son)
+        update('description', son, sanitise=True)
         try:
             update('response_types', son)
         except voluptuous.Error as e:
@@ -386,14 +384,14 @@ class SurveyTrackingHandler(handlers.BaseHandler):
                 deleted = truthy(deleted)
                 query = query.filter(model.Survey.deleted == deleted)
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 r'/id$',
                 r'/title$',
                 r'/is_editable$',
                 r'/deleted$',
                 # Descend
                 r'/[0-9]+$',
-            ])
+            )
             sons = to_son(query.all())
 
         self.set_header("Content-Type", "application/json")
@@ -422,7 +420,7 @@ class SurveyHistoryHandler(handlers.BaseHandler):
                 deleted = truthy(deleted)
                 query = query.filter(model.Survey.deleted == deleted)
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 r'/id$',
                 r'/title$',
                 r'/is_editable$',
@@ -430,7 +428,7 @@ class SurveyHistoryHandler(handlers.BaseHandler):
                 r'/deleted$',
                 # Descend
                 r'/[0-9]+$',
-            ])
+            )
             sons = to_son(query.all())
 
         self.set_header("Content-Type", "application/json")

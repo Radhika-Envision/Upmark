@@ -32,19 +32,20 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
             except (sqlalchemy.exc.StatementError, ValueError):
                 raise handlers.MissingDocError("No such organisation")
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 r'/id$',
                 r'/name$',
                 r'/deleted$',
                 r'/url$',
                 r'/locations.*$',
                 r'/meta.*$',
-            ], exclude=[
+            )
+            to_son.exclude(
                 r'/locations/.*/organisation(_id)?$',
                 r'/locations/.*/id$',
                 r'/meta/organisation(_id)?$',
                 r'/meta/id$',
-            ])
+            )
             son = to_son(org)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -67,7 +68,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
             query = query.order_by(model.Organisation.name)
             query = self.paginate(query)
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 r'^/[0-9]+/id$',
                 r'/name$',
                 r'/deleted$',
@@ -77,7 +78,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/meta/asset_types.*$',
                 # Descend into list
                 r'/[0-9]+$'
-            ])
+            )
             sons = to_son(query.all())
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
@@ -264,7 +265,7 @@ class PurchasedSurveyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             if not org:
                 raise handlers.MissingDocError('No such organisation')
 
-            to_son = ToSon(include=[
+            to_son = ToSon(
                 r'/id$',
                 r'/title$',
                 r'/deleted$',
@@ -273,7 +274,7 @@ class PurchasedSurveyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 # Descend into list
                 r'/[0-9]+$',
                 r'/survey$'
-            ])
+            )
             sons = to_son(org.hierarchies)
 
         self.set_header("Content-Type", "application/json")
