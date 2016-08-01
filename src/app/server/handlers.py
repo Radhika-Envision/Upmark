@@ -199,6 +199,7 @@ SCRIPTS = [
             '/js/app.js',
             '/js/admin.js',
             '/js/home.js',
+            '/js/response.js',
             '/js/subscription.js',
             '/js/survey.js',
             '/js/survey-question.js',
