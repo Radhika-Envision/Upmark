@@ -23,25 +23,106 @@ from utils import ToSon
 log = logging.getLogger('app.test_response')
 
 
+TEST_RESPONSE_TYPES = [
+    {
+        "id": "yes-no",
+        "name": "Yes / No",
+        "parts": [
+            {
+                "id": "a",
+                "options": [
+                    {"score": 0.0, "name": "No"},
+                    {"score": 1.0, "name": "Yes"}
+                ]
+            }
+        ]
+    },
+    {
+        "id": "multi-part",
+        "name": "Multi-part Multiple Choice",
+        "parts": [
+            {
+                "id": "a",
+                "options": [
+                    {"score": 0.0, "name": "No"},
+                    {"score": 0.5, "name": "Maybe"},
+                    {"score": 1.0, "name": "Yes"}
+                ]
+            },
+            {
+                "id": "b",
+                "options": [
+                    {"score": 0.0, "name": "No"},
+                    {"score": 0.5, "name": "Maybe", "if": "a >= 0.5"},
+                    {"score": 1.0, "name": "Yes", "if": "a__i >= 2"}
+                ]
+            }
+        ],
+        "formula": "(a + b) * 0.5"
+    },
+    {
+        "id": "numerical",
+        "name": "Numerical",
+        "parts": [
+            {
+                "id": "a",
+                "lower": 0,
+                "upper": 1,
+            }
+        ]
+    },
+    {
+        "id": "numerical-multi",
+        "name": "Multi-part Numerical",
+        "parts": [
+            {
+                "id": "a",
+                "lower": 0,
+                "upper": 1,
+            },
+            {
+                "id": "b",
+                "lower": "a",
+                "upper": 1,
+            },
+            {
+                "id": "c",
+                "lower": "a",
+                "upper": "b",
+            }
+        ]
+    },
+    {
+        "id": "comment",
+        "name": "Comment Only (no score)",
+        "parts": []
+    }
+]
+
+
 class ResponseTypeTest(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
+        cls.rts = ResponseTypeCache(TEST_RESPONSE_TYPES)
+
+    def test_deserialise(self):
         proj_dir = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), '..')
 
         with open(os.path.join(
-                proj_dir, 'server', 'aquamark_response_types.json')) as file:
-            self.aq_rts = ResponseTypeCache(json.load(file))
+                proj_dir, 'client', 'default_response_types.json')) as file:
+            ResponseTypeCache(json.load(file))
 
         with open(os.path.join(
-                proj_dir, 'client', 'default_response_types.json')) as file:
-            self.simple_rts = ResponseTypeCache(json.load(file))
+                proj_dir, 'server', 'aquamark_response_types.json')) as file:
+            ResponseTypeCache(json.load(file))
 
     def test_comment_only(self):
-        rt = self.simple_rts['comment']
+        rt = self.rts['comment']
         self.assertEqual(rt.calculate_score([]), 0.0)
 
     def test_yesno(self):
-        rt = self.simple_rts['yes-no']
+        rt = self.rts['yes-no']
         self.assertEqual(rt.calculate_score([
             {'index': 0}
         ]), 0.0)
@@ -50,72 +131,72 @@ class ResponseTypeTest(unittest.TestCase):
             {'index': 1}
         ]), 1.0)
 
-    def test_four_option(self):
-        rt = self.aq_rts['business-support-1']
+    def test_numerical(self):
+        rt = self.rts['numerical']
         self.assertEqual(rt.calculate_score([
-            {'index': 0}
-        ]), 0.2)
-
-        self.assertEqual(rt.calculate_score([
-            {'index': 1}
-        ]), 0.4)
-
-        self.assertEqual(rt.calculate_score([
-            {'index': 2}
-        ]), 0.6)
-
-        self.assertEqual(rt.calculate_score([
-            {'index': 3}
-        ]), 0.8)
-
-        self.assertEqual(rt.calculate_score([
-            {'index': 4}
-        ]), 1.0)
+            {'value': 0.3}
+        ]), 0.3)
 
     def test_multipart(self):
-        rt = self.aq_rts['standard']
+        rt = self.rts['multi-part']
         self.assertAlmostEqual(rt.calculate_score([
-            {'index': 0},
-            {'index': 0},
-            {'index': 0},
-            {'index': 0},
-        ]), (0.48 + 0.12) * (0.12 + 0.08))
-
-        self.assertAlmostEqual(rt.calculate_score([
-            {'index': 4},
-            {'index': 3},
             {'index': 2},
             {'index': 1},
-        ]), (0.80 + 0.18) * (0.36 + 0.16))
+        ]), (1 + 0.5) * 0.5)
 
     def test_missing_part(self):
         with self.assertRaises(ResponseError):
-            self.simple_rts['yes-no'].calculate_score([])
+            self.rts['yes-no'].calculate_score([])
 
         with self.assertRaises(ResponseError):
-            self.aq_rts['standard'].calculate_score([
-                {'index': 4},
-                {'index': 3},
-                {'index': 2},
+            self.rts['multi-part'].calculate_score([
+                {'index': 0},
             ])
 
-    def test_missing_option(self):
+    def test_multiple_choise_out_of_range(self):
         with self.assertRaises(ResponseError):
-            self.simple_rts['yes-no'].calculate_score([
+            self.rts['yes-no'].calculate_score([
                 {'index': 2},
             ])
         with self.assertRaises(ResponseError):
-            self.simple_rts['yes-no'].calculate_score([
+            self.rts['yes-no'].calculate_score([
                 {'index': -1},
             ])
 
-    def test_predicate_violation(self):
+    def test_multiple_choice_predicate_violation(self):
         with self.assertRaises(ResponseError):
-            self.aq_rts['standard'].calculate_score([
+            self.rts['multi-part'].calculate_score([
+                {'index': 1},
                 {'index': 2},
-                {'index': 4},
-                {'index': 4},
-                {'index': 4},
+            ])
+
+    def test_numerical_predicate_violation(self):
+        with self.assertRaises(ResponseError):
+            self.rts['numerical'].calculate_score([
+                {'value': -1},
+            ])
+        with self.assertRaises(ResponseError):
+            self.rts['numerical'].calculate_score([
+                {'value': 2},
+            ])
+
+        # The first two parts set the bounds for the third
+        self.rts['numerical-multi'].calculate_score([
+            {'value': 0.4},
+            {'value': 0.6},
+            {'value': 0.5},
+        ])
+        with self.assertRaises(ResponseError):
+            self.rts['numerical-multi'].calculate_score([
+                {'value': 0.4},
+                {'value': 0.6},
+                {'value': 0.3},
+            ])
+        with self.assertRaises(ResponseError):
+            self.rts['numerical-multi'].calculate_score([
+                {'value': 0.4},
+                {'value': 0.6},
+                {'value': 0.7},
             ])
 
 

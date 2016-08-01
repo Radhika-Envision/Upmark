@@ -34,7 +34,7 @@ class ResponseType:
     def __init__(self, rt_def):
         self.id_ = rt_def['id']
         self.name = rt_def['name']
-        self.parts = [ResponsePart(p_def) for p_def in rt_def['parts']]
+        self.parts = [response_part(p_def) for p_def in rt_def['parts']]
         self.formula = rt_def.get('formula', None)
 
     def calculate_score(self, response):
@@ -42,48 +42,28 @@ class ResponseType:
             raise ResponseError("Response is incomplete")
 
         score = 0.0
-        variables = {}
+        scope = {}
         options = []
 
         # First pass: gather variables and calculate_score
         for i, (part_t, part) in enumerate(zip(self.parts, response)):
             try:
-                part_index = part['index']
-            except KeyError:
+                score += part_t.score(part)
+                scope.update(part_t.variables(part))
+            except Exception as e:
                 raise ResponseError(
-                    "Response is missing index for part %d" % (i + 1))
+                    "Response part %d is invalid: %s" % (i, e))
 
+        for i, (part_t, part) in enumerate(zip(self.parts, response)):
             try:
-                if part_index < 0:
-                    raise IndexError()
-                option = part_t.options[part_index]
-            except IndexError:
+                part_t.validate(part, scope)
+            except Exception as e:
                 raise ResponseError(
-                    "Response part %d is out of range" % (i + 1))
-
-            options.append(option)
-            if part_t.id_ is not None:
-                variables[part_t.id_] = option.score
-                variables[part_t.id_ + '__i'] = part_index
-
-            # Default is sum of all parts; may be overridden by custom formula
-            score += option.score
-
-        # Second pass: validate options according to predicates
-        for i, option in enumerate(options):
-            if option.predicate is not None:
-                try:
-                    enabled = simple_eval(option.predicate, names=variables)
-                except InvalidExpression as e:
-                    raise ExpressionError(str(e))
-                if not bool(enabled):
-                    raise ResponseError(
-                        "Response part %d is invalid: conditions for option "
-                        "'%s' are not met" % (i + 1, option.name))
+                    "Response part %d is invalid: %s" % (i, e))
 
         if self.formula is not None:
             try:
-                score = simple_eval(self.formula, names=variables)
+                score = simple_eval(self.formula, names=scope)
             except InvalidExpression as e:
                 raise ExpressionError(str(e))
 
@@ -93,16 +73,71 @@ class ResponseType:
         return "ResponseType(%s)" % (self.name or self.id_)
 
 
+def response_part(p_def):
+    if 'options' in p_def:
+        return MultipleChoice(p_def)
+    else:
+        return Numerical(p_def)
+
+
 class ResponsePart:
     def __init__(self, p_def):
         self.id_ = p_def.get('id', None)
         self.name = p_def.get('name', None)
         self.description = p_def.get('description', None)
+
+    def score(self, part):
+        return 0
+
+    def variables(self, part):
+        return {}
+
+    def validate(self, part, scope):
+        pass
+
+
+class MultipleChoice(ResponsePart):
+    def __init__(self, p_def):
+        super().__init__(p_def)
         self.options = [ResponseOption(o_def)
                         for o_def in p_def['options']]
 
+    def get_option(self, part):
+        i = part['index']
+        if i < 0:
+            raise IndexError("Option %d does not exist" % i)
+        option = self.options[i]
+        return i, option
+
+    def score(self, part):
+        _, option = self.get_option(part)
+        return option.score
+
+    def variables(self, part):
+        if self.id_ is None:
+            return {}
+        i, option = self.get_option(part)
+        return {
+            self.id_: option.score,
+            self.id_ + '__i': i,
+        }
+
+    def validate(self, part, scope):
+        i, option = self.get_option(part)
+        if not option.predicate:
+            return
+
+        try:
+            enabled = simple_eval(option.predicate, names=scope)
+        except InvalidExpression as e:
+            raise ExpressionError(str(e))
+
+        if not bool(enabled):
+            raise ResponseError(
+                "Conditions for option '%s' are not met" % option.name)
+
     def __repr__(self):
-        return "ResponsePart(%s)" % (self.name or self.id_)
+        return "MultipleChoice(%s)" % (self.name or self.id_)
 
 
 class ResponseOption:
@@ -113,3 +148,47 @@ class ResponseOption:
 
     def __repr__(self):
         return "ResponseOption(%s: %f)" % (self.name, self.score)
+
+
+class Numerical(ResponsePart):
+    def __init__(self, p_def):
+        super().__init__(p_def)
+        self.lower = p_def.get('lower')
+        self.upper = p_def.get('upper')
+
+    def score(self, part):
+        return part['value']
+
+    def variables(self, part):
+        return {
+            self.id_: part['value'],
+        }
+
+    def validate(self, part, scope):
+        if self.lower is None and self.upper is None:
+            return
+
+        if isinstance(self.lower, str):
+            try:
+                lower = simple_eval(self.lower, names=scope)
+            except InvalidExpression as e:
+                raise ExpressionError(str(e))
+        else:
+            lower = self.lower
+
+        if isinstance(self.upper, str):
+            try:
+                upper = simple_eval(self.upper, names=scope)
+            except InvalidExpression as e:
+                raise ExpressionError(str(e))
+        else:
+            upper = self.upper
+
+        score = self.score(part)
+        if lower is not None and lower > score:
+            raise ResponseError("Value must be greater than %s" % lower)
+        if upper is not None and upper < score:
+            raise ResponseError("Value must be less than %s" % upper)
+
+    def __repr__(self):
+        return "Numerical(%s)" % (self.name or self.id_)

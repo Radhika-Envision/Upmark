@@ -13,6 +13,17 @@
         ]
     },
     {
+        "id": "numerical",
+        "name": "Numerical",
+        "parts": [
+            {
+                "id": "a",
+                "lower": 0,
+                "upper": 1
+            }
+        ]
+    },
+    {
         "id": "comment",
         "name": "Comment Only (no score)",
         "parts": []
