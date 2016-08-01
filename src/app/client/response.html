@@ -9,7 +9,7 @@
         <span ng-if="debug">Sample</span>
         <span ng-if="checkRole('view_single_score') && responseType.parts.length"
                 class="text-muted pull-right" title="Score (weighted)">
-            {{stats.score * weight | number:0}}
+            {{state.score * weight | number:0}}
         </span>
     </h2>
 </div>
@@ -47,6 +47,15 @@
         </div>
     </li>
 </ol>
+
+<p class="text-muted  text-center">
+    <small ng-if="state.message">
+        <i class="fa fa-exclamation fa-fw"></i> {{state.message}}
+    </small>
+    <small ng-if="!state.message">
+        <i class="fa fa-check fa-fw"></i> OK
+    </small>
+</p>
 
 <docs>
     <i class="fa-li fa fa-check-square-o fa-border"></i>

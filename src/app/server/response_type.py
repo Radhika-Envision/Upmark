@@ -157,8 +157,8 @@ class ResponseOption:
 
         try:
             return bool(simple_eval(self.predicate, names=scope))
-        except InvalidExpression as e:
-            raise ExpressionError(str(e))
+        except Exception:
+            return False
 
     def __repr__(self):
         return "ResponseOption(%s: %f)" % (self.name, self.score)

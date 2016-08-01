@@ -26,12 +26,12 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
         return partPairs;
     };
     ResponseType.prototype.score = function(responseParts, scope) {
-        if (self.formula)
+        if (this.formula)
             return this.formula.evaluate(scope);
 
         var score = 0.0;
         this.zip(responseParts).forEach(function(part) {
-            return part.schema.score(part.data);
+            score += part.schema.score(part.data);
         });
         return score;
     };
@@ -114,7 +114,11 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
     ResponseOption.prototype.available = function(scope) {
         if (!this.predicate)
             return true;
-        return Boolean(this.predicate.evaluate(scope));
+        try {
+            return Boolean(this.predicate.evaluate(scope));
+        } catch (e) {
+            return false;
+        }
     };
 
 
@@ -217,9 +221,12 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
                 } else {
                     $scope.state.variables = rt.variables(partsR, true);
                     try {
-                        $scope.state.score = rt.score(partsR);
+                        $scope.state.score = rt.score(
+                            partsR, $scope.state.variables);
+                        rt.validate(partsR, $scope.state.variables);
+                        $scope.state.message = null;
                     } catch (e) {
-                        console.log("Can't calculate response score:", e);
+                        $scope.state.message = '' + e;
                         $scope.state.score = 0;
                     }
                 }
