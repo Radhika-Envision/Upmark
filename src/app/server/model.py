@@ -326,7 +326,7 @@ class Survey(Observable, Base):
                     # Multiple choice
                     Optional('options'): All([
                         {
-                            'score': All(Coerce(float), Range(min=0, max=1)),
+                            'score': Coerce(float),
                             'name': All(str, Length(min=1)),
                             Required('if', default=None): Any(
                                 All(str, Length(min=1)), None),
@@ -336,9 +336,9 @@ class Survey(Observable, Base):
                     ], Length(min=2)),
                     # Numerical
                     Optional('lower'): Any(
-                        All(str, Length(min=1)), float, int),
+                        All(str, Length(min=1)), Coerce(float)),
                     Optional('upper'): Any(
-                        All(str, Length(min=1)), float, int),
+                        All(str, Length(min=1)), Coerce(float)),
                 },
             ],
             Required('formula', default=None): Any(
@@ -1123,7 +1123,7 @@ class Response(Observable, Versioned, Base):
                 'note': All(str, Length(min=1)),
             },
             {
-                'value': float,
+                'value': Coerce(float),
             },
         )
     ], required=True)

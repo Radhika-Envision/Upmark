@@ -280,7 +280,10 @@ class AssessmentTest(base.AqHttpTestBase):
                 response.approval = 'final'
                 response.comment = "Response for %s" % m.title
                 session.add(response)
-                response.response_parts = [{'index': 1, 'note': "Yes"}]
+                if m.response_type == 'yes-no':
+                    response.response_parts = [{'index': 1, 'note': "Yes"}]
+                else:
+                    response.response_parts = [{'value': 1}]
 
                 response.attachments.append(model.Attachment(
                     file_name="File %s 1" % m.title,

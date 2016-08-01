@@ -103,7 +103,10 @@ class MultipleChoice(ResponsePart):
                         for o_def in p_def['options']]
 
     def get_option(self, part):
-        i = part['index']
+        try:
+            i = part['index']
+        except KeyError:
+            raise ResponseError("No index specified")
         if i < 0:
             raise IndexError("Option %d does not exist" % i)
         option = self.options[i]
@@ -157,7 +160,10 @@ class Numerical(ResponsePart):
         self.upper = p_def.get('upper')
 
     def score(self, part):
-        return part['value']
+        try:
+            return part['value']
+        except KeyError:
+            raise ResponseError("No value specified")
 
     def variables(self, part):
         return {
