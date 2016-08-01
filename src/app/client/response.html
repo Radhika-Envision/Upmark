@@ -15,21 +15,20 @@
 </div>
 
 <ol class="responses list-unstyled" ng-if="!response.notRelevant">
-    <li ng-repeat="part in responseType.parts" class="clearfix"
+    <li ng-repeat="part in state.partPairs" class="clearfix"
             ng-class="{active: $index == state.active}"
-            title="{{part.description}}">
-        <div ng-if="part.name" class="hidden-print" ng-hide="readonly">
-            <label ng-click="state.active = $index">{{part.name}}</label>
+            title="{{part.schema.description}}">
+        <div ng-if="part.schema.name" class="hidden-print" ng-hide="readonly">
+            <label ng-click="state.active = $index">{{part.schema.name}}</label>
         </div>
         <div class="hidden-print" ng-hide="readonly">
-            <div class="btn-group btn-group-justified"
-                    ng-init="pi = $index">
+            <div class="btn-group btn-group-justified">
                 <div class="btn-group"
-                        ng-repeat="o in part.options">
+                        ng-repeat="o in part.schema.options">
                 <button class="btn btn-default"
-                        ng-class="{active: active(pi, $index)}"
-                        ng-click="choose(pi, $index)"
-                        ng-disabled="!enabled(pi, $index)"
+                        ng-class="{active: part.data.index == $index}"
+                        ng-click="choose(part, o)"
+                        ng-disabled="!available(o)"
                         title="{{o.description || part.description}}">
                     <span class="index">{{$index + 1}}</span>
                     {{o.name}}
@@ -40,36 +39,31 @@
         </div>
         <div ng-class="readonly ? null : 'visible-print-block'">
             <span ng-if="part.name">{{part.name}}:</span>
-            <span ng-if="getActiveOption($index)">
-                {{getActiveOption($index).index + 1}}
-                {{getActiveOption($index).note}}
+            <span ng-if="part.data.index != null">
+                {{part.data.index + 1}}
+                {{part.data.note}}
             </span>
-            <span ng-if="!getActiveOption($index)">-</span>
+            <span ng-if="part.data.index == null">-</span>
         </div>
     </li>
 </ol>
 
-<docs ng-if="docs.length">
+<docs>
     <i class="fa-li fa fa-check-square-o fa-border"></i>
 
-    <div ng-repeat="part in docs">
-        <h3 ng-if="docs.length == 1">
-            Response {{part.name}}
+    <div ng-repeat="part in state.partPairs">
+        <h3>
+            Response Part {{$index + 1}}. {{part.schema.name}}
         </h3>
-        <h3 ng-if="docs.length > 1">
-            Response Part {{part.index + 1}}. {{part.name}}
-        </h3>
-        <p ng-if="part.description" class="formatted"
-            >{{part.description}}</p>
+        <p ng-if="part.schema.description" class="formatted"
+            >{{part.schema.description}}</p>
         <dl ng-init="pi = $index">
-            <dt ng-repeat-start="o in part.options"
-                    ng-if="o.description"
-                    ng-class="o.active ? 'active' : null">
-                Option {{o.index + 1}}. {{o.name}}
+            <dt ng-repeat-start="o in part.schema.options | filter:description"
+                    ng-class="{active: part.data.index == $index}">
+                Option {{$index + 1}}. {{o.name}}
             </dt>
             <dd ng-repeat-end class="formatted"
-                    ng-if="o.description"
-                    ng-class="o.active ? 'active' : null"
+                    ng-class="{active: part.data.index == $index}"
                 >{{o.description}}</dd>
         </dl>
     </div>
