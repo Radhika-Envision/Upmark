@@ -66,8 +66,8 @@ TEST_RESPONSE_TYPES = [
         "parts": [
             {
                 "id": "a",
-                "lower": 0,
-                "upper": 1,
+                "lower": "0",
+                "upper": "1",
             }
         ]
     },
@@ -77,13 +77,13 @@ TEST_RESPONSE_TYPES = [
         "parts": [
             {
                 "id": "a",
-                "lower": 0,
-                "upper": 1,
+                "lower": "0",
+                "upper": "1",
             },
             {
                 "id": "b",
                 "lower": "a",
-                "upper": 1,
+                "upper": "1",
             },
             {
                 "id": "c",

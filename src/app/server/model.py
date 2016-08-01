@@ -335,10 +335,8 @@ class Survey(Observable, Base):
                         }
                     ], Length(min=2)),
                     # Numerical
-                    Optional('lower'): Any(
-                        All(str, Length(min=1)), Coerce(float)),
-                    Optional('upper'): Any(
-                        All(str, Length(min=1)), Coerce(float)),
+                    Optional('lower'): Any(All(str, Length(min=1)), None),
+                    Optional('upper'): Any(All(str, Length(min=1)), None),
                 },
             ],
             Required('formula', default=None): Any(
