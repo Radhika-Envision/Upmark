@@ -78,8 +78,17 @@ class ResponseType:
             try:
                 part_t.validate(part_r, scope)
             except Exception as e:
+                if part_t.name:
+                    name = part_t.name
+                    if len(self.parts) > 1:
+                        name += " (part %d)" % (i + 1)
+                else:
+                    if len(self.parts) > 1:
+                        name = "Response part %d" % (i + 1)
+                    else:
+                        name = "Response"
                 raise ResponseError(
-                    "Response part %d is invalid: %s" % (i, e))
+                    "%s is invalid: %s" % (name, e))
 
     def calculate_score(self, response_parts):
         if response_parts is None or len(response_parts) != len(self.parts):
@@ -203,9 +212,9 @@ class Numerical(ResponsePart):
     def validate(self, part_r, scope):
         score = self.score(part_r)
         if self.lower(scope) > score:
-            raise ResponseError("Value must be greater than %s" % lower)
+            raise ResponseError("Value must be greater than %s" % self.lower(scope))
         if self.upper(scope) < score:
-            raise ResponseError("Value must be less than %s" % upper)
+            raise ResponseError("Value must be less than %s" % self.upper(scope))
 
     def __repr__(self):
         return "Numerical(%s)" % (self.name or self.id_)

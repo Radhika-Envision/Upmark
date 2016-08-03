@@ -50,9 +50,24 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
         return scope;
     };
     ResponseType.prototype.validate = function(responseParts, scope) {
-        this.zip(responseParts).forEach(function(part) {
-            part.schema.validate(part.data, scope);
-        });
+        this.zip(responseParts).forEach(function(part, index) {
+            try {
+                part.schema.validate(part.data, scope);
+            } catch (e) {
+                var name;
+                if (part.schema.name) {
+                    name = '"' + part.schema.name + '"';
+                    if (this.parts.length > 1)
+                        name += " (part " + (index + 1) + ")";
+                } else {
+                    if (this.parts.length > 1)
+                        name = "Response part " + (index + 1);
+                    else
+                        name = "Response";
+                }
+                throw name + " is incomplete: " + e;
+            }
+        }, this);
     };
     ResponseType.prototype.calculate_score = function(responseParts) {
         if (!responseParts || responseParts.length != this.parts.length)
@@ -65,7 +80,7 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
 
 
     function responsePart(pDef) {
-        if (pDef.options)
+        if (pDef.type == 'multiple_choice')
             return new MultipleChoice(pDef);
         else
             return new Numerical(pDef);
@@ -100,6 +115,8 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
         return variables;
     };
     MultipleChoice.prototype.validate = function(part, scope) {
+        if (part.index == null)
+            throw "Please choose an option";
         var option = this.options[part.index];
         if (!option.available(scope))
             throw "Conditions for option " + option.name + " are not met";
@@ -149,11 +166,17 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
         return this.upperExp.evaluate(scope);
     };
     Numerical.prototype.validate = function(part, scope) {
+        if (part.value == null)
+            throw "Please specify a value";
         var score = this.score(part);
-        if (this.lower(scope) > score)
-            throw "Must be greater than " + lower;
-        if (this.upper(scope) < score)
-            throw "Must be less than " + upper;
+        try {
+            if (this.lower(scope) > score)
+                throw "Must be at least " + this.lower(scope);
+            if (this.upper(scope) < score)
+                throw "Must be at most " + this.upper(scope);
+        } catch (e) {
+            throw e;
+        }
     };
 
     return {
@@ -222,9 +245,9 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
                 } else {
                     $scope.state.variables = rt.variables(partsR, true);
                     try {
+                        rt.validate(partsR, $scope.state.variables);
                         $scope.state.score = rt.score(
                             partsR, $scope.state.variables);
-                        rt.validate(partsR, $scope.state.variables);
                         $scope.state.message = null;
                     } catch (e) {
                         $scope.state.message = '' + e;
