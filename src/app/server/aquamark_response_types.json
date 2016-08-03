@@ -5,6 +5,7 @@
         "parts": [
             {
                 "id": "dev",
+                "type": "multiple_choice",
                 "name": "Development",
                 "description": "How evolved are our processes",
                 "options": [
@@ -17,6 +18,7 @@
             },
             {
                 "id": "doc",
+                "type": "multiple_choice",
                 "name": "Documentation",
                 "description": "How well documented is our process",
                 "options": [
@@ -29,6 +31,7 @@
             },
             {
                 "id": "cov",
+                "type": "multiple_choice",
                 "name": "Coverage & Frequency",
                 "description": "How widespread and applied are our processes",
                 "options": [
@@ -41,6 +44,7 @@
             },
             {
                 "id": "eff",
+                "type": "multiple_choice",
                 "name": "Effectiveness",
                 "description": "How well do our processes deliver the desired outcomes",
                 "options": [
@@ -59,6 +63,7 @@
         "name": "Functionality",
         "parts": [
             {
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.2, "name": "Basic", "description": "Functional need not adequately defined.\nSystem meets some needs but inadequate for all the participants requirements.\nScope for major improvement."},
                     {"score": 0.4, "name": "Limited", "description": "Functional need more broadly defined.\nSystem meets most current basic participant requirements.\nImprovements needed to fully meet current basic needs."},
@@ -74,6 +79,7 @@
         "name": "Capacity",
         "parts": [
             {
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.2, "name": "Poor", "description": "Meets some needs but inadequate for participant requirements."},
                     {"score": 0.4, "name": "Limited", "description": "Meets most current basic needs with some improvements needed."},
@@ -89,6 +95,7 @@
         "name": "Data/Information Capture",
         "parts": [
             {
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.2, "name": "Difficult", "description": "Manual systems in all areas.\nVerbal communication used in some instances.\nForms used are difficult to read and understand.\nSystems are hard to use, known to be a cause of a large number data recording errors.\nLack of commitment by those capturing."},
                     {"score": 0.4, "name": "Limited", "description": "Manual systems in use.\nForms used are of a basic design, hard to read and understand, but reduced potential for incorrect data entry.\nNo verbal data capture. Some commitment to accurate and timely capture evident."},
@@ -104,6 +111,7 @@
         "name": "Data/Information Input",
         "parts": [
             {
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.2, "name": "Poor", "description": "Data communicated for manual input in ad hoc fashion or verbally.\nData handled, transferred or keyed several times before final entry."},
                     {"score": 0.4, "name": "Limited", "description": "Data provided in written form only but requiring entry more than once in many instances."},
@@ -119,6 +127,7 @@
         "name": "Data/Information Verification",
         "parts": [
             {
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.2, "name": "Rare", "description": "Data not verified to any set procedure, and rarely done."},
                     {"score": 0.4, "name": "Limited", "description": "Some verification systems in place, not documented, carried out on an ad hoc basis."},
@@ -134,6 +143,7 @@
         "name": "Data/Information Integrity",
         "parts": [
             {
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.2, "name": "Uncontrolled", "description": "Subject to change by any person with access to the system."},
                     {"score": 0.4, "name": "Limited", "description": "Change restricted to a range of approved users. No change control procedures in place."},
@@ -149,6 +159,7 @@
         "name": "Data/Information Security",
         "parts": [
             {
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.2, "name": "No Backup", "description": "No data backup."},
                     {"score": 0.4, "name": "Limited", "description": "Uncontrolled backup to cd or floppy, at user discretion.\nServer files and software backed up on an irregular basis.\nNo copies of paper records held in secure storage."},
@@ -164,6 +175,7 @@
         "name": "Data/Information Accessibility",
         "parts": [
             {
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.2, "name": "Poor", "description": "Data, once filed is difficult to identify and recall.\nSpecialist assistance is always required to retrieve and transfer data.\nRetrieval and delivery time can cause significant disruption to the user."},
                     {"score": 0.4, "name": "Basic", "description": "Data is poorly indexed, difficult to locate and transfer.\nSpecialist assistance often required to locate and issue.\nRetrieval time is satisfactory if the assistance is available"},
@@ -179,6 +191,7 @@
         "name": "Data/Information Useable Format",
         "parts": [
             {
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.2, "name": "Incompatible", "description": "Data is an unusual format not readily useable by popular spreadsheets and databases."},
                     {"score": 0.4, "name": "Limited", "description": "Data can be transferred into the required format, but this is a repetitive operation that has to be done every time the data is recalled."},
@@ -194,6 +207,7 @@
         "name": "System Interconnectivity",
         "parts": [
             {
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.2, "name": "Poor", "description": "Few interconnections with relevant systems. Very difficult to connect to other systems, requires high level system supplier technical input to do so."},
                     {"score": 0.4, "name": "Basic", "description": "Some interconnections with relevant systems. Very difficult to connect to other systems, requires well trained IT personnel to do so, working closely with the supplier."},
@@ -209,6 +223,7 @@
         "name": "Ad-hoc Reporting / Search",
         "parts": [
             {
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.2, "name": "Poor", "description": "Almost impossible to get ad hoc reports."},
                     {"score": 0.4, "name": "Basic", "description": "Ad hoc reports can be written by specialist system users, but the system itself still imposes restrictions."},
@@ -224,6 +239,7 @@
         "name": "Standard Reporting",
         "parts": [
             {
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.2, "name": "Poor", "description": "Very few standard reports, and these are of little use to the Agency."},
                     {"score": 0.4, "name": "Basic", "description": "A limited range of standard reports is provided, but not directly appropriate to the Agencys requirements.\nStandard reports not generally used, ad hoc reports being required to overcome inadequacy of standard reports."},
@@ -239,6 +255,7 @@
         "name": "User Documentation / Online Help",
         "parts": [
             {
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.2, "name": "Poor", "description": "Limited documentation. Nearly useless. Hardly referred to by the users."},
                     {"score": 0.4, "name": "Basic", "description": "Limited in scope, covering only the fundamentals.\nDifficult to get answers to many questions that arise."},
@@ -254,6 +271,7 @@
         "name": "Usability",
         "parts": [
             {
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.2, "name": "Poor", "description": "Strong antipathy towards the system, personnel avoid using it if at all possible."},
                     {"score": 0.4, "name": "Basic", "description": "Used with reluctance, and only because the tasks cannot be completed without it."},
@@ -269,6 +287,7 @@
         "name": "Functional Spec & Software Listing",
         "parts": [
             {
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.2, "name": "Poor", "description": "Almost nothing available.\nSystem can only be maintained or modified by authors."},
                     {"score": 0.4, "name": "Basic", "description": "Some documentation available, generally fairly superficial and lacking definition in key areas.\nDetailed, system specific training required to maintain or to modify the system."},
@@ -284,6 +303,7 @@
         "name": "System Maintenance",
         "parts": [
             {
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.2, "name": "Poor", "description": "Routine software updates not implemented. No forecast of future needs and no action being taken to avoid obsolescence."},
                     {"score": 0.4, "name": "Basic", "description": "Some software updates identified but not implemented. Some superficial assessment of future needs, but no planning in place for maintenance or upgrade"},
@@ -299,6 +319,7 @@
         "name": "System Reliability and Availability",
         "parts": [
             {
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.2, "name": "Poor", "description": "Frequent down time, high level of user frustration.\nUnreliable to the point where staff doubt that it can continue in its present form."},
                     {"score": 0.4, "name": "Basic", "description": "Problems with unavailability, especially at times of peak use or during important events.\nAs a result data loss often occurs."},
@@ -314,6 +335,7 @@
         "name": "Delivering Outcome Requirements",
         "parts": [
             {
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.2, "name": "None", "description": "System never reviewed since implementation.\nAgency is unaware if system continues to deliver benefits exceeding its costs"},
                     {"score": 0.4, "name": "Basic", "description": "System has been reviewed in the past but no current review.\nAgency remains unsure if system continues to deliver benefits exceeding its costs."},

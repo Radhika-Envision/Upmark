@@ -39,13 +39,6 @@ $anim-time: 0.3s;
     z-index: 1;
 }
 
-.input-group-addon {
-    border-color: transparent;
-    &.text-muted {
-        color: #888;
-    }
-}
-
 .btn-group > .btn-group-addon {
     position: relative;
     float: left;
@@ -125,7 +118,13 @@ div[textarea-label] {
     margin-bottom: 10px;
 }
 .input-group-addon {
-    background-color: $button-bg
+    background-color: $button-bg;
+    border-bottom-width: 3px;
+    padding-bottom: 3px;
+    border-color: transparent;
+    &.text-muted {
+        color: #888;
+    }
 }
 
 .input-group-btn {
@@ -145,7 +144,7 @@ div[textarea-label] {
 
 .btn.btn-default, .btn.btn-default[disabled],
 .form-control, .form-control.active,
-.open > .dropdown-toggle.btn-default
+.open > [uib-dropdown-toggle].btn-default
 {
     color: lighten($button-fg, 30%);
     background-color: $button-bg;
@@ -186,7 +185,7 @@ div[textarea-label] {
     }
 }
 
-.btn, .form-control, .open > .dropdown-toggle.btn-default {
+.btn, .form-control, .open > [uib-dropdown-toggle].btn-default {
     &[disabled] {
         color: darken($button-bg, 20%);
         background-color: $button-bg;
@@ -199,6 +198,19 @@ div[textarea-label] {
         outline: none;
         border-color: transparent;
         box-shadow: none;
+    }
+}
+
+ul.list-form {
+    > li {
+        margin-bottom: 40px;
+    }
+    > li > ul.list-form {
+        > li {
+            margin-left: 20px;
+            margin-right: 20px;
+            margin-bottom: 20px;
+        }
     }
 }
 
@@ -339,11 +351,14 @@ div[textarea-label] {
     border-radius: 4px;
     background: #F0F0F0;
 
-    .btn-default {
+    .btn-default, .form-control, .input-group-addon {
         background: white;
     }
     textarea, .btn-default[disabled], ul.list-results {
         background: white;
+    }
+    input[type=number] {
+        text-align: center;
     }
 }
 .container.well {

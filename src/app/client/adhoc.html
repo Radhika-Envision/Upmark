@@ -42,11 +42,11 @@
             <i class="fa fa-play"></i>
             Execute
         </button>
-        <span dropdown dropdown-append-to-body>
-            <button class="btn btn-default" title="Presets" dropdown-toggle>
+        <span uib-dropdown dropdown-append-to-body>
+            <button class="btn btn-default" title="Presets" uib-dropdown-toggle>
                 <i class="fa fa-bookmark"></i></button>
 
-            <ul class="dropdown-menu dropdown-menu-right">
+            <ul uib-dropdown-menu class="dropdown-menu-right">
                 <li class="dropdown-header">Sample queries</li>
                 <li ng-repeat="sample in samples">
                     <a href ng-click="setQuery(sample.query)">

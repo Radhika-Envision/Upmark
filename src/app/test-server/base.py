@@ -169,7 +169,7 @@ class AqModelTestBase(unittest.TestCase):
                 'title': "Baz Measure",
                 'description': "Baz",
                 'weight': 11,
-                'response_type': 'yes-no'
+                'response_type': 'numerical'
             },
             {
                 'title': "Unreferenced Measure 1",

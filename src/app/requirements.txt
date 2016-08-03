@@ -12,7 +12,7 @@ slimit~=0.8.1
 SQLAlchemy~=1.0.6
 sqlparse~=0.1.16
 tornado~=4.1.0
-voluptuous~=0.8.7
+voluptuous~=0.9.1
 xlrd~=0.9.4
 XlsxWriter~=0.7.6
 # Non-functional requirements (dev tools)
