@@ -72,173 +72,148 @@
     </div>
 
     <div class="section">
-        <div class="toolbar">
-            <button class="btn btn-default btn-round" title="Add part"
-                    ng-click="addPart(rt)">
-                <i class="fa fa-fw fa-plus"></i></button>
-        </div>
         <h3>Response Parts</h3>
     </div>
-    <table class="table" ng-if="rt.parts.length">
-        <tbody ng-repeat="part in rt.parts" ng-init="rti = $index"
-                class="spaced">
-            <tr class="form-row">
-                <td class="shrink form-group" show-errors>
-                    <label for="lid{{rti}}-{{$index}}" class="sr-only">
-                        ID</label>
-                    <input type="text" class="form-control"
-                        id="lid{{rti}}-{{$index}}"
-                        name="lid{{rti}}-{{$index}}"
-                        ng-model="part.id" empty-as-null
-                        placeholder="Part ID"
-                        title="Part ID" />
-                </td>
-                <td class="form-group" show-errors>
-                    <label for="ltitle{{rti}}-{{$index}}" class="sr-only">
-                        Part name</label>
-                    <input type="text" class="form-control"
-                        id="ltitle{{rti}}-{{$index}}"
-                        name="ltitle{{rti}}-{{$index}}"
-                        ng-model="part.name" empty-as-null
-                        placeholder="{{rt.parts.length > 1 ?
-                            'Part name (required for multi-part response types)' :
-                            'Part name (optional for one-part response types)'}}"
-                        title="Part name" />
-                </td>
-                <td class="shrink">
-                    <button class="btn btn-default btn-round" title="Remove"
+    <ul class="list-unstyled list-form">
+        <li ng-repeat="part in rt.parts" ng-init="rti = $index">
+            <div class="input-group">
+                <span uib-dropdown class="input-group-btn">
+                    <button class="btn btn-success" title="Part type"
+                            uib-dropdown-toggle>
+                        {{partTypeMap[part.type]}}
+                        <i class="fa fa-triangle-down"></i>
+                    </button>
+
+                    <ul uib-dropdown-menu class="dropdown-menu-right">
+                        <li ng-repeat="pt in partTypes">
+                            <a href ng-click="setType(part, pt.name)">
+                                {{pt.desc}}
+                            </a>
+                        </li>
+                    </ul>
+                </span>
+                <label for="lid{{rti}}-{{$index}}" class="input-group-addon">
+                    ID:</label>
+                <input type="text" class="form-control"
+                    id="lid{{rti}}-{{$index}}"
+                    name="lid{{rti}}-{{$index}}"
+                    ng-model="part.id" empty-as-null
+                    placeholder="Part ID"
+                    title="Part ID" />
+                <label for="ltitle{{rti}}-{{$index}}" class="input-group-addon">
+                    Name:</label>
+                <input type="text" class="form-control"
+                    id="ltitle{{rti}}-{{$index}}"
+                    name="ltitle{{rti}}-{{$index}}"
+                    ng-model="part.name" empty-as-null
+                    placeholder="{{rt.parts.length > 1 ?
+                        'Part name (required for multi-part response types)' :
+                        'Part name (optional for one-part response types)'}}"
+                    title="Part name" />
+                <span class="input-group-btn">
+                    <button class="btn btn-default" title="Remove"
                             ng-click="remove(rt, rt.parts, part)">
                         <i class="fa fa-fw fa-trash-o"></i></button>
-                </td>
-            </tr>
-            <tr class="form-row">
-                <td class="shrink">
-                </td>
-                <td class="form-group">
-                    <textarea class="form-control autoresize"
-                        id="ltitle{{rti}}-{{$index}}"
-                        name="ltitle{{rti}}-{{$index}}"
-                        ng-model="part.description" empty-as-null
-                        placeholder="Part description (optional)"
-                        title="Part description"></textarea>
-                </td>
-            </tr>
-            <tr>
-                <td colspan="3" style="padding-left: 40px;">
-                    <div class="section section-collapse">
-                        <div class="toolbar">
-                            <button class="btn btn-default btn-round"
-                                    title="Add option"
-                                    ng-click="addOption(part)"
-                                    ng-if="part.type == 'multiple_choice'">
-                                <i class="fa fa-fw fa-plus"></i></button>
-                        </div>
-                        <h3>
-                            <label for="part_type_{{$index}}">Type</label>
-                            <select type="text" class="form-control"
-                                id="part_type_{{$index}}"
-                                ng-model="part.type"
-                                ng-options="pt.name as pt.desc for pt in partTypes">
-                            </select>
-                        </h3>
+                </span>
+            </div>
+            <div class="form-group">
+                <textarea class="form-control autoresize"
+                    id="ltitle{{rti}}-{{$index}}"
+                    name="ltitle{{rti}}-{{$index}}"
+                    ng-model="part.description" empty-as-null
+                    placeholder="Part description (optional)"
+                    title="Part description"></textarea>
+            </div>
+            <ul class="list-unstyled list-form" ng-if="part.type == 'multiple_choice'">
+                <li ng-repeat="opt in part.options"
+                        ng-init="pi = $index">
+                    <div class="input-group" show-errors>
+                        <label for="lscore{{rti}}-{{pi}}-{{$index}}"
+                                class="input-group-addon">
+                            Value:</label>
+                        <input type="number" class="form-control"
+                            id="lscore{{rti}}-{{pi}}-{{$index}}"
+                            name="lscore{{rti}}-{{pi}}-{{$index}}"
+                            ng-model="opt.score" required
+                            placeholder="Option score (0..1)"
+                            title="The score for this option (0..1)"/>
+                        <label for="lname{{rti}}-{{pi}}-{{$index}}"
+                                class="input-group-addon">
+                            Name:</label>
+                        <input type="text" class="form-control"
+                            id="lname{{rti}}-{{pi}}-{{$index}}"
+                            name="lname{{rti}}-{{pi}}-{{$index}}"
+                            ng-model="opt.name" required
+                            placeholder="Option name"
+                            title="Option name"/>
+                        <label for="lif{{rti}}-{{pi}}-{{$index}}"
+                                class="input-group-addon">
+                            Condition:</label>
+                        <input type="text" class="form-control"
+                            id="lif{{rti}}-{{pi}}-{{$index}}"
+                            name="lif{{rti}}-{{pi}}-{{$index}}"
+                            ng-model="opt['if']" empty-as-null
+                            placeholder="Condition (default: always)"
+                            title="The condition under which this option is available (expression; see docs)" />
+                        <span class="input-group-btn"
+                                ng-if="part.options.length > 2 && $last">
+                            <button class="btn btn-default"
+                                    title="Remove"
+                                    ng-click="remove(rt, part.options, opt)">
+                                <i class="fa fa-fw fa-trash-o"></i></button>
+                        </span>
                     </div>
-                    <table class="table" ng-if="part.type == 'multiple_choice'">
-                        <tbody ng-repeat="opt in part.options"
-                                ng-init="pi = $index">
-                            <tr class="form-row">
-                                <td class="form-group shrink" show-errors>
-                                    <label for="lscore{{rti}}-{{pi}}-{{$index}}"
-                                            class="sr-only">
-                                        Score</label>
-                                    <input type="number" class="form-control"
-                                        id="lscore{{rti}}-{{pi}}-{{$index}}"
-                                        name="lscore{{rti}}-{{pi}}-{{$index}}"
-                                        ng-model="opt.score" required
-                                        placeholder="Option score (0..1)"
-                                        title="The score for this option (0..1)"/>
-                                </td>
-                                <td class="form-group" show-errors>
-                                    <label for="lname{{rti}}-{{pi}}-{{$index}}"
-                                    class="sr-only">
-                                        Name</label>
-                                    <input type="text" class="form-control"
-                                        id="lname{{rti}}-{{pi}}-{{$index}}"
-                                        name="lname{{rti}}-{{pi}}-{{$index}}"
-                                        ng-model="opt.name" required
-                                        placeholder="Option name"
-                                        title="Option name"/>
-                                </td>
-                                <td class="form-group" show-errors
-                                        ng-if="rt.parts.length > 1">
-                                    <label for="lif{{rti}}-{{pi}}-{{$index}}"
-                                    class="sr-only">
-                                        Condition</label>
-                                    <input type="text" class="form-control"
-                                        id="lif{{rti}}-{{pi}}-{{$index}}"
-                                        name="lif{{rti}}-{{pi}}-{{$index}}"
-                                        ng-model="opt['if']" empty-as-null
-                                        placeholder="Condition (default: always)"
-                                        title="The condition under which this option is available (expression; see docs)" />
-                                </td>
-                                <td class="shrink">
-                                    <button class="btn btn-default btn-round"
-                                            title="Remove"
-                                            ng-click="remove(rt, part.options, opt)"
-                                            ng-style="{visibility:
-                                                part.options.length > 2 && $last ?
-                                                    null : 'hidden'}">
-                                        <i class="fa fa-fw fa-trash-o"></i></button>
-                                </td>
-                            </tr>
-                            <tr class="form-row">
-                                <td></td>
-                                <td colspan="{{rt.parts.length > 1 ? 2 : 1}}"
-                                        class="form-group" show-errors>
-                                    <label for="ldesc{{rti}}-{{pi}}-{{$index}}"
-                                    class="sr-only">
-                                        Option description</label>
-                                    <textarea type="text"
-                                        class="form-control autoresize"
-                                        id="ldesc{{rti}}-{{pi}}-{{$index}}"
-                                        name="ldesc{{rti}}-{{pi}}-{{$index}}"
-                                        ng-model="opt.description" empty-as-null
-                                        placeholder="Option description (optional)"
-                                        title="A tooltip to show to the user"
-                                        ></textarea>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <table class="table" ng-if="part.type == 'numerical'">
-                        <tbody>
-                            <tr class="form-row">
-                                <td class="form-group shrink" show-errors>
-                                    <label for="lower_{{$index}}"
-                                            class="sr-only">
-                                        Lower bound</label>
-                                    <input type="number" class="form-control"
-                                        id="lower_{{$index}}"
-                                        ng-model="opt.score" required
-                                        placeholder="Lower bound (e.g. 0.0)"
-                                        title="The lower bound (minimum) for this part (expression; see docs)"/>
-                                </td>
-                                <td class="form-group shrink" show-errors>
-                                    <label for="upper_{{$index}}"
-                                            class="sr-only">
-                                        Upper bound</label>
-                                    <input type="number" class="form-control"
-                                        id="upper_{{$index}}"
-                                        ng-model="opt.score" required
-                                        placeholder="Upper bound (e.g. 1.0)"
-                                        title="The upper bound (maximum) for this part (expression; see docs)"/>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+                    <div class="form-group" show-errors>
+                        <label for="ldesc{{rti}}-{{pi}}-{{$index}}"
+                        class="sr-only">
+                            Option description</label>
+                        <textarea type="text"
+                            class="form-control autoresize"
+                            id="ldesc{{rti}}-{{pi}}-{{$index}}"
+                            name="ldesc{{rti}}-{{pi}}-{{$index}}"
+                            ng-model="opt.description" empty-as-null
+                            placeholder="Option description (optional)"
+                            title="A tooltip to show to the user"
+                            ></textarea>
+                    </div>
+                </li>
+                <li>
+                    <button class="btn btn-default btn-block"
+                            title="Add option"
+                            ng-click="addOption(part)"
+                            ng-if="part.type == 'multiple_choice'">
+                        <i class="fa fa-fw fa-plus"></i>
+                        <span ng-if="part.options.length == 0">Add an option</span>
+                        <span ng-if="part.options.length > 0">Add another option</span>
+                    </button>
+                </li>
+            </ul>
+            <div class="input-group" ng-if="part.type == 'numerical'">
+                <label for="lower_{{$index}}" class="input-group-addon">
+                    Lower bound:</label>
+                <input type="number" class="form-control"
+                    id="lower_{{$index}}"
+                    ng-model="part.lower"
+                    placeholder="E.g. 0.0 (default: -infinity)"
+                    title="The lower bound (minimum) for this part (expression; see docs)"/>
+                <label for="upper_{{$index}}" class="input-group-addon">
+                    Upper bound:</label>
+                <input type="number" class="form-control"
+                    id="upper_{{$index}}"
+                    ng-model="part.upper"
+                    placeholder="E.g. 1.0 (default: +infinity)"
+                    title="The upper bound (maximum) for this part (expression; see docs)"/>
+            </div>
+        </li>
+        <li>
+            <button class="btn btn-default btn-block" title="Add part"
+                    ng-click="addPart(rt)">
+                <i class="fa fa-fw fa-plus"></i>
+                <span ng-if="rt.parts.length == 0">Add a response part</span>
+                <span ng-if="rt.parts.length > 0">Add another response part</span>
+            </button>
+        </li>
+    </ul>
 
     <p ng-if="!rt.parts.length">
         This response type has no response parts. You can create one by

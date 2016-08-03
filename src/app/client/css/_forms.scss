@@ -201,6 +201,19 @@ div[textarea-label] {
     }
 }
 
+ul.list-form {
+    > li {
+        margin-bottom: 40px;
+    }
+    > li > ul.list-form {
+        > li {
+            margin-left: 20px;
+            margin-right: 20px;
+            margin-bottom: 20px;
+        }
+    }
+}
+
 @include keyframes(pulse-scale) {
     from {
         transform: scale(1);

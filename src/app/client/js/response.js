@@ -358,13 +358,19 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
         var part = {
             id: id,
             name: 'Response part ' + id.toUpperCase(),
-            options: [
-                {score: 0, name: 'No', 'if': null},
-                {score: 1, name: 'Yes', 'if': null}
-            ]
         };
+        $scope.setType(part, 'multiple_choice');
         rt.parts.push(part);
         $scope.updateFormula(rt);
+    };
+    $scope.setType = function(part, type) {
+        part.type = type;
+        if (type == 'multiple_choice' && !part.options) {
+            part.options = [
+                {score: 0, name: 'No', 'if': null},
+                {score: 1, name: 'Yes', 'if': null}
+            ];
+        }
     };
     $scope.addOption = function(part) {
         part.options.push({
@@ -401,7 +407,11 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
     $scope.partTypes = [
         {name: 'multiple_choice', desc: 'Multiple choice'},
         {name: 'numerical', desc: 'Numerical'},
-    ]
+    ];
+    $scope.partTypeMap = $scope.partTypes.reduce(function(ts, t){
+        ts[t.name] = t.desc;
+        return ts;
+    }, {});
 })
 
 
