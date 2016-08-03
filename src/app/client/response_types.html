@@ -1,4 +1,3 @@
-<div>
 <div class="section" ng-show="!rtEdit.rt">
     <div class="toolbar">
         <button class="btn btn-default btn-round" title="Add new"
@@ -130,12 +129,20 @@
                         <div class="toolbar">
                             <button class="btn btn-default btn-round"
                                     title="Add option"
-                                    ng-click="addOption(part)">
+                                    ng-click="addOption(part)"
+                                    ng-if="part.type == 'multiple_choice'">
                                 <i class="fa fa-fw fa-plus"></i></button>
                         </div>
-                        <h3>Options</h3>
+                        <h3>
+                            <label for="part_type_{{$index}}">Type</label>
+                            <select type="text" class="form-control"
+                                id="part_type_{{$index}}"
+                                ng-model="part.type"
+                                ng-options="pt.name as pt.desc for pt in partTypes">
+                            </select>
+                        </h3>
                     </div>
-                    <table class="table">
+                    <table class="table" ng-if="part.type == 'multiple_choice'">
                         <tbody ng-repeat="opt in part.options"
                                 ng-init="pi = $index">
                             <tr class="form-row">
@@ -171,7 +178,7 @@
                                         name="lif{{rti}}-{{pi}}-{{$index}}"
                                         ng-model="opt['if']" empty-as-null
                                         placeholder="Condition (default: always)"
-                                        title="The condition under which this option is available (expression)" />
+                                        title="The condition under which this option is available (expression; see docs)" />
                                 </td>
                                 <td class="shrink">
                                     <button class="btn btn-default btn-round"
@@ -202,6 +209,32 @@
                             </tr>
                         </tbody>
                     </table>
+                    <table class="table" ng-if="part.type == 'numerical'">
+                        <tbody>
+                            <tr class="form-row">
+                                <td class="form-group shrink" show-errors>
+                                    <label for="lower_{{$index}}"
+                                            class="sr-only">
+                                        Lower bound</label>
+                                    <input type="number" class="form-control"
+                                        id="lower_{{$index}}"
+                                        ng-model="opt.score" required
+                                        placeholder="Lower bound (e.g. 0.0)"
+                                        title="The lower bound (minimum) for this part (expression; see docs)"/>
+                                </td>
+                                <td class="form-group shrink" show-errors>
+                                    <label for="upper_{{$index}}"
+                                            class="sr-only">
+                                        Upper bound</label>
+                                    <input type="number" class="form-control"
+                                        id="upper_{{$index}}"
+                                        ng-model="opt.score" required
+                                        placeholder="Upper bound (e.g. 1.0)"
+                                        title="The upper bound (maximum) for this part (expression; see docs)"/>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </td>
             </tr>
         </tbody>
@@ -226,33 +259,59 @@
 
 <docs>
     <i class="fa-li fa fa-sliders fa-border"></i>
+    <h3>Defining a Response Type</h3>
     <p>
         Each measure that is part of this program will need to use one of these
         response types. They determine the types of answers that a respondent
         can give, and how the scores are calculated.
-    </p>
-    <p ng-if="rtEdit.rt">
-        Responses can have any number of parts. Those with no parts will not
-        contribute to a respondent's score. Otherwise, the score is calculated
-        by combining the scores of the parts. By default, the score is simply
-        the sum of all the parts - however that can be customised by setting
-        the <i>Formula</i>. For example, a formula of <i>(a + b) * c</i> would
-        add parts <i>a</i> and <i>b</i> together, and then multiply by <i>c</i>
-        - where <i>a</i>, <i>b</i> and <i>c</i> are the IDs of the response
-        parts.
-    </p>
-    <p ng-if="rtEdit.rt.parts.length">
-        The <i>Condition</i> field defines the conditions under which a
-        respondent can select each option. For example, <i>a > 0.5</i> means the
-        option is only available when the score of part <i>a</i> is greater than
-        <i>0.5</i>, while <i>a__i > 2</i> means the option is avialable when
-        item 3 or above has been selected for part <i>a</i>.
     </p>
     <p ng-if="edit.model.id || duplicating">
         <b>Be careful</b> when editing existing response types: the ID fields
         are used to link the types with the measures. If you remove a type or
         change its ID, be sure to update the measures.
     </p>
-</docs>
 
-</div>
+    <div ng-if="rtEdit.rt">
+      <h4>Score calculation</h4>
+      <p>
+          Responses can have any number of parts. Those with no parts will not
+          contribute to a respondent's score. Otherwise, the score is calculated
+          by combining the scores of the parts. By default, the score is simply
+          the sum of all the parts - however that can be customised by setting
+          the <i>Formula</i>. For example, a formula of <i>(a + b) * c</i> would
+          add parts <i>a</i> and <i>b</i> together, and then multiply by <i>c</i>
+          - where <i>a</i>, <i>b</i> and <i>c</i> are the IDs of the response
+          parts.
+      </p>
+
+      <h4>Multiple choice parts</h4>
+      <p>
+          A multiple choice part has several options for the user to choose
+          from. Each option has a score and an index, either of which can be
+          used in your formula to determine the overall score of the response.
+          By default, only the score is used.
+      </p>
+      <p>
+          The <i>Condition</i> field defines the conditions under which a
+          respondent can select each option. For example, <i>a > 0.5</i> means the
+          option is only available when the score of part <i>a</i> is greater than
+          <i>0.5</i>, while <i>a__i > 2</i> means the option is avialable when
+          item 3 or above has been selected for part <i>a</i>.
+      </p>
+
+      <h4>Numerical parts</h4>
+      <p>
+          A numerical response part lets the user enter a number instead of
+          choosing an option.
+      </p>
+      <p>
+          The <i>Lower bound</i> and <i>Upper bound</i> fields define the range
+          of numbers a respondent can select. For example,
+          if the expression for <i>lower bound</i> is <i>0.5</i>, the value must
+          be greater than or equal to <i>0.5</i>. Other parts
+          can be referred to, e.g. an <i>upper bound</i> of <i>a</i> means the
+          value must be less than or equal to the value given for part
+          <i>a</i>.
+      </p>
+    </div>
+</docs>

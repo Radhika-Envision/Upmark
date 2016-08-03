@@ -304,4 +304,101 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
 })
 
 
+.controller('ResponseTypeEditorCtrl', function($scope, Numbers) {
+    $scope.rtEdit = {};
+    $scope.editRt = function(model, index) {
+        var rt = angular.copy(model.responseTypes[index]);
+        $scope.rtEdit = {
+            model: model,
+            rt: rt,
+            i: index
+        };
+    };
+    $scope.saveRt = function() {
+        var rts = $scope.rtEdit.model.responseTypes;
+        var rt = angular.copy($scope.rtEdit.rt);
+        rt.parts.forEach(function (part) {
+            // Clean up unused fields
+            if (part.type != 'multiple_choice')
+                delete part.options;
+            if (part.type != 'numerical') {
+                delete part.lower;
+                delete part.upper;
+            }
+        });
+        rts[$scope.rtEdit.i] = angular.copy(rt);
+        $scope.rtEdit = {};
+    };
+    $scope.cancelRt = function() {
+        $scope.rtEdit = {};
+    };
+    $scope.addRt = function(model) {
+        var i = model.responseTypes.length + 1;
+        model.responseTypes.push({
+            id: 'response_' + i,
+            name: 'Response Type ' + i,
+            parts: []
+        })
+    };
+    $scope.addPart = function(rt) {
+        var ids = {};
+        for (var i = 0; i < rt.parts.length; i++) {
+            ids[rt.parts[i].id] = true;
+        }
+        var id;
+        for (var i = 0; i <= rt.parts.length; i++) {
+            id = Numbers.idOf(i);
+            if (!ids[id])
+                break;
+        }
+        var part = {
+            id: id,
+            name: 'Response part ' + id.toUpperCase(),
+            options: [
+                {score: 0, name: 'No', 'if': null},
+                {score: 1, name: 'Yes', 'if': null}
+            ]
+        };
+        rt.parts.push(part);
+        $scope.updateFormula(rt);
+    };
+    $scope.addOption = function(part) {
+        part.options.push({
+            score: 0,
+            name: 'Option ' + (part.options.length + 1)
+        })
+    };
+    $scope.updateFormula = function(rt) {
+        if (rt.parts.length <= 1) {
+            rt.formula = null;
+            return;
+        }
+        var formula = "";
+        for (var i = 0; i < rt.parts.length; i++) {
+            var part = rt.parts[i];
+            if (i > 0)
+                formula += " + ";
+            if (part.id)
+                formula += part.id;
+            else
+                formula += "?";
+        }
+        rt.formula = formula;
+    };
+    $scope.remove = function(rt, list, item) {
+        var i = list.indexOf(item);
+        if (i < 0)
+            return;
+        list.splice(i, 1);
+        if (item.options)
+            $scope.updateFormula(rt);
+    };
+
+    $scope.partTypes = [
+        {name: 'multiple_choice', desc: 'Multiple choice'},
+        {name: 'numerical', desc: 'Numerical'},
+    ]
+})
+
+
 ;

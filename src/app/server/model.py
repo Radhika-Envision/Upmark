@@ -318,6 +318,7 @@ class Survey(Observable, Base):
                     # Common fields
                     Required('id', default=None): Any(
                         All(str, Length(min=1)), None),
+                    'type': Any('multiple_choice', 'numerical'),
                     Required('name', default=None): Any(
                         All(str, Length(min=1)), None),
                     Required('description', default=None): Any(

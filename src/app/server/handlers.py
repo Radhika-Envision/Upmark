@@ -125,7 +125,6 @@ STYLESHEETS = [
         'hrefs': [
             '/.bower_components/angular-hotkeys/build/hotkeys.css',
             '/.bower_components/angular-ui-select/dist/select.css',
-            '/.bower_components/angular-ui-tree/dist/angular-ui-tree.min.css',
             '/.bower_components/medium-editor/dist/css/medium-editor.min.css',
             '/.bower_components/medium-editor/dist/css/themes/default.min.css'
         ]
@@ -176,7 +175,6 @@ SCRIPTS = [
             '/.bower_components/angular-select-text/src/angular-select-text.js',
             '/.bower_components/angular-timeago/dist/angular-timeago.js',
             '/.bower_components/angular-ui-select/dist/select.js',
-            '/.bower_components/angular-ui-tree/dist/angular-ui-tree.js',
             '/.bower_components/angular-ui-sortable/sortable.js',
             '/.bower_components/dropzone/dist/dropzone.js',
             '/.bower_components/jqueryui-touch-punch/jquery.ui.touch-punch.js',

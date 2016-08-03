@@ -5,6 +5,7 @@
         "parts": [
             {
                 "id": "a",
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.0, "name": "No"},
                     {"score": 1.0, "name": "Yes"}
@@ -18,6 +19,7 @@
         "parts": [
             {
                 "id": "a",
+                "type": "numerical",
                 "lower": "0",
                 "upper": "1"
             }

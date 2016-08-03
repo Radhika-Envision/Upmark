@@ -1,7 +1,8 @@
 'use strict';
 
 angular.module('wsaa.surveyQuestions', [
-    'ngResource', 'ngSanitize', 'ui.select', 'ui.tree', 'ui.sortable',
+    'ngResource', 'ngSanitize',
+    'ui.select', 'ui.sortable',
     'wsaa.admin'])
 
 
@@ -142,13 +143,10 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
-.controller('SurveyCtrl', [
-        '$scope', 'Survey', 'routeData', 'Editor', 'questionAuthz', 'hotkeys',
-        '$location', 'Notifications', 'Current', 'Hierarchy', 'layout',
-        'format', '$http', 'Numbers', 'Organisation', 'Assessment',
-        function($scope, Survey, routeData, Editor, authz, hotkeys,
-                 $location, Notifications, current, Hierarchy, layout, format,
-                 $http, Numbers, Organisation, Assessment) {
+.controller('SurveyCtrl',
+        function($scope, Survey, routeData, Editor, questionAuthz, hotkeys,
+                 $location, Notifications, Current, Hierarchy, layout, format,
+                 $http, Organisation, Assessment) {
 
     $scope.layout = layout;
     if (routeData.survey) {
@@ -187,84 +185,6 @@ angular.module('wsaa.surveyQuestions', [
         $scope.duplicating = false;
     }
 
-    $scope.rtEdit = {};
-    $scope.editRt = function(model, index) {
-        $scope.rtEdit = {
-            model: model,
-            rt: angular.copy(model.responseTypes[index]),
-            i: index
-        };
-    };
-    $scope.saveRt = function() {
-        var rts = $scope.rtEdit.model.responseTypes;
-        rts[$scope.rtEdit.i] = angular.copy($scope.rtEdit.rt);
-        $scope.rtEdit = {};
-    };
-    $scope.cancelRt = function() {
-        $scope.rtEdit = {};
-    };
-    $scope.addRt = function(model) {
-        var i = model.responseTypes.length + 1;
-        model.responseTypes.push({
-            id: 'response_' + i,
-            name: 'Response Type ' + i,
-            parts: []
-        })
-    };
-    $scope.addPart = function(rt) {
-        var ids = {};
-        for (var i = 0; i < rt.parts.length; i++) {
-            ids[rt.parts[i].id] = true;
-        }
-        var id;
-        for (var i = 0; i <= rt.parts.length; i++) {
-            id = Numbers.idOf(i);
-            if (!ids[id])
-                break;
-        }
-        var part = {
-            id: id,
-            name: 'Response part ' + id.toUpperCase(),
-            options: [
-                {score: 0, name: 'No', 'if': null},
-                {score: 1, name: 'Yes', 'if': null}
-            ]
-        };
-        rt.parts.push(part);
-        $scope.updateFormula(rt);
-    };
-    $scope.addOption = function(part) {
-        part.options.push({
-            score: 0,
-            name: 'Option ' + (part.options.length + 1)
-        })
-    };
-    $scope.updateFormula = function(rt) {
-        if (rt.parts.length <= 1) {
-            rt.formula = null;
-            return;
-        }
-        var formula = "";
-        for (var i = 0; i < rt.parts.length; i++) {
-            var part = rt.parts[i];
-            if (i > 0)
-                formula += " + ";
-            if (part.id)
-                formula += part.id;
-            else
-                formula += "?";
-        }
-        rt.formula = formula;
-    };
-    $scope.remove = function(rt, list, item) {
-        var i = list.indexOf(item);
-        if (i < 0)
-            return;
-        list.splice(i, 1);
-        if (item.options)
-            $scope.updateFormula(rt);
-    };
-
     $scope.$on('EditSaved', function(event, model) {
         $location.url('/survey/' + model.id);
     });
@@ -272,7 +192,7 @@ angular.module('wsaa.surveyQuestions', [
         $location.url('/surveys');
     });
 
-    $scope.checkRole = authz(current, $scope.survey);
+    $scope.checkRole = questionAuthz(Current, $scope.survey);
 
     $scope.toggleEditable = function() {
         $scope.survey.$save({editable: !$scope.survey.isEditable},
@@ -322,7 +242,7 @@ angular.module('wsaa.surveyQuestions', [
                     format("/measures?survey={{}}", $scope.survey.id));
             }
         });
-}])
+})
 
 
 .directive('assessmentHeader', [function() {

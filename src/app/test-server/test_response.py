@@ -30,6 +30,7 @@ TEST_RESPONSE_TYPES = [
         "parts": [
             {
                 "id": "a",
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.0, "name": "No"},
                     {"score": 1.0, "name": "Yes"}
@@ -43,6 +44,7 @@ TEST_RESPONSE_TYPES = [
         "parts": [
             {
                 "id": "a",
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.0, "name": "No"},
                     {"score": 0.5, "name": "Maybe"},
@@ -51,6 +53,7 @@ TEST_RESPONSE_TYPES = [
             },
             {
                 "id": "b",
+                "type": "multiple_choice",
                 "options": [
                     {"score": 0.0, "name": "No"},
                     {"score": 0.5, "name": "Maybe", "if": "a >= 0.5"},
@@ -66,6 +69,7 @@ TEST_RESPONSE_TYPES = [
         "parts": [
             {
                 "id": "a",
+                "type": "numerical",
                 "lower": "0",
                 "upper": "1",
             }
@@ -77,16 +81,19 @@ TEST_RESPONSE_TYPES = [
         "parts": [
             {
                 "id": "a",
+                "type": "numerical",
                 "lower": "0",
                 "upper": "1",
             },
             {
                 "id": "b",
+                "type": "numerical",
                 "lower": "a",
                 "upper": "1",
             },
             {
                 "id": "c",
+                "type": "numerical",
                 "lower": "a",
                 "upper": "b",
             }

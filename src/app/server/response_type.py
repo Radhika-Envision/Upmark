@@ -94,7 +94,7 @@ class ResponseType:
 
 
 def response_part(p_def):
-    if 'options' in p_def:
+    if p_def['type'] == 'multiple_choice':
         return MultipleChoice(p_def)
     else:
         return Numerical(p_def)
