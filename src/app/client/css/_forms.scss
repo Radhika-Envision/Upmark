@@ -39,13 +39,6 @@ $anim-time: 0.3s;
     z-index: 1;
 }
 
-.input-group-addon {
-    border-color: transparent;
-    &.text-muted {
-        color: #888;
-    }
-}
-
 .btn-group > .btn-group-addon {
     position: relative;
     float: left;
@@ -125,7 +118,13 @@ div[textarea-label] {
     margin-bottom: 10px;
 }
 .input-group-addon {
-    background-color: $button-bg
+    background-color: $button-bg;
+    border-bottom-width: 3px;
+    padding-bottom: 3px;
+    border-color: transparent;
+    &.text-muted {
+        color: #888;
+    }
 }
 
 .input-group-btn {
