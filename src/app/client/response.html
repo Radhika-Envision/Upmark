@@ -87,7 +87,14 @@
 
 <p ng-if="readonly">{{response.comment || 'None'}}</p>
 
-<ol class="responses list-unstyled spaced" ng-if="!response.notRelevant">
+<div class="section" ng-if="!response.notRelevant && hasQuality">
+    <h2>
+        Response Quality
+        <span ng-if="debug">Sample</span>
+    </h2>
+</div>
+
+<ol class="responses list-unstyled spaced" ng-if="!response.notRelevant && hasQuality">
     <li class="clearfix" title="Quality">
         <div class="hidden-print" ng-hide="readonly">
             <div class="btn-group btn-group-justified">
@@ -147,5 +154,12 @@
         </div>
     </li>
 </ol>
+
+<div class="section">
+    <h2>
+        Approval
+        <span ng-if="debug">Sample</span>
+    </h2>
+</div>
 
 </div>

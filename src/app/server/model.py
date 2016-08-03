@@ -301,6 +301,7 @@ class Survey(Observable, Base):
     finalised_date = Column(DateTime)
     title = Column(Text, nullable=False)
     description = Column(Text)
+    has_quality = Column(Boolean, default=False, nullable=False)
     _response_types = Column('response_types', JSON, nullable=False)
 
     @property
