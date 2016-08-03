@@ -13,12 +13,12 @@
             <i class="fa fa-print"></i>
         </button>
 
-        <span dropdown dropdown-append-to-body ng-if="!edit.model">
+        <span uib-dropdown dropdown-append-to-body ng-if="!edit.model">
             <button class="btn btn-default btn-round"
-                    title="Export" dropdown-toggle>
+                    title="Export" uib-dropdown-toggle>
                 <i class="fa fa-cloud-download"></i></button>
 
-            <ul class="dropdown-menu dropdown-menu-right">
+            <ul uib-dropdown-menu class="dropdown-menu-right">
                 <li class="dropdown-header">Export survey structure</li>
                 <li>
                     <a title="Download Excel file"

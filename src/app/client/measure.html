@@ -133,13 +133,13 @@
 <div class="container spaced" ng-if="!edit.model && assessment">
     <response type="responseType" model="response" weight="measure.weight"
             readonly="!!structure.deletedItem" has-quality="structure.survey.hasQuality">
-        <span ng-controller="ResponseHistory" dropdown
+        <span ng-controller="ResponseHistory" uib-dropdown
                 on-toggle="toggled(open)" dropdown-append-to-body>
             <button class="btn btn-default btn-round" title="History"
-                    dropdown-toggle>
+                    uib-dropdown-toggle>
                 <i class="fa fa-history"></i></button>
 
-            <ul class="dropdown-menu dropdown-menu-right">
+            <ul uib-dropdown-menu class="dropdown-menu-right">
                 <li class="dropdown-header">
                     <div>
                     <div class="toolbar">

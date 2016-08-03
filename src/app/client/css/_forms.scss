@@ -145,7 +145,7 @@ div[textarea-label] {
 
 .btn.btn-default, .btn.btn-default[disabled],
 .form-control, .form-control.active,
-.open > .dropdown-toggle.btn-default
+.open > [uib-dropdown-toggle].btn-default
 {
     color: lighten($button-fg, 30%);
     background-color: $button-bg;
@@ -186,7 +186,7 @@ div[textarea-label] {
     }
 }
 
-.btn, .form-control, .open > .dropdown-toggle.btn-default {
+.btn, .form-control, .open > [uib-dropdown-toggle].btn-default {
     &[disabled] {
         color: darken($button-bg, 20%);
         background-color: $button-bg;
