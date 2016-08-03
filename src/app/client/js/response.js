@@ -237,7 +237,9 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
                     if (!partsR[i])
                         partsR[i] = {};
                 });
-                $scope.state.partPairs = rt.zip(partsR);
+                var partPairs = rt.zip(partsR);
+                if (!angular.equals($scope.state.partPairs, partPairs))
+                    $scope.state.partPairs = partPairs;
 
                 if ($scope.response.notRelevant) {
                     $scope.state.variables = {};
@@ -281,9 +283,9 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
                     callback: function(event, hotkey) {
                         var i = Number(String.fromCharCode(event.which)) - 1;
                         i = Math.max(0, i);
-                        i = Math.min($scope.rt.parts.length, i);
-                        var part = $scope.rt.parts[$scope.state.active];
-                        var option = part.options[i];
+                        i = Math.min($scope.state.partPairs.length, i);
+                        var part = $scope.state.partPairs[$scope.state.active];
+                        var option = part.schema.options[i];
                         $scope.choose(part, option);
                     }
                 })
