@@ -188,7 +188,6 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
 
 
 .directive('response', function(responseTypes) {
-    console.log('response')
     return {
         restrict: 'E',
         scope: {
@@ -220,6 +219,10 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             });
 
             $scope.$watch('responseType', function(rtDef) {
+                if (!rtDef) {
+                    $scope.rt = null;
+                    return;
+                }
                 $scope.rt = new responseTypes.ResponseType(rtDef);
             }, true);
 
@@ -233,6 +236,13 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             var recalculate = Enqueue(function() {
                 var rt = $scope.rt,
                     partsR = $scope.response.responseParts;
+
+                if (!rt || !partsR) {
+                    $scope.state.score = 0;
+                    $scope.state.active = 0;
+                    $scope.state.message = 'Loading';
+                    return;
+                }
                 rt.parts.forEach(function(part, i) {
                     if (!partsR[i])
                         partsR[i] = {};
