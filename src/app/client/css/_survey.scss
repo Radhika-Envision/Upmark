@@ -534,27 +534,9 @@ ul.list-results {
             background-color: lighten($button-bg, 3%);
         }
 
-        // Lay out options horizontally on large screens
-        @media (min-width: 992px) {
-            display: table;
-            border-spacing: 0 $response-spacing;
-            li {
-                display: table-row;
-                list-style: none;
-                margin: 4px 0;
-            }
-            li > div {
-                display: table-cell;
-                vertical-align: middle;
-                .btn-group-justified {
-                    border-spacing: initial;
-                }
-            }
-        }
         // On medium screens, use horizontal layout but with label on its own
         // row
-        @media (min-width: 768px) and (max-width: 992px),
-            (max-width: 768px) and (orientation: landscape) {
+        @media (min-width: 768px) {
             display: block;
             li {
                 display: block;
