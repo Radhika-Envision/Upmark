@@ -270,6 +270,7 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
                     return false;
                 return option.available($scope.state.variables);
             };
+            $scope.isFinite = isFinite;
 
             $scope.checkRole = authz(current, $scope.survey);
 

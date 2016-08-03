@@ -36,13 +36,21 @@
                         <span class="text-hidden">{{$index + 1}}</span>
                     </button>
                 </div>
-                <div class="btn-group"
+                <div class="input-group"
                         ng-if="part.schema.type == 'numerical'">
+                    <span class="input-group-addon text-muted"
+                            ng-if="isFinite(part.schema.lower(stats.variables))">
+                        {{part.schema.lower(stats.variables)}} ≤
+                    </span>
                     <input type="number" class="form-control"
                             ng-model="part.data.value"
                             title="{{part.schema.description}}"
                             placeholder="Enter a number">
                     </input>
+                    <span class="input-group-addon text-muted"
+                            ng-if="isFinite(part.schema.upper(stats.variables))">
+                        ≤ {{part.schema.upper(stats.variables)}}
+                    </span>
                 </div>
             </div>
         </div>
