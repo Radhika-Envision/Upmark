@@ -82,7 +82,8 @@ class MeasureHandler(
                 r'/hierarchy$',
                 r'/hierarchy/survey$',
                 r'/hierarchy/structure.*$',
-                r'/response_types.*$'
+                r'/response_types.*$',
+                r'/has_quality$',
             )
             if not assessment_id:
                 to_son.add(

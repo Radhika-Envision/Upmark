@@ -1,24 +1,25 @@
-import string
-import model
-import app
-import os
-from parse import parse
-import handlers
+from concurrent.futures import ThreadPoolExecutor
+import datetime
+import json
 import logging
+import os
+import string
 import tempfile
 import threading
-import json
-import sqlalchemy
-import datetime
-import xlsxwriter
 
+import numpy
+from parse import parse
+import sqlalchemy
 from sqlalchemy.orm import joinedload, lazyload
 from tornado import gen
 import tornado.web
 from tornado.concurrent import run_on_executor
-from concurrent.futures import ThreadPoolExecutor
 from tornado.escape import json_decode, json_encode, url_escape, url_unescape
-import numpy
+import xlsxwriter
+
+import app
+import handlers
+import model
 
 
 BUF_SIZE = 4096
@@ -574,9 +575,9 @@ class Exporter():
                 response_parts = []
 
             worksheet.set_column(level_length + 1,
-                level_length + max_parts + 10, 15)
-            worksheet.set_column(level_length + max_parts + 11,
-                level_length + max_parts + 11, 100)
+                level_length + max_parts + 11, 15)
+            worksheet.set_column(level_length + max_parts + 12,
+                level_length + max_parts + 12, 100)
 
             # Header from heirarchy levels
             self.write_response_header(
@@ -657,6 +658,7 @@ class Exporter():
                         else:
                             score = 0
                     comment = response.comment
+                    quality = response.quality
 
                 if user_role in {'clerk', 'org_admin'}:
                     weight = None
@@ -669,12 +671,15 @@ class Exporter():
                 worksheet.write(
                         line, level_length + max_parts + 10,
                         weight, format_no_wrap)
-
                 worksheet.write(
                         line, level_length + max_parts + 11,
+                        quality, format_no_wrap)
+
+                worksheet.write(
+                        line, level_length + max_parts + 12,
                         comment, format_comment)
 
-                worksheet.write_url(line, level_length + max_parts + 12,
+                worksheet.write_url(line, level_length + max_parts + 13,
                         url, url_format, "Link")
                 line = line + 1
 
@@ -746,8 +751,9 @@ class Exporter():
 
         sheet.write(0, len(levels) + max_response + 9, "Score", format)
         sheet.write(0, len(levels) + max_response + 10, "Weight", format)
-        sheet.write(0, len(levels) + max_response + 11, "Comment", format)
-        sheet.write(0, len(levels) + max_response + 12, "URL", format)
+        sheet.write(0, len(levels) + max_response + 11, "Quality", format)
+        sheet.write(0, len(levels) + max_response + 12, "Comment", format)
+        sheet.write(0, len(levels) + max_response + 13, "URL", format)
 
     def write_qnode(self, sheet, qnode, line, format, col):
         if qnode.parent != None:

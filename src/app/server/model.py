@@ -301,6 +301,7 @@ class Survey(Observable, Base):
     finalised_date = Column(DateTime)
     title = Column(Text, nullable=False)
     description = Column(Text)
+    has_quality = Column(Boolean, default=False, nullable=False)
     _response_types = Column('response_types', JSON, nullable=False)
 
     @property
@@ -1050,6 +1051,7 @@ class Response(Observable, Versioned, Base):
     _response_parts = Column('response_parts', JSON, nullable=False)
     audit_reason = Column(Text)
     modified = Column(DateTime, nullable=False)
+    quality = Column(Float)
 
     score = Column(Float, default=0.0, nullable=False)
     approval = Column(

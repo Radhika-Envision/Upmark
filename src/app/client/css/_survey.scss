@@ -639,6 +639,25 @@ ul.list-results {
     }
 }
 
+.self-rating {
+  text-align: center;
+  margin-bottom: 25px;
+  position: relative;
+}
+
+.self-rating:hover:before {
+    content: attr(title);
+    font-size: 12px;
+    position: absolute;
+    white-space: nowrap;
+    bottom: -19px;
+    text-align: center;
+    left: -20px;
+    right: -20px;
+    display: block;
+    color: #888;
+}
+
 .text-hidden {
     visibility: hidden;
 }

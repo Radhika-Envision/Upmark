@@ -54,6 +54,13 @@
                 ng-model="edit.model.description"
                 title="Description"></markdown-editor>
         </div>
+        <div class="checkbox">
+            <label>
+                <input type="checkbox" id="inclQuality" name="inclQuality"
+                    ng-model="edit.model.hasQuality">
+                    Include response quality
+            </label>
+        </div>
         <div ng-include="'response_types.html'"></div>
     </form>
 

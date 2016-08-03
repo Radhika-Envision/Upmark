@@ -132,7 +132,7 @@
 
 <div class="container spaced" ng-if="!edit.model && assessment">
     <response type="responseType" model="response" weight="measure.weight"
-            readonly="!!structure.deletedItem">
+            readonly="!!structure.deletedItem" has-quality="structure.survey.hasQuality">
         <span ng-controller="ResponseHistory" dropdown
                 on-toggle="toggled(open)" dropdown-append-to-body>
             <button class="btn btn-default btn-round" title="History"
@@ -208,6 +208,14 @@
             <i class="fa fa-check fa-fw"></i></button>
     </response>
 
+    <approval-buttons model="response.approval"
+            ng-if="!structure.deletedItem"
+            set-state="setState(state)"></approval-buttons>
+
+    <div ng-class="structure.deletedItem ? null : 'visible-print-block'">
+        Response status: {{response.approval}}
+    </div>
+
     <div>
         <p ng-if="response.user.name" class="spaced text-center">
             <i class="fa fa-history"></i>
@@ -228,14 +236,6 @@
             <i class="fa fa-history"></i>
             Response not submitted yet.
         </p>
-    </div>
-
-    <approval-buttons model="response.approval"
-            ng-if="!structure.deletedItem"
-            set-state="setState(state)"></approval-buttons>
-
-    <div ng-class="structure.deletedItem ? null : 'visible-print-block'">
-        Response status: {{response.approval}}
     </div>
 
     <docs>
