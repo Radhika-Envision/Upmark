@@ -39,7 +39,7 @@
     </ul>
 </div>
 
-<div ng-if="rtEdit.rt" ng-init="rt = rtEdit.rt">
+<form class="undim" ng-if="rtEdit.rt" ng-init="rt = rtEdit.rt">
     <div class="section">
         <div class="toolbar">
             <button class="btn btn-default btn-round" title="Cancel"
@@ -255,7 +255,7 @@
     </div>
 
     <response class="spaced well" type="rt" debug></response>
-</div>
+</form>
 
 <docs>
     <i class="fa-li fa fa-sliders fa-border"></i>
@@ -271,7 +271,7 @@
         change its ID, be sure to update the measures.
     </p>
 
-    <div ng-if="rtEdit.rt">
+    <div ng-if="rtEdit.rt" class="undim">
       <h4>Score calculation</h4>
       <p>
           Responses can have any number of parts. Those with no parts will not

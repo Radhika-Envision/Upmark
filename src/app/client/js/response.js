@@ -304,7 +304,8 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
 })
 
 
-.controller('ResponseTypeEditorCtrl', function($scope, Numbers) {
+.controller('ResponseTypeEditorCtrl', function($scope, Numbers, dimmer) {
+    $scope.dim = dimmer.toggler($scope);
     $scope.rtEdit = {};
     $scope.editRt = function(model, index) {
         var rt = angular.copy(model.responseTypes[index]);
@@ -314,6 +315,9 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             i: index
         };
     };
+    $scope.$watch('rtEdit.rt', function(rt) {
+        $scope.dim(rt != null);
+    });
     $scope.saveRt = function() {
         var rts = $scope.rtEdit.model.responseTypes;
         var rt = angular.copy($scope.rtEdit.rt);

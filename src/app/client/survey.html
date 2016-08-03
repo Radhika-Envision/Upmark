@@ -61,9 +61,10 @@
                     Include response quality
             </label>
         </div>
-        <div ng-include="'response_types.html'"
-                ng-controller="ResponseTypeEditorCtrl"></div>
     </form>
+
+    <div ng-include="'response_types.html'"
+            ng-controller="ResponseTypeEditorCtrl"></div>
 
     <docs ng-if="!edit.model.id && duplicating">
         <i class="fa-li fa fa-clone fa-border"></i>
