@@ -38,18 +38,24 @@
                 </div>
                 <div class="input-group"
                         ng-if="part.schema.type == 'numerical'">
-                    <span class="input-group-addon text-muted"
-                            ng-if="isFinite(part.schema.lower(stats.variables))">
-                        {{part.schema.lower(stats.variables)}} ≤
+                    <span class="input-group-addon text-muted">
+                        {{
+                            isFinite(part.schema.lower(state.variables)) ?
+                            '' + part.schema.lower(state.variables) + ' ≤' :
+                            ''
+                        }}
                     </span>
                     <input type="number" class="form-control"
                             ng-model="part.data.value"
                             title="{{part.schema.description}}"
                             placeholder="Enter a number">
                     </input>
-                    <span class="input-group-addon text-muted"
-                            ng-if="isFinite(part.schema.upper(stats.variables))">
-                        ≤ {{part.schema.upper(stats.variables)}}
+                    <span class="input-group-addon text-muted">
+                        {{
+                            isFinite(part.schema.upper(state.variables)) ?
+                            '≤ ' + part.schema.upper(state.variables) :
+                            ''
+                        }}
                     </span>
                 </div>
             </div>
