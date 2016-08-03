@@ -191,14 +191,14 @@
             <div class="input-group" ng-if="part.type == 'numerical'">
                 <label for="lower_{{$index}}" class="input-group-addon">
                     Lower bound:</label>
-                <input type="number" class="form-control"
+                <input type="text" class="form-control"
                     id="lower_{{$index}}"
                     ng-model="part.lower"
                     placeholder="E.g. 0.0 (default: -infinity)"
                     title="The lower bound (minimum) for this part (expression; see docs)"/>
                 <label for="upper_{{$index}}" class="input-group-addon">
                     Upper bound:</label>
-                <input type="number" class="form-control"
+                <input type="text" class="form-control"
                     id="upper_{{$index}}"
                     ng-model="part.upper"
                     placeholder="E.g. 1.0 (default: +infinity)"

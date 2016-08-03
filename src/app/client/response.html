@@ -24,21 +24,30 @@
         <div class="hidden-print" ng-hide="readonly">
             <div class="btn-group btn-group-justified">
                 <div class="btn-group"
+                        ng-if="part.schema.type == 'multiple_choice'"
                         ng-repeat="o in part.schema.options">
-                <button class="btn btn-default"
-                        ng-class="{active: part.data.index == $index}"
-                        ng-click="choose(part, o)"
-                        ng-disabled="!available(o)"
-                        title="{{o.description || part.description}}">
-                    <span class="index">{{$index + 1}}</span>
-                    {{o.name}}
-                    <span class="text-hidden">{{$index + 1}}</span>
-                </button>
+                    <button class="btn btn-default"
+                            ng-class="{active: part.data.index == $index}"
+                            ng-click="choose(part, o)"
+                            ng-disabled="!available(o)"
+                            title="{{o.description || part.schema.description}}">
+                        <span class="index">{{$index + 1}}</span>
+                        {{o.name}}
+                        <span class="text-hidden">{{$index + 1}}</span>
+                    </button>
+                </div>
+                <div class="btn-group"
+                        ng-if="part.schema.type == 'numerical'">
+                    <input type="number" class="form-control"
+                            ng-model="part.data.value"
+                            title="{{part.schema.description}}"
+                            placeholder="Enter a number">
+                    </input>
                 </div>
             </div>
         </div>
         <div ng-class="readonly ? null : 'visible-print-block'">
-            <span ng-if="part.name">{{part.name}}:</span>
+            <span ng-if="part.schema.name">{{part.schema.name}}:</span>
             <span ng-if="part.data.index != null">
                 {{part.data.index + 1}}
                 {{part.data.note}}

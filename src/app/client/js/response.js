@@ -75,6 +75,7 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
     function ResponsePart(pDef) {
         this.id = pDef.id;
         this.name = pDef.name;
+        this.type = pDef.type;
         this.description = pDef.description;
     };
 
