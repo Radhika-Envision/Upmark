@@ -357,6 +357,9 @@ ul.list-form {
     textarea, .btn-default[disabled], ul.list-results {
         background: white;
     }
+    input[type=number] {
+        text-align: center;
+    }
 }
 .container.well {
     /* Make a top-level well align with container margins and padding */
