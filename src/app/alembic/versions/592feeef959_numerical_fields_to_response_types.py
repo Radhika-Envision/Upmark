@@ -12,6 +12,7 @@ down_revision = '529c1f5c077'
 branch_labels = None
 depends_on = None
 
+import copy
 import uuid
 
 from alembic import op
@@ -33,18 +34,22 @@ Session = sessionmaker()
 def upgrade():
     session = Session(bind=op.get_bind())
     for s in session.query(Survey).all():
-        for rt in s._response_types:
+        rts = copy.deepcopy(s._response_types)
+        for rt in rts:
             for part in rt['parts']:
                 part['type'] = 'multiple_choice'
+        s._response_types = rts
     session.flush()
 
 
 def downgrade():
     session = Session(bind=op.get_bind())
     for s in session.query(Survey).all():
-        for rt in s._response_types:
+        rts = copy.deepcopy(s._response_types)
+        for rt in rts:
             for part in rt['parts']:
                 del part['type']
+        s._response_types = rts
     session.flush()
 
 
