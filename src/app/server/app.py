@@ -60,6 +60,7 @@ def ssl_log_filter(record):
     return True
 
 
+import auth
 import crud
 import handlers
 import import_handlers
@@ -236,9 +237,9 @@ def default_settings():
 def get_mappings():
     package_dir = get_package_dir()
     return [
-        (r"/login/?(.*)", handlers.AuthLoginHandler, {
+        (r"/login/?(.*)", auth.AuthLoginHandler, {
             'path': os.path.join(package_dir, "..", "client")}),
-        (r"/logout/?", handlers.AuthLogoutHandler),
+        (r"/logout/?", auth.AuthLogoutHandler),
         (r"/()", handlers.MainHandler, {
             'path': '../client/index.html'}),
         (r"/ping.*", handlers.PingHandler, {}),
