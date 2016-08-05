@@ -624,6 +624,7 @@ class Exporter():
 
                 score = None
                 comment = None
+                quality = None
                 if response:
                     self.write_response_parts(
                         worksheet, response.response_parts, line, format_no_wrap,
@@ -763,9 +764,11 @@ class Exporter():
     def write_response_parts(self, sheet, parts, line, format, col):
         if parts != None:
             for part in parts:
-
-                sheet.write(
-                    line, col, "%d - %s" % (part["index"] + 1, part["note"]),
-                    format)
+                if 'index' in part:
+                    sheet.write(
+                        line, col, "%d - %s" % (part["index"] + 1, part["note"]),
+                        format)
+                else:
+                    sheet.write(line, col, "%s" % part["value"], format)
                 col = col + 1
         return col
