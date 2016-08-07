@@ -10,10 +10,8 @@ RUN DEBIAN_FRONTEND=noninteractive \
         build-essential \
         python3 \
         python3.4-dev \
-        virtualenvwrapper \
         python3-pip \
         python3-psycopg2 \
-        git \
         --no-install-recommends && \
     which node || sudo apt-get install -y nodejs-legacy && \
     npm install -g bower && \
