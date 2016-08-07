@@ -15,15 +15,8 @@ RUN DEBIAN_FRONTEND=noninteractive \
         --no-install-recommends && \
     which node || sudo apt-get install -y nodejs-legacy && \
     npm install -g bower && \
+    pip3 install -vU 'setuptools' && \
     rm -rf /var/lib/apt/lists/*
-
-# An up-to-date version of setuptools is needed in order to play nicely with
-# newer packages.
-# But setuptools 20.2.2 has a problem with parsing requirements with spaces in
-# them, e.g. for the dependency boto3->futures.
-# https://github.com/pypa/setuptools/issues/502
-# Remove the version qualifier once this issue is fixed.
-RUN pip3 install -vU 'setuptools<20.2.2'
 
 # Install dependencies before copying full source directory. This speeds up
 # Docker rebuilds.
