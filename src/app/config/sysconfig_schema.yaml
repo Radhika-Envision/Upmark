@@ -1,0 +1,16 @@
+- name: pass_threshold
+    human_name: Password Strength Threshold
+    description:
+        The minimum strength for a password, between 0.0 and 1.0, where 0.0
+        allows very weak passwords and 1.0 requires strong passwords.
+    value: 0.85
+- name: adhoc_timeout
+    human_name: Custom Query Time Limit
+    description:
+        The maximum number of seconds a custom query is allowed to run for.
+    value: 1.5
+- name: adhoc_max_limit
+    human_name: Custom Query Row Limit
+    description:
+        The maximum number of rows a query can return.
+    value: 2500

@@ -104,14 +104,13 @@ def get_cookie_secret():
     with model.session_scope() as session:
         try:
             q = session.query(model.SystemConfig)
-            conf = q.filter_by(name='cookie_secret').one()
+            conf = q.filter_by(name='_cookie_secret').one()
         except sqlalchemy.orm.exc.NoResultFound:
             # TODO: Use a cookie secret dictionary, and cause keys to expire
             # after some time.
             log.info("Generating new cookie secret")
             secret = base64.b64encode(os.urandom(50)).decode('ascii')
-            conf = model.SystemConfig(name='cookie_secret', value=secret)
-            conf.human_name = "Cookie Secret"
+            conf = model.SystemConfig(name='_cookie_secret', value=secret)
             conf.user_defined = False
             session.add(conf)
         return conf.value

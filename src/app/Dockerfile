@@ -5,9 +5,12 @@ MAINTAINER Alex Fraser <alex@vpac-innovations.com.au>
 RUN DEBIAN_FRONTEND=noninteractive \
     apt-get update && \
     apt-get install -y \
-        npm \
-        nodejs \
         build-essential \
+        libffi-dev \
+        libjpeg-dev \
+        libxml2-dev \
+        nodejs \
+        npm \
         python3 \
         python3.4-dev \
         python3-pip \
