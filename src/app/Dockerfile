@@ -23,7 +23,7 @@ RUN DEBIAN_FRONTEND=noninteractive \
 # newer packages.
 # But setuptools 20.2.2 has a problem with parsing requirements with spaces in
 # them, e.g. for the dependency boto3->futures.
-# https://bitbucket.org/pypa/setuptools/issues/502/packaging-164-does-not-allow-whitepace
+# https://github.com/pypa/setuptools/issues/502
 # Remove the version qualifier once this issue is fixed.
 RUN pip3 install -vU 'setuptools<20.2.2'
 
