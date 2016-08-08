@@ -39,7 +39,8 @@
     </ul>
 </div>
 
-<form highlight ng-if="rtEdit.rt" ng-init="rt = rtEdit.rt">
+<form highlight highlight-dismiss="cancelRt()"
+        ng-if="rtEdit.rt" ng-init="rt = rtEdit.rt">
     <div class="section">
         <div class="toolbar">
             <button class="btn btn-default btn-round" title="Cancel"

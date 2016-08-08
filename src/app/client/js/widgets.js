@@ -312,14 +312,26 @@ angular.module('vpac.widgets', [])
         dimmers.splice(i, 1);
         this.dimmers = dimmers;
     };
+    this.dismiss = function() {
+        this.dimmers.forEach(function(dimmer) {
+            dimmer.dismiss();
+        });
+    };
 }])
 
 
-.directive('highlight', function(dimmer) {
+.directive('highlight', function(dimmer, $parse) {
     return {
         restrict: 'A',
         link: function(scope, elem, attrs) {
-            var key = {};
+            var dismiss = attrs.highlightDismiss ?
+                $parse(attrs.highlightDismiss) : null;
+            var key = {
+                dismiss: function() {
+                    if (dismiss)
+                        dismiss(scope);
+                }
+            };
             if (attrs.highlight) {
                 scope.$watch(attrs.highlight, function(highlight) {
                     if (highlight)
@@ -336,7 +348,7 @@ angular.module('vpac.widgets', [])
             }
             scope.$on('$destroy', function(event) {
                 dimmer.remove(key);
-                key = null;
+                key = dismiss = scope = null;
             });
         }
     };
