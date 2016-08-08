@@ -39,7 +39,8 @@
     </ul>
 </div>
 
-<form class="undim" ng-if="rtEdit.rt" ng-init="rt = rtEdit.rt">
+<form highlight highlight-dismiss="cancelRt()"
+        ng-if="rtEdit.rt" ng-init="rt = rtEdit.rt">
     <div class="section">
         <div class="toolbar">
             <button class="btn btn-default btn-round" title="Cancel"
@@ -246,7 +247,7 @@
         change its ID, be sure to update the measures.
     </p>
 
-    <div ng-if="rtEdit.rt" class="undim">
+    <div ng-if="rtEdit.rt" highlight>
       <h4>Score calculation</h4>
       <p>
           Responses can have any number of parts. Those with no parts will not

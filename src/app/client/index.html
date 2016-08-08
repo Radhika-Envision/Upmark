@@ -192,7 +192,8 @@
 
 {% include analytics.html %}
 
-<div class="dimmer animate" ng-class="dim ? 'dim' : null"></div>
+<div class="dimmer animate" ng-class="dim ? 'dim' : null"
+    ng-click="dimmer.dismiss()"></div>
 
 </body>
 </html>

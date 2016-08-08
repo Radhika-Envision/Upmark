@@ -24,6 +24,10 @@ STATES = ['draft', 'final', 'reviewed', 'approved']
 
 
 def check_approval_change(role, assessment, approval):
+    '''
+    Check whether a user can set the state of a response, given the current
+    state of the assessment.
+    '''
     if STATES.index(assessment.approval) > STATES.index(approval):
         raise handlers.ModelError(
             "The submission has a state of '%s'."
@@ -42,6 +46,23 @@ def check_approval_change(role, assessment, approval):
     else:
         raise handlers.AuthzError(
             "You can't mark this as %s." % approval)
+
+
+def check_modify(role, response):
+    '''
+    Check whether a user can modify a response in its current state.
+    '''
+    if response.approval in {'draft', 'final'}:
+        pass
+    elif response.approval == 'reviewed':
+        if not model.has_privillege(role, 'consultant'):
+            raise handlers.AuthzError(
+                "This response has already been reviewed")
+    else:
+        if not model.has_privillege(role, 'authority'):
+            raise handlers.AuthzError(
+                "This response has already been approved")
+
 
 class ResponseHandler(handlers.BaseHandler):
 
@@ -245,7 +266,7 @@ class ResponseHandler(handlers.BaseHandler):
                 self._update(response, self.request_son, approval)
                 if not session.is_modified(response) and 'update' in verbs:
                     verbs.remove('update')
-                self._check_approval_state(response)
+                check_modify(self.current_user.role, response)
                 session.flush()
 
                 # Prevent creating a second version during following operations
@@ -271,18 +292,6 @@ class ResponseHandler(handlers.BaseHandler):
             if assessment.organisation.id != self.organisation.id:
                 raise handlers.AuthzError(
                     "You can't modify another organisation's response")
-
-    def _check_approval_state(self, response):
-        if response.approval in {'draft', 'final'}:
-            pass
-        elif response.approval == 'reviewed':
-            if not self.has_privillege('consultant'):
-                raise handlers.AuthzError(
-                    "This response has already been reviewed")
-        else:
-            if not self.has_privillege('authority'):
-                raise handlers.AuthzError(
-                    "This response has already been approved")
 
     def _update(self, response, son, approval):
         '''

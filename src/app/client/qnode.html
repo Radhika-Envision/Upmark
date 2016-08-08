@@ -72,13 +72,16 @@
     <div ng-if="rnode" class="stats">
         <button class="btn btn-on-danger btn-round pull-right hidden-print"
                 title="Toggle not relevant"
-                ng-click="rnode.notRelevant = !rnode.notRelevant"
-                ng-class="{active: rnode.notRelevant}">
+                ng-click="toggleBulkNa()"
+                ng-class="{active: rnode.nNotRelevant >= qnode.nMeasures}"
+                highlight="showBulkNa"
+                highlight-dismiss="toggleBulkNa()">
             <i class="fa fa-fw fa-ban"></i></button>
         <button class="btn btn-default btn-round pull-right hidden-print"
                 title="Bulk approval"
                 ng-click="toggleBulk()"
-                ng-class="showBulkApproval ? 'undim' : null">
+                highlight="showBulkApproval"
+                highlight-dismiss="toggleBulk()">
             <i class="fa fa-fw fa-rotate fa-angle-right"
                 ng-class="showBulkApproval ? 'fa-rotate-90' : null"></i></button>
 
@@ -178,7 +181,7 @@
         </div> <!-- class="stats-group"-->
     </div>
 
-    <form novalidate class="dialog undim spaced" ng-if="showBulkApproval">
+    <form novalidate class="dialog spaced" highlight ng-if="showBulkApproval">
         <h3>Bulk Approval</h3>
         <approval-buttons model="stats.approval"
                 class="spaced-below"
@@ -222,7 +225,7 @@
         </p>
     </form>
 
-    <docs>
+    <docs highlight="showBulkApproval">
         <i class="fa-li fa fa-chevron-right fa-border"></i>
         <h3>Approval</h3>
         <p>
@@ -246,6 +249,59 @@
             applies when performing a bulk approval.
         </p>
     </docs>
+
+    <form novalidate class="dialog spaced" highlight ng-if="showBulkNa">
+        <h3>Change Relevance in Bulk</h3>
+
+        <div class="form-group" show-errors>
+            <button class="btn btn-block"
+                    ng-class="stats.relevance == 'NOT_RELEVANT' ?
+                        'btn-danger' : 'btn-success'"
+                    ng-click="setNotRelevant(stats.relevance)">
+                <span ng-if="stats.relevance == 'NOT_RELEVANT'">
+                    <i class="fa fa-fw fa-ban"></i>
+                    Mark as Not Relevant
+                </span>
+                <span ng-if="stats.relevance == 'RELEVANT'">
+                    <i class="fa fa-fw fa-circle-o"></i>
+                    Mark as Relevant
+                </span>
+            </button>
+        </div>
+
+        <div class="form-group" show-errors>
+            <select class="form-control"
+                id="relevance"
+                ng-model="stats.relevance"
+                ng-options="o.name as o.desc for o in relevanceOptions">
+            </select>
+        </div>
+        <div class="form-group" show-errors
+                ng-if="stats.relevance == 'NOT_RELEVANT'">
+            <select class="form-control"
+                id="missing"
+                ng-model="stats.missing"
+                ng-options="o.name as o.desc for o in missingOptions">
+            </select>
+        </div>
+        <p class="text-muted">
+            Mark all responses (measures) as
+            <span ng-if="stats.relevance == 'NOT_RELEVANT'">
+                not relevant.
+            </span>
+            <span ng-if="stats.relevance == 'RELEVANT'">
+                relevant.
+            </span>
+
+            <span ng-if="stats.relevance == 'NOT_RELEVANT' && stats.missing == 'CREATE'">
+                Responses that are incomplete will be marked
+                <em>Not Relevant</em>.
+            </span>
+
+            <strong>This action cannot be undone</strong>. If you change your
+            mind, you may need to manually reset the state of each response.
+        </p>
+    </form>
 
     <div ng-bind-html="qnode.description | markdown"></div>
 

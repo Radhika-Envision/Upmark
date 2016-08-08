@@ -297,54 +297,71 @@ angular.module('vpac.widgets', [])
 
 
 .service('dimmer', [function() {
-    function DimmerError(message) {
-       this.message = message;
-       this.toString = function() {
-          return this.message;
-       };
-    }
     this.dimmers = [];
-    this.toggler = function(scope) {
-        if (!scope || scope.$$destroyed)
-            throw new DimmerError("A dimmer must be bound to a scope");
-
-        var that = this;
-        var toggle = function(dim) {
-            if (dim === undefined)
-                dim = that.dimmers.indexOf(scope) < 0;
-
-            if (dim) {
-                that.dimmers.push(scope);
-                scope.$dim = true;
-            } else {
-                var i = that.dimmers.indexOf(scope);
-                if (i >= 0)
-                    that.dimmers.splice(i, 1);
-                scope.$dim = that.dimmers.indexOf(scope) >= 0;
-            }
-        };
-        scope.$on('$destroy', function() {
-            toggle(false);
-            scope = null;
-            that = null;
+    this.add = function(key) {
+        var i = this.dimmers.indexOf(key);
+        if (i >= 0)
+            return;
+        this.dimmers = this.dimmers.concat(key);
+    };
+    this.remove = function(key) {
+        var i = this.dimmers.indexOf(key);
+        if (i < 0)
+            return;
+        var dimmers = this.dimmers.slice();
+        dimmers.splice(i, 1);
+        this.dimmers = dimmers;
+    };
+    this.dismiss = function() {
+        this.dimmers.forEach(function(dimmer) {
+            dimmer.dismiss();
         });
-        return toggle;
     };
 }])
+
+
+.directive('highlight', function(dimmer, $parse) {
+    return {
+        restrict: 'A',
+        link: function(scope, elem, attrs) {
+            var dismiss = attrs.highlightDismiss ?
+                $parse(attrs.highlightDismiss) : null;
+            var key = {
+                dismiss: function() {
+                    if (dismiss)
+                        dismiss(scope);
+                }
+            };
+            if (attrs.highlight) {
+                scope.$watch(attrs.highlight, function(highlight) {
+                    if (highlight)
+                        dimmer.add(key);
+                    else
+                        dimmer.remove(key);
+                    elem.toggleClass('undim', !!highlight);
+                });
+            } else {
+                // Highlight directive given with no qualification = always
+                // highlight
+                dimmer.add(key);
+                elem.toggleClass('undim', true);
+            }
+            scope.$on('$destroy', function(event) {
+                dimmer.remove(key);
+                key = dismiss = scope = null;
+            });
+        }
+    };
+})
 
 
 .directive('dimmer', ['dimmer', function(dimmer) {
     return {
         restrict: 'C',
         link: function(scope, elem, attrs) {
-            scope.$watch(function() {
-                    return dimmer.dimmers.length > 0;
-                },
-                function onDim(dim) {
-                    scope.dim = dim;
-                });
-            scope.$on('$destroy', function() {
-                elem = null;
+            scope.dimmer = dimmer;
+            scope.$watch('dimmer.dimmers.length > 0', function onDim(dim) {
+                scope.dim = dim;
             });
         }
     };

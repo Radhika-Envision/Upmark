@@ -63,8 +63,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                     n_final=0,
                     n_reviewed=0,
                     n_approved=0,
-                    n_not_relevant=0,
-                    not_relevant=False)
+                    n_not_relevant=0)
 
             self._check_authz(rnode.assessment)
 
@@ -81,7 +80,6 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 r'/n_approved$',
                 r'/n_measures$',
                 r'/n_not_relevant$',
-                r'/not_relevant$',
                 r'/(max_)?importance$',
                 r'/(max_)?urgency$',
                 # Descend into nested objects
@@ -148,7 +146,6 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 r'/n_approved$',
                 r'/n_measures$',
                 r'/n_not_relevant$',
-                r'/not_relevant$',
                 r'/max_importance$',
                 r'/max_urgency$',
                 # Descend into nested objects
@@ -177,6 +174,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
         '''Save (create or update).'''
 
         approval = self.get_argument('approval', '')
+        relevance = self.get_argument('relevance', '')
 
         try:
             with model.session_scope() as session:
@@ -201,8 +199,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                     rnode = model.ResponseNode(
                         assessment_id=assessment_id,
                         qnode_id=qnode_id,
-                        survey_id=assessment.survey.id,
-                        not_relevant=False)
+                        survey_id=assessment.survey.id)
                     session.add(rnode)
 
                 importance = self.request_son.get('importance')
@@ -225,6 +222,9 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 if approval != '':
                     yield self.set_approval(session, rnode, approval)
                     verbs.append('state')
+                if relevance != '':
+                    yield self.set_relevance(session, rnode, relevance)
+                    verbs.append('update')
 
                 try:
                     rnode.update_stats_ancestors()
@@ -242,6 +242,84 @@ class ResponseNodeHandler(handlers.BaseHandler):
         self.get(assessment_id, qnode_id)
 
     @run_on_executor
+    def set_relevance(self, session, rnode, relevance):
+        not_relevant = relevance == 'NOT_RELEVANT'
+        if not_relevant:
+            missing = self.get_argument('missing', '')
+        else:
+            # When marking responses as not NA, just ignore missing responses.
+            # It's not possible to create new ones because a non-NA response
+            # must have its response parts filled in.
+            missing = 'IGNORE'
+
+        assessment = rnode.assessment
+        changed = failed = created = 0
+
+        for response, is_new in self.walk_responses(session, rnode, missing):
+            try:
+                crud.response.check_modify(self.current_user.role, response)
+            except (handlers.AuthzError, handlers.ModelError) as e:
+                err = ("Response %s: %s You might need to downgrade the "
+                    "response's approval status. You can use the bulk "
+                    "approval tool for this.".format(
+                        response.measure.get_path(assessment.hierarchy), e))
+                if isinstance(e, handlers.AuthzError):
+                    raise handlers.AuthzError(err)
+                else:
+                    raise handlers.ModelError(err)
+            if not_relevant:
+                response.not_relevant = True
+                if is_new:
+                    # Try to set to current assessment approval state, IF user
+                    # is allowed
+                    try:
+                        crud.response.check_approval_change(
+                            self.current_user.role, assessment, assessment.approval)
+                    except (handlers.AuthzError, handlers.ModelError) as e:
+                        err = ("Response %s: %s You might "
+                            "need to downgrade the submission's approval "
+                            "status.".format(
+                                response.measure.get_path(assessment.hierarchy),
+                                e))
+                        if isinstance(e, handlers.AuthzError):
+                            raise handlers.AuthzError(err)
+                        else:
+                            raise handlers.ModelError(err)
+                    response.approval = assessment.approval
+                    response.comment = "*Marked Not Relevant as a bulk action " \
+                        "(was previously empty)*"
+                    created += 1
+                else:
+                    changed += 1
+            else:
+                if not response.not_relevant:
+                    continue
+                response.not_relevant = False
+                try:
+                    response.update_stats()
+                except model.ModelError:
+                    # Could not mark response as not NA because it is lacking
+                    # information and requires manual intervention.
+                    response.not_relevant = True
+                    failed += 1
+                    continue
+                changed += 1
+
+        rnode.update_stats_descendants()
+
+        if created:
+            self.reason("Created %d" % created)
+        if changed:
+            self.reason("Changed %d" % changed)
+        if failed:
+            self.reason(
+                "%d measures could not be changed, because a relevant "
+                " response must have valid data." % failed)
+
+        if created == changed == failed == 0:
+            self.reason("No changes to relevance")
+
+    @run_on_executor
     def set_approval(self, session, rnode, approval):
         crud.response.check_approval_change(
             self.current_user.role, rnode.assessment, approval)
@@ -250,54 +328,27 @@ class ResponseNodeHandler(handlers.BaseHandler):
         missing = self.get_argument('missing', '')
 
         assessment = rnode.assessment
-        def update_approval_descendants(qnode):
-            # This is like model.ResponseNode.update_stats_descendants, but it:
-            # - Creates Not Relevant responses when they don't already exist
-            # - Doesn't recalculate scores (just sets approval state)
-            promoted = 0
-            demoted = 0
-            created = 0
+        promoted = demoted = created = 0
 
-            rnode = qnode.get_rnode(assessment)
-            if rnode and rnode.not_relevant:
-                return promoted, demoted, created
+        for response, is_new in self.walk_responses(session, rnode, missing):
+            if is_new:
+                response.not_relevant = True
+                response.approval = approval
+                response.comment = "*Marked Not Relevant by bulk approval " \
+                    "process (was previously empty)*"
+                created += 1
+            else:
+                i1 = crud.response.STATES.index(response.approval)
+                i2 = crud.response.STATES.index(approval)
+                if i1 < i2 and 'PROMOTE' in promote:
+                    response.approval = approval
+                    response.modified = func.now()
+                    promoted += 1
+                elif i1 > i2 and 'DEMOTE' in promote:
+                    response.approval = approval
+                    response.modified = func.now()
+                    demoted += 1
 
-            for child in qnode.children:
-                p, d, c = update_approval_descendants(child)
-                promoted += p
-                demoted += d
-                created += c
-
-            for measure in qnode.measures:
-                response = measure.get_response(assessment)
-                if not response:
-                    if missing == 'CREATE':
-                        response = model.Response(
-                            user_id=self.current_user.id,
-                            assessment=assessment,
-                            measure=measure,
-                            survey=assessment.survey,
-                            approval=approval,
-                            not_relevant=True,
-                            comment="*Marked Not Relevant by bulk approval "
-                                    "process (was previously empty)*")
-                        response.modified = func.now()
-                        session.add(response)
-                        created += 1
-                else:
-                    i1 = crud.response.STATES.index(response.approval)
-                    i2 = crud.response.STATES.index(approval)
-                    if i1 < i2 and 'PROMOTE' in promote:
-                        response.approval = approval
-                        response.modified = func.now()
-                        promoted += 1
-                    elif i1 > i2 and 'DEMOTE' in promote:
-                        response.approval = approval
-                        response.modified = func.now()
-                        demoted += 1
-            return promoted, demoted, created
-
-        promoted, demoted, created = update_approval_descendants(rnode.qnode)
         rnode.update_stats_descendants()
 
         if created:
@@ -310,6 +361,24 @@ class ResponseNodeHandler(handlers.BaseHandler):
         if created == promoted == demoted == 0:
             self.reason("No changes to approval status")
 
+    def walk_responses(self, session, rnode, missing):
+        for measure in rnode.qnode.ordered_measures:
+            response = measure.get_response(rnode.assessment)
+            if not response:
+                if missing != 'CREATE':
+                    continue
+                response = model.Response(
+                    user_id=self.current_user.id,
+                    assessment=rnode.assessment,
+                    measure=measure,
+                    survey=rnode.assessment.survey)
+                response.modified = func.now()
+                session.add(response)
+                created = True
+            else:
+                created = False
+            yield response, created
+
     def _check_authz(self, assessment):
         if not self.has_privillege('consultant'):
             if assessment.organisation.id != self.organisation.id:
@@ -321,6 +390,5 @@ class ResponseNodeHandler(handlers.BaseHandler):
         Apply user-provided data to the saved model.
         '''
         update = updater(rnode)
-        update('not_relevant', son)
         update('importance', son)
         update('urgency', son)

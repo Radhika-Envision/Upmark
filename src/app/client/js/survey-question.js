@@ -918,11 +918,9 @@ angular.module('wsaa.surveyQuestions', [
         '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'format', 'Structure',
         'layout', 'Arrays', 'ResponseNode', 'Enqueue', '$timeout', '$route',
-        'dimmer',
         function($scope, QuestionNode, routeData, Editor, authz,
                  $location, Notifications, current, format, Structure,
-                 layout, Arrays, ResponseNode, Enqueue, $timeout, $route,
-                 dimmer) {
+                 layout, Arrays, ResponseNode, Enqueue, $timeout, $route) {
 
     // routeData.parent and routeData.hierarchy will only be defined when
     // creating a new qnode.
@@ -1037,6 +1035,8 @@ angular.module('wsaa.surveyQuestions', [
                     rnode.nFinal >= $scope.qnode.nMeasures ?
                         'final' :
                         'draft',
+                relevance: rnode.nNotRelevant >= $scope.qnode.nMeasures ?
+                        'RELEVANT' : 'NOT_RELEVANT',
                 promote: 'BOTH',
                 missing: 'CREATE',
             };
@@ -1088,11 +1088,13 @@ angular.module('wsaa.surveyQuestions', [
             $scope.saveRnode();
         });
 
-        $scope.dim = dimmer.toggler($scope);
         $scope.showBulkApproval = false;
         $scope.toggleBulk = function() {
             $scope.showBulkApproval = !$scope.showBulkApproval;
-            $scope.dim($scope.showBulkApproval);
+        };
+        $scope.showBulkNa = false;
+        $scope.toggleBulkNa = function() {
+            $scope.showBulkNa = !$scope.showBulkNa;
         };
 
         $scope.promotionOptions = [{
@@ -1114,19 +1116,16 @@ angular.module('wsaa.surveyQuestions', [
             desc: "Don't create missing responses",
         },];
 
-        $scope.setState = function(approval) {
-            var promote;
-            if ($scope.stats.promote == 'BOTH')
-                promote = ['PROMOTE', 'DEMOTE'];
-            else if ($scope.stats.promote == 'PROMOTE')
-                promote = ['PROMOTE'];
-            else
-                promote = ['DEMOTE'];
-            $scope.rnode.$save({
-                    approval: approval,
-                    promote: promote,
-                    missing: $scope.stats.missing,
-                },
+        $scope.relevanceOptions = [{
+            name: 'NOT_RELEVANT',
+            desc: "Mark all responses as Not Relevant",
+        }, {
+            name: 'RELEVANT',
+            desc: "Mark all responses as Relevant",
+        },];
+
+        var bulkAction = function(params) {
+            $scope.rnode.$save(params,
                 function success(rnode, getResponseHeaders) {
                     var message = "Saved";
                     if (getResponseHeaders('Operation-Details'))
@@ -1142,6 +1141,27 @@ angular.module('wsaa.surveyQuestions', [
                         "Could not save submission category: " + details.statusText);
                 }
             );
+        };
+        $scope.setState = function(approval) {
+            var promote;
+            if ($scope.stats.promote == 'BOTH')
+                promote = ['PROMOTE', 'DEMOTE'];
+            else if ($scope.stats.promote == 'PROMOTE')
+                promote = ['PROMOTE'];
+            else
+                promote = ['DEMOTE'];
+
+            bulkAction({
+                approval: approval,
+                promote: promote,
+                missing: $scope.stats.missing,
+            });
+        };
+        $scope.setNotRelevant = function(relevance) {
+            bulkAction({
+                relevance: relevance,
+                missing: $scope.stats.missing,
+            });
         };
 
         $scope.demoStats = [
