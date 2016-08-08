@@ -918,11 +918,9 @@ angular.module('wsaa.surveyQuestions', [
         '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'format', 'Structure',
         'layout', 'Arrays', 'ResponseNode', 'Enqueue', '$timeout', '$route',
-        'dimmer',
         function($scope, QuestionNode, routeData, Editor, authz,
                  $location, Notifications, current, format, Structure,
-                 layout, Arrays, ResponseNode, Enqueue, $timeout, $route,
-                 dimmer) {
+                 layout, Arrays, ResponseNode, Enqueue, $timeout, $route) {
 
     // routeData.parent and routeData.hierarchy will only be defined when
     // creating a new qnode.
@@ -1088,11 +1086,9 @@ angular.module('wsaa.surveyQuestions', [
             $scope.saveRnode();
         });
 
-        $scope.dim = dimmer.toggler($scope);
         $scope.showBulkApproval = false;
         $scope.toggleBulk = function() {
             $scope.showBulkApproval = !$scope.showBulkApproval;
-            $scope.dim($scope.showBulkApproval);
         };
 
         $scope.promotionOptions = [{

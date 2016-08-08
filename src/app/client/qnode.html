@@ -78,7 +78,7 @@
         <button class="btn btn-default btn-round pull-right hidden-print"
                 title="Bulk approval"
                 ng-click="toggleBulk()"
-                ng-class="showBulkApproval ? 'undim' : null">
+                highlight="showBulkApproval">
             <i class="fa fa-fw fa-rotate fa-angle-right"
                 ng-class="showBulkApproval ? 'fa-rotate-90' : null"></i></button>
 
@@ -178,7 +178,7 @@
         </div> <!-- class="stats-group"-->
     </div>
 
-    <form novalidate class="dialog undim spaced" ng-if="showBulkApproval">
+    <form novalidate class="dialog spaced" highlight ng-if="showBulkApproval">
         <h3>Bulk Approval</h3>
         <approval-buttons model="stats.approval"
                 class="spaced-below"
