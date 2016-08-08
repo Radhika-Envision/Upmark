@@ -12,6 +12,7 @@ down_revision = '38ca8597c70'
 branch_labels = None
 depends_on = None
 
+import logging
 import os
 import re
 import string
@@ -27,6 +28,9 @@ from sqlalchemy.schema import MetaData
 from sqlalchemy.sql import table, column
 
 from guid import GUID
+
+
+log_migration = logging.getLogger('app.migration')
 
 
 metadata = MetaData()
@@ -90,6 +94,8 @@ def upgrade():
             upgrade_basic(h, logger, "/#/hierarchy/{0.id}?survey={0.survey_id}")
         for s in session.query(Survey).all():
             upgrade_basic(s, logger, "/#/survey/{0.id}")
+    log_migration.info("Conversion to Markdown is complete.")
+    log_migration.info("IMPORTANT: check /tmp/aq/*.log.")
     session.flush()
 
     op.drop_column('measure', 'questions')

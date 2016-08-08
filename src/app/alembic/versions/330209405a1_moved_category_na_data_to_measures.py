@@ -1,3 +1,120 @@
+"""Moved category NA data to measures
+
+Revision ID: 330209405a1
+Revises: 592feeef959
+Create Date: 2016-08-07 23:52:07.051294
+
+"""
+
+# revision identifiers, used by Alembic.
+revision = '330209405a1'
+down_revision = '592feeef959'
+branch_labels = None
+depends_on = None
+
+import logging
+
+from alembic import op
+import sqlalchemy as sa
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import foreign, relationship, remote, sessionmaker
+from sqlalchemy.schema import ForeignKeyConstraint, MetaData
+
+
+metadata = MetaData()
+Base = declarative_base(metadata=metadata)
+Session = sessionmaker()
+
+log_migration = logging.getLogger('app.migration')
+
+
+def url_of(rnode):
+    return "/#/qnode/{}?assessment={}".format(rnode.qnode_id, rnode.assessment_id)
+
+
+def upgrade():
+    session = Session(bind=op.get_bind())
+
+    # Find all rnodes that contain only NA responses
+    rnodes = (session.query(ResponseNode)
+        .filter(ResponseNode.not_relevant == True)
+        .all())
+
+    # Transfer flags
+    n_responses = 0
+    for rnode in rnodes:
+        for response in rnode.ordered_responses:
+            response.not_relevant = True
+            n_responses += 1
+        rnode.not_relevant = False
+
+    # Filter list to include only highest-level rnodes
+    rnodes = [rn_a for rn_a in rnodes
+        if not any(rn_b in rnodes for rn_b in rn_a.lineage()[:-1])]
+
+    # Propagate metadata
+    for i, rnode in enumerate(rnodes):
+        n_not_relevant = rnode.n_not_relevant
+        rnode.update_stats_descendants()
+        rnode.update_stats_ancestors()
+        assert n_not_relevant == rnode.n_not_relevant == rnode.qnode.n_measures
+
+    log_migration.info(
+        "Upgraded %d rnodes (%d responses)", len(rnodes), n_responses)
+    session.flush()
+
+    op.drop_column('rnode', 'not_relevant')
+
+
+def downgrade():
+    op.add_column('rnode', sa.Column('not_relevant', sa.BOOLEAN()))
+    op.execute(ResponseNode.__table__.update().values(not_relevant=False))
+    op.alter_column('rnode', 'not_relevant', nullable=False)
+
+    session = Session(bind=op.get_bind())
+
+    # Find all rnodes that contain only NA responses
+    rnodes = list((session.query(ResponseNode)
+        .join(QuestionNode)
+        .filter(ResponseNode.n_not_relevant >= QuestionNode.n_measures)
+        .all()))
+
+    # Filter list to include only highest-level rnodes
+    rnodes = [rn_a for rn_a in rnodes
+        if not any(rn_b in rnodes for rn_b in rn_a.lineage()[:-1])]
+
+    # Transfer flags
+    n_responses = 0
+    n_incomplete_responses = 0
+    for rnode in rnodes:
+        rnode.not_relevant = True
+        for response in rnode.ordered_responses:
+            response.not_relevant = False
+            try:
+                # Some repsonses may not be able to be marked as relevant, if
+                # they are currently incomplete.
+                response.update_stats()
+            except ModelError:
+                response.not_relevant = True
+                n_incomplete_responses += 1
+            n_responses += 1
+
+    # Propagate metadata
+    for rnode in rnodes:
+        n_not_relevant = rnode.n_not_relevant
+        rnode.update_stats_descendants()
+        rnode.update_stats_ancestors()
+        assert n_not_relevant == rnode.n_not_relevant == rnode.qnode.n_measures
+
+    log_migration.info(
+        "Downgraded %d rnodes (%d responses)", len(rnodes), n_responses)
+    log_migration.info(
+        "%d responses are still directly marked as NA", n_incomplete_responses)
+    session.flush()
+
+
+# Frozen model - to make it easier to propagate value changes through the
+# hierarchy
 import base64
 from collections import namedtuple
 from contextlib import contextmanager
@@ -869,8 +986,10 @@ class ResponseNode(Observable, Base):
     n_final = Column(Integer, default=0, nullable=False)
     n_reviewed = Column(Integer, default=0, nullable=False)
     n_approved = Column(Integer, default=0, nullable=False)
-    n_not_relevant = Column(Integer, default=0, nullable=False)
     score = Column(Float, default=0.0, nullable=False)
+
+    n_not_relevant = Column(Integer, default=0, nullable=False)
+    not_relevant = Column(Boolean, default=False, nullable=False)
 
     importance = Column(Float)
     urgency = Column(Float)
@@ -1476,142 +1595,3 @@ Response.measure = relationship(
 
 ResponseHistory.user = relationship(
     AppUser, backref='user', passive_deletes=True)
-
-## assessment_id, measure_id
-## version fileds need to have index on ResponseHistory
-
-Session = None
-VersionedSession = None
-ReadonlySession = None
-
-
-@contextmanager
-def session_scope(version=False, readonly=False):
-    # http://docs.sqlalchemy.org/en/latest/orm/session_basics.html#when-do-i-construct-a-session-when-do-i-commit-it-and-when-do-i-close-it
-    """Provide a transactional scope around a series of operations."""
-    if readonly:
-        session = ReadonlySession()
-    elif version:
-        session = VersionedSession()
-    else:
-        session = Session()
-
-    try:
-        yield session
-        session.commit()
-    except:
-        session.rollback()
-        raise
-    finally:
-        session.close()
-
-
-def create_analyst_user():
-    '''
-    For arbitary queries on the web, create a new user named 'analyst'
-    and give SELECT permission to all tables except the appuser.password
-    column.
-    '''
-
-    with session_scope() as session:
-        password = base64.b32encode(os.urandom(30)).decode('ascii')
-        store_analyst_password(password, session)
-        session.execute(
-            "CREATE USER analyst WITH PASSWORD :pwd", {'pwd': password})
-        session.execute(
-            "GRANT USAGE ON SCHEMA public TO analyst")
-        session.execute(
-            "GRANT SELECT"
-            " (id, organisation_id, email, name, role, created, deleted,"
-            "  email_time, email_interval)"
-            " ON appuser TO analyst")
-        for table in Base.metadata.tables:
-            if str(table) not in {'appuser', 'systemconfig', 'alembic_version'}:
-                session.execute(
-                    "GRANT SELECT ON {} TO analyst".format(table))
-
-
-def reset_analyst_password():
-     with session_scope() as session:
-        password = base64.b32encode(os.urandom(30)).decode('ascii')
-        store_analyst_password(password, session)
-        session.execute(
-            "ALTER ROLE analyst WITH PASSWORD :pwd", {'pwd': password})
-
-
-def store_analyst_password(password, session):
-    pwd_conf = session.query(SystemConfig).get('analyst_password')
-    if pwd_conf is None:
-        pwd_conf = SystemConfig(name='analyst_password')
-        pwd_conf.human_name = "Analyst password"
-        pwd_conf.description = "Password for read-only database access"
-        pwd_conf.user_defined = False
-        session.add(pwd_conf)
-    pwd_conf.value = password
-
-
-def connect_db(url):
-    global Session, VersionedSession
-    engine = create_engine(url)
-    # Never drop the schema here.
-    # - For short-term testing, use psql.
-    # - For breaking changes, add migration code to the alembic scripts.
-    Session = sessionmaker(bind=engine)
-    VersionedSession = sessionmaker(bind=engine)
-    versioned_session(VersionedSession)
-
-    return engine
-
-
-class MissingUser(ModelError):
-    pass
-
-
-class WrongPassword(ModelError):
-    pass
-
-
-def connect_db_ro(base_url):
-    global ReadonlySession
-
-    with session_scope() as session:
-        count = (session.execute(
-                '''SELECT count(*)
-                   FROM pg_catalog.pg_user u
-                   WHERE u.usename = :usename''',
-                {'usename': 'analyst'})
-            .scalar())
-        if count != 1:
-            raise MissingUser("analyst user does not exist")
-
-        password = (session.query(SystemConfig.value)
-                .filter(SystemConfig.name == 'analyst_password')
-                .scalar())
-
-    parsed_url = sqlalchemy.engine.url.make_url(base_url)
-    readonly_url = sqlalchemy.engine.url.URL(
-        parsed_url.drivername,
-        username='analyst',
-        password=password,
-        host=parsed_url.host,
-        port=parsed_url.port,
-        database=parsed_url.database)
-    engine_readonly = create_engine(readonly_url)
-    ReadonlySession = sessionmaker(bind=engine_readonly)
-
-    # Try to connect now so we know if the password is OK
-    with session_scope(readonly=True) as session:
-        try:
-            count = session.query(Survey).count()
-        except sqlalchemy.exc.OperationalError as e:
-            raise WrongPassword(e)
-
-    return engine_readonly
-
-
-def initialise_schema(engine):
-    Base.metadata.create_all(engine)
-    # Analyst user creation *must* be done here. Schema upgrades need to adjust
-    # permissions of the analyst user, therefore that user is part of the
-    # schema.
-    create_analyst_user()
