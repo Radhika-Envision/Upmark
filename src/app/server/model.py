@@ -958,17 +958,6 @@ class ResponseNode(Observable, Base):
             self.ob_title, self.ob_type, self.ob_ids, lineage)
 
     def update_stats(self):
-        if self.not_relevant:
-            self.score = 0.0
-            self.n_approved = self.qnode.n_measures
-            self.n_reviewed = self.qnode.n_measures
-            self.n_final = self.qnode.n_measures
-            self.n_draft = self.qnode.n_measures
-            self.n_not_relevant = self.qnode.n_measures
-            self.max_importance = 0.0
-            self.max_urgency = 0.0
-            return
-
         score = 0.0
         n_approved = 0
         n_reviewed = 0

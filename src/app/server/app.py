@@ -364,7 +364,7 @@ def start_web_server():
     if log.isEnabledFor(logging.INFO):
         import re, socket
         log.info("Tornado version: %s", tornado.version)
-        log.info("Tornado settings: %s", settings)
+        log.debug("Tornado settings: %s", settings)
         log.info(
             "Starting web application. Will be available on port %s", port)
         hostname = socket.gethostname()
