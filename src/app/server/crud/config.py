@@ -1,14 +1,21 @@
+from concurrent.futures import ThreadPoolExecutor
 import logging
+import io
 import os
 
+from tornado.concurrent import run_on_executor
 from tornado.escape import json_decode, json_encode
 import tornado.web
+from scour import scour
 import sqlalchemy
 
 import handlers
 import model
 
 from utils import get_package_dir, to_camel_case, to_snake_case, ToSon
+
+
+MAX_WORKERS = 4
 
 
 # This SCHEMA defines configuration parameters that a user is allowed to modify.
@@ -158,6 +165,9 @@ class SystemConfigHandler(handlers.BaseHandler):
 
 
 class SystemConfigItemHandler(handlers.BaseHandler):
+
+    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
+
     @handlers.authz('admin')
     def get(self, name):
         name = to_snake_case(name)
@@ -193,10 +203,31 @@ class SystemConfigItemHandler(handlers.BaseHandler):
 
         body = self.request.body
         if schema['type'] == 'svg':
-            # TODO: Clean SVG
-            pass
+            body = yield self.clean_svg(body)
 
         with model.session_scope() as session:
             set_setting(session, name, self.request.body)
 
         self.finish()
+
+    @run_on_executor
+    def clean_svg(self, svg):
+        '''
+        Clean up an SVG file.
+        - Remove script tags and the like
+        - Reduce file size
+        '''
+        opts = scour.parse_args(args=[
+            '--disable-group-collapsing',
+            '--enable-viewboxing',
+            '--enable-id-stripping',
+            '--enable-comment-stripping',
+            '--indent=none',
+            '--protect-ids-noninkscape',
+            '--remove-metadata',
+            '--set-precision=5',
+        ])
+        input = io.BytesIO(svg)
+        output = io.BytesIO()
+        scour.start(opts, input, output)
+        return output.getvalue()

@@ -27,8 +27,9 @@ RUN DEBIAN_FRONTEND=noninteractive \
 
 # Install dependencies before copying full source directory. This speeds up
 # Docker rebuilds.
-COPY requirements.txt /tmp/
+COPY requirements.txt requirements_force.txt /tmp/
 WORKDIR /tmp
+RUN pip3 install --upgrade --force-reinstall -r requirements_force.txt
 RUN pip3 install -r requirements.txt
 
 COPY bower.json /tmp/
