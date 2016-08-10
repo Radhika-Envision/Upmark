@@ -61,6 +61,14 @@
                     Include response quality
             </label>
         </div>
+        <div class="checkbox">
+            <label>
+                <input type="checkbox" id="hideAggregate" name="hideAggregate"
+                    ng-model="edit.model.hideAggregate">
+                    Disable aggregate category scores
+            </label>
+        </div>
+
     </form>
 
     <div ng-include="'response_types.html'"

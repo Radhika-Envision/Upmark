@@ -86,6 +86,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/deleted$',
                 r'/is_editable$',
                 r'/has_quality$',
+                r'/hide_aggregate$',
                 r'/response_types.*$'
             )
             if not self.has_privillege('author'):
@@ -355,6 +356,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         update('title', son)
         update('description', son, sanitise=True)
         update('has_quality', son)
+        update('hide_aggregate', son)
         try:
             update('response_types', son)
         except voluptuous.Error as e:

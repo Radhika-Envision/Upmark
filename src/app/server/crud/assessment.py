@@ -65,7 +65,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/survey/tracking_id$',
                 r'/organisation$',
                 r'/hierarchy$',
-                r'/hierarchy/structure.*$'
+                r'/hierarchy/structure.*$',
+                r'/survey/hide_aggregate$',
             )
             son = to_son(assessment)
         self.set_header("Content-Type", "application/json")

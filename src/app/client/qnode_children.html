@@ -47,7 +47,8 @@
                     {{getStats(item.id).urgency}}</span>
             </td>
             <td class="shrink text-muted numeric" title="Score"
-                    ng-if="assessment && checkRole('view_aggregate_score')">
+                    ng-if="assessment && checkRole('view_aggregate_score')
+                            && !structure.survey.hideAggregate">
                 <span>{{getStats(item.id).score | number:0}}</span
                ><span class="text-muted hidden-sm hidden-xs">/</span
                ><br class="visible-sm visible-xs"

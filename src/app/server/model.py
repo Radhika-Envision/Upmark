@@ -303,6 +303,7 @@ class Survey(Observable, Base):
     title = Column(Text, nullable=False)
     description = Column(Text)
     has_quality = Column(Boolean, default=False, nullable=False)
+    hide_aggregate = Column(Boolean, default=False, nullable=False)
     _response_types = Column('response_types', JSON, nullable=False)
 
     @property
