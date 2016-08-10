@@ -589,4 +589,118 @@ angular.module('wsaa.admin', [
     $scope.checkRole = confAuthz(Current);
 }])
 
+
+.directive('numericalSetting', function(guid) {
+    return {
+        restrict: 'E',
+        scope: {
+            setting: '='
+        },
+        templateUrl: 'numerical-setting.html',
+        controller: function($scope) {
+            $scope.isFinite = isFinite;
+            $scope.id = guid('setting');
+        }
+    };
+})
+
+
+.directive('stringSetting', function(guid) {
+    return {
+        restrict: 'E',
+        scope: {
+            setting: '='
+        },
+        templateUrl: 'string-setting.html',
+        controller: function($scope) {
+            $scope.id = guid('setting');
+        }
+    };
+})
+
+
+.directive('fileSetting', function(
+        $timeout, Notifications, format, $http, $cookies) {
+
+    return {
+        restrict: 'E',
+        scope: {
+            setting: '='
+        },
+        templateUrl: 'file-setting.html',
+        link: function(scope, elem, attrs) {
+            scope.progress = {
+                isWorking: false,
+                isFinished: false,
+                uploadFraction: 0.0
+            };
+            Notifications.remove('upload');
+
+            var headers = {};
+            var xsrfName = $http.defaults.xsrfHeaderName;
+            headers[xsrfName] = $cookies.get($http.defaults.xsrfCookieName);
+
+            var dropzone;
+            scope.$watch('setting', function(setting) {
+                var config = {
+                    url: '/systemconfig/' + scope.setting.name,
+                    maxFilesize: 50,
+                    paramName: "file",
+                    acceptedFiles: scope.setting.accept,
+                    headers: headers,
+                    autoProcessQueue: false
+                };
+                Dropzone.autoDiscover = false;
+                var dropzone = new Dropzone(elem[0], config);
+            });
+
+            scope.import = function() {
+                if (!dropzone.files.length) {
+                    Notifications.set('upload', 'error', "Please choose a file");
+                    return;
+                }
+                $scope.progress.isWorking = true;
+                $scope.progress.isFinished = false;
+                $scope.progress.uploadFraction = 0.0;
+                dropzone.processQueue();
+            };
+
+            dropzone.on('uploadprogress', function(file, progress) {
+                $scope.progress.uploadFraction = progress / 100;
+                $scope.$apply();
+            });
+
+            dropzone.on("success", function(file, response) {
+                Notifications.set('upload', 'success', "Import finished", 5000);
+                $timeout(function() {
+                    $scope.progress.isFinished = true;
+                }, 1000);
+                $timeout(function() {
+                    $location.url('/survey/' + response);
+                }, 5000);
+            });
+
+            dropzone.on('addedfile', function(file) {
+                if (dropzone.files.length > 1)
+                    dropzone.removeFile(dropzone.files[0]);
+            });
+
+            dropzone.on("error", function(file, details, request) {
+                var error;
+                if (request) {
+                    error = "Import failed: " + request.statusText;
+                } else {
+                    error = details;
+                }
+                dropzone.removeAllFiles();
+                Notifications.set('upload', 'error', error);
+                $scope.progress.isWorking = false;
+                $scope.progress.isFinished = false;
+                $scope.$apply();
+            });
+        }
+    };
+})
+
+
 ;

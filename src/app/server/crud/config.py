@@ -44,15 +44,18 @@ SCHEMA = {
         'default_value': "Upmark",
     },
     'logo': {
-        'type': 'svg',
+        'type': 'image',
+        'accept': '.svg',
         'default_file_path': "../client/images/logo.svg",
     },
     'logo_monogram_big': {
-        'type': 'svg',
+        'type': 'image',
+        'accept': '.svg',
         'default_file_path': "../client/images/logo-icon-big.svg",
     },
     'logo_monogram_small': {
-        'type': 'svg',
+        'type': 'image',
+        'accept': '.svg',
         'default_file_path': "../client/images/logo-icon-small.svg",
     },
 }
@@ -135,6 +138,7 @@ class SystemConfigHandler(handlers.BaseHandler):
                     continue
 
                 s = schema.copy()
+                s['name'] = to_camel_case(name)
                 if 'default_file_path' in s:
                     del s['default_file_path']
 
@@ -179,7 +183,7 @@ class SystemConfigItemHandler(handlers.BaseHandler):
                 "This service can only be used to get blob data, not text or "
                 "numerical values.")
 
-        if schema['type'] == 'svg':
+        if schema['type'] == 'image' and schema['accept'] == '.svg':
             self.set_header('Content-Type', 'image/svg+xml')
         else:
             self.clear_header('Content-Type')
@@ -202,7 +206,7 @@ class SystemConfigItemHandler(handlers.BaseHandler):
                 "numerical values.")
 
         body = self.request.body
-        if schema['type'] == 'svg':
+        if schema['type'] == 'image' and schema['accept'] == '.svg':
             body = yield self.clean_svg(body)
 
         with model.session_scope() as session:

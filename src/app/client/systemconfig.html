@@ -23,52 +23,103 @@
 </div>
 </div>
 
+<script type="text/ng-template" id="numerical-setting.html">
+    <div class="input-group">
+        <span class="input-group-addon text-muted">
+            {{
+                isFinite(setting.min) ? '' + setting.min + ' ≤' : ''
+            }}
+        </span>
+        <input type="number" class="form-control" id="{{setting.name}}"
+            ng-model="setting.value" required />
+        <span class="input-group-addon text-muted">
+            {{
+                isFinite(setting.max) ? '≤ ' + setting.max : ''
+            }}
+        </span>
+        <span class="input-group-btn">
+            <button class="btn btn-default"
+                  ng-click="setting.value = setting.defaultValue"
+                  title="Reset to default ({{setting.defaultValue}})">
+                <i class="fa fa-undo"></i>
+            </button>
+        </span>
+    </div>
+</script>
+
+<script type="text/ng-template" id="string-setting.html">
+    <div class="input-group">
+        <input type="text" class="form-control" id="{{setting.name}}"
+            ng-model="setting.value" required />
+        <span class="input-group-btn">
+            <button class="btn btn-default"
+                  ng-click="setting.value = setting.defaultValue"
+                  title="Reset to default ({{setting.defaultValue}})">
+                <i class="fa fa-undo"></i>
+            </button>
+        </span>
+    </div>
+</script>
+
+<script type="text/ng-template" id="file-setting.html">
+    <div class="dropzone">
+        <div class="dz-default dz-message">
+            <p><i class="fa fa-cloud-upload fa-2x"></i></p>
+            <p>Drop a file here, or click to select one</p>
+        </div>
+    </div>
+</script>
+
 <div ng-if="edit.model" class="container">
     <form novalidate name="form" id="editor" form-nav-warn>
 
         <h3>User Management</h3>
 
         <div class="form-group">
-            <label for="pass_threshold">Password Strength Threshold</label>
+            <label for="passThreshold">Password Strength Threshold</label>
             <p>
-                The minimum strength for a password, between 0.0 and 1.0, where
-                0.0 allows very weak passwords and 1.0 requires strong
+                The minimum strength for a password.
+                0.1 allows very weak passwords and 1.0 requires strong
                 passwords.
             </p>
-            <input type="number" class="form-control" id="pass_threshold"
-                ng-model="edit.model.passThreshold.value" required />
+            <numerical-setting setting="edit.model.passThreshold"></numerical-setting>
         </div>
 
         <h3>Reporting</h3>
 
         <div class="form-group">
-            <label for="adhoc_timeout">Custom Query Time Limit</label>
+            <label for="adhocTimeout">Custom Query Time Limit</label>
             <p>
                 The maximum number of seconds a custom query is allowed to run
                 for.
             </p>
-            <input type="number" class="form-control" id="adhoc_timeout"
-                ng-model="edit.model.adhocTimeout.value" required />
+            <numerical-setting setting="edit.model.adhocTimeout"></numerical-setting>
         </div>
 
         <div class="form-group">
-            <label for="adhoc_max_limit">Custom Query Row Limit</label>
+            <label for="adhocMaxLimit">Custom Query Row Limit</label>
             <p>
                 The maximum number of rows a query can return.
             </p>
-            <input type="number" class="form-control" id="adhoc_max_limit"
-                ng-model="edit.model.adhocMaxLimit.value" required />
+            <numerical-setting setting="edit.model.adhocMaxLimit"></numerical-setting>
         </div>
 
         <h3>Branding</h3>
 
         <div class="form-group">
-            <label for="app_name">Application Name</label>
+            <label for="appName">Application Name</label>
             <p>
                 The name to refer to this application by.
             </p>
-            <input type="text" class="form-control" id="app_name"
-                ng-model="edit.model.appName.value" required />
+            <string-setting setting="edit.model.appName"></string-setting>
+        </div>
+
+        <div class="form-group">
+            <label for="appName">Application Logo</label>
+            <p>
+                The logo to display in the title bar.
+            </p>
+            <file-setting setting="edit.model.logo"></file-setting>
         </div>
     </form>
 </div>
