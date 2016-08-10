@@ -580,6 +580,12 @@ angular.module('wsaa.admin', [
     $scope.edit = Editor('systemConfig', $scope);
     $scope.systemConfig = systemConfig;
 
+    $scope.$watch('systemConfig', function(systemConfig) {
+        // Small hack to get Editor utilty to use PUT instead of POST
+        if (!systemConfig.id)
+            systemConfig.id = 'systemConfig';
+    });
+
     $scope.checkRole = confAuthz(Current);
 }])
 

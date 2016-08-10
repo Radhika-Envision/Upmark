@@ -2,17 +2,21 @@ FROM ubuntu:14.04
 
 MAINTAINER Alex Fraser <alex@vpac-innovations.com.au>
 
+# build-essentials is required for building many pip packages
+# Git is required by Bower
+# ffi, jpeg and lxml are required by cariosvg
 RUN DEBIAN_FRONTEND=noninteractive \
     apt-get update && \
     apt-get install -y \
         build-essential \
+        git \
         libffi-dev \
         libjpeg-dev \
-        libxml2-dev \
         nodejs \
         npm \
         python3 \
         python3.4-dev \
+        python3-lxml \
         python3-pip \
         python3-psycopg2 \
         --no-install-recommends && \

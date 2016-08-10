@@ -25,19 +25,88 @@
 
 <div ng-if="edit.model" class="container">
     <form novalidate name="form" id="editor" form-nav-warn>
-        <div class="form-group" ng-repeat="item in edit.model.settings">
-            <label for="value{{$index}}">{{item.humanName}}</label>
-            <p ng-if="item.description">{{item.description}}</p>
-            <input type="text" class="form-control" id="value{{$index}}"
-                name="value{{$index}}"
-                ng-model="item.value" required />
+
+        <h3>User Management</h3>
+
+        <div class="form-group">
+            <label for="pass_threshold">Password Strength Threshold</label>
+            <p>
+                The minimum strength for a password, between 0.0 and 1.0, where
+                0.0 allows very weak passwords and 1.0 requires strong
+                passwords.
+            </p>
+            <input type="number" class="form-control" id="pass_threshold"
+                ng-model="edit.model.passThreshold.value" required />
+        </div>
+
+        <h3>Reporting</h3>
+
+        <div class="form-group">
+            <label for="adhoc_timeout">Custom Query Time Limit</label>
+            <p>
+                The maximum number of seconds a custom query is allowed to run
+                for.
+            </p>
+            <input type="number" class="form-control" id="adhoc_timeout"
+                ng-model="edit.model.adhocTimeout.value" required />
+        </div>
+
+        <div class="form-group">
+            <label for="adhoc_max_limit">Custom Query Row Limit</label>
+            <p>
+                The maximum number of rows a query can return.
+            </p>
+            <input type="number" class="form-control" id="adhoc_max_limit"
+                ng-model="edit.model.adhocMaxLimit.value" required />
+        </div>
+
+        <h3>Branding</h3>
+
+        <div class="form-group">
+            <label for="app_name">Application Name</label>
+            <p>
+                The name to refer to this application by.
+            </p>
+            <input type="text" class="form-control" id="app_name"
+                ng-model="edit.model.appName.value" required />
         </div>
     </form>
 </div>
 
 <div ng-if="!edit.model" class="container">
-    <dl ng-repeat="item in systemConfig.settings">
-        <dt>{{item.humanName}}</dt>
-        <dd>{{item.value}}</dd>
+    <h3>User Management</h3>
+    <dl>
+        <dt>Password Strength Threshold</dt>
+        <dd>{{systemConfig.passThreshold.value}}</dd>
+    </dl>
+
+    <h3>Reporting</h3>
+    <dl>
+        <dt>Custom Query Time Limit</dt>
+        <dd>{{systemConfig.adhocTimeout.value}}</dd>
+
+        <dt>Custom Query Row Limit</dt>
+        <dd>{{systemConfig.adhocMaxLimit.value}}</dd>
+    </dl>
+
+    <h3>Branding</h3>
+    <dl>
+        <dt>Application Name</dt>
+        <dd>{{systemConfig.appName.value}}</dd>
+
+        <dt>Primary Logo</dt>
+        <dd>
+            <img src="/systemconfig/logo">
+        </dd>
+
+        <dt>Big Icon</dt>
+        <dd>
+            <img src="/systemconfig/logo_monogram_big">
+        </dd>
+
+        <dt>Small Icon</dt>
+        <dd>
+            <img src="/systemconfig/logo_monogram_small">
+        </dd>
     </dl>
 </div>

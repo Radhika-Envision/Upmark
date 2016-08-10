@@ -7,7 +7,6 @@
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
-   xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    viewBox="0 0 192 192"
@@ -17,57 +16,12 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.48.5 r10040"
-   sodipodi:docname="logo-monogram.svg"
+   sodipodi:docname="logo-icon-big.svg"
    inkscape:export-filename="/home/adfries/Documents/WSAA_AMIP/aquamark/src/app/client/images/logo-monogram-fav.png"
    inkscape:export-xdpi="30"
    inkscape:export-ydpi="30">
   <defs
-     id="defs4">
-    <linearGradient
-       id="linearGradient4003">
-      <stop
-         style="stop-color:#cfecfa;stop-opacity:1;"
-         offset="0"
-         id="stop4005" />
-      <stop
-         style="stop-color:#3877ae;stop-opacity:1;"
-         offset="1"
-         id="stop4007" />
-    </linearGradient>
-    <radialGradient
-       inkscape:collect="always"
-       xlink:href="#linearGradient4003"
-       id="radialGradient4009"
-       cx="-54.844479"
-       cy="337.30054"
-       fx="-54.844479"
-       fy="337.30054"
-       r="42.805244"
-       gradientTransform="matrix(-0.22758124,1.5564734,-1.2107681,-0.17703361,470.66314,423.97863)"
-       gradientUnits="userSpaceOnUse" />
-    <radialGradient
-       inkscape:collect="always"
-       xlink:href="#linearGradient4003"
-       id="radialGradient3019"
-       gradientUnits="userSpaceOnUse"
-       gradientTransform="matrix(-0.22758124,1.5564734,-1.2107681,-0.17703361,470.66314,423.97863)"
-       cx="-54.844479"
-       cy="337.30054"
-       fx="-54.844479"
-       fy="337.30054"
-       r="42.805244" />
-    <radialGradient
-       inkscape:collect="always"
-       xlink:href="#linearGradient4003"
-       id="radialGradient3024"
-       gradientUnits="userSpaceOnUse"
-       gradientTransform="matrix(-0.32194484,2.2018449,-1.7127974,-0.25043829,672.69258,495.69639)"
-       cx="-54.844479"
-       cy="337.30054"
-       fx="-54.844479"
-       fy="337.30054"
-       r="42.805244" />
-  </defs>
+     id="defs4" />
   <sodipodi:namedview
      id="base"
      pagecolor="#ffffff"
@@ -84,7 +38,7 @@
      showguides="false"
      inkscape:guide-bbox="true"
      inkscape:window-width="1920"
-     inkscape:window-height="1014"
+     inkscape:window-height="1134"
      inkscape:window-x="0"
      inkscape:window-y="27"
      inkscape:window-maximized="1"

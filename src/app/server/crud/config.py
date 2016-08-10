@@ -1,97 +1,202 @@
+import logging
+import os
+
 from tornado.escape import json_decode, json_encode
 import tornado.web
 import sqlalchemy
 
 import handlers
 import model
-import logging
 
-from utils import ToSon
+from utils import get_package_dir, to_camel_case, to_snake_case, ToSon
 
 
 # This SCHEMA defines configuration parameters that a user is allowed to modify.
 # The application may store other things in the systemconfig table, but only
 # these ones will be visible / editable.
-SCHEMA = [
-    {
-        'name': 'pass_threshold',
-        'human_name': "Password Strength Threshold",
-        'description':
-            "The minimum strength for a password, between 0.0 and 1.0, where"
-            " 0.0 allows very weak passwords and 1.0 requires strong"
-            " passwords.",
-        'default_value': "0.85"
-    }, {
-        'name': 'adhoc_timeout',
-        'human_name': "Custom Query Time Limit",
-        'description':
-            "The maximum number of seconds a custom query is allowed to run"
-            " for.",
-        'default_value': "1.5"
-    }, {
-        'name': 'adhoc_max_limit',
-        'human_name': "Custom Query Row Limit",
-        'description':
-            "The maximum number of rows a query can return.",
-        'default_value': "2500"
-    }, {
-        'name': 'logo',
-        'human_name': "Application logo",
-        'description':
-            "The primary logo used for the application.",
-        'default_file_path': "../../client/images/logo.svg"
-    }, {
-        'name': 'logo_monogram_big',
-        'human_name': "Large square icon",
-        'description':
-            "A large square icon to use as app launcher.",
-        'default_file_path': "../../client/images/logo-icon-big.svg"
-    }, {
-        'name': 'logo_monogram_small',
-        'human_name': "Small square icon",
-        'description':
-            "A small square icon to display in browser tabs.",
-        'default_file_path': "../../client/images/logo-icon-small.svg"
-    }
-]
+# Paths are relative to app.py.
+SCHEMA = {
+    'pass_threshold': {
+        'type': 'numerical',
+        'min': 0.1,
+        'max': 1.0,
+        'default_value': 0.85,
+    },
+    'adhoc_timeout': {
+        'type': 'numerical',
+        'min': 0.0,
+        'default_value': 1.5,
+    },
+    'adhoc_max_limit': {
+        'type': 'numerical',
+        'min': 0.0,
+        'default_value': 2500,
+    },
+    'app_name': {
+        'type': 'string',
+        'default_value': "Upmark",
+    },
+    'logo': {
+        'type': 'svg',
+        'default_file_path': "../client/images/logo.svg",
+    },
+    'logo_monogram_big': {
+        'type': 'svg',
+        'default_file_path': "../client/images/logo-icon-big.svg",
+    },
+    'logo_monogram_small': {
+        'type': 'svg',
+        'default_file_path': "../client/images/logo-icon-small.svg",
+    },
+}
+
+
+def is_primitive(schema):
+    return schema['type'] in {'numerical', 'string'}
+
+
+def is_private(name, schema):
+    return name.startswith('_')
+
+
+def get_setting(session, name):
+    schema = SCHEMA.get(name)
+    if not schema:
+        raise KeyError("No such setting %s" % name)
+
+    setting = session.query(model.SystemConfig).get(name)
+    if setting:
+        if setting.value is not None:
+            if schema['type'] == 'numerical':
+                return float(setting.value)
+            else:
+                return setting.value
+        if setting.data is not None:
+            return setting.data
+    elif 'default_value' in schema:
+        return schema['default_value']
+    elif 'default_file_path' in schema:
+        path = os.path.join(get_package_dir(), schema['default_file_path'])
+        with open(path, 'rb') as f:
+            return f.read()
+
+    raise KeyError("No such setting %s" % name)
+
+
+def set_setting(session, name, value):
+    schema = SCHEMA.get(name)
+    if not schema:
+        return
+
+    setting = session.query(model.SystemConfig).get(name)
+    if not setting:
+        setting = model.SystemConfig(name=name)
+        session.add(setting)
+
+    if schema['type'] == 'numerical':
+        minimum = schema.get('min', float('-inf'))
+        if minimum > float(value):
+            raise handlers.ModelError(
+                "Setting %s must be at least %s" % (name, minimum))
+
+        maximum = schema.get('max', float('inf'))
+        if maximum < float(value):
+            raise handlers.ModelError(
+                "Setting %s must be at most %s" % (name, maximum))
+
+    if is_primitive(schema):
+        setting.value = str(value)
+        setting.data = None
+    else:
+        setting.value = None
+        setting.data = value
+
+
+def reset_setting(session, name):
+    setting = session.query(model.SystemConfig).get(name)
+    if setting:
+        session.delete(setting)
 
 
 class SystemConfigHandler(handlers.BaseHandler):
-
     @handlers.authz('admin')
     def get(self):
         with model.session_scope() as session:
-            try:
-                settings = session.query(model.SystemConfig) \
-                    .filter(model.SystemConfig.user_defined == True) \
-                    .all()
-            except sqlalchemy.exc.StatementError:
-                raise handlers.MissingDocError("No such user")
-            to_son = ToSon()
-            to_son.exclude(r'/user_defined$')
-            son = {
-                'id': 'settings',
-                'settings': to_son(settings)
-            }
+            settings = {}
+            for name, schema in SCHEMA.items():
+                if is_private(name, schema):
+                    continue
+
+                s = schema.copy()
+                if 'default_file_path' in s:
+                    del s['default_file_path']
+
+                if schema['type'] == 'numerical':
+                    s['value'] = float(get_setting(session, name))
+                elif schema['type'] == 'string':
+                    s['value'] = get_setting(session, name)
+                settings[name] = s
         self.set_header("Content-Type", "application/json")
-        self.write(json_encode(son))
+        self.write(json_encode(ToSon()(settings)))
         self.finish()
 
     @handlers.authz('admin')
     def put(self):
-        try:
-            with model.session_scope() as session:
-                for s in self.request_son['settings']:
-                    setting = session.query(model.SystemConfig).get(s['name'])
-                    if setting is None:
-                        raise handlers.MissingDocError(
-                            "No such setting %s" % s['name'])
-                    if not setting.user_defined:
-                        raise handlers.ModelError(
-                            "Setting %s can't be modified" % s['name'])
-                    setting.value = s['value']
-        except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
-        except sqlalchemy.exc.StatementError:
-            raise handlers.MissingDocError("No such setting")
+        with model.session_scope() as session:
+            settings = {}
+            for name, schema in SCHEMA.items():
+                if is_private(name, schema):
+                    continue
+
+                if name not in self.request_son:
+                    reset_setting(session, name)
+                    continue
+
+                if is_primitive(schema):
+                    set_setting(session, name, self.request_son[name]['value'])
         self.get()
+
+
+class SystemConfigItemHandler(handlers.BaseHandler):
+    @handlers.authz('admin')
+    def get(self, name):
+        name = to_snake_case(name)
+        schema = SCHEMA.get(name)
+        if not schema or is_private(name, schema):
+            raise handlers.MissingDocError("No such setting")
+        if is_primitive(schema):
+            raise handlers.MissingDocError(
+                "This service can only be used to get blob data, not text or "
+                "numerical values.")
+
+        if schema['type'] == 'svg':
+            self.set_header('Content-Type', 'image/svg+xml')
+        else:
+            self.clear_header('Content-Type')
+
+        with model.session_scope() as session:
+            value = get_setting(session, name)
+            self.write(value)
+
+        self.finish()
+
+    @handlers.authz('admin')
+    def post(self, name):
+        name = to_snake_case(name)
+        schema = SCHEMA.get(name)
+        if not schema or is_private(name, schema):
+            raise handlers.MissingDocError("No such setting")
+        if is_primitive(schema):
+            raise handlers.MissingDocError(
+                "This service can only be used to set blob data, not text or "
+                "numerical values.")
+
+        body = self.request.body
+        if schema['type'] == 'svg':
+            # TODO: Clean SVG
+            pass
+
+        with model.session_scope() as session:
+            set_setting(session, name, self.request.body)
+
+        self.finish()

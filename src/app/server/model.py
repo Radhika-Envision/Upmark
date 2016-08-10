@@ -96,7 +96,6 @@ class Observable:
 class SystemConfig(Base):
     __tablename__ = 'systemconfig'
     name = Column(String, primary_key=True, nullable=False)
-    mime_type = Column(String)
     value = Column(String)
     data = Column(LargeBinary)
 
@@ -1574,7 +1573,7 @@ def connect_db_ro(base_url):
             raise MissingUser("analyst user does not exist")
 
         password = (session.query(SystemConfig.value)
-                .filter(SystemConfig.name == 'analyst_password')
+                .filter(SystemConfig.name == '_analyst_password')
                 .scalar())
 
     parsed_url = sqlalchemy.engine.url.make_url(base_url)
