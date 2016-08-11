@@ -94,7 +94,8 @@
         </docs>
 
         <div class="stats-group">
-            <span title="Score" ng-if="rnode.score != null">
+            <span title="Score"
+                  ng-if="rnode.score != null && !structure.survey.hideAggregate">
                 {{rnode.score | number:0}}
             </span>
             <span title="Progress">

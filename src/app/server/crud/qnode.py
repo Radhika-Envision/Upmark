@@ -55,6 +55,7 @@ class QuestionNodeHandler(
                 r'/is_editable$',
                 r'/survey/tracking_id$',
                 r'/survey/created$',
+                r'/survey/hide_aggregate$',
                 # Fields to match from only the root object
                 r'<^/description$',
                 # Ascend into nested parent objects
