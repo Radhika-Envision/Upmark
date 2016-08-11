@@ -1,8 +1,8 @@
 from concurrent.futures import ThreadPoolExecutor
 import logging
-import io
 import os
 
+from tornado import gen
 from tornado.concurrent import run_on_executor
 from tornado.escape import json_decode, json_encode
 import tornado.web
@@ -15,6 +15,7 @@ import model
 from utils import get_package_dir, to_camel_case, to_snake_case, ToSon
 
 
+log = logging.getLogger('app.crud.config')
 MAX_WORKERS = 4
 
 
@@ -69,12 +70,16 @@ def is_private(name, schema):
     return name.startswith('_')
 
 
-def get_setting(session, name):
+def get_setting(session, name, force_default=False):
     schema = SCHEMA.get(name)
     if not schema:
         raise KeyError("No such setting %s" % name)
 
-    setting = session.query(model.SystemConfig).get(name)
+    if not force_default:
+        setting = session.query(model.SystemConfig).get(name)
+    else:
+        setting = None
+
     if setting:
         if setting.value is not None:
             if schema['type'] == 'numerical':
@@ -172,8 +177,9 @@ class SystemConfigItemHandler(handlers.BaseHandler):
 
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-    @handlers.authz('admin')
+    @tornado.web.authenticated
     def get(self, name):
+        self.check_privillege('admin')
         name = to_snake_case(name)
         schema = SCHEMA.get(name)
         if not schema or is_private(name, schema):
@@ -189,13 +195,17 @@ class SystemConfigItemHandler(handlers.BaseHandler):
             self.clear_header('Content-Type')
 
         with model.session_scope() as session:
-            value = get_setting(session, name)
+            value = get_setting(
+                session, name,
+                force_default=self.get_argument('default', None) != None)
             self.write(value)
 
         self.finish()
 
-    @handlers.authz('admin')
+    @tornado.web.authenticated
+    @gen.coroutine
     def post(self, name):
+        self.check_privillege('admin')
         name = to_snake_case(name)
         schema = SCHEMA.get(name)
         if not schema or is_private(name, schema):
@@ -205,12 +215,25 @@ class SystemConfigItemHandler(handlers.BaseHandler):
                 "This service can only be used to set blob data, not text or "
                 "numerical values.")
 
-        body = self.request.body
+        fileinfo = self.request.files['file'][0]
+        body = fileinfo['body']
         if schema['type'] == 'image' and schema['accept'] == '.svg':
             body = yield self.clean_svg(body)
 
         with model.session_scope() as session:
-            set_setting(session, name, self.request.body)
+            set_setting(session, name, body.encode('utf-8'))
+
+        self.finish()
+
+    @tornado.web.authenticated
+    def delete(self, name):
+        self.check_privillege('admin')
+        name = to_snake_case(name)
+        schema = SCHEMA.get(name)
+        if not schema or is_private(name, schema):
+            raise handlers.MissingDocError("No such setting")
+        with model.session_scope() as session:
+            reset_setting(session, name)
 
         self.finish()
 
@@ -228,10 +251,9 @@ class SystemConfigItemHandler(handlers.BaseHandler):
             '--enable-comment-stripping',
             '--indent=none',
             '--protect-ids-noninkscape',
+            '--quiet',
             '--remove-metadata',
             '--set-precision=5',
-        ])
-        input = io.BytesIO(svg)
-        output = io.BytesIO()
-        scour.start(opts, input, output)
-        return output.getvalue()
+        ])[0]
+        output = scour.scourString(svg, opts)
+        return output

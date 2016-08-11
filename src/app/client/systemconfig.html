@@ -6,7 +6,7 @@
                 ng-if="edit.model && edit.model.id">
             <i class="fa fa-times"></i></button>
         <button class="btn btn-default btn-round" title="Save"
-                ng-click="edit.save()"
+                ng-click="save()"
                 ng-if="edit.model"
                 form="editor"
                 form-save-button="editor">
@@ -23,64 +23,49 @@
 </div>
 </div>
 
-<script type="text/ng-template" id="numerical-setting.html">
-    <div class="input-group">
-        <span class="input-group-addon text-muted">
-            {{
-                isFinite(setting.min) ? '' + setting.min + ' ≤' : ''
-            }}
-        </span>
-        <input type="number" class="form-control" id="{{setting.name}}"
-            ng-model="setting.value" required />
-        <span class="input-group-addon text-muted">
-            {{
-                isFinite(setting.max) ? '≤ ' + setting.max : ''
-            }}
-        </span>
-        <span class="input-group-btn">
-            <button class="btn btn-default"
-                  ng-click="setting.value = setting.defaultValue"
-                  title="Reset to default ({{setting.defaultValue}})">
-                <i class="fa fa-undo"></i>
-            </button>
-        </span>
-    </div>
-</script>
-
-<script type="text/ng-template" id="string-setting.html">
-    <div class="input-group">
-        <input type="text" class="form-control" id="{{setting.name}}"
-            ng-model="setting.value" required />
-        <span class="input-group-btn">
-            <button class="btn btn-default"
-                  ng-click="setting.value = setting.defaultValue"
-                  title="Reset to default ({{setting.defaultValue}})">
-                <i class="fa fa-undo"></i>
-            </button>
-        </span>
-    </div>
-</script>
-
-<script type="text/ng-template" id="file-setting.html">
-    <div class="dropzone">
-        <div class="dz-default dz-message">
-            <p><i class="fa fa-cloud-upload fa-2x"></i></p>
-            <p>Drop a file here, or click to select one</p>
-        </div>
-    </div>
-</script>
-
 <div ng-if="edit.model" class="container">
     <form novalidate name="form" id="editor" form-nav-warn>
+        <div class="container-fluid text-center">
+          <div class="row">
+            <div class="form-group col-md-5">
+                <label for="appName">Application Logo</label>
+                <p>
+                    Wide logo to display in the title bar
+                </p>
+                <file-setting setting="edit.model.logo"></file-setting>
+            </div>
+            <div class="form-group col-md-4">
+                <label for="appName">Big Icon</label>
+                <p>
+                    Square icon to use on a phone
+                </p>
+                <file-setting setting="edit.model.logoMonogramBig"></file-setting>
+            </div>
+            <div class="form-group col-md-3">
+                <label for="appName">Small Icon</label>
+                <p>
+                    Icon for browser tabs
+                </p>
+                <file-setting setting="edit.model.logoMonogramSmall"></file-setting>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+            <label for="appName">Application Name</label>
+            <p>
+                The name to refer to this application by
+            </p>
+            <string-setting setting="edit.model.appName"></string-setting>
+        </div>
 
         <h3>User Management</h3>
 
         <div class="form-group">
             <label for="passThreshold">Password Strength Threshold</label>
             <p>
-                The minimum strength for a password.
+                The minimum strength for a password;
                 0.1 allows very weak passwords and 1.0 requires strong
-                passwords.
+                passwords
             </p>
             <numerical-setting setting="edit.model.passThreshold"></numerical-setting>
         </div>
@@ -91,7 +76,7 @@
             <label for="adhocTimeout">Custom Query Time Limit</label>
             <p>
                 The maximum number of seconds a custom query is allowed to run
-                for.
+                for
             </p>
             <numerical-setting setting="edit.model.adhocTimeout"></numerical-setting>
         </div>
@@ -99,65 +84,42 @@
         <div class="form-group">
             <label for="adhocMaxLimit">Custom Query Row Limit</label>
             <p>
-                The maximum number of rows a query can return.
+                The maximum number of rows a query can return
             </p>
             <numerical-setting setting="edit.model.adhocMaxLimit"></numerical-setting>
         </div>
 
-        <h3>Branding</h3>
-
-        <div class="form-group">
-            <label for="appName">Application Name</label>
-            <p>
-                The name to refer to this application by.
-            </p>
-            <string-setting setting="edit.model.appName"></string-setting>
-        </div>
-
-        <div class="form-group">
-            <label for="appName">Application Logo</label>
-            <p>
-                The logo to display in the title bar.
-            </p>
-            <file-setting setting="edit.model.logo"></file-setting>
-        </div>
     </form>
 </div>
 
 <div ng-if="!edit.model" class="container">
+    <div class="container-fluid text-center">
+      <div class="row">
+        <div class="form-group col-md-5">
+            <h4>Primary Logo</h4>
+            <img class="app-icon" src="/systemconfig/logo">
+        </div>
+        <div class="form-group col-md-4">
+            <h4>Big Icon</h4>
+            <img class="app-icon" src="/systemconfig/logoMonogramBig">
+        </div>
+        <div class="form-group col-md-3">
+            <h4>Small Icon</h4>
+            <img class="app-icon" src="/systemconfig/logoMonogramSmall">
+        </div>
+      </div>
+    </div>
+    <h4>Application Name</h4>
+    <p>{{systemConfig.appName.value}}</p>
+
     <h3>User Management</h3>
-    <dl>
-        <dt>Password Strength Threshold</dt>
-        <dd>{{systemConfig.passThreshold.value}}</dd>
-    </dl>
+    <h4>Password Strength Threshold</h4>
+    <p>{{systemConfig.passThreshold.value}}</p>
 
     <h3>Reporting</h3>
-    <dl>
-        <dt>Custom Query Time Limit</dt>
-        <dd>{{systemConfig.adhocTimeout.value}}</dd>
+    <h4>Custom Query Time Limit</h4>
+    <p>{{systemConfig.adhocTimeout.value}}</p>
 
-        <dt>Custom Query Row Limit</dt>
-        <dd>{{systemConfig.adhocMaxLimit.value}}</dd>
-    </dl>
-
-    <h3>Branding</h3>
-    <dl>
-        <dt>Application Name</dt>
-        <dd>{{systemConfig.appName.value}}</dd>
-
-        <dt>Primary Logo</dt>
-        <dd>
-            <img src="/systemconfig/logo">
-        </dd>
-
-        <dt>Big Icon</dt>
-        <dd>
-            <img src="/systemconfig/logo_monogram_big">
-        </dd>
-
-        <dt>Small Icon</dt>
-        <dd>
-            <img src="/systemconfig/logo_monogram_small">
-        </dd>
-    </dl>
+    <h4>Custom Query Row Limit</h4>
+    <p>{{systemConfig.adhocMaxLimit.value}}</p>
 </div>

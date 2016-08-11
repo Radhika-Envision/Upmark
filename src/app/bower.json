@@ -27,7 +27,7 @@
     "angular-ui-select": "~0.18.1",
     "angular-ui-sortable": "~0.14.3",
     "angular-cookies": "~1.4.1",
-    "dropzone": "~4.0.1",
+    "dropzone": "~4.3.0",
     "jqueryui-touch-punch": "#4bc009145202d9c7483ba85f3a236a8f3470354d",
     "js-expression-eval": "https://github.com/escopecz/js-expression-eval.git#d8b2a917c97926ee866927ff150611f0492e588f",
     "angular-timeago": "~0.2.2",

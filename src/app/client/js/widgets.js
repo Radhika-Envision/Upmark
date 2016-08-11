@@ -425,6 +425,7 @@ angular.module('vpac.widgets', [])
                 that.saving = false;
                 that = null;
             }
+            return model;
         };
         var failure = function(details) {
             var normalError = function() {
@@ -445,22 +446,24 @@ angular.module('vpac.widgets', [])
             } finally {
                 that.saving = false;
                 that = null;
-                return $q.reject(details);
             }
+            return $q.reject(details);
         };
 
+        var p;
         if (angular.isArray(this.model)) {
             log.info("Reordering list");
-            this.resource.reorder(this.params, this.model, success, failure);
+            p = this.resource.reorder(this.params, this.model, success, failure);
         } else if (!this.model.id) {
             log.info("Saving as new entry");
-            this.model.$create(this.params, success, failure);
+            p = this.model.$create(this.params, success, failure);
         } else {
             log.info("Saving over old entry");
-            this.model.$save(this.params, success, failure);
+            p = this.model.$save(this.params, success, failure);
         }
         this.saving = true;
         Notifications.set('edit', 'info', "Saving");
+        return p;
     };
 
     Editor.prototype.del = function() {
@@ -478,6 +481,7 @@ angular.module('vpac.widgets', [])
                 that.saving = false;
                 that = null;
             }
+            return model;
         };
         var failure = function(details) {
             var normalError = function() {
@@ -498,16 +502,17 @@ angular.module('vpac.widgets', [])
             } finally {
                 that.saving = false;
                 that = null;
-                return $q.reject(details);
             }
+            return $q.reject(details);
         };
 
         log.info("Deleting");
         var model = this.getter(this.scope);
-        model.$delete(this.params, success, failure);
+        var p = model.$delete(this.params, success, failure);
 
         this.saving = true;
         Notifications.set('edit', 'info', "Deleting");
+        return p;
     };
 
     Editor.prototype.undelete = function() {
@@ -525,6 +530,7 @@ angular.module('vpac.widgets', [])
                 that.saving = false;
                 that = null;
             }
+            return model;
         };
         var failure = function(details) {
             var normalError = function() {
@@ -545,16 +551,17 @@ angular.module('vpac.widgets', [])
             } finally {
                 that.saving = false;
                 that = null;
-                return $q.reject(details);
             }
+            return $q.reject(details);
         };
 
         log.info("Deleting");
         var model = this.getter(this.scope);
-        model.$save(this.params, success, failure);
+        var p = model.$save(this.params, success, failure);
 
         this.saving = true;
         Notifications.set('edit', 'info', "Restoring");
+        return p;
     };
 
     Editor.prototype.destroy = function() {

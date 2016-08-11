@@ -818,6 +818,14 @@ angular.module('wsaa.aquamark',
 ])
 
 
+/*
+ * Global config for some 3rd party libraries.
+ */
+.config(function() {
+    Dropzone.autoDiscover = false;
+})
+
+
 .run(['$cacheFactory', '$http', function($cacheFactory, $http) {
     $http.defaults.cache = $cacheFactory('lruCache', {capacity: 100});
 }])

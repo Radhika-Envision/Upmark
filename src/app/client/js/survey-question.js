@@ -450,7 +450,6 @@ angular.module('wsaa.surveyQuestions', [
         autoProcessQueue: false
     };
 
-    Dropzone.autoDiscover = false;
     var dropzone = new Dropzone("#dropzone", config);
 
     $scope.import = function() {
@@ -2465,7 +2464,6 @@ angular.module('wsaa.surveyQuestions', [
         autoProcessQueue: false
     };
 
-    Dropzone.autoDiscover = false;
     var dropzone = new Dropzone("#dropzone", config);
 
     $scope.save = function() {

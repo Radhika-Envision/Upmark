@@ -569,3 +569,10 @@ markdown-editor {
 .clickable {
     cursor: pointer;
 }
+
+.app-icon,
+file-setting .dz-image img,
+file-setting .dz-message img {
+    height: 120px;
+    max-width: 100%;
+}

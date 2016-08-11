@@ -212,7 +212,6 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         autoProcessQueue: false
     };
 
-    Dropzone.autoDiscover = false;
     var dropzone = new Dropzone("#dropzone", config);
 
     $scope.import = function() {

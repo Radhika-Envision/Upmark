@@ -571,11 +571,9 @@ angular.module('wsaa.admin', [
 }])
 
 
-.controller('SystemConfigCtrl', [
-        '$scope', 'SystemConfig', 'Editor', 'confAuthz', 'Current',
-        'systemConfig',
+.controller('SystemConfigCtrl',
         function($scope, SystemConfig, Editor, confAuthz, Current,
-            systemConfig) {
+            systemConfig, $q, Notifications) {
 
     $scope.edit = Editor('systemConfig', $scope);
     $scope.systemConfig = systemConfig;
@@ -586,8 +584,23 @@ angular.module('wsaa.admin', [
             systemConfig.id = 'systemConfig';
     });
 
+    $scope.save = function() {
+        var async_task_promises = [];
+        $scope.$broadcast('prepareFormSubmit', async_task_promises);
+        var promise = $q.all(async_task_promises).then(
+            function success(async_tasks) {
+                Notifications.remove('systemConfig');
+                return $scope.edit.save();
+            },
+            function failure(reason) {
+                Notifications.set('systemConfig', 'error', reason);
+                return $q.reject(reason);
+            }
+        );
+    };
+
     $scope.checkRole = confAuthz(Current);
-}])
+})
 
 
 .directive('numericalSetting', function(guid) {
@@ -596,7 +609,7 @@ angular.module('wsaa.admin', [
         scope: {
             setting: '='
         },
-        templateUrl: 'numerical-setting.html',
+        templateUrl: 'setting-numerical.html',
         controller: function($scope) {
             $scope.isFinite = isFinite;
             $scope.id = guid('setting');
@@ -611,7 +624,7 @@ angular.module('wsaa.admin', [
         scope: {
             setting: '='
         },
-        templateUrl: 'string-setting.html',
+        templateUrl: 'setting-string.html',
         controller: function($scope) {
             $scope.id = guid('setting');
         }
@@ -619,84 +632,88 @@ angular.module('wsaa.admin', [
 })
 
 
-.directive('fileSetting', function(
-        $timeout, Notifications, format, $http, $cookies) {
-
+.directive('fileSetting', function($http, $cookies, $q) {
     return {
         restrict: 'E',
         scope: {
             setting: '='
         },
-        templateUrl: 'file-setting.html',
-        link: function(scope, elem, attrs) {
-            scope.progress = {
-                isWorking: false,
-                isFinished: false,
-                uploadFraction: 0.0
+        templateUrl: 'setting-image.html',
+        require: '^form',
+        link: function(scope, elem, attrs, formCtrl) {
+            var getParams = function() {
+                var url = '/systemconfig/' + scope.setting.name;
+                var xsrfName = $http.defaults.xsrfHeaderName;
+                var headers = {};
+                headers[xsrfName] = $cookies.get($http.defaults.xsrfCookieName);
+                return {
+                    url: url,
+                    headers: headers,
+                };
             };
-            Notifications.remove('upload');
-
-            var headers = {};
-            var xsrfName = $http.defaults.xsrfHeaderName;
-            headers[xsrfName] = $cookies.get($http.defaults.xsrfCookieName);
-
             var dropzone;
+            var deferred;
             scope.$watch('setting', function(setting) {
-                var config = {
-                    url: '/systemconfig/' + scope.setting.name,
+                var options = angular.merge({}, getParams(), {
                     maxFilesize: 50,
                     paramName: "file",
                     acceptedFiles: scope.setting.accept,
-                    headers: headers,
                     autoProcessQueue: false
-                };
-                Dropzone.autoDiscover = false;
-                var dropzone = new Dropzone(elem[0], config);
+                });
+                dropzone = new Dropzone(elem.children()[0], options);
+
+                dropzone.on('uploadprogress', function(file, progress) {
+                    deferred.notify(progress);
+                });
+
+                dropzone.on("success", function(file, response) {
+                    deferred.resolve();
+                    setting.action = null;
+                });
+
+                dropzone.on('addedfile', function(file) {
+                    if (dropzone.files.length > 1)
+                        dropzone.removeFile(dropzone.files[0]);
+                    setting.value = "file.name";
+                    setting.action = 'upload';
+                    formCtrl.$setDirty();
+                    scope.$apply();
+                });
+
+                dropzone.on("error", function(file, details, request) {
+                    if (request)
+                        deferred.reject("Upload failed: " + request.statusText);
+                    else
+                        deferred.reject("Upload failed: " + details);
+                });
             });
 
-            scope.import = function() {
-                if (!dropzone.files.length) {
-                    Notifications.set('upload', 'error', "Please choose a file");
-                    return;
-                }
-                $scope.progress.isWorking = true;
-                $scope.progress.isFinished = false;
-                $scope.progress.uploadFraction = 0.0;
-                dropzone.processQueue();
+            scope.reset = function () {
+                dropzone.removeAllFiles();
+                scope.setting.action = 'reset';
+                formCtrl.$setDirty();
             };
 
-            dropzone.on('uploadprogress', function(file, progress) {
-                $scope.progress.uploadFraction = progress / 100;
-                $scope.$apply();
-            });
-
-            dropzone.on("success", function(file, response) {
-                Notifications.set('upload', 'success', "Import finished", 5000);
-                $timeout(function() {
-                    $scope.progress.isFinished = true;
-                }, 1000);
-                $timeout(function() {
-                    $location.url('/survey/' + response);
-                }, 5000);
-            });
-
-            dropzone.on('addedfile', function(file) {
-                if (dropzone.files.length > 1)
-                    dropzone.removeFile(dropzone.files[0]);
-            });
-
-            dropzone.on("error", function(file, details, request) {
-                var error;
-                if (request) {
-                    error = "Import failed: " + request.statusText;
-                } else {
-                    error = details;
+            scope.$on('prepareFormSubmit', function(event, promises) {
+                if (scope.setting.action == 'reset') {
+                    var options = angular.merge({}, getParams(), {
+                        method: 'DELETE',
+                    });
+                    promises.push($http(options));
+                    return;
                 }
-                dropzone.removeAllFiles();
-                Notifications.set('upload', 'error', error);
-                $scope.progress.isWorking = false;
-                $scope.progress.isFinished = false;
-                $scope.$apply();
+
+                if (!dropzone.files.length)
+                    return;
+
+                deferred = $q.defer();
+                promises.push(deferred.promise);
+                dropzone.processQueue();
+            });
+            scope.$on('$destroy', function() {
+                scope = null;
+                formCtrl = null;
+                dropzone = null;
             });
         }
     };
