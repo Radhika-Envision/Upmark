@@ -7,6 +7,7 @@ import time
 
 import sass
 import sqlalchemy
+from sqlalchemy import func
 from tornado.escape import json_decode
 import tornado.options
 import tornado.web
@@ -332,7 +333,7 @@ def authz(*roles):
     return decorator
 
 
-class MainHandler(BaseHandler):
+class TemplateHandler(BaseHandler):
     '''
     Renders content from templates (e.g. index.html).
     '''
@@ -385,27 +386,44 @@ class MainHandler(BaseHandler):
 
     @tornado.web.authenticated
     def get(self, path):
-        if path != "":
-            template = os.path.join(self.path, path)
-        else:
-            template = self.path
+        if path == '':
+            path = 'index.html'
+        template = os.path.join(self.path, path)
 
         self.render(
             template, user=self.current_user, organisation=self.organisation,
             scripts=self.scripts, stylesheets=self.stylesheets,
-            analytics_id=tornado.options.options.analytics_id,
-            # Conditionally use a deployment ID; this is for assets that may need
-            # breakpoints. Under dev mode the URLs will never change, and it's
-            # up to the developer to clear their own cache. Under deployment
-            # the URLs will change.
-            deploy_id=self.deploy_id,
-            # Always use a dev ID; this is for assets that don't need to be
-            # debugged but do need cache busting like favicons. Under dev mode
-            # and deployment the URLs will change.
-            dev_id_query="?v=static-%s" % DEPLOY_ID,
-            aq_version=aq_version,
             dev_mode=truthy(tornado.options.options.dev) and 'true' or 'false',
-            database_type=database_type)
+            **self.basic_page_params)
+
+    @property
+    def basic_page_params(self):
+        # Conditionally use a deployment ID; this is for assets that may need
+        # breakpoints. Under dev mode the URLs will never change, and it's
+        # up to the developer to clear their own cache. Under deployment
+        # the URLs will change.
+        deploy_id=self.deploy_id
+
+        # Always use a dev ID; this is for assets that don't need to be
+        # debugged but do need cache busting like favicons. Under dev mode
+        # and deployment the URLs will change.
+        with model.session_scope() as session:
+            manifest_mod_time = (
+                session.query(func.max(model.SystemConfig.modified))
+                    .limit(1)
+                    .scalar())
+        if manifest_mod_time is not None:
+            icon_query = "?v=conf-%s" % manifest_mod_time.timestamp()
+        else:
+            icon_query = "?v=conf-%s" % DEPLOY_ID
+
+        return {
+            'analytics_id': tornado.options.options.analytics_id,
+            'aq_version': aq_version,
+            'deploy_id': deploy_id,
+            'icon_query': icon_query,
+            'database_type': database_type,
+        }
 
 
 class RedirectHandler(BaseHandler):

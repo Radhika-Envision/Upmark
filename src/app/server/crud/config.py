@@ -11,6 +11,7 @@ import sqlalchemy
 
 import handlers
 import model
+import logo
 
 from utils import get_package_dir, to_camel_case, to_snake_case, ToSon
 
@@ -239,21 +240,4 @@ class SystemConfigItemHandler(handlers.BaseHandler):
 
     @run_on_executor
     def clean_svg(self, svg):
-        '''
-        Clean up an SVG file.
-        - Remove script tags and the like
-        - Reduce file size
-        '''
-        opts = scour.parse_args(args=[
-            '--disable-group-collapsing',
-            '--enable-viewboxing',
-            '--enable-id-stripping',
-            '--enable-comment-stripping',
-            '--indent=none',
-            '--protect-ids-noninkscape',
-            '--quiet',
-            '--remove-metadata',
-            '--set-precision=5',
-        ])[0]
-        output = scour.scourString(svg, opts)
-        return output
+        return logo.clean_svg(svg)

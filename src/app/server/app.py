@@ -62,12 +62,13 @@ def ssl_log_filter(record):
 
 import auth
 import crud
+import export_handlers
 import handlers
 import import_handlers
-import export_handlers
-import statistics_handlers
-import report_handlers
+import logo
 import model
+import report_handlers
+import statistics_handlers
 from utils import truthy
 
 
@@ -239,8 +240,8 @@ def get_mappings():
         (r"/login/?(.*)", auth.AuthLoginHandler, {
             'path': os.path.join(package_dir, "..", "client")}),
         (r"/logout/?", auth.AuthLogoutHandler),
-        (r"/()", handlers.MainHandler, {
-            'path': '../client/index.html'}),
+        (r"/(|manifest.json)", handlers.TemplateHandler, {
+            'path': '../client/'}),
         (r"/ping.*", handlers.PingHandler, {}),
 
         (r"/bower_components/(.*)", tornado.web.StaticFileHandler, {
@@ -251,6 +252,7 @@ def get_mappings():
             'root': os.path.join(package_dir, "..", "client")}),
         (r"/(.*\.css)", handlers.CssHandler, {
             'root': os.path.join(package_dir, "..", "client")}),
+        (r"/images/icon-(.*)\.png", logo.IconHandler, {}),
 
         (r"/systemconfig.json", crud.config.SystemConfigHandler, {}),
         (r"/systemconfig/(.*)", crud.config.SystemConfigItemHandler, {}),

@@ -14,7 +14,7 @@ import model
 log = logging.getLogger('app.auth')
 
 
-class AuthLoginHandler(handlers.MainHandler):
+class AuthLoginHandler(handlers.TemplateHandler):
     SESSION_LENGTH = datetime.timedelta(days=30)
 
     def prepare(self):
@@ -35,12 +35,8 @@ class AuthLoginHandler(handlers.MainHandler):
             "../client/login.html", scripts=self.scripts,
             stylesheets=self.stylesheets,
             analytics_id=tornado.options.options.analytics_id,
-            next=next,
-            # Always use a dev ID; this is for assets that don't need to be
-            # debugged but do need cache busting like favicons. Under dev mode
-            # and deployment the URLs will change.
-            dev_id_query="?v=static-%s" % handlers.DEPLOY_ID,
-            error=errormessage)
+            next=next, error=errormessage,
+            **self.basic_page_params)
 
     def post(self, user_id):
         '''
