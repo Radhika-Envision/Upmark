@@ -98,6 +98,7 @@ class SystemConfig(Base):
     name = Column(String, primary_key=True, nullable=False)
     value = Column(String)
     data = Column(LargeBinary)
+    modified = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     def __repr__(self):
         return "SystemConfig(name={}, value={})".format(self.name, self.value)

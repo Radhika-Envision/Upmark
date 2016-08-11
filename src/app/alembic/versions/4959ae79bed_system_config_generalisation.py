@@ -12,6 +12,7 @@ down_revision = '94a189659'
 branch_labels = None
 depends_on = None
 
+from datetime import datetime
 import inspect
 import json
 import os
@@ -22,27 +23,59 @@ import sqlalchemy as sa
 
 systemconfig = sa.sql.table(
     'systemconfig',
-    sa.sql.column('name', sa.String)
+    sa.sql.column('name', sa.String),
+    sa.sql.column('human_name', sa.String),
+    sa.sql.column('description', sa.String),
+    sa.sql.column('user_defined', sa.Boolean),
+    sa.sql.column('modified', sa.DateTime),
 )
 
 
 def upgrade():
-    op.add_column('systemconfig', sa.Column('data', sa.LargeBinary(), nullable=True))
-    op.add_column('systemconfig', sa.Column('mime_type', sa.String(), nullable=True))
+    op.add_column('systemconfig', sa.Column('data', sa.LargeBinary()))
+    op.add_column('systemconfig', sa.Column('modified', sa.DateTime()))
 
     op.drop_column('systemconfig', 'description')
     op.drop_column('systemconfig', 'human_name')
     op.drop_column('systemconfig', 'user_defined')
 
+    # Rename private data, following Python's convention for marking fields as
+    # private.
     op.execute(systemconfig.update()
         .where(systemconfig.c.name == 'cookie_secret')
         .values({'name': '_cookie_secret'}))
     op.execute(systemconfig.update()
         .where(systemconfig.c.name == 'analyst_password')
         .values({'name': '_analyst_password'}))
+    op.execute(systemconfig.update()
+        .values({
+            'modified': datetime.utcnow(),
+        }))
+
+    op.alter_column('systemconfig', 'modified', nullable=False)
 
 
 def downgrade():
+    op.add_column('systemconfig', sa.Column('user_defined', sa.Boolean))
+    op.add_column('systemconfig', sa.Column('human_name', sa.String))
+    op.add_column('systemconfig', sa.Column('description', sa.String))
+
+    op.execute(systemconfig.update()
+        .values({
+            'human_name': systemconfig.c.name,
+            'description': systemconfig.c.name,
+        }))
+    op.execute(systemconfig.update()
+        .where(systemconfig.c.name.like(r'_%'))
+        .values({
+            'user_defined': False,
+        }))
+    op.execute(systemconfig.update()
+        .where(systemconfig.c.user_defined == None)
+        .values({
+            'user_defined': True,
+        }))
+
     op.execute(systemconfig.update()
         .where(systemconfig.c.name == '_analyst_password')
         .values({'name': 'analyst_password'}))
@@ -50,35 +83,9 @@ def downgrade():
         .where(systemconfig.c.name == '_cookie_secret')
         .values({'name': 'cookie_secret'}))
 
-    op.add_column('systemconfig', sa.Column('user_defined', sa.Boolean))
-    op.add_column('systemconfig', sa.Column('human_name', sa.String))
-    op.add_column('systemconfig', sa.Column('description', sa.String))
-    populate_defaults()
     op.alter_column('systemconfig', 'user_defined', nullable=False)
     op.alter_column('systemconfig', 'user_defined', nullable=False)
     op.alter_column('systemconfig', 'user_defined', nullable=False)
 
-    op.drop_column('systemconfig', 'mime_type')
+    op.drop_column('systemconfig', 'modified')
     op.drop_column('systemconfig', 'data')
-
-
-def populate_defaults():
-    frameinfo = inspect.getframeinfo(inspect.currentframe())
-    package_dir = os.path.dirname(frameinfo.filename)
-    conf_file = os.path.join('..', '..', '..', 'sysconfg_schema.yaml')
-    schema = json.loads(conf_file)
-    for s in schema:
-        op.execute(systemconfig.update()
-            .where(systemconfig.c.name == s['name'])
-            .values({
-                'human_name': s['human_name'],
-                'description': s['description'],
-                'user_defined': True,
-            }))
-
-    op.execute(systemconfig.update()
-        .where(systemconfig.c.user_defined == None)
-        .values({'user_defined': False}))
-    op.execute(systemconfig.update()
-        .where(systemconfig.c.human_name == None)
-        .values({'human_name': systemconfig.c.name}))
