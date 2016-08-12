@@ -65,7 +65,6 @@ import crud
 import export_handlers
 import handlers
 import import_handlers
-import logo
 import model
 import report_handlers
 import statistics_handlers
@@ -240,7 +239,9 @@ def get_mappings():
         (r"/login/?(.*)", auth.AuthLoginHandler, {
             'path': os.path.join(package_dir, "..", "client")}),
         (r"/logout/?", auth.AuthLogoutHandler),
-        (r"/(|manifest.json)", handlers.TemplateHandler, {
+        (r"/()", handlers.TemplateHandler, {
+            'path': '../client/'}),
+        (r"/(manifest.json)", handlers.UnauthenticatedTemplateHandler, {
             'path': '../client/'}),
         (r"/ping.*", handlers.PingHandler, {}),
 
@@ -252,7 +253,9 @@ def get_mappings():
             'root': os.path.join(package_dir, "..", "client")}),
         (r"/(.*\.css)", handlers.CssHandler, {
             'root': os.path.join(package_dir, "..", "client")}),
-        (r"/images/icon-(.*)\.png", logo.IconHandler, {}),
+        (r"/images/icon-(.*)\.png", crud.image.IconHandler, {}),
+        (r"/images/logo.svg", crud.image.SvgHandler, {'name': 'logo'}),
+        (r"/images/icon.svg", crud.image.SvgHandler, {'name': 'logo_monogram_big'}),
 
         (r"/systemconfig.json", crud.config.SystemConfigHandler, {}),
         (r"/systemconfig/(.*)", crud.config.SystemConfigItemHandler, {}),

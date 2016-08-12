@@ -62,7 +62,6 @@ nav.navbar.navbar-static-top {
 .navbar-brand svg {
     $height: $nav-height - (2 * $std-padding);
     height: $height;
-    width: (619px / 183px) * $height;
 }
 g#logo-text-subtitle {
     display: none;

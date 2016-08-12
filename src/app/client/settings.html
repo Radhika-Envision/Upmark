@@ -2,14 +2,14 @@
 'use strict';
 angular.module('settings', [])
 
-{% if deploy_id is not None %}
-.constant('deployId', '{{deploy_id}}')
+{% if params.deploy_id is not None %}
+.constant('deployId', '{{params.deploy_id}}')
 {% else %}
 .constant('deployId', null)
 {% end %}
 
-{% if aq_version is not None %}
-.constant('aqVersion', '{{aq_version}}')
+{% if params.aq_version is not None %}
+.constant('aqVersion', '{{params.aq_version}}')
 {% else %}
 .constant('aqVersion', null)
 {% end %}
@@ -38,8 +38,8 @@ angular.module('settings', [])
 .constant('pageTitleSuffix', ' - AMCV')
 
 .constant('releaseMode', {
-    dev: {{dev_mode}},
-    databaseType: '{{database_type}}',
+    dev: {{params.dev_mode}},
+    databaseType: '{{params.database_type}}',
 })
 
 ;

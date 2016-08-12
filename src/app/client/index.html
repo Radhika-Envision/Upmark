@@ -29,7 +29,7 @@
                 </button>
                 <a href="#/" class="navbar-brand"
                         title="Asset Management Customer Value">
-                    {% include images/logo.min.svg %}
+                    {% raw params.clean_svg('logo') %}
                 </a>
                 <span class="training-mode" ng-if="trainingMode"
                       title="Training mode"
@@ -149,7 +149,7 @@
 </style>
 
 <div id="loading-splash" ng-uncloak>
-    {% include images/logo-monogram.min.svg %}
+    {% raw params.clean_svg('icon_lg') %}
     <p id="loading-message" style="display: none;" class="text-danger">
         Error: could not initialise application. Check console for details.
     </p>
@@ -184,7 +184,7 @@
 
 <messages></messages>
 
-{% for s in scripts %}
+{% for s in params.scripts %}
 <script src="{{s}}"></script>
 {% end %}
 

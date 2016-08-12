@@ -12,6 +12,8 @@ from tornado.escape import json_decode
 import tornado.options
 import tornado.web
 
+import config
+import image
 import model
 from utils import denormalise, falsy, truthy
 
@@ -333,17 +335,60 @@ def authz(*roles):
     return decorator
 
 
-class TemplateHandler(BaseHandler):
-    '''
-    Renders content from templates (e.g. index.html).
-    '''
+class TemplateParams:
+    def __init__(self, session):
+        self.session = session
 
-    def initialize(self, path):
-        self.path = path
+    @property
+    def dev_mode(self):
+        return truthy(tornado.options.options.dev) and 'true' or 'false'
 
-        self.deploy_id = deploy_id()
-        self.scripts = self.prepare_resources(SCRIPTS)
-        self.stylesheets = self.prepare_resources(STYLESHEETS)
+    @property
+    def database_type(self):
+        return database_type
+
+    @property
+    def analytics_id(self):
+        return tornado.options.options.analytics_id
+
+    @property
+    def aq_version(self):
+        return aq_version
+
+    @property
+    def deploy_id(self):
+        '''
+        For assets that may need breakpoints. Under dev mode the URLs
+        # will never change, and it's up to the developer to clear
+        # their own cache. Under deployment the URLs will change.
+        '''
+        return deploy_id()
+
+    @property
+    def icon_query(self):
+        '''
+        For assets that don't need to be debugged but do need cache
+        busting like favicons. Under both dev mode and deployment the
+        URLs will change.
+        '''
+        # Always use a dev ID; this is f
+        with model.session_scope() as session:
+            manifest_mod_time = (
+                session.query(func.max(model.SystemConfig.modified))
+                    .limit(1)
+                    .scalar())
+        if manifest_mod_time is not None:
+            return "?v=conf-%s" % manifest_mod_time.timestamp()
+        else:
+            return "?v=conf-%s" % DEPLOY_ID
+
+    @property
+    def scripts(self):
+        return self.prepare_resources(SCRIPTS)
+
+    @property
+    def stylesheets(self):
+        return self.prepare_resources(STYLESHEETS)
 
     def prepare_resources(self, declarations):
         '''
@@ -384,46 +429,43 @@ class TemplateHandler(BaseHandler):
 
         return resources
 
+    def clean_svg(self, name):
+        image.check_display(name)
+        data = config.get_setting(self.session, name)
+        return image.clean_svg(data).encode('utf-8')
+
+
+class TemplateHandler(BaseHandler):
+    '''
+    Renders content from templates (e.g. index.html).
+    '''
+
+    def initialize(self, path):
+        self.path = path
+
     @tornado.web.authenticated
     def get(self, path):
         if path == '':
             path = 'index.html'
         template = os.path.join(self.path, path)
 
-        self.render(
-            template, user=self.current_user, organisation=self.organisation,
-            scripts=self.scripts, stylesheets=self.stylesheets,
-            dev_mode=truthy(tornado.options.options.dev) and 'true' or 'false',
-            **self.basic_page_params)
-
-    @property
-    def basic_page_params(self):
-        # Conditionally use a deployment ID; this is for assets that may need
-        # breakpoints. Under dev mode the URLs will never change, and it's
-        # up to the developer to clear their own cache. Under deployment
-        # the URLs will change.
-        deploy_id=self.deploy_id
-
-        # Always use a dev ID; this is for assets that don't need to be
-        # debugged but do need cache busting like favicons. Under dev mode
-        # and deployment the URLs will change.
         with model.session_scope() as session:
-            manifest_mod_time = (
-                session.query(func.max(model.SystemConfig.modified))
-                    .limit(1)
-                    .scalar())
-        if manifest_mod_time is not None:
-            icon_query = "?v=conf-%s" % manifest_mod_time.timestamp()
-        else:
-            icon_query = "?v=conf-%s" % DEPLOY_ID
+            params = TemplateParams(session)
+            self.render(
+                template, params=params,
+                user=self.current_user, organisation=self.organisation)
 
-        return {
-            'analytics_id': tornado.options.options.analytics_id,
-            'aq_version': aq_version,
-            'deploy_id': deploy_id,
-            'icon_query': icon_query,
-            'database_type': database_type,
-        }
+
+class UnauthenticatedTemplateHandler(BaseHandler):
+    def initialize(self, path):
+        self.path = path
+
+    def get(self, path):
+        template = os.path.join(self.path, path)
+
+        with model.session_scope() as session:
+            params = TemplateParams(session)
+            self.render(template, params=params)
 
 
 class RedirectHandler(BaseHandler):

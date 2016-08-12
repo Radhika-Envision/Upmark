@@ -3,43 +3,43 @@
   "name": "Asset Management Customer Value",
   "icons": [
     {
-      "src": "images/icon-36.png{{icon_query}}",
+      "src": "/images/icon-36.png{{params.icon_query}}",
       "sizes": "36x36",
       "type": "image/png",
       "density": "0.75"
     },
     {
-      "src": "images/icon-48.png{{icon_query}}",
+      "src": "/images/icon-48.png{{params.icon_query}}",
       "sizes": "48x48",
       "type": "image/png",
       "density": "1.0"
     },
     {
-      "src": "images/icon-64.png{{icon_query}}",
+      "src": "/images/icon-64.png{{params.icon_query}}",
       "sizes": "64x64",
       "type": "image/png",
       "density": "1.0"
     },
     {
-      "src": "images/icon-72.png{{icon_query}}",
+      "src": "/images/icon-72.png{{params.icon_query}}",
       "sizes": "72x72",
       "type": "image/png",
       "density": "1.5"
     },
     {
-      "src": "images/icon-96.png{{icon_query}}",
+      "src": "/images/icon-96.png{{params.icon_query}}",
       "sizes": "96x96",
       "type": "image/png",
       "density": "2.0"
     },
     {
-      "src": "images/icon-144.png{{icon_query}}",
+      "src": "/images/icon-144.png{{params.icon_query}}",
       "sizes": "144x144",
       "type": "image/png",
       "density": "3.0"
     },
     {
-      "src": "images/icon-192.png{{icon_query}}",
+      "src": "/images/icon-192.png{{params.icon_query}}",
       "sizes": "192x192",
       "type": "image/png",
       "density": "4.0"

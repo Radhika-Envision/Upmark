@@ -31,12 +31,12 @@ class AuthLoginHandler(handlers.TemplateHandler):
             errormessage = ""
 
         next = self.get_argument("next", "/")
-        self.render(
-            "../client/login.html", scripts=self.scripts,
-            stylesheets=self.stylesheets,
-            analytics_id=tornado.options.options.analytics_id,
-            next=next, error=errormessage,
-            **self.basic_page_params)
+
+        with model.session_scope() as session:
+            params = handlers.TemplateParams(session)
+            self.render(
+                "../client/login.html", params=params, next=next,
+                error=errormessage)
 
     def post(self, user_id):
         '''
