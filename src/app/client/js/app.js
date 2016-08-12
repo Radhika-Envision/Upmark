@@ -872,9 +872,9 @@ angular.module('wsaa.aquamark',
 
 
 .controller('RootCtrl', ['$scope', 'hotkeys', '$cookies', 'User',
-        'Notifications', '$window', 'aqVersion', 'releaseMode',
+        'Notifications', '$window', 'aqVersion',
         function($scope, hotkeys, $cookies, User, Notifications, $window,
-            aqVersion, releaseMode) {
+            aqVersion) {
     $scope.aqVersion = aqVersion;
     $scope.hotkeyHelp = hotkeys.toggleCheatSheet;
 
@@ -902,7 +902,6 @@ angular.module('wsaa.aquamark',
         );
     };
 
-    $scope.trainingMode = releaseMode.databaseType == 'local';
     $scope.trainingDocs = "This is the AMCV training site."
         + " You can make changes without affecting the"
         + " main site. Sometimes, information is copied from the"

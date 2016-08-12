@@ -20,6 +20,7 @@ SCHEMA = {
         'max': 1.0,
         'default_value': 0.85,
     },
+
     'adhoc_timeout': {
         'type': 'numerical',
         'min': 0.0,
@@ -30,6 +31,7 @@ SCHEMA = {
         'min': 0.0,
         'default_value': 2500,
     },
+
     'app_name_short': {
         'type': 'string',
         'default_value': "Upmark",
@@ -38,6 +40,7 @@ SCHEMA = {
         'type': 'string',
         'default_value': "Upmark",
     },
+
     'logo': {
         'type': 'image',
         'accept': '.svg',
@@ -53,11 +56,16 @@ SCHEMA = {
         'accept': '.svg',
         'default_file_path': "../client/images/icon-sm.svg",
     },
+
+    'is_training': {
+        'type': 'boolean',
+        'default_value': False,
+    },
 }
 
 
 def is_primitive(schema):
-    return schema['type'] in {'numerical', 'string'}
+    return schema['type'] in {'numerical', 'string', 'boolean'}
 
 
 def is_private(name, schema):
@@ -78,9 +86,11 @@ def get_setting(session, name, force_default=False):
         if setting.value is not None:
             if schema['type'] == 'numerical':
                 return float(setting.value)
+            elif schema['type'] == 'boolean':
+                return setting.value.lower() == 'true'
             else:
                 return setting.value
-        if setting.data is not None:
+        elif setting.data is not None:
             return setting.data
     elif 'default_value' in schema:
         return schema['default_value']

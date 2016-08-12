@@ -72,12 +72,20 @@ $anim-time: 0.3s;
 .form-control:focus {
     box-shadow: none;
 }
+.form-control.buttons {
+    padding: 0;
+    background: transparent;
+    border: none;
+}
 form p {
     // Align paragraph edges with contents of inputs
     border: solid transparent;
     border-width: 0 1px;
     padding-left: 12px;
     padding-right: 12px;
+}
+form .row {
+    margin-bottom: 24px;
 }
 markdown-editor p {
     border: none;

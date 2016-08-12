@@ -35,10 +35,7 @@ class SystemConfigHandler(handlers.BaseHandler):
                 if 'default_file_path' in s:
                     del s['default_file_path']
 
-                if schema['type'] == 'numerical':
-                    s['value'] = float(config.get_setting(session, name))
-                elif schema['type'] == 'string':
-                    s['value'] = config.get_setting(session, name)
+                s['value'] = config.get_setting(session, name)
                 settings[name] = s
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(ToSon()(settings)))

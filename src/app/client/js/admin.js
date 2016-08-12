@@ -603,30 +603,57 @@ angular.module('wsaa.admin', [
 })
 
 
-.directive('numericalSetting', function(guid) {
+.directive('numericalSetting', function() {
     return {
         restrict: 'E',
         scope: {
             setting: '='
         },
+        require: '^form',
         templateUrl: 'setting-numerical.html',
-        controller: function($scope) {
-            $scope.isFinite = isFinite;
-            $scope.id = guid('setting');
+        link: function(scope, elem, attrs, formCtrl) {
+            scope.reset = function () {
+                scope.setting.value = scope.setting.defaultValue;
+                formCtrl.$setDirty();
+            };
+
+            scope.isFinite = isFinite;
         }
     };
 })
 
 
-.directive('stringSetting', function(guid) {
+.directive('stringSetting', function() {
     return {
         restrict: 'E',
         scope: {
             setting: '='
         },
+        require: '^form',
         templateUrl: 'setting-string.html',
-        controller: function($scope) {
-            $scope.id = guid('setting');
+        link: function(scope, elem, attrs, formCtrl) {
+            scope.reset = function () {
+                scope.setting.value = scope.setting.defaultValue;
+                formCtrl.$setDirty();
+            };
+        }
+    };
+})
+
+
+.directive('booleanSetting', function() {
+    return {
+        restrict: 'E',
+        scope: {
+            setting: '='
+        },
+        require: '^form',
+        templateUrl: 'setting-boolean.html',
+        link: function(scope, elem, attrs, formCtrl) {
+            scope.reset = function () {
+                scope.setting.value = scope.setting.defaultValue;
+                formCtrl.$setDirty();
+            };
         }
     };
 })

@@ -31,13 +31,15 @@
                         title="Asset Management Customer Value">
                     {% raw params.clean_svg('logo') %}
                 </a>
-                <span class="training-mode" ng-if="trainingMode"
+                {% if params.is_training %}
+                <span class="training-mode"
                       title="Training mode"
                       tooltip="{{!trainingDocs}}"
                       tooltip-placement="bottom"
                       tooltip-trigger="click">
                     <i class="fa fa-graduation-cap"></i>
                 </span>
+                {% end %}
             </div>
             <div class="collapse navbar-collapse">
                 <ul class="nav navbar-nav navbar-right">

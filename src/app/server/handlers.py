@@ -23,7 +23,6 @@ log = logging.getLogger('app.handlers')
 # A string to break through caches. This changes each time the app is deployed.
 DEPLOY_ID = str(time.time())
 aq_version = None
-database_type = None
 
 
 def deploy_id():
@@ -344,8 +343,8 @@ class TemplateParams:
         return truthy(tornado.options.options.dev) and 'true' or 'false'
 
     @property
-    def database_type(self):
-        return database_type
+    def is_training(self):
+        return config.get_setting(self.session, 'is_training')
 
     @property
     def analytics_id(self):
@@ -372,11 +371,10 @@ class TemplateParams:
         URLs will change.
         '''
         # Always use a dev ID; this is f
-        with model.session_scope() as session:
-            manifest_mod_time = (
-                session.query(func.max(model.SystemConfig.modified))
-                    .limit(1)
-                    .scalar())
+        manifest_mod_time = (
+            self.session.query(func.max(model.SystemConfig.modified))
+                .limit(1)
+                .scalar())
         if manifest_mod_time is not None:
             return "?v=conf-%s" % manifest_mod_time.timestamp()
         else:
