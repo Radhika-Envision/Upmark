@@ -8,6 +8,7 @@ import time
 from sqlalchemy import extract, func
 
 import activity
+import config as app_config
 from mail import send
 import model
 import utils
@@ -74,13 +75,14 @@ def verbs(action):
     return expr;
 
 
-def send_email(config, user, activities, messages):
+def send_email(config, user, activities, messages, app_name_short):
     template = config['MESSAGE_CONTENT']
     content = mail_content(config, activities)
     message_str = "\n".join(messages)
     msg = MIMEText(
         template.format(
-            activities=content, messages=message_str, user_id=user.id),
+            activities=content, messages=message_str, user_id=user.id,
+            app_name_short=app_name_short),
         'plain')
     msg['Subject'] = config['MESSAGE_SUBJECT']
 
@@ -144,13 +146,16 @@ def process_once(config):
                     (interval > model.AppUser.email_interval))
             .all())
 
+        app_name_short = app_config.get_setting(session, 'app_name_short')
+
         for user, now in user_list:
             messages = []
             activities = get_activities(
                 session, user, now, messages, config['MAX_ACTIVITIES'],
                 config['DATE_FORMAT'])
             if len(activities) > 0:
-                send_email(config, user, activities, messages)
+                send_email(
+                    config, user, activities, messages, app_name_short)
                 n_sent += 1
             user.email_time = now
             # Commit after each email to avoid multiple emails in case a

@@ -9,11 +9,11 @@ ERROR_SEND_TO: <RECEIVER EMAIL>
 
 JOB_INTERVAL_SECONDS: 300
 
-ERROR_SUBJECT: AMCV - Submission score calculation error
+ERROR_SUBJECT: Upmark - Submission score calculation error
 ERROR_CONTENT: |
     This is a notification from an automated process that updates the scores of
-    submissions in AMCV. The process runs when a survey changes, e.g. when
-    a measure's weight is modified.
+    submissions in Upmark. The process runs when a survey changes,
+    e.g. when a measure's weight is modified.
 
     Some errors were encountered when updating submission scores:
 

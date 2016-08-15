@@ -13,7 +13,7 @@ MAX_ACTIVITIES: 1000
 
 DATE_FORMAT: '{0:%d %b %Y %H:%M}'
 
-MESSAGE_SUBJECT: AMCV - Activity Notification
+MESSAGE_SUBJECT: ${app_name_short} - Activity Notification
 MESSAGE_CONTENT: |
     The following changes have been made to your subscriptions.
 
@@ -22,7 +22,7 @@ MESSAGE_CONTENT: |
     {messages}
 
     To opt out of these notifications, visit your profile page at:
-    https://app.amcv.wsaa.asn.au/#/user/{user_id}
+    /#/user/{user_id}
 
 MESSAGE_BROADCAST: |
     {user_name} said:
@@ -34,7 +34,7 @@ MESSAGE_STANDARD: |
     {user_name} {verbs} this {ob_type}
     {date}
 
-ERROR_SUBJECT: AMCV - Notification error
+ERROR_SUBJECT: ${app_name_short} - Notification error
 ERROR_CONTENT: |
     Some errors were encountered when processing timeline notifications:
 
