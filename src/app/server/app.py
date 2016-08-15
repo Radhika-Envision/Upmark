@@ -247,8 +247,6 @@ def get_mappings():
         (r"/(.*\.css)", handlers.CssHandler, {
             'root': os.path.join(package_dir, "..", "client")}),
         (r"/images/icon-(.*)\.png", crud.image.IconHandler, {}),
-        (r"/images/logo.svg", crud.image.SvgHandler, {'name': 'logo'}),
-        (r"/images/icon.svg", crud.image.SvgHandler, {'name': 'logo_monogram_big'}),
 
         (r"/systemconfig.json", crud.config.SystemConfigHandler, {}),
         (r"/systemconfig/(.*)", crud.config.SystemConfigItemHandler, {}),
