@@ -25,8 +25,8 @@
      inkscape:pageopacity="0.42352941"
      inkscape:pageshadow="2"
      inkscape:zoom="1"
-     inkscape:cx="448.87675"
-     inkscape:cy="50.367815"
+     inkscape:cx="270.37675"
+     inkscape:cy="47.367815"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -110,7 +110,7 @@
     </g>
     <g
        transform="matrix(1,0,-0.17016552,1,0,0)"
-       style="font-size:62.89432144px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans;-inkscape-font-specification:Droid Sans"
+       style="font-size:62.89432143999999880px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans;-inkscape-font-specification:Droid Sans;opacity:0.8"
        id="text4014">
       <path
          d="m 413.60327,1013.3056 c -2.85123,0 -5.32507,-0.4403 -7.42153,-1.3208 -2.09649,-0.8805 -3.8156,-2.0755 -5.15734,-3.585 -1.34175,-1.5513 -2.34806,-3.3753 -3.01892,-5.4718 -0.62895,-2.0964 -0.94342,-4.36062 -0.94342,-6.79255 l 0,-27.35903 6.10075,0 0,26.66719 c -10e-6,4.36069 0.96437,7.52639 2.89314,9.49709 1.92874,1.9706 4.44451,2.956 7.54732,2.956 1.55137,0 2.95601,-0.2306 4.21392,-0.6919 1.29979,-0.5031 2.41092,-1.2578 3.3334,-2.2641 0.92242,-1.0063 1.63522,-2.2852 2.1384,-3.8366 0.50313,-1.59331 0.7547,-3.48014 0.75473,-5.66049 l 0,-26.66719 6.10075,0 0,27.35903 c -3e-5,2.43193 -0.33547,4.69615 -1.00631,6.79255 -0.62897,2.0965 -1.63528,3.9205 -3.01892,5.4718 -1.34178,1.5095 -3.06089,2.7045 -5.15734,3.585 -2.05457,0.8805 -4.50745,1.3208 -7.35863,1.3208"
