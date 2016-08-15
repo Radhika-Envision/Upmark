@@ -29,7 +29,7 @@
                 </button>
                 <a href="#/" class="navbar-brand"
                         title="Asset Management Customer Value">
-                    {% raw params.clean_svg('logo') %}
+                    {% raw theme.clean_svg('theme_logo') %}
                 </a>
                 {% if params.is_training %}
                 <span class="training-mode"
@@ -144,6 +144,10 @@
 
     pointer-events: none;
 }
+#loading-splash > svg {
+    width: 220px;
+    height: 220px;
+}
 #loading-splash.in {
     opacity: 1;
     display: block;
@@ -151,7 +155,7 @@
 </style>
 
 <div id="loading-splash" ng-uncloak>
-    {% raw params.clean_svg('icon_lg') %}
+    {% raw theme.clean_svg('theme_icon_lg') %}
     <p id="loading-message" style="display: none;" class="text-danger">
         Error: could not initialise application. Check console for details.
     </p>

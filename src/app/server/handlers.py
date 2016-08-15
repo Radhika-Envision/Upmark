@@ -427,6 +427,11 @@ class TemplateParams:
 
         return resources
 
+
+class ThemeParams:
+    def __init__(self, session):
+        self.session = session
+
     def clean_svg(self, name):
         image.check_display(name)
         data = config.get_setting(self.session, name)
@@ -449,8 +454,9 @@ class TemplateHandler(BaseHandler):
 
         with model.session_scope() as session:
             params = TemplateParams(session)
+            theme = ThemeParams(session)
             self.render(
-                template, params=params,
+                template, params=params, theme=theme,
                 user=self.current_user, organisation=self.organisation)
 
 

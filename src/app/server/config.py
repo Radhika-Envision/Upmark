@@ -41,17 +41,17 @@ SCHEMA = {
         'default_value': "Upmark",
     },
 
-    'logo': {
+    'theme_logo': {
         'type': 'image',
         'accept': '.svg',
         'default_file_path': "../client/images/logo.svg",
     },
-    'icon_lg': {
+    'theme_icon_lg': {
         'type': 'image',
         'accept': '.svg',
         'default_file_path': "../client/images/icon-lg.svg",
     },
-    'icon_sm': {
+    'theme_icon_sm': {
         'type': 'image',
         'accept': '.svg',
         'default_file_path': "../client/images/icon-sm.svg",

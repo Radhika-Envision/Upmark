@@ -23,9 +23,9 @@ class IconHandler(handlers.BaseHandler):
             raise handlers.MissingDocError("Size is too big")
 
         if size <= 64:
-            name = 'icon_sm'
+            name = 'theme_icon_sm'
         else:
-            name = 'icon_lg'
+            name = 'theme_icon_lg'
 
         with model.session_scope() as session:
             data = yield self.get_icon(session, name, size)
