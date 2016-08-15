@@ -1,6 +1,6 @@
 {
-  "short_name": "AMCV",
-  "name": "Asset Management Customer Value",
+  "short_name": "{{theme.app_name_short}}",
+  "name": "{{theme.app_name_long}}",
   "icons": [
     {
       "src": "/images/icon-36.png{{params.icon_query}}",

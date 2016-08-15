@@ -902,7 +902,7 @@ angular.module('wsaa.aquamark',
         );
     };
 
-    $scope.trainingDocs = "This is the AMCV training site."
+    $scope.trainingDocs = "This is the training site."
         + " You can make changes without affecting the"
         + " main site. Sometimes, information is copied from the"
         + " main site to this one. When that happens, changes you have"

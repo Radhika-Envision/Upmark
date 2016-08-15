@@ -433,7 +433,7 @@ angular.module('wsaa.surveyQuestions', [
     };
     Notifications.remove('import');
     $scope.survey = {
-        title: "AMCV Import",
+        title: "Imported Survey",
         description: ""
     };
 

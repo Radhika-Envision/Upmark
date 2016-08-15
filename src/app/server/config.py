@@ -39,7 +39,7 @@ SCHEMA = {
     },
     'app_name_long': {
         'type': 'string',
-        'default_value': "Upmark",
+        'default_value': "Upmark Survey Platform",
     },
 
     'theme_logo': {

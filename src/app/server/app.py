@@ -232,10 +232,11 @@ def get_mappings():
         (r"/login/?(.*)", auth.AuthLoginHandler, {
             'path': os.path.join(package_dir, "..", "client")}),
         (r"/logout/?", auth.AuthLogoutHandler),
-        (r"/(|css/user_style.css)", handlers.TemplateHandler, {
+        (r"/()", handlers.TemplateHandler, {
             'path': '../client/'}),
-        (r"/(manifest.json)", handlers.UnauthenticatedTemplateHandler, {
-            'path': '../client/'}),
+        (r"/(manifest.json|css/user_style.css)",
+            handlers.UnauthenticatedTemplateHandler, {
+                'path': '../client/'}),
         (r"/ping.*", handlers.PingHandler, {}),
 
         (r"/bower_components/(.*)", tornado.web.StaticFileHandler, {

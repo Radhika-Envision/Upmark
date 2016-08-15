@@ -35,7 +35,7 @@ angular.module('settings', [])
     ]
 })
 
-.constant('pageTitleSuffix', ' - AMCV')
+.constant('pageTitleSuffix', ' - {{theme.app_name_short}}')
 
 .constant('releaseMode', {
     dev: {{params.dev_mode}},

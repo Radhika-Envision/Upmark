@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html lang="en" ng-app="wsaa.aquamark">
 <head>
-<title>AMCV - Log In</title>
+<title>{{theme.app_name_short}} - Log In</title>
 {% include page-style.html %}
 </head>
 <body ng-controller="RootCtrl">
 
 <div>
 
-    <div class="brand">
-    {% raw params.clean_svg('theme_logo') %}
-    <h1>Asset Management Customer Value</h1>
+    <div class="brand" title="{{theme.app_name_long}}">
+    {% raw theme.clean_svg('theme_logo') %}
+    <h1 class="sr-only">{{theme.app_name_long}}</h1>
     </div>
 
     <div class="jumbotron">

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" ng-app="wsaa.aquamark">
-<title>AMCV</title>
+<title>{{theme.app_name_short}}</title>
 <head>
 {% include page-style.html %}
 
@@ -28,7 +28,7 @@
                     <span class="icon-bar"></span>
                 </button>
                 <a href="#/" class="navbar-brand"
-                        title="Asset Management Customer Value">
+                        title="{{theme.app_name_long}}">
                     {% raw theme.clean_svg('theme_logo') %}
                 </a>
                 {% if params.is_training %}
@@ -113,7 +113,7 @@
 <div id="footer" class="ng-hide hidden-print" ng-hide>
 <p>
     <span>
-        AMCV app
+        Upmark
     </span>
     <a href="#/legal" title="Copyright information">
         <i class="fa fa-lg fa-copyright"></i> WSAA</a>

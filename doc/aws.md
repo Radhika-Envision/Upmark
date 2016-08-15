@@ -230,7 +230,7 @@ sudo docker run -d --name recalc \
 ### Notification daemon
 
 The notification daemon provides regular activity notification to users. Each
-user will receive emails about recent activity in AMCV. The process runs
+user will receive emails about recent activity in Upmark. The process runs
 often (every hour or so), but only sends emails according to each user's
 nominated notification frequency. It uses the same Docker image as the web
 app - and it connects to the same database - so it should be upgraded at the

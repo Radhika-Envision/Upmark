@@ -508,6 +508,14 @@ class ThemeParams:
     def sub_header_bg(self):
         return Color.parse(config.get_setting(self.session, 'theme_sub_header_bg'))
 
+    @property
+    def app_name_long(self):
+        return config.get_setting(self.session, 'app_name_long')
+
+    @property
+    def app_name_short(self):
+        return config.get_setting(self.session, 'app_name_short')
+
     def clean_svg(self, name):
         image.check_display(name)
         data = config.get_setting(self.session, name)
@@ -528,9 +536,6 @@ class TemplateHandler(BaseHandler):
             path = 'index.html'
         template = os.path.join(self.path, path)
 
-        if path.endswith('.css'):
-            self.set_header('Content-Type', 'text/css')
-
         with model.session_scope() as session:
             params = TemplateParams(session)
             theme = ThemeParams(session)
@@ -546,9 +551,13 @@ class UnauthenticatedTemplateHandler(BaseHandler):
     def get(self, path):
         template = os.path.join(self.path, path)
 
+        if path.endswith('.css'):
+            self.set_header('Content-Type', 'text/css')
+
         with model.session_scope() as session:
             params = TemplateParams(session)
-            self.render(template, params=params)
+            theme = ThemeParams(session)
+            self.render(template, params=params, theme=theme)
 
 
 class RedirectHandler(BaseHandler):
