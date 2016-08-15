@@ -144,25 +144,41 @@
             <img class="app-icon" src="/systemconfig/themeLogo">
         </div>
         <div class="form-group col-md-4">
-            <h4>Big Icon</h4>
+            <h4>
+                Big Icon
+                <button class="btn btn-default btn-round hidden-print"
+                        title="Show preview"
+                        ng-click="state.previewBig = !state.previewBig"
+                        highlight="state.previewBig"
+                        highlight-dismiss="state.previewBig = false">
+                    <i class="fa fa-fw fa-search"></i></button>
+            </h4>
             <img class="app-icon" src="/systemconfig/themeIconLg">
         </div>
         <div class="form-group col-md-3">
-            <h4>Small Icon</h4>
+            <h4>
+                Small Icon
+                <button class="btn btn-default btn-round hidden-print"
+                        title="Show preview"
+                        ng-click="state.previewSmall = !state.previewSmall"
+                        highlight="state.previewSmall"
+                        highlight-dismiss="state.previewSmall = false">
+                    <i class="fa fa-fw fa-search"></i></button>
+            </h4>
             <img class="app-icon" src="/systemconfig/themeIconSm">
         </div>
       </div>
     </div>
 
-    <h4 class="text-center">Icon previews</h4>
-    <p class="icon-preview">
+    <div class="popover-container">
+      <p class="icon-preview" highlight ng-if="state.previewBig">
         <span>
-            <img class="app-icon" ng-src="/images/icon-196.png?v={{cacheBust}}"
+            <img class="app-icon" ng-src="/images/icon-196.png?v={{state.cacheBust}}"
                 style="height: 196px;">
             <span>196</span>
         </span>
         <span>
-            <img class="app-icon" ng-src="/images/icon-144.png?v={{cacheBust}}"
+            <img class="app-icon" ng-src="/images/icon-144.png?v={{state.cacheBust}}"
                 style="height: 144px;">
             <span>144</span>
         </span>
@@ -170,39 +186,40 @@
         <br class="visible-sm visible-xs">
 
         <span>
-            <img class="app-icon" ng-src="/images/icon-96.png?v={{cacheBust}}"
+            <img class="app-icon" ng-src="/images/icon-96.png?v={{state.cacheBust}}"
                 style="height: 96px;">
             <span>96</span>
         </span>
         <span>
-            <img class="app-icon" ng-src="/images/icon-72.png?v={{cacheBust}}"
+            <img class="app-icon" ng-src="/images/icon-72.png?v={{state.cacheBust}}"
                 style="height: 72px;">
             <span>72</span>
         </span>
+      </p>
 
-        <br class="visible-md visible-sm visible-xs">
-
+      <p class="icon-preview" highlight ng-if="state.previewSmall">
         <span>
-            <img class="app-icon" ng-src="/images/icon-64.png?v={{cacheBust}}"
+            <img class="app-icon" ng-src="/images/icon-64.png?v={{state.cacheBust}}"
                 style="height: 64px;">
             <span>64</span>
         </span>
         <span>
-            <img class="app-icon" ng-src="/images/icon-48.png?v={{cacheBust}}"
+            <img class="app-icon" ng-src="/images/icon-48.png?v={{state.cacheBust}}"
                 style="height: 48px;">
             <span>48</span>
         </span>
         <span>
-            <img class="app-icon" ng-src="/images/icon-32.png?v={{cacheBust}}"
+            <img class="app-icon" ng-src="/images/icon-32.png?v={{state.cacheBust}}"
                 style="height: 32px;">
             <span>32</span>
         </span>
         <span>
-            <img class="app-icon" ng-src="/images/icon-16.png?v={{cacheBust}}"
+            <img class="app-icon" ng-src="/images/icon-16.png?v={{state.cacheBust}}"
                 style="height: 16px;">
             <span>16</span>
         </span>
-    </p>
+      </p>
+    </div>
 
     <div class="container-fluid text-center">
       <div class="row">

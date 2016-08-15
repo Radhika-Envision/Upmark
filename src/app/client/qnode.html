@@ -182,7 +182,8 @@
         </div> <!-- class="stats-group"-->
     </div>
 
-    <form novalidate class="dialog spaced" highlight ng-if="showBulkApproval">
+    <div class="popover-container" ng-if="showBulkApproval">
+      <form novalidate class="dialog spaced" highlight>
         <h3>Bulk Approval</h3>
         <approval-buttons model="stats.approval"
                 class="spaced-below"
@@ -224,7 +225,8 @@
             mind, you may need to manually reset the approval status of each
             response.
         </p>
-    </form>
+      </form>
+    </div>
 
     <docs highlight="showBulkApproval">
         <i class="fa-li fa fa-chevron-right fa-border"></i>
@@ -251,7 +253,8 @@
         </p>
     </docs>
 
-    <form novalidate class="dialog spaced" highlight ng-if="showBulkNa">
+    <div class="popover-container" ng-if="showBulkNa">
+      <form novalidate class="dialog spaced" highlight>
         <h3>Change Relevance in Bulk</h3>
 
         <div class="form-group" show-errors>
@@ -302,7 +305,8 @@
             <strong>This action cannot be undone</strong>. If you change your
             mind, you may need to manually reset the state of each response.
         </p>
-    </form>
+      </form>
+    </div>
 
     <div ng-bind-html="qnode.description | markdown"></div>
 

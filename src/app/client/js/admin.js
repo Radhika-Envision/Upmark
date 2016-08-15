@@ -573,12 +573,14 @@ angular.module('wsaa.admin', [
 
 .controller('SystemConfigCtrl',
         function($scope, SystemConfig, Editor, confAuthz, Current,
-            systemConfig, $q, Notifications) {
+            systemConfig, $q, Notifications, $window) {
 
     $scope.edit = Editor('systemConfig', $scope);
     $scope.systemConfig = systemConfig;
-    $scope.cacheBust = Date.now();
-    $scope.dirty = false;
+    $scope.state = {
+        cacheBust: Date.now(),
+        showPreview: false,
+    };
 
     $scope.$watch('systemConfig', function(systemConfig) {
         // Small hack to get Editor utilty to use PUT instead of POST
@@ -592,13 +594,13 @@ angular.module('wsaa.admin', [
         var promise = $q.all(async_task_promises).then(
             function success(async_tasks) {
                 Notifications.remove('systemConfig');
-                $scope.dirty = true;
-                $scope.cacheBust = Date.now();
+                $window.location.reload();
+                $scope.state.cacheBust = Date.now();
                 return $scope.edit.save();
             },
             function failure(reason) {
                 Notifications.set('systemConfig', 'error', reason);
-                $scope.cacheBust = Date.now();
+                $scope.state.cacheBust = Date.now();
                 return $q.reject(reason);
             }
         );
