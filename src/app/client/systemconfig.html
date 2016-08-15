@@ -29,24 +29,24 @@
           <div class="row">
             <div class="form-group col-md-5">
                 <label for="appName">Application Logo</label>
+                <file-setting setting="edit.model.logo"></file-setting>
                 <p>
                     Wide logo to display in the title bar
                 </p>
-                <file-setting setting="edit.model.logo"></file-setting>
             </div>
             <div class="form-group col-md-4">
                 <label for="appName">Big Icon</label>
+                <file-setting setting="edit.model.iconLg"></file-setting>
                 <p>
                     Square icon to use on a phone
                 </p>
-                <file-setting setting="edit.model.iconLg"></file-setting>
             </div>
             <div class="form-group col-md-3">
                 <label for="appName">Small Icon</label>
+                <file-setting setting="edit.model.iconSm"></file-setting>
                 <p>
                     Icon for browser tabs
                 </p>
-                <file-setting setting="edit.model.iconSm"></file-setting>
             </div>
           </div>
         </div>
@@ -137,6 +137,57 @@
         </div>
       </div>
     </div>
+
+    <h4 class="text-center">Icon previews</h4>
+    <p class="icon-preview">
+        <span>
+            <img class="app-icon" src="/images/icon-196.png?v={{cacheBust}}"
+                style="height: 196px;">
+            <span>196</span>
+        </span>
+        <span>
+            <img class="app-icon" src="/images/icon-144.png?v={{cacheBust}}"
+                style="height: 144px;">
+            <span>144</span>
+        </span>
+
+        <br class="visible-sm visible-xs">
+
+        <span>
+            <img class="app-icon" src="/images/icon-96.png?v={{cacheBust}}"
+                style="height: 96px;">
+            <span>96</span>
+        </span>
+        <span>
+            <img class="app-icon" src="/images/icon-72.png?v={{cacheBust}}"
+                style="height: 72px;">
+            <span>72</span>
+        </span>
+
+        <br class="visible-md visible-sm visible-xs">
+
+        <span>
+            <img class="app-icon" src="/images/icon-64.png?v={{cacheBust}}"
+                style="height: 64px;">
+            <span>64</span>
+        </span>
+        <span>
+            <img class="app-icon" src="/images/icon-48.png?v={{cacheBust}}"
+                style="height: 48px;">
+            <span>48</span>
+        </span>
+        <span>
+            <img class="app-icon" src="/images/icon-32.png?v={{cacheBust}}"
+                style="height: 32px;">
+            <span>32</span>
+        </span>
+        <span>
+            <img class="app-icon" src="/images/icon-16.png?v={{cacheBust}}"
+                style="height: 16px;">
+            <span>16</span>
+        </span>
+    </p>
+
     <h4>Application Name</h4>
     <p>
         {{systemConfig.appNameLong.value}}

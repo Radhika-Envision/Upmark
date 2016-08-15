@@ -584,3 +584,25 @@ file-setting .dz-message img {
     height: 120px;
     max-width: 100%;
 }
+
+.icon-preview {
+    text-align: center;
+    > span {
+        display: inline-block;
+        text-align: center;
+        background: #f0f0f0;
+        padding: 8px;
+        border-radius: 4px;
+        margin: 4px;
+
+        > span {
+            margin-top: 8px;
+            display: block;
+            color: #888;
+        }
+    }
+    img {
+        display: block;
+        margin: auto;
+    }
+}

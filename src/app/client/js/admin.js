@@ -577,6 +577,7 @@ angular.module('wsaa.admin', [
 
     $scope.edit = Editor('systemConfig', $scope);
     $scope.systemConfig = systemConfig;
+    $scope.cacheBust = Date.now();
 
     $scope.$watch('systemConfig', function(systemConfig) {
         // Small hack to get Editor utilty to use PUT instead of POST
@@ -590,10 +591,12 @@ angular.module('wsaa.admin', [
         var promise = $q.all(async_task_promises).then(
             function success(async_tasks) {
                 Notifications.remove('systemConfig');
+                $scope.cacheBust = Date.now();
                 return $scope.edit.save();
             },
             function failure(reason) {
                 Notifications.set('systemConfig', 'error', reason);
+                $scope.cacheBust = Date.now();
                 return $q.reject(reason);
             }
         );
