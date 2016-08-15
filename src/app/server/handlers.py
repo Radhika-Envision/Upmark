@@ -109,21 +109,22 @@ STYLESHEETS = [
         'href': '/fonts/Ubuntu.css'
     },
     {
+        'min-href': '/minify/3rd-party-min.css',
+        'hrefs': [
+            '/.bower_components/angular-hotkeys/build/hotkeys.css',
+            '/.bower_components/angular-ui-select/dist/select.css',
+            '/.bower_components/medium-editor/dist/css/medium-editor.min.css',
+            '/.bower_components/medium-editor/dist/css/themes/default.min.css',
+            '/.bower_components/angular-color-picker/dist/angularjs-color-picker.min.css',
+        ]
+    },
+    {
         'min-href': '/minify/app-min.css',
         'hrefs': [
             '/css/app.css',
             '/css/dropzone.css',
             '/css/clock.css',
             '/css/statistics.css'
-        ]
-    },
-    {
-        'min-href': '/minify/3rd-party-min.css',
-        'hrefs': [
-            '/.bower_components/angular-hotkeys/build/hotkeys.css',
-            '/.bower_components/angular-ui-select/dist/select.css',
-            '/.bower_components/medium-editor/dist/css/medium-editor.min.css',
-            '/.bower_components/medium-editor/dist/css/themes/default.min.css'
         ]
     },
 ]
@@ -173,6 +174,8 @@ SCRIPTS = [
             '/.bower_components/angular-timeago/dist/angular-timeago.js',
             '/.bower_components/angular-ui-select/dist/select.js',
             '/.bower_components/angular-ui-sortable/sortable.js',
+            '/.bower_components/tinycolor/dist/tinycolor-min.js',
+            '/.bower_components/angular-color-picker/dist/angularjs-color-picker.js',
             '/.bower_components/dropzone/dist/dropzone.js',
             '/.bower_components/jqueryui-touch-punch/jquery.ui.touch-punch.js',
             '/.bower_components/js-expression-eval/parser.js',
@@ -428,17 +431,82 @@ class TemplateParams:
         return resources
 
 
+def lerp(a, b, fac):
+    return ((b - a) * fac) + a
+
+
+class Color:
+    def __init__(self, r, g, b, a=1):
+        self.r = r
+        self.g = g
+        self.b = b
+        self.a = a
+
+    @classmethod
+    def parse(cls, hex_str):
+        match = config.COLOR_PATTERN.match(hex_str)
+        r = int(match.group(1), 16) / 255
+        g = int(match.group(2), 16) / 255
+        b = int(match.group(3), 16) / 255
+        if match.group(4):
+            a = int(match.group(4), 16) / 255
+        else:
+            a = 1
+        return cls(r, g, b, a)
+
+    @property
+    def brightness(self):
+        return (self.r + self.g + self.b) / 3
+
+    @property
+    def is_dark(self):
+        return self.brightness < 0.6
+
+    @property
+    def rgba_str(self):
+        if self.a == 1:
+            return "rgb({}, {}, {})".format(
+                int(self.r * 255), int(self.g * 255), int(self.b * 255))
+        else:
+            return "rgba({}, {}, {}, {:0.2f})".format(
+                int(self.r * 255), int(self.g * 255), int(self.b * 255), self.a)
+
+    def mix(self, other, fraction):
+        return Color(
+            lerp(self.r, other.r, fraction),
+            lerp(self.g, other.g, fraction),
+            lerp(self.b, other.b, fraction),
+            lerp(self.a, other.a, fraction),
+        )
+
+    def twotone_complement(self, amount):
+        if self.is_dark:
+            return self.mix(Color(1, 1, 1), amount)
+        else:
+            return self.mix(Color(0, 0, 0), amount)
+
+    def __str__(self):
+        return self.rgba_str
+
+    def __repr__(self):
+        return self.rgba_str
+
+
 class ThemeParams:
     def __init__(self, session):
         self.session = session
 
     @property
     def nav_bg(self):
-        return config.get_setting(self.session, 'theme_nav_bg')
+        return Color.parse(config.get_setting(self.session, 'theme_nav_bg'))
 
     @property
     def header_bg(self):
-        return config.get_setting(self.session, 'theme_header_bg')
+        return Color.parse(config.get_setting(self.session, 'theme_header_bg'))
+
+    @property
+    def sub_header_bg(self):
+        return Color.parse(config.get_setting(self.session, 'theme_sub_header_bg'))
 
     def clean_svg(self, name):
         image.check_display(name)

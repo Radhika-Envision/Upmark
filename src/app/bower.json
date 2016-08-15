@@ -39,7 +39,8 @@
     "angular-diff-match-patch": "~0.1.11",
     "FileSaver.js": "https://github.com/eligrey/FileSaver.js.git#f23c4a66dc9fa1af818322f08eb29a371ccb4ccf",
     "angular-checkboxes": "https://github.com/msieurtoph/angular-checkboxes.git#1.0.2",
-    "angular-input-stars": "https://github.com/z0u/angular-input-stars.git#e427c84756d1d6c8267767d0e626546ecca84e28"
+    "angular-input-stars": "https://github.com/z0u/angular-input-stars.git#e427c84756d1d6c8267767d0e626546ecca84e28",
+    "angular-color-picker": "angularjs-color-picker#^2.4.3"
   },
   "resolutions": {
     "angular": "~1.4.1",

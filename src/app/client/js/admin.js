@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('wsaa.admin', [
-    'ngResource', 'ngSanitize', 'ui.select', 'ngCookies'])
+    'ngResource', 'ngSanitize', 'ui.select', 'ngCookies', 'color.picker'])
 
 .factory('User', ['$resource', 'paged', function($resource, paged) {
     return $resource('/user/:id.json', {id: '@id'}, {
@@ -578,6 +578,7 @@ angular.module('wsaa.admin', [
     $scope.edit = Editor('systemConfig', $scope);
     $scope.systemConfig = systemConfig;
     $scope.cacheBust = Date.now();
+    $scope.dirty = false;
 
     $scope.$watch('systemConfig', function(systemConfig) {
         // Small hack to get Editor utilty to use PUT instead of POST
@@ -591,6 +592,7 @@ angular.module('wsaa.admin', [
         var promise = $q.all(async_task_promises).then(
             function success(async_tasks) {
                 Notifications.remove('systemConfig');
+                $scope.dirty = true;
                 $scope.cacheBust = Date.now();
                 return $scope.edit.save();
             },
@@ -745,6 +747,31 @@ angular.module('wsaa.admin', [
                 formCtrl = null;
                 dropzone = null;
             });
+        }
+    };
+})
+
+
+.directive('colourSetting', function() {
+    return {
+        restrict: 'E',
+        scope: {
+            setting: '='
+        },
+        require: '^form',
+        templateUrl: 'setting-colour.html',
+        link: function(scope, elem, attrs, formCtrl) {
+            scope.options = {
+                format: 'hex8',
+                swatchBootstrap: true,
+                case: 'lower',
+            };
+            scope.reset = function () {
+                scope.setting.value = scope.setting.defaultValue;
+                formCtrl.$setDirty();
+            };
+            elem.find('.color-picker-input-wrapper').append(
+                elem.find('.input-group-btn'));
         }
     };
 })

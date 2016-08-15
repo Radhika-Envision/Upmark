@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 
 import model
 
@@ -57,11 +58,15 @@ SCHEMA = {
         'default_file_path': "../client/images/icon-sm.svg",
     },
     'theme_nav_bg': {
-        'type': 'string',
+        'type': 'color',
         'default_value': "#98d5f7",
     },
     'theme_header_bg': {
-        'type': 'string',
+        'type': 'color',
+        'default_value': "#fafafa",
+    },
+    'theme_sub_header_bg': {
+        'type': 'color',
         'default_value': "#fafafa",
     },
 
@@ -73,11 +78,16 @@ SCHEMA = {
 
 
 def is_primitive(schema):
-    return schema['type'] in {'numerical', 'string', 'boolean'}
+    return schema['type'] in {'numerical', 'string', 'boolean', 'color'}
 
 
 def is_private(name, schema):
     return name.startswith('_')
+
+
+COLOR_PATTERN = re.compile(
+    r'#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})?',
+    flags=re.IGNORECASE)
 
 
 def get_setting(session, name, force_default=False):
@@ -130,6 +140,10 @@ def set_setting(session, name, value):
         if maximum < float(value):
             raise ValueError(
                 "Setting %s must be at most %s" % (name, maximum))
+
+    elif schema['type'] == 'color':
+        if not COLOR_PATTERN.match(value):
+            raise ValueError("Setting %s must be a color hex triplet")
 
     if is_primitive(schema):
         setting.value = str(value)
