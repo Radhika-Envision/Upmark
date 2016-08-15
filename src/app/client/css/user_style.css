@@ -2,11 +2,13 @@ header:before{
     box-shadow: 0 1px 10px rgba(0, 0, 0, 0.1);
 }
 
+.brand,
 .navbar-default,
 .swatch-nav {
     background: {{theme.nav_bg}};
     border-color: transparent;
 }
+.brand,
 .navbar-default,
 .navbar-default .navbar-nav > li > a,
 .swatch-nav {
@@ -18,10 +20,12 @@ header:before{
     color: {{theme.nav_bg.twotone_complement(0.9)}};
 }
 
+.jumbotron,
 .header,
 .swatch-header {
     background: {{theme.header_bg}};
 }
+.jumbotron,
 .header,
 .header h2,
 .header h3,
