@@ -56,6 +56,14 @@ SCHEMA = {
         'accept': '.svg',
         'default_file_path': "../client/images/icon-sm.svg",
     },
+    'theme_nav_bg': {
+        'type': 'string',
+        'default_value': "#98d5f7",
+    },
+    'theme_header_bg': {
+        'type': 'string',
+        'default_value': "#fafafa",
+    },
 
     'is_training': {
         'type': 'boolean',

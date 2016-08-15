@@ -432,6 +432,14 @@ class ThemeParams:
     def __init__(self, session):
         self.session = session
 
+    @property
+    def nav_bg(self):
+        return config.get_setting(self.session, 'theme_nav_bg')
+
+    @property
+    def header_bg(self):
+        return config.get_setting(self.session, 'theme_header_bg')
+
     def clean_svg(self, name):
         image.check_display(name)
         data = config.get_setting(self.session, name)
@@ -451,6 +459,9 @@ class TemplateHandler(BaseHandler):
         if path == '':
             path = 'index.html'
         template = os.path.join(self.path, path)
+
+        if path.endswith('.css'):
+            self.set_header('Content-Type', 'text/css')
 
         with model.session_scope() as session:
             params = TemplateParams(session)

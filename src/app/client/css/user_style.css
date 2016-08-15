@@ -1,0 +1,19 @@
+header:before{
+    box-shadow: 0 1px 10px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-default {
+    background: {{theme.nav_bg}};
+    border-color: transparent;
+}
+.navbar-default .navbar-nav > li > a {
+    color: rgba(0, 0, 0, 0.75);
+}
+.navbar-default .navbar-nav > li > a:hover,
+.navbar-default .navbar-nav > li > a:focus {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.header {
+    background: {{theme.header_bg}};
+}
