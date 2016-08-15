@@ -9,116 +9,101 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   viewBox="0 0 96 96"
-   preserveAspectRatio="xMinYMin meet"
-   width="96"
-   height="96"
-   id="svg2"
+   width="32"
+   height="32"
+   id="svg3085"
    version="1.1"
    inkscape:version="0.48.5 r10040"
-   sodipodi:docname="logo-icon-small.svg"
-   inkscape:export-filename="/home/adfries/Documents/WSAA_AMIP/aquamark/src/app/client/images/logo-monogram-fav.png"
-   inkscape:export-xdpi="30"
-   inkscape:export-ydpi="30">
+   sodipodi:docname="icon-sm.svg">
   <defs
-     id="defs4" />
+     id="defs3087" />
   <sodipodi:namedview
      id="base"
-     pagecolor="#ffffff"
+     pagecolor="#eeeeee"
      bordercolor="#666666"
      borderopacity="1.0"
-     inkscape:pageopacity="0"
+     inkscape:pageopacity="1"
      inkscape:pageshadow="2"
-     inkscape:zoom="1"
-     inkscape:cx="2.86346"
-     inkscape:cy="129.99917"
+     inkscape:zoom="11.313708"
+     inkscape:cx="33.995389"
+     inkscape:cy="27.898381"
      inkscape:document-units="px"
-     inkscape:current-layer="g5245"
-     showgrid="false"
-     showguides="false"
-     inkscape:guide-bbox="true"
+     inkscape:current-layer="layer1"
+     showgrid="true"
      inkscape:window-width="1920"
-     inkscape:window-height="1134"
+     inkscape:window-height="1014"
      inkscape:window-x="0"
      inkscape:window-y="27"
-     inkscape:window-maximized="1"
-     fit-margin-top="0"
-     fit-margin-left="0"
-     fit-margin-right="0"
-     fit-margin-bottom="0"
-     inkscape:snap-global="true"
-     showborder="true">
+     inkscape:window-maximized="1">
     <inkscape:grid
        type="xygrid"
-       id="grid5183"
+       id="grid3110"
        empspacing="5"
        visible="true"
        enabled="true"
        snapvisiblegridlinesonly="true" />
-    <sodipodi:guide
-       orientation="0,1"
-       position="202.23254,48"
-       id="guide5185" />
-    <sodipodi:guide
-       orientation="1,0"
-       position="25,220"
-       id="guide5187" />
-    <sodipodi:guide
-       orientation="1,0"
-       position="167,261"
-       id="guide5189" />
-    <sodipodi:guide
-       orientation="0,1"
-       position="254,190"
-       id="guide5191" />
   </sodipodi:namedview>
   <metadata
-     id="metadata7">
+     id="metadata3090">
     <rdf:RDF>
       <cc:Work
          rdf:about="">
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
   <g
-     transform="translate(-33.5,-303.875)"
-     id="g5245"
+     inkscape:label="Layer 1"
      inkscape:groupmode="layer"
-     inkscape:label="Main copy"
-     style="display:inline">
+     id="layer1"
+     transform="translate(0,-1020.3622)">
     <g
-       id="g3239"
-       transform="translate(-9.1103801,93.42116)">
-      <path
-         sodipodi:nodetypes="cccccssccssccccsscc"
-         id="path5273"
-         style="fill:#41b3dc;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:8;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-         d="m 81.418168,268.31079 9.253909,-27.22978 9.253883,27.22978 z m 20.235172,-46.57405 c -1.11046,-2.58744 -2.34431,-3.81956 -5.058769,-3.81956 l -11.844988,0 c -2.71448,0 -4.071703,1.23212 -5.058793,3.81956 l -27.391532,73.80383 c -0.616928,1.47853 -0.616928,3.44993 2.097547,3.44993 l 12.955446,0 c 2.714474,0 3.701561,-0.73927 4.688654,-3.69635 l 3.454793,-9.73372 30.229372,0 3.4548,9.73372 c 0.98707,2.95708 1.97415,3.69635 4.68864,3.69635 l 12.95547,0 c 2.71445,0 2.71445,-1.9714 2.09752,-3.44993 z"
-         inkscape:connector-curvature="0" />
-      <path
-         sodipodi:nodetypes="cccccssccssccccsscc"
-         inkscape:connector-curvature="0"
-         d="m 81.418168,268.31079 9.253909,-27.22978 9.253883,27.22978 z m 20.235172,-46.57405 c -1.11046,-2.58744 -2.34431,-3.81956 -5.058769,-3.81956 l -11.844988,0 c -2.71448,0 -4.071703,1.23212 -5.058793,3.81956 l -27.391532,73.80383 c -0.616928,1.47853 -0.616928,3.44993 2.097547,3.44993 l 12.955446,0 c 2.714474,0 3.701561,-0.73927 4.688654,-3.69635 l 3.454793,-9.73372 30.229372,0 3.4548,9.73372 c 0.98707,2.95708 1.97415,3.69635 4.68864,3.69635 l 12.95547,0 c 2.71445,0 2.71445,-1.9714 2.09752,-3.44993 z"
-         style="fill:#41b3dc;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         id="path5255" />
+       transform="matrix(0.65040649,0,0,0.65040649,-104.21349,689.90712)"
+       id="g7320">
+      <rect
+         rx="5.1426616"
+         style="fill:#ffffff;fill-opacity:1;stroke:none"
+         id="rect6751"
+         width="41.777573"
+         height="49.925911"
+         x="255.77992"
+         y="515.57104"
+         ry="4.6805472"
+         transform="matrix(1,0,-0.16990692,0.98546012,0,0)" />
+      <rect
+         style="fill:#ffa600;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="rect7261"
+         width="6.25"
+         height="37.523735"
+         x="261.39975"
+         y="521.73248"
+         transform="matrix(1,0,-0.16990692,0.98546012,0,0)" />
+      <rect
+         y="531.37878"
+         x="273.91385"
+         height="27.877434"
+         width="6.25"
+         id="rect7263"
+         style="fill:#ff3e00;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         transform="matrix(1,0,-0.16990692,0.98546012,0,0)" />
+      <rect
+         style="fill:#bc1183;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="rect7265"
+         width="6.25"
+         height="17.891289"
+         x="285.89975"
+         y="541.36493"
+         transform="matrix(1,0,-0.16990692,0.98546012,0,0)" />
+      <rect
+         style="fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="rect3112"
+         width="10.762503"
+         height="6.1499734"
+         x="166.37825"
+         y="538.82471" />
     </g>
-  </g>
-  <g
-     inkscape:groupmode="layer"
-     id="layer2"
-     inkscape:label="Guides"
-     style="opacity:0.5;display:none"
-     transform="translate(0,-96)">
-    <rect
-       style="fill:none;stroke:#000000;stroke-width:0.99999994px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       id="rect5241"
-       width="95"
-       height="95"
-       x="4.0857863"
-       y="2.5" />
   </g>
 </svg>
