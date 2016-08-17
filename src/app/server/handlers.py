@@ -1,4 +1,3 @@
-import datetime
 import functools
 import logging
 from math import ceil
@@ -8,14 +7,13 @@ import time
 
 import sass
 import sqlalchemy
-from sqlalchemy.sql import func
-from tornado.escape import json_decode, json_encode, url_escape, url_unescape
-import tornado.gen
-import tornado.httpclient
-import tornado.httputil
+from sqlalchemy import func
+from tornado.escape import json_decode
 import tornado.options
 import tornado.web
 
+import config
+import image
 import model
 from utils import denormalise, falsy, truthy
 
@@ -25,7 +23,6 @@ log = logging.getLogger('app.handlers')
 # A string to break through caches. This changes each time the app is deployed.
 DEPLOY_ID = str(time.time())
 aq_version = None
-database_type = None
 
 
 def deploy_id():
@@ -112,21 +109,22 @@ STYLESHEETS = [
         'href': '/fonts/Ubuntu.css'
     },
     {
+        'min-href': '/minify/3rd-party-min.css',
+        'hrefs': [
+            '/.bower_components/angular-hotkeys/build/hotkeys.css',
+            '/.bower_components/angular-ui-select/dist/select.css',
+            '/.bower_components/medium-editor/dist/css/medium-editor.min.css',
+            '/.bower_components/medium-editor/dist/css/themes/default.min.css',
+            '/.bower_components/angular-color-picker/dist/angularjs-color-picker.min.css',
+        ]
+    },
+    {
         'min-href': '/minify/app-min.css',
         'hrefs': [
             '/css/app.css',
             '/css/dropzone.css',
             '/css/clock.css',
             '/css/statistics.css'
-        ]
-    },
-    {
-        'min-href': '/minify/3rd-party-min.css',
-        'hrefs': [
-            '/.bower_components/angular-hotkeys/build/hotkeys.css',
-            '/.bower_components/angular-ui-select/dist/select.css',
-            '/.bower_components/medium-editor/dist/css/medium-editor.min.css',
-            '/.bower_components/medium-editor/dist/css/themes/default.min.css'
         ]
     },
 ]
@@ -176,6 +174,8 @@ SCRIPTS = [
             '/.bower_components/angular-timeago/dist/angular-timeago.js',
             '/.bower_components/angular-ui-select/dist/select.js',
             '/.bower_components/angular-ui-sortable/sortable.js',
+            '/.bower_components/tinycolor/dist/tinycolor-min.js',
+            '/.bower_components/angular-color-picker/dist/angularjs-color-picker.js',
             '/.bower_components/dropzone/dist/dropzone.js',
             '/.bower_components/jqueryui-touch-punch/jquery.ui.touch-punch.js',
             '/.bower_components/js-expression-eval/parser.js',
@@ -337,17 +337,59 @@ def authz(*roles):
     return decorator
 
 
-class MainHandler(BaseHandler):
-    '''
-    Renders content from templates.
-    '''
+class TemplateParams:
+    def __init__(self, session):
+        self.session = session
 
-    def initialize(self, path):
-        self.path = path
+    @property
+    def dev_mode(self):
+        return truthy(tornado.options.options.dev) and 'true' or 'false'
 
-        self.deploy_id = deploy_id()
-        self.scripts = self.prepare_resources(SCRIPTS)
-        self.stylesheets = self.prepare_resources(STYLESHEETS)
+    @property
+    def is_training(self):
+        return config.get_setting(self.session, 'is_training')
+
+    @property
+    def analytics_id(self):
+        return tornado.options.options.analytics_id
+
+    @property
+    def aq_version(self):
+        return aq_version
+
+    @property
+    def deploy_id(self):
+        '''
+        For assets that may need breakpoints. Under dev mode the URLs
+        # will never change, and it's up to the developer to clear
+        # their own cache. Under deployment the URLs will change.
+        '''
+        return deploy_id()
+
+    @property
+    def icon_query(self):
+        '''
+        For assets that don't need to be debugged but do need cache
+        busting like favicons. Under both dev mode and deployment the
+        URLs will change.
+        '''
+        # Always use a dev ID; this is f
+        manifest_mod_time = (
+            self.session.query(func.max(model.SystemConfig.modified))
+                .limit(1)
+                .scalar())
+        if manifest_mod_time is not None:
+            return "?v=conf-%s" % manifest_mod_time.timestamp()
+        else:
+            return "?v=conf-%s" % DEPLOY_ID
+
+    @property
+    def scripts(self):
+        return self.prepare_resources(SCRIPTS)
+
+    @property
+    def stylesheets(self):
+        return self.prepare_resources(STYLESHEETS)
 
     def prepare_resources(self, declarations):
         '''
@@ -388,189 +430,134 @@ class MainHandler(BaseHandler):
 
         return resources
 
-    @tornado.web.authenticated
-    def get(self, path):
-        if path != "":
-            template = os.path.join(self.path, path)
+
+def lerp(a, b, fac):
+    return ((b - a) * fac) + a
+
+
+class Color:
+    def __init__(self, r, g, b, a=1):
+        self.r = r
+        self.g = g
+        self.b = b
+        self.a = a
+
+    @classmethod
+    def parse(cls, hex_str):
+        match = config.COLOR_PATTERN.match(hex_str)
+        r = int(match.group(1), 16) / 255
+        g = int(match.group(2), 16) / 255
+        b = int(match.group(3), 16) / 255
+        if match.group(4):
+            a = int(match.group(4), 16) / 255
         else:
-            template = self.path
-
-        self.render(
-            template, user=self.current_user, organisation=self.organisation,
-            scripts=self.scripts, stylesheets=self.stylesheets,
-            analytics_id=tornado.options.options.analytics_id,
-            # Conditionally use a deployment ID; this is for assets that may need
-            # breakpoints. Under dev mode the URLs will never change, and it's
-            # up to the developer to clear their own cache. Under deployment
-            # the URLs will change.
-            deploy_id=self.deploy_id,
-            # Always use a dev ID; this is for assets that don't need to be
-            # debugged but do need cache busting like favicons. Under dev mode
-            # and deployment the URLs will change.
-            dev_id_query="?v=static-%s" % DEPLOY_ID,
-            aq_version=aq_version,
-            dev_mode=truthy(tornado.options.options.dev) and 'true' or 'false',
-            database_type=database_type)
-
-
-class AuthLoginHandler(MainHandler):
-    SESSION_LENGTH = datetime.timedelta(days=30)
-
-    def prepare(self):
-        self.session_expires = datetime.datetime.utcnow() + \
-            AuthLoginHandler.SESSION_LENGTH
-
-    def get(self, user_id):
-        '''
-        Log in page (form).
-        '''
-        try:
-            errormessage = self.get_argument("error")
-        except:
-            errormessage = ""
-
-        next = self.get_argument("next", "/")
-        self.render(
-            "../client/login.html", scripts=self.scripts,
-            stylesheets=self.stylesheets,
-            analytics_id=tornado.options.options.analytics_id,
-            next=next,
-            # Always use a dev ID; this is for assets that don't need to be
-            # debugged but do need cache busting like favicons. Under dev mode
-            # and deployment the URLs will change.
-            dev_id_query="?v=static-%s" % DEPLOY_ID,
-            error=errormessage)
-
-    def post(self, user_id):
-        '''
-        Method for user to provide credentials and log in.
-        '''
-        email = self.get_argument("email", "")
-        password = self.get_argument("password", "")
-        try:
-            with model.session_scope() as session:
-                user = session.query(model.AppUser).\
-                    filter(func.lower(model.AppUser.email) == func.lower(email)).\
-                    one()
-                if not user.check_password(password):
-                    raise ValueError("Login incorrect")
-                deleted = user.deleted or user.organisation.deleted
-                session.expunge(user)
-        except (sqlalchemy.orm.exc.NoResultFound, ValueError):
-            self.clear_cookie("user")
-            self.clear_cookie("superuser")
-            error_msg = "?error=" + tornado.escape.url_escape("Login incorrect")
-            self.redirect("/login/" + error_msg)
-            return
-
-        if deleted:
-            self.clear_cookie("user")
-            self.clear_cookie("superuser")
-            error_msg = "?error=" + tornado.escape.url_escape(
-                "Your account is inactive. Please contact an administrator")
-            self.redirect("/login/" + error_msg)
-            return
-
-        self.set_secure_cookie(
-            "user", str(user.id).encode('utf8'),
-            expires=self.session_expires)
-        if model.has_privillege(user.role, 'admin'):
-            self.set_secure_cookie(
-                "superuser", str(user.id).encode('utf8'),
-                expires=self.session_expires)
-
-        # Make sure the XSRF token expires at the same time
-        self.xsrf_token
-
-        self.redirect('/' + self.get_argument("next", "#/"))
+            a = 1
+        return cls(r, g, b, a)
 
     @property
-    def xsrf_token(self):
-        # Workaround for XSRF cookie that expires too soon: because
-        # _current_user is not defined yet, the default implementation of
-        # xsrf_token does not set the cookie's expiration. The mismatch
-        # between the _xsrf and user cookie expiration causes POST requests
-        # to fail even when the user thinks they are still logged in.
-        token = super().xsrf_token
-        self.set_cookie(
-            '_xsrf', token,
-            expires=self.session_expires)
-        return token
+    def brightness(self):
+        return (self.r + self.g + self.b) / 3
+
+    @property
+    def is_dark(self):
+        return self.brightness < 0.6
+
+    @property
+    def rgba_str(self):
+        if self.a == 1:
+            return "rgb({}, {}, {})".format(
+                int(self.r * 255), int(self.g * 255), int(self.b * 255))
+        else:
+            return "rgba({}, {}, {}, {:0.2f})".format(
+                int(self.r * 255), int(self.g * 255), int(self.b * 255), self.a)
+
+    def mix(self, other, fraction):
+        return Color(
+            lerp(self.r, other.r, fraction),
+            lerp(self.g, other.g, fraction),
+            lerp(self.b, other.b, fraction),
+            lerp(self.a, other.a, fraction),
+        )
+
+    def twotone_complement(self, amount):
+        if self.is_dark:
+            return self.mix(Color(1, 1, 1), amount)
+        else:
+            return self.mix(Color(0, 0, 0), amount)
+
+    def __str__(self):
+        return self.rgba_str
+
+    def __repr__(self):
+        return self.rgba_str
+
+
+class ThemeParams:
+    def __init__(self, session):
+        self.session = session
+
+    @property
+    def nav_bg(self):
+        return Color.parse(config.get_setting(self.session, 'theme_nav_bg'))
+
+    @property
+    def header_bg(self):
+        return Color.parse(config.get_setting(self.session, 'theme_header_bg'))
+
+    @property
+    def sub_header_bg(self):
+        return Color.parse(config.get_setting(self.session, 'theme_sub_header_bg'))
+
+    @property
+    def app_name_long(self):
+        return config.get_setting(self.session, 'app_name_long')
+
+    @property
+    def app_name_short(self):
+        return config.get_setting(self.session, 'app_name_short')
+
+    def clean_svg(self, name):
+        image.check_display(name)
+        data = config.get_setting(self.session, name)
+        return image.clean_svg(data).encode('utf-8')
+
+
+class TemplateHandler(BaseHandler):
+    '''
+    Renders content from templates (e.g. index.html).
+    '''
+
+    def initialize(self, path):
+        self.path = path
 
     @tornado.web.authenticated
-    def put(self, user_id):
-        '''
-        Allows an admin to impersonate any other user without needing to know
-        their password.
-        '''
-        superuser_id = self.get_secure_cookie('superuser')
+    def get(self, path):
+        if path == '':
+            path = 'index.html'
+        template = os.path.join(self.path, path)
 
-        if superuser_id is None:
-            raise AuthzError("Not authorised: you are not a superuser")
-        superuser_id = superuser_id.decode('utf8')
         with model.session_scope() as session:
-            superuser = session.query(model.AppUser).get(superuser_id)
-            if superuser is None or not model.has_privillege(
-                    superuser.role, 'admin'):
-                raise MissingDocError(
-                    "Not authorised: you are not a superuser")
-
-            user = session.query(model.AppUser).get(user_id)
-            if user is None:
-                raise MissingDocError("No such user")
-
-            self._store_last_user(session);
-
-            name = user.name
-            log.warn('User %s is impersonating %s', superuser.email, user.email)
-            self.set_secure_cookie(
-                "user", str(user.id).encode('utf8'),
-                expires=self.session_expires)
-            # Make sure the XSRF token expires at the same time
-            self.xsrf_token
-
-        self.set_header("Content-Type", "text/plain")
-        self.write("Impersonating %s" % name)
-        self.finish()
-
-    def _store_last_user(self, session):
-        user_id = self.get_secure_cookie('user')
-        if user_id is None:
-            return
-        user_id = user_id.decode('utf8')
-
-        try:
-            past_users = self.get_cookie('past-users')
-            past_users = json_decode(url_unescape(past_users, plus=False))
-            log.warn('Past users: %s', past_users)
-        except Exception as e:
-            log.warn('Failed to decode past users: %s', e)
-            past_users = []
-
-        if user_id is None:
-            return;
-        try:
-            past_users = list(filter(lambda x: x['id'] != user_id, past_users))
-        except KeyError:
-            past_users = []
-
-        log.warn('%s', user_id)
-        user = session.query(model.AppUser).get(user_id)
-        if user is None:
-            return
-
-        past_users.insert(0, {'id': user_id, 'name': user.name})
-        past_users = past_users[:10]
-        log.warn('%s', past_users)
-        self.set_cookie('past-users', url_escape(
-            json_encode(past_users), plus=False))
+            params = TemplateParams(session)
+            theme = ThemeParams(session)
+            self.render(
+                template, params=params, theme=theme,
+                user=self.current_user, organisation=self.organisation)
 
 
-class AuthLogoutHandler(BaseHandler):
-    def get(self):
-        self.clear_cookie("user")
-        self.clear_cookie("superuser")
-        self.redirect(self.get_argument("next", "/"))
+class UnauthenticatedTemplateHandler(BaseHandler):
+    def initialize(self, path):
+        self.path = path
+
+    def get(self, path):
+        template = os.path.join(self.path, path)
+
+        if path.endswith('.css'):
+            self.set_header('Content-Type', 'text/css')
+
+        with model.session_scope() as session:
+            params = TemplateParams(session)
+            theme = ThemeParams(session)
+            self.render(template, params=params, theme=theme)
 
 
 class RedirectHandler(BaseHandler):

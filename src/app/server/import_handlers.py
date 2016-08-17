@@ -149,8 +149,8 @@ class Importer():
 
             hierarchy = model.Hierarchy()
             hierarchy.survey_id = survey.id
-            hierarchy.title = "AMCV (Imported)"
-            hierarchy.description = "WSAA's own 4-level hierarchy."
+            hierarchy.title = "Imported Survey"
+            hierarchy.description = None
             with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                 'aquamark_hierarchy.json')) as data_file:
                 hierarchy.structure = json.load(data_file)

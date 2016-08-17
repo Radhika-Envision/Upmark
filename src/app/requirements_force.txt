@@ -1,0 +1,5 @@
+# These requirements are to be installed using pip3 --upgrade
+
+# Six is required by scour, but the dependency is not properly specified: OS
+# version is too old, or something.
+six~=1.10.0

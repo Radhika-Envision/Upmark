@@ -818,6 +818,14 @@ angular.module('wsaa.aquamark',
 ])
 
 
+/*
+ * Global config for some 3rd party libraries.
+ */
+.config(function() {
+    Dropzone.autoDiscover = false;
+})
+
+
 .run(['$cacheFactory', '$http', function($cacheFactory, $http) {
     $http.defaults.cache = $cacheFactory('lruCache', {capacity: 100});
 }])
@@ -864,9 +872,9 @@ angular.module('wsaa.aquamark',
 
 
 .controller('RootCtrl', ['$scope', 'hotkeys', '$cookies', 'User',
-        'Notifications', '$window', 'aqVersion', 'releaseMode',
+        'Notifications', '$window', 'aqVersion',
         function($scope, hotkeys, $cookies, User, Notifications, $window,
-            aqVersion, releaseMode) {
+            aqVersion) {
     $scope.aqVersion = aqVersion;
     $scope.hotkeyHelp = hotkeys.toggleCheatSheet;
 
@@ -894,8 +902,7 @@ angular.module('wsaa.aquamark',
         );
     };
 
-    $scope.trainingMode = releaseMode.databaseType == 'local';
-    $scope.trainingDocs = "This is the AMCV training site."
+    $scope.trainingDocs = "This is the training site."
         + " You can make changes without affecting the"
         + " main site. Sometimes, information is copied from the"
         + " main site to this one. When that happens, changes you have"

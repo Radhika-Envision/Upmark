@@ -1,12 +1,9 @@
-This is the Asset Management Customer Value (AMCV) application - a web-based
+This is the Upmark survey platform - a web-based
 survey tool for comparing organisations that manage large numbers of assets,
 such as water utilities.
 
-![AMCV Logo](doc/amcv_logo.png)
-
 For historical reasons, the source code and build instructions may refer to
-AMCV's former name, "Aquamark". Generally "AMCV" is only used in the user
-interface.
+Upmark's working title, "Aquamark".
 
 
 ## Development

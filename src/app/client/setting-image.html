@@ -1,0 +1,16 @@
+<div class="dropzone">
+    <div class="dz-default dz-message">
+        <img ng-if="setting.action == null"
+            ng-src="/systemconfig/{{setting.name}}">
+        <img ng-if="setting.action == 'reset'"
+            ng-src="/systemconfig/{{setting.name}}?default=">
+        <i class="fa fa-cloud-upload dz-upload-icon"></i>
+    </div>
+    <div class="dz-toolbar">
+        <button class="btn btn-default btn-round"
+              ng-click="reset()"
+              title="Reset to default">
+            <i class="fa fa-undo"></i>
+        </button>
+    </div>
+</div>

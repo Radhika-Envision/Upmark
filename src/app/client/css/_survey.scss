@@ -224,10 +224,13 @@ a.stealth {
     background: white;
     border-radius: 1px;
 }
-.undim, .btn.pull-right.undim {
+.undim, .btn.undim, .btn.pull-right.undim {
     position: relative;
     z-index: 1001;
     box-shadow: 0 0 0 12px white, 0 0 20px 12px rgba(0, 0, 0, 0.1);
+}
+.popover-container {
+    height: 0;
 }
 
 ul.dropdown-menu {

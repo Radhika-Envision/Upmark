@@ -1,0 +1,55 @@
+header:before{
+    box-shadow: 0 1px 10px rgba(0, 0, 0, 0.1);
+}
+
+.brand,
+.navbar-default,
+.swatch-nav {
+    background: {{theme.nav_bg}};
+    border-color: transparent;
+}
+.brand,
+.navbar-default,
+.navbar-default .navbar-nav > li > a,
+.swatch-nav {
+    color: {{theme.nav_bg.twotone_complement(0.6)}};
+}
+.navbar-default .navbar-nav > li > a:hover,
+.navbar-default .navbar-nav > li > a:focus {
+    background: {{theme.nav_bg.twotone_complement(0.05)}};
+    color: {{theme.nav_bg.twotone_complement(0.9)}};
+}
+
+.jumbotron,
+.header,
+.swatch-header {
+    background: {{theme.header_bg}};
+}
+.jumbotron,
+.header,
+.header h2,
+.header h3,
+.header h4,
+.swatch-header {
+    color: {{theme.header_bg.twotone_complement(0.75)}};
+}
+:not(ng-include):not(.nested) > .header .btn-default:not([disabled]) {
+    color: {{theme.header_bg.twotone_complement(0.6)}};
+}
+.header .btn.btn-default[disabled] {
+    color: {{theme.header_bg.twotone_complement(0.25)}};
+}
+
+.subheader,
+.swatch-sub-header {
+    background: {{theme.sub_header_bg}};
+    color: {{theme.sub_header_bg.twotone_complement(0.75)}};
+}
+.subheader .text-muted {
+    color: {{theme.sub_header_bg.twotone_complement(0.45)}};
+}
+
+.swatch {
+    border-radius: 4px;
+    line-height: 33px;
+}

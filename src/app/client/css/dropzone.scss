@@ -31,23 +31,84 @@
     pointer-events: none;
 }
 
-/* Error messages displayed elsewhere */
-.dz-image {
-    display: none;
+.dz-nopreview {
+    .dz-image {
+        display: none;
+    }
+    .dz-progress {
+        display: none;
+    }
+
+    /* Error messages displayed elsewhere */
+    .dz-error-message {
+        display: none;
+    }
+    .dz-success-mark {
+        display: none;
+    }
+    .dz-error-mark {
+        display: none;
+    }
 }
 
-.dz-progress {
-    display: none;
-}
+file-setting .dropzone {
+    position: relative;
+    padding-top: 12px;
 
-.dz-error-message {
-    display: none;
-}
-
-.dz-success-mark {
-    display: none;
-}
-
-.dz-error-mark {
-    display: none;
+    &.dz-started {
+        .dz-message {
+            display: none;
+        }
+    }
+    .dz-message,
+    .dz-image {
+        display: block;
+        position: relative;
+        .dz-upload-icon {
+            opacity: 0.7;
+            text-shadow: 0 0 5px white;
+        }
+    }
+    .dz-progress {
+        display: block;
+    }
+    /* Error messages displayed elsewhere */
+    .dz-error-message {
+        display: none;
+    }
+    .dz-preview:not(.dz-error) .dz-error-mark {
+        display: none;
+    }
+    .dz-preview:not(.dz-success) .dz-success-mark {
+        display: none;
+    }
+    .dz-success-mark,
+    .dz-error-mark,
+    .dz-upload-icon {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        margin-top: -25px;
+        margin-left: -25px;
+        width: 50px;
+        font-size: 50px;
+        line-height: 1;
+    }
+    .dz-success-mark {
+        path {
+            fill: #41b3dc;
+            stroke: white;
+        }
+    }
+    .dz-error-mark {
+        path {
+            fill: #ff4d4d;
+            stroke: white;
+        }
+    }
+    .dz-toolbar {
+        position: absolute;
+        top: 12px;
+        right: 0;
+    }
 }

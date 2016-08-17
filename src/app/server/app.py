@@ -60,13 +60,14 @@ def ssl_log_filter(record):
     return True
 
 
+import auth
 import crud
+import export_handlers
 import handlers
 import import_handlers
-import export_handlers
-import statistics_handlers
-import report_handlers
 import model
+import report_handlers
+import statistics_handlers
 from utils import truthy
 
 
@@ -103,14 +104,13 @@ def get_cookie_secret():
     with model.session_scope() as session:
         try:
             q = session.query(model.SystemConfig)
-            conf = q.filter_by(name='cookie_secret').one()
+            conf = q.filter_by(name='_cookie_secret').one()
         except sqlalchemy.orm.exc.NoResultFound:
             # TODO: Use a cookie secret dictionary, and cause keys to expire
             # after some time.
             log.info("Generating new cookie secret")
             secret = base64.b64encode(os.urandom(50)).decode('ascii')
-            conf = model.SystemConfig(name='cookie_secret', value=secret)
-            conf.human_name = "Cookie Secret"
+            conf = model.SystemConfig(name='_cookie_secret', value=secret)
             conf.user_defined = False
             session.add(conf)
         return conf.value
@@ -179,13 +179,6 @@ def connect_db():
         model.reset_analyst_password()
         model.connect_db_ro(db_url)
 
-    if 'rds.amazonaws.com:' in db_url:
-        handlers.database_type = 'rds'
-    elif '@postgres' in db_url:
-        handlers.database_type = 'local'
-    else:
-        handlers.database_type = 'unknown'
-
 
 def default_settings():
     with model.session_scope() as session:
@@ -236,11 +229,14 @@ def default_settings():
 def get_mappings():
     package_dir = get_package_dir()
     return [
-        (r"/login/?(.*)", handlers.AuthLoginHandler, {
+        (r"/login/?(.*)", auth.AuthLoginHandler, {
             'path': os.path.join(package_dir, "..", "client")}),
-        (r"/logout/?", handlers.AuthLogoutHandler),
-        (r"/()", handlers.MainHandler, {
-            'path': '../client/index.html'}),
+        (r"/logout/?", auth.AuthLogoutHandler),
+        (r"/()", handlers.TemplateHandler, {
+            'path': '../client/'}),
+        (r"/(manifest.json|css/user_style.css)",
+            handlers.UnauthenticatedTemplateHandler, {
+                'path': '../client/'}),
         (r"/ping.*", handlers.PingHandler, {}),
 
         (r"/bower_components/(.*)", tornado.web.StaticFileHandler, {
@@ -251,8 +247,10 @@ def get_mappings():
             'root': os.path.join(package_dir, "..", "client")}),
         (r"/(.*\.css)", handlers.CssHandler, {
             'root': os.path.join(package_dir, "..", "client")}),
+        (r"/images/icon-(.*)\.png", crud.image.IconHandler, {}),
 
         (r"/systemconfig.json", crud.config.SystemConfigHandler, {}),
+        (r"/systemconfig/(.*)", crud.config.SystemConfigItemHandler, {}),
         (r"/organisation/?([^/]*).json", crud.org.OrgHandler, {}),
         (r"/organisation/?([^/]*)/hierarchy/?([^/]*).json",
             crud.org.PurchasedSurveyHandler, {}),

@@ -1,0 +1,21 @@
+<div class="input-group">
+    <span class="input-group-addon text-muted">
+        {{
+            isFinite(setting.min) ? '' + setting.min + ' ≤' : ''
+        }}
+    </span>
+    <input type="number" class="form-control" id="{{setting.name}}"
+        ng-model="setting.value" required />
+    <span class="input-group-addon text-muted">
+        {{
+            isFinite(setting.max) ? '≤ ' + setting.max : ''
+        }}
+    </span>
+    <span class="input-group-btn">
+        <button class="btn btn-default"
+              ng-click="reset()"
+              title="Reset to default ({{setting.defaultValue}})">
+            <i class="fa fa-undo"></i>
+        </button>
+    </span>
+</div>

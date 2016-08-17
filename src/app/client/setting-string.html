@@ -1,0 +1,11 @@
+<div class="input-group">
+    <input type="text" class="form-control" id="{{setting.name}}"
+        ng-model="setting.value" required />
+    <span class="input-group-btn">
+        <button class="btn btn-default"
+              ng-click="reset()"
+              title="Reset to default ({{setting.defaultValue}})">
+            <i class="fa fa-undo"></i>
+        </button>
+    </span>
+</div>

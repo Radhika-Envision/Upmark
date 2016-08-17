@@ -96,10 +96,9 @@ class Observable:
 class SystemConfig(Base):
     __tablename__ = 'systemconfig'
     name = Column(String, primary_key=True, nullable=False)
-    human_name = Column(String, nullable=False)
-    user_defined = Column(Boolean, nullable=False)
     value = Column(String)
-    description = Column(String)
+    data = Column(LargeBinary)
+    modified = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     def __repr__(self):
         return "SystemConfig(name={}, value={})".format(self.name, self.value)
@@ -1530,9 +1529,9 @@ def reset_analyst_password():
 
 
 def store_analyst_password(password, session):
-    pwd_conf = session.query(SystemConfig).get('analyst_password')
+    pwd_conf = session.query(SystemConfig).get('_analyst_password')
     if pwd_conf is None:
-        pwd_conf = SystemConfig(name='analyst_password')
+        pwd_conf = SystemConfig(name='_analyst_password')
         pwd_conf.human_name = "Analyst password"
         pwd_conf.description = "Password for read-only database access"
         pwd_conf.user_defined = False
@@ -1575,7 +1574,7 @@ def connect_db_ro(base_url):
             raise MissingUser("analyst user does not exist")
 
         password = (session.query(SystemConfig.value)
-                .filter(SystemConfig.name == 'analyst_password')
+                .filter(SystemConfig.name == '_analyst_password')
                 .scalar())
 
     parsed_url = sqlalchemy.engine.url.make_url(base_url)

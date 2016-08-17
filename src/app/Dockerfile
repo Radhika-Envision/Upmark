@@ -2,35 +2,35 @@ FROM ubuntu:14.04
 
 MAINTAINER Alex Fraser <alex@vpac-innovations.com.au>
 
+# build-essentials is required for building many pip packages
+# Git is required by Bower
+# cairo2, ffi, jpeg and lxml are required by cariosvg
 RUN DEBIAN_FRONTEND=noninteractive \
     apt-get update && \
     apt-get install -y \
-        npm \
-        nodejs \
         build-essential \
+        git \
+        libcairo2 \
+        libffi-dev \
+        libjpeg-dev \
+        nodejs \
+        npm \
         python3 \
         python3.4-dev \
-        virtualenvwrapper \
+        python3-lxml \
         python3-pip \
         python3-psycopg2 \
-        git \
         --no-install-recommends && \
     which node || sudo apt-get install -y nodejs-legacy && \
     npm install -g bower && \
+    pip3 install -vU 'setuptools' && \
     rm -rf /var/lib/apt/lists/*
-
-# An up-to-date version of setuptools is needed in order to play nicely with
-# newer packages.
-# But setuptools 20.2.2 has a problem with parsing requirements with spaces in
-# them, e.g. for the dependency boto3->futures.
-# https://bitbucket.org/pypa/setuptools/issues/502/packaging-164-does-not-allow-whitepace
-# Remove the version qualifier once this issue is fixed.
-RUN pip3 install -vU 'setuptools<20.2.2'
 
 # Install dependencies before copying full source directory. This speeds up
 # Docker rebuilds.
-COPY requirements.txt /tmp/
+COPY requirements.txt requirements_force.txt /tmp/
 WORKDIR /tmp
+RUN pip3 install --upgrade --force-reinstall -r requirements_force.txt
 RUN pip3 install -r requirements.txt
 
 COPY bower.json /tmp/

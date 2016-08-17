@@ -11,20 +11,20 @@ MESSAGE_SEND_FROM: <SENDER EMAIL>
 MESSAGE_SEND_TO: [<RECEIPIENT LIST>]
 N_LOG_LINES: 100
 
-MESSAGE_SUBJECT_CRASHED: AMCV has CRASHED
+MESSAGE_SUBJECT_CRASHED: Upmark has CRASHED
 MESSAGE_CONTENT_CRASHED: |
-    The AMCV server ${server} has CRASHED.
+    The Upmark server ${server} has CRASHED.
 
     Here are the last ${n_log_lines} lines from the logs:
     ${logs}
 
-MESSAGE_SUBJECT_RECOVERED: AMCV is RUNNING
+MESSAGE_SUBJECT_RECOVERED: Upmark is RUNNING
 MESSAGE_CONTENT_RECOVERED: |
-    The AMCV server ${server} has recovered.
+    The Upmark server ${server} has recovered.
 
     Here are the last ${n_log_lines} lines from the logs:
     ${logs}
 
-MESSAGE_SUBJECT_TEST: AMCV watchdog TEST
+MESSAGE_SUBJECT_TEST: Upmark watchdog TEST
 MESSAGE_CONTENT_TEST: |
-    This is a TEST email from the AMCV server ${server}.
+    This is a TEST email from the Upmark server ${server}.

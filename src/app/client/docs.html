@@ -4,7 +4,7 @@
         ng-class="isCollapsed ? 'fa-caret-right' : 'fa-caret-down'"></i>
     <em class="text-muted" ng-show="isCollapsed">{{ndocs}}</em>
 </h3>
-<div collapse="isCollapsed">
+<div uib-collapse="isCollapsed">
     <ul class="docs fa-ul fa-ul-big"></ul>
     <p ng-if="ndocs == 0">No documentation is available for this screen.</p>
 </div>

@@ -27,7 +27,7 @@
     "angular-ui-select": "~0.18.1",
     "angular-ui-sortable": "~0.14.3",
     "angular-cookies": "~1.4.1",
-    "dropzone": "~4.0.1",
+    "dropzone": "~4.3.0",
     "jqueryui-touch-punch": "#4bc009145202d9c7483ba85f3a236a8f3470354d",
     "js-expression-eval": "https://github.com/escopecz/js-expression-eval.git#d8b2a917c97926ee866927ff150611f0492e588f",
     "angular-timeago": "~0.2.2",
@@ -39,7 +39,8 @@
     "angular-diff-match-patch": "~0.1.11",
     "FileSaver.js": "https://github.com/eligrey/FileSaver.js.git#f23c4a66dc9fa1af818322f08eb29a371ccb4ccf",
     "angular-checkboxes": "https://github.com/msieurtoph/angular-checkboxes.git#1.0.2",
-    "angular-input-stars": "https://github.com/z0u/angular-input-stars.git#e427c84756d1d6c8267767d0e626546ecca84e28"
+    "angular-input-stars": "https://github.com/z0u/angular-input-stars.git#e427c84756d1d6c8267767d0e626546ecca84e28",
+    "angular-color-picker": "angularjs-color-picker#^2.4.3"
   },
   "resolutions": {
     "angular": "~1.4.1",
