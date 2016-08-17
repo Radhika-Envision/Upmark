@@ -2,9 +2,60 @@
 import logging
 
 from simpleeval import simple_eval, InvalidExpression
+from voluptuous import All, Any, Coerce, Length, Optional, Required, \
+    Schema
 
 
 log = logging.getLogger('app.response_type')
+
+response_type_schema = Schema([
+    {
+        'id': All(str, Length(min=1)),
+        'name': All(str, Length(min=1)),
+        'parts': [
+            {
+                # Common fields
+                Required('id', default=None): Any(
+                    All(str, Length(min=1)), None),
+                'type': Any('multiple_choice', 'numerical'),
+                Required('name', default=None): Any(
+                    All(str, Length(min=1)), None),
+                Required('description', default=None): Any(
+                    All(str, Length(min=1)), None),
+                # Fields that vary by type
+                # Multiple choice
+                Optional('options'): All([
+                    {
+                        'score': Coerce(float),
+                        'name': All(str, Length(min=1)),
+                        Required('if', default=None): Any(
+                            All(str, Length(min=1)), None),
+                        Required('description', default=None): Any(
+                            All(str, Length(min=1)), None)
+                    }
+                ], Length(min=2)),
+                # Numerical
+                Optional('lower'): Any(All(str, Length(min=1)), None),
+                Optional('upper'): Any(All(str, Length(min=1)), None),
+            },
+        ],
+        Required('formula', default=None): Any(
+            All(str, Length(min=1)), None)
+    }
+], required=True)
+
+
+response_schema = Schema([
+    Any(
+        {
+            'index': int,
+            'note': All(str, Length(min=1)),
+        },
+        {
+            'value': Coerce(float),
+        },
+    )
+], required=True)
 
 
 class ResponseTypeError(Exception):

@@ -21,13 +21,13 @@ from sqlalchemy.schema import CheckConstraint, ForeignKeyConstraint, \
     Index, MetaData, UniqueConstraint
 from sqlalchemy.sql import func
 from passlib.hash import sha256_crypt
-from voluptuous import All, Any, Coerce, Length, Optional, Range, Required, \
-    Schema
+from voluptuous import All, Length, Schema
 from voluptuous.humanize import validate_with_humanized_errors
 
 from guid import GUID
 from history_meta import Versioned, versioned_session
-from response_type import ResponseError, ResponseTypeCache
+from response_type import ResponseError, ResponseTypeCache, \
+    response_schema, response_type_schema
 
 
 log = logging.getLogger('app.model')
@@ -309,42 +309,6 @@ class Program(Observable, Base):
     def is_editable(self):
         return self.finalised_date is None
 
-    _response_types_schema = Schema([
-        {
-            'id': All(str, Length(min=1)),
-            'name': All(str, Length(min=1)),
-            'parts': [
-                {
-                    # Common fields
-                    Required('id', default=None): Any(
-                        All(str, Length(min=1)), None),
-                    'type': Any('multiple_choice', 'numerical'),
-                    Required('name', default=None): Any(
-                        All(str, Length(min=1)), None),
-                    Required('description', default=None): Any(
-                        All(str, Length(min=1)), None),
-                    # Fields that vary by type
-                    # Multiple choice
-                    Optional('options'): All([
-                        {
-                            'score': Coerce(float),
-                            'name': All(str, Length(min=1)),
-                            Required('if', default=None): Any(
-                                All(str, Length(min=1)), None),
-                            Required('description', default=None): Any(
-                                All(str, Length(min=1)), None)
-                        }
-                    ], Length(min=2)),
-                    # Numerical
-                    Optional('lower'): Any(All(str, Length(min=1)), None),
-                    Optional('upper'): Any(All(str, Length(min=1)), None),
-                },
-            ],
-            Required('formula', default=None): Any(
-                All(str, Length(min=1)), None)
-        }
-    ], required=True)
-
     @property
     def response_types(self):
         return self._response_types
@@ -352,7 +316,7 @@ class Program(Observable, Base):
     @response_types.setter
     def response_types(self, rts):
         self._response_types = validate_with_humanized_errors(
-            rts, Program._response_types_schema)
+            rts, response_type_schema)
         if hasattr(self, '_materialised_response_types'):
             del self._materialised_response_types
 
@@ -1110,18 +1074,6 @@ class Response(Observable, Versioned, Base):
             return None
         return qnode.get_rnode(self.submission)
 
-    _response_parts_schema = Schema([
-        Any(
-            {
-                'index': int,
-                'note': All(str, Length(min=1)),
-            },
-            {
-                'value': Coerce(float),
-            },
-        )
-    ], required=True)
-
     @property
     def response_parts(self):
         return self._response_parts
@@ -1129,7 +1081,7 @@ class Response(Observable, Versioned, Base):
     @response_parts.setter
     def response_parts(self, s):
         self._response_parts = validate_with_humanized_errors(
-            s, Response._response_parts_schema)
+            s, response_schema)
 
     def lineage(self):
         return ([q.get_rnode(self.submission_id)
