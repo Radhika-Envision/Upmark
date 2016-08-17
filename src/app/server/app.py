@@ -8,8 +8,6 @@ import time
 import signal
 from ssl import SSLError, SSLEOFError
 
-from alembic.config import Config
-from alembic import command
 from sqlalchemy import func
 import sqlalchemy.engine.reflection
 import sqlalchemy.orm
@@ -27,8 +25,7 @@ log = logging.getLogger('app')
 
 def configure_logging():
     package_dir = get_package_dir()
-    # TODO: Stop using alembic command-line API so we can split this file up
-    logconf_path = os.path.join(package_dir, "..", "alembic.ini")
+    logconf_path = os.path.join(package_dir, "logging.cfg")
     if not os.path.exists(logconf_path):
         log.info("Warning: log config file %s does not exist.", logconf_path)
     else:
@@ -139,31 +136,8 @@ def get_settings():
 
 
 def connect_db():
-    package_dir = get_package_dir()
-    alembic_cfg = Config(os.path.join(package_dir, "..", "alembic.ini"))
-    alembic_cfg.set_main_option(
-        "script_location", os.path.join(package_dir, "..", "alembic"))
-    if os.environ.get('DATABASE_URL') is not None:
-        alembic_cfg.set_main_option("sqlalchemy.url", os.environ.get('DATABASE_URL'))
-
-    engine = model.connect_db(os.environ.get('DATABASE_URL'))
-    try:
-        inspector = sqlalchemy.engine.reflection.Inspector.from_engine(engine)
-    except sqlalchemy.exc.OperationalError:
-        log.info("Failed to connect to database. Will try again in 5s")
-        time.sleep(5)
-        inspector = sqlalchemy.engine.reflection.Inspector.from_engine(engine)
-
-    # TODO: Don't use Alembic's command-line API!
-    if 'alembic_version' not in inspector.get_table_names():
-        log.info("Initialising database")
-        model.initialise_schema(engine)
-        command.stamp(alembic_cfg, "head")
-    else:
-        log.info("Upgrading database (if required)")
-        command.upgrade(alembic_cfg, "head")
-
-    db_url = os.environ.get('DATABASE_URL')
+    db_url = os.environ['DATABASE_URL']
+    model.connect_db(db_url)
     try:
         model.connect_db_ro(db_url)
     except model.MissingUser:

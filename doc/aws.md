@@ -64,10 +64,16 @@ Docker image.
     - `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are the credentials of
       the AWS IAM user who has access to the aquamark bucket.
 
+1. Initialise the database:
+
+    ```
+    sudo docker run --rm vpac/aquamark alembic upgrade head
+    ```
+
 [ck]: https://help.github.com/articles/generating-ssh-keys/
 [ak]: https://developer.github.com/guides/managing-deploy-keys/#deploy-keys
 
-Now start the container. Tell it to restart if it goes down, so when we spin up
+Now start the web server. Tell it to restart if it goes down, so when we spin up
 a new instance from the AMI it will start automatically.
 
 ```bash
@@ -314,8 +320,9 @@ scaling group using the new instance to create the AMI. Add it to the existing
 load balancer. After the new scaling group is active, delete the old one and
 ensure the old instances have stopped.
 
-Finally, if there have been any database schema changes, make sure the daemons
-are updated too. See [Recalculation daemon](#recalculation-daemon).
+Finally, if there have been any database schema changes, run alembic and then
+make sure the daemons are updated too.
+See [Recalculation daemon](#recalculation-daemon).
 
 **Important:** The old scaling group must be deleted, or some users will see the
 old site.

@@ -9,11 +9,17 @@ Upmark's working title, "Aquamark".
 ## Development
 
 The easiest way to run during development is to use Docker Compose. First copy
-the config files to be out of the source tree, and then start the `web` service:
+the config files to be out of the source tree and initialise the database:
 
 ```
 cp -r src/app/config ../aq_conf
 echo 'DEV_MODE=True' >> ../aq_conf/aq.conf
+sudo docker-compose run --rm web alembic upgrade head
+```
+
+Now start the `web` service:
+
+```
 sudo docker-compose run --rm web
 ```
 
@@ -60,6 +66,7 @@ Then start the container:
 
 ```
 make version
+sudo docker-compose run --rm web alembic upgrade head
 sudo docker-compose up -d webssl
 ```
 

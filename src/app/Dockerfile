@@ -44,7 +44,7 @@ RUN bower \
 # Copy application to container. For development, mount a volume over this
 # directory.
 COPY ./ /usr/share/aquamark/app/
-WORKDIR /usr/share/aquamark
+WORKDIR /usr/share/aquamark/app/
 RUN mv /tmp/bower_components /usr/share/aquamark/.bower_components
 
 ENV PORT=8000 \
@@ -59,4 +59,4 @@ ENV PORT=8000 \
 
 EXPOSE 8000
 
-CMD ["python3", "./app/server/app.py"]
+CMD ["python3", "./server/app.py"]
