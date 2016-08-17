@@ -138,7 +138,7 @@ class ResponseHandler(handlers.BaseHandler):
                         .first())
                 measure = (session.query(model.Measure)
                         .filter_by(id=response_history.measure_id,
-                                   survey_id=assessment.survey_id)
+                                   program_id=assessment.program_id)
                         .first())
                 parent = (measure.get_parent(assessment.hierarchy_id)
                         .get_rnode(assessment_id))
@@ -228,13 +228,13 @@ class ResponseHandler(handlers.BaseHandler):
                 verbs = []
                 if response is None:
                     measure = (session.query(model.Measure)
-                        .get((measure_id, assessment.survey.id)))
+                        .get((measure_id, assessment.program.id)))
                     if measure is None:
                         raise handlers.MissingDocError("No such measure")
                     response = model.Response(
                         assessment_id=assessment_id,
                         measure_id=measure_id,
-                        survey_id=assessment.survey.id,
+                        program_id=assessment.program.id,
                         approval='draft')
                     session.add(response)
                     verbs.append('create')

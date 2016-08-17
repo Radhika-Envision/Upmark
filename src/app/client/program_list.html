@@ -2,10 +2,10 @@
     <div class="container">
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="File Import"
-                    ng-href="#/survey/import" ng-if="checkRole('survey_add')">
+                    ng-href="#/program/import" ng-if="checkRole('program_add')">
                 <i class="fa fa-fw fa-cloud-upload"></i></a>
             <a class="btn btn-default btn-round" title="Add new"
-                    ng-href="#/survey/new" ng-if="checkRole('survey_add')">
+                    ng-href="#/program/new" ng-if="checkRole('program_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
         </div>
         <h2>
@@ -16,13 +16,13 @@
 
 
 <div class="container">
-    <search-box model="search" result="surveys">
+    <search-box model="search" result="programs">
         <button class="btn btn-default hidden-print" type="button"
                 title="{{search.editable ?
-                    'Only show editable surveys' :
-                    'Show both editable and finalised surveys'}}"
+                    'Only show editable programs' :
+                    'Show both editable and finalised programs'}}"
                 ng-click="search.editable = !search.editable"
-                ng-if="checkRole(survey_edit)">
+                ng-if="checkRole(program_edit)">
             <i class="fa fa-pencil-square-o">
                 <i ng-if="!search.editable"
                     class="fa fa-question-circle fa-badge fa-badge-left"></i>
@@ -33,11 +33,11 @@
     </search-box>
 
     <ul class="list-results">
-        <li ng-repeat="survey in surveys"
-                ng-class="{strike: survey.deleted}">
-            <a ng-href="#/survey/{{survey.id}}">
-                <h4>{{survey.title}}</h4>
-                <p class="truncate">{{survey.description}}</p>
+        <li ng-repeat="program in programs"
+                ng-class="{strike: program.deleted}">
+            <a ng-href="#/program/{{program.id}}">
+                <h4>{{program.title}}</h4>
+                <p class="truncate">{{program.description}}</p>
             </a>
         </li>
         <li>
@@ -46,10 +46,10 @@
                 <span ng-if="search.editable">
                     Displaying only <i>editable</i> programs.</span>
 
-                <span ng-if="!surveys.length">
+                <span ng-if="!programs.length">
                     No programs match your query.</span>
 
-                <span ng-if="!surveys.length && checkRole('survey_add')">
+                <span ng-if="!programs.length && checkRole('program_add')">
                     You can create a program by pressing the
                     <i class="fa fa-fw fa-plus"></i> button above.
                 </span>

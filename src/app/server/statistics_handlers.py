@@ -25,13 +25,13 @@ log = logging.getLogger('app.statistics_handler')
 class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
 
     @tornado.web.authenticated
-    def get(self, survey_id):
+    def get(self, program_id):
         if self.has_privillege('consultant') or self.has_privillege('authority') :
             pass
         else:
             with model.session_scope() as session:
                 purchased_survey = (session.query(model.PurchasedSurvey)
-                    .filter_by(survey_id=survey_id,
+                    .filter_by(program_id=program_id,
                                organisation_id=self.organisation.id)
                     .first())
                 log.info("purchased_survey: %s", purchased_survey)
@@ -50,7 +50,7 @@ class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
                     .join(model.ResponseNode.qnode)
                     .join(model.ResponseNode.assessment)
                     .options(joinedload(model.ResponseNode.qnode))
-                    .filter(model.ResponseNode.survey_id == survey_id,
+                    .filter(model.ResponseNode.program_id == program_id,
                             model.QuestionNode.parent_id == parent_id,
                             model.Assessment.approval.in_(included_approval_status),
                             model.Assessment.deleted == False,
@@ -68,7 +68,7 @@ class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
 
             response = []
             for responseNode in responseNodes:
-                r = [res for res in response 
+                r = [res for res in response
                      if res["qnodeId"] == str(responseNode.qnode.id)]
                 if len(r) == 0:
                     r = { "qnodeId": str(responseNode.qnode.id),
@@ -87,7 +87,7 @@ class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
                 r["count"] = len(data)
                 numpy_array = numpy.array(data)
                 # r["std"] = numpy.std(numpy_array)
-                r["quartile"] = [numpy.percentile(numpy_array, 25), 
+                r["quartile"] = [numpy.percentile(numpy_array, 25),
                                 numpy.percentile(numpy_array, 50),
                                 numpy.percentile(numpy_array, 75)]
 

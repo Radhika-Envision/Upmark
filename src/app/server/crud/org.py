@@ -11,7 +11,7 @@ import sqlalchemy
 from sqlalchemy.orm import joinedload
 
 from activity import Activities
-import crud.survey
+import crud.program
 import handlers
 import model
 import logging
@@ -233,14 +233,14 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
             setattr(org.meta, n, son.get(n))
 
 
-class PurchasedSurveyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
+class PurchasedSurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
     @tornado.web.authenticated
     def head(self, org_id, hierarchy_id):
         self._check_user(org_id)
 
         with model.session_scope() as session:
             purchased_survey = (session.query(model.PurchasedSurvey)
-                .filter_by(survey_id=self.survey_id,
+                .filter_by(program_id=self.program_id,
                            hierarchy_id=hierarchy_id,
                            organisation_id=org_id)
                 .first())
@@ -270,10 +270,10 @@ class PurchasedSurveyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 r'/title$',
                 r'/deleted$',
                 r'/n_measures$',
-                r'/survey/tracking_id$',
+                r'/program/tracking_id$',
                 # Descend into list
                 r'/[0-9]+$',
-                r'/survey$'
+                r'/program$'
             )
             sons = to_son(org.hierarchies)
 
@@ -288,28 +288,28 @@ class PurchasedSurveyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
             if not org:
                 raise handlers.MissingDocError('No such organisation')
             hierarchy = (session.query(model.Hierarchy)
-                .get((hierarchy_id, self.survey_id)))
+                .get((hierarchy_id, self.program_id)))
             if not hierarchy:
                 raise handlers.MissingDocError('No such hierarchy')
 
             purchased_survey = (session.query(model.PurchasedSurvey)
-                .get((self.survey_id, hierarchy_id, org.id)))
+                .get((self.program_id, hierarchy_id, org.id)))
 
             if not purchased_survey:
                 org.hierarchies.append(hierarchy)
 
     @handlers.authz('admin')
-    def delete(self, org_id, survey_id):
+    def delete(self, org_id, program_id):
         with model.session_scope() as session:
             org = session.query(model.Organisation).get(org_id)
             if not org:
                 raise handlers.MissingDocError('No such organisation')
             hierarchy = (session.query(model.Hierarchy)
-                .get((hierarchy_id, self.survey_id)))
+                .get((hierarchy_id, self.program_id)))
             if not hierarchy:
                 raise handlers.MissingDocError('No such hierarchy')
 
-            org.surveys.remove(hierarchy)
+            org.programs.remove(hierarchy)
 
     def _check_user(self, org_id):
         if org_id != str(self.current_user.organisation_id):

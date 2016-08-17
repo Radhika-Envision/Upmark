@@ -7,7 +7,7 @@
             title="Previous">
         <i class="fa fa-fw fa-angle-left"></i></a>
     <a class="btn btn-default btn-round"
-            ng-href="{{itemUrl(upItem) || '#/surveys'}}"
+            ng-href="{{itemUrl(upItem) || '#/programs'}}"
             title="Go up one level">
         <i class="fa fa-fw fa-angle-up"></i></a>
     <a ng-disabled="!currentItem.entity.next"
@@ -18,7 +18,7 @@
 </div>
 <h2 ng-repeat="item in structure.hstack"
         label="{{item.label}}"
-        ng-class="['survey-' + item.level, item.entity.deleted ? 'strike' : null]"
+        ng-class="['program-' + item.level, item.entity.deleted ? 'strike' : null]"
         title="{{item.entity.title}} ({{item.title}})">
     <div class="toolbar" ng-if="layout.expandHeader && $last">
         <a ng-disabled="!currentItem.entity.prev"
@@ -27,7 +27,7 @@
                 title="Previous">
             <i class="fa fa-fw fa-angle-left"></i></a>
         <a class="btn btn-default btn-round"
-                ng-href="{{itemUrl(upItem) || '#/surveys'}}"
+                ng-href="{{itemUrl(upItem) || '#/programs'}}"
                 title="Go up one level">
             <i class="fa fa-fw fa-angle-up"></i></a>
         <a ng-disabled="!currentItem.entity.next"

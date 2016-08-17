@@ -459,15 +459,15 @@ angular.module('wsaa.admin', [
 
 
 .controller('PurchasedSurveyAddCtrl', [
-        '$scope', 'Survey', 'PurchasedSurvey', 'org', 'survey', 'Notifications',
+        '$scope', 'Program', 'PurchasedSurvey', 'org', 'program', 'Notifications',
         'Hierarchy', '$location',
-        function($scope, Survey, PurchasedSurvey, org, survey, Notifications,
+        function($scope, Program, PurchasedSurvey, org, program, Notifications,
             Hierarchy, $location) {
 
     $scope.org = org;
-    $scope.survey = survey;
+    $scope.program = program;
 
-    if (!$scope.survey) {
+    if (!$scope.program) {
         $scope.search = {
             term: "",
             deleted: false,
@@ -475,9 +475,9 @@ angular.module('wsaa.admin', [
         };
 
         $scope.$watch('search', function(search) {
-            Survey.query(search).$promise.then(
-                function success(surveys) {
-                    $scope.surveys = surveys;
+            Program.query(search).$promise.then(
+                function success(programs) {
+                    $scope.programs = programs;
                 },
                 function failure(details) {
                     Notifications.set('edit', 'error',
@@ -486,7 +486,7 @@ angular.module('wsaa.admin', [
             );
         }, true);
     } else {
-        Hierarchy.query({surveyId: $scope.survey.id}).$promise.then(
+        Hierarchy.query({programId: $scope.program.id}).$promise.then(
             function success(hierarchies) {
                 $scope.hierarchies = hierarchies;
             },
@@ -499,7 +499,7 @@ angular.module('wsaa.admin', [
 
     $scope.addHierarchy = function(hierarchy) {
         PurchasedSurvey.save({
-            surveyId: $scope.survey.id
+            programId: $scope.program.id
         }, {
             orgId: $scope.org.id,
             hierarchyId: hierarchy.id

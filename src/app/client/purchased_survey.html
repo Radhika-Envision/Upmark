@@ -21,31 +21,31 @@
 </div>
 
 
-<div class="container" ng-if="!survey">
+<div class="container" ng-if="!program">
     <div class="section">
         <h2 label="Pg">
             Programs
         </h2>
     </div>
 
-    <search-box model="search" result="surveys"></search-box>
+    <search-box model="search" result="programs"></search-box>
 
     <ul class="list-results">
-        <li ng-repeat="survey in surveys">
-            <a ng-href="#/org/{{org.id}}/survey/add?survey={{survey.id}}">
-                <h4>{{survey.title}}</h4>
-                <p class="truncate">{{survey.description}}</p>
+        <li ng-repeat="program in programs">
+            <a ng-href="#/org/{{org.id}}/program/add?program={{program.id}}">
+                <h4>{{program.title}}</h4>
+                <p class="truncate">{{program.description}}</p>
             </a>
         </li>
     </ul>
 
-    <p ng-if="!surveys.length">
+    <p ng-if="!programs.length">
         No programs.
     </p>
 </div>
 
 
-<div class="container" ng-if="survey">
+<div class="container" ng-if="program">
     <div class="section">
         <h2 label="Sv">
             Surveys
@@ -62,10 +62,10 @@
     </ul>
 
     <p ng-if="!hierarchies.length" class="text-muted">
-        No surveys in <i>{{survey.title}}</i>.
+        No surveys in <i>{{program.title}}</i>.
     </p>
     <p ng-if="hierarchies.length" class="text-muted">
-        Showing surveys in <i>{{survey.title}}</i>. Click on one to add
+        Showing surveys in <i>{{program.title}}</i>. Click on one to add
         <i>{{org.name}}</i> as a participant.
     </p>
 </div>

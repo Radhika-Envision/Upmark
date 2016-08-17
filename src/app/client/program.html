@@ -1,5 +1,5 @@
 <div class="header"
-    ng-class="{'deleted': survey.deleted}">
+    ng-class="{'deleted': program.deleted}">
 <div class="container">
     <div class="toolbar">
         <button class="btn btn-default btn-round" title="Print"
@@ -8,12 +8,12 @@
             <i class="fa fa-print"></i>
         </button>
         <a class="btn btn-default btn-round" title="Duplicate"
-                ng-href="#/survey/new?duplicate={{survey.id}}"
-                ng-if="!edit.model && checkRole('survey_dup')">
+                ng-href="#/program/new?duplicate={{program.id}}"
+                ng-if="!edit.model && checkRole('program_dup')">
             <small><i class="fa fa-clone"></i></small></button></a>
-        <delete-button model="survey" editor="edit"
-            ng-if="survey.isEditable && !edit.model &&
-                checkRole('survey_del')"></delete-button>
+        <delete-button model="program" editor="edit"
+            ng-if="program.isEditable && !edit.model &&
+                checkRole('program_del')"></delete-button>
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
                 ng-if="edit.model && edit.model.id && !rtEdit.rt">
@@ -26,16 +26,16 @@
             <i class="fa fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
-                ng-if="survey.isEditable && !edit.model &&
-                    checkRole('survey_edit')">
+                ng-if="program.isEditable && !edit.model &&
+                    checkRole('program_edit')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/subscription/program?id={{survey.id}}">
+                ng-href="#/subscription/program?id={{program.id}}">
             <i class="fa fa-envelope"></i></a>
-        <survey-history entity="survey" service="Survey"
-                ng-if="!edit.model"></survey-history>
+        <program-history entity="program" service="Program"
+                ng-if="!edit.model"></program-history>
     </div>
-    <question-header entity="survey" type="survey"></question-header>
+    <question-header entity="program" type="program"></question-header>
 </div>
 </div>
 
@@ -84,7 +84,7 @@
         </p>
         <p>
             If you want to create a fresh program with no lineage,
-            <a href="#/surveys">go back</a> and use the Add
+            <a href="#/programs">go back</a> and use the Add
             <i class="fa fa-plus"></i> function instead.
         </p>
     </docs>
@@ -95,7 +95,7 @@
             be possible to link responses from other programs to this one.
         </p>
         <p>
-            If you wish to preserve lineage, <a href="#/surveys">open an
+            If you wish to preserve lineage, <a href="#/programs">open an
             existing program</a> and use the Duplicate
             <i class="fa fa-clone"></i> function instead.
         </p>
@@ -105,33 +105,33 @@
 
 <div ng-if="!edit.model">
 
-<div class="container" ng-if="survey.description">
-    <div ng-bind-html="survey.description | markdown"></div>
+<div class="container" ng-if="program.description">
+    <div ng-bind-html="program.description | markdown"></div>
 </div>
 
-<div class="container hidden-print" ng-if="checkRole('survey_edit')">
+<div class="container hidden-print" ng-if="checkRole('program_edit')">
     <p>
-        <span ng-if="survey.isEditable">
+        <span ng-if="program.isEditable">
             This program is editable.
         </span>
-        <span ng-if="!survey.isEditable">
+        <span ng-if="!program.isEditable">
             This program is not editable.
         </span>
     </p>
 </div>
 
 
-<div class="container hidden-print" ng-if="checkRole('survey_state')">
+<div class="container hidden-print" ng-if="checkRole('program_state')">
     <p class="text-center">
         <!-- Admin buttons -->
         <button class="btn btn-link" ng-click="toggleEditable()">
             <i class="fa fa-pencil-square-o">
-                <i ng-if="survey.isEditable"
+                <i ng-if="program.isEditable"
                     class="fa fa-ban fa-badge fa-badge-left"></i>
             </i>
-            <span ng-if="survey.isEditable">
+            <span ng-if="program.isEditable">
                 Make non-editable</span>
-            <span ng-if="!survey.isEditable">
+            <span ng-if="!program.isEditable">
                 Make editable</span>
         </button>
     </p>
@@ -142,11 +142,11 @@
     <div class="section">
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="Search for measures"
-                    ng-href="#/measures?survey={{survey.id}}">
+                    ng-href="#/measures?program={{program.id}}">
                 <i class="fa fa-fw fa-search"></i></a>
             <a class="btn btn-default btn-round" title="Add new"
-                    ng-href="#/hierarchy/new?survey={{survey.id}}"
-                    ng-if="survey.isEditable && checkRole('hierarchy_add')">
+                    ng-href="#/hierarchy/new?program={{program.id}}"
+                    ng-if="program.isEditable && checkRole('hierarchy_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
             <delete-cycle class="btn-round" model="search.deleted"></delete-cycle>
         </div>
@@ -158,7 +158,7 @@
     <ul class="list-results">
         <li ng-repeat="hierarchy in hierarchies"
                 ng-class="{strike: hierarchy.deleted}">
-            <a ng-href="#/hierarchy/{{hierarchy.id}}/choice?survey={{survey.id}}">
+            <a ng-href="#/hierarchy/{{hierarchy.id}}/choice?program={{program.id}}">
                 <h4>{{hierarchy.title}}</h4>
                 <p class="truncate">{{hierarchy.nMeasures}} measures</p>
             </a>
@@ -171,7 +171,7 @@
 </div>
 
 
-<docs ng-if="survey.deleted">
+<docs ng-if="program.deleted">
     <i class="fa-li fa fa-trash fa-border"></i>
     <h3>Deleted</h3>
     <p>

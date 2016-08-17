@@ -33,15 +33,15 @@
                 ng-if="editable && !edit.model">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/subscription/measure?id={{measure.id}}&id={{survey.id}}"
+                ng-href="#/subscription/measure?id={{measure.id}}&id={{program.id}}"
                 ng-if="!edit.model && !assessment">
             <i class="fa fa-envelope"></i></a>
         <a class="btn btn-default btn-round" title="Subscriptions"
                 ng-href="#/subscription/response?id={{measure.id}}&id={{assessment.id}}"
                 ng-if="!edit.model && assessment">
             <i class="fa fa-envelope"></i></a>
-        <survey-history entity="measure" service="Measure"
-                ng-if="!assessment && !edit.model"></survey-history>
+        <program-history entity="measure" service="Measure"
+                ng-if="!assessment && !edit.model"></program-history>
     </div>
     <question-header entity="measure" assessment="assessment"></question-header>
 </div>
@@ -105,7 +105,7 @@
     measure:
     <ul ng-if="parents.length">
         <li ng-repeat="parent in parents">
-            <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}&parent={{parent.qnodes[parent.qnodes.length - 1].id}}">
+            <a ng-href="#/measure/{{measure.id}}?program={{program.id}}&parent={{parent.qnodes[parent.qnodes.length - 1].id}}">
                 <span ng-class="{strike: parent.hierarchy.deleted}">
                     {{parent.hierarchy.title}}
                 </span>
@@ -121,7 +121,7 @@
     </ul>
     <p ng-if="parent">
         This measure can be
-        <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}">
+        <a ng-href="#/measure/{{measure.id}}?program={{program.id}}">
             viewed without a survey</a>,
         but it can not be responded to like that.
     </p>
@@ -132,7 +132,7 @@
 
 <div class="container spaced" ng-if="!edit.model && assessment">
     <response type="responseType" model="response" weight="measure.weight"
-            readonly="!!structure.deletedItem" has-quality="structure.survey.hasQuality">
+            readonly="!!structure.deletedItem" has-quality="structure.program.hasQuality">
         <span ng-controller="ResponseHistory" uib-dropdown
                 on-toggle="toggled(open)" dropdown-append-to-body>
             <button class="btn btn-default btn-round" title="History"

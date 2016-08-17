@@ -21,15 +21,15 @@ from utils import ToSon
 log = logging.getLogger('app.test_model')
 
 
-class SurveyStructureTest(base.AqModelTestBase):
+class ProgramStructureTest(base.AqModelTestBase):
 
     def test_traverse_structure(self):
         # Read from database
         with model.session_scope() as session:
-            survey = session.query(model.Survey).first()
-            self.assertEqual(len(survey.hierarchies), 2)
-            self.assertEqual(len(survey.measures), 5)
-            h = survey.hierarchies[0]
+            program = session.query(model.Program).first()
+            self.assertEqual(len(program.hierarchies), 2)
+            self.assertEqual(len(program.measures), 5)
+            h = program.hierarchies[0]
             self.assertEqual(h.title, "Hierarchy 1")
             self.assertEqual(len(h.qnodes), 2)
             self.assertEqual(h.n_measures, 3)
@@ -73,20 +73,20 @@ class SurveyStructureTest(base.AqModelTestBase):
 #                r'/measure_seq$',
 #                r'/[0-9]+$',
 #            )
-#            pprint.pprint(to_son(survey), width=120)
+#            pprint.pprint(to_son(program), width=120)
 
     def test_list_measures(self):
         with model.session_scope() as session:
-            survey = session.query(model.Survey).first()
+            program = session.query(model.Program).first()
             measures = session.query(model.Measure)\
-                .filter(model.Measure.survey_id == survey.id)\
+                .filter(model.Measure.program_id == program.id)\
                 .all()
             self.assertEqual(len(measures), 5)
 
     def test_unlink_measure(self):
         with model.session_scope() as session:
-            survey = session.query(model.Survey).first()
-            h = survey.hierarchies[0]
+            program = session.query(model.Program).first()
+            h = program.hierarchies[0]
             q = h.qnodes[0].children[0]
             self.assertEqual(len(q.measures), 2)
             self.assertEqual(q.parent.n_measures, 3)
@@ -108,16 +108,16 @@ class SurveyStructureTest(base.AqModelTestBase):
 
     def test_orphan_measure(self):
         with model.session_scope() as session:
-            survey = session.query(model.Survey).first()
-            q = survey.hierarchies[0].qnodes[0].children[0]
+            program = session.query(model.Program).first()
+            q = program.hierarchies[0].qnodes[0].children[0]
             q.measures.remove(q.measures[0])
 
         # Find orphans using outer join
         with model.session_scope() as session:
-            survey = session.query(model.Survey).first()
+            program = session.query(model.Program).first()
             measures = session.query(model.Measure)\
                 .outerjoin(model.QnodeMeasure)\
-                .filter(model.Measure.survey_id == survey.id)\
+                .filter(model.Measure.program_id == program.id)\
                 .filter(model.QnodeMeasure.qnode_id == None)\
                 .all()
             self.assertEqual(len(measures), 1)
@@ -126,10 +126,10 @@ class SurveyStructureTest(base.AqModelTestBase):
 
         # Find non-orphans using inner join
         with model.session_scope() as session:
-            survey = session.query(model.Survey).first()
+            program = session.query(model.Program).first()
             measures = (session.query(model.Measure)
                 .join(model.QnodeMeasure)
-                .filter(model.Measure.survey_id == survey.id)
+                .filter(model.Measure.program_id == program.id)
                 .order_by(model.Measure.title)
                 .all())
             self.assertEqual(len(measures), 4)
@@ -141,79 +141,79 @@ class SurveyStructureTest(base.AqModelTestBase):
     def test_history(self):
         # Duplicate a couple of objects
         with model.session_scope() as session:
-            survey = session.query(model.Survey).first()
-            hierarchy = survey.hierarchies[0]
-            session.expunge(survey)
-            make_transient(survey)
+            program = session.query(model.Program).first()
+            hierarchy = program.hierarchies[0]
+            session.expunge(program)
+            make_transient(program)
             session.expunge(hierarchy)
             make_transient(hierarchy)
 
-            survey.id = None
-            survey.created = None
-            survey.title = 'Duplicate survey'
-            session.add(survey)
+            program.id = None
+            program.created = None
+            program.title = 'Duplicate program'
+            session.add(program)
             session.flush()
 
             hierarchy.title = 'Duplicate hierarchy'
-            hierarchy.survey = survey
+            hierarchy.program = program
 
         # Make sure hierarchy ID is still the same
         with model.session_scope() as session:
-            surveys = session.query(model.Survey).all()
-            self.assertNotEqual(surveys[0].id, surveys[1].id)
+            programs = session.query(model.Program).all()
+            self.assertNotEqual(programs[0].id, programs[1].id)
             self.assertNotEqual(
-                surveys[0].hierarchies[0].survey_id,
-                surveys[1].hierarchies[0].survey_id)
+                programs[0].hierarchies[0].program_id,
+                programs[1].hierarchies[0].program_id)
             self.assertEqual(
-                surveys[0].hierarchies[0].id,
-                surveys[1].hierarchies[0].id)
+                programs[0].hierarchies[0].id,
+                programs[1].hierarchies[0].id)
 
-        # Get all surveys for some hierarchy ID
+        # Get all programs for some hierarchy ID
         with model.session_scope() as session:
-            # This hierarchy was duplicated, and should be in two surveys.
+            # This hierarchy was duplicated, and should be in two programs.
             hierarchy = (session.query(model.Hierarchy)
                 .filter_by(title="Hierarchy 1")
                 .one())
-            surveys = (session.query(model.Survey)
+            programs = (session.query(model.Program)
                 .join(model.Hierarchy)
                 .filter(model.Hierarchy.id==hierarchy.id)
                 .all())
-            titles = {s.title for s in surveys}
-            self.assertEqual(titles, {"Duplicate survey", "Test Survey 1"})
+            titles = {s.title for s in programs}
+            self.assertEqual(titles, {"Duplicate program", "Test Program 1"})
 
             # This one was not, so it should only be in the first.
             hierarchy = (session.query(model.Hierarchy)
                 .filter_by(title="Hierarchy 2")
                 .one())
-            surveys = (session.query(model.Survey)
+            programs = (session.query(model.Program)
                 .join(model.Hierarchy)
                 .filter(model.Hierarchy.id==hierarchy.id)
                 .all())
-            titles = {s.title for s in surveys}
-            self.assertEqual(titles, {"Test Survey 1"})
+            titles = {s.title for s in programs}
+            self.assertEqual(titles, {"Test Program 1"})
 
 
-class SurveyTest(base.AqHttpTestBase):
+class ProgramTest(base.AqHttpTestBase):
 
-    def test_list_surveys(self):
+    def test_list_programs(self):
         with base.mock_user('clerk'):
-            survey_sons = self.fetch(
-                "/survey.json", method='GET',
+            program_sons = self.fetch(
+                "/program.json", method='GET',
                 expected=200, decode=True)
-            self.assertEqual(len(survey_sons), 1)
+            self.assertEqual(len(program_sons), 1)
 
-            survey_sons = self.fetch(
-                "/survey.json?editable=true", method='GET',
+            program_sons = self.fetch(
+                "/program.json?editable=true", method='GET',
                 expected=200, decode=True)
-            self.assertEqual(len(survey_sons), 1)
+            self.assertEqual(len(program_sons), 1)
 
     def test_basic_query(self):
         with model.session_scope() as session:
-            survey = session.query(model.Survey).first()
-            h = survey.hierarchies[0]
+            program = session.query(model.Program).first()
+            h = program.hierarchies[0]
             q = h.qnodes[0].children[0]
             q2 = h.qnodes[0].children[1]
-            sid = str(survey.id)
+            sid = str(program.id)
             hid = str(h.id)
             qid = str(q.id)
             qid2 = str(q2.id)
@@ -227,12 +227,12 @@ class SurveyTest(base.AqHttpTestBase):
                     .filter_by(email='author')
                     .one())
             self.organisation_id = str(user.organisation.id)
-            survey_id = survey.id
+            program_id = program.id
             hierarchy_id = h.id
 
         with base.mock_user('author'):
             # Query for qnodes based on deletion
-            url = "/qnode.json?surveyId={}&hierarchyId={}".format(sid, hid)
+            url = "/qnode.json?programId={}&hierarchyId={}".format(sid, hid)
             q_son = self.fetch(
                 url,
                 method='GET', expected=200, decode=True)
@@ -263,16 +263,16 @@ class SurveyTest(base.AqHttpTestBase):
             self.assertEqual(len(q_son), 4)
 
 
-class ModifySurveyTest(base.AqHttpTestBase):
+class ModifyProgramTest(base.AqHttpTestBase):
 
     def setUp(self):
         super().setUp()
         with model.session_scope() as session:
-            survey = session.query(model.Survey).first()
-            h = [h for h in survey.hierarchies if h.title == "Hierarchy 1"][0]
+            program = session.query(model.Program).first()
+            h = [h for h in program.hierarchies if h.title == "Hierarchy 1"][0]
             qA, qB = h.qnodes
             qAA, qAB = qA.children
-            self.sid = str(survey.id)
+            self.sid = str(program.id)
             self.hid = str(h.id)
             self.qidA, self.qidB, self.qidAA, self.qidAB = [
                 str(q.id) for q in (qA, qB, qAA, qAB)]
@@ -286,7 +286,7 @@ class ModifySurveyTest(base.AqHttpTestBase):
 
         with base.mock_user('admin'):
             # need to purchase survey
-            self.purchase_survey(self.hid, self.sid)
+            self.purchase_program(self.hid, self.sid)
 
     def verify_stats(self):
         # Make sure stats match reality
@@ -325,11 +325,11 @@ class ModifySurveyTest(base.AqHttpTestBase):
         with base.mock_user('author'):
             # Check current weights of qnode and measure
             q2_son = self.fetch(
-                "/qnode/{}.json?surveyId={}".format(self.qidAB, self.sid),
+                "/qnode/{}.json?programId={}".format(self.qidAB, self.sid),
                 method='GET', expected=200, decode=True)
             self.assertAlmostEqual(q2_son['total_weight'], 11)
             m_son = self.fetch(
-                "/measure/{}.json?surveyId={}".format(self.midABA, self.sid),
+                "/measure/{}.json?programId={}".format(self.midABA, self.sid),
                 method='GET', expected=200, decode=True)
             self.assertAlmostEqual(m_son['weight'], 11)
             self.assertIn(self.qidAB, (p['id'] for p in m_son['parents']))
@@ -340,17 +340,17 @@ class ModifySurveyTest(base.AqHttpTestBase):
             # Modify a measure's weight and check that the qnode weight is
             # updated
             m_son = self.fetch(
-                "/measure/{}.json?surveyId={}".format(self.midAAA, self.sid),
+                "/measure/{}.json?programId={}".format(self.midAAA, self.sid),
                 method='GET', expected=200, decode=True)
             self.assertAlmostEqual(m_son['weight'], 3)
             m_son['weight'] = 9
             m_son = self.fetch(
-                "/measure/{}.json?surveyId={}".format(self.midAAA, self.sid),
+                "/measure/{}.json?programId={}".format(self.midAAA, self.sid),
                 method='PUT', body=json_encode(m_son),
                 expected=200, decode=True)
             self.assertAlmostEqual(m_son['weight'], 9)
             q_son = self.fetch(
-                "/qnode/{}.json?surveyId={}".format(self.qidAA, self.sid),
+                "/qnode/{}.json?programId={}".format(self.qidAA, self.sid),
                 method='GET', expected=200, decode=True)
             self.assertAlmostEqual(q_son['total_weight'], 15)
         self.verify_stats()
@@ -359,18 +359,18 @@ class ModifySurveyTest(base.AqHttpTestBase):
         with base.mock_user('author'):
             # Move measure to different parent and check that weights have moved
             m_son = self.fetch(
-                "/measure/{}.json?surveyId={}&parentId={}".format(
+                "/measure/{}.json?programId={}&parentId={}".format(
                     self.midABA, self.sid, self.qidAA),
                 method='PUT', body=json_encode({}),
                 expected=200, decode=True)
             self.assertIn(self.qidAA, (p['id'] for p in m_son['parents']))
             self.assertNotIn(self.qidAB, (p['id'] for p in m_son['parents']))
             q_son = self.fetch(
-                "/qnode/{}.json?surveyId={}".format(self.qidAA, self.sid),
+                "/qnode/{}.json?programId={}".format(self.qidAA, self.sid),
                 method='GET', expected=200, decode=True)
             self.assertAlmostEqual(q_son['total_weight'], 20)
             q2_son = self.fetch(
-                "/qnode/{}.json?surveyId={}".format(self.qidAB, self.sid),
+                "/qnode/{}.json?programId={}".format(self.qidAB, self.sid),
                 method='GET', expected=200, decode=True)
             self.assertAlmostEqual(q2_son['total_weight'], 0)
         self.verify_stats()
@@ -379,25 +379,25 @@ class ModifySurveyTest(base.AqHttpTestBase):
         with base.mock_user('author'):
             # Delete a qnode and check that the parent weight is updated
             self.fetch(
-                "/qnode/{}.json?surveyId={}".format(self.qidAA, self.sid),
+                "/qnode/{}.json?programId={}".format(self.qidAA, self.sid),
                 method='DELETE', expected=200)
             q_son = self.fetch(
-                "/qnode/{}.json?surveyId={}".format(self.qidA, self.sid),
+                "/qnode/{}.json?programId={}".format(self.qidA, self.sid),
                 method='GET', expected=200, decode=True)
             self.assertAlmostEqual(q_son['total_weight'], 11)
 
             # Move a measure out of the deleted qnode...
             m_son = self.fetch(
-                "/measure/{}.json?surveyId={}&parentId={}".format(
+                "/measure/{}.json?programId={}&parentId={}".format(
                     self.midAAA, self.sid, self.qidB),
                 method='PUT', body=json_encode({}),
                 expected=200, decode=True)
             q_son = self.fetch(
-                "/qnode/{}.json?surveyId={}".format(self.qidA, self.sid),
+                "/qnode/{}.json?programId={}".format(self.qidA, self.sid),
                 method='GET', expected=200, decode=True)
             self.assertAlmostEqual(q_son['total_weight'], 11)
             q_son = self.fetch(
-                "/qnode/{}.json?surveyId={}".format(self.qidB, self.sid),
+                "/qnode/{}.json?programId={}".format(self.qidB, self.sid),
                 method='GET', expected=200, decode=True)
             self.assertAlmostEqual(q_son['total_weight'], 3)
 
@@ -405,10 +405,10 @@ class ModifySurveyTest(base.AqHttpTestBase):
 
             # Undelete the qnode
             self.fetch(
-                "/qnode/{}.json?surveyId={}".format(self.qidAA, self.sid),
+                "/qnode/{}.json?programId={}".format(self.qidAA, self.sid),
                 method='PUT', body=json_encode({}), expected=200)
             q_son = self.fetch(
-                "/qnode/{}.json?surveyId={}".format(self.qidA, self.sid),
+                "/qnode/{}.json?programId={}".format(self.qidA, self.sid),
                 method='GET', expected=200, decode=True)
             self.assertAlmostEqual(q_son['total_weight'], 17)
 
@@ -418,46 +418,46 @@ class ModifySurveyTest(base.AqHttpTestBase):
         with base.mock_user('author'):
             # Delete a measure and check that the qnode weight is updated
             self.fetch(
-                "/measure/{}.json?surveyId={}&parentId={}".format(
+                "/measure/{}.json?programId={}&parentId={}".format(
                     self.midAAA, self.sid, self.qidAA),
                 method='DELETE', expected=200)
             q_son = self.fetch(
-                "/qnode/{}.json?surveyId={}".format(self.qidAA, self.sid),
+                "/qnode/{}.json?programId={}".format(self.qidAA, self.sid),
                 method='GET', expected=200, decode=True)
             self.assertAlmostEqual(q_son['total_weight'], 6)
 
         self.verify_stats()
 
-    def test_duplicate_survey(self):
+    def test_duplicate_program(self):
         with base.mock_user('author'):
-            survey_sons = self.fetch(
-                "/survey.json", method='GET',
+            program_sons = self.fetch(
+                "/program.json", method='GET',
                 expected=200, decode=True)
-            self.assertEqual(len(survey_sons), 1)
-            original_survey_id = survey_sons[0]['id']
+            self.assertEqual(len(program_sons), 1)
+            original_program_id = program_sons[0]['id']
 
-            survey_son = self.fetch(
-                "/survey/%s.json" % original_survey_id, method='GET',
+            program_son = self.fetch(
+                "/program/%s.json" % original_program_id, method='GET',
                 expected=200, decode=True)
 
-            survey_son['title'] = "Duplicate survey"
+            program_son['title'] = "Duplicate program"
 
-            survey_son = self.fetch(
-                "/survey.json?duplicateId=%s" % original_survey_id,
-                method='POST', body=json_encode(survey_son),
+            program_son = self.fetch(
+                "/program.json?duplicateId=%s" % original_program_id,
+                method='POST', body=json_encode(program_son),
                 expected=200, decode=True)
-            new_survey_id = survey_son['id']
-            self.assertNotEqual(original_survey_id, new_survey_id)
+            new_program_id = program_son['id']
+            self.assertNotEqual(original_program_id, new_program_id)
 
             def check_hierarchies():
                 # Check duplicated hierarchies
                 original_hierarchy_sons = self.fetch(
-                    "/hierarchy.json?surveyId=%s" % original_survey_id,
+                    "/hierarchy.json?programId=%s" % original_program_id,
                     method='GET',
                     expected=200, decode=True)
 
                 new_hierarchy_sons = self.fetch(
-                    "/hierarchy.json?surveyId=%s" % new_survey_id, method='GET',
+                    "/hierarchy.json?programId=%s" % new_program_id, method='GET',
                     expected=200, decode=True)
 
                 for h1, h2 in zip(original_hierarchy_sons, new_hierarchy_sons):
@@ -467,17 +467,17 @@ class ModifySurveyTest(base.AqHttpTestBase):
 
             def check_qnodes(hierarchy_id, parent_id):
                 with base.mock_user('admin'):
-                    self.purchase_survey(hierarchy_id, original_survey_id)
-                    self.purchase_survey(hierarchy_id, new_survey_id)
+                    self.purchase_program(hierarchy_id, original_program_id)
+                    self.purchase_program(hierarchy_id, new_program_id)
 
                 with base.mock_user('author'):
                     # Check duplicated qnodes
-                    url = ("/qnode.json?surveyId=%s&hierarchyId=%s&parentId=%s"
+                    url = ("/qnode.json?programId=%s&hierarchyId=%s&parentId=%s"
                            "&deleted=false")
                     if not parent_id:
                         url += '&root='
-                    url1 = url % (original_survey_id, hierarchy_id, parent_id)
-                    url2 = url % (new_survey_id, hierarchy_id, parent_id)
+                    url1 = url % (original_program_id, hierarchy_id, parent_id)
+                    url2 = url % (new_program_id, hierarchy_id, parent_id)
                     original_qnode_sons = self.fetch(
                         url1, method='GET', expected=200, decode=True)
                     new_qnode_sons = self.fetch(
@@ -494,12 +494,12 @@ class ModifySurveyTest(base.AqHttpTestBase):
 
             def check_measures(parent_id):
                 # Check duplicated measures
-                url = "/measure.json?surveyId=%s&parentId=%s"
+                url = "/measure.json?programId=%s&parentId=%s"
                 original_measure_sons = self.fetch(
-                    url % (original_survey_id, parent_id), method='GET',
+                    url % (original_program_id, parent_id), method='GET',
                     expected=200, decode=True)
                 new_measure_sons = self.fetch(
-                    url % (new_survey_id, parent_id), method='GET',
+                    url % (new_program_id, parent_id), method='GET',
                     expected=200, decode=True)
 
                 for m1, m2 in zip(original_measure_sons, new_measure_sons):
@@ -510,24 +510,24 @@ class ModifySurveyTest(base.AqHttpTestBase):
             check_hierarchies()
 
         # Thoroughly test new relationships: make sure there is no
-        # cross-referencing between new and old survey.
+        # cross-referencing between new and old program.
         with model.session_scope() as session:
-            sa = session.query(model.Survey).get(original_survey_id)
-            sb = session.query(model.Survey).get(new_survey_id)
+            sa = session.query(model.Program).get(original_program_id)
+            sb = session.query(model.Program).get(new_program_id)
             self.assertNotEqual(sa.id, sb.id)
             self.assertEqual(sa.tracking_id, sb.tracking_id)
             self.assertNotEqual(sa, sb)
-            log.info("Visiting survey pair %s and %s", sa, sb)
+            log.info("Visiting program pair %s and %s", sa, sb)
 
             def visit_hierarchy(a, b):
                 log.info("Visiting hierarchy pair %s and %s", a, b)
                 self.assertEqual(a.id, b.id)
                 self.assertNotEqual(a, b)
 
-                self.assertEqual(a.survey_id, sa.id)
-                self.assertEqual(b.survey_id, sb.id)
-                self.assertEqual(a.survey, sa)
-                self.assertEqual(b.survey, sb)
+                self.assertEqual(a.program_id, sa.id)
+                self.assertEqual(b.program_id, sb.id)
+                self.assertEqual(a.program, sa)
+                self.assertEqual(b.program, sb)
 
                 self.assertEqual(len(a.qnodes), len(b.qnodes))
                 for qa, qb in zip(a.qnodes, b.qnodes):
@@ -539,10 +539,10 @@ class ModifySurveyTest(base.AqHttpTestBase):
                 self.assertNotEqual(a, b)
                 self.assertEqual(a.hierarchy_id, b.hierarchy_id)
 
-                self.assertEqual(a.survey_id, sa.id)
-                self.assertEqual(b.survey_id, sb.id)
-                self.assertEqual(a.survey, sa)
-                self.assertEqual(b.survey, sb)
+                self.assertEqual(a.program_id, sa.id)
+                self.assertEqual(b.program_id, sb.id)
+                self.assertEqual(a.program, sa)
+                self.assertEqual(b.program, sb)
 
                 self.assertEqual(a.hierarchy_id, ha.id)
                 self.assertEqual(b.hierarchy_id, hb.id)
@@ -573,10 +573,10 @@ class ModifySurveyTest(base.AqHttpTestBase):
                 self.assertEqual(a.measure_id, b.measure_id)
                 self.assertNotEqual(a.measure, b.measure)
 
-                self.assertEqual(a.survey_id, sa.id)
-                self.assertEqual(b.survey_id, sb.id)
-                self.assertEqual(a.survey, sa)
-                self.assertEqual(b.survey, sb)
+                self.assertEqual(a.program_id, sa.id)
+                self.assertEqual(b.program_id, sb.id)
+                self.assertEqual(a.program, sa)
+                self.assertEqual(b.program, sb)
 
                 self.assertEqual(a.qnode_id, qa.id)
                 self.assertEqual(b.qnode_id, qb.id)
@@ -590,10 +590,10 @@ class ModifySurveyTest(base.AqHttpTestBase):
                 self.assertEqual(a.id, b.id)
                 self.assertNotEqual(a, b)
 
-                self.assertEqual(a.survey_id, sa.id)
-                self.assertEqual(b.survey_id, sb.id)
-                self.assertEqual(a.survey, sa)
-                self.assertEqual(b.survey, sb)
+                self.assertEqual(a.program_id, sa.id)
+                self.assertEqual(b.program_id, sb.id)
+                self.assertEqual(a.program, sa)
+                self.assertEqual(b.program, sb)
 
                 if qma is not None:
                     self.assertIn(qma, a.qnode_measures)
@@ -622,7 +622,7 @@ class ModifySurveyTest(base.AqHttpTestBase):
                 visit_hierarchy(a, b)
         self.verify_stats()
 
-    def purchase_survey(self, hierarchy_id, survey_id):
+    def purchase_program(self, hierarchy_id, program_id):
         with model.session_scope() as session:
             user = (session.query(model.AppUser)
                 .filter_by(email='admin')
@@ -630,8 +630,8 @@ class ModifySurveyTest(base.AqHttpTestBase):
             organisation_id = str(user.organisation.id)
 
             self.fetch(
-                "/organisation/%s/hierarchy/%s.json?surveyId=%s" %
-                (organisation_id, hierarchy_id, survey_id),
+                "/organisation/%s/hierarchy/%s.json?programId=%s" %
+                (organisation_id, hierarchy_id, program_id),
                 method='PUT', body='', expected=200)
 
 
@@ -639,8 +639,8 @@ class ReadonlySessionTest(base.AqModelTestBase):
 
     def test_readonly_session(self):
         with model.session_scope(readonly=True) as session:
-            surveys = session.query(model.Survey).all()
-            self.assertNotEqual(len(surveys), 0)
+            programs = session.query(model.Program).all()
+            self.assertNotEqual(len(programs), 0)
 
         with self.assertRaises(sqlalchemy.exc.ProgrammingError) as ecm, \
                 model.session_scope(readonly=True) as session:

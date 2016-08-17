@@ -48,7 +48,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                  Structure, $http) {
 
     $scope.layout = layout;
-    $scope.survey = routeData.survey;
+    $scope.program = routeData.program;
     $scope.edit = Editor('assessment', $scope, {});
     if (routeData.assessment) {
         // Editing old
@@ -57,17 +57,17 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
     } else {
         // Creating new
         $scope.assessment = new Assessment({
-            survey: $scope.survey,
+            program: $scope.program,
             organisation: routeData.organisation
         });
-        $scope.edit.params.surveyId = $scope.survey.id;
+        $scope.edit.params.programId = $scope.program.id;
         $scope.edit.params.orgId = routeData.organisation.id;
         $scope.hierarchies = routeData.hierarchies;
         if ($scope.hierarchies.length == 1) {
             $scope.assessment.hierarchy = $scope.hierarchies[0];
-            // Patch in survey, which is needed by Structure by is not provided
+            // Patch in program, which is needed by Structure by is not provided
             // by the web service when requesting a list.
-            $scope.assessment.hierarchy.survey = $scope.survey;
+            $scope.assessment.hierarchy.program = $scope.program;
         }
         $scope.duplicate = routeData.duplicate;
         if ($scope.duplicate)
@@ -107,14 +107,14 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
-            '/assessment/{}', model.id, $scope.survey.id));
+            '/assessment/{}', model.id, $scope.program.id));
     });
     $scope.$on('EditDeleted', function(event, model) {
         $location.url(format(
-            '/survey/{}', $scope.survey.id));
+            '/program/{}', $scope.program.id));
     });
 
-    $scope.checkRole = authz(current, $scope.survey, $scope.assessment);
+    $scope.checkRole = authz(current, $scope.program, $scope.assessment);
 
     $scope.download = function(export_type) {
         var url = '/export/assessment/' + $scope.assessment.id;
@@ -146,13 +146,13 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                  Current, format, $filter, Notifications) {
 
     $scope.layout = layout;
-    $scope.survey = routeData.survey;
+    $scope.program = routeData.program;
     $scope.organisation = routeData.organisation;
     $scope.assessments = null;
 
     $scope.search = {
         term: "",
-        trackingId: $scope.survey.trackingId,
+        trackingId: $scope.program.trackingId,
         organisationId: $scope.organisation.id,
         approval: 'draft',
         page: 0,
@@ -181,7 +181,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                  layout, $location, current, format, $filter, Notifications,
                  $http, $cookies, $timeout) {
 
-    $scope.survey = routeData.survey;
+    $scope.program = routeData.program;
     $scope.hierarchies = routeData.hierarchies;
     $scope.progress = {
         isWorking: false,
@@ -190,7 +190,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
     };
     Notifications.remove('import');
     $scope.assessment = new Assessment({
-        survey: $scope.survey,
+        program: $scope.program,
         hierarchy : null,
         title: "Imported Submission",
         organisation: routeData.organisation
@@ -230,7 +230,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
     }
 
     dropzone.on('sending', function(file, xhr, formData) {
-        formData.append('survey', $scope.survey.id);
+        formData.append('program', $scope.program.id);
         formData.append('organisation', $scope.assessment.organisation.id);
         formData.append('hierarchy', $scope.assessment.hierarchy.id);
         formData.append('title', $scope.assessment.title);
@@ -247,7 +247,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
             $scope.progress.isFinished = true;
         }, 1000);
         $timeout(function() {
-            $location.url('/survey/' + response);
+            $location.url('/program/' + response);
         }, 5000);
     });
 

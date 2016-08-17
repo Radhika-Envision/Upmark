@@ -8,7 +8,7 @@ import sqlalchemy
 from sqlalchemy.orm import joinedload
 
 from activity import Activities
-import crud.survey
+import crud.program
 import handlers
 import model
 import logging
@@ -19,7 +19,7 @@ from utils import reorder, ToSon, truthy, updater
 log = logging.getLogger('app.crud.hierarchy')
 
 
-class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
+class HierarchyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, hierarchy_id):
@@ -31,7 +31,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         with model.session_scope() as session:
             try:
                 hierarchy = session.query(model.Hierarchy)\
-                    .get((hierarchy_id, self.survey_id))
+                    .get((hierarchy_id, self.program_id))
 
                 if hierarchy is None:
                     raise ValueError("No such object")
@@ -40,7 +40,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                     ValueError):
                 raise handlers.MissingDocError("No such hierarchy")
 
-            self.check_browse_survey(session, self.survey_id, hierarchy_id)
+            self.check_browse_program(session, self.program_id, hierarchy_id)
 
             to_son = ToSon(
                 # Any
@@ -51,12 +51,12 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 r'/deleted$',
                 r'/is_editable$',
                 r'/n_measures$',
-                r'/survey/tracking_id$',
+                r'/program/tracking_id$',
                 # Root-only
                 r'<^/description$',
                 r'^/structure.*',
                 # Nested
-                r'/survey$',
+                r'/program$',
             )
             son = to_son(hierarchy)
         self.set_header("Content-Type", "application/json")
@@ -68,7 +68,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         '''Get a list.'''
         with model.session_scope() as session:
             query = session.query(model.Hierarchy)\
-                .filter_by(survey_id=self.survey_id)\
+                .filter_by(program_id=self.program_id)\
                 .order_by(model.Hierarchy.title)
 
             deleted = self.get_argument('deleted', '')
@@ -100,7 +100,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
 
         try:
             with model.session_scope() as session:
-                hierarchy = model.Hierarchy(survey_id=self.survey_id)
+                hierarchy = model.Hierarchy(program_id=self.program_id)
                 self._update(hierarchy, self.request_son)
                 session.add(hierarchy)
 
@@ -110,7 +110,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 act = Activities(session)
                 act.record(self.current_user, hierarchy, ['create'])
                 if not act.has_subscription(self.current_user, hierarchy):
-                    act.subscribe(self.current_user, hierarchy.survey)
+                    act.subscribe(self.current_user, hierarchy.program)
                     self.reason("Subscribed to program")
 
                 hierarchy_id = str(hierarchy.id)
@@ -129,7 +129,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         try:
             with model.session_scope() as session:
                 hierarchy = session.query(model.Hierarchy)\
-                    .get((hierarchy_id, self.survey_id))
+                    .get((hierarchy_id, self.program_id))
                 if hierarchy is None:
                     raise ValueError("No such object")
                 self._update(hierarchy, self.request_son)
@@ -145,7 +145,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 act = Activities(session)
                 act.record(self.current_user, hierarchy, verbs)
                 if not act.has_subscription(self.current_user, hierarchy):
-                    act.subscribe(self.current_user, hierarchy.survey)
+                    act.subscribe(self.current_user, hierarchy.program)
                     self.reason("Subscribed to program")
 
         except (sqlalchemy.exc.StatementError, ValueError):
@@ -164,7 +164,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         try:
             with model.session_scope() as session:
                 hierarchy = session.query(model.Hierarchy)\
-                    .get((hierarchy_id, self.survey_id))
+                    .get((hierarchy_id, self.program_id))
                 if hierarchy is None:
                     raise ValueError("No such object")
 
@@ -172,7 +172,7 @@ class HierarchyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 if not hierarchy.deleted:
                     act.record(self.current_user, hierarchy, ['delete'])
                 if not act.has_subscription(self.current_user, hierarchy):
-                    act.subscribe(self.current_user, hierarchy.survey)
+                    act.subscribe(self.current_user, hierarchy.program)
                     self.reason("Subscribed to program")
 
                 hierarchy.deleted = True

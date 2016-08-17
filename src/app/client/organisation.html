@@ -458,10 +458,10 @@ suburb: {{loc.suburb}}">
 
     <ul class="list-results">
         <li ng-repeat="hierarchy in hierarchies"
-                ng-class="{strike: hierarchy.deleted || hierarchy.survey.deleted}">
-            <a ng-href="#/hierarchy/{{hierarchy.id}}/choice?survey={{hierarchy.survey.id}}&organisation={{org.id}}">
+                ng-class="{strike: hierarchy.deleted || hierarchy.program.deleted}">
+            <a ng-href="#/hierarchy/{{hierarchy.id}}/choice?program={{hierarchy.program.id}}&organisation={{org.id}}">
                 <h4>{{hierarchy.title}}</h4>
-                <p class="truncate">In {{hierarchy.survey.title}} -
+                <p class="truncate">In {{hierarchy.program.title}} -
                     {{hierarchy.nMeasures}} measures</p>
             </a>
         </li>

@@ -30,20 +30,20 @@ class UnexpectedError(Exception):
 
 class DaemonTest(base.AqHttpTestBase):
     def test_timeline(self):
-        # Delete a qnode; this should subscribe to the survey and add an event
+        # Delete a qnode; this should subscribe to the program and add an event
         # to the timeline
         with base.mock_user('author'):
-            survey_sons = self.fetch(
-                "/survey.json", method='GET',
+            program_sons = self.fetch(
+                "/program.json", method='GET',
                 expected=200, decode=True)
-            sid = survey_sons[0]['id']
+            sid = program_sons[0]['id']
 
             hierarchy_sons = self.fetch(
-                "/hierarchy.json?surveyId=%s" % sid,
+                "/hierarchy.json?programId=%s" % sid,
                 method='GET', expected=200, decode=True)
             hid = hierarchy_sons[0]['id']
 
-            url = "/qnode.json?surveyId=%s&hierarchyId=%s&root=" % (sid, hid)
+            url = "/qnode.json?programId=%s&hierarchyId=%s&root=" % (sid, hid)
             qnode_sons = self.fetch(
                 url, method='GET', expected=200, decode=True)
             qid1 = qnode_sons[0]['id']
@@ -61,7 +61,7 @@ class DaemonTest(base.AqHttpTestBase):
             self.assertTrue(all(s is None for s in ss))
 
             q_son = self.fetch(
-                "/qnode/{}.json?surveyId={}".format(qid1, sid),
+                "/qnode/{}.json?programId={}".format(qid1, sid),
                 method='DELETE', expected=200)
 
             sub_son = self.fetch(
@@ -113,7 +113,7 @@ class DaemonTest(base.AqHttpTestBase):
         # Delete another qnode
         with base.mock_user('author'):
             q_son = self.fetch(
-                "/qnode/{}.json?surveyId={}".format(qid2, sid),
+                "/qnode/{}.json?programId={}".format(qid2, sid),
                 method='DELETE', expected=200)
 
         # Run again, and make sure no nofications send (because not enough time
@@ -167,7 +167,7 @@ class DaemonTest(base.AqHttpTestBase):
     def create_assessment(self):
         # Respond to a survey
         with model.session_scope() as session:
-            survey = session.query(model.Survey).one()
+            program = session.query(model.Program).one()
             user = (session.query(model.AppUser)
                     .filter_by(email='clerk')
                     .one())
@@ -178,18 +178,18 @@ class DaemonTest(base.AqHttpTestBase):
                     .filter_by(title='Hierarchy 1')
                     .one())
             assessment = model.Assessment(
-                survey_id=survey.id,
+                program_id=program.id,
                 organisation_id=organisation.id,
                 hierarchy_id=hierarchy.id,
                 title="Submission",
                 approval='draft')
             session.add(assessment)
 
-            for m in survey.measures:
+            for m in program.measures:
                 if not any(p.hierarchy_id == hierarchy.id for p in m.parents):
                     continue
                 response = model.Response(
-                    survey_id=survey.id,
+                    program_id=program.id,
                     measure_id=m.id,
                     assessment=assessment,
                     user_id=user.id)
@@ -217,13 +217,13 @@ class DaemonTest(base.AqHttpTestBase):
         aid = self.create_assessment()
         with model.session_scope() as session:
             assessment = session.query(model.Assessment).get(aid)
-            sid = assessment.survey_id
+            sid = assessment.program_id
             process_id = assessment.hierarchy.qnodes[0].children[0].id
             function_2_id = assessment.hierarchy.qnodes[1].id
 
         # Move a process (qnode) to a different function
         with base.mock_user('author'):
-            url = "/qnode/{}.json?surveyId={}".format(process_id, sid)
+            url = "/qnode/{}.json?programId={}".format(process_id, sid)
             qnode_son = self.fetch(
                 url, method='GET', expected=200, decode=True)
             qnode_son = self.fetch(
@@ -264,13 +264,13 @@ class DaemonTest(base.AqHttpTestBase):
         aid = self.create_assessment()
         with model.session_scope() as session:
             assessment = session.query(model.Assessment).get(aid)
-            sid = assessment.survey_id
+            sid = assessment.program_id
             process_id = assessment.hierarchy.qnodes[0].children[0].id
             function_2_id = assessment.hierarchy.qnodes[1].id
 
         # Move a process (qnode) to a different function
         with base.mock_user('author'):
-            url = "/qnode/{}.json?surveyId={}".format(process_id, sid)
+            url = "/qnode/{}.json?programId={}".format(process_id, sid)
             qnode_son = self.fetch(
                 url, method='GET', expected=200, decode=True)
             qnode_son = self.fetch(

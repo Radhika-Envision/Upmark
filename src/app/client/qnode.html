@@ -32,15 +32,15 @@
                 ng-if="editable && !edit.model">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/subscription/qnode?id={{qnode.id}}&id={{survey.id}}"
+                ng-href="#/subscription/qnode?id={{qnode.id}}&id={{program.id}}"
                 ng-if="!edit.model && !assessment">
             <i class="fa fa-envelope"></i></a>
         <a class="btn btn-default btn-round" title="Subscriptions"
                 ng-href="#/subscription/rnode?id={{qnode.id}}&id={{assessment.id}}"
                 ng-if="!edit.model && assessment">
             <i class="fa fa-envelope"></i></a>
-        <survey-history entity="qnode" service="QuestionNode"
-                ng-if="!assessment && !edit.model"></survey-history>
+        <program-history entity="qnode" service="QuestionNode"
+                ng-if="!assessment && !edit.model"></program-history>
     </div>
     <question-header entity="qnode" assessment="assessment"></question-header>
 </div>
@@ -95,7 +95,7 @@
 
         <div class="stats-group">
             <span title="Score"
-                  ng-if="rnode.score != null && !structure.survey.hideAggregate">
+                  ng-if="rnode.score != null && !structure.program.hideAggregate">
                 {{rnode.score | number:0}}
             </span>
             <span title="Progress">

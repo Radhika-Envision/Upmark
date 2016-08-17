@@ -210,7 +210,7 @@ class ResponseTypeTest(unittest.TestCase):
 class AssessmentTest(base.AqHttpTestBase):
     def test_create(self):
         with model.session_scope() as session:
-            survey = session.query(model.Survey).one()
+            program = session.query(model.Program).one()
             organisation = (session.query(model.Organisation)
                     .filter_by(name='Utility')
                     .one())
@@ -221,7 +221,7 @@ class AssessmentTest(base.AqHttpTestBase):
                     .filter_by(title='Hierarchy 2')
                     .one())
 
-            survey_id = str(survey.id)
+            program_id = str(program.id)
             organisation_id = str(organisation.id)
             hierarchy_1_id = str(hierarchy_1.id)
             hierarchy_2_id = str(hierarchy_2.id)
@@ -229,29 +229,29 @@ class AssessmentTest(base.AqHttpTestBase):
         with base.mock_user('org_admin'):
             assessment_son = {'title': "Assessment"}
             assessment_son = self.fetch(
-                "/assessment.json?orgId=%s&surveyId=%s&hierarchyId=%s" %
-                (organisation_id, survey_id, hierarchy_1_id),
+                "/assessment.json?orgId=%s&programId=%s&hierarchyId=%s" %
+                (organisation_id, program_id, hierarchy_1_id),
                 method='POST', body=json_encode(assessment_son),
                 expected=403, decode=False)
 
         with base.mock_user('admin'):
             self.fetch(
-                "/organisation/%s/hierarchy/%s.json?surveyId=%s" %
-                (organisation_id, hierarchy_1_id, survey_id),
+                "/organisation/%s/hierarchy/%s.json?programId=%s" %
+                (organisation_id, hierarchy_1_id, program_id),
                 method='PUT', body='', expected=200)
 
         with base.mock_user('org_admin'):
             assessment_son = {'title': "Assessment"}
             assessment_son = self.fetch(
-                "/assessment.json?orgId=%s&surveyId=%s&hierarchyId=%s" %
-                (organisation_id, survey_id, hierarchy_1_id),
+                "/assessment.json?orgId=%s&programId=%s&hierarchyId=%s" %
+                (organisation_id, program_id, hierarchy_1_id),
                 method='POST', body=json_encode(assessment_son),
                 expected=200, decode=True)
 
     def test_duplicate(self):
         # Respond to a survey
         with model.session_scope() as session:
-            survey = session.query(model.Survey).one()
+            program = session.query(model.Program).one()
             user = (session.query(model.AppUser)
                     .filter_by(email='clerk')
                     .one())
@@ -265,7 +265,7 @@ class AssessmentTest(base.AqHttpTestBase):
                     .filter_by(title='Hierarchy 2')
                     .one())
             assessment = model.Assessment(
-                survey_id=survey.id,
+                program_id=program.id,
                 organisation_id=organisation.id,
                 hierarchy_id=hierarchy_1.id,
                 title="First assessment",
@@ -273,11 +273,11 @@ class AssessmentTest(base.AqHttpTestBase):
             session.add(assessment)
             session.flush()
 
-            for m in survey.measures:
+            for m in program.measures:
                 if not any(p.hierarchy_id == hierarchy_1.id for p in m.parents):
                     continue
                 response = model.Response(
-                    survey_id=survey.id,
+                    program_id=program.id,
                     measure_id=m.id,
                     assessment_id=assessment.id,
                     user_id=user.id)
@@ -319,44 +319,44 @@ class AssessmentTest(base.AqHttpTestBase):
             hierarchy_1_id = str(hierarchy_1.id)
             hierarchy_2_id = str(hierarchy_2.id)
 
-        # Duplicate survey
+        # Duplicate program
         with base.mock_user('author'):
-            survey_sons = self.fetch(
-                "/survey.json", method='GET',
+            program_sons = self.fetch(
+                "/program.json", method='GET',
                 expected=200, decode=True)
-            self.assertEqual(len(survey_sons), 1)
-            original_survey_id = survey_sons[0]['id']
+            self.assertEqual(len(program_sons), 1)
+            original_program_id = program_sons[0]['id']
 
-            survey_son = self.fetch(
-                "/survey/%s.json" % original_survey_id, method='GET',
+            program_son = self.fetch(
+                "/program/%s.json" % original_program_id, method='GET',
                 expected=200, decode=True)
 
-            survey_son['title'] = "Duplicate survey"
+            program_son['title'] = "Duplicate program"
 
-            survey_son = self.fetch(
-                "/survey.json?duplicateId=%s" % original_survey_id,
-                method='POST', body=json_encode(survey_son),
+            program_son = self.fetch(
+                "/program.json?duplicateId=%s" % original_program_id,
+                method='POST', body=json_encode(program_son),
                 expected=200, decode=True)
-            new_survey_id = survey_son['id']
+            new_program_id = program_son['id']
 
         # Open (purchase) both new hierarchies for organisation
         with base.mock_user('admin'):
             self.fetch(
-                "/organisation/%s/hierarchy/%s.json?surveyId=%s" %
-                (organisation_id, hierarchy_1_id, new_survey_id),
+                "/organisation/%s/hierarchy/%s.json?programId=%s" %
+                (organisation_id, hierarchy_1_id, new_program_id),
                 method='PUT', body='', expected=200)
             self.fetch(
-                "/organisation/%s/hierarchy/%s.json?surveyId=%s" %
-                (organisation_id, hierarchy_2_id, new_survey_id),
+                "/organisation/%s/hierarchy/%s.json?programId=%s" %
+                (organisation_id, hierarchy_2_id, new_program_id),
                 method='PUT', body='', expected=200)
 
-        # Duplicate assessment, once for each hierarchy, in the new survey
+        # Duplicate assessment, once for each hierarchy, in the new program
         with base.mock_user('org_admin'):
             assessment_son = {'title': "Second assessment"}
             assessment_son = self.fetch(
-                "/assessment.json?orgId=%s&surveyId=%s&"
+                "/assessment.json?orgId=%s&programId=%s&"
                 "hierarchyId=%s&duplicateId=%s" %
-                (organisation_id, new_survey_id,
+                (organisation_id, new_program_id,
                  hierarchy_1_id, first_assessment_id),
                 method='POST', body=json_encode(assessment_son),
                 expected=200, decode=True)
@@ -364,9 +364,9 @@ class AssessmentTest(base.AqHttpTestBase):
 
             assessment_son = {'title': "Third assessment"}
             assessment_son = self.fetch(
-                "/assessment.json?orgId=%s&surveyId=%s&"
+                "/assessment.json?orgId=%s&programId=%s&"
                 "hierarchyId=%s&duplicateId=%s" %
-                (organisation_id, new_survey_id,
+                (organisation_id, new_program_id,
                  hierarchy_2_id, first_assessment_id),
                 method='POST', body=json_encode(assessment_son),
                 expected=200, decode=True)

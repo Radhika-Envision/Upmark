@@ -207,16 +207,16 @@ def get_mappings():
             crud.activity.CardHandler, {}),
         (r"/password.json", crud.user.PasswordHandler, {}),
 
-        (r"/survey/?([^/]*).json", crud.survey.SurveyHandler, {}),
-        (r"/survey/?([^/]*)/history.json", crud.survey.SurveyTrackingHandler, {}),
+        (r"/program/?([^/]*).json", crud.program.ProgramHandler, {}),
+        (r"/program/?([^/]*)/history.json", crud.program.ProgramTrackingHandler, {}),
         (r"/hierarchy/?([^/]*).json", crud.hierarchy.HierarchyHandler, {}),
-        (r"/hierarchy/?([^/]*)/survey.json", crud.survey.SurveyHistoryHandler, {
+        (r"/hierarchy/?([^/]*)/program.json", crud.program.ProgramHistoryHandler, {
             'mapper': model.Hierarchy}),
         (r"/qnode/?([^/]*).json", crud.qnode.QuestionNodeHandler, {}),
-        (r"/qnode/?([^/]*)/survey.json", crud.survey.SurveyHistoryHandler, {
+        (r"/qnode/?([^/]*)/program.json", crud.program.ProgramHistoryHandler, {
             'mapper': model.QuestionNode}),
         (r"/measure/?([^/]*).json", crud.measure.MeasureHandler, {}),
-        (r"/measure/?([^/]*)/survey.json", crud.survey.SurveyHistoryHandler, {
+        (r"/measure/?([^/]*)/program.json", crud.program.ProgramHistoryHandler, {
             'mapper': model.Measure}),
 
         (r"/assessment/?([^/]*).json", crud.assessment.AssessmentHandler, {}),
@@ -235,8 +235,8 @@ def get_mappings():
             statistics_handlers.StatisticsHandler, {}),
         (r"/diff.json",
             report_handlers.DiffHandler, {}),
-        (r"/export/survey/([^/]*)/hierarchy/([^/]*)/([^.]+)\.(.+)",
-            export_handlers.ExportSurveyHandler, {}),
+        (r"/export/program/([^/]*)/hierarchy/([^/]*)/([^.]+)\.(.+)",
+            export_handlers.ExportProgramHandler, {}),
         (r"/export/assessment/([^/]*)/([^.]+)\.(.+)",
             export_handlers.ExportAssessmentHandler, {}),
         (r"/adhoc_query\.(.+)",

@@ -13,7 +13,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import make_transient
 
 from activity import Activities
-import crud.survey
+import crud.program
 import handlers
 import model
 import logging
@@ -59,14 +59,14 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/created$',
                 r'/deleted$',
                 r'/n_measures$',
-                r'/survey/tracking_id$',
+                r'/program/tracking_id$',
                 # Nested
-                r'/survey$',
-                r'/survey/tracking_id$',
+                r'/program$',
+                r'/program/tracking_id$',
                 r'/organisation$',
                 r'/hierarchy$',
                 r'/hierarchy/structure.*$',
-                r'/survey/hide_aggregate$',
+                r'/program/hide_aggregate$',
             )
             son = to_son(assessment)
         self.set_header("Content-Type", "application/json")
@@ -77,7 +77,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
     def query(self):
         '''Get a list.'''
         term = self.get_argument('term', '')
-        survey_id = self.get_argument('surveyId', '')
+        program_id = self.get_argument('programId', '')
         hierarchy_id = self.get_argument('hierarchyId', '')
         approval = self.get_argument('approval', '')
         tracking_id = self.get_argument('trackingId', '')
@@ -98,8 +98,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 query = query.filter(
                     model.Assessment.title.ilike(r'%{}%'.format(term)))
 
-            if survey_id != '':
-                query = query.filter_by(survey_id=survey_id)
+            if program_id != '':
+                query = query.filter_by(program_id=program_id)
 
             if hierarchy_id != '':
                 query = query.filter_by(hierarchy_id=hierarchy_id)
@@ -114,8 +114,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 query = query.filter_by(organisation_id=org_id)
 
             if tracking_id != '':
-                query = query.join(model.Survey)
-                query = query.filter(model.Survey.tracking_id == tracking_id)
+                query = query.join(model.Program)
+                query = query.filter(model.Program.tracking_id == tracking_id)
 
             if deleted != '':
                 deleted = truthy(deleted)
@@ -131,12 +131,12 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/approval$',
                 r'/created$',
                 r'/deleted$',
-                r'/survey/tracking_id$',
+                r'/program/tracking_id$',
                 # Descend
                 r'/[0-9]+$',
                 r'/organisation$',
                 r'/hierarchy$',
-                r'/survey$'
+                r'/program$'
             )
             sons = to_son(query.all())
 
@@ -151,9 +151,9 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
         if assessment_id != '':
             raise handlers.MethodError("Can't use POST for existing object")
 
-        survey_id = self.get_argument('surveyId', '')
-        if survey_id == '':
-            raise handlers.ModelError("Survey ID is required")
+        program_id = self.get_argument('programId', '')
+        if program_id == '':
+            raise handlers.ModelError("Program ID is required")
 
         hierarchy_id = self.get_argument('hierarchyId', '')
         if hierarchy_id == '':
@@ -172,10 +172,10 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
 
         try:
             with model.session_scope() as session:
-                self._check_open(survey_id, hierarchy_id, org_id, session)
+                self._check_open(program_id, hierarchy_id, org_id, session)
 
                 assessment = model.Assessment(
-                    survey_id=survey_id, hierarchy_id=hierarchy_id,
+                    program_id=program_id, hierarchy_id=hierarchy_id,
                     organisation_id=org_id, approval='draft')
                 self._update(assessment, self.request_son)
                 session.add(assessment)
@@ -201,18 +201,18 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.get(assessment_id)
 
-    def _check_open(self, survey_id, hierarchy_id, org_id, session):
+    def _check_open(self, program_id, hierarchy_id, org_id, session):
         hierarchy = (session.query(model.Hierarchy)
-            .get((hierarchy_id, survey_id)))
+            .get((hierarchy_id, program_id)))
         if not hierarchy:
             raise handlers.ModelError("No such survey")
         if hierarchy.deleted:
             raise handlers.ModelError("That survey has been deleted")
-        if hierarchy.survey.deleted:
+        if hierarchy.program.deleted:
             raise handlers.ModelError("That program has been deleted")
 
         purchased_survey = (session.query(model.PurchasedSurvey)
-            .filter_by(survey_id=survey_id,
+            .filter_by(program_id=program_id,
                        hierarchy_id=hierarchy_id,
                        organisation_id=org_id)
             .first())
@@ -236,13 +236,13 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                     assessment.organisation.name))
 
         hierarchy_id = str(assessment.hierarchy.id)
-        measure_ids = {str(m.id) for m in assessment.survey.measures
+        measure_ids = {str(m.id) for m in assessment.program.measures
                        if any(str(p.hierarchy_id) == hierarchy_id
                               for p in m.parents)}
 
         qnode_ids = {str(r[0]) for r in
                 session.query(model.QuestionNode.id)
-                    .filter_by(survey_id=assessment.survey_id,
+                    .filter_by(program_id=assessment.program_id,
                                hierarchy_id=assessment.hierarchy_id)
                     .all()}
 
@@ -258,7 +258,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             rnode.id = None
 
             # Customise
-            rnode.survey = assessment.survey
+            rnode.program = assessment.program
             rnode.assessment = assessment
             session.add(rnode)
             session.flush()
@@ -279,7 +279,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             response.id = None
 
             # Customise
-            response.survey = assessment.survey
+            response.program = assessment.program
             response.assessment = assessment
             response.approval = 'draft'
 
@@ -319,7 +319,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             rnode = qnode.get_rnode(assessment)
             if not rnode:
                 rnode = model.ResponseNode(
-                    survey=assessment.survey, assessment=assessment,
+                    program=assessment.program, assessment=assessment,
                     qnode=qnode)
                 session.add(rnode)
             score = 0
@@ -427,8 +427,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 .join(model.QuestionNode)
                 .filter(model.QuestionNode.hierarchy_id ==
                             assessment.hierarchy_id,
-                        model.QuestionNode.survey_id == assessment.survey_id,
-                        model.QnodeMeasure.survey_id == assessment.survey_id,
+                        model.QuestionNode.program_id == assessment.program_id,
+                        model.QnodeMeasure.program_id == assessment.program_id,
                         model.QnodeMeasure.qnode_id == model.QuestionNode.id)
                 .distinct()
                 .count())

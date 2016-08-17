@@ -20,62 +20,62 @@ import model
 from utils import ToSon, truthy, updater
 
 
-log = logging.getLogger('app.crud.survey')
+log = logging.getLogger('app.crud.program')
 
 MAX_WORKERS = 4
 
 
-class SurveyCentric:
+class ProgramCentric:
     '''
-    Mixin for handlers that deal with models that have a survey ID as part of
+    Mixin for handlers that deal with models that have a program ID as part of
     a composite primary key.
     '''
     @property
-    def survey_id(self):
-        survey_id = self.get_argument("surveyId", "")
-        if survey_id == '':
-            raise handlers.MethodError("Survey ID is required")
+    def program_id(self):
+        program_id = self.get_argument("programId", "")
+        if program_id == '':
+            raise handlers.MethodError("Program ID is required")
 
-        return survey_id
+        return program_id
 
     @property
-    def survey(self):
-        if not hasattr(self, '_survey'):
+    def program(self):
+        if not hasattr(self, '_program'):
             with model.session_scope() as session:
-                survey = session.query(model.Survey).get(self.survey_id)
-                if survey is None:
-                    raise handlers.MissingDocError("No such survey")
-                session.expunge(survey)
-            self._survey = survey
-        return self._survey
+                program = session.query(model.Program).get(self.program_id)
+                if program is None:
+                    raise handlers.MissingDocError("No such program")
+                session.expunge(program)
+            self._program = program
+        return self._program
 
     def check_editable(self):
-        if not self.survey.is_editable:
-            raise handlers.MethodError("This survey is closed for editing")
+        if not self.program.is_editable:
+            raise handlers.MethodError("This program is closed for editing")
 
 
-class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
+class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated
-    def get(self, survey_id):
+    def get(self, program_id):
         '''
-        Get a single survey.
+        Get a single program.
         '''
-        if survey_id == "":
+        if program_id == "":
             self.query()
             return
 
         with model.session_scope() as session:
             try:
-                query = session.query(model.Survey)
-                survey = query.get(survey_id)
-                if survey is None:
+                query = session.query(model.Program)
+                program = query.get(program_id)
+                if program is None:
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError,
                     sqlalchemy.orm.exc.NoResultFound,
                     ValueError):
-                raise handlers.MissingDocError("No such survey")
+                raise handlers.MissingDocError("No such program")
 
             to_son = ToSon(
                 r'/id$',
@@ -94,7 +94,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                     r'/response_types.*score$',
                     r'/response_types.*formula$',
                 )
-            son = to_son(survey)
+            son = to_son(program)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
@@ -102,7 +102,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
     def query(self):
         '''
-        Get a list of surveys.
+        Get a list of programs.
         '''
 
         term = self.get_argument('term', '')
@@ -110,20 +110,20 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
 
         sons = []
         with model.session_scope() as session:
-            query = session.query(model.Survey)
+            query = session.query(model.Program)
             if term != '':
                 query = query.filter(
-                    model.Survey.title.ilike(r'%{}%'.format(term)))
+                    model.Program.title.ilike(r'%{}%'.format(term)))
 
             if is_editable:
-                query = query.filter(model.Survey.finalised_date==None)
+                query = query.filter(model.Program.finalised_date==None)
 
             deleted = self.get_argument('deleted', '')
             if deleted != '':
                 deleted = truthy(deleted)
-                query = query.filter(model.Survey.deleted == deleted)
+                query = query.filter(model.Program.deleted == deleted)
 
-            query = query.order_by(model.Survey.created.desc())
+            query = query.order_by(model.Program.created.desc())
             query = self.paginate(query)
 
             to_son = ToSon(
@@ -141,56 +141,56 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
 
     @handlers.authz('author')
     @gen.coroutine
-    def post(self, survey_id):
+    def post(self, program_id):
         '''
-        Create a new survey.
+        Create a new program.
         '''
-        if survey_id != '':
-            raise handlers.MethodError("Can't use POST for existing survey.")
+        if program_id != '':
+            raise handlers.MethodError("Can't use POST for existing program.")
 
         duplicate_id = self.get_argument('duplicateId', '')
 
         try:
             with model.session_scope() as session:
-                survey = model.Survey()
-                self._update(survey, self.request_son)
-                session.add(survey)
+                program = model.Program()
+                self._update(program, self.request_son)
+                session.add(program)
 
                 # Need to flush so object has an ID to record action against.
                 session.flush()
-                survey_id = str(survey.id)
+                program_id = str(program.id)
 
                 act = Activities(session)
 
                 if duplicate_id != '':
-                    source_survey = (session.query(model.Survey)
+                    source_program = (session.query(model.Program)
                         .get(duplicate_id))
-                    if source_survey is None:
+                    if source_program is None:
                         raise handlers.MissingDocError(
-                            "Source survey does not exist")
+                            "Source program does not exist")
                     yield self.duplicate_structure(
-                        source_survey, survey, session)
-                    source_survey.finalised_date = datetime.datetime.utcnow()
-                    act.record(self.current_user, source_survey, ['state'])
+                        source_program, program, session)
+                    source_program.finalised_date = datetime.datetime.utcnow()
+                    act.record(self.current_user, source_program, ['state'])
 
-                act.record(self.current_user, survey, ['create'])
-                if not act.has_subscription(self.current_user, survey):
-                    act.subscribe(self.current_user, survey)
+                act.record(self.current_user, program, ['create'])
+                if not act.has_subscription(self.current_user, program):
+                    act.subscribe(self.current_user, program)
                     self.reason("Subscribed to program")
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.get(survey_id)
+        self.get(program_id)
 
     @run_on_executor
-    def duplicate_structure(self, source_survey, target_survey, session):
+    def duplicate_structure(self, source_program, target_program, session):
         '''
-        Duplicate an existing survey - just the structure (e.g. hierarchy,
+        Duplicate an existing program - just the structure (e.g. hierarchy,
         qnodes and measures).
         '''
-        log.debug('Duplicating %s from %s', target_survey, source_survey)
+        log.debug('Duplicating %s from %s', target_program, source_program)
 
-        target_survey.tracking_id = source_survey.tracking_id
+        target_program.tracking_id = source_program.tracking_id
 
         def dissociate(entity):
             # Expunge followed by make_transient tells SQLAlchemy to use INSERT
@@ -207,7 +207,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 log.debug('Duplicating %s', hierarchy)
                 qs = hierarchy.qnodes
                 dissociate(hierarchy)
-                hierarchy.survey_id = target_survey.id
+                hierarchy.program_id = target_program.id
                 dup_qnodes(qs)
 
         def dup_qnodes(qnodes):
@@ -218,7 +218,7 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 children = qnode.children
                 qnode_measures = qnode.qnode_measures
                 dissociate(qnode)
-                qnode.survey_id = target_survey.id
+                qnode.program_id = target_program.id
                 dup_qnodes(children)
                 dup_qnode_measures(qnode_measures)
 
@@ -232,127 +232,127 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
                 if qnode_measure.measure_id not in processed_measure_ids:
                     dup_measure(qnode_measure.measure)
                 dissociate(qnode_measure)
-                qnode_measure.survey_id = target_survey.id
+                qnode_measure.program_id = target_program.id
 
         def dup_measure(measure):
             log.debug('Duplicating %s', measure)
             dissociate(measure)
-            measure.survey_id = target_survey.id
+            measure.program_id = target_program.id
             processed_measure_ids.add(measure.id)
 
-        dup_hierarchies(source_survey.hierarchies)
+        dup_hierarchies(source_program.hierarchies)
 
     @handlers.authz('author')
-    def delete(self, survey_id):
+    def delete(self, program_id):
         '''
-        Delete an existing survey.
+        Delete an existing program.
         '''
-        if survey_id == '':
-            raise handlers.MethodError("Survey ID required")
+        if program_id == '':
+            raise handlers.MethodError("Program ID required")
 
         try:
             with model.session_scope() as session:
-                survey = session.query(model.Survey)\
-                    .get(survey_id)
-                if survey is None:
+                program = session.query(model.Program)\
+                    .get(program_id)
+                if program is None:
                     raise ValueError("No such object")
-                if not survey.is_editable:
+                if not program.is_editable:
                     raise handlers.MethodError(
-                        "This survey is closed for editing")
+                        "This program is closed for editing")
 
                 act = Activities(session)
-                if not survey.deleted:
-                    act.record(self.current_user, survey, ['delete'])
-                if not act.has_subscription(self.current_user, survey):
-                    act.subscribe(self.current_user, survey)
+                if not program.deleted:
+                    act.record(self.current_user, program, ['delete'])
+                if not act.has_subscription(self.current_user, program):
+                    act.subscribe(self.current_user, program)
                     self.reason("Subscribed to program")
 
-                survey.deleted = True
+                program.deleted = True
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError("Survey is in use")
+            raise handlers.ModelError("Program is in use")
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such survey")
+            raise handlers.MissingDocError("No such program")
 
         self.finish()
 
     @handlers.authz('author')
-    def put(self, survey_id):
+    def put(self, program_id):
         '''
-        Update an existing survey.
+        Update an existing program.
         '''
-        if survey_id == '':
+        if program_id == '':
             raise handlers.MethodError(
-                "Can't use PUT for new survey (no ID).")
+                "Can't use PUT for new program (no ID).")
 
         editable = self.get_argument('editable', '')
         if editable != '':
-            self._update_state(survey_id, editable)
+            self._update_state(program_id, editable)
             return
 
         try:
             with model.session_scope() as session:
-                survey = session.query(model.Survey).get(survey_id)
-                if survey is None:
+                program = session.query(model.Program).get(program_id)
+                if program is None:
                     raise ValueError("No such object")
 
-                if not survey.is_editable:
+                if not program.is_editable:
                     raise handlers.MethodError(
-                        "This survey is closed for editing")
-                self._update(survey, self.request_son)
+                        "This program is closed for editing")
+                self._update(program, self.request_son)
 
                 verbs = []
-                if session.is_modified(survey):
+                if session.is_modified(program):
                     verbs.append('update')
 
-                if survey.deleted:
-                    survey.deleted = False
+                if program.deleted:
+                    program.deleted = False
                     verbs.append('undelete')
 
                 act = Activities(session)
-                act.record(self.current_user, survey, verbs)
-                if not act.has_subscription(self.current_user, survey):
-                    act.subscribe(self.current_user, survey)
+                act.record(self.current_user, program, verbs)
+                if not act.has_subscription(self.current_user, program):
+                    act.subscribe(self.current_user, program)
                     self.reason("Subscribed to program")
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such survey")
+            raise handlers.MissingDocError("No such program")
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.get(survey_id)
+        self.get(program_id)
 
-    def _update_state(self, survey_id, editable):
+    def _update_state(self, program_id, editable):
         '''
-        Just update the state of the survey (not title etc.)
+        Just update the state of the program (not title etc.)
         '''
         try:
             with model.session_scope() as session:
-                survey = session.query(model.Survey).get(survey_id)
-                if survey is None:
+                program = session.query(model.Program).get(program_id)
+                if program is None:
                     raise ValueError("No such object")
 
                 if editable != '':
                     if truthy(editable):
-                        survey.finalised_date = None
+                        program.finalised_date = None
                     else:
-                        survey.finalised_date = datetime.datetime.utcnow()
+                        program.finalised_date = datetime.datetime.utcnow()
 
                 act = Activities(session)
-                if session.is_modified(survey):
-                    act.record(self.current_user, survey, ['state'])
-                if not act.has_subscription(self.current_user, survey):
-                    act.subscribe(self.current_user, survey)
+                if session.is_modified(program):
+                    act.record(self.current_user, program, ['state'])
+                if not act.has_subscription(self.current_user, program):
+                    act.subscribe(self.current_user, program)
                     self.reason("Subscribed to program")
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such survey")
+            raise handlers.MissingDocError("No such program")
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.get(survey_id)
+        self.get(program_id)
 
-    def _update(self, survey, son):
+    def _update(self, program, son):
         '''
-        Apply survey-provided data to the saved model.
+        Apply program-provided data to the saved model.
         '''
-        response_types_changed = survey.response_types != son['response_types']
-        update = updater(survey)
+        response_types_changed = program.response_types != son['response_types']
+        update = updater(program)
         update('title', son)
         update('description', son, sanitise=True)
         update('has_quality', son)
@@ -362,31 +362,31 @@ class SurveyHandler(handlers.Paginate, handlers.BaseHandler):
         except voluptuous.Error as e:
             raise handlers.ModelError("Response types are invalid: %s" % str(e))
         if response_types_changed:
-            survey.update_stats_descendants()
+            program.update_stats_descendants()
 
-class SurveyTrackingHandler(handlers.BaseHandler):
+class ProgramTrackingHandler(handlers.BaseHandler):
 
     @tornado.web.authenticated
-    def get(self, survey_id):
+    def get(self, program_id):
         '''
-        Get a list of surveys that share the same lineage.
+        Get a list of programs that share the same lineage.
         '''
-        if survey_id == '':
-            raise handlers.MethodError("Survey ID is required")
+        if program_id == '':
+            raise handlers.MethodError("Program ID is required")
 
         with model.session_scope() as session:
-            survey = session.query(model.Survey).get(survey_id)
-            if survey is None:
-                raise handlers.MissingDocError("No such survey")
+            program = session.query(model.Program).get(program_id)
+            if program is None:
+                raise handlers.MissingDocError("No such program")
 
-            query = (session.query(model.Survey)
-                .filter(model.Survey.tracking_id == survey.tracking_id)
-                .order_by(model.Survey.created))
+            query = (session.query(model.Program)
+                .filter(model.Program.tracking_id == program.tracking_id)
+                .order_by(model.Program.created))
 
             deleted = self.get_argument('deleted', '')
             if deleted != '':
                 deleted = truthy(deleted)
-                query = query.filter(model.Survey.deleted == deleted)
+                query = query.filter(model.Program.deleted == deleted)
 
             to_son = ToSon(
                 r'/id$',
@@ -403,26 +403,26 @@ class SurveyTrackingHandler(handlers.BaseHandler):
         self.finish()
 
 
-class SurveyHistoryHandler(handlers.BaseHandler):
+class ProgramHistoryHandler(handlers.BaseHandler):
     def initialize(self, mapper):
         self.mapper = mapper
 
     @tornado.web.authenticated
     def get(self, entity_id):
         '''
-        Get a list of surveys that some entity belongs to. For example,
-        a single hierarchy may be present in multiple surveys.
+        Get a list of programs that some entity belongs to. For example,
+        a single hierarchy may be present in multiple programs.
         '''
         with model.session_scope() as session:
-            query = (session.query(model.Survey)
+            query = (session.query(model.Program)
                 .join(self.mapper)
                 .filter(self.mapper.id == entity_id)
-                .order_by(model.Survey.created))
+                .order_by(model.Program.created))
 
             deleted = self.get_argument('deleted', '')
             if deleted != '':
                 deleted = truthy(deleted)
-                query = query.filter(model.Survey.deleted == deleted)
+                query = query.filter(model.Program.deleted == deleted)
 
             to_son = ToSon(
                 r'/id$',

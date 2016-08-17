@@ -28,12 +28,12 @@ MAX_WORKERS = 4
 log = logging.getLogger('app.export_handler')
 
 
-class ExportSurveyHandler(handlers.BaseHandler):
+class ExportProgramHandler(handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated
     @gen.coroutine
-    def get(self, survey_id, hierarchy_id, fmt, extension):
+    def get(self, program_id, hierarchy_id, fmt, extension):
         if extension != 'xlsx':
             raise handlers.MissingDocError(
                 "File type not supported: %s" % extension)
@@ -42,16 +42,16 @@ class ExportSurveyHandler(handlers.BaseHandler):
                 "Unrecognised format: %s" % fmt)
 
         with model.session_scope() as session:
-            self.check_browse_survey(session, survey_id, hierarchy_id)
+            self.check_browse_program(session, program_id, hierarchy_id)
 
             hierarchy = (session.query(model.Hierarchy)
-                         .get((hierarchy_id, survey_id)))
-            if survey_id != str(hierarchy.survey_id):
+                         .get((hierarchy_id, program_id)))
+            if program_id != str(hierarchy.program_id):
                 raise handlers.ModelError(
                     "Survey does not belong to specified program.")
 
         output_file = 'program_{0}_survey_{1}_{2}.xlsx'.format(
-            survey_id, hierarchy_id, fmt)
+            program_id, hierarchy_id, fmt)
         base_url = ("%s://%s" % (self.request.protocol,
                 self.request.host))
 
@@ -59,11 +59,11 @@ class ExportSurveyHandler(handlers.BaseHandler):
             output_path = os.path.join(tmpdirname, output_file)
             if fmt == 'tabular':
                 yield self.export_tabular(
-                    output_path, survey_id, hierarchy_id,
+                    output_path, program_id, hierarchy_id,
                     self.current_user.role, base_url)
             else:
                 yield self.export_nested(
-                    output_path, survey_id, hierarchy_id,
+                    output_path, program_id, hierarchy_id,
                     self.current_user.role, base_url)
             self.set_header('Content-Type', 'application/octet-stream')
             self.set_header('Content-Disposition', 'attachment; filename='
@@ -79,16 +79,16 @@ class ExportSurveyHandler(handlers.BaseHandler):
         self.finish()
 
     @run_on_executor
-    def export_tabular(self, path, survey_id, hierarchy_id, user_role, base_url):
+    def export_tabular(self, path, program_id, hierarchy_id, user_role, base_url):
         e = Exporter()
-        survey_id = e.process_tabular(
-            path, survey_id, hierarchy_id, None, user_role, base_url)
+        program_id = e.process_tabular(
+            path, program_id, hierarchy_id, None, user_role, base_url)
 
     @run_on_executor
-    def export_nested(self, path, survey_id, hierarchy_id, user_role, base_url):
+    def export_nested(self, path, program_id, hierarchy_id, user_role, base_url):
         e = Exporter()
-        survey_id = e.process_nested(
-            path, survey_id, hierarchy_id, None, user_role, base_url)
+        program_id = e.process_nested(
+            path, program_id, hierarchy_id, None, user_role, base_url)
 
 
 class ExportAssessmentHandler(handlers.BaseHandler):
@@ -118,8 +118,8 @@ class ExportAssessmentHandler(handlers.BaseHandler):
                 self.check_privillege('consultant')
 
             hierarchy_id = str(assessment.hierarchy_id)
-            survey_id = str(assessment.survey_id)
-            self.check_browse_survey(session, survey_id, hierarchy_id)
+            program_id = str(assessment.program_id)
+            self.check_browse_program(session, program_id, hierarchy_id)
 
         output_file = 'submission_{0}_{1}.xlsx'.format(assessment_id, fmt)
         base_url = ("%s://%s" % (self.request.protocol,
@@ -129,11 +129,11 @@ class ExportAssessmentHandler(handlers.BaseHandler):
             output_path = os.path.join(tmpdirname, output_file)
             if fmt == 'tabular':
                 yield self.export_tabular(
-                    output_path, survey_id, hierarchy_id, assessment_id,
+                    output_path, program_id, hierarchy_id, assessment_id,
                     self.current_user.role, base_url)
             else:
                 yield self.export_nested(
-                    output_path, survey_id, hierarchy_id, assessment_id,
+                    output_path, program_id, hierarchy_id, assessment_id,
                     self.current_user.role, base_url)
             self.set_header('Content-Type', 'application/octet-stream')
             self.set_header('Content-Disposition', 'attachment; filename='
@@ -149,19 +149,19 @@ class ExportAssessmentHandler(handlers.BaseHandler):
         self.finish()
 
     @run_on_executor
-    def export_tabular(self, path, survey_id, hierarchy_id,
+    def export_tabular(self, path, program_id, hierarchy_id,
                        assessment_id, user_role, base_url):
         e = Exporter()
-        survey_id = e.process_tabular(
-            path, survey_id, hierarchy_id, assessment_id,
+        program_id = e.process_tabular(
+            path, program_id, hierarchy_id, assessment_id,
             user_role, base_url)
 
     @run_on_executor
-    def export_nested(self, path, survey_id, hierarchy_id,
+    def export_nested(self, path, program_id, hierarchy_id,
                       assessment_id, user_role, base_url):
         e = Exporter()
-        survey_id = e.process_nested(
-            path, survey_id, hierarchy_id, assessment_id,
+        program_id = e.process_nested(
+            path, program_id, hierarchy_id, assessment_id,
             user_role, base_url)
 
 
@@ -177,7 +177,7 @@ class Exporter():
         return num
 
     def process_nested(
-            self, file_name, survey_id, hierarchy_id, assessment_id,
+            self, file_name, program_id, hierarchy_id, assessment_id,
             user_role, base_url):
         """
         Open and write an Excel file
@@ -190,25 +190,25 @@ class Exporter():
         worksheet.set_column(3, 3, 25)
 
         with model.session_scope() as session:
-            survey = session.query(model.Survey).get(survey_id)
-            if survey is None:
+            program = session.query(model.Program).get(program_id)
+            if program is None:
                 raise handlers.MissingDocError("No such program")
-            elif survey.deleted:
+            elif program.deleted:
                 raise handlers.MissingDocError("That program has been deleted")
 
             hierarchy = session.query(model.Hierarchy).get((
-                hierarchy_id, survey_id))
+                hierarchy_id, program_id))
             if hierarchy is None:
                 raise handlers.MissingDocError("No such survey")
             elif hierarchy.deleted:
                 raise handlers.MissingDocError("That survey has been deleted")
 
-            self.response_types = survey._response_types
+            self.response_types = program._response_types
 
             prefix = ""
 
             list1 = (session.query(model.QuestionNode)
-                .filter(model.QuestionNode.survey_id == survey_id,
+                .filter(model.QuestionNode.program_id == program_id,
                         model.QuestionNode.hierarchy_id == hierarchy.id,
                         model.QuestionNode.deleted == False)
                 .all())
@@ -222,7 +222,7 @@ class Exporter():
                           for item in list1]
 
             list2 = session.query(model.QnodeMeasure).filter(
-                model.QnodeMeasure.survey_id == survey_id).all()
+                model.QnodeMeasure.program_id == program_id).all()
 
             measure_list = [{"measure_id": str(item.measure.id),
                              "qnode_id": str(item.qnode_id),
@@ -235,11 +235,11 @@ class Exporter():
 
             response_list = []
             response_qnode_list = []
-            log.debug('Exporting assessment %s of survey %s', assessment_id, survey_id)
+            log.debug('Exporting assessment %s of program %s', assessment_id, program_id)
             if assessment_id != '':
                 responses = (session.query(model.Response)
                              .filter(model.Response.assessment_id == assessment_id,
-                                     model.Response.survey_id == survey_id)
+                                     model.Response.program_id == program_id)
                              .all())
 
                 if responses:
@@ -252,7 +252,7 @@ class Exporter():
                                      for item in responses]
                 response_nodes = session.query(model.ResponseNode)\
                     .filter(model.ResponseNode.assessment_id == assessment_id,
-                            model.ResponseNode.survey_id == survey_id).all()
+                            model.ResponseNode.program_id == program_id).all()
                 if response_nodes:
                     response_qnode_list = [{"qnode_id": str(item.qnode.id),
                                             "weight": item.qnode.total_weight,
@@ -506,7 +506,7 @@ class Exporter():
             self.line = self.line + 1
 
     def process_tabular(
-            self, file_name, survey_id, hierarchy_id, assessment_id,
+            self, file_name, program_id, hierarchy_id, assessment_id,
             user_role, base_url):
         """
         Open and write an Excel file
@@ -534,7 +534,7 @@ class Exporter():
         line = 1
         with model.session_scope() as session:
             hierarchy = (session.query(model.Hierarchy)
-                .get((hierarchy_id, survey_id)))
+                .get((hierarchy_id, program_id)))
 
             if not hierarchy:
                 raise handlers.MissingDocError("No such survey")
@@ -561,7 +561,7 @@ class Exporter():
             max_parts = 0
             longest_response_type = None
             for m in measures:
-                rt = hierarchy.survey.materialised_response_types[
+                rt = hierarchy.program.materialised_response_types[
                     m.response_type]
                 if len(rt.parts) > max_parts:
                     longest_response_type = rt
@@ -614,8 +614,8 @@ class Exporter():
 
                 else:
                     response = None
-                    url = base_url + '/#/measure/{}?survey={}&parent={}'.format(
-                        measure.id, survey_id, qnode.id)
+                    url = base_url + '/#/measure/{}?program={}&parent={}'.format(
+                        measure.id, program_id, qnode.id)
 
                 worksheet.write(
                 line, level_length + max_parts + 1, importance, format_int)
@@ -717,7 +717,7 @@ class Exporter():
         log.info("assessment: %s", assessment.title)
 
         sheet.write(line, 0, "Program Name", format_header)
-        sheet.write(line, 1, assessment.survey.title, format)
+        sheet.write(line, 1, assessment.program.title, format)
         line = line + 1
         sheet.write(line, 0, "Survey Name", format_header)
         sheet.write(line, 1, assessment.hierarchy.title, format)

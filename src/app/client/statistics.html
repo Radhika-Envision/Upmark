@@ -15,20 +15,20 @@
         Box-and-Whisker Plot
     </h2>
     <h2 ng-class="layout.expandHeader ? null: 'pull-left'"
-            ng-if="struct2.survey && struct1.survey.id != struct2.survey.id">
+            ng-if="struct2.program && struct1.program.id != struct2.program.id">
         <span ng-if="!layout.expandHeader">L:</span>
         <span ng-if="layout.expandHeader">Left:</span>
     </h2>
     <question-header entity="qnode1 || assessment1.hierarchy"
         assessment="assessment1" get-url="getNavUrl"></question-header>
     <h2 ng-class="layout.expandHeader ? null: 'pull-left'"
-            ng-if="struct2.survey && struct1.survey.id != struct2.survey.id">
+            ng-if="struct2.program && struct1.program.id != struct2.program.id">
         <span ng-if="!layout.expandHeader">R:</span>
         <span ng-if="layout.expandHeader">Right:</span>
     </h2>
     <question-header entity="qnode2 || assessment2.hierarchy"
         assessment="assessment2" get-url="getNavUrl"
-        ng-if="struct2.survey && struct1.survey.id != struct2.survey.id"
+        ng-if="struct2.program && struct1.program.id != struct2.program.id"
         ></question-header>
 </div>
 </div>
@@ -68,7 +68,7 @@
 
 <div class="atop" ng-if="chooser == 1"
         assessment-select="assessment1"
-        track survey="assessment1.survey"
+        track program="assessment1.program"
         org="org1"
         format-url="getAssessmentUrl1"
         disallow-none="assessment2 == null"></div>
@@ -106,7 +106,7 @@
 
 <div class="atop" ng-if="chooser == 2"
         assessment-select="assessment2"
-        track survey="assessment1.survey"
+        track program="assessment1.program"
         org="org2"
         format-url="getAssessmentUrl2"
         disallow-none="assessment1 == null"></div>

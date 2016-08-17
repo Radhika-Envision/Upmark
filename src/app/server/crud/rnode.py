@@ -14,7 +14,7 @@ from sqlalchemy.orm import joinedload
 
 from activity import Activities
 import crud.response
-import crud.survey
+import crud.program
 import handlers
 import model
 from response_type import ResponseTypeError
@@ -46,7 +46,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 # Create an empty one, and roll back later
                 qnode, assessment = (session.query(
                         model.QuestionNode, model.Assessment)
-                    .join(model.Survey)
+                    .join(model.Program)
                     .join(model.Assessment)
                     .filter(model.QuestionNode.id == qnode_id,
                             model.Assessment.id == assessment_id)
@@ -193,13 +193,13 @@ class ResponseNodeHandler(handlers.BaseHandler):
 
                 if rnode is None:
                     qnode = (session.query(model.QuestionNode)
-                        .get((qnode_id, assessment.survey.id)))
+                        .get((qnode_id, assessment.program.id)))
                     if qnode is None:
                         raise handlers.MissingDocError("No such question node")
                     rnode = model.ResponseNode(
                         assessment_id=assessment_id,
                         qnode_id=qnode_id,
-                        survey_id=assessment.survey.id)
+                        program_id=assessment.program.id)
                     session.add(rnode)
 
                 importance = self.request_son.get('importance')
@@ -371,7 +371,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                     user_id=self.current_user.id,
                     assessment=rnode.assessment,
                     measure=measure,
-                    survey=rnode.assessment.survey)
+                    program=rnode.assessment.program)
                 response.modified = func.now()
                 session.add(response)
                 created = True

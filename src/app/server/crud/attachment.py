@@ -20,7 +20,6 @@ from sqlalchemy.orm import joinedload
 from parse import parse
 
 import aws
-import crud.survey
 import handlers
 import model
 from utils import reorder, ToSon, truthy, updater

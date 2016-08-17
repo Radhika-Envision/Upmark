@@ -174,7 +174,7 @@
          sodipodi:role="line"
          x="140"
          y="789"
-         style="font-size:12px">survey_id</tspan><tspan
+         style="font-size:12px">program_id</tspan><tspan
          sodipodi:role="line"
          x="140"
          y="804"
@@ -223,7 +223,7 @@
          y="820"
          x="370"
          sodipodi:role="line"
-         id="tspan5165">survey_id</tspan><tspan
+         id="tspan5165">program_id</tspan><tspan
          style="font-size:12px"
          y="835"
          x="370"
@@ -284,7 +284,7 @@
          x="610"
          y="804"
          style="font-size:12px"
-         id="tspan5221">survey_id</tspan><tspan
+         id="tspan5221">program_id</tspan><tspan
          sodipodi:role="line"
          x="610"
          y="819"
@@ -431,7 +431,7 @@
          x="850"
          y="819"
          style="font-size:12px"
-         id="tspan5285">survey_id</tspan><tspan
+         id="tspan5285">program_id</tspan><tspan
          sodipodi:role="line"
          x="850"
          y="834"

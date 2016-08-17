@@ -7,8 +7,8 @@
             <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
             <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
         </button>
-        <survey-history entity="hierarchy" service="Hierarchy"
-                ng-if="!edit.model"></survey-history>
+        <program-history entity="hierarchy" service="Hierarchy"
+                ng-if="!edit.model"></program-history>
     </div>
     <question-header entity="hierarchy"></question-header>
 </div>
@@ -30,6 +30,6 @@
 
 
 <div assessment-select
-        survey="structure.survey"
+        program="structure.program"
         hierarchy="structure.hierarchy"
         org="org"></div>

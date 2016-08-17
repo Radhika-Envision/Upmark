@@ -21,7 +21,7 @@ log = logging.getLogger('app.crud.qnode')
 
 
 class QuestionNodeHandler(
-        handlers.Paginate, crud.survey.SurveyCentric, handlers.BaseHandler):
+        handlers.Paginate, crud.program.ProgramCentric, handlers.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, qnode_id):
@@ -32,7 +32,7 @@ class QuestionNodeHandler(
         with model.session_scope() as session:
             try:
                 qnode = session.query(model.QuestionNode)\
-                    .get((qnode_id, self.survey_id))
+                    .get((qnode_id, self.program_id))
 
                 if qnode is None:
                     raise ValueError("No such object")
@@ -41,7 +41,7 @@ class QuestionNodeHandler(
                     ValueError):
                 raise handlers.MissingDocError("No such category")
 
-            self.check_browse_survey(session, self.survey_id,
+            self.check_browse_program(session, self.program_id,
                                      qnode.hierarchy_id)
 
             to_son = ToSon(
@@ -53,16 +53,16 @@ class QuestionNodeHandler(
                 r'/total_weight$',
                 r'/n_measures$',
                 r'/is_editable$',
-                r'/survey/tracking_id$',
-                r'/survey/created$',
-                r'/survey/hide_aggregate$',
+                r'/program/tracking_id$',
+                r'/program/created$',
+                r'/program/hide_aggregate$',
                 # Fields to match from only the root object
                 r'<^/description$',
                 # Ascend into nested parent objects
                 r'/parent$',
                 r'/hierarchy$',
                 r'/hierarchy/structure.*$',
-                r'/hierarchy/survey$',
+                r'/hierarchy/program$',
                 # Response types needed here when creating a new measure
                 r'/response_types.*$',
             )
@@ -71,7 +71,7 @@ class QuestionNodeHandler(
             son = to_son(qnode)
 
             sibling_query = (session.query(model.QuestionNode)
-                .filter(model.QuestionNode.survey_id == qnode.survey_id,
+                .filter(model.QuestionNode.program_id == qnode.program_id,
                         model.QuestionNode.hierarchy_id == qnode.hierarchy_id,
                         model.QuestionNode.parent_id == qnode.parent_id,
                         model.QuestionNode.deleted == False))
@@ -117,10 +117,10 @@ class QuestionNodeHandler(
 
         with model.session_scope() as session:
             query = (session.query(model.QuestionNode)
-                .filter(model.QuestionNode.survey_id == self.survey_id))
+                .filter(model.QuestionNode.program_id == self.program_id))
 
             if hierarchy_id != '':
-                self.check_browse_survey(session, self.survey_id, hierarchy_id)
+                self.check_browse_program(session, self.program_id, hierarchy_id)
                 query = query.filter_by(hierarchy_id=hierarchy_id)
             if parent_id != '':
                 query = query.filter_by(parent_id=parent_id)
@@ -160,7 +160,7 @@ class QuestionNodeHandler(
             qnodes = list(query.all())
             hierarchy_ids = {q.hierarchy_id for q in qnodes}
             for hid in hierarchy_ids:
-                self.check_browse_survey(session, self.survey_id, hid)
+                self.check_browse_program(session, self.program_id, hid)
 
             sons = to_son(qnodes)
 
@@ -196,7 +196,7 @@ class QuestionNodeHandler(
                                    (QN1.seq + 1).concat('.').label('pathstr'),
                                    (QN1.deleted).label('any_deleted'))
                 .filter(QN1.parent_id == None,
-                        QN1.survey_id == self.survey_id,
+                        QN1.program_id == self.program_id,
                         QN1.hierarchy_id == hierarchy_id)
                 .cte(name='root', recursive=True))
 
@@ -210,7 +210,7 @@ class QuestionNodeHandler(
                                      (start.c.any_deleted | QN2.deleted)
                                         .label('any_deleted'))
                 .filter(QN2.parent_id == start.c.id,
-                        QN2.survey_id == start.c.survey_id,
+                        QN2.program_id == start.c.program_id,
                         QN2.hierarchy_id == start.c.hierarchy_id,
                         start.c.level <= level))
 
@@ -226,7 +226,7 @@ class QuestionNodeHandler(
             # Select again to get the actual qnodes
             query = (session.query(
                     model.QuestionNode, subquery.c.pathstr, subquery.c.any_deleted)
-                .filter(model.QuestionNode.survey_id == self.survey_id)
+                .filter(model.QuestionNode.program_id == self.program_id)
                 .join(subquery,
                       model.QuestionNode.id == subquery.c.id))
 
@@ -282,13 +282,13 @@ class QuestionNodeHandler(
 
         try:
             with model.session_scope() as session:
-                qnode = model.QuestionNode(survey_id=self.survey_id)
+                qnode = model.QuestionNode(program_id=self.program_id)
                 self._update(session, qnode, self.request_son)
                 log.debug("new: %s", qnode)
 
                 if hierarchy_id != '':
                     hierarchy = session.query(model.Hierarchy)\
-                        .get((hierarchy_id, self.survey_id))
+                        .get((hierarchy_id, self.program_id))
                     if hierarchy is None:
                         raise handlers.ModelError("No such hierarchy")
                 else:
@@ -297,7 +297,7 @@ class QuestionNodeHandler(
 
                 if parent_id != '':
                     parent = session.query(model.QuestionNode)\
-                        .get((parent_id, self.survey_id))
+                        .get((parent_id, self.program_id))
                     if parent is None:
                         raise handlers.ModelError("Parent does not exist")
                     if hierarchy is None:
@@ -332,7 +332,7 @@ class QuestionNodeHandler(
                 act = Activities(session)
                 act.record(self.current_user, qnode, ['create'])
                 if not act.has_subscription(self.current_user, qnode):
-                    act.subscribe(self.current_user, qnode.survey)
+                    act.subscribe(self.current_user, qnode.program)
                     self.reason("Subscribed to program")
 
         except sqlalchemy.exc.IntegrityError as e:
@@ -352,12 +352,12 @@ class QuestionNodeHandler(
         try:
             with model.session_scope() as session:
                 qnode = session.query(model.QuestionNode)\
-                    .get((qnode_id, self.survey_id))
+                    .get((qnode_id, self.program_id))
                 if qnode is None:
                     raise ValueError("No such object")
                 log.debug("deleting: %s", qnode)
 
-                survey = qnode.survey
+                program = qnode.program
                 hierarchy = qnode.hierarchy
                 parent = qnode.parent
 
@@ -365,7 +365,7 @@ class QuestionNodeHandler(
                 if not qnode.deleted:
                     act.record(self.current_user, qnode, ['delete'])
                 if not act.has_subscription(self.current_user, qnode):
-                    act.subscribe(self.current_user, survey)
+                    act.subscribe(self.current_user, program)
                     self.reason("Subscribed to program")
 
                 qnode.deleted = True
@@ -397,7 +397,7 @@ class QuestionNodeHandler(
         try:
             with model.session_scope() as session:
                 qnode = session.query(model.QuestionNode)\
-                    .get((qnode_id, self.survey_id))
+                    .get((qnode_id, self.program_id))
                 if qnode is None:
                     raise ValueError("No such object")
                 self._update(session, qnode, self.request_son)
@@ -411,7 +411,7 @@ class QuestionNodeHandler(
                     # Change parent
                     old_parent = qnode.parent
                     new_parent = session.query(model.QuestionNode)\
-                        .get((parent_id, self.survey_id))
+                        .get((parent_id, self.program_id))
                     if new_parent is None:
                         raise handlers.ModelError("No such question node")
                     old_parent.children.remove(qnode)
@@ -447,7 +447,7 @@ class QuestionNodeHandler(
                 act.record(self.current_user, qnode, verbs)
 
                 if not act.has_subscription(self.current_user, qnode):
-                    act.subscribe(self.current_user, qnode.survey)
+                    act.subscribe(self.current_user, qnode.program)
                     self.reason("Subscribed to program")
 
         except (sqlalchemy.exc.StatementError, ValueError):
@@ -486,7 +486,7 @@ class QuestionNodeHandler(
                 act = Activities(session)
                 if parent_id != '':
                     parent = session.query(model.QuestionNode)\
-                        .get((parent_id, self.survey_id))
+                        .get((parent_id, self.program_id))
                     if parent is None:
                         raise handlers.MissingDocError(
                             "Parent question node does not exist")
@@ -498,11 +498,11 @@ class QuestionNodeHandler(
                     reorder(parent.children, son)
                     act.record(self.current_user, parent, ['reorder_children'])
                     if not act.has_subscription(self.current_user, parent):
-                        act.subscribe(self.current_user, parent.survey)
+                        act.subscribe(self.current_user, parent.program)
                         self.reason("Subscribed to program")
                 elif root is not None:
                     hierarchy = session.query(model.Hierarchy)\
-                        .get((hierarchy_id, self.survey_id))
+                        .get((hierarchy_id, self.program_id))
                     if hierarchy is None:
                         raise handlers.MissingDocError("No such hierarchy")
                     log.debug("Reordering children of: %s", hierarchy)
@@ -510,7 +510,7 @@ class QuestionNodeHandler(
                     act.record(
                         self.current_user, hierarchy, ['reorder_children'])
                     if not act.has_subscription(self.current_user, hierarchy):
-                        act.subscribe(self.current_user, hierarchy.survey)
+                        act.subscribe(self.current_user, hierarchy.program)
                         self.reason("Subscribed to program")
                 else:
                     raise handlers.ModelError(

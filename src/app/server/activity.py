@@ -172,14 +172,14 @@ class Activities:
                 .outerjoin(
                     model.Hierarchy,
                     model.Activity.ob_refs.contains(
-                        array([model.Hierarchy.survey_id,
+                        array([model.Hierarchy.program_id,
                                model.Hierarchy.id])))
                 .outerjoin(
                     model.PurchasedSurvey,
                     model.Activity.ob_refs.contains(
-                        array([model.PurchasedSurvey.survey_id,
+                        array([model.PurchasedSurvey.program_id,
                                model.PurchasedSurvey.hierarchy_id])) &
-                    (model.PurchasedSurvey.survey_id == model.Hierarchy.survey_id) &
+                    (model.PurchasedSurvey.program_id == model.Hierarchy.program_id) &
                     (model.PurchasedSurvey.hierarchy_id == model.Hierarchy.id))
                 .filter(
                     (model.PurchasedSurvey.organisation_id == None) |

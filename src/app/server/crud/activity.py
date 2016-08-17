@@ -440,26 +440,26 @@ class SubscriptionHandler(handlers.BaseHandler):
 
         elif ob_type == 'program':
             arglen(len(ob_refs), 1)
-            query = (session.query(model.Survey)
-                .filter(model.Survey.id == ob_refs[0]))
+            query = (session.query(model.Program)
+                .filter(model.Program.id == ob_refs[0]))
 
         elif ob_type == 'survey':
             arglen(len(ob_refs), 2, 2)
             query = (session.query(model.Hierarchy)
                 .filter(model.Hierarchy.id == ob_refs[0],
-                        model.Hierarchy.survey_id == ob_refs[1]))
+                        model.Hierarchy.program_id == ob_refs[1]))
 
         elif ob_type == 'qnode':
             arglen(len(ob_refs), 2, 2)
             query = (session.query(model.QuestionNode)
                 .filter(model.QuestionNode.id == ob_refs[0],
-                        model.QuestionNode.survey_id == ob_refs[1]))
+                        model.QuestionNode.program_id == ob_refs[1]))
 
         elif ob_type == 'measure':
             arglen(len(ob_refs), 2, 2)
             query = (session.query(model.Measure)
                 .filter(model.Measure.id == ob_refs[0],
-                        model.Measure.survey_id == ob_refs[1]))
+                        model.Measure.program_id == ob_refs[1]))
 
         elif ob_type == 'submission':
             arglen(len(ob_refs), 1)
@@ -546,9 +546,9 @@ class CardHandler(handlers.BaseHandler):
             }))
 
             if self.has_privillege('author', 'consultant'):
-                surveys = (session.query(model.Survey)
-                    .filter(model.Survey.finalised_date == None)
-                    .order_by(model.Survey.created.desc())
+                programs = (session.query(model.Program)
+                    .filter(model.Program.finalised_date == None)
+                    .order_by(model.Program.created.desc())
                     .limit(2)
                     .all())
                 sons += to_son([{
@@ -556,7 +556,7 @@ class CardHandler(handlers.BaseHandler):
                     'created': s.created,
                     'ob_type': 'program',
                     'ob_ids': [s.id],
-                } for s in surveys])
+                } for s in programs])
 
             if self.has_privillege('clerk'):
                 assessments = (session.query(model.Assessment)

@@ -9,7 +9,7 @@
             <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
         </button>
         <a class="btn btn-default btn-round" title="Cancel"
-                ng-href="#/survey/{{survey.id}}"
+                ng-href="#/program/{{program.id}}"
                 ng-if="edit.model && !edit.model.id">
             <i class="fa fa-times"></i></a>
         <button class="btn btn-primary btn-alert btn-round" title="Save"
@@ -18,7 +18,7 @@
                 form="editor">
             <i class="fa fa-check"></i></button>
     </div>
-    <question-header entity="survey"></question-header>
+    <question-header entity="program"></question-header>
 </div>
 </div>
 
@@ -53,7 +53,7 @@
     </search-box>
     <ul class="list-results">
         <li ng-repeat="assessment in assessments">
-            <a ng-href="#/assessment/new?survey={{survey.id}}&organisation={{organisation.id}}&duplicate={{assessment.id}}">
+            <a ng-href="#/assessment/new?program={{program.id}}&organisation={{organisation.id}}&duplicate={{assessment.id}}">
                 <h4>{{assessment.title}}</h4>
                 <p>
                     Created
@@ -64,7 +64,7 @@
                         {{assessment.created * 1000 | date:'medium'}}.
                     </span>
                     <span class="text-muted">in program</span>
-                    <i>{{assessment.survey.title}}</i>
+                    <i>{{assessment.program.title}}</i>
                 </p>
             </a>
         </li>
@@ -78,7 +78,7 @@
             Showing <i>{{search.approval}}</i> submissions and above</span>
         <span ng-if="search.approval == 'approved'">
             Showing only <i>{{search.approval}}</i> submissions</span>
-        that are compatible with the target program, <i>{{survey.title}}</i>.
+        that are compatible with the target program, <i>{{program.title}}</i>.
     </p>
 </div>
 
