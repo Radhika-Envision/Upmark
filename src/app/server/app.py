@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
 
 import base64
-from configparser import ConfigParser
 import logging.config
 import os
 import time
 import signal
 from ssl import SSLError, SSLEOFError
 
-from alembic.config import Config
-from alembic import command
 from sqlalchemy import func
-import sqlalchemy.engine.reflection
 import sqlalchemy.orm
 import tornado
 import tornado.httpclient
@@ -27,8 +23,7 @@ log = logging.getLogger('app')
 
 def configure_logging():
     package_dir = get_package_dir()
-    # TODO: Stop using alembic command-line API so we can split this file up
-    logconf_path = os.path.join(package_dir, "..", "alembic.ini")
+    logconf_path = os.path.join(package_dir, "logging.cfg")
     if not os.path.exists(logconf_path):
         log.info("Warning: log config file %s does not exist.", logconf_path)
     else:
@@ -139,31 +134,8 @@ def get_settings():
 
 
 def connect_db():
-    package_dir = get_package_dir()
-    alembic_cfg = Config(os.path.join(package_dir, "..", "alembic.ini"))
-    alembic_cfg.set_main_option(
-        "script_location", os.path.join(package_dir, "..", "alembic"))
-    if os.environ.get('DATABASE_URL') is not None:
-        alembic_cfg.set_main_option("sqlalchemy.url", os.environ.get('DATABASE_URL'))
-
-    engine = model.connect_db(os.environ.get('DATABASE_URL'))
-    try:
-        inspector = sqlalchemy.engine.reflection.Inspector.from_engine(engine)
-    except sqlalchemy.exc.OperationalError:
-        log.info("Failed to connect to database. Will try again in 5s")
-        time.sleep(5)
-        inspector = sqlalchemy.engine.reflection.Inspector.from_engine(engine)
-
-    # TODO: Don't use Alembic's command-line API!
-    if 'alembic_version' not in inspector.get_table_names():
-        log.info("Initialising database")
-        model.initialise_schema(engine)
-        command.stamp(alembic_cfg, "head")
-    else:
-        log.info("Upgrading database (if required)")
-        command.upgrade(alembic_cfg, "head")
-
-    db_url = os.environ.get('DATABASE_URL')
+    db_url = os.environ['DATABASE_URL']
+    model.connect_db(db_url)
     try:
         model.connect_db_ro(db_url)
     except model.MissingUser:
@@ -193,37 +165,6 @@ def default_settings():
                 organisation=org)
             user.set_password("admin")
             session.add(user)
-
-        setting = session.query(model.SystemConfig).get('pass_threshold')
-        if setting is None:
-            setting = model.SystemConfig(name='pass_threshold')
-            setting.human_name = "Password Strength Threshold"
-            setting.description = "The minimum strength for a password, " \
-                "between 0.0 and 1.0, where 0.0 allows very weak passwords " \
-                "and 1.0 requires strong passwords (default 0.85)."
-            setting.user_defined = True
-            setting.value = 0.85
-            session.add(setting)
-
-        setting = session.query(model.SystemConfig).get('adhoc_timeout')
-        if setting is None:
-            setting = model.SystemConfig(name='adhoc_timeout')
-            setting.human_name = "Custom Query Time Limit"
-            setting.description = "The maximum number of seconds a custom "\
-                "query is allowed to run for (default 1.5)."
-            setting.user_defined = True
-            setting.value = 1.5
-            session.add(setting)
-
-        setting = session.query(model.SystemConfig).get('adhoc_max_limit')
-        if setting is None:
-            setting = model.SystemConfig(name='adhoc_max_limit')
-            setting.human_name = "Custom Query Row Limit"
-            setting.description = "The maximum number of rows a query can "\
-                "return (default 2500)."
-            setting.user_defined = True
-            setting.value = 2500
-            session.add(setting)
 
 
 def get_mappings():

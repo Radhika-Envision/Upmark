@@ -1,8 +1,12 @@
 from __future__ import with_statement
+
+import guid
+from logging.config import fileConfig
+import os
+
 from alembic import context
 from sqlalchemy import engine_from_config, pool
-from logging.config import fileConfig
-import guid 
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -18,10 +22,7 @@ import model
 target_metadata = model.Base.metadata
 #target_metadata = None
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
+config.set_main_option("sqlalchemy.url", os.environ['DATABASE_URL'])
 
 
 def run_migrations_offline():

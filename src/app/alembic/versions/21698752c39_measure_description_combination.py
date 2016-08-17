@@ -83,19 +83,25 @@ def upgrade():
 
     session = Session(bind=op.get_bind())
     os.makedirs('/tmp/aq', exist_ok=True)
+    ops_count = 0
     with open('/tmp/aq/orig_desc.log', 'wb') as orig_log, \
             open('/tmp/aq/new_desc.log', 'wb') as new_log:
         logger = ConversionLog(orig_log, new_log)
         for m in session.query(Measure).all():
             upgrade_measure(m, logger, "/#/measure/{0.id}?survey={0.survey_id}")
+            ops_count += 1
         for q in session.query(QuestionNode).all():
             upgrade_basic(q, logger, "/#/qnode/{0.id}?survey={0.survey_id}")
+            ops_count += 1
         for h in session.query(Hierarchy).all():
             upgrade_basic(h, logger, "/#/hierarchy/{0.id}?survey={0.survey_id}")
+            ops_count += 1
         for s in session.query(Survey).all():
             upgrade_basic(s, logger, "/#/survey/{0.id}")
-    log_migration.info("Conversion to Markdown is complete.")
-    log_migration.info("IMPORTANT: check /tmp/aq/*.log.")
+            ops_count += 1
+    if ops_count > 0:
+        log_migration.info("Conversion to Markdown is complete.")
+        log_migration.info("IMPORTANT: check /tmp/aq/*.log.")
     session.flush()
 
     op.drop_column('measure', 'questions')

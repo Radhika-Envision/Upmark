@@ -59,8 +59,9 @@ def upgrade():
         rnode.update_stats_ancestors()
         assert n_not_relevant == rnode.n_not_relevant == rnode.qnode.n_measures
 
-    log_migration.info(
-        "Upgraded %d rnodes (%d responses)", len(rnodes), n_responses)
+    if n_responses > 0:
+        log_migration.info(
+            "Upgraded %d rnodes (%d responses)", len(rnodes), n_responses)
     session.flush()
 
     op.drop_column('rnode', 'not_relevant')
