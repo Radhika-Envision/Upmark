@@ -193,7 +193,7 @@ def get_mappings():
         (r"/systemconfig.json", crud.config.SystemConfigHandler, {}),
         (r"/systemconfig/(.*)", crud.config.SystemConfigItemHandler, {}),
         (r"/organisation/?([^/]*).json", crud.org.OrgHandler, {}),
-        (r"/organisation/?([^/]*)/hierarchy/?([^/]*).json",
+        (r"/organisation/?([^/]*)/survey/?([^/]*).json",
             crud.org.PurchasedSurveyHandler, {}),
         (r"/geo/(.*).json", crud.org.LocationSearchHandler, {}),
         (r"/user/?([^/]*).json", crud.user.UserHandler, {}),
@@ -209,9 +209,9 @@ def get_mappings():
 
         (r"/program/?([^/]*).json", crud.program.ProgramHandler, {}),
         (r"/program/?([^/]*)/history.json", crud.program.ProgramTrackingHandler, {}),
-        (r"/hierarchy/?([^/]*).json", crud.hierarchy.HierarchyHandler, {}),
-        (r"/hierarchy/?([^/]*)/program.json", crud.program.ProgramHistoryHandler, {
-            'mapper': model.Hierarchy}),
+        (r"/survey/?([^/]*).json", crud.survey.SurveyHandler, {}),
+        (r"/survey/?([^/]*)/program.json", crud.program.ProgramHistoryHandler, {
+            'mapper': model.Survey}),
         (r"/qnode/?([^/]*).json", crud.qnode.QuestionNodeHandler, {}),
         (r"/qnode/?([^/]*)/program.json", crud.program.ProgramHistoryHandler, {
             'mapper': model.QuestionNode}),
@@ -235,7 +235,7 @@ def get_mappings():
             statistics_handlers.StatisticsHandler, {}),
         (r"/diff.json",
             report_handlers.DiffHandler, {}),
-        (r"/export/program/([^/]*)/hierarchy/([^/]*)/([^.]+)\.(.+)",
+        (r"/export/program/([^/]*)/survey/([^/]*)/([^.]+)\.(.+)",
             export_handlers.ExportProgramHandler, {}),
         (r"/export/assessment/([^/]*)/([^.]+)\.(.+)",
             export_handlers.ExportAssessmentHandler, {}),

@@ -57,14 +57,14 @@
                     left-obj="item.pair[0].path || ''"
                     right-obj="item.pair[1].path || ''"></a>
                 <span class="pull-right text-muted"
-                    ng-if="item.type != 'program' && item.type != 'hierarchy' &&
+                    ng-if="item.type != 'program' && item.type != 'survey' &&
                            !item.pair[1].path">-</span>
                 <a class="pull-right"
                     ng-href="#{{getItemUrl(item, item.pair[1], program2)}}"
                     ng-if="item.type == 'program'">New program</a>
                 <a class="pull-right"
                     ng-href="#{{getItemUrl(item, item.pair[1], program2)}}"
-                    ng-if="item.type == 'hierarchy'">New survey</a>
+                    ng-if="item.type == 'survey'">New survey</a>
 
                 <a class="only-old pull-left"
                     ng-href="#{{getItemUrl(item, item.pair[0], program1)}}"
@@ -74,14 +74,14 @@
                     left-obj="item.pair[0].path || ''"
                     right-obj="item.pair[1].path || ''"></a>
                 <span class="pull-left text-muted"
-                    ng-if="item.type != 'program' && item.type != 'hierarchy' &&
+                    ng-if="item.type != 'program' && item.type != 'survey' &&
                            !item.pair[0].path">-</span>
                 <a class="pull-left"
                     ng-href="#{{getItemUrl(item, item.pair[0], program1)}}"
                     ng-if="item.type == 'program'">Old program</a>
                 <a class="pull-left"
                     ng-href="#{{getItemUrl(item, item.pair[0], program1)}}"
-                    ng-if="item.type == 'hierarchy'">Old survey</a>
+                    ng-if="item.type == 'survey'">Old survey</a>
             </p>
 
             <p ng-if="item.pair[0].description || item.pair[1].description">

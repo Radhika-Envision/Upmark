@@ -34,13 +34,13 @@ class StatisticsAuthzTest(base.AqHttpTestBase):
             organisation = (session.query(model.Organisation)
                     .filter_by(name='Utility')
                     .one())
-            hierarchy = (session.query(model.Hierarchy)
-                    .filter_by(title='Hierarchy 1')
+            survey = (session.query(model.Survey)
+                    .filter_by(title='Survey 1')
                     .one())
 
             self.program_id = str(program.id)
             self.organisation_id = str(organisation.id)
-            self.hierarchy_id = str(hierarchy.id)
+            self.survey_id = str(survey.id)
 
         with base.mock_user('consultant'):
             self.fetch(
@@ -74,8 +74,8 @@ class StatisticsAuthzTest(base.AqHttpTestBase):
 
     def purchase_program(self):
         self.fetch(
-            "/organisation/%s/hierarchy/%s.json?programId=%s" %
-            (self.organisation_id, self.hierarchy_id, self.program_id),
+            "/organisation/%s/survey/%s.json?programId=%s" %
+            (self.organisation_id, self.survey_id, self.program_id),
             method='PUT', body='', expected=200)
 
 
@@ -88,24 +88,24 @@ class ExporterAuthzTest(base.AqHttpTestBase):
             organisation = (session.query(model.Organisation)
                     .filter_by(name='Utility')
                     .one())
-            hierarchy = (session.query(model.Hierarchy)
-                    .filter_by(title='Hierarchy 1')
+            survey = (session.query(model.Survey)
+                    .filter_by(title='Survey 1')
                     .one())
 
             self.program_id = str(program.id)
             self.organisation_id = str(organisation.id)
-            self.hierarchy_id = str(hierarchy.id)
+            self.survey_id = str(survey.id)
             log.info("program_id: %s", self.program_id)
             log.info("organisation_id: %s", self.organisation_id)
-            log.info("hierarchy_id: %s", self.hierarchy_id)
+            log.info("survey_id: %s", self.survey_id)
 
     def test_structure_exporter_with_purchase(self):
         with base.mock_user('admin'):
-            self.fetch("/export/program/%s/hierarchy/%s/nested.xlsx" %
-                (self.program_id, self.hierarchy_id),
+            self.fetch("/export/program/%s/survey/%s/nested.xlsx" %
+                (self.program_id, self.survey_id),
                 method='GET', expected=200, encoding=None)
-            self.fetch("/export/program/%s/hierarchy/%s/tabular.xlsx" %
-                (self.program_id, self.hierarchy_id),
+            self.fetch("/export/program/%s/survey/%s/tabular.xlsx" %
+                (self.program_id, self.survey_id),
                 method='GET', expected=200, encoding=None)
 
     def test_assessment_exporter(self):
@@ -117,7 +117,7 @@ class ExporterAuthzTest(base.AqHttpTestBase):
             assessment = session.query(model.Assessment).filter(
                             model.Assessment.program_id==self.program_id,
                             model.Assessment.organisation_id==self.organisation_id,
-                            model.Assessment.hierarchy_id==self.hierarchy_id).first()
+                            model.Assessment.survey_id==self.survey_id).first()
             assessment_id = assessment.id
 
         with base.mock_user('author'):
@@ -146,14 +146,14 @@ class ExporterAuthzTest(base.AqHttpTestBase):
 
     def purchase_program(self):
         self.fetch(
-            "/organisation/%s/hierarchy/%s.json?programId=%s" %
-            (self.organisation_id, self.hierarchy_id, self.program_id),
+            "/organisation/%s/survey/%s.json?programId=%s" %
+            (self.organisation_id, self.survey_id, self.program_id),
             method='PUT', body='', expected=200)
 
     def add_assessment(self):
         assessment_son = {'title': "Assessment"}
         assessment_son = self.fetch(
-            "/assessment.json?orgId=%s&programId=%s&hierarchyId=%s" %
-            (self.organisation_id, self.program_id, self.hierarchy_id),
+            "/assessment.json?orgId=%s&programId=%s&surveyId=%s" %
+            (self.organisation_id, self.program_id, self.survey_id),
             method='POST', body=json_encode(assessment_son),
         expected=200, decode=False)

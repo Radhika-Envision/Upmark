@@ -457,17 +457,17 @@ suburb: {{loc.suburb}}">
     </div>
 
     <ul class="list-results">
-        <li ng-repeat="hierarchy in hierarchies"
-                ng-class="{strike: hierarchy.deleted || hierarchy.program.deleted}">
-            <a ng-href="#/hierarchy/{{hierarchy.id}}/choice?program={{hierarchy.program.id}}&organisation={{org.id}}">
-                <h4>{{hierarchy.title}}</h4>
-                <p class="truncate">In {{hierarchy.program.title}} -
-                    {{hierarchy.nMeasures}} measures</p>
+        <li ng-repeat="survey in surveys"
+                ng-class="{strike: survey.deleted || survey.program.deleted}">
+            <a ng-href="#/survey/{{survey.id}}/choice?program={{survey.program.id}}&organisation={{org.id}}">
+                <h4>{{survey.title}}</h4>
+                <p class="truncate">In {{survey.program.title}} -
+                    {{survey.nMeasures}} measures</p>
             </a>
         </li>
     </ul>
 
-    <p ng-if="!hierarchies.length">
+    <p ng-if="!surveys.length">
         <i>{{org.name}}</i> is not participating in any surveys yet.
     </p>
 </div>

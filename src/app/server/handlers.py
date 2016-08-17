@@ -245,13 +245,13 @@ class BaseHandler(tornado.web.RequestHandler):
         if not self.has_privillege(*roles):
             raise AuthzError()
 
-    def check_browse_program(self, session, program_id, hierarchy_id):
+    def check_browse_program(self, session, program_id, survey_id):
         if self.has_privillege('consultant', 'author'):
             return
 
         n_purchased_surveys = (session.query(model.PurchasedSurvey)
             .filter_by(program_id=program_id,
-                       hierarchy_id=hierarchy_id,
+                       survey_id=survey_id,
                        organisation_id=self.current_user.organisation_id)
             .count())
 

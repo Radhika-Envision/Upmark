@@ -111,7 +111,7 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
         case 'program':
             return format("/program/{}", action.obIds[0]);
         case 'survey':
-            return format("/hierarchy/{}?program={}",
+            return format("/survey/{}?program={}",
                 action.obIds[0], action.obIds[1]);
         case 'qnode':
             return format("/qnode/{}?program={}",

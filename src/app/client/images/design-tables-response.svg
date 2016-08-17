@@ -179,7 +179,7 @@
          x="140"
          y="804"
          style="font-size:12px"
-         id="tspan5143">hierarchy_id</tspan><tspan
+         id="tspan5143">survey_id</tspan><tspan
          sodipodi:role="line"
          x="140"
          y="819"
@@ -228,7 +228,7 @@
          y="835"
          x="370"
          sodipodi:role="line"
-         id="tspan5167">hierarchy_id</tspan><tspan
+         id="tspan5167">survey_id</tspan><tspan
          style="font-size:12px"
          y="850"
          x="370"
@@ -507,7 +507,7 @@
          id="tspan5096"
          y="690"
          x="370"
-         sodipodi:role="line">hierarchy</tspan></text>
+         sodipodi:role="line">survey</tspan></text>
     <rect
        y="670"
        x="600"

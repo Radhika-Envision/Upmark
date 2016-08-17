@@ -91,9 +91,9 @@ angular.module('wsaa.admin', [
 
 
 .factory('PurchasedSurvey', ['$resource', 'paged', function($resource, paged) {
-    return $resource('/organisation/:id/hierarchy/:hid.json', {
+    return $resource('/organisation/:id/survey/:hid.json', {
         id: '@orgId',
-        hid: '@hierarchyId'
+        hid: '@surveyId'
     }, {
         head: { method: 'HEAD', cache: false },
         query: {
@@ -460,9 +460,9 @@ angular.module('wsaa.admin', [
 
 .controller('PurchasedSurveyAddCtrl', [
         '$scope', 'Program', 'PurchasedSurvey', 'org', 'program', 'Notifications',
-        'Hierarchy', '$location',
+        'Survey', '$location',
         function($scope, Program, PurchasedSurvey, org, program, Notifications,
-            Hierarchy, $location) {
+            Survey, $location) {
 
     $scope.org = org;
     $scope.program = program;
@@ -486,23 +486,23 @@ angular.module('wsaa.admin', [
             );
         }, true);
     } else {
-        Hierarchy.query({programId: $scope.program.id}).$promise.then(
-            function success(hierarchies) {
-                $scope.hierarchies = hierarchies;
+        Survey.query({programId: $scope.program.id}).$promise.then(
+            function success(surveys) {
+                $scope.surveys = surveys;
             },
             function failure(details) {
                     Notifications.set('edit', 'error',
-                        "Could not get hierarchy list: " + details.statusText);
+                        "Could not get survey list: " + details.statusText);
             }
         );
     }
 
-    $scope.addHierarchy = function(hierarchy) {
+    $scope.addSurvey = function(survey) {
         PurchasedSurvey.save({
             programId: $scope.program.id
         }, {
             orgId: $scope.org.id,
-            hierarchyId: hierarchy.id
+            surveyId: survey.id
         }).$promise.then(
             function success() {
                 $location.url('/org/' + $scope.org.id);
@@ -521,7 +521,7 @@ angular.module('wsaa.admin', [
         function($scope, PurchasedSurvey) {
 
     $scope.$watch('org', function(org) {
-        $scope.hierarchies = PurchasedSurvey.query({
+        $scope.surveys = PurchasedSurvey.query({
             id: org.id
         });
     });

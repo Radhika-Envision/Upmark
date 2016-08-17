@@ -262,7 +262,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 err = ("Response %s: %s You might need to downgrade the "
                     "response's approval status. You can use the bulk "
                     "approval tool for this.".format(
-                        response.measure.get_path(assessment.hierarchy), e))
+                        response.measure.get_path(assessment.survey), e))
                 if isinstance(e, handlers.AuthzError):
                     raise handlers.AuthzError(err)
                 else:
@@ -279,7 +279,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                         err = ("Response %s: %s You might "
                             "need to downgrade the submission's approval "
                             "status.".format(
-                                response.measure.get_path(assessment.hierarchy),
+                                response.measure.get_path(assessment.survey),
                                 e))
                         if isinstance(e, handlers.AuthzError):
                             raise handlers.AuthzError(err)

@@ -38,7 +38,7 @@ class MeasureHandler(
                 if not assessment:
                     raise handlers.MissingDocError("No such submission")
                 program_id = assessment.program_id
-                hierarchy_id = assessment.hierarchy_id
+                survey_id = assessment.survey_id
                 parent = None
             elif parent_id:
                 program_id = self.program_id
@@ -46,13 +46,13 @@ class MeasureHandler(
                     .get((parent_id, program_id)))
                 if not parent:
                      raise handlers.MissingDocError("No such category")
-                hierarchy_id = parent.hierarchy_id
+                survey_id = parent.survey_id
             else:
                 program_id = self.program_id
                 parent = None
-                hierarchy_id = None
+                survey_id = None
 
-            self.check_browse_program(session, program_id, hierarchy_id)
+            self.check_browse_program(session, program_id, survey_id)
 
             try:
                 measure = session.query(model.Measure)\
@@ -79,9 +79,9 @@ class MeasureHandler(
                 r'^/response_type$',
                 # Descend into nested objects
                 r'/parent$',
-                r'/hierarchy$',
-                r'/hierarchy/program$',
-                r'/hierarchy/structure.*$',
+                r'/survey$',
+                r'/survey/program$',
+                r'/survey/structure.*$',
                 r'/response_types.*$',
                 r'/has_quality$',
             )
@@ -92,14 +92,14 @@ class MeasureHandler(
                 )
             son = to_son(measure)
 
-            if hierarchy_id:
-                parent = measure.get_parent(hierarchy_id)
+            if survey_id:
+                parent = measure.get_parent(survey_id)
                 if not parent:
                      raise handlers.MissingDocError(
                          "This measure does not belong to that survey")
 
                 son['parent'] = to_son(parent)
-                son['seq'] = measure.get_seq(hierarchy_id)
+                son['seq'] = measure.get_seq(survey_id)
                 prev = (session.query(model.QnodeMeasure)
                     .filter(model.QnodeMeasure.qnode_id == parent.id,
                             model.QnodeMeasure.program_id == measure.program_id,
@@ -351,8 +351,8 @@ class MeasureHandler(
                     has_relocated = True
                     for old_qm in list(measure.qnode_measures):
                         old_parent = old_qm.qnode
-                        old_hid = old_parent.hierarchy_id
-                        if str(old_hid) == str(new_parent.hierarchy_id):
+                        old_hid = old_parent.survey_id
+                        if str(old_hid) == str(new_parent.survey_id):
                             old_parent.qnode_measures.remove(old_qm)
                             measure.qnode_measures.remove(old_qm)
                             session.delete(old_qm)

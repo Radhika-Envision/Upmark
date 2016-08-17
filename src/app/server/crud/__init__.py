@@ -5,7 +5,7 @@ from . import user
 from . import activity
 
 from . import program
-from . import hierarchy
+from . import survey
 from . import qnode
 from . import measure
 

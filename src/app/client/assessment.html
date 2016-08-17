@@ -73,29 +73,29 @@
                 ng-if="!edit.model">
             <i class="fa fa-envelope"></i></a>
     </div>
-    <question-header entity="assessment.hierarchy" assessment="assessment"></question-header>
+    <question-header entity="assessment.survey" assessment="assessment"></question-header>
 </div>
 </div>
 
 <assessment-header ng-if="!edit.model"></assessment-header>
 
-<div class="container" ng-if="edit.model && !edit.model.hierarchy">
+<div class="container" ng-if="edit.model && !edit.model.survey">
     <p>
         Please choose a survey. This will determine the categories that
         are available to you.
     </p>
 
     <ul class="list-results">
-        <li ng-repeat="hierarchy in hierarchies">
-            <a href ng-click="edit.model.hierarchy = hierarchy">
-                <h4>{{hierarchy.title}}</h4>
-                <p class="truncate">{{hierarchy.nMeasures}} measures</p>
+        <li ng-repeat="survey in surveys">
+            <a href ng-click="edit.model.survey = survey">
+                <h4>{{survey.title}}</h4>
+                <p class="truncate">{{survey.nMeasures}} measures</p>
             </a>
         </li>
     </ul>
 </div>
 
-<div class="container" ng-if="edit.model && edit.model.hierarchy">
+<div class="container" ng-if="edit.model && edit.model.survey">
     <form novalidate name="form" id="editor" form-nav-warn>
         <div class="form-group" show-errors>
             <label for="title">Name</label>
@@ -119,15 +119,15 @@
     </p>
 
     <p class="text-muted">
-        Target survey: <i>{{edit.model.hierarchy.title}}</i>
+        Target survey: <i>{{edit.model.survey.title}}</i>
     </p>
 
 </div>
 
 <div ng-if="!edit.model" class="container">
     <!-- Don't wrap the contents of this tag! -->
-    <p ng-if="assessment.hierarchy.description"
-            class="formatted">Submission against {{assessment.hierarchy.description}}</p>
+    <p ng-if="assessment.survey.description"
+            class="formatted">Submission against {{assessment.survey.description}}</p>
 
     <approval-buttons class="spaced" model="assessment.approval"
             ng-if="!structure.deletedItem"

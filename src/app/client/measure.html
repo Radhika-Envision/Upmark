@@ -106,8 +106,8 @@
     <ul ng-if="parents.length">
         <li ng-repeat="parent in parents">
             <a ng-href="#/measure/{{measure.id}}?program={{program.id}}&parent={{parent.qnodes[parent.qnodes.length - 1].id}}">
-                <span ng-class="{strike: parent.hierarchy.deleted}">
-                    {{parent.hierarchy.title}}
+                <span ng-class="{strike: parent.survey.deleted}">
+                    {{parent.survey.title}}
                 </span>
                 <span ng-repeat="item in parent.qnodes"
                         ng-class="{strike: item.deleted}">

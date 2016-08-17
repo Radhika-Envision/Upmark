@@ -53,18 +53,18 @@
     </div>
 
     <ul class="list-results">
-        <li ng-repeat="hierarchy in hierarchies">
-            <a href ng-click="addHierarchy(hierarchy)">
-                <h4>{{hierarchy.title}}</h4>
-                <p class="truncate">{{hierarchy.nMeasures}} measures</p>
+        <li ng-repeat="survey in surveys">
+            <a href ng-click="addSurvey(survey)">
+                <h4>{{survey.title}}</h4>
+                <p class="truncate">{{survey.nMeasures}} measures</p>
             </a>
         </li>
     </ul>
 
-    <p ng-if="!hierarchies.length" class="text-muted">
+    <p ng-if="!surveys.length" class="text-muted">
         No surveys in <i>{{program.title}}</i>.
     </p>
-    <p ng-if="hierarchies.length" class="text-muted">
+    <p ng-if="surveys.length" class="text-muted">
         Showing surveys in <i>{{program.title}}</i>. Click on one to add
         <i>{{org.name}}</i> as a participant.
     </p>

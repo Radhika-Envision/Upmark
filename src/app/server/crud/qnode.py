@@ -42,7 +42,7 @@ class QuestionNodeHandler(
                 raise handlers.MissingDocError("No such category")
 
             self.check_browse_program(session, self.program_id,
-                                     qnode.hierarchy_id)
+                                     qnode.survey_id)
 
             to_son = ToSon(
                 # Fields to match from any visited object
@@ -60,9 +60,9 @@ class QuestionNodeHandler(
                 r'<^/description$',
                 # Ascend into nested parent objects
                 r'/parent$',
-                r'/hierarchy$',
-                r'/hierarchy/structure.*$',
-                r'/hierarchy/program$',
+                r'/survey$',
+                r'/survey/structure.*$',
+                r'/survey/program$',
                 # Response types needed here when creating a new measure
                 r'/response_types.*$',
             )
@@ -72,7 +72,7 @@ class QuestionNodeHandler(
 
             sibling_query = (session.query(model.QuestionNode)
                 .filter(model.QuestionNode.program_id == qnode.program_id,
-                        model.QuestionNode.hierarchy_id == qnode.hierarchy_id,
+                        model.QuestionNode.survey_id == qnode.survey_id,
                         model.QuestionNode.parent_id == qnode.parent_id,
                         model.QuestionNode.deleted == False))
 
@@ -101,7 +101,7 @@ class QuestionNodeHandler(
             self.query_by_level(level)
             return
 
-        hierarchy_id = self.get_argument('hierarchyId', '')
+        survey_id = self.get_argument('surveyId', '')
         parent_id = self.get_argument('parentId', '')
         root = self.get_argument('root', None)
         term = self.get_argument('term', '')
@@ -111,17 +111,17 @@ class QuestionNodeHandler(
         if root is not None and parent_id != '':
             raise handlers.ModelError(
                 "Can't specify parent ID when requesting roots")
-        if hierarchy_id == '' and parent_id == '':
+        if survey_id == '' and parent_id == '':
             raise handlers.ModelError(
-                "Hierarchy or parent ID required")
+                "Survey or parent ID required")
 
         with model.session_scope() as session:
             query = (session.query(model.QuestionNode)
                 .filter(model.QuestionNode.program_id == self.program_id))
 
-            if hierarchy_id != '':
-                self.check_browse_program(session, self.program_id, hierarchy_id)
-                query = query.filter_by(hierarchy_id=hierarchy_id)
+            if survey_id != '':
+                self.check_browse_program(session, self.program_id, survey_id)
+                query = query.filter_by(survey_id=survey_id)
             if parent_id != '':
                 query = query.filter_by(parent_id=parent_id)
             if root is not None:
@@ -158,8 +158,8 @@ class QuestionNodeHandler(
                 to_son.exclude(r'/total_weight$')
 
             qnodes = list(query.all())
-            hierarchy_ids = {q.hierarchy_id for q in qnodes}
-            for hid in hierarchy_ids:
+            survey_ids = {q.survey_id for q in qnodes}
+            for hid in survey_ids:
                 self.check_browse_program(session, self.program_id, hid)
 
             sons = to_son(qnodes)
@@ -170,7 +170,7 @@ class QuestionNodeHandler(
 
     def query_by_level(self, level):
         level = int(level)
-        hierarchy_id = self.get_argument('hierarchyId', '')
+        survey_id = self.get_argument('surveyId', '')
         term = self.get_argument('term', '')
         parent_not = self.get_argument('parent__not', None)
         deleted = self.get_argument('deleted', '')
@@ -179,8 +179,8 @@ class QuestionNodeHandler(
         else:
             deleted = None
 
-        if hierarchy_id == '':
-            raise handlers.ModelError("Hierarchy ID required")
+        if survey_id == '':
+            raise handlers.ModelError("Survey ID required")
 
         with model.session_scope() as session:
             # Use Postgres' WITH statement
@@ -197,7 +197,7 @@ class QuestionNodeHandler(
                                    (QN1.deleted).label('any_deleted'))
                 .filter(QN1.parent_id == None,
                         QN1.program_id == self.program_id,
-                        QN1.hierarchy_id == hierarchy_id)
+                        QN1.survey_id == survey_id)
                 .cte(name='root', recursive=True))
 
             # Now iterate down the tree to the desired level
@@ -211,7 +211,7 @@ class QuestionNodeHandler(
                                         .label('any_deleted'))
                 .filter(QN2.parent_id == start.c.id,
                         QN2.program_id == start.c.program_id,
-                        QN2.hierarchy_id == start.c.hierarchy_id,
+                        QN2.survey_id == start.c.survey_id,
                         start.c.level <= level))
 
             # Combine iterated result with root
@@ -275,7 +275,7 @@ class QuestionNodeHandler(
         if qnode_id != '':
             raise handlers.MethodError("Can't use POST for existing object")
 
-        hierarchy_id = self.get_argument('hierarchyId', '')
+        survey_id = self.get_argument('surveyId', '')
         parent_id = self.get_argument('parentId', '')
 
         self.check_editable()
@@ -286,42 +286,42 @@ class QuestionNodeHandler(
                 self._update(session, qnode, self.request_son)
                 log.debug("new: %s", qnode)
 
-                if hierarchy_id != '':
-                    hierarchy = session.query(model.Hierarchy)\
-                        .get((hierarchy_id, self.program_id))
-                    if hierarchy is None:
-                        raise handlers.ModelError("No such hierarchy")
+                if survey_id != '':
+                    survey = session.query(model.Survey)\
+                        .get((survey_id, self.program_id))
+                    if survey is None:
+                        raise handlers.ModelError("No such survey")
                 else:
-                    hierarchy = None
-                log.debug("hierarchy: %s", hierarchy)
+                    survey = None
+                log.debug("survey: %s", survey)
 
                 if parent_id != '':
                     parent = session.query(model.QuestionNode)\
                         .get((parent_id, self.program_id))
                     if parent is None:
                         raise handlers.ModelError("Parent does not exist")
-                    if hierarchy is None:
-                        hierarchy = parent.hierarchy
-                    elif parent.hierarchy != hierarchy:
+                    if survey is None:
+                        survey = parent.survey
+                    elif parent.survey != survey:
                         raise handlers.ModelError(
-                            "Parent does not belong to that hierarchy")
+                            "Parent does not belong to that survey")
                 else:
                     parent = None
 
-                qnode.hierarchy = hierarchy
+                qnode.survey = survey
 
                 if parent is not None:
                     log.debug("Appending to parent")
                     parent.children.append(qnode)
                     parent.children.reorder()
                     log.debug("committing: %s", parent.children)
-                elif hierarchy is not None:
-                    log.debug("Appending to hierarchy")
-                    hierarchy.qnodes.append(qnode)
-                    hierarchy.qnodes.reorder()
-                    log.debug("committing: %s", hierarchy.qnodes)
+                elif survey is not None:
+                    log.debug("Appending to survey")
+                    survey.qnodes.append(qnode)
+                    survey.qnodes.reorder()
+                    log.debug("committing: %s", survey.qnodes)
                 else:
-                    raise handlers.ModelError("Parent or hierarchy ID required")
+                    raise handlers.ModelError("Parent or survey ID required")
 
                 # Need to flush so object has an ID to record action against.
                 session.flush()
@@ -358,7 +358,7 @@ class QuestionNodeHandler(
                 log.debug("deleting: %s", qnode)
 
                 program = qnode.program
-                hierarchy = qnode.hierarchy
+                survey = qnode.survey
                 parent = qnode.parent
 
                 act = Activities(session)
@@ -370,8 +370,8 @@ class QuestionNodeHandler(
 
                 qnode.deleted = True
 
-                if hierarchy is not None:
-                    hierarchy.qnodes.reorder()
+                if survey is not None:
+                    survey.qnodes.reorder()
                 if parent is not None:
                     parent.children.reorder()
                     parent.update_stats_ancestors()
@@ -433,7 +433,7 @@ class QuestionNodeHandler(
                     if qnode.parent:
                         collection = qnode.parent.children
                     else:
-                        collection = qnode.hierarchy.qnodes
+                        collection = qnode.survey.qnodes
                     qnode.deleted = False
                     collection.insert(qnode.seq, qnode)
                     collection.reorder()
@@ -465,7 +465,7 @@ class QuestionNodeHandler(
     def ordering(self):
         '''Change the order of all children in a parent's collection.'''
 
-        hierarchy_id = self.get_argument('hierarchyId', '')
+        survey_id = self.get_argument('surveyId', '')
         parent_id = self.get_argument('parentId', '')
         root = self.get_argument('root', None)
 
@@ -475,9 +475,9 @@ class QuestionNodeHandler(
         if root is not None and parent_id != '':
             raise handlers.ModelError(
                 "Can't specify both 'root=' and parent ID")
-            if hierarchy_id == '':
+            if survey_id == '':
                 raise handlers.ModelError(
-                    "Hierarchy ID is required for operating on root nodes")
+                    "Survey ID is required for operating on root nodes")
 
         son = json_decode(self.request.body)
         try:
@@ -490,10 +490,10 @@ class QuestionNodeHandler(
                     if parent is None:
                         raise handlers.MissingDocError(
                             "Parent question node does not exist")
-                    if hierarchy_id != '':
-                        if hierarchy_id != str(parent.hierarchy_id):
+                    if survey_id != '':
+                        if survey_id != str(parent.survey_id):
                             raise handlers.MissingDocError(
-                                "Parent does not belong to that hierarchy")
+                                "Parent does not belong to that survey")
                     log.debug("Reordering children of: %s", parent)
                     reorder(parent.children, son)
                     act.record(self.current_user, parent, ['reorder_children'])
@@ -501,20 +501,20 @@ class QuestionNodeHandler(
                         act.subscribe(self.current_user, parent.program)
                         self.reason("Subscribed to program")
                 elif root is not None:
-                    hierarchy = session.query(model.Hierarchy)\
-                        .get((hierarchy_id, self.program_id))
-                    if hierarchy is None:
-                        raise handlers.MissingDocError("No such hierarchy")
-                    log.debug("Reordering children of: %s", hierarchy)
-                    reorder(hierarchy.qnodes, son)
+                    survey = session.query(model.Survey)\
+                        .get((survey_id, self.program_id))
+                    if survey is None:
+                        raise handlers.MissingDocError("No such survey")
+                    log.debug("Reordering children of: %s", survey)
+                    reorder(survey.qnodes, son)
                     act.record(
-                        self.current_user, hierarchy, ['reorder_children'])
-                    if not act.has_subscription(self.current_user, hierarchy):
-                        act.subscribe(self.current_user, hierarchy.program)
+                        self.current_user, survey, ['reorder_children'])
+                    if not act.has_subscription(self.current_user, survey):
+                        act.subscribe(self.current_user, survey.program)
                         self.reason("Subscribed to program")
                 else:
                     raise handlers.ModelError(
-                        "Hierarchy or parent ID required")
+                        "Survey or parent ID required")
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)

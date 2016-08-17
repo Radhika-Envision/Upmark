@@ -12,20 +12,20 @@
 </div>
 </div>
 
-<div class="container" ng-if="!assessment.hierarchy">
+<div class="container" ng-if="!assessment.survey">
     <p>Please choose a question set.</p>
 
     <ul class="list-results">
         <li>
-            <a ng-repeat="hierarchy in hierarchies" href
-                    ng-click="assessment.hierarchy=hierarchy">
-                <h4>{{hierarchy.title}}</h4>
+            <a ng-repeat="survey in surveys" href
+                    ng-click="assessment.survey=survey">
+                <h4>{{survey.title}}</h4>
             </a>
         </li>
     </ul>
 </div>
 
-<div class="container" ng-show="assessment.hierarchy && !progress.isWorking">
+<div class="container" ng-show="assessment.survey && !progress.isWorking">
     <form novalidate name="form" id="editor">
         <div class="form-group" show-errors>
             <label for="title">Name</label>
@@ -43,7 +43,7 @@
     </form>
 </div>
 
-<div class="container" ng-show="assessment.hierarchy && progress.isWorking">
+<div class="container" ng-show="assessment.survey && progress.isWorking">
     <div class="modalprogress">
         <div ng-if="progress.uploadFraction < 1">
             <clock-progress fraction="progress.uploadFraction"></clock-progress>

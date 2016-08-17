@@ -445,9 +445,9 @@ class SubscriptionHandler(handlers.BaseHandler):
 
         elif ob_type == 'survey':
             arglen(len(ob_refs), 2, 2)
-            query = (session.query(model.Hierarchy)
-                .filter(model.Hierarchy.id == ob_refs[0],
-                        model.Hierarchy.program_id == ob_refs[1]))
+            query = (session.query(model.Survey)
+                .filter(model.Survey.id == ob_refs[0],
+                        model.Survey.program_id == ob_refs[1]))
 
         elif ob_type == 'qnode':
             arglen(len(ob_refs), 2, 2)
@@ -502,11 +502,11 @@ class SubscriptionHandler(handlers.BaseHandler):
         if ob.ob_type in {'organisation', 'user', 'program'}:
             return
         elif ob.ob_type in {'survey', 'qnode', 'measure'}:
-            if hasattr(ob, 'hierarchy'):
-                hierarchy = ob.hierarchy
+            if hasattr(ob, 'survey'):
+                survey = ob.survey
             else:
-                hierarchy = ob
-            if not hierarchy in user.organisation.purchased_surveys:
+                survey = ob
+            if not survey in user.organisation.purchased_surveys:
                 raise handlers.AuthzError(
                     "You can't subscribe to a survey that you haven't"
                     " purchased.")

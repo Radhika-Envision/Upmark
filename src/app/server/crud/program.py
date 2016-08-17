@@ -185,7 +185,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
     @run_on_executor
     def duplicate_structure(self, source_program, target_program, session):
         '''
-        Duplicate an existing program - just the structure (e.g. hierarchy,
+        Duplicate an existing program - just the structure (e.g. survey,
         qnodes and measures).
         '''
         log.debug('Duplicating %s from %s', target_program, source_program)
@@ -200,14 +200,14 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
             session.add(entity)
             return entity
 
-        def dup_hierarchies(hierarchies):
-            for hierarchy in hierarchies:
-                if hierarchy.deleted:
+        def dup_surveys(surveys):
+            for survey in surveys:
+                if survey.deleted:
                     continue
-                log.debug('Duplicating %s', hierarchy)
-                qs = hierarchy.qnodes
-                dissociate(hierarchy)
-                hierarchy.program_id = target_program.id
+                log.debug('Duplicating %s', survey)
+                qs = survey.qnodes
+                dissociate(survey)
+                survey.program_id = target_program.id
                 dup_qnodes(qs)
 
         def dup_qnodes(qnodes):
@@ -240,7 +240,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
             measure.program_id = target_program.id
             processed_measure_ids.add(measure.id)
 
-        dup_hierarchies(source_program.hierarchies)
+        dup_surveys(source_program.surveys)
 
     @handlers.authz('author')
     def delete(self, program_id):
@@ -411,7 +411,7 @@ class ProgramHistoryHandler(handlers.BaseHandler):
     def get(self, entity_id):
         '''
         Get a list of programs that some entity belongs to. For example,
-        a single hierarchy may be present in multiple programs.
+        a single survey may be present in multiple programs.
         '''
         with model.session_scope() as session:
             query = (session.query(model.Program)

@@ -38,12 +38,12 @@ class DaemonTest(base.AqHttpTestBase):
                 expected=200, decode=True)
             sid = program_sons[0]['id']
 
-            hierarchy_sons = self.fetch(
-                "/hierarchy.json?programId=%s" % sid,
+            survey_sons = self.fetch(
+                "/survey.json?programId=%s" % sid,
                 method='GET', expected=200, decode=True)
-            hid = hierarchy_sons[0]['id']
+            hid = survey_sons[0]['id']
 
-            url = "/qnode.json?programId=%s&hierarchyId=%s&root=" % (sid, hid)
+            url = "/qnode.json?programId=%s&surveyId=%s&root=" % (sid, hid)
             qnode_sons = self.fetch(
                 url, method='GET', expected=200, decode=True)
             qid1 = qnode_sons[0]['id']
@@ -174,19 +174,19 @@ class DaemonTest(base.AqHttpTestBase):
             organisation = (session.query(model.Organisation)
                     .filter_by(name='Utility')
                     .one())
-            hierarchy = (session.query(model.Hierarchy)
-                    .filter_by(title='Hierarchy 1')
+            survey = (session.query(model.Survey)
+                    .filter_by(title='Survey 1')
                     .one())
             assessment = model.Assessment(
                 program_id=program.id,
                 organisation_id=organisation.id,
-                hierarchy_id=hierarchy.id,
+                survey_id=survey.id,
                 title="Submission",
                 approval='draft')
             session.add(assessment)
 
             for m in program.measures:
-                if not any(p.hierarchy_id == hierarchy.id for p in m.parents):
+                if not any(p.survey_id == survey.id for p in m.parents):
                     continue
                 response = model.Response(
                     program_id=program.id,
@@ -218,8 +218,8 @@ class DaemonTest(base.AqHttpTestBase):
         with model.session_scope() as session:
             assessment = session.query(model.Assessment).get(aid)
             sid = assessment.program_id
-            process_id = assessment.hierarchy.qnodes[0].children[0].id
-            function_2_id = assessment.hierarchy.qnodes[1].id
+            process_id = assessment.survey.qnodes[0].children[0].id
+            function_2_id = assessment.survey.qnodes[1].id
 
         # Move a process (qnode) to a different function
         with base.mock_user('author'):
@@ -265,8 +265,8 @@ class DaemonTest(base.AqHttpTestBase):
         with model.session_scope() as session:
             assessment = session.query(model.Assessment).get(aid)
             sid = assessment.program_id
-            process_id = assessment.hierarchy.qnodes[0].children[0].id
-            function_2_id = assessment.hierarchy.qnodes[1].id
+            process_id = assessment.survey.qnodes[0].children[0].id
+            function_2_id = assessment.survey.qnodes[1].id
 
         # Move a process (qnode) to a different function
         with base.mock_user('author'):

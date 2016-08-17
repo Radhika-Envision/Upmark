@@ -130,7 +130,7 @@
         <h3>Survey tables</h3>
         <p>
             Survey questions are stored in the <code>program</code>,
-            <code>hierarchy</code>, <code>qnode</code> and
+            <code>survey</code>, <code>qnode</code> and
             <code>measure</code> tables. <code>qnode_measure_link</code> stores
             the many-to-many relationship between <code>qnode</code> and
             <code>measure</code>.
@@ -146,10 +146,10 @@
                 duplicated. A program may have more than one survey.
             </dd>
 
-            <dt>hierarchy</dt>
+            <dt>survey</dt>
             <dd>
                 <p>PK: <code>id</code>, <code>program_id</code>.</p>
-                The hierarchy table stores surveys. Surveys have a collection of
+                The survey table stores surveys. Surveys have a collection of
                 categories (qnodes).
                 Each survey has an id which
                 may be shared with other surveys of the same lineage in other
@@ -171,7 +171,7 @@
                     <code>measure_id</code>.
                 </p>
                 Links qnodes to measures. This is required because a measure may
-                belong to multiple categories (one per hierarchy) - or none, in
+                belong to multiple categories (one per survey) - or none, in
                 which case it is orphaned.
             </dd>
 
@@ -200,7 +200,7 @@
         <dl>
             <dt>purchased_survey</dt>
             <dd>
-                <p>PK: <code>program_id</code>, <code>hierarchy_id</code>,
+                <p>PK: <code>program_id</code>, <code>survey_id</code>,
                     <code>organisation_id</code>.</p>
                 Links an organisation to the surveys it has purchased.
             </dd>
@@ -286,7 +286,7 @@
                 all object IDs in the subscription chain, sorted from shallow to
                 deep. For example, a measure that belongs to two surveys
                 might have a reference chain of
-                <em>[program.id, hierarchy.id, hierarchy.id, qnode.id, qnode.id,
+                <em>[program.id, survey.id, survey.id, qnode.id, qnode.id,
                 measure.id]</em>.
                 </p>
             </dd>

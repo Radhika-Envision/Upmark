@@ -40,10 +40,10 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 
 
 .controller('AssessmentCtrl', [
-        '$scope', 'Assessment', 'Hierarchy', 'routeData', 'Editor',
+        '$scope', 'Assessment', 'Survey', 'routeData', 'Editor',
         'questionAuthz', 'layout', '$location', 'Current', 'format', '$filter',
         'Notifications', 'Structure', '$http',
-        function($scope, Assessment, Hierarchy, routeData, Editor, authz,
+        function($scope, Assessment, Survey, routeData, Editor, authz,
                  layout, $location, current, format, $filter, Notifications,
                  Structure, $http) {
 
@@ -62,12 +62,12 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         });
         $scope.edit.params.programId = $scope.program.id;
         $scope.edit.params.orgId = routeData.organisation.id;
-        $scope.hierarchies = routeData.hierarchies;
-        if ($scope.hierarchies.length == 1) {
-            $scope.assessment.hierarchy = $scope.hierarchies[0];
+        $scope.surveys = routeData.surveys;
+        if ($scope.surveys.length == 1) {
+            $scope.assessment.survey = $scope.surveys[0];
             // Patch in program, which is needed by Structure by is not provided
             // by the web service when requesting a list.
-            $scope.assessment.hierarchy.program = $scope.program;
+            $scope.assessment.survey.program = $scope.program;
         }
         $scope.duplicate = routeData.duplicate;
         if ($scope.duplicate)
@@ -82,15 +82,15 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         $scope.structure = Structure(assessment);
     });
 
-    $scope.$watch('edit.model.hierarchy', function(hierarchy) {
+    $scope.$watch('edit.model.survey', function(survey) {
         // Generate title first time
-        if (!hierarchy || !$scope.edit.model)
+        if (!survey || !$scope.edit.model)
             return;
         if (!$scope.edit.model.title) {
             $scope.edit.model.title = format('{} - {}',
-                hierarchy.title, $filter('date')(new Date(), 'MMM yyyy'));
+                survey.title, $filter('date')(new Date(), 'MMM yyyy'));
         }
-        $scope.edit.params.hierarchyId = hierarchy.id;
+        $scope.edit.params.surveyId = survey.id;
     });
 
     $scope.setState = function(state) {
@@ -174,15 +174,15 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 
 
 .controller('AssessmentImportCtrl', [
-        '$scope', 'Assessment', 'Hierarchy', 'routeData', 'Editor',
+        '$scope', 'Assessment', 'Survey', 'routeData', 'Editor',
         'questionAuthz', 'layout', '$location', 'Current', 'format', '$filter',
         'Notifications', '$http', '$cookies', '$timeout',
-        function($scope, Assessment, Hierarchy, routeData, Editor, authz,
+        function($scope, Assessment, Survey, routeData, Editor, authz,
                  layout, $location, current, format, $filter, Notifications,
                  $http, $cookies, $timeout) {
 
     $scope.program = routeData.program;
-    $scope.hierarchies = routeData.hierarchies;
+    $scope.surveys = routeData.surveys;
     $scope.progress = {
         isWorking: false,
         isFinished: false,
@@ -191,12 +191,12 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
     Notifications.remove('import');
     $scope.assessment = new Assessment({
         program: $scope.program,
-        hierarchy : null,
+        survey : null,
         title: "Imported Submission",
         organisation: routeData.organisation
     });
-    if ($scope.hierarchies.length == 1) {
-        $scope.assessment.hierarchy = $scope.hierarchies[0];
+    if ($scope.surveys.length == 1) {
+        $scope.assessment.survey = $scope.surveys[0];
     }
 
     var headers = {};
@@ -232,7 +232,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
     dropzone.on('sending', function(file, xhr, formData) {
         formData.append('program', $scope.program.id);
         formData.append('organisation', $scope.assessment.organisation.id);
-        formData.append('hierarchy', $scope.assessment.hierarchy.id);
+        formData.append('survey', $scope.assessment.survey.id);
         formData.append('title', $scope.assessment.title);
     });
 

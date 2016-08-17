@@ -19,14 +19,14 @@
         <span ng-if="!layout.expandHeader">L:</span>
         <span ng-if="layout.expandHeader">Left:</span>
     </h2>
-    <question-header entity="qnode1 || assessment1.hierarchy"
+    <question-header entity="qnode1 || assessment1.survey"
         assessment="assessment1" get-url="getNavUrl"></question-header>
     <h2 ng-class="layout.expandHeader ? null: 'pull-left'"
             ng-if="struct2.program && struct1.program.id != struct2.program.id">
         <span ng-if="!layout.expandHeader">R:</span>
         <span ng-if="layout.expandHeader">Right:</span>
     </h2>
-    <question-header entity="qnode2 || assessment2.hierarchy"
+    <question-header entity="qnode2 || assessment2.survey"
         assessment="assessment2" get-url="getNavUrl"
         ng-if="struct2.program && struct1.program.id != struct2.program.id"
         ></question-header>

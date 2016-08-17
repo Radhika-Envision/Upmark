@@ -64,8 +64,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/program$',
                 r'/program/tracking_id$',
                 r'/organisation$',
-                r'/hierarchy$',
-                r'/hierarchy/structure.*$',
+                r'/survey$',
+                r'/survey/structure.*$',
                 r'/program/hide_aggregate$',
             )
             son = to_son(assessment)
@@ -78,7 +78,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
         '''Get a list.'''
         term = self.get_argument('term', '')
         program_id = self.get_argument('programId', '')
-        hierarchy_id = self.get_argument('hierarchyId', '')
+        survey_id = self.get_argument('surveyId', '')
         approval = self.get_argument('approval', '')
         tracking_id = self.get_argument('trackingId', '')
         deleted = self.get_argument('deleted', '')
@@ -101,8 +101,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             if program_id != '':
                 query = query.filter_by(program_id=program_id)
 
-            if hierarchy_id != '':
-                query = query.filter_by(hierarchy_id=hierarchy_id)
+            if survey_id != '':
+                query = query.filter_by(survey_id=survey_id)
 
             if approval != '':
                 approval_set = self.approval_set(approval)
@@ -135,7 +135,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                 # Descend
                 r'/[0-9]+$',
                 r'/organisation$',
-                r'/hierarchy$',
+                r'/survey$',
                 r'/program$'
             )
             sons = to_son(query.all())
@@ -155,9 +155,9 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
         if program_id == '':
             raise handlers.ModelError("Program ID is required")
 
-        hierarchy_id = self.get_argument('hierarchyId', '')
-        if hierarchy_id == '':
-            raise handlers.ModelError("Hierarchy ID is required")
+        survey_id = self.get_argument('surveyId', '')
+        if survey_id == '':
+            raise handlers.ModelError("Survey ID is required")
 
         org_id = self.get_argument('orgId', '')
         if org_id == '':
@@ -172,10 +172,10 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
 
         try:
             with model.session_scope() as session:
-                self._check_open(program_id, hierarchy_id, org_id, session)
+                self._check_open(program_id, survey_id, org_id, session)
 
                 assessment = model.Assessment(
-                    program_id=program_id, hierarchy_id=hierarchy_id,
+                    program_id=program_id, survey_id=survey_id,
                     organisation_id=org_id, approval='draft')
                 self._update(assessment, self.request_son)
                 session.add(assessment)
@@ -201,19 +201,19 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.get(assessment_id)
 
-    def _check_open(self, program_id, hierarchy_id, org_id, session):
-        hierarchy = (session.query(model.Hierarchy)
-            .get((hierarchy_id, program_id)))
-        if not hierarchy:
+    def _check_open(self, program_id, survey_id, org_id, session):
+        survey = (session.query(model.Survey)
+            .get((survey_id, program_id)))
+        if not survey:
             raise handlers.ModelError("No such survey")
-        if hierarchy.deleted:
+        if survey.deleted:
             raise handlers.ModelError("That survey has been deleted")
-        if hierarchy.program.deleted:
+        if survey.program.deleted:
             raise handlers.ModelError("That program has been deleted")
 
         purchased_survey = (session.query(model.PurchasedSurvey)
             .filter_by(program_id=program_id,
-                       hierarchy_id=hierarchy_id,
+                       survey_id=survey_id,
                        organisation_id=org_id)
             .first())
         if not purchased_survey:
@@ -235,15 +235,15 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                     s_assessment.organisation.name,
                     assessment.organisation.name))
 
-        hierarchy_id = str(assessment.hierarchy.id)
+        survey_id = str(assessment.survey.id)
         measure_ids = {str(m.id) for m in assessment.program.measures
-                       if any(str(p.hierarchy_id) == hierarchy_id
+                       if any(str(p.survey_id) == survey_id
                               for p in m.parents)}
 
         qnode_ids = {str(r[0]) for r in
                 session.query(model.QuestionNode.id)
                     .filter_by(program_id=assessment.program_id,
-                               hierarchy_id=assessment.hierarchy_id)
+                               survey_id=assessment.survey_id)
                     .all()}
 
         s_rnodes = (session.query(model.ResponseNode)
@@ -332,7 +332,7 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
 
         user = session.query(model.AppUser).get(str(self.current_user.id))
 
-        for i, qnode in enumerate(assessment.hierarchy.qnodes):
+        for i, qnode in enumerate(assessment.survey.qnodes):
             random.seed(i)
             bias = random.random()
             random.seed()
@@ -425,8 +425,8 @@ class AssessmentHandler(handlers.Paginate, handlers.BaseHandler):
                  .count())
         n_measures = (session.query(model.QnodeMeasure.measure_id)
                 .join(model.QuestionNode)
-                .filter(model.QuestionNode.hierarchy_id ==
-                            assessment.hierarchy_id,
+                .filter(model.QuestionNode.survey_id ==
+                            assessment.survey_id,
                         model.QuestionNode.program_id == assessment.program_id,
                         model.QnodeMeasure.program_id == assessment.program_id,
                         model.QnodeMeasure.qnode_id == model.QuestionNode.id)

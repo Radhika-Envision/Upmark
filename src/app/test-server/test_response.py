@@ -214,37 +214,37 @@ class AssessmentTest(base.AqHttpTestBase):
             organisation = (session.query(model.Organisation)
                     .filter_by(name='Utility')
                     .one())
-            hierarchy_1 = (session.query(model.Hierarchy)
-                    .filter_by(title='Hierarchy 1')
+            survey_1 = (session.query(model.Survey)
+                    .filter_by(title='Survey 1')
                     .one())
-            hierarchy_2 = (session.query(model.Hierarchy)
-                    .filter_by(title='Hierarchy 2')
+            survey_2 = (session.query(model.Survey)
+                    .filter_by(title='Survey 2')
                     .one())
 
             program_id = str(program.id)
             organisation_id = str(organisation.id)
-            hierarchy_1_id = str(hierarchy_1.id)
-            hierarchy_2_id = str(hierarchy_2.id)
+            survey_1_id = str(survey_1.id)
+            survey_2_id = str(survey_2.id)
 
         with base.mock_user('org_admin'):
             assessment_son = {'title': "Assessment"}
             assessment_son = self.fetch(
-                "/assessment.json?orgId=%s&programId=%s&hierarchyId=%s" %
-                (organisation_id, program_id, hierarchy_1_id),
+                "/assessment.json?orgId=%s&programId=%s&surveyId=%s" %
+                (organisation_id, program_id, survey_1_id),
                 method='POST', body=json_encode(assessment_son),
                 expected=403, decode=False)
 
         with base.mock_user('admin'):
             self.fetch(
-                "/organisation/%s/hierarchy/%s.json?programId=%s" %
-                (organisation_id, hierarchy_1_id, program_id),
+                "/organisation/%s/survey/%s.json?programId=%s" %
+                (organisation_id, survey_1_id, program_id),
                 method='PUT', body='', expected=200)
 
         with base.mock_user('org_admin'):
             assessment_son = {'title': "Assessment"}
             assessment_son = self.fetch(
-                "/assessment.json?orgId=%s&programId=%s&hierarchyId=%s" %
-                (organisation_id, program_id, hierarchy_1_id),
+                "/assessment.json?orgId=%s&programId=%s&surveyId=%s" %
+                (organisation_id, program_id, survey_1_id),
                 method='POST', body=json_encode(assessment_son),
                 expected=200, decode=True)
 
@@ -258,23 +258,23 @@ class AssessmentTest(base.AqHttpTestBase):
             organisation = (session.query(model.Organisation)
                     .filter_by(name='Utility')
                     .one())
-            hierarchy_1 = (session.query(model.Hierarchy)
-                    .filter_by(title='Hierarchy 1')
+            survey_1 = (session.query(model.Survey)
+                    .filter_by(title='Survey 1')
                     .one())
-            hierarchy_2 = (session.query(model.Hierarchy)
-                    .filter_by(title='Hierarchy 2')
+            survey_2 = (session.query(model.Survey)
+                    .filter_by(title='Survey 2')
                     .one())
             assessment = model.Assessment(
                 program_id=program.id,
                 organisation_id=organisation.id,
-                hierarchy_id=hierarchy_1.id,
+                survey_id=survey_1.id,
                 title="First assessment",
                 approval='draft')
             session.add(assessment)
             session.flush()
 
             for m in program.measures:
-                if not any(p.hierarchy_id == hierarchy_1.id for p in m.parents):
+                if not any(p.survey_id == survey_1.id for p in m.parents):
                     continue
                 response = model.Response(
                     program_id=program.id,
@@ -316,8 +316,8 @@ class AssessmentTest(base.AqHttpTestBase):
 
             organisation_id = str(organisation.id)
             first_assessment_id = str(assessment.id)
-            hierarchy_1_id = str(hierarchy_1.id)
-            hierarchy_2_id = str(hierarchy_2.id)
+            survey_1_id = str(survey_1.id)
+            survey_2_id = str(survey_2.id)
 
         # Duplicate program
         with base.mock_user('author'):
@@ -339,25 +339,25 @@ class AssessmentTest(base.AqHttpTestBase):
                 expected=200, decode=True)
             new_program_id = program_son['id']
 
-        # Open (purchase) both new hierarchies for organisation
+        # Open (purchase) both new surveys for organisation
         with base.mock_user('admin'):
             self.fetch(
-                "/organisation/%s/hierarchy/%s.json?programId=%s" %
-                (organisation_id, hierarchy_1_id, new_program_id),
+                "/organisation/%s/survey/%s.json?programId=%s" %
+                (organisation_id, survey_1_id, new_program_id),
                 method='PUT', body='', expected=200)
             self.fetch(
-                "/organisation/%s/hierarchy/%s.json?programId=%s" %
-                (organisation_id, hierarchy_2_id, new_program_id),
+                "/organisation/%s/survey/%s.json?programId=%s" %
+                (organisation_id, survey_2_id, new_program_id),
                 method='PUT', body='', expected=200)
 
-        # Duplicate assessment, once for each hierarchy, in the new program
+        # Duplicate assessment, once for each survey, in the new program
         with base.mock_user('org_admin'):
             assessment_son = {'title': "Second assessment"}
             assessment_son = self.fetch(
                 "/assessment.json?orgId=%s&programId=%s&"
-                "hierarchyId=%s&duplicateId=%s" %
+                "surveyId=%s&duplicateId=%s" %
                 (organisation_id, new_program_id,
-                 hierarchy_1_id, first_assessment_id),
+                 survey_1_id, first_assessment_id),
                 method='POST', body=json_encode(assessment_son),
                 expected=200, decode=True)
             second_assessment_id = assessment_son['id']
@@ -365,9 +365,9 @@ class AssessmentTest(base.AqHttpTestBase):
             assessment_son = {'title': "Third assessment"}
             assessment_son = self.fetch(
                 "/assessment.json?orgId=%s&programId=%s&"
-                "hierarchyId=%s&duplicateId=%s" %
+                "surveyId=%s&duplicateId=%s" %
                 (organisation_id, new_program_id,
-                 hierarchy_2_id, first_assessment_id),
+                 survey_2_id, first_assessment_id),
                 method='POST', body=json_encode(assessment_son),
                 expected=200, decode=True)
             third_assessment_id = assessment_son['id']
@@ -385,17 +385,17 @@ class AssessmentTest(base.AqHttpTestBase):
             assessment_3 = (session.query(model.Assessment)
                 .get(third_assessment_id))
 
-            self.assertEqual(assessment_1.hierarchy_id,
-                assessment_2.hierarchy_id)
-            self.assertNotEqual(assessment_1.hierarchy_id,
-                assessment_3.hierarchy_id)
+            self.assertEqual(assessment_1.survey_id,
+                assessment_2.survey_id)
+            self.assertNotEqual(assessment_1.survey_id,
+                assessment_3.survey_id)
 
             # Assessment 1 has responses against five measures. Two are
             # descendants of deleted qnodes.
-            # Assessment 2 uses the same hierarchy as the source assessment,
+            # Assessment 2 uses the same survey as the source assessment,
             # so it should have the same number of responses (three, because
             # the deleted ones are not copied).
-            # Assessment 3 uses a different hierarchy with only one common
+            # Assessment 3 uses a different survey with only one common
             # measure, so it should have a different number of responses (two).
             self.assertEqual(len(assessment_1.responses), 5)
             self.assertEqual(len(assessment_2.responses), 3)
@@ -403,7 +403,7 @@ class AssessmentTest(base.AqHttpTestBase):
             self.assertEqual(session.query(model.Response).count(), 10)
 
             # Make sure the number of rnodes matches the number of qnodes in the
-            # hierarchy (no leftovers).
+            # survey (no leftovers).
             self.assertEqual(session.query(model.ResponseNode)
                 .filter_by(assessment_id=assessment_1.id)
                 .count(), 4)

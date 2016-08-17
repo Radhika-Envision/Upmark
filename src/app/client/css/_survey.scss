@@ -51,8 +51,8 @@ h2 {
         color: mix($program-colour, black, 50%);
     }
     &.program-h[label]:before {
-        background-color: mix($hierarchy-colour, white, 50%);
-        color: mix($hierarchy-colour, black, 50%);
+        background-color: mix($survey-colour, white, 50%);
+        color: mix($survey-colour, black, 50%);
     }
     &.program-0[label]:before {
         background-color: mix($function-colour, white, 50%);

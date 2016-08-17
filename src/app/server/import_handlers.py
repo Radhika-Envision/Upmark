@@ -105,10 +105,10 @@ class ImportAssessmentHandler(handlers.BaseHandler):
         i = Importer()
         program_id = self.get_argument('program')
         organisation_id = self.get_argument('organisation')
-        hierarchy_id = self.get_argument("hierarchy")
+        survey_id = self.get_argument("survey")
         title = self.get_argument('title')
         user_id = self.get_current_user().id
-        program_id = i.process_assessment_file(file_path, program_id, hierarchy_id, organisation_id, title, user_id)
+        program_id = i.process_assessment_file(file_path, program_id, survey_id, organisation_id, title, user_id)
         return program_id
 
 
@@ -147,17 +147,17 @@ class Importer():
             session.flush()
             program_id = str(program.id)
 
-            hierarchy = model.Hierarchy()
-            hierarchy.program_id = program.id
-            hierarchy.title = "Imported Survey"
-            hierarchy.description = None
+            survey = model.Survey()
+            survey.program_id = program.id
+            survey.title = "Imported Survey"
+            survey.description = None
             with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                 'aquamark_hierarchy.json')) as data_file:
-                hierarchy.structure = json.load(data_file)
-            session.add(hierarchy)
+                survey.structure = json.load(data_file)
+            session.add(survey)
             session.flush()
 
-            log.info("hierarchy: %s" % hierarchy.id)
+            log.info("survey: %s" % survey.id)
 
             function_title_row = [{
                 "title": row[self.col2num("J")],
@@ -189,7 +189,7 @@ class Importer():
 
                 qnode_function = model.QuestionNode()
                 qnode_function.program_id = program.id
-                qnode_function.hierarchy_id = hierarchy.id
+                qnode_function.survey_id = survey.id
                 qnode_function.seq = function_order - 1
                 qnode_function.title = function_title
                 qnode_function.description = bleach.clean(
@@ -212,7 +212,7 @@ class Importer():
 
                     qnode_process = model.QuestionNode()
                     qnode_process.program_id = program.id
-                    qnode_process.hierarchy_id = hierarchy.id
+                    qnode_process.survey_id = survey.id
                     qnode_process.parent_id = qnode_function.id
                     qnode_process.seq = process_order - 1
                     qnode_process.title = process_title
@@ -236,7 +236,7 @@ class Importer():
 
                         qnode_subprocess = model.QuestionNode()
                         qnode_subprocess.program_id = program.id
-                        qnode_subprocess.hierarchy_id = hierarchy.id
+                        qnode_subprocess.survey_id = survey.id
                         qnode_subprocess.parent_id = qnode_process.id
                         qnode_subprocess.seq = subprocess_order - 1
                         qnode_subprocess.title = subprocess_title
@@ -291,7 +291,7 @@ class Importer():
         TODO : process response
         '''
 
-    def process_assessment_file(self, path, program_id, hierarchy_id, organisation_id, title, user_id):
+    def process_assessment_file(self, path, program_id, survey_id, organisation_id, title, user_id):
         """
         Open and read an Excel file
         """
@@ -311,15 +311,15 @@ class Importer():
             if program is None:
                 raise Exception("There is no program.")
 
-            hierarchy = (session.query(model.Hierarchy)
-                .filter_by(id=hierarchy_id, program_id=program.id)
+            survey = (session.query(model.Survey)
+                .filter_by(id=survey_id, program_id=program.id)
                 .one())
-            if hierarchy is None:
-                raise Exception("There is no Hierarchy.")
+            if survey is None:
+                raise Exception("There is no survey.")
 
             assessment = model.Assessment()
             assessment.program_id = program.id
-            assessment.hierarchy_id = hierarchy.id
+            assessment.survey_id = survey.id
             assessment.organisation_id = organisation_id
             assessment.title = title
             assessment.approval = 'draft'

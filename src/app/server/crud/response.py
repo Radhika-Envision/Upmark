@@ -140,7 +140,7 @@ class ResponseHandler(handlers.BaseHandler):
                         .filter_by(id=response_history.measure_id,
                                    program_id=assessment.program_id)
                         .first())
-                parent = (measure.get_parent(assessment.hierarchy_id)
+                parent = (measure.get_parent(assessment.survey_id)
                         .get_rnode(assessment_id))
                 user = (session.query(model.AppUser)
                         .filter_by(id=response_history.user_id)

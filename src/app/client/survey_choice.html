@@ -7,15 +7,15 @@
             <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
             <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
         </button>
-        <program-history entity="hierarchy" service="Hierarchy"
+        <program-history entity="survey" service="Survey"
                 ng-if="!edit.model"></program-history>
     </div>
-    <question-header entity="hierarchy"></question-header>
+    <question-header entity="survey"></question-header>
 </div>
 </div>
 
-<div class="container" ng-if="structure.hierarchy.description">
-    <p>{{structure.hierarchy.description}}</p>
+<div class="container" ng-if="structure.survey.description">
+    <p>{{structure.survey.description}}</p>
 </div>
 
 
@@ -31,5 +31,5 @@
 
 <div assessment-select
         program="structure.program"
-        hierarchy="structure.hierarchy"
+        survey="structure.survey"
         org="org"></div>

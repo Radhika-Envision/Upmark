@@ -39,9 +39,9 @@
             </ul>
         </span>
 
-        <delete-button model="hierarchy" editor="edit"
+        <delete-button model="survey" editor="edit"
             ng-if="program.isEditable && !edit.model &&
-                checkRole('hierarchy_del')"></delete-button>
+                checkRole('survey_del')"></delete-button>
 
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
@@ -56,15 +56,15 @@
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
                 ng-if="editable && !edit.model &&
-                    checkRole('hierarchy_edit')">
+                    checkRole('survey_edit')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/subscription/program?id={{hierarchy.id}}&id={{program.id}}">
+                ng-href="#/subscription/program?id={{survey.id}}&id={{program.id}}">
             <i class="fa fa-envelope"></i></a>
-        <program-history entity="hierarchy" service="Hierarchy"
+        <program-history entity="survey" service="Survey"
                 ng-if="!edit.model"></program-history>
     </div>
-    <question-header entity="hierarchy"></question-header>
+    <question-header entity="survey"></question-header>
 </div>
 </div>
 
@@ -191,8 +191,8 @@
 <div ng-if="!edit.model">
 
 <div class="container">
-    <div ng-if="structure.hierarchy.description"
-        ng-bind-html="structure.hierarchy.description | markdown"></div>
+    <div ng-if="structure.survey.description"
+        ng-bind-html="structure.survey.description | markdown"></div>
 </div>
 
 
@@ -203,13 +203,13 @@
 <div class="container">
     <p class="text-muted">
         Survey structure:
-        <span ng-repeat="level in hierarchy.structure.levels">
+        <span ng-repeat="level in survey.structure.levels">
             <span ng-if="$index > 0">&raquo;</span>
             {{level.title}}
         </span>
         <span>
             <span >&raquo;</span>
-            {{hierarchy.structure.measure.title}}
+            {{survey.structure.measure.title}}
         </span>
     </p>
 </div>

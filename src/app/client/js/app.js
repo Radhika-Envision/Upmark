@@ -188,11 +188,11 @@ angular.module('wsaa.aquamark',
                             id: $route.current.params.program
                         }).$promise;
                     }],
-                    hierarchies: ['Hierarchy', '$route',
-                            function(Hierarchy, $route) {
+                    surveys: ['Survey', '$route',
+                            function(Survey, $route) {
                         if (!$route.current.params.program)
                             return null;
-                        return Hierarchy.query({
+                        return Survey.query({
                             programId: $route.current.params.program
                         }).$promise;
                     }]
@@ -232,9 +232,9 @@ angular.module('wsaa.aquamark',
                 })}
             })
 
-            .when('/hierarchy/new', {
-                templateUrl : 'hierarchy.html',
-                controller : 'HierarchyCtrl',
+            .when('/survey/new', {
+                templateUrl : 'survey.html',
+                controller : 'SurveyCtrl',
                 resolve: {routeData: chain({
                     program: ['Program', '$route', function(Program, $route) {
                         return Program.get({
@@ -243,19 +243,19 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/hierarchy/:hierarchy/choice', {
-                templateUrl : 'hierarchy_choice.html',
-                controller : 'HierarchyChoiceCtrl',
+            .when('/survey/:survey/choice', {
+                templateUrl : 'survey_choice.html',
+                controller : 'SurveyChoiceCtrl',
                 resolve: {routeData: chain({
-                    hierarchy: ['Hierarchy', '$route',
-                            function(Hierarchy, $route) {
-                        return Hierarchy.get({
-                            id: $route.current.params.hierarchy,
+                    survey: ['Survey', '$route',
+                            function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey,
                             programId: $route.current.params.program
                         }).$promise;
                     }],
-                    program: ['hierarchy', function(hierarchy) {
-                        return hierarchy.program;
+                    program: ['survey', function(survey) {
+                        return survey.program;
                     }],
                     org: ['Organisation', '$route',
                             function(Organisation, $route) {
@@ -267,19 +267,19 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/hierarchy/:hierarchy', {
-                templateUrl : 'hierarchy.html',
-                controller : 'HierarchyCtrl',
+            .when('/survey/:survey', {
+                templateUrl : 'survey.html',
+                controller : 'SurveyCtrl',
                 resolve: {routeData: chain({
-                    hierarchy: ['Hierarchy', '$route',
-                            function(Hierarchy, $route) {
-                        return Hierarchy.get({
-                            id: $route.current.params.hierarchy,
+                    survey: ['Survey', '$route',
+                            function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey,
                             programId: $route.current.params.program
                         }).$promise;
                     }],
-                    program: ['hierarchy', function(hierarchy) {
-                        return hierarchy.program;
+                    program: ['survey', function(survey) {
+                        return survey.program;
                     }]
                 })}
             })
@@ -301,9 +301,9 @@ angular.module('wsaa.aquamark',
                             id: $route.current.params.organisation
                         }).$promise;
                     }],
-                    hierarchies: ['Hierarchy', 'program',
-                            function(Hierarchy, program) {
-                        return Hierarchy.query({
+                    surveys: ['Survey', 'program',
+                            function(Survey, program) {
+                        return Survey.query({
                             programId: program.id
                         }).$promise;
                     }],
@@ -353,9 +353,9 @@ angular.module('wsaa.aquamark',
                             id: $route.current.params.organisation
                         }).$promise;
                     }],
-                    hierarchies: ['Hierarchy', 'program',
-                            function(Hierarchy, program) {
-                        return Hierarchy.query({
+                    surveys: ['Survey', 'program',
+                            function(Survey, program) {
+                        return Survey.query({
                             programId: program.id
                         }).$promise;
                     }]
@@ -381,13 +381,13 @@ angular.module('wsaa.aquamark',
                 templateUrl : 'qnode.html',
                 controller : 'QuestionNodeCtrl',
                 resolve: {routeData: chain({
-                    hierarchy: ['Hierarchy', '$route',
-                            function(Hierarchy, $route) {
-                        var hierarchyId = $route.current.params.hierarchy;
-                        if (!hierarchyId)
+                    survey: ['Survey', '$route',
+                            function(Survey, $route) {
+                        var surveyId = $route.current.params.survey;
+                        if (!surveyId)
                             return null
-                        return Hierarchy.get({
-                            id: hierarchyId,
+                        return Survey.get({
+                            id: surveyId,
                             programId: $route.current.params.program
                         }).$promise;
                     }],
@@ -437,12 +437,12 @@ angular.module('wsaa.aquamark',
                 templateUrl : 'qnode_link.html',
                 controller : 'QnodeLinkCtrl',
                 resolve: {routeData: chain({
-                    hierarchy: ['Hierarchy', '$route',
-                            function(Hierarchy, $route) {
-                        if (!$route.current.params.hierarchy)
+                    survey: ['Survey', '$route',
+                            function(Survey, $route) {
+                        if (!$route.current.params.survey)
                             return null;
-                        return Hierarchy.get({
-                            id: $route.current.params.hierarchy,
+                        return Survey.get({
+                            id: $route.current.params.survey,
                             programId: $route.current.params.program
                         }).$promise;
                     }],
@@ -594,22 +594,22 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/diff/:program1/:program2/:hierarchy', {
+            .when('/diff/:program1/:program2/:survey', {
                 templateUrl: 'diff.html',
                 controller: 'DiffCtrl',
                 reloadOnSearch: false,
                 resolve: {routeData: chain({
-                    hierarchy1: ['Hierarchy', '$route',
-                            function(Hierarchy, $route) {
-                        return Hierarchy.get({
-                            id: $route.current.params.hierarchy,
+                    survey1: ['Survey', '$route',
+                            function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey,
                             programId: $route.current.params.program1
                         }).$promise;
                     }],
-                    hierarchy2: ['Hierarchy', '$route',
-                            function(Hierarchy, $route) {
-                        return Hierarchy.get({
-                            id: $route.current.params.hierarchy,
+                    survey2: ['Survey', '$route',
+                            function(Survey, $route) {
+                        return Survey.get({
+                            id: $route.current.params.survey,
                             programId: $route.current.params.program2
                         }).$promise;
                     }]
