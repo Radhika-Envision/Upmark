@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import base64
-from configparser import ConfigParser
 import logging.config
 import os
 import time
@@ -9,7 +8,6 @@ import signal
 from ssl import SSLError, SSLEOFError
 
 from sqlalchemy import func
-import sqlalchemy.engine.reflection
 import sqlalchemy.orm
 import tornado
 import tornado.httpclient
@@ -167,37 +165,6 @@ def default_settings():
                 organisation=org)
             user.set_password("admin")
             session.add(user)
-
-        setting = session.query(model.SystemConfig).get('pass_threshold')
-        if setting is None:
-            setting = model.SystemConfig(name='pass_threshold')
-            setting.human_name = "Password Strength Threshold"
-            setting.description = "The minimum strength for a password, " \
-                "between 0.0 and 1.0, where 0.0 allows very weak passwords " \
-                "and 1.0 requires strong passwords (default 0.85)."
-            setting.user_defined = True
-            setting.value = 0.85
-            session.add(setting)
-
-        setting = session.query(model.SystemConfig).get('adhoc_timeout')
-        if setting is None:
-            setting = model.SystemConfig(name='adhoc_timeout')
-            setting.human_name = "Custom Query Time Limit"
-            setting.description = "The maximum number of seconds a custom "\
-                "query is allowed to run for (default 1.5)."
-            setting.user_defined = True
-            setting.value = 1.5
-            session.add(setting)
-
-        setting = session.query(model.SystemConfig).get('adhoc_max_limit')
-        if setting is None:
-            setting = model.SystemConfig(name='adhoc_max_limit')
-            setting.human_name = "Custom Query Row Limit"
-            setting.description = "The maximum number of rows a query can "\
-                "return (default 2500)."
-            setting.user_defined = True
-            setting.value = 2500
-            session.add(setting)
 
 
 def get_mappings():
