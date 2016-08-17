@@ -27,7 +27,7 @@
         Please choose a submission to duplicate.
     </p>
 
-    <search-box model="search" result="assessments">
+    <search-box model="search" result="submissions">
         <button class="btn btn-default" type="button"
                 title="{{
                     search.approval == 'final' ?
@@ -52,23 +52,23 @@
         </button>
     </search-box>
     <ul class="list-results">
-        <li ng-repeat="assessment in assessments">
-            <a ng-href="#/assessment/new?program={{program.id}}&organisation={{organisation.id}}&duplicate={{assessment.id}}">
-                <h4>{{assessment.title}}</h4>
+        <li ng-repeat="submission in submissions">
+            <a ng-href="#/submission/new?program={{program.id}}&organisation={{organisation.id}}&duplicate={{submission.id}}">
+                <h4>{{submission.title}}</h4>
                 <p>
                     Created
                     <span class="hidden-print">
-                        {{assessment.created * 1000 | timeAgo:'medium'}}
+                        {{submission.created * 1000 | timeAgo:'medium'}}
                     </span>
                     <span class="visible-print-inline">
-                        {{assessment.created * 1000 | date:'medium'}}.
+                        {{submission.created * 1000 | date:'medium'}}.
                     </span>
                     <span class="text-muted">in program</span>
-                    <i>{{assessment.program.title}}</i>
+                    <i>{{submission.program.title}}</i>
                 </p>
             </a>
         </li>
-        <li ng-if="!assessments.length">
+        <li ng-if="!submissions.length">
             No submissions match your search.
         </li>
     </ul>

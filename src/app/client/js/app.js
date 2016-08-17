@@ -284,9 +284,9 @@ angular.module('wsaa.aquamark',
                 })}
             })
 
-            .when('/assessment/new', {
-                templateUrl : 'assessment.html',
-                controller : 'AssessmentCtrl',
+            .when('/submission/new', {
+                templateUrl : 'submission.html',
+                controller : 'SubmissionCtrl',
                 resolve: {routeData: chain({
                     program: ['Program', '$route', function(Program, $route) {
                         return Program.get({
@@ -307,19 +307,19 @@ angular.module('wsaa.aquamark',
                             programId: program.id
                         }).$promise;
                     }],
-                    duplicate: ['Assessment', '$route',
-                            function(Assessment, $route) {
+                    duplicate: ['Submission', '$route',
+                            function(Submission, $route) {
                         if (!$route.current.params.duplicate)
                             return null;
-                        return Assessment.get({
+                        return Submission.get({
                             id: $route.current.params.duplicate
                         }).$promise;
                     }]
                 })}
             })
-            .when('/assessment/duplicate', {
-                templateUrl : 'assessment_dup.html',
-                controller : 'AssessmentDuplicateCtrl',
+            .when('/submission/duplicate', {
+                templateUrl : 'submission_dup.html',
+                controller : 'SubmissionDuplicateCtrl',
                 resolve: {routeData: chain({
                     program: ['Program', '$route', function(Program, $route) {
                         return Program.get({
@@ -336,9 +336,9 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/assessment/import', {
-                templateUrl : 'assessment_import.html',
-                controller : 'AssessmentImportCtrl',
+            .when('/submission/import', {
+                templateUrl : 'submission_import.html',
+                controller : 'SubmissionImportCtrl',
                 resolve: {routeData: chain({
                     program: ['Program', '$route', function(Program, $route) {
                         return Program.get({
@@ -361,18 +361,18 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/assessment/:assessment', {
-                templateUrl : 'assessment.html',
-                controller : 'AssessmentCtrl',
+            .when('/submission/:submission', {
+                templateUrl : 'submission.html',
+                controller : 'SubmissionCtrl',
                 resolve: {routeData: chain({
-                    assessment: ['Assessment', '$route',
-                            function(Assessment, $route) {
-                        return Assessment.get({
-                            id: $route.current.params.assessment
+                    submission: ['Submission', '$route',
+                            function(Submission, $route) {
+                        return Submission.get({
+                            id: $route.current.params.submission
                         }).$promise;
                     }],
-                    program: ['assessment', function(assessment) {
-                        return assessment.program;
+                    program: ['submission', function(submission) {
+                        return submission.program;
                     }]
                 })}
             })
@@ -407,27 +407,27 @@ angular.module('wsaa.aquamark',
                 templateUrl : 'qnode.html',
                 controller : 'QuestionNodeCtrl',
                 resolve: {routeData: chain({
-                    assessment: ['Assessment', '$route',
-                            function(Assessment, $route) {
-                        if (!$route.current.params.assessment)
+                    submission: ['Submission', '$route',
+                            function(Submission, $route) {
+                        if (!$route.current.params.submission)
                             return null;
-                        return Assessment.get({
-                            id: $route.current.params.assessment
+                        return Submission.get({
+                            id: $route.current.params.submission
                         }).$promise;
                     }],
-                    qnode: ['QuestionNode', '$route', 'assessment',
-                            function(QuestionNode, $route, assessment) {
+                    qnode: ['QuestionNode', '$route', 'submission',
+                            function(QuestionNode, $route, submission) {
                         return QuestionNode.get({
                             id: $route.current.params.qnode,
-                            programId: assessment ? assessment.program.id :
+                            programId: submission ? submission.program.id :
                                 $route.current.params.program,
                         }).$promise;
                     }],
-                    measures: ['Measure', '$route', 'assessment',
-                            function(Measure, $route, assessment) {
+                    measures: ['Measure', '$route', 'submission',
+                            function(Measure, $route, submission) {
                         return Measure.query({
                             qnodeId: $route.current.params.qnode,
-                            programId: assessment ? assessment.program.id :
+                            programId: submission ? submission.program.id :
                                 $route.current.params.program,
                         }).$promise;
                     }]
@@ -485,36 +485,36 @@ angular.module('wsaa.aquamark',
                 templateUrl : 'statistics.html',
                 controller : 'StatisticsCtrl',
                 resolve: {routeData: chain({
-                    assessment1: ['Assessment', '$route',
-                            function(Assessment, $route) {
-                        return Assessment.get({
-                            id: $route.current.params.assessment1
+                    submission1: ['Submission', '$route',
+                            function(Submission, $route) {
+                        return Submission.get({
+                            id: $route.current.params.submission1
                         }).$promise;
                     }],
-                    assessment2: ['Assessment', '$route',
-                            function(Assessment, $route) {
-                        if (!$route.current.params.assessment2)
+                    submission2: ['Submission', '$route',
+                            function(Submission, $route) {
+                        if (!$route.current.params.submission2)
                             return null;
-                        return Assessment.get({
-                            id: $route.current.params.assessment2
+                        return Submission.get({
+                            id: $route.current.params.submission2
                         }).$promise;
                     }],
                     rnodes1: ['ResponseNode', '$route',
                             function(ResponseNode, $route) {
                         var qnodeId = $route.current.params.qnode;
                         return ResponseNode.query({
-                            assessmentId: $route.current.params.assessment1,
+                            submissionId: $route.current.params.submission1,
                             parentId: qnodeId,
                             root: qnodeId ? null : ''
                         }).$promise;
                     }],
                     rnodes2: ['ResponseNode', '$route',
                             function(ResponseNode, $route) {
-                        if (!$route.current.params.assessment2)
+                        if (!$route.current.params.submission2)
                             return null;
                         var qnodeId = $route.current.params.qnode;
                         return ResponseNode.query({
-                            assessmentId: $route.current.params.assessment2,
+                            submissionId: $route.current.params.submission2,
                             parentId: qnodeId,
                             root: qnodeId ? null : ''
                         }).$promise;
@@ -522,17 +522,17 @@ angular.module('wsaa.aquamark',
                     approval: ['$route', function($route) {
                         return $route.current.params.approval || 'draft';
                     }],
-                    stats1: ['Statistics', '$route', 'assessment1', '$q',
-                             'assessment2',
-                            function(Statistics, $route, assessment1, $q,
-                                assessment2) {
+                    stats1: ['Statistics', '$route', 'submission1', '$q',
+                             'submission2',
+                            function(Statistics, $route, submission1, $q,
+                                submission2) {
                         return Statistics.get({
-                            id: assessment1.program.id,
+                            id: submission1.program.id,
                             parentId: $route.current.params.qnode == '' ?
                                 null : $route.current.params.qnode,
                             approval: $route.current.params.approval || 'draft'
                         }).$promise.then(function(stats1) {
-                            if (!assessment2 && stats1.length == 0) {
+                            if (!submission2 && stats1.length == 0) {
                                 return $q.reject(
                                     "There is no data for that category");
                             }
@@ -544,16 +544,16 @@ angular.module('wsaa.aquamark',
                             return stats1;
                         });
                     }],
-                    stats2: ['Statistics', '$route', 'assessment1',
-                             'assessment2', 'stats1', '$q',
-                            function(Statistics, $route, assessment1,
-                                     assessment2, stats1, $q) {
-                        if (!assessment2)
+                    stats2: ['Statistics', '$route', 'submission1',
+                             'submission2', 'stats1', '$q',
+                            function(Statistics, $route, submission1,
+                                     submission2, stats1, $q) {
+                        if (!submission2)
                             return null;
-                        if (assessment1.program.id == assessment2.program.id)
+                        if (submission1.program.id == submission2.program.id)
                             return stats1;
                         return Statistics.get({
-                            id: assessment2.program.id,
+                            id: submission2.program.id,
                             parentId: $route.current.params.qnode == '' ?
                                 null : $route.current.params.qnode,
                             approval: $route.current.params.approval || 'draft'
@@ -566,28 +566,28 @@ angular.module('wsaa.aquamark',
                             return stats1;
                         });
                     }],
-                    qnode1: ['QuestionNode', '$route', 'assessment1',
-                            function(QuestionNode, $route, assessment1) {
+                    qnode1: ['QuestionNode', '$route', 'submission1',
+                            function(QuestionNode, $route, submission1) {
                         if (!$route.current.params.qnode)
                             return null;
                         return QuestionNode.get({
-                            programId: assessment1.program.id,
+                            programId: submission1.program.id,
                             id: $route.current.params.qnode == '' ?
                                 null : $route.current.params.qnode
                         }).$promise;
                     }],
-                    qnode2: ['QuestionNode', '$route', 'assessment1',
-                             'assessment2', 'qnode1',
-                            function(QuestionNode, $route, assessment1,
-                                     assessment2, qnode1) {
+                    qnode2: ['QuestionNode', '$route', 'submission1',
+                             'submission2', 'qnode1',
+                            function(QuestionNode, $route, submission1,
+                                     submission2, qnode1) {
                         if (!$route.current.params.qnode)
                             return null;
-                        if (!assessment2)
+                        if (!submission2)
                             return null;
-                        if (assessment1.program.id == assessment2.program.id)
+                        if (submission1.program.id == submission2.program.id)
                             return qnode1;
                         return QuestionNode.get({
-                            programId: assessment2.program.id,
+                            programId: submission2.program.id,
                             id: $route.current.params.qnode == '' ?
                                 null : $route.current.params.qnode
                         }).$promise;
@@ -663,17 +663,17 @@ angular.module('wsaa.aquamark',
                 templateUrl : 'measure.html',
                 controller : 'MeasureCtrl',
                 resolve: {routeData: chain({
-                    assessment: ['Assessment', '$route',
-                            function(Assessment, $route) {
-                        if (!$route.current.params.assessment)
+                    submission: ['Submission', '$route',
+                            function(Submission, $route) {
+                        if (!$route.current.params.submission)
                             return null;
-                        return Assessment.get({
-                            id: $route.current.params.assessment
+                        return Submission.get({
+                            id: $route.current.params.submission
                         }).$promise;
                     }],
                     parent: ['QuestionNode', '$route',
                             function(QuestionNode, $route) {
-                        if ($route.current.params.assessment)
+                        if ($route.current.params.submission)
                             return null;
                         if (!$route.current.params.parent)
                             return null;
@@ -686,13 +686,13 @@ angular.module('wsaa.aquamark',
                             function(Measure, $route) {
                         return Measure.get({
                             id: $route.current.params.measure,
-                            programId: $route.current.params.assessment
+                            programId: $route.current.params.submission
                                 ? null
                                 : $route.current.params.program,
-                            parentId: $route.current.params.assessment
+                            parentId: $route.current.params.submission
                                 ? null
                                 : $route.current.params.parent,
-                            assessmentId: $route.current.params.assessment
+                            submissionId: $route.current.params.submission
                         }).$promise;
                     }]
                 })}

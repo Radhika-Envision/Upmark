@@ -82,7 +82,7 @@ class ImportResponseHandler(handlers.BaseHandler):
         i.process_structure_file(file_path, title, description)
 
 
-class ImportAssessmentHandler(handlers.BaseHandler):
+class ImportSubmissionHandler(handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @handlers.authz('author')
@@ -108,7 +108,7 @@ class ImportAssessmentHandler(handlers.BaseHandler):
         survey_id = self.get_argument("survey")
         title = self.get_argument('title')
         user_id = self.get_current_user().id
-        program_id = i.process_assessment_file(file_path, program_id, survey_id, organisation_id, title, user_id)
+        program_id = i.process_submission_file(file_path, program_id, survey_id, organisation_id, title, user_id)
         return program_id
 
 
@@ -291,7 +291,7 @@ class Importer():
         TODO : process response
         '''
 
-    def process_assessment_file(self, path, program_id, survey_id, organisation_id, title, user_id):
+    def process_submission_file(self, path, program_id, survey_id, organisation_id, title, user_id):
         """
         Open and read an Excel file
         """
@@ -317,13 +317,13 @@ class Importer():
             if survey is None:
                 raise Exception("There is no survey.")
 
-            assessment = model.Assessment()
-            assessment.program_id = program.id
-            assessment.survey_id = survey.id
-            assessment.organisation_id = organisation_id
-            assessment.title = title
-            assessment.approval = 'draft'
-            session.add(assessment)
+            submission = model.Submission()
+            submission.program_id = program.id
+            submission.survey_id = survey.id
+            submission.organisation_id = organisation_id
+            submission.title = title
+            submission.approval = 'draft'
+            session.add(submission)
             session.flush()
 
             all_rows = []
@@ -376,7 +376,7 @@ class Importer():
                     response = model.Response()
                     response.program_id = program_id
                     response.measure_id = measure.id
-                    response.assessment_id = assessment.id
+                    response.submission_id = submission.id
                     response.user_id = user_id
                     response.comment = all_rows[row_num][self.col2num("K")]
                     response.not_relevant = False # Need to fix this hard coding
@@ -406,7 +406,7 @@ class Importer():
                     (row_num + 2, order, title, str(e)))
 
             try:
-                assessment.update_stats_descendants()
+                submission.update_stats_descendants()
             except model.ModelError as e:
                 raise handlers.ModelError(str(e))
 

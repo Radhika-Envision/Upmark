@@ -23,15 +23,15 @@ log = logging.getLogger('app.crud.response')
 STATES = ['draft', 'final', 'reviewed', 'approved']
 
 
-def check_approval_change(role, assessment, approval):
+def check_approval_change(role, submission, approval):
     '''
     Check whether a user can set the state of a response, given the current
-    state of the assessment.
+    state of the submission.
     '''
-    if STATES.index(assessment.approval) > STATES.index(approval):
+    if STATES.index(submission.approval) > STATES.index(approval):
         raise handlers.ModelError(
             "The submission has a state of '%s'."
-            % assessment.approval)
+            % submission.approval)
 
     if role in {'org_admin', 'clerk'}:
         if approval not in {'draft', 'final'}:
@@ -67,18 +67,18 @@ def check_modify(role, response):
 class ResponseHandler(handlers.BaseHandler):
 
     @tornado.web.authenticated
-    def get(self, assessment_id, measure_id):
+    def get(self, submission_id, measure_id):
         '''Get a single response.'''
 
         if measure_id == '':
-            self.query(assessment_id)
+            self.query(submission_id)
             return
 
         version = self.get_argument('version', '')
 
         with model.session_scope() as session:
             response = (session.query(model.Response)
-                    .filter_by(assessment_id=assessment_id,
+                    .filter_by(submission_id=submission_id,
                                measure_id=measure_id)
                     .first())
 
@@ -99,7 +99,7 @@ class ResponseHandler(handlers.BaseHandler):
             else:
                 response_history = None
 
-            self._check_authz(response.assessment)
+            self._check_authz(response.submission)
 
             to_son = ToSon(
                 # Fields to match from any visited object
@@ -107,7 +107,7 @@ class ResponseHandler(handlers.BaseHandler):
                 r'/title$',
                 r'/name$',
                 # Fields to match from only the root object
-                r'^/assessment_id$',
+                r'^/submission_id$',
                 r'^/measure_id$',
                 r'<^/comment$',
                 r'^/response_parts.*$',
@@ -121,7 +121,7 @@ class ResponseHandler(handlers.BaseHandler):
                 # Descend
                 r'/parent$',
                 r'/measure$',
-                r'/assessment$',
+                r'/submission$',
                 r'/user$',
             )
             to_son.exclude(
@@ -133,22 +133,22 @@ class ResponseHandler(handlers.BaseHandler):
                 son = to_son(response)
             else:
                 son = to_son(response_history)
-                assessment = (session.query(model.Assessment)
-                        .filter_by(id=response_history.assessment_id)
+                submission = (session.query(model.Submission)
+                        .filter_by(id=response_history.submission_id)
                         .first())
                 measure = (session.query(model.Measure)
                         .filter_by(id=response_history.measure_id,
-                                   program_id=assessment.program_id)
+                                   program_id=submission.program_id)
                         .first())
-                parent = (measure.get_parent(assessment.survey_id)
-                        .get_rnode(assessment_id))
+                parent = (measure.get_parent(submission.survey_id)
+                        .get_rnode(submission_id))
                 user = (session.query(model.AppUser)
                         .filter_by(id=response_history.user_id)
                         .first())
                 dummy_relations = {
                     'parent': parent,
                     'measure': measure,
-                    'assessment': assessment,
+                    'submission': submission,
                     'user': user
                 }
                 son.update(to_son(dummy_relations))
@@ -157,23 +157,23 @@ class ResponseHandler(handlers.BaseHandler):
         self.write(json_encode(son))
         self.finish()
 
-    def query(self, assessment_id):
+    def query(self, submission_id):
         '''Get a list.'''
         qnode_id = self.get_argument('qnodeId', '')
         if qnode_id == '':
             raise handlers.ModelError("qnode ID required")
 
         with model.session_scope() as session:
-            assessment = (session.query(model.Assessment)
-                .filter_by(id=assessment_id)
+            submission = (session.query(model.Submission)
+                .filter_by(id=submission_id)
                 .first())
 
-            if assessment is None:
+            if submission is None:
                 raise handlers.MissingDocError("No such submission")
-            self._check_authz(assessment)
+            self._check_authz(submission)
 
             rnode = (session.query(model.ResponseNode)
-                .filter_by(assessment_id=assessment_id,
+                .filter_by(submission_id=submission_id,
                            qnode_id=qnode_id)
                 .first())
 
@@ -203,38 +203,38 @@ class ResponseHandler(handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
-    # There is no POST, because responses are accessed by measure + assessment
+    # There is no POST, because responses are accessed by measure + submission
     # instead of by their own ID.
 
     @tornado.web.authenticated
-    def put(self, assessment_id, measure_id):
+    def put(self, submission_id, measure_id):
         '''Save (create or update).'''
 
         approval = self.get_argument('approval', '')
 
         try:
             with model.session_scope(version=True) as session:
-                assessment = (session.query(model.Assessment)
-                    .get(assessment_id))
-                if assessment is None:
+                submission = (session.query(model.Submission)
+                    .get(submission_id))
+                if submission is None:
                     raise handlers.MissingDocError("No such submission")
 
-                self._check_authz(assessment)
+                self._check_authz(submission)
 
                 query = (session.query(model.Response).filter_by(
-                     assessment_id=assessment_id, measure_id=measure_id))
+                     submission_id=submission_id, measure_id=measure_id))
                 response = query.first()
 
                 verbs = []
                 if response is None:
                     measure = (session.query(model.Measure)
-                        .get((measure_id, assessment.program.id)))
+                        .get((measure_id, submission.program.id)))
                     if measure is None:
                         raise handlers.MissingDocError("No such measure")
                     response = model.Response(
-                        assessment_id=assessment_id,
+                        submission_id=submission_id,
                         measure_id=measure_id,
-                        program_id=assessment.program.id,
+                        program_id=submission.program.id,
                         approval='draft')
                     session.add(response)
                     verbs.append('create')
@@ -258,7 +258,7 @@ class ResponseHandler(handlers.BaseHandler):
 
                 if approval != '':
                     check_approval_change(
-                        self.current_user.role, assessment, approval)
+                        self.current_user.role, submission, approval)
 
                     if approval != response.approval:
                         verbs.append('state')
@@ -280,16 +280,16 @@ class ResponseHandler(handlers.BaseHandler):
                 act = Activities(session)
                 act.record(self.current_user, response, verbs)
                 if not act.has_subscription(self.current_user, response):
-                    act.subscribe(self.current_user, response.assessment)
+                    act.subscribe(self.current_user, response.submission)
                     self.reason("Subscribed to submission")
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.get(assessment_id, measure_id)
+        self.get(submission_id, measure_id)
 
-    def _check_authz(self, assessment):
+    def _check_authz(self, submission):
         if not self.has_privillege('consultant'):
-            if assessment.organisation.id != self.organisation.id:
+            if submission.organisation.id != self.organisation.id:
                 raise handlers.AuthzError(
                     "You can't modify another organisation's response")
 
@@ -322,18 +322,18 @@ class ResponseHandler(handlers.BaseHandler):
 
 class ResponseHistoryHandler(handlers.Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
-    def get(self, assessment_id, measure_id):
+    def get(self, submission_id, measure_id):
         '''Get a list of versions of a response.'''
         with model.session_scope() as session:
             # Current version
             versions = (session.query(model.Response)
-                .filter_by(assessment_id=assessment_id,
+                .filter_by(submission_id=submission_id,
                            measure_id=measure_id)
                 .all())
 
             # Other versions
             query = (session.query(model.ResponseHistory)
-                .filter_by(assessment_id=assessment_id,
+                .filter_by(submission_id=submission_id,
                            measure_id=measure_id)
                 .order_by(model.ResponseHistory.version.desc()))
             query = self.paginate(query)

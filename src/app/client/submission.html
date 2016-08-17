@@ -31,9 +31,9 @@
         </span>
 
         <a class="btn btn-default btn-round" title="Statistics"
-                ng-href="#/statistics?assessment1={{assessment.id}}"
+                ng-href="#/statistics?submission1={{submission.id}}"
                 ng-if="!structure.deletedItem && !edit.model &&
-                       checkRole('assessment_admin')">
+                       checkRole('submission_admin')">
             <i class="fa fa-sml fa-bar-chart-o"></i></a>
         <button class="btn btn-default btn-round" title="Collapse"
                 ng-click="layout.expandHeader = !layout.expandHeader">
@@ -46,8 +46,8 @@
             <i class="fa fa-print"></i>
         </button>
 
-        <delete-button model="assessment" editor="edit"
-                ng-if="!edit.model && checkRole('assessment_admin')"></delete-button>
+        <delete-button model="submission" editor="edit"
+                ng-if="!edit.model && checkRole('submission_admin')"></delete-button>
 
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
@@ -66,18 +66,18 @@
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
                 ng-if="!structure.deletedItem && !edit.model &&
-                       checkRole('assessment_edit')">
+                       checkRole('submission_edit')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/subscription/submission?id={{assessment.id}}"
+                ng-href="#/subscription/submission?id={{submission.id}}"
                 ng-if="!edit.model">
             <i class="fa fa-envelope"></i></a>
     </div>
-    <question-header entity="assessment.survey" assessment="assessment"></question-header>
+    <question-header entity="submission.survey" submission="submission"></question-header>
 </div>
 </div>
 
-<assessment-header ng-if="!edit.model"></assessment-header>
+<submission-header ng-if="!edit.model"></submission-header>
 
 <div class="container" ng-if="edit.model && !edit.model.survey">
     <p>
@@ -126,14 +126,14 @@
 
 <div ng-if="!edit.model" class="container">
     <!-- Don't wrap the contents of this tag! -->
-    <p ng-if="assessment.survey.description"
-            class="formatted">Submission against {{assessment.survey.description}}</p>
+    <p ng-if="submission.survey.description"
+            class="formatted">Submission against {{submission.survey.description}}</p>
 
-    <approval-buttons class="spaced" model="assessment.approval"
+    <approval-buttons class="spaced" model="submission.approval"
             ng-if="!structure.deletedItem"
             set-state="setState(state)"></approval-buttons>
     <p ng-class="structure.deletedItem ? null : 'visible-print'">
-        Status: {{assessment.approval}}.
+        Status: {{submission.approval}}.
     </p>
     <docs>
         <i class="fa-li fa fa-chevron-right fa-border"></i>

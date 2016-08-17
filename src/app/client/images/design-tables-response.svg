@@ -260,7 +260,7 @@
          x="370"
          y="760"
          id="tspan4948"
-         style="font-size:16px">assessment</tspan></text>
+         style="font-size:16px">submission</tspan></text>
     <rect
        style="fill:#ededed;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:2.12132025;stroke-miterlimit:10;stroke-opacity:1;stroke-dasharray:none"
        id="rect4950"
@@ -294,7 +294,7 @@
          x="610"
          y="834"
          style="font-size:12px"
-         id="tspan5225">assessment_id</tspan><tspan
+         id="tspan5225">submission_id</tspan><tspan
          sodipodi:role="line"
          x="610"
          y="849"
@@ -441,7 +441,7 @@
          x="850"
          y="849"
          style="font-size:12px"
-         id="tspan5289">assessment_id</tspan><tspan
+         id="tspan5289">submission_id</tspan><tspan
          sodipodi:role="line"
          x="850"
          y="864"

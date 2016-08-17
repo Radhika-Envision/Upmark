@@ -164,7 +164,7 @@ class DaemonTest(base.AqHttpTestBase):
             notifications.process_loop()
         self.assertEqual(len(messages), 1)
 
-    def create_assessment(self):
+    def create_submission(self):
         # Respond to a survey
         with model.session_scope() as session:
             program = session.query(model.Program).one()
@@ -177,13 +177,13 @@ class DaemonTest(base.AqHttpTestBase):
             survey = (session.query(model.Survey)
                     .filter_by(title='Survey 1')
                     .one())
-            assessment = model.Assessment(
+            submission = model.Submission(
                 program_id=program.id,
                 organisation_id=organisation.id,
                 survey_id=survey.id,
                 title="Submission",
                 approval='draft')
-            session.add(assessment)
+            session.add(submission)
 
             for m in program.measures:
                 if not any(p.survey_id == survey.id for p in m.parents):
@@ -191,7 +191,7 @@ class DaemonTest(base.AqHttpTestBase):
                 response = model.Response(
                     program_id=program.id,
                     measure_id=m.id,
-                    assessment=assessment,
+                    submission=submission,
                     user_id=user.id)
                 response.attachments = []
                 response.not_relevant = False
@@ -204,22 +204,22 @@ class DaemonTest(base.AqHttpTestBase):
                 else:
                     response.response_parts = [{'value': 1}]
 
-            assessment.update_stats_descendants()
-            functions = list(assessment.rnodes)
+            submission.update_stats_descendants()
+            functions = list(submission.rnodes)
             self.assertAlmostEqual(functions[0].score, 20)
             self.assertAlmostEqual(functions[1].score, 0)
             self.assertAlmostEqual(functions[0].qnode.total_weight, 20)
             self.assertAlmostEqual(functions[1].qnode.total_weight, 0)
 
-            return assessment.id
+            return submission.id
 
     def test_recalculate(self):
-        aid = self.create_assessment()
+        aid = self.create_submission()
         with model.session_scope() as session:
-            assessment = session.query(model.Assessment).get(aid)
-            sid = assessment.program_id
-            process_id = assessment.survey.qnodes[0].children[0].id
-            function_2_id = assessment.survey.qnodes[1].id
+            submission = session.query(model.Submission).get(aid)
+            sid = submission.program_id
+            process_id = submission.survey.qnodes[0].children[0].id
+            function_2_id = submission.survey.qnodes[1].id
 
         # Move a process (qnode) to a different function
         with base.mock_user('author'):
@@ -233,8 +233,8 @@ class DaemonTest(base.AqHttpTestBase):
 
         # Check that rnode score is out of date
         with model.session_scope() as session:
-            assessment = session.query(model.Assessment).get(aid)
-            functions = list(assessment.rnodes)
+            submission = session.query(model.Submission).get(aid)
+            functions = list(submission.rnodes)
             self.assertAlmostEqual(functions[0].score, 20)
             self.assertAlmostEqual(functions[1].score, 0)
             self.assertAlmostEqual(functions[0].qnode.total_weight, 11)
@@ -253,20 +253,20 @@ class DaemonTest(base.AqHttpTestBase):
 
         # Check that rnode score is no longer out of date
         with model.session_scope() as session:
-            assessment = session.query(model.Assessment).get(aid)
-            functions = list(assessment.rnodes)
+            submission = session.query(model.Submission).get(aid)
+            functions = list(submission.rnodes)
             self.assertAlmostEqual(functions[0].score, 11)
             self.assertAlmostEqual(functions[1].score, 9)
             self.assertAlmostEqual(functions[0].qnode.total_weight, 11)
             self.assertAlmostEqual(functions[1].qnode.total_weight, 9)
 
     def test_recalculate_failure(self):
-        aid = self.create_assessment()
+        aid = self.create_submission()
         with model.session_scope() as session:
-            assessment = session.query(model.Assessment).get(aid)
-            sid = assessment.program_id
-            process_id = assessment.survey.qnodes[0].children[0].id
-            function_2_id = assessment.survey.qnodes[1].id
+            submission = session.query(model.Submission).get(aid)
+            sid = submission.program_id
+            process_id = submission.survey.qnodes[0].children[0].id
+            function_2_id = submission.survey.qnodes[1].id
 
         # Move a process (qnode) to a different function
         with base.mock_user('author'):
@@ -286,7 +286,7 @@ class DaemonTest(base.AqHttpTestBase):
 
         messages = []
         with mock.patch('recalculate.send', send), \
-                mock.patch('model.Assessment.update_stats_descendants',
+                mock.patch('model.Submission.update_stats_descendants',
                            side_effect=model.ModelError):
             recalculate.process_once(config)
             self.assertEqual(len(messages), 1)

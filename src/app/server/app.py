@@ -219,14 +219,14 @@ def get_mappings():
         (r"/measure/?([^/]*)/program.json", crud.program.ProgramHistoryHandler, {
             'mapper': model.Measure}),
 
-        (r"/assessment/?([^/]*).json", crud.assessment.AssessmentHandler, {}),
-        (r"/assessment/([^/]*)/rnode/?([^/]*).json",
+        (r"/submission/?([^/]*).json", crud.submission.SubmissionHandler, {}),
+        (r"/submission/([^/]*)/rnode/?([^/]*).json",
             crud.rnode.ResponseNodeHandler, {}),
-        (r"/assessment/([^/]*)/response/?([^/]*).json",
+        (r"/submission/([^/]*)/response/?([^/]*).json",
             crud.response.ResponseHandler, {}),
-        (r"/assessment/([^/]*)/response/?([^/]*)/history.json",
+        (r"/submission/([^/]*)/response/?([^/]*)/history.json",
             crud.response.ResponseHistoryHandler, {}),
-        (r"/assessment/([^/]*)/measure/([^/]*)/attachment.json",
+        (r"/submission/([^/]*)/measure/([^/]*)/attachment.json",
             crud.attachment.ResponseAttachmentsHandler, {}),
         (r"/attachment/([^/]*).json",
             crud.attachment.AttachmentHandler, {}),
@@ -237,8 +237,8 @@ def get_mappings():
             report_handlers.DiffHandler, {}),
         (r"/export/program/([^/]*)/survey/([^/]*)/([^.]+)\.(.+)",
             export_handlers.ExportProgramHandler, {}),
-        (r"/export/assessment/([^/]*)/([^.]+)\.(.+)",
-            export_handlers.ExportAssessmentHandler, {}),
+        (r"/export/submission/([^/]*)/([^.]+)\.(.+)",
+            export_handlers.ExportSubmissionHandler, {}),
         (r"/adhoc_query\.(.+)",
             report_handlers.AdHocHandler, {}),
         (r"/reformat.sql",
@@ -246,7 +246,7 @@ def get_mappings():
 
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response.json", import_handlers.ImportResponseHandler, {}),
-        (r"/import/assessment.json", import_handlers.ImportAssessmentHandler, {}),
+        (r"/import/submission.json", import_handlers.ImportSubmissionHandler, {}),
         (r"/redirect", handlers.RedirectHandler),
 
         (r"/(.*)", tornado.web.StaticFileHandler, {

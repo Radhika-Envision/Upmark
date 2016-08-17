@@ -1,40 +1,40 @@
 <div class="subheader bg-muted">
 
 <div>
-<div class="container text-center text-muted assessment-header"
+<div class="container text-center text-muted submission-header"
          title="Switch to a different survey">
-    <div ng-if="!assessment">
+    <div ng-if="!submission">
         <span>
             Viewing questions only
         </span>
     </div>
-    <div title="Organisation" ng-if="assessment">
-        <a ng-href="#/org/{{assessment.organisation.id}}"
+    <div title="Organisation" ng-if="submission">
+        <a ng-href="#/org/{{submission.organisation.id}}"
                 class="stealth btn btn-link">
-            {{assessment.organisation.name}}</a>
+            {{submission.organisation.name}}</a>
     </div>
-    <div title="Submission" ng-if="assessment">
-        <a ng-href="#/assessment/{{assessment.id}}"
+    <div title="Submission" ng-if="submission">
+        <a ng-href="#/submission/{{submission.id}}"
                 class="stealth btn btn-link">
-            {{assessment.title}}</a>
+            {{submission.title}}</a>
     </div>
     <div class="hidden-print">
         <button class="btn-round btn btn-default"
                 ng-click="toggleDropdown()">
             <i class="fa fa-caret-up"
-                ng-if="showAssessmentChooser"></i>
+                ng-if="showSubmissionChooser"></i>
             <i class="fa fa-caret-down"
-                ng-if="!showAssessmentChooser"></i>
+                ng-if="!showSubmissionChooser"></i>
         </button>
     </div>
 </div>
 </div>
 
-<div class="atop" ng-if="showAssessmentChooser"
-        assessment-select="assessment"
+<div class="atop" ng-if="showSubmissionChooser"
+        submission-select="submission"
         org="org"
         track program="structure.program"
         survey="structure.survey"
-        format-url="getAssessmentUrl"></div>
+        format-url="getSubmissionUrl"></div>
 
 </div>

@@ -3,8 +3,8 @@
 angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 
 
-.factory('Assessment', ['$resource', 'paged', function($resource, paged) {
-    return $resource('/assessment/:id.json', {id: '@id'}, {
+.factory('Submission', ['$resource', 'paged', function($resource, paged) {
+    return $resource('/submission/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         create: { method: 'POST' },
         save: { method: 'PUT' },
@@ -17,21 +17,21 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 
 
 .factory('Response', ['$resource', function($resource) {
-    return $resource('/assessment/:assessmentId/response/:measureId.json',
-            {assessmentId: '@assessmentId', measureId: '@measureId'}, {
+    return $resource('/submission/:submissionId/response/:measureId.json',
+            {submissionId: '@submissionId', measureId: '@measureId'}, {
         get: { method: 'GET', cache: false },
         save: { method: 'PUT' },
         query: { method: 'GET', isArray: true, cache: false },
         history: { method: 'GET',
-            url: '/assessment/:assessmentId/response/:measureId/history.json',
+            url: '/submission/:submissionId/response/:measureId/history.json',
             isArray: true, cache: false }
     });
 }])
 
 
 .factory('ResponseNode', ['$resource', function($resource) {
-    return $resource('/assessment/:assessmentId/rnode/:qnodeId.json',
-            {assessmentId: '@assessmentId', qnodeId: '@qnodeId'}, {
+    return $resource('/submission/:submissionId/rnode/:qnodeId.json',
+            {submissionId: '@submissionId', qnodeId: '@qnodeId'}, {
         get: { method: 'GET', cache: false },
         save: { method: 'PUT' },
         query: { method: 'GET', isArray: true, cache: false }
@@ -39,24 +39,24 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 }])
 
 
-.controller('AssessmentCtrl', [
-        '$scope', 'Assessment', 'Survey', 'routeData', 'Editor',
+.controller('SubmissionCtrl', [
+        '$scope', 'Submission', 'Survey', 'routeData', 'Editor',
         'questionAuthz', 'layout', '$location', 'Current', 'format', '$filter',
         'Notifications', 'Structure', '$http',
-        function($scope, Assessment, Survey, routeData, Editor, authz,
+        function($scope, Submission, Survey, routeData, Editor, authz,
                  layout, $location, current, format, $filter, Notifications,
                  Structure, $http) {
 
     $scope.layout = layout;
     $scope.program = routeData.program;
-    $scope.edit = Editor('assessment', $scope, {});
-    if (routeData.assessment) {
+    $scope.edit = Editor('submission', $scope, {});
+    if (routeData.submission) {
         // Editing old
-        $scope.assessment = routeData.assessment;
+        $scope.submission = routeData.submission;
         $scope.children = routeData.qnodes;
     } else {
         // Creating new
-        $scope.assessment = new Assessment({
+        $scope.submission = new Submission({
             program: $scope.program,
             organisation: routeData.organisation
         });
@@ -64,10 +64,10 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         $scope.edit.params.orgId = routeData.organisation.id;
         $scope.surveys = routeData.surveys;
         if ($scope.surveys.length == 1) {
-            $scope.assessment.survey = $scope.surveys[0];
+            $scope.submission.survey = $scope.surveys[0];
             // Patch in program, which is needed by Structure by is not provided
             // by the web service when requesting a list.
-            $scope.assessment.survey.program = $scope.program;
+            $scope.submission.survey.program = $scope.program;
         }
         $scope.duplicate = routeData.duplicate;
         if ($scope.duplicate)
@@ -75,11 +75,11 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         $scope.edit.edit();
     }
 
-    $scope.$watchGroup(['assessment', 'assessment.deleted'], function(vars) {
-        var assessment = vars[0];
-        if (!assessment)
+    $scope.$watchGroup(['submission', 'submission.deleted'], function(vars) {
+        var submission = vars[0];
+        if (!submission)
             return;
-        $scope.structure = Structure(assessment);
+        $scope.structure = Structure(submission);
     });
 
     $scope.$watch('edit.model.survey', function(survey) {
@@ -94,7 +94,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
     });
 
     $scope.setState = function(state) {
-        $scope.assessment.$save({approval: state},
+        $scope.submission.$save({approval: state},
             function success() {
                 Notifications.set('edit', 'success', "Saved", 5000);
             },
@@ -107,17 +107,17 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
-            '/assessment/{}', model.id, $scope.program.id));
+            '/submission/{}', model.id, $scope.program.id));
     });
     $scope.$on('EditDeleted', function(event, model) {
         $location.url(format(
             '/program/{}', $scope.program.id));
     });
 
-    $scope.checkRole = authz(current, $scope.program, $scope.assessment);
+    $scope.checkRole = authz(current, $scope.program, $scope.submission);
 
     $scope.download = function(export_type) {
-        var url = '/export/assessment/' + $scope.assessment.id;
+        var url = '/export/submission/' + $scope.submission.id;
         url += '/' + export_type + '.xlsx';
 
         $http.get(url, { responseType: "arraybuffer", cache: false }).then(
@@ -139,16 +139,16 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 }])
 
 
-.controller('AssessmentDuplicateCtrl', [
-        '$scope', 'Assessment', 'routeData', 'layout', '$location',
+.controller('SubmissionDuplicateCtrl', [
+        '$scope', 'Submission', 'routeData', 'layout', '$location',
         'Current', 'format', '$filter', 'Notifications',
-        function($scope, Assessment, routeData, layout, $location,
+        function($scope, Submission, routeData, layout, $location,
                  Current, format, $filter, Notifications) {
 
     $scope.layout = layout;
     $scope.program = routeData.program;
     $scope.organisation = routeData.organisation;
-    $scope.assessments = null;
+    $scope.submissions = null;
 
     $scope.search = {
         term: "",
@@ -159,8 +159,8 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         pageSize: 10
     };
     $scope.$watch('search', function(search) {
-        Assessment.query(search).$promise.then(function(assessments) {
-            $scope.assessments = assessments;
+        Submission.query(search).$promise.then(function(submissions) {
+            $scope.submissions = submissions;
         });
     }, true);
     $scope.cycleApproval = function() {
@@ -173,11 +173,11 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 }])
 
 
-.controller('AssessmentImportCtrl', [
-        '$scope', 'Assessment', 'Survey', 'routeData', 'Editor',
+.controller('SubmissionImportCtrl', [
+        '$scope', 'Submission', 'Survey', 'routeData', 'Editor',
         'questionAuthz', 'layout', '$location', 'Current', 'format', '$filter',
         'Notifications', '$http', '$cookies', '$timeout',
-        function($scope, Assessment, Survey, routeData, Editor, authz,
+        function($scope, Submission, Survey, routeData, Editor, authz,
                  layout, $location, current, format, $filter, Notifications,
                  $http, $cookies, $timeout) {
 
@@ -189,14 +189,14 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         uploadFraction: 0.0
     };
     Notifications.remove('import');
-    $scope.assessment = new Assessment({
+    $scope.submission = new Submission({
         program: $scope.program,
         survey : null,
         title: "Imported Submission",
         organisation: routeData.organisation
     });
     if ($scope.surveys.length == 1) {
-        $scope.assessment.survey = $scope.surveys[0];
+        $scope.submission.survey = $scope.surveys[0];
     }
 
     var headers = {};
@@ -204,7 +204,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
     headers[xsrfName] = $cookies.get($http.defaults.xsrfCookieName);
 
     var config = {
-        url: '/import/assessment.json',
+        url: '/import/submission.json',
         maxFilesize: 50,
         paramName: "file",
         acceptedFiles: ".xls,.xlsx",
@@ -231,9 +231,9 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 
     dropzone.on('sending', function(file, xhr, formData) {
         formData.append('program', $scope.program.id);
-        formData.append('organisation', $scope.assessment.organisation.id);
-        formData.append('survey', $scope.assessment.survey.id);
-        formData.append('title', $scope.assessment.title);
+        formData.append('organisation', $scope.submission.organisation.id);
+        formData.append('survey', $scope.submission.survey.id);
+        formData.append('title', $scope.submission.title);
     });
 
     dropzone.on('uploadprogress', function(file, progress) {
@@ -270,7 +270,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         $scope.$apply();
     });
 
-    $scope.checkRole = authz(current, $scope.assessment);
+    $scope.checkRole = authz(current, $scope.submission);
 }])
 
 

@@ -315,7 +315,7 @@ angular.module('wsaa.admin', [
                         return false;
                     return Roles.hasPermission(current.user.role, 'org_admin');
                     break;
-                case 'assessment_browse':
+                case 'submission_browse':
                     if (current.user.organisation.id == org.id)
                         return true;
                     return Roles.hasPermission(current.user.role, 'consultant');

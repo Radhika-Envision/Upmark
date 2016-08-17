@@ -30,15 +30,15 @@ class MeasureHandler(
 
         '''Get a single measure.'''
         parent_id = self.get_argument('parentId', '')
-        assessment_id = self.get_argument('assessmentId', '')
+        submission_id = self.get_argument('submissionId', '')
 
         with model.session_scope() as session:
-            if assessment_id:
-                assessment = session.query(model.Assessment).get(assessment_id)
-                if not assessment:
+            if submission_id:
+                submission = session.query(model.Submission).get(submission_id)
+                if not submission:
                     raise handlers.MissingDocError("No such submission")
-                program_id = assessment.program_id
-                survey_id = assessment.survey_id
+                program_id = submission.program_id
+                survey_id = submission.survey_id
                 parent = None
             elif parent_id:
                 program_id = self.program_id
@@ -85,7 +85,7 @@ class MeasureHandler(
                 r'/response_types.*$',
                 r'/has_quality$',
             )
-            if not assessment_id:
+            if not submission_id:
                 to_son.add(
                     r'/parents$',
                     r'/parents/[0-9]+$',

@@ -120,12 +120,12 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
             return format("/measure/{}?program={}",
                 action.obIds[0], action.obIds[1]);
         case 'submission':
-            return format("/assessment/{}", action.obIds[0]);
+            return format("/submission/{}", action.obIds[0]);
         case 'rnode':
-            return format("/qnode/{}?assessment={}",
+            return format("/qnode/{}?submission={}",
                 action.obIds[0], action.obIds[1]);
         case 'response':
-            return format("/measure/{}?assessment={}",
+            return format("/measure/{}?submission={}",
                 action.obIds[0], action.obIds[1]);
         default:
             return '';

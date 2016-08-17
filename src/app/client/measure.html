@@ -34,20 +34,20 @@
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
                 ng-href="#/subscription/measure?id={{measure.id}}&id={{program.id}}"
-                ng-if="!edit.model && !assessment">
+                ng-if="!edit.model && !submission">
             <i class="fa fa-envelope"></i></a>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/subscription/response?id={{measure.id}}&id={{assessment.id}}"
-                ng-if="!edit.model && assessment">
+                ng-href="#/subscription/response?id={{measure.id}}&id={{submission.id}}"
+                ng-if="!edit.model && submission">
             <i class="fa fa-envelope"></i></a>
         <program-history entity="measure" service="Measure"
-                ng-if="!assessment && !edit.model"></program-history>
+                ng-if="!submission && !edit.model"></program-history>
     </div>
-    <question-header entity="measure" assessment="assessment"></question-header>
+    <question-header entity="measure" submission="submission"></question-header>
 </div>
 </div>
 
-<assessment-header></assessment-header>
+<submission-header></submission-header>
 
 <div ng-if="edit.model" class="container">
     <form novalidate name="form" id="editor" form-nav-warn>
@@ -130,7 +130,7 @@
     </p>
 </docs>
 
-<div class="container spaced" ng-if="!edit.model && assessment">
+<div class="container spaced" ng-if="!edit.model && submission">
     <response type="responseType" model="response" weight="measure.weight"
             readonly="!!structure.deletedItem" has-quality="structure.program.hasQuality">
         <span ng-controller="ResponseHistory" uib-dropdown

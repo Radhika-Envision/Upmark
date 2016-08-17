@@ -463,20 +463,20 @@ class SubscriptionHandler(handlers.BaseHandler):
 
         elif ob_type == 'submission':
             arglen(len(ob_refs), 1)
-            query = (session.query(model.Assessment)
-                .filter(model.Assessment.id == ob_refs[0]))
+            query = (session.query(model.Submission)
+                .filter(model.Submission.id == ob_refs[0]))
 
         elif ob_type == 'rnode':
             arglen(len(ob_refs), 2, 2)
             query = (session.query(model.ResponseNode)
                 .filter(model.ResponseNode.qnode_id == ob_refs[0],
-                        model.ResponseNode.assessment_id == ob_refs[1]))
+                        model.ResponseNode.submission_id == ob_refs[1]))
 
         elif ob_type == 'response':
             arglen(len(ob_refs), 2, 2)
             query = (session.query(model.Response)
                 .filter(model.Response.measure_id == ob_refs[0],
-                        model.Response.assessment_id == ob_refs[1]))
+                        model.Response.submission_id == ob_refs[1]))
 
         else:
             raise model.ModelError("Can't subscribe to '%s' type" % ob_type)
@@ -511,8 +511,8 @@ class SubscriptionHandler(handlers.BaseHandler):
                     "You can't subscribe to a survey that you haven't"
                     " purchased.")
         elif ob.ob_type in {'submission', 'rnode', 'response'}:
-            if hasattr(ob, 'assessment'):
-                organisation_id = ob.assessment.organisation_id
+            if hasattr(ob, 'submission'):
+                organisation_id = ob.submission.organisation_id
             else:
                 organisation_id = ob.organisation_id
             if organisation_id != user.organisation_id:
@@ -559,9 +559,9 @@ class CardHandler(handlers.BaseHandler):
                 } for s in programs])
 
             if self.has_privillege('clerk'):
-                assessments = (session.query(model.Assessment)
-                    .filter(model.Assessment.organisation_id == org_id)
-                    .order_by(model.Assessment.created.desc())
+                submissions = (session.query(model.Submission)
+                    .filter(model.Submission.organisation_id == org_id)
+                    .order_by(model.Submission.created.desc())
                     .limit(2)
                     .all())
                 sons += to_son([{
@@ -569,7 +569,7 @@ class CardHandler(handlers.BaseHandler):
                     'created': a.created,
                     'ob_type': 'submission',
                     'ob_ids': [a.id],
-                } for a in assessments])
+                } for a in submissions])
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))

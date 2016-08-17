@@ -207,7 +207,7 @@ class ResponseTypeTest(unittest.TestCase):
             ])
 
 
-class AssessmentTest(base.AqHttpTestBase):
+class SubmissionTest(base.AqHttpTestBase):
     def test_create(self):
         with model.session_scope() as session:
             program = session.query(model.Program).one()
@@ -227,11 +227,11 @@ class AssessmentTest(base.AqHttpTestBase):
             survey_2_id = str(survey_2.id)
 
         with base.mock_user('org_admin'):
-            assessment_son = {'title': "Assessment"}
-            assessment_son = self.fetch(
-                "/assessment.json?orgId=%s&programId=%s&surveyId=%s" %
+            submission_son = {'title': "Submission"}
+            submission_son = self.fetch(
+                "/submission.json?orgId=%s&programId=%s&surveyId=%s" %
                 (organisation_id, program_id, survey_1_id),
-                method='POST', body=json_encode(assessment_son),
+                method='POST', body=json_encode(submission_son),
                 expected=403, decode=False)
 
         with base.mock_user('admin'):
@@ -241,11 +241,11 @@ class AssessmentTest(base.AqHttpTestBase):
                 method='PUT', body='', expected=200)
 
         with base.mock_user('org_admin'):
-            assessment_son = {'title': "Assessment"}
-            assessment_son = self.fetch(
-                "/assessment.json?orgId=%s&programId=%s&surveyId=%s" %
+            submission_son = {'title': "Submission"}
+            submission_son = self.fetch(
+                "/submission.json?orgId=%s&programId=%s&surveyId=%s" %
                 (organisation_id, program_id, survey_1_id),
-                method='POST', body=json_encode(assessment_son),
+                method='POST', body=json_encode(submission_son),
                 expected=200, decode=True)
 
     def test_duplicate(self):
@@ -264,13 +264,13 @@ class AssessmentTest(base.AqHttpTestBase):
             survey_2 = (session.query(model.Survey)
                     .filter_by(title='Survey 2')
                     .one())
-            assessment = model.Assessment(
+            submission = model.Submission(
                 program_id=program.id,
                 organisation_id=organisation.id,
                 survey_id=survey_1.id,
-                title="First assessment",
+                title="First submission",
                 approval='draft')
-            session.add(assessment)
+            session.add(submission)
             session.flush()
 
             for m in program.measures:
@@ -279,7 +279,7 @@ class AssessmentTest(base.AqHttpTestBase):
                 response = model.Response(
                     program_id=program.id,
                     measure_id=m.id,
-                    assessment_id=assessment.id,
+                    submission_id=submission.id,
                     user_id=user.id)
                 response.attachments = []
                 response.not_relevant = False
@@ -310,12 +310,12 @@ class AssessmentTest(base.AqHttpTestBase):
 
             session.flush()
 
-            assessment.update_stats_descendants()
-            assessment.approval = 'final'
+            submission.update_stats_descendants()
+            submission.approval = 'final'
             session.flush()
 
             organisation_id = str(organisation.id)
-            first_assessment_id = str(assessment.id)
+            first_submission_id = str(submission.id)
             survey_1_id = str(survey_1.id)
             survey_2_id = str(survey_2.id)
 
@@ -350,117 +350,117 @@ class AssessmentTest(base.AqHttpTestBase):
                 (organisation_id, survey_2_id, new_program_id),
                 method='PUT', body='', expected=200)
 
-        # Duplicate assessment, once for each survey, in the new program
+        # Duplicate submission, once for each survey, in the new program
         with base.mock_user('org_admin'):
-            assessment_son = {'title': "Second assessment"}
-            assessment_son = self.fetch(
-                "/assessment.json?orgId=%s&programId=%s&"
+            submission_son = {'title': "Second submission"}
+            submission_son = self.fetch(
+                "/submission.json?orgId=%s&programId=%s&"
                 "surveyId=%s&duplicateId=%s" %
                 (organisation_id, new_program_id,
-                 survey_1_id, first_assessment_id),
-                method='POST', body=json_encode(assessment_son),
+                 survey_1_id, first_submission_id),
+                method='POST', body=json_encode(submission_son),
                 expected=200, decode=True)
-            second_assessment_id = assessment_son['id']
+            second_submission_id = submission_son['id']
 
-            assessment_son = {'title': "Third assessment"}
-            assessment_son = self.fetch(
-                "/assessment.json?orgId=%s&programId=%s&"
+            submission_son = {'title': "Third submission"}
+            submission_son = self.fetch(
+                "/submission.json?orgId=%s&programId=%s&"
                 "surveyId=%s&duplicateId=%s" %
                 (organisation_id, new_program_id,
-                 survey_2_id, first_assessment_id),
-                method='POST', body=json_encode(assessment_son),
+                 survey_2_id, first_submission_id),
+                method='POST', body=json_encode(submission_son),
                 expected=200, decode=True)
-            third_assessment_id = assessment_son['id']
+            third_submission_id = submission_son['id']
 
-        self.assertNotEqual(first_assessment_id, second_assessment_id)
-        self.assertNotEqual(first_assessment_id, third_assessment_id)
-        self.assertNotEqual(second_assessment_id, third_assessment_id)
+        self.assertNotEqual(first_submission_id, second_submission_id)
+        self.assertNotEqual(first_submission_id, third_submission_id)
+        self.assertNotEqual(second_submission_id, third_submission_id)
 
         # Check contents
         with model.session_scope() as session:
-            assessment_1 = (session.query(model.Assessment)
-                .get(first_assessment_id))
-            assessment_2 = (session.query(model.Assessment)
-                .get(second_assessment_id))
-            assessment_3 = (session.query(model.Assessment)
-                .get(third_assessment_id))
+            submission_1 = (session.query(model.Submission)
+                .get(first_submission_id))
+            submission_2 = (session.query(model.Submission)
+                .get(second_submission_id))
+            submission_3 = (session.query(model.Submission)
+                .get(third_submission_id))
 
-            self.assertEqual(assessment_1.survey_id,
-                assessment_2.survey_id)
-            self.assertNotEqual(assessment_1.survey_id,
-                assessment_3.survey_id)
+            self.assertEqual(submission_1.survey_id,
+                submission_2.survey_id)
+            self.assertNotEqual(submission_1.survey_id,
+                submission_3.survey_id)
 
-            # Assessment 1 has responses against five measures. Two are
+            # Submission 1 has responses against five measures. Two are
             # descendants of deleted qnodes.
-            # Assessment 2 uses the same survey as the source assessment,
+            # Submission 2 uses the same survey as the source submission,
             # so it should have the same number of responses (three, because
             # the deleted ones are not copied).
-            # Assessment 3 uses a different survey with only one common
+            # Submission 3 uses a different survey with only one common
             # measure, so it should have a different number of responses (two).
-            self.assertEqual(len(assessment_1.responses), 5)
-            self.assertEqual(len(assessment_2.responses), 3)
-            self.assertEqual(len(assessment_3.responses), 2)
+            self.assertEqual(len(submission_1.responses), 5)
+            self.assertEqual(len(submission_2.responses), 3)
+            self.assertEqual(len(submission_3.responses), 2)
             self.assertEqual(session.query(model.Response).count(), 10)
 
             # Make sure the number of rnodes matches the number of qnodes in the
             # survey (no leftovers).
             self.assertEqual(session.query(model.ResponseNode)
-                .filter_by(assessment_id=assessment_1.id)
+                .filter_by(submission_id=submission_1.id)
                 .count(), 4)
             self.assertEqual(session.query(model.ResponseNode)
-                .filter_by(assessment_id=assessment_2.id)
+                .filter_by(submission_id=submission_2.id)
                 .count(), 4)
             self.assertEqual(session.query(model.ResponseNode)
-                .filter_by(assessment_id=assessment_3.id)
+                .filter_by(submission_id=submission_3.id)
                 .count(), 3)
 
-            # Check scores. Assessments 1 and 2 should have the same score:
-            # 100 + 200 = 300 (due to weighting of the measures). Assessment 3
+            # Check scores. Submissions 1 and 2 should have the same score:
+            # 100 + 200 = 300 (due to weighting of the measures). Submission 3
             # should have just 200.
-            self.assertEqual([r.score for r in assessment_1.ordered_responses],
+            self.assertEqual([r.score for r in submission_1.ordered_responses],
                              [3, 6, 11])
-            self.assertEqual(list(assessment_1.rnodes)[0].score, 20)
-            self.assertEqual(list(assessment_1.rnodes)[1].score, 0)
+            self.assertEqual(list(submission_1.rnodes)[0].score, 20)
+            self.assertEqual(list(submission_1.rnodes)[1].score, 0)
 
-            self.assertEqual([r.score for r in assessment_2.ordered_responses],
+            self.assertEqual([r.score for r in submission_2.ordered_responses],
                              [3, 6, 11])
-            self.assertEqual(list(assessment_2.rnodes)[0].score, 20)
-            self.assertEqual(list(assessment_2.rnodes)[1].score, 0)
+            self.assertEqual(list(submission_2.rnodes)[0].score, 20)
+            self.assertEqual(list(submission_2.rnodes)[1].score, 0)
 
-            self.assertEqual([r.score for r in assessment_3.ordered_responses],
+            self.assertEqual([r.score for r in submission_3.ordered_responses],
                              [6, 11])
-            self.assertEqual(list(assessment_3.rnodes)[0].score, 17)
-            self.assertEqual(list(assessment_3.rnodes)[1].score, 0)
+            self.assertEqual(list(submission_3.rnodes)[0].score, 17)
+            self.assertEqual(list(submission_3.rnodes)[1].score, 0)
 
-            # When an assessment is duplicated, all of its responses are set to
+            # When an submission is duplicated, all of its responses are set to
             # 'draft'.
-            self.assertEqual(assessment_1.approval, 'final')
+            self.assertEqual(submission_1.approval, 'final')
             self.assertTrue(all(r.approval == 'final'
-                                for r in assessment_1.responses))
-            self.assertEqual(list(assessment_1.rnodes)[0].n_draft, 3)
-            self.assertEqual(list(assessment_1.rnodes)[1].n_draft, 0)
-            self.assertEqual(list(assessment_1.rnodes)[0].n_final, 3)
-            self.assertEqual(list(assessment_1.rnodes)[1].n_final, 0)
+                                for r in submission_1.responses))
+            self.assertEqual(list(submission_1.rnodes)[0].n_draft, 3)
+            self.assertEqual(list(submission_1.rnodes)[1].n_draft, 0)
+            self.assertEqual(list(submission_1.rnodes)[0].n_final, 3)
+            self.assertEqual(list(submission_1.rnodes)[1].n_final, 0)
 
-            self.assertEqual(assessment_2.approval, 'draft')
+            self.assertEqual(submission_2.approval, 'draft')
             self.assertTrue(all(r.approval == 'draft'
-                                for r in assessment_2.responses))
-            self.assertEqual(list(assessment_2.rnodes)[0].n_draft, 3)
-            self.assertEqual(list(assessment_2.rnodes)[1].n_draft, 0)
-            self.assertEqual(list(assessment_2.rnodes)[0].n_final, 0)
-            self.assertEqual(list(assessment_2.rnodes)[1].n_final, 0)
+                                for r in submission_2.responses))
+            self.assertEqual(list(submission_2.rnodes)[0].n_draft, 3)
+            self.assertEqual(list(submission_2.rnodes)[1].n_draft, 0)
+            self.assertEqual(list(submission_2.rnodes)[0].n_final, 0)
+            self.assertEqual(list(submission_2.rnodes)[1].n_final, 0)
 
-            self.assertEqual(assessment_3.approval, 'draft')
+            self.assertEqual(submission_3.approval, 'draft')
             self.assertTrue(all(r.approval == 'draft'
-                                for r in assessment_3.responses))
-            self.assertEqual(list(assessment_3.rnodes)[0].n_draft, 2)
-            self.assertEqual(list(assessment_3.rnodes)[1].n_draft, 0)
-            self.assertEqual(list(assessment_3.rnodes)[0].n_final, 0)
-            self.assertEqual(list(assessment_3.rnodes)[1].n_final, 0)
+                                for r in submission_3.responses))
+            self.assertEqual(list(submission_3.rnodes)[0].n_draft, 2)
+            self.assertEqual(list(submission_3.rnodes)[1].n_draft, 0)
+            self.assertEqual(list(submission_3.rnodes)[0].n_final, 0)
+            self.assertEqual(list(submission_3.rnodes)[1].n_final, 0)
 
             # Check attachment duplication
-            for r1, r2 in zip(assessment_1.ordered_responses,
-                              assessment_2.ordered_responses):
+            for r1, r2 in zip(submission_1.ordered_responses,
+                              submission_2.ordered_responses):
                 self.assertNotEqual(str(r1.id), str(r2.id))
                 self.assertEqual(len(r1.attachments), 3)
                 self.assertEqual(len(r2.attachments), 3)

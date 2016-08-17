@@ -99,19 +99,19 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated
-    def put(self, assessment_id, measure_id):
+    def put(self, submission_id, measure_id):
         son = self.request_son
         externals = son["externals"]
         with model.session_scope() as session:
             response = (session.query(model.Response)
-                    .filter_by(assessment_id=assessment_id,
+                    .filter_by(submission_id=submission_id,
                                 measure_id=measure_id)
                     .first())
 
             if response is None:
                 raise handlers.MissingDocError("No such response")
 
-            self._check_authz(response.assessment)
+            self._check_authz(response.submission)
 
             for external in externals:
                 url = external.get('url', '').strip()
@@ -122,37 +122,37 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
                     raise handlers.ModelError(
                         "URL required for link '%s'" % file_name)
                 attachment = model.Attachment()
-                attachment.organisation_id = response.assessment.organisation_id
+                attachment.organisation_id = response.submission.organisation_id
                 attachment.response_id = response.id
                 attachment.url = url
                 attachment.file_name = file_name
                 attachment.storage = "external"
 
                 session.add(attachment)
-        self.get(assessment_id, measure_id)
+        self.get(submission_id, measure_id)
 
 
     @tornado.web.authenticated
     @gen.coroutine
-    def post(self, assessment_id, measure_id):
+    def post(self, submission_id, measure_id):
         fileinfo = self.request.files['file'][0]
         with model.session_scope() as session:
             response = (session.query(model.Response)
-                    .filter_by(assessment_id=assessment_id,
+                    .filter_by(submission_id=submission_id,
                                measure_id=measure_id)
                     .first())
 
             if response is None:
                 raise handlers.MissingDocError("No such response")
 
-            self._check_authz(response.assessment)
+            self._check_authz(response.submission)
 
             if aws.session is not None:
                 s3 = aws.session.resource('s3', verify=False)
                 bucket = os.environ.get('AWS_BUCKET')
                 hex_key = hashlib.sha256(bytes(fileinfo['body'])).hexdigest()
                 s3_path = "{0}/{1}".format(
-                    response.assessment.organisation_id, hex_key)
+                    response.submission.organisation_id, hex_key)
 
                 # Metadata can not contain non-ASCII characters - so encode
                 # higher Unicode characters :/
@@ -172,7 +172,7 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
                         "Failed to write to data store", log_message=str(e))
 
             attachment = model.Attachment()
-            attachment.organisation_id = response.assessment.organisation_id
+            attachment.organisation_id = response.submission.organisation_id
             attachment.response_id = response.id
             attachment.file_name = fileinfo["filename"]
 
@@ -197,17 +197,17 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
         self.finish()
 
     @tornado.web.authenticated
-    def get(self, assessment_id, measure_id):
+    def get(self, submission_id, measure_id):
         with model.session_scope() as session:
             response = (session.query(model.Response)
-                    .filter_by(assessment_id=assessment_id,
+                    .filter_by(submission_id=submission_id,
                                measure_id=measure_id)
                     .first())
 
             if response is None:
                 raise handlers.MissingDocError("No such response")
 
-            self._check_authz(response.assessment)
+            self._check_authz(response.submission)
 
             query = (session.query(model.Attachment)
                     .filter_by(response_id=response.id))
@@ -234,8 +234,8 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
-    def _check_authz(self, assessment):
+    def _check_authz(self, submission):
         if not self.has_privillege('consultant'):
-            if assessment.organisation.id != self.organisation.id:
+            if submission.organisation.id != self.organisation.id:
                 raise handlers.AuthzError(
                     "You can't modify another organisation's response")

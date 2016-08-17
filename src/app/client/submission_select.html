@@ -4,22 +4,22 @@
     <div class="section">
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="Import"
-                    ng-href="#/assessment/import?program={{program.id}}&organisation={{aSearch.organisation.id}}"
-                    ng-if="showEdit && purchasedSurvey && checkRole('assessment_add')">
+                    ng-href="#/submission/import?program={{program.id}}&organisation={{aSearch.organisation.id}}"
+                    ng-if="showEdit && purchasedSurvey && checkRole('submission_add')">
                 <i class="fa fa-fw fa-cloud-upload"></i></a>
             <a class="btn btn-default btn-round" title="Duplicate existing"
-                    ng-href="#/assessment/duplicate?program={{program.id}}&organisation={{aSearch.organisation.id}}"
-                    ng-if="showEdit && purchasedSurvey && checkRole('assessment_add')">
+                    ng-href="#/submission/duplicate?program={{program.id}}&organisation={{aSearch.organisation.id}}"
+                    ng-if="showEdit && purchasedSurvey && checkRole('submission_add')">
                 <i class="fa fa-fw fa-clone">
                     <i class="fa fa-link fa-badge"></i>
                 </i></a>
             <a class="btn btn-default btn-round" title="Add new"
-                    ng-href="#/assessment/new?program={{program.id}}&organisation={{aSearch.organisation.id}}"
-                    ng-if="showEdit && purchasedSurvey && checkRole('assessment_add')">
+                    ng-href="#/submission/new?program={{program.id}}&organisation={{aSearch.organisation.id}}"
+                    ng-if="showEdit && purchasedSurvey && checkRole('submission_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
-            <a ng-href="#{{getAssessmentUrl(null)}}"
+            <a ng-href="#{{getSubmissionUrl(null)}}"
                     class="btn btn-default btn-round"
-                    ng-if="!disallowNone && (showEdit || assessment)"
+                    ng-if="!disallowNone && (showEdit || submission)"
                     title="View without a submission">
                 <i class="fa fa-ban"></i></a>
         </div>
@@ -29,7 +29,7 @@
     </div>
 
     <ui-select ng-model="aSearch.organisation" reset-search-input="false"
-            ng-if="checkRole('assessment_review')">
+            ng-if="checkRole('submission_review')">
         <ui-select-match placeholder="Type to select organisation">
             <i class="fa fa-university"></i>
             {{aSearch.organisation.name}}</ui-select-match>
@@ -41,7 +41,7 @@
         </ui-select-choices>
     </ui-select>
 
-    <search-box class="spaced" model="search" result="assessments">
+    <search-box class="spaced" model="search" result="submissions">
         <button class="btn btn-default" type="button"
                 title="{{aSearch.historical ?
                     'Include submissions for other related programs' :
@@ -59,10 +59,10 @@
     </search-box>
 
     <ul class="list-results spaced">
-        <li ng-repeat="a in assessments"
-                ng-class="{active: a.id == assessment.id,
+        <li ng-repeat="a in submissions"
+                ng-class="{active: a.id == submission.id,
                            strike: a.deleted}">
-            <a ng-href="#{{getAssessmentUrl(a)}}"
+            <a ng-href="#{{getSubmissionUrl(a)}}"
                     ng-click="toggleDropdown()">
                 <h4>{{a.title}}
                     <span class="pull-right">
@@ -82,7 +82,7 @@
         </li>
     </ul>
 
-    <p ng-if="!assessments.length">
+    <p ng-if="!submissions.length">
         <i>{{aSearch.organisation.name}}</i> has no
         <span ng-if="search.term">
             matching
@@ -103,15 +103,15 @@
         </span>
     </p>
     <div class="text-center hidden-print">
-        <a ng-href="#/assessment/new?program={{program.id}}&organisation={{aSearch.organisation.id}}"
+        <a ng-href="#/submission/new?program={{program.id}}&organisation={{aSearch.organisation.id}}"
                 class="btn btn-link btn-lg"
-                ng-if="purchasedSurvey && checkRole('assessment_add') && showEdit && !assessments.length">
+                ng-if="purchasedSurvey && checkRole('submission_add') && showEdit && !submissions.length">
             <i class="fa fa-plus"></i>
             Start a new submission
         </a>
-        <a ng-href="#{{getAssessmentUrl(null)}}"
+        <a ng-href="#{{getSubmissionUrl(null)}}"
                 class="btn btn-link btn-lg"
-                ng-if="!disallowNone && (showEdit || assessment)">
+                ng-if="!disallowNone && (showEdit || submission)">
             <i class="fa fa-ban"></i>
             View without a submission
         </a>
@@ -126,8 +126,8 @@
             <i class="fa fa-history"></i>.
         </span>
 
-        <span ng-if="purchasedSurvey && checkRole('assessment_add') &&
-                  showEdit && assessments.length"
+        <span ng-if="purchasedSurvey && checkRole('submission_add') &&
+                  showEdit && submissions.length"
                 class="hidden-print">
             You can start another submission by clicking the
             <i class="fa fa-plus"></i> button above.

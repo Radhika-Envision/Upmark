@@ -543,13 +543,13 @@ class QuestionNode(Observable, Base):
 
     program = relationship(Program)
 
-    def get_rnode(self, assessment):
-        if isinstance(assessment, (str, uuid.UUID)):
-            assessment_id = assessment
+    def get_rnode(self, submission):
+        if isinstance(submission, (str, uuid.UUID)):
+            submission_id = submission
         else:
-            assessment_id = assessment.id
+            submission_id = submission.id
         return (object_session(self).query(ResponseNode)
-            .filter_by(assessment_id=assessment_id, qnode_id=self.id)
+            .filter_by(submission_id=submission_id, qnode_id=self.id)
             .first())
 
     def update_stats_ancestors(self):
@@ -660,13 +660,13 @@ class Measure(Observable, Base):
             return qm.get_path()
         return None
 
-    def get_response(self, assessment):
-        if isinstance(assessment, str):
-            assessment_id = assessment
+    def get_response(self, submission):
+        if isinstance(submission, str):
+            submission_id = submission
         else:
-            assessment_id = assessment.id
+            submission_id = submission.id
         return (object_session(self).query(Response)
-            .filter_by(assessment_id=assessment_id, measure_id=self.id)
+            .filter_by(submission_id=submission_id, measure_id=self.id)
             .first())
 
     def lineage(self, survey=None):
@@ -776,8 +776,8 @@ class QnodeMeasure(Base):
             getattr(self.program, 'title', None))
 
 
-class Assessment(Observable, Base):
-    __tablename__ = 'assessment'
+class Submission(Observable, Base):
+    __tablename__ = 'submission'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     program_id = Column(GUID, nullable=False)
     organisation_id = Column(GUID, nullable=False)
@@ -804,7 +804,7 @@ class Assessment(Observable, Base):
             ['organisation_id'],
             ['organisation.id']
         ),
-        Index('assessment_organisation_id_survey_id_index',
+        Index('submission_organisation_id_survey_id_index',
               organisation_id, survey_id),
     )
 
@@ -846,14 +846,14 @@ class Assessment(Observable, Base):
             if rnode is None:
                 rnode = ResponseNode(
                     program=self.program,
-                    assessment=self,
+                    submission=self,
                     qnode=qnode)
                 object_session(self).add(rnode)
                 object_session(self).flush()
             rnode.update_stats_descendants()
 
     def __repr__(self):
-        return "Assessment(program={}, org={})".format(
+        return "Submission(program={}, org={})".format(
             getattr(self.program, 'title', None),
             getattr(self.organisation, 'name', None))
 
@@ -862,7 +862,7 @@ class ResponseNode(Observable, Base):
     __tablename__ = 'rnode'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     program_id = Column(GUID, nullable=False)
-    assessment_id = Column(GUID, nullable=False)
+    submission_id = Column(GUID, nullable=False)
     qnode_id = Column(GUID, nullable=False)
 
     n_draft = Column(Integer, default=0, nullable=False)
@@ -887,26 +887,26 @@ class ResponseNode(Observable, Base):
             ['program.id']
         ),
         ForeignKeyConstraint(
-            ['assessment_id'],
-            ['assessment.id']
+            ['submission_id'],
+            ['submission.id']
         ),
-        UniqueConstraint('qnode_id', 'assessment_id'),
-        Index('rnode_qnode_id_assessment_id_index', qnode_id, assessment_id),
+        UniqueConstraint('qnode_id', 'submission_id'),
+        Index('rnode_qnode_id_submission_id_index', qnode_id, submission_id),
     )
 
     program = relationship(Program)
-    assessment = relationship(Assessment)
+    submission = relationship(Submission)
 
     @property
     def parent(self):
         if self.qnode.parent is None:
             return None
-        return self.qnode.parent.get_rnode(self.assessment)
+        return self.qnode.parent.get_rnode(self.submission)
 
     @property
     def children(self):
         for child_qnode in self.qnode.children:
-            rnode = child_qnode.get_rnode(self.assessment)
+            rnode = child_qnode.get_rnode(self.submission)
             if rnode is not None:
                 yield rnode
 
@@ -922,12 +922,12 @@ class ResponseNode(Observable, Base):
     @property
     def responses(self):
         for measure in self.qnode.measures:
-            response = measure.get_response(self.assessment)
+            response = measure.get_response(self.submission)
             if response is not None:
                 yield response
 
     def lineage(self):
-        return [q.get_rnode(self.assessment_id) for q in self.qnode.lineage()]
+        return [q.get_rnode(self.submission_id) for q in self.qnode.lineage()]
 
     @property
     def ob_type(self):
@@ -939,20 +939,20 @@ class ResponseNode(Observable, Base):
 
     @property
     def ob_ids(self):
-        return [self.qnode_id, self.assessment_id]
+        return [self.qnode_id, self.submission_id]
 
     @property
     def action_lineage(self):
         # It would be nice to include the program and survey in this list, but
         # then everyone who was subscribed to a survey would get spammed with
         # all the submissions against it.
-        return [self.assessment.organisation, self.assessment] + self.lineage()
+        return [self.submission.organisation, self.submission] + self.lineage()
 
     @property
     def action_descriptor(self):
         # Use qnodes instead of rnodes for lineage, because rnode.id is not part
         # of the API.
-        lineage = ([self.assessment.id] +
+        lineage = ([self.submission.id] +
                    [q.id for q in self.qnode.lineage()])
         return ActionDescriptor(
             self.ob_title, self.ob_type, self.ob_ids, lineage)
@@ -1001,11 +1001,11 @@ class ResponseNode(Observable, Base):
 
     def update_stats_descendants(self):
         for qchild in self.qnode.children:
-            rchild = qchild.get_rnode(self.assessment)
+            rchild = qchild.get_rnode(self.submission)
             if rchild is None:
                 rchild = ResponseNode(
                     program=self.program,
-                    assessment=self.assessment,
+                    submission=self.submission,
                     qnode=qchild)
                 object_session(self).add(rchild)
                 object_session(self).flush()
@@ -1022,13 +1022,13 @@ class ResponseNode(Observable, Base):
             if qnode is None:
                 return
             parent = ResponseNode(
-                program=self.program, assessment=self.assessment, qnode=qnode)
+                program=self.program, submission=self.submission, qnode=qnode)
             object_session(self).add(parent)
             object_session(self).flush()
         parent.update_stats_ancestors()
 
     def __repr__(self):
-        org = getattr(self.assessment, 'organisation', None)
+        org = getattr(self.submission, 'organisation', None)
         return "ResponseNode(qnode={}, program={}, org={})".format(
             getattr(self.qnode, 'title', None),
             getattr(self.program, 'title', None),
@@ -1040,7 +1040,7 @@ class Response(Observable, Versioned, Base):
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     program_id = Column(GUID, nullable=False)
     measure_id = Column(GUID, nullable=False)
-    assessment_id = Column(GUID, nullable=False)
+    submission_id = Column(GUID, nullable=False)
     user_id = Column(GUID, nullable=False)
 
     comment = Column(Text, nullable=False)
@@ -1072,13 +1072,13 @@ class Response(Observable, Versioned, Base):
             info={'version': True}
         ),
         ForeignKeyConstraint(
-            ['assessment_id'],
-            ['assessment.id'],
+            ['submission_id'],
+            ['submission.id'],
             info={'version': True}
         ),
-        UniqueConstraint('measure_id', 'assessment_id'),
-        Index('response_assessment_id_measure_id_index',
-              assessment_id, measure_id),
+        UniqueConstraint('measure_id', 'submission_id'),
+        Index('response_submission_id_measure_id_index',
+              submission_id, measure_id),
     )
 
     program = relationship(Program)
@@ -1087,7 +1087,7 @@ class Response(Observable, Versioned, Base):
     @property
     def parent_qnode(self):
         for p in self.measure.parents:
-            if p.survey_id == self.assessment.survey_id:
+            if p.survey_id == self.submission.survey_id:
                 return p
         # Might happen if a measure is unlinked after the response is
         # created
@@ -1100,7 +1100,7 @@ class Response(Observable, Versioned, Base):
             # Might happen if a measure is unlinked after the response is
             # created
             return None
-        return qnode.get_rnode(self.assessment)
+        return qnode.get_rnode(self.submission)
 
     _response_parts_schema = Schema([
         Any(
@@ -1124,7 +1124,7 @@ class Response(Observable, Versioned, Base):
             s, Response._response_parts_schema)
 
     def lineage(self):
-        return ([q.get_rnode(self.assessment_id)
+        return ([q.get_rnode(self.submission_id)
                  for q in self.parent_qnode.lineage()] +
                 [self])
 
@@ -1138,20 +1138,20 @@ class Response(Observable, Versioned, Base):
 
     @property
     def ob_ids(self):
-        return [self.measure_id, self.assessment_id]
+        return [self.measure_id, self.submission_id]
 
     @property
     def action_lineage(self):
         # It would be nice to include the program and survey in this list, but
         # then everyone who was subscribed to a survey would get spammed with
         # all the submissions against it.
-        return [self.assessment.organisation, self.assessment] + self.lineage()
+        return [self.submission.organisation, self.submission] + self.lineage()
 
     @property
     def action_descriptor(self):
         # Use qnodes and the measure instead of rnodes and the response for
         # lineage, because rnode.id and response.id are not part of the API.
-        lineage = ([self.assessment.id] +
+        lineage = ([self.submission.id] +
                    [q.id for q in self.parent_qnode.lineage()] +
                    [self.measure_id])
         return ActionDescriptor(
@@ -1173,7 +1173,7 @@ class Response(Observable, Versioned, Base):
             except ResponseError as e:
                 raise ModelError(
                     "Could not calculate score for response %s %s: %s" %
-                    (self.measure.get_path(self.assessment.survey),
+                    (self.measure.get_path(self.submission.survey),
                      self.measure.title, str(e)))
         self.score = score * self.measure.weight
 
@@ -1185,13 +1185,13 @@ class Response(Observable, Versioned, Base):
             if qnode is None:
                 return
             parent = ResponseNode(
-                program=self.program, assessment=self.assessment, qnode=qnode)
+                program=self.program, submission=self.submission, qnode=qnode)
             object_session(self).add(parent)
         object_session(self).flush()
         parent.update_stats_ancestors()
 
     def __repr__(self):
-        org = getattr(self.assessment, 'organisation', None)
+        org = getattr(self.submission, 'organisation', None)
         return "Response(measure={}, program={}, org={})".format(
             getattr(self.measure, 'title', None),
             getattr(self.program, 'title', None),
@@ -1441,14 +1441,14 @@ QuestionNode.measure_seq = association_proxy('qnode_measures', 'seq')
 Measure.parents = association_proxy('qnode_measures', 'qnode')
 
 
-Assessment.survey = relationship(
+Submission.survey = relationship(
     Survey,
-    primaryjoin=(foreign(Assessment.survey_id) == Survey.id) &
-                (Assessment.program_id == Survey.program_id))
+    primaryjoin=(foreign(Submission.survey_id) == Survey.id) &
+                (Submission.program_id == Survey.program_id))
 
 
-Assessment.responses = relationship(
-    Response, backref='assessment', passive_deletes=True)
+Submission.responses = relationship(
+    Response, backref='submission', passive_deletes=True)
 
 
 ResponseNode.qnode = relationship(
@@ -1466,7 +1466,7 @@ Response.measure = relationship(
 ResponseHistory.user = relationship(
     AppUser, backref='user', passive_deletes=True)
 
-## assessment_id, measure_id
+## submission_id, measure_id
 ## version fileds need to have index on ResponseHistory
 
 Session = None

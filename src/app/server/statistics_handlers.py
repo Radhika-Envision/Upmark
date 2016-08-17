@@ -48,17 +48,17 @@ class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
             try:
                 responseNodes = (session.query(model.ResponseNode)
                     .join(model.ResponseNode.qnode)
-                    .join(model.ResponseNode.assessment)
+                    .join(model.ResponseNode.submission)
                     .options(joinedload(model.ResponseNode.qnode))
                     .filter(model.ResponseNode.program_id == program_id,
                             model.QuestionNode.parent_id == parent_id,
-                            model.Assessment.approval.in_(included_approval_status),
-                            model.Assessment.deleted == False,
+                            model.Submission.approval.in_(included_approval_status),
+                            model.Submission.deleted == False,
                             model.QuestionNode.deleted == False))
 
                 if responseNodes is None:
                     raise ValueError("No such object")
-                # if assessment.organisation.id != self.organisation.id:
+                # if submission.organisation.id != self.organisation.id:
                 #     self.check_privillege('author', 'consultant')
             except (sqlalchemy.exc.StatementError,
                     sqlalchemy.orm.exc.NoResultFound,

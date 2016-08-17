@@ -91,12 +91,12 @@ class ExportProgramHandler(handlers.BaseHandler):
             path, program_id, survey_id, None, user_role, base_url)
 
 
-class ExportAssessmentHandler(handlers.BaseHandler):
+class ExportSubmissionHandler(handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated
     @gen.coroutine
-    def get(self, assessment_id, fmt, extension):
+    def get(self, submission_id, fmt, extension):
         if extension != 'xlsx':
             raise handlers.MissingDocError(
                 "File type not supported: %s" % extension)
@@ -105,23 +105,23 @@ class ExportAssessmentHandler(handlers.BaseHandler):
                 "Unrecognised format: %s" % fmt)
 
         with model.session_scope() as session:
-            assessment = (session.query(model.Assessment)
-                          .get(assessment_id))
+            submission = (session.query(model.Submission)
+                          .get(submission_id))
 
-            if not assessment:
+            if not submission:
                 raise handlers.MissingDocError("No such submission")
-            elif assessment.deleted:
+            elif submission.deleted:
                 raise handlers.MissingDocError(
                     "That submission has been deleted")
 
-            if assessment.organisation.id != self.organisation.id:
+            if submission.organisation.id != self.organisation.id:
                 self.check_privillege('consultant')
 
-            survey_id = str(assessment.survey_id)
-            program_id = str(assessment.program_id)
+            survey_id = str(submission.survey_id)
+            program_id = str(submission.program_id)
             self.check_browse_program(session, program_id, survey_id)
 
-        output_file = 'submission_{0}_{1}.xlsx'.format(assessment_id, fmt)
+        output_file = 'submission_{0}_{1}.xlsx'.format(submission_id, fmt)
         base_url = ("%s://%s" % (self.request.protocol,
                 self.request.host))
 
@@ -129,11 +129,11 @@ class ExportAssessmentHandler(handlers.BaseHandler):
             output_path = os.path.join(tmpdirname, output_file)
             if fmt == 'tabular':
                 yield self.export_tabular(
-                    output_path, program_id, survey_id, assessment_id,
+                    output_path, program_id, survey_id, submission_id,
                     self.current_user.role, base_url)
             else:
                 yield self.export_nested(
-                    output_path, program_id, survey_id, assessment_id,
+                    output_path, program_id, survey_id, submission_id,
                     self.current_user.role, base_url)
             self.set_header('Content-Type', 'application/octet-stream')
             self.set_header('Content-Disposition', 'attachment; filename='
@@ -150,18 +150,18 @@ class ExportAssessmentHandler(handlers.BaseHandler):
 
     @run_on_executor
     def export_tabular(self, path, program_id, survey_id,
-                       assessment_id, user_role, base_url):
+                       submission_id, user_role, base_url):
         e = Exporter()
         program_id = e.process_tabular(
-            path, program_id, survey_id, assessment_id,
+            path, program_id, survey_id, submission_id,
             user_role, base_url)
 
     @run_on_executor
     def export_nested(self, path, program_id, survey_id,
-                      assessment_id, user_role, base_url):
+                      submission_id, user_role, base_url):
         e = Exporter()
         program_id = e.process_nested(
-            path, program_id, survey_id, assessment_id,
+            path, program_id, survey_id, submission_id,
             user_role, base_url)
 
 
@@ -177,7 +177,7 @@ class Exporter():
         return num
 
     def process_nested(
-            self, file_name, program_id, survey_id, assessment_id,
+            self, file_name, program_id, survey_id, submission_id,
             user_role, base_url):
         """
         Open and write an Excel file
@@ -235,10 +235,10 @@ class Exporter():
 
             response_list = []
             response_qnode_list = []
-            log.debug('Exporting assessment %s of program %s', assessment_id, program_id)
-            if assessment_id != '':
+            log.debug('Exporting submission %s of program %s', submission_id, program_id)
+            if submission_id != '':
                 responses = (session.query(model.Response)
-                             .filter(model.Response.assessment_id == assessment_id,
+                             .filter(model.Response.submission_id == submission_id,
                                      model.Response.program_id == program_id)
                              .all())
 
@@ -251,7 +251,7 @@ class Exporter():
                                       "score": item.score}
                                      for item in responses]
                 response_nodes = session.query(model.ResponseNode)\
-                    .filter(model.ResponseNode.assessment_id == assessment_id,
+                    .filter(model.ResponseNode.submission_id == submission_id,
                             model.ResponseNode.program_id == program_id).all()
                 if response_nodes:
                     response_qnode_list = [{"qnode_id": str(item.qnode.id),
@@ -506,7 +506,7 @@ class Exporter():
             self.line = self.line + 1
 
     def process_tabular(
-            self, file_name, program_id, survey_id, assessment_id,
+            self, file_name, program_id, survey_id, submission_id,
             user_role, base_url):
         """
         Open and write an Excel file
@@ -542,15 +542,15 @@ class Exporter():
             if not 'levels' in survey.structure:
                 raise handlers.InternalModelError("Survey is misconfigured")
 
-            if assessment_id:
-                assessment = (session.query(model.Assessment)
-                    .get(assessment_id))
-                if assessment.survey_id != survey.id:
+            if submission_id:
+                submission = (session.query(model.Submission)
+                    .get(submission_id))
+                if submission.survey_id != survey.id:
                     raise handlers.MissingDocError(
                         "That submission does not belong to that survey")
-                self.write_metadata(workbook, worksheet_metadata, assessment)
+                self.write_metadata(workbook, worksheet_metadata, submission)
             else:
-                assessment = None
+                submission = None
 
             levels = survey.structure["levels"]
             level_length = len(levels)
@@ -595,16 +595,16 @@ class Exporter():
 
                 importance = None
                 urgency = None
-                if assessment:
-                    response = measure.get_response(assessment)
-                    url = base_url + "/#/measure/{}?assessment={}".format(
-                        measure.id, assessment.id)
+                if submission:
+                    response = measure.get_response(submission)
+                    url = base_url + "/#/measure/{}?submission={}".format(
+                        measure.id, submission.id)
 
                     # Walk up the tree to get the importance and urgency from the
                     # parent rnodes
                     parent = qnode
                     while parent and (importance is None or urgency is None):
-                        rnode = parent.get_rnode(assessment)
+                        rnode = parent.get_rnode(submission)
                         if rnode is not None:
                             if importance is None:
                                 importance = rnode.importance
@@ -705,7 +705,7 @@ class Exporter():
 
 
 
-    def write_metadata(self, workbook, sheet, assessment):
+    def write_metadata(self, workbook, sheet, submission):
         sheet.set_column(0, 1, 40)
 
         line = 0
@@ -714,19 +714,19 @@ class Exporter():
         format_header = workbook.add_format()
         format_header.set_text_wrap()
         format_header.set_bold()
-        log.info("assessment: %s", assessment.title)
+        log.info("submission: %s", submission.title)
 
         sheet.write(line, 0, "Program Name", format_header)
-        sheet.write(line, 1, assessment.program.title, format)
+        sheet.write(line, 1, submission.program.title, format)
         line = line + 1
         sheet.write(line, 0, "Survey Name", format_header)
-        sheet.write(line, 1, assessment.survey.title, format)
+        sheet.write(line, 1, submission.survey.title, format)
         line = line + 1
         sheet.write(line, 0, "Organisation", format_header)
-        sheet.write(line, 1, assessment.organisation.name, format)
+        sheet.write(line, 1, submission.organisation.name, format)
         line = line + 1
         sheet.write(line, 0, "Submission Name", format_header)
-        sheet.write(line, 1, assessment.title, format)
+        sheet.write(line, 1, submission.title, format)
         line = line + 1
 
     def write_response_header(self, workbook, sheet, levels,
