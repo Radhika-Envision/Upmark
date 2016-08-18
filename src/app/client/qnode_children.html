@@ -30,7 +30,7 @@
 <table class="table table-hover">
     <tbody ui-sortable="dragOpts" ng-model="edit.model">
         <tr ng-repeat="item in edit.model || model"
-                any-href="/qnode/{{item.id}}?{{query}}"
+                any-href="/1/qnode/{{item.id}}?{{query}}"
                 ng-disabled="edit.model"
                 ng-class="{strike: item.deleted,
                            'strike-black': getStats(item.id).notRelevant}">

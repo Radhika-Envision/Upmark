@@ -172,7 +172,7 @@ angular.module('wsaa.aquamark',
                     }]
                 }
             })
-            .when('/:uv/org/:id/program/add', {
+            .when('/:uv/org/:id/survey/add', {
                 templateUrl : 'purchased_survey.html',
                 controller : 'PurchasedSurveyAddCtrl',
                 resolve: {
@@ -846,16 +846,18 @@ angular.module('wsaa.aquamark',
             var oldUrl = $location.url();
             if (path == "")
                 path = "/";
-            var pElems = path.split('/');
-            if (pElems[1] == 'survey') {
-                pElems[1] = 'program';
-            } else if (pElems[1] == 'surveys') {
-                pElems[1] = 'programs';
-            } else if (pElems[1] == 'hierarchy') {
-                pElems[1] = 'survey';
-            } else if (pElems[1] == 'assessment') {
-                pElems[1] = 'submission';
-            }
+            var pElems = path.split('/').map(function(elem) {
+                if (elem == 'survey')
+                    return 'program';
+                else if (elem == 'surveys')
+                    return 'programs';
+                else if (elem == 'hierarchy')
+                    return 'survey';
+                else if (elem == 'assessment')
+                    return 'submission';
+                else
+                    return elem;
+            });
             pElems.splice(1, 0, '1');
             $location.path(pElems.join('/'));
 
