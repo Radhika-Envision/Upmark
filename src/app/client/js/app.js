@@ -844,6 +844,8 @@ angular.module('wsaa.aquamark',
         var version = vmatch && vmatch[1] || '0';
         if (version == '0') {
             var oldUrl = $location.url();
+            if (path == "")
+                path = "/";
             var pElems = path.split('/');
             if (pElems[1] == 'survey') {
                 pElems[1] = 'program';
