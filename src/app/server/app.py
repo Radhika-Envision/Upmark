@@ -61,6 +61,7 @@ import export_handlers
 import handlers
 import import_handlers
 import model
+import report.temporal
 import report_handlers
 import statistics_handlers
 from utils import truthy
@@ -237,6 +238,8 @@ def get_mappings():
             report_handlers.DiffHandler, {}),
         (r"/export/program/([^/]*)/survey/([^/]*)/([^.]+)\.(.+)",
             export_handlers.ExportProgramHandler, {}),
+        (r"/export/temporal/([^/]*)\.(.+)",
+            report.temporal.TemporalReportHandler, {}),
         (r"/export/submission/([^/]*)/([^.]+)\.(.+)",
             export_handlers.ExportSubmissionHandler, {}),
         (r"/adhoc_query\.(.+)",
