@@ -1,45 +1,79 @@
 <div class="header"
-    ng-class="{'deleted': survey.deleted}">
+    ng-class="{'deleted': structure.deletedItem}">
 <div class="container">
     <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Collapse"
+                ng-click="layout.expandHeader = !layout.expandHeader">
+            <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
+            <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
+        </button>
         <button class="btn btn-default btn-round" title="Print"
                 ng-if="!edit.model"
                 onclick="print()">
             <i class="fa fa-print"></i>
         </button>
-        <a class="btn btn-default btn-round" title="Duplicate"
-                ng-href="#/survey/new?duplicate={{survey.id}}"
-                ng-if="!edit.model && checkRole('survey_dup')">
-            <small><i class="fa fa-clone"></i></small></button></a>
+
+        <span uib-dropdown dropdown-append-to-body ng-if="!edit.model">
+            <button class="btn btn-default btn-round"
+                    title="Export" uib-dropdown-toggle>
+                <i class="fa fa-cloud-download"></i></button>
+
+            <ul uib-dropdown-menu class="dropdown-menu-right">
+                <li class="dropdown-header">Export survey structure</li>
+                <li>
+                    <a title="Download Excel file"
+                            ng-click="download('nested')"
+                            download>
+                        <i class="fa fa-th-list"></i>
+                        Colourful spreadsheet
+                    </a>
+                </li>
+                <li>
+                    <a title="Download Excel file"
+                            ng-click="download('tabular')"
+                            download>
+                        <i class="fa fa-list-ol"></i>
+                        One measure per row
+                    </a>
+                </li>
+            </ul>
+        </span>
+
         <delete-button model="survey" editor="edit"
-            ng-if="survey.isEditable && !edit.model &&
+            ng-if="program.isEditable && !edit.model &&
                 checkRole('survey_del')"></delete-button>
+
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
-                ng-if="edit.model && edit.model.id && !rtEdit.rt">
+                ng-if="edit.model && edit.model.id">
             <i class="fa fa-times"></i></button>
         <button class="btn btn-default btn-round" title="Save"
                 ng-click="edit.save()"
-                ng-if="edit.model && !rtEdit.rt"
+                ng-if="edit.model"
                 form="editor"
                 form-save-button="editor">
             <i class="fa fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
-                ng-if="survey.isEditable && !edit.model &&
+                ng-if="editable && !edit.model &&
                     checkRole('survey_edit')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/subscription/program?id={{survey.id}}">
+                ng-href="#/1/subscription/program?id={{survey.id}}&id={{program.id}}">
             <i class="fa fa-envelope"></i></a>
-        <survey-history entity="survey" service="Survey"
-                ng-if="!edit.model"></survey-history>
+        <program-history entity="survey" service="Survey"
+                ng-if="!edit.model"></program-history>
     </div>
-    <question-header entity="survey" type="survey"></question-header>
+    <question-header entity="survey"></question-header>
 </div>
 </div>
 
-<div ng-if="edit.model" class="container">
+
+<submission-header></submission-header>
+
+
+<div ng-if="edit.model">
+<div class="container">
     <form novalidate name="form" id="editor" form-nav-warn>
         <div class="form-group" show-errors>
             <label for="title">Name</label>
@@ -54,129 +88,140 @@
                 ng-model="edit.model.description"
                 title="Description"></markdown-editor>
         </div>
-        <div class="checkbox">
-            <label>
-                <input type="checkbox" id="inclQuality" name="inclQuality"
-                    ng-model="edit.model.hasQuality">
-                    Include response quality
-            </label>
-        </div>
-        <div class="checkbox">
-            <label>
-                <input type="checkbox" id="hideAggregate" name="hideAggregate"
-                    ng-model="edit.model.hideAggregate">
-                    Disable aggregate category scores
-            </label>
+
+        <div class="section">
+            <div class="toolbar">
+                <a class="btn btn-default btn-round" title="Add new"
+                        ng-click="addLevel(edit.model)">
+                    <i class="fa fa-fw fa-plus"></i></a>
+            </div>
+            <h2>Hierarchy</h2>
         </div>
 
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th class="shrink">
+                        <span class="hidden-xs">Short label</span>
+                        <span class="visible-xs">Label</span>
+                    </th>
+                    <th class="shrink">
+                        <span class="hidden-xs">Has measures</span>
+                        <span class="visible-xs">Measures</span>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat="level in edit.model.structure.levels"
+                        class="form-row">
+                    <td class="form-group" show-errors>
+                        <label for="ltitle{{$index}}" class="sr-only">
+                            Name</label>
+                        <input type="text" class="form-control"
+                            id="ltitle{{$index}}" name="ltitle{{$index}}"
+                            ng-model="level.title" required />
+                    </td>
+                    <td class="shrink form-group" show-errors>
+                        <label for="llabel{{$index}}" class="sr-only">
+                            Short label</label>
+                        <input type="text" class="form-control"
+                            id="llabel{{$index}}" name="llabel{{$index}}"
+                            ng-model="level.label" required maxlength="2" />
+                    </td>
+                    <td class="shrink">
+                        <button title="{{level.hasMeasures ?
+                                    'Has measures as children' :
+                                    'Can not have measures as children'}}"
+                                class="btn btn-default btn-round"
+                                ng-click="level.hasMeasures =
+                                    !level.hasMeasures">
+                            <i class="fa fa-fw fa-toggle-off"
+                                ng-hide="level.hasMeasures"></i>
+                            <i class="fa fa-fw fa-toggle-on"
+                                ng-show="level.hasMeasures"></i>
+                        </button>
+                        <button class="btn btn-default btn-round" title="Remove"
+                                ng-click="removeLevel(edit.model, level)"
+                                ng-style="{visibility: $index < 1 ? 'hidden' : null}">
+                            <i class="fa fa-fw fa-trash-o"></i></button>
+                    </td>
+                </tr>
+                <tr class="form-row">
+                    <td class="form-group" show-errors>
+                        <label for="mtitle" class="sr-only">
+                            Name</label>
+                        <input type="text" class="form-control"
+                            id="mtitle" name="mtitle"
+                            ng-model="edit.model.structure.measure.title"
+                            required />
+                    </td>
+                    <td class="shrink form-group" show-errors>
+                        <label for="mlabel" class="sr-only">
+                            Short label</label>
+                        <input type="text" class="form-control"
+                            id="mlabel" name="mlabel"
+                            ng-model="edit.model.structure.measure.label"
+                            required maxlength="2" />
+                    </td>
+                    <td class="shrink text-muted">
+                        <span class="hidden-xs">Measure</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <docs>
+            <i class="fa-li fa fa-sitemap fa-border"></i>
+            <p>
+                These levels define the category types in the survey. Users can
+                refer to categories by the name of the level. For example, if
+                there is a level called "Functions", a user might refer to a
+                category as "Function 2".
+                The short label is displayed in a bubble next to the header.
+            </p>
+            <p>
+                Some categories can contain measures. Typically, only the
+                deepest level of a hierarchy should contain measures.
+            </p>
+        </docs>
     </form>
-
-    <div ng-include="'response_types.html'"
-            ng-controller="ResponseTypeEditorCtrl"></div>
-
-    <docs ng-if="!edit.model.id && duplicating">
-        <i class="fa-li fa fa-clone fa-border"></i>
-        <p>
-            You are creating a duplicate of an existing program. The full
-            structure of the program will be copied, with the lineage to the old
-            program preserved. Submissions will not be copied, but they can
-            be at a later time.
-        </p>
-        <p>
-            If you want to create a fresh program with no lineage,
-            <a href="#/surveys">go back</a> and use the Add
-            <i class="fa fa-plus"></i> function instead.
-        </p>
-    </docs>
-    <docs ng-if="!edit.model.id && !duplicating">
-        <i class="fa-li fa fa-plus fa-border"></i>
-        <p>
-            You are creating a new program with a new structure. It will not
-            be possible to link responses from other programs to this one.
-        </p>
-        <p>
-            If you wish to preserve lineage, <a href="#/surveys">open an
-            existing program</a> and use the Duplicate
-            <i class="fa fa-clone"></i> function instead.
-        </p>
-    </docs>
 </div>
-
+</div>
 
 <div ng-if="!edit.model">
 
-<div class="container" ng-if="survey.description">
-    <div ng-bind-html="survey.description | markdown"></div>
-</div>
-
-<div class="container hidden-print" ng-if="checkRole('survey_edit')">
-    <p>
-        <span ng-if="survey.isEditable">
-            This program is editable.
-        </span>
-        <span ng-if="!survey.isEditable">
-            This program is not editable.
-        </span>
-    </p>
+<div class="container">
+    <div ng-if="structure.survey.description"
+        ng-bind-html="structure.survey.description | markdown"></div>
 </div>
 
 
-<div class="container hidden-print" ng-if="checkRole('survey_state')">
-    <p class="text-center">
-        <!-- Admin buttons -->
-        <button class="btn btn-link" ng-click="toggleEditable()">
-            <i class="fa fa-pencil-square-o">
-                <i ng-if="survey.isEditable"
-                    class="fa fa-ban fa-badge fa-badge-left"></i>
-            </i>
-            <span ng-if="survey.isEditable">
-                Make non-editable</span>
-            <span ng-if="!survey.isEditable">
-                Make editable</span>
-        </button>
-    </p>
-</div>
+<div class="container"
+    ng-controller="QnodeChildren" ng-include="'qnode_children.html'"></div>
 
 
 <div class="container">
-    <div class="section">
-        <div class="toolbar">
-            <a class="btn btn-default btn-round" title="Search for measures"
-                    ng-href="#/measures?survey={{survey.id}}">
-                <i class="fa fa-fw fa-search"></i></a>
-            <a class="btn btn-default btn-round" title="Add new"
-                    ng-href="#/hierarchy/new?survey={{survey.id}}"
-                    ng-if="survey.isEditable && checkRole('hierarchy_add')">
-                <i class="fa fa-fw fa-plus"></i></a>
-            <delete-cycle class="btn-round" model="search.deleted"></delete-cycle>
-        </div>
-        <h2 label="Sv">
-            Surveys
-        </h2>
-    </div>
-
-    <ul class="list-results">
-        <li ng-repeat="hierarchy in hierarchies"
-                ng-class="{strike: hierarchy.deleted}">
-            <a ng-href="#/hierarchy/{{hierarchy.id}}/choice?survey={{survey.id}}">
-                <h4>{{hierarchy.title}}</h4>
-                <p class="truncate">{{hierarchy.nMeasures}} measures</p>
-            </a>
-        </li>
-    </ul>
-
-    <p ng-if="!hierarchies.length">
-        There are no <span ng-if="search.deleted">deleted</span> surveys.
+    <p class="text-muted">
+        Survey structure:
+        <span ng-repeat="level in survey.structure.levels">
+            <span ng-if="$index > 0">&raquo;</span>
+            {{level.title}}
+        </span>
+        <span>
+            <span >&raquo;</span>
+            {{survey.structure.measure.title}}
+        </span>
     </p>
 </div>
 
 
-<docs ng-if="survey.deleted">
+<docs ng-if="structure.deletedItem">
     <i class="fa-li fa fa-trash fa-border"></i>
     <h3>Deleted</h3>
     <p>
-        This program has been deleted.
+        This survey, or its program, has been deleted.
     </p>
 </docs>
 
-</div><!-- !edit.model -->
+
+</div> <!-- if !edit.model -->

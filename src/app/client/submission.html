@@ -31,9 +31,9 @@
         </span>
 
         <a class="btn btn-default btn-round" title="Statistics"
-                ng-href="#/statistics?assessment1={{assessment.id}}"
+                ng-href="#/1/statistics?submission1={{submission.id}}"
                 ng-if="!structure.deletedItem && !edit.model &&
-                       checkRole('assessment_admin')">
+                       checkRole('submission_admin')">
             <i class="fa fa-sml fa-bar-chart-o"></i></a>
         <button class="btn btn-default btn-round" title="Collapse"
                 ng-click="layout.expandHeader = !layout.expandHeader">
@@ -46,15 +46,15 @@
             <i class="fa fa-print"></i>
         </button>
 
-        <delete-button model="assessment" editor="edit"
-                ng-if="!edit.model && checkRole('assessment_admin')"></delete-button>
+        <delete-button model="submission" editor="edit"
+                ng-if="!edit.model && checkRole('submission_admin')"></delete-button>
 
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
                 ng-if="edit.model && edit.model.id">
             <i class="fa fa-times"></i></button>
         <a class="btn btn-default btn-round" title="Cancel"
-                ng-href="#/survey/{{survey.id}}"
+                ng-href="#/1/program/{{program.id}}"
                 ng-if="edit.model && !edit.model.id">
             <i class="fa fa-times"></i></a>
         <button class="btn btn-default btn-round" title="Save"
@@ -66,36 +66,36 @@
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
                 ng-if="!structure.deletedItem && !edit.model &&
-                       checkRole('assessment_edit')">
+                       checkRole('submission_edit')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/subscription/submission?id={{assessment.id}}"
+                ng-href="#/1/subscription/submission?id={{submission.id}}"
                 ng-if="!edit.model">
             <i class="fa fa-envelope"></i></a>
     </div>
-    <question-header entity="assessment.hierarchy" assessment="assessment"></question-header>
+    <question-header entity="submission.survey" submission="submission"></question-header>
 </div>
 </div>
 
-<assessment-header ng-if="!edit.model"></assessment-header>
+<submission-header ng-if="!edit.model"></submission-header>
 
-<div class="container" ng-if="edit.model && !edit.model.hierarchy">
+<div class="container" ng-if="edit.model && !edit.model.survey">
     <p>
         Please choose a survey. This will determine the categories that
         are available to you.
     </p>
 
     <ul class="list-results">
-        <li ng-repeat="hierarchy in hierarchies">
-            <a href ng-click="edit.model.hierarchy = hierarchy">
-                <h4>{{hierarchy.title}}</h4>
-                <p class="truncate">{{hierarchy.nMeasures}} measures</p>
+        <li ng-repeat="survey in surveys">
+            <a href ng-click="edit.model.survey = survey">
+                <h4>{{survey.title}}</h4>
+                <p class="truncate">{{survey.nMeasures}} measures</p>
             </a>
         </li>
     </ul>
 </div>
 
-<div class="container" ng-if="edit.model && edit.model.hierarchy">
+<div class="container" ng-if="edit.model && edit.model.survey">
     <form novalidate name="form" id="editor" form-nav-warn>
         <div class="form-group" show-errors>
             <label for="title">Name</label>
@@ -105,7 +105,7 @@
                 ng-model="edit.model.title" required />
         </div>
         <div class="checkbox"
-                ng-if="!edit.model.id && !duplicate && checkRole('survey_edit')">
+                ng-if="!edit.model.id && !duplicate && checkRole('program_edit')">
             <label>
                 <input type="checkbox" id="fillRandom" name="fillRandom"
                     ng-model="edit.params.fillRandom" />
@@ -119,21 +119,21 @@
     </p>
 
     <p class="text-muted">
-        Target survey: <i>{{edit.model.hierarchy.title}}</i>
+        Target survey: <i>{{edit.model.survey.title}}</i>
     </p>
 
 </div>
 
 <div ng-if="!edit.model" class="container">
     <!-- Don't wrap the contents of this tag! -->
-    <p ng-if="assessment.hierarchy.description"
-            class="formatted">Submission against {{assessment.hierarchy.description}}</p>
+    <p ng-if="submission.survey.description"
+            class="formatted">Submission against {{submission.survey.description}}</p>
 
-    <approval-buttons class="spaced" model="assessment.approval"
+    <approval-buttons class="spaced" model="submission.approval"
             ng-if="!structure.deletedItem"
             set-state="setState(state)"></approval-buttons>
     <p ng-class="structure.deletedItem ? null : 'visible-print'">
-        Status: {{assessment.approval}}.
+        Status: {{submission.approval}}.
     </p>
     <docs>
         <i class="fa-li fa fa-chevron-right fa-border"></i>

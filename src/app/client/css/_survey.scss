@@ -46,27 +46,27 @@ h2 {
             border: 1px solid gray;
         }
     }
-    &.survey-s[label]:before {
+    &.program-s[label]:before {
+        background-color: mix($program-colour, white, 50%);
+        color: mix($program-colour, black, 50%);
+    }
+    &.program-h[label]:before {
         background-color: mix($survey-colour, white, 50%);
         color: mix($survey-colour, black, 50%);
     }
-    &.survey-h[label]:before {
-        background-color: mix($hierarchy-colour, white, 50%);
-        color: mix($hierarchy-colour, black, 50%);
-    }
-    &.survey-0[label]:before {
+    &.program-0[label]:before {
         background-color: mix($function-colour, white, 50%);
         color: mix($function-colour, black, 50%);
     }
-    &.survey-1[label]:before {
+    &.program-1[label]:before {
         background-color: mix($process-colour, white, 50%);
         color: mix($process-colour, black, 50%);
     }
-    &.survey-2[label]:before {
+    &.program-2[label]:before {
         background-color: mix($subprocess-colour, white, 50%);
         color: mix($subprocess-colour, black, 50%);
     }
-    &.survey-m[label]:before {
+    &.program-m[label]:before {
         background-color: mix($measure-colour, white, 50%);
         color: mix($measure-colour, black, 50%);
     }
@@ -824,7 +824,7 @@ $spinner-height: 16px;
     }
 }
 
-.assessment-header {
+.submission-header {
     > div {
         display: inline-block;
         margin: 0 1em;

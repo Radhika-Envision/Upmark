@@ -161,26 +161,26 @@ class Activities:
 
         # Filter out activities that involve surveys that have not been
         # purchased.
-        # Join with hierarchy and purchased_survey tables using ob_refs
+        # Join with survey and purchased_survey tables using ob_refs
         # field
         if filter_purchased:
             query = (query
                 .add_columns(
-                    ((model.Hierarchy.id == None) |
-                     (model.PurchasedSurvey.hierarchy_id != None))
+                    ((model.Survey.id == None) |
+                     (model.PurchasedSurvey.survey_id != None))
                     .label('purchased'))
                 .outerjoin(
-                    model.Hierarchy,
+                    model.Survey,
                     model.Activity.ob_refs.contains(
-                        array([model.Hierarchy.survey_id,
-                               model.Hierarchy.id])))
+                        array([model.Survey.program_id,
+                               model.Survey.id])))
                 .outerjoin(
                     model.PurchasedSurvey,
                     model.Activity.ob_refs.contains(
-                        array([model.PurchasedSurvey.survey_id,
-                               model.PurchasedSurvey.hierarchy_id])) &
-                    (model.PurchasedSurvey.survey_id == model.Hierarchy.survey_id) &
-                    (model.PurchasedSurvey.hierarchy_id == model.Hierarchy.id))
+                        array([model.PurchasedSurvey.program_id,
+                               model.PurchasedSurvey.survey_id])) &
+                    (model.PurchasedSurvey.program_id == model.Survey.program_id) &
+                    (model.PurchasedSurvey.survey_id == model.Survey.id))
                 .filter(
                     (model.PurchasedSurvey.organisation_id == None) |
                     (model.PurchasedSurvey.organisation_id == oid)))

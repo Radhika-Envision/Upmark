@@ -13,28 +13,28 @@
                 ng-if="editable && model.length > 1 && !edit.model">
             <i class="fa fa-fw fa-unsorted"></i></button>
         <a class="btn btn-default btn-round" title="Add new"
-                ng-href="#/measure/new?{{query}}"
+                ng-href="#/1/measure/new?{{query}}"
                 ng-if="editable && !edit.model">
             <i class="fa fa-fw fa-plus"></i></a>
         <a class="btn btn-default btn-round" title="Link to existing"
-                ng-href="#/measure-link?{{query}}"
+                ng-href="#/1/measure-link?{{query}}"
                 ng-if="editable && !edit.model">
             <i class="fa fa-fw fa-link"></i></a>
     </div>
-    <h2 label="{{level.label}}" ng-class="'survey-' + level.level">
+    <h2 label="{{level.label}}" ng-class="'program-' + level.level">
         {{level.title}}</h2>
 </div>
 <table class="table table-hover">
     <tbody ui-sortable="dragOpts" ng-model="edit.model">
         <tr ng-repeat="item in edit.model || model"
-                any-href="/measure/{{item.id}}?{{query}}"
+                any-href="/1/measure/{{item.id}}?{{query}}"
                 ng-disabled="edit.model"
                 ng-class="{'strike-black': getStats(item.id).notRelevant}">
             <td class="shrink numeric">{{item.seq + 1}}</td>
             <td>{{item.title}}</td>
             <td class="shrink text-muted numeric"
                     title="Score"
-                    ng-if="assessment && checkRole('view_aggregate_score')">
+                    ng-if="submission && checkRole('view_aggregate_score')">
                 <span>{{getStats(item.id).score | number:0}}</span
                ><span class="text-muted hidden-sm hidden-xs">/</span
                ><br class="visible-sm visible-xs"
@@ -43,16 +43,16 @@
             </td>
             <td class="shrink text-muted numeric"
                     title="Weight"
-                    ng-if="!assessment && checkRole('view_aggregate_score')">
+                    ng-if="!submission && checkRole('view_aggregate_score')">
                 {{item.weight | number:0}}
             </td>
-            <td class="shrink" ng-if="assessment">
+            <td class="shrink" ng-if="submission">
                 <column-progress items="getStats(item.id).progressItems">
                  </column-progress>
             </td>
             <td class="shrink text-muted numeric"
                     title="Number of measures"
-                    ng-if="assessment"
+                    ng-if="submission"
                 ><span>{{getStats(item.id).progressItems[0].value | number:0}}</span
                 ><span class="text-muted hidden-sm hidden-xs">/</span
                 ><br class="visible-sm visible-xs"
@@ -61,7 +61,7 @@
             </td>
             <td class="shrink text-muted numeric"
                     title="Number of measures"
-                    ng-if="!assessment">
+                    ng-if="!submission">
                 1
             </td>
             <td class="shrink grab-handle" ng-if="edit.model">

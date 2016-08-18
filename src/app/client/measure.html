@@ -33,21 +33,21 @@
                 ng-if="editable && !edit.model">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/subscription/measure?id={{measure.id}}&id={{survey.id}}"
-                ng-if="!edit.model && !assessment">
+                ng-href="#/1/subscription/measure?id={{measure.id}}&id={{program.id}}"
+                ng-if="!edit.model && !submission">
             <i class="fa fa-envelope"></i></a>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/subscription/response?id={{measure.id}}&id={{assessment.id}}"
-                ng-if="!edit.model && assessment">
+                ng-href="#/1/subscription/response?id={{measure.id}}&id={{submission.id}}"
+                ng-if="!edit.model && submission">
             <i class="fa fa-envelope"></i></a>
-        <survey-history entity="measure" service="Measure"
-                ng-if="!assessment && !edit.model"></survey-history>
+        <program-history entity="measure" service="Measure"
+                ng-if="!submission && !edit.model"></program-history>
     </div>
-    <question-header entity="measure" assessment="assessment"></question-header>
+    <question-header entity="measure" submission="submission"></question-header>
 </div>
 </div>
 
-<assessment-header></assessment-header>
+<submission-header></submission-header>
 
 <div ng-if="edit.model" class="container">
     <form novalidate name="form" id="editor" form-nav-warn>
@@ -105,9 +105,9 @@
     measure:
     <ul ng-if="parents.length">
         <li ng-repeat="parent in parents">
-            <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}&parent={{parent.qnodes[parent.qnodes.length - 1].id}}">
-                <span ng-class="{strike: parent.hierarchy.deleted}">
-                    {{parent.hierarchy.title}}
+            <a ng-href="#/1/measure/{{measure.id}}?program={{program.id}}&parent={{parent.qnodes[parent.qnodes.length - 1].id}}">
+                <span ng-class="{strike: parent.survey.deleted}">
+                    {{parent.survey.title}}
                 </span>
                 <span ng-repeat="item in parent.qnodes"
                         ng-class="{strike: item.deleted}">
@@ -121,7 +121,7 @@
     </ul>
     <p ng-if="parent">
         This measure can be
-        <a ng-href="#/measure/{{measure.id}}?survey={{survey.id}}">
+        <a ng-href="#/1/measure/{{measure.id}}?program={{program.id}}">
             viewed without a survey</a>,
         but it can not be responded to like that.
     </p>
@@ -130,9 +130,9 @@
     </p>
 </docs>
 
-<div class="container spaced" ng-if="!edit.model && assessment">
+<div class="container spaced" ng-if="!edit.model && submission">
     <response type="responseType" model="response" weight="measure.weight"
-            readonly="!!structure.deletedItem" has-quality="structure.survey.hasQuality">
+            readonly="!!structure.deletedItem" has-quality="structure.program.hasQuality">
         <span ng-controller="ResponseHistory" uib-dropdown
                 on-toggle="toggled(open)" dropdown-append-to-body>
             <button class="btn btn-default btn-round" title="History"
@@ -220,7 +220,7 @@
         <p ng-if="response.user.name" class="spaced text-center">
             <i class="fa fa-history"></i>
             Version {{response.version}} submitted by
-            <a ng-href="#/user/{{response.user.id}}">
+            <a ng-href="#/1/user/{{response.user.id}}">
                 {{response.user.name}}</a>,
             <span class="hidden-print">
                 {{response.modified * 1000 | timeAgo:'medium'}}.

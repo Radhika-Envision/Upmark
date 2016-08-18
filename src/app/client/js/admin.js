@@ -91,9 +91,9 @@ angular.module('wsaa.admin', [
 
 
 .factory('PurchasedSurvey', ['$resource', 'paged', function($resource, paged) {
-    return $resource('/organisation/:id/hierarchy/:hid.json', {
+    return $resource('/organisation/:id/survey/:hid.json', {
         id: '@orgId',
-        hid: '@hierarchyId'
+        hid: '@surveyId'
     }, {
         head: { method: 'HEAD', cache: false },
         query: {
@@ -196,11 +196,11 @@ angular.module('wsaa.admin', [
     }
 
     $scope.$on('EditSaved', function(event, model) {
-        $location.url('/user/' + model.id);
+        $location.url('/1/user/' + model.id);
     });
     $scope.$on('EditDeleted', function(event, model) {
         $location.url(format(
-            '/org/{}', model.organisation.id));
+            '/1/org/{}', model.organisation.id));
     });
 
     $scope.roles = routeData.roles;
@@ -315,7 +315,7 @@ angular.module('wsaa.admin', [
                         return false;
                     return Roles.hasPermission(current.user.role, 'org_admin');
                     break;
-                case 'assessment_browse':
+                case 'submission_browse':
                     if (current.user.organisation.id == org.id)
                         return true;
                     return Roles.hasPermission(current.user.role, 'consultant');
@@ -350,10 +350,10 @@ angular.module('wsaa.admin', [
     $scope.attributions = [];
 
     $scope.$on('EditSaved', function(event, model) {
-        $location.url('/org/' + model.id);
+        $location.url('/1/org/' + model.id);
     });
     $scope.$on('EditDeleted', function(event, model) {
-        $location.url('/orgs');
+        $location.url('/1/orgs');
     });
 
     // ui-select can't be used directly with items in an ng-repeat. The ng-model
@@ -459,15 +459,15 @@ angular.module('wsaa.admin', [
 
 
 .controller('PurchasedSurveyAddCtrl', [
-        '$scope', 'Survey', 'PurchasedSurvey', 'org', 'survey', 'Notifications',
-        'Hierarchy', '$location',
-        function($scope, Survey, PurchasedSurvey, org, survey, Notifications,
-            Hierarchy, $location) {
+        '$scope', 'Program', 'PurchasedSurvey', 'org', 'program', 'Notifications',
+        'Survey', '$location',
+        function($scope, Program, PurchasedSurvey, org, program, Notifications,
+            Survey, $location) {
 
     $scope.org = org;
-    $scope.survey = survey;
+    $scope.program = program;
 
-    if (!$scope.survey) {
+    if (!$scope.program) {
         $scope.search = {
             term: "",
             deleted: false,
@@ -475,9 +475,9 @@ angular.module('wsaa.admin', [
         };
 
         $scope.$watch('search', function(search) {
-            Survey.query(search).$promise.then(
-                function success(surveys) {
-                    $scope.surveys = surveys;
+            Program.query(search).$promise.then(
+                function success(programs) {
+                    $scope.programs = programs;
                 },
                 function failure(details) {
                     Notifications.set('edit', 'error',
@@ -486,26 +486,26 @@ angular.module('wsaa.admin', [
             );
         }, true);
     } else {
-        Hierarchy.query({surveyId: $scope.survey.id}).$promise.then(
-            function success(hierarchies) {
-                $scope.hierarchies = hierarchies;
+        Survey.query({programId: $scope.program.id}).$promise.then(
+            function success(surveys) {
+                $scope.surveys = surveys;
             },
             function failure(details) {
                     Notifications.set('edit', 'error',
-                        "Could not get hierarchy list: " + details.statusText);
+                        "Could not get survey list: " + details.statusText);
             }
         );
     }
 
-    $scope.addHierarchy = function(hierarchy) {
+    $scope.addSurvey = function(survey) {
         PurchasedSurvey.save({
-            surveyId: $scope.survey.id
+            programId: $scope.program.id
         }, {
             orgId: $scope.org.id,
-            hierarchyId: hierarchy.id
+            surveyId: survey.id
         }).$promise.then(
             function success() {
-                $location.url('/org/' + $scope.org.id);
+                $location.url('/1/org/' + $scope.org.id);
             },
             function failure(details) {
                 Notifications.set('edit', 'error',
@@ -521,7 +521,7 @@ angular.module('wsaa.admin', [
         function($scope, PurchasedSurvey) {
 
     $scope.$watch('org', function(org) {
-        $scope.hierarchies = PurchasedSurvey.query({
+        $scope.surveys = PurchasedSurvey.query({
             id: org.id
         });
     });

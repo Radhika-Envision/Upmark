@@ -10,6 +10,7 @@ import sqlalchemy
 from sqlalchemy.orm import joinedload
 
 from activity import Activities
+import config
 import handlers
 import model
 from utils import ToSon, truthy, updater
@@ -17,8 +18,8 @@ from utils import ToSon, truthy, updater
 
 def test_password(text):
     with model.session_scope() as session:
-        setting = session.query(model.SystemConfig).get('pass_threshold')
-        threshold = float(setting.value)
+        setting = config.get_setting(session, 'pass_threshold')
+        threshold = float(setting)
     password_tester = passwordmeter.Meter(settings={
             'threshold': threshold,
             'pessimism': 10,

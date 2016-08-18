@@ -23,16 +23,16 @@
                 ng-if="!edit.model && checkRole('user_edit')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/subscription/user?id={{user.id}}">
+                ng-href="#/1/subscription/user?id={{user.id}}">
             <i class="fa fa-envelope"></i></a>
     </div>
     <h2 page-title>
         <i class="fa fa-fw fa-user"></i>
-        <a href="#/org/{{user.organisation.id}}"
+        <a href="#/1/org/{{user.organisation.id}}"
                 ng-if="user.organisation"
                 ng-class="{strike: user.organisation.deleted}">
             {{user.organisation.name}}</a>
-        <a href="#/org/{{user.organisation.id}}"
+        <a href="#/1/org/{{user.organisation.id}}"
                 ng-if="!user.organisation">
             Users</a>
         &raquo;
@@ -101,7 +101,7 @@
             <h3>Email notifications</h3>
             <p>
                 Notifications can be sent to your email address when activity
-                in <a href="/#/">your timeline</a> changes. To opt out, set the
+                in <a href="/#/1/">your timeline</a> changes. To opt out, set the
                 email frequency to zero. The maximum interval is two weeks.
             </p>
         </docs>
@@ -144,7 +144,7 @@
     <dl>
         <dt>Organisation</dt>
         <dd>
-            <a ng-href="#/org/{{user.organisation.id}}">
+            <a ng-href="#/1/org/{{user.organisation.id}}">
                 {{user.organisation.name}}</a>
         </dd>
     </dl>

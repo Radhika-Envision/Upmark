@@ -11,7 +11,7 @@ import sqlalchemy
 from sqlalchemy.orm import joinedload
 
 from activity import Activities
-import crud.survey
+import crud.program
 import handlers
 import model
 import logging
@@ -233,15 +233,15 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
             setattr(org.meta, n, son.get(n))
 
 
-class PurchasedSurveyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
+class PurchasedSurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
     @tornado.web.authenticated
-    def head(self, org_id, hierarchy_id):
+    def head(self, org_id, survey_id):
         self._check_user(org_id)
 
         with model.session_scope() as session:
             purchased_survey = (session.query(model.PurchasedSurvey)
-                .filter_by(survey_id=self.survey_id,
-                           hierarchy_id=hierarchy_id,
+                .filter_by(program_id=self.program_id,
+                           survey_id=survey_id,
                            organisation_id=org_id)
                 .first())
             if not purchased_survey:
@@ -251,8 +251,8 @@ class PurchasedSurveyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
         self.finish()
 
     @tornado.web.authenticated
-    def get(self, org_id, hierarchy_id):
-        if not hierarchy_id:
+    def get(self, org_id, survey_id):
+        if not survey_id:
             self.query(org_id)
 
         raise handlers.ModelError("Not implemented")
@@ -270,46 +270,46 @@ class PurchasedSurveyHandler(crud.survey.SurveyCentric, handlers.BaseHandler):
                 r'/title$',
                 r'/deleted$',
                 r'/n_measures$',
-                r'/survey/tracking_id$',
+                r'/program/tracking_id$',
                 # Descend into list
                 r'/[0-9]+$',
-                r'/survey$'
+                r'/program$'
             )
-            sons = to_son(org.hierarchies)
+            sons = to_son(org.surveys)
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
         self.finish()
 
     @handlers.authz('admin')
-    def put(self, org_id, hierarchy_id):
+    def put(self, org_id, survey_id):
         with model.session_scope() as session:
             org = session.query(model.Organisation).get(org_id)
             if not org:
                 raise handlers.MissingDocError('No such organisation')
-            hierarchy = (session.query(model.Hierarchy)
-                .get((hierarchy_id, self.survey_id)))
-            if not hierarchy:
-                raise handlers.MissingDocError('No such hierarchy')
+            survey = (session.query(model.Survey)
+                .get((survey_id, self.program_id)))
+            if not survey:
+                raise handlers.MissingDocError('No such survey')
 
             purchased_survey = (session.query(model.PurchasedSurvey)
-                .get((self.survey_id, hierarchy_id, org.id)))
+                .get((self.program_id, survey_id, org.id)))
 
             if not purchased_survey:
-                org.hierarchies.append(hierarchy)
+                org.surveys.append(survey)
 
     @handlers.authz('admin')
-    def delete(self, org_id, survey_id):
+    def delete(self, org_id, program_id):
         with model.session_scope() as session:
             org = session.query(model.Organisation).get(org_id)
             if not org:
                 raise handlers.MissingDocError('No such organisation')
-            hierarchy = (session.query(model.Hierarchy)
-                .get((hierarchy_id, self.survey_id)))
-            if not hierarchy:
-                raise handlers.MissingDocError('No such hierarchy')
+            survey = (session.query(model.Survey)
+                .get((survey_id, self.program_id)))
+            if not survey:
+                raise handlers.MissingDocError('No such survey')
 
-            org.surveys.remove(hierarchy)
+            org.programs.remove(survey)
 
     def _check_user(self, org_id):
         if org_id != str(self.current_user.organisation_id):

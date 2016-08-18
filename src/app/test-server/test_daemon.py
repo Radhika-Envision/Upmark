@@ -30,20 +30,20 @@ class UnexpectedError(Exception):
 
 class DaemonTest(base.AqHttpTestBase):
     def test_timeline(self):
-        # Delete a qnode; this should subscribe to the survey and add an event
+        # Delete a qnode; this should subscribe to the program and add an event
         # to the timeline
         with base.mock_user('author'):
-            survey_sons = self.fetch(
-                "/survey.json", method='GET',
+            program_sons = self.fetch(
+                "/program.json", method='GET',
                 expected=200, decode=True)
-            sid = survey_sons[0]['id']
+            sid = program_sons[0]['id']
 
-            hierarchy_sons = self.fetch(
-                "/hierarchy.json?surveyId=%s" % sid,
+            survey_sons = self.fetch(
+                "/survey.json?programId=%s" % sid,
                 method='GET', expected=200, decode=True)
-            hid = hierarchy_sons[0]['id']
+            hid = survey_sons[0]['id']
 
-            url = "/qnode.json?surveyId=%s&hierarchyId=%s&root=" % (sid, hid)
+            url = "/qnode.json?programId=%s&surveyId=%s&root=" % (sid, hid)
             qnode_sons = self.fetch(
                 url, method='GET', expected=200, decode=True)
             qid1 = qnode_sons[0]['id']
@@ -61,7 +61,7 @@ class DaemonTest(base.AqHttpTestBase):
             self.assertTrue(all(s is None for s in ss))
 
             q_son = self.fetch(
-                "/qnode/{}.json?surveyId={}".format(qid1, sid),
+                "/qnode/{}.json?programId={}".format(qid1, sid),
                 method='DELETE', expected=200)
 
             sub_son = self.fetch(
@@ -113,7 +113,7 @@ class DaemonTest(base.AqHttpTestBase):
         # Delete another qnode
         with base.mock_user('author'):
             q_son = self.fetch(
-                "/qnode/{}.json?surveyId={}".format(qid2, sid),
+                "/qnode/{}.json?programId={}".format(qid2, sid),
                 method='DELETE', expected=200)
 
         # Run again, and make sure no nofications send (because not enough time
@@ -164,34 +164,34 @@ class DaemonTest(base.AqHttpTestBase):
             notifications.process_loop()
         self.assertEqual(len(messages), 1)
 
-    def create_assessment(self):
+    def create_submission(self):
         # Respond to a survey
         with model.session_scope() as session:
-            survey = session.query(model.Survey).one()
+            program = session.query(model.Program).one()
             user = (session.query(model.AppUser)
                     .filter_by(email='clerk')
                     .one())
             organisation = (session.query(model.Organisation)
                     .filter_by(name='Utility')
                     .one())
-            hierarchy = (session.query(model.Hierarchy)
-                    .filter_by(title='Hierarchy 1')
+            survey = (session.query(model.Survey)
+                    .filter_by(title='Survey 1')
                     .one())
-            assessment = model.Assessment(
-                survey_id=survey.id,
+            submission = model.Submission(
+                program_id=program.id,
                 organisation_id=organisation.id,
-                hierarchy_id=hierarchy.id,
+                survey_id=survey.id,
                 title="Submission",
                 approval='draft')
-            session.add(assessment)
+            session.add(submission)
 
-            for m in survey.measures:
-                if not any(p.hierarchy_id == hierarchy.id for p in m.parents):
+            for m in program.measures:
+                if not any(p.survey_id == survey.id for p in m.parents):
                     continue
                 response = model.Response(
-                    survey_id=survey.id,
+                    program_id=program.id,
                     measure_id=m.id,
-                    assessment=assessment,
+                    submission=submission,
                     user_id=user.id)
                 response.attachments = []
                 response.not_relevant = False
@@ -204,26 +204,26 @@ class DaemonTest(base.AqHttpTestBase):
                 else:
                     response.response_parts = [{'value': 1}]
 
-            assessment.update_stats_descendants()
-            functions = list(assessment.rnodes)
+            submission.update_stats_descendants()
+            functions = list(submission.rnodes)
             self.assertAlmostEqual(functions[0].score, 20)
             self.assertAlmostEqual(functions[1].score, 0)
             self.assertAlmostEqual(functions[0].qnode.total_weight, 20)
             self.assertAlmostEqual(functions[1].qnode.total_weight, 0)
 
-            return assessment.id
+            return submission.id
 
     def test_recalculate(self):
-        aid = self.create_assessment()
+        aid = self.create_submission()
         with model.session_scope() as session:
-            assessment = session.query(model.Assessment).get(aid)
-            sid = assessment.survey_id
-            process_id = assessment.hierarchy.qnodes[0].children[0].id
-            function_2_id = assessment.hierarchy.qnodes[1].id
+            submission = session.query(model.Submission).get(aid)
+            sid = submission.program_id
+            process_id = submission.survey.qnodes[0].children[0].id
+            function_2_id = submission.survey.qnodes[1].id
 
         # Move a process (qnode) to a different function
         with base.mock_user('author'):
-            url = "/qnode/{}.json?surveyId={}".format(process_id, sid)
+            url = "/qnode/{}.json?programId={}".format(process_id, sid)
             qnode_son = self.fetch(
                 url, method='GET', expected=200, decode=True)
             qnode_son = self.fetch(
@@ -233,8 +233,8 @@ class DaemonTest(base.AqHttpTestBase):
 
         # Check that rnode score is out of date
         with model.session_scope() as session:
-            assessment = session.query(model.Assessment).get(aid)
-            functions = list(assessment.rnodes)
+            submission = session.query(model.Submission).get(aid)
+            functions = list(submission.rnodes)
             self.assertAlmostEqual(functions[0].score, 20)
             self.assertAlmostEqual(functions[1].score, 0)
             self.assertAlmostEqual(functions[0].qnode.total_weight, 11)
@@ -253,24 +253,24 @@ class DaemonTest(base.AqHttpTestBase):
 
         # Check that rnode score is no longer out of date
         with model.session_scope() as session:
-            assessment = session.query(model.Assessment).get(aid)
-            functions = list(assessment.rnodes)
+            submission = session.query(model.Submission).get(aid)
+            functions = list(submission.rnodes)
             self.assertAlmostEqual(functions[0].score, 11)
             self.assertAlmostEqual(functions[1].score, 9)
             self.assertAlmostEqual(functions[0].qnode.total_weight, 11)
             self.assertAlmostEqual(functions[1].qnode.total_weight, 9)
 
     def test_recalculate_failure(self):
-        aid = self.create_assessment()
+        aid = self.create_submission()
         with model.session_scope() as session:
-            assessment = session.query(model.Assessment).get(aid)
-            sid = assessment.survey_id
-            process_id = assessment.hierarchy.qnodes[0].children[0].id
-            function_2_id = assessment.hierarchy.qnodes[1].id
+            submission = session.query(model.Submission).get(aid)
+            sid = submission.program_id
+            process_id = submission.survey.qnodes[0].children[0].id
+            function_2_id = submission.survey.qnodes[1].id
 
         # Move a process (qnode) to a different function
         with base.mock_user('author'):
-            url = "/qnode/{}.json?surveyId={}".format(process_id, sid)
+            url = "/qnode/{}.json?programId={}".format(process_id, sid)
             qnode_son = self.fetch(
                 url, method='GET', expected=200, decode=True)
             qnode_son = self.fetch(
@@ -286,7 +286,7 @@ class DaemonTest(base.AqHttpTestBase):
 
         messages = []
         with mock.patch('recalculate.send', send), \
-                mock.patch('model.Assessment.update_stats_descendants',
+                mock.patch('model.Submission.update_stats_descendants',
                            side_effect=model.ModelError):
             recalculate.process_once(config)
             self.assertEqual(len(messages), 1)

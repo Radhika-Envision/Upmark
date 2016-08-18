@@ -440,43 +440,43 @@ class SubscriptionHandler(handlers.BaseHandler):
 
         elif ob_type == 'program':
             arglen(len(ob_refs), 1)
-            query = (session.query(model.Survey)
-                .filter(model.Survey.id == ob_refs[0]))
+            query = (session.query(model.Program)
+                .filter(model.Program.id == ob_refs[0]))
 
         elif ob_type == 'survey':
             arglen(len(ob_refs), 2, 2)
-            query = (session.query(model.Hierarchy)
-                .filter(model.Hierarchy.id == ob_refs[0],
-                        model.Hierarchy.survey_id == ob_refs[1]))
+            query = (session.query(model.Survey)
+                .filter(model.Survey.id == ob_refs[0],
+                        model.Survey.program_id == ob_refs[1]))
 
         elif ob_type == 'qnode':
             arglen(len(ob_refs), 2, 2)
             query = (session.query(model.QuestionNode)
                 .filter(model.QuestionNode.id == ob_refs[0],
-                        model.QuestionNode.survey_id == ob_refs[1]))
+                        model.QuestionNode.program_id == ob_refs[1]))
 
         elif ob_type == 'measure':
             arglen(len(ob_refs), 2, 2)
             query = (session.query(model.Measure)
                 .filter(model.Measure.id == ob_refs[0],
-                        model.Measure.survey_id == ob_refs[1]))
+                        model.Measure.program_id == ob_refs[1]))
 
         elif ob_type == 'submission':
             arglen(len(ob_refs), 1)
-            query = (session.query(model.Assessment)
-                .filter(model.Assessment.id == ob_refs[0]))
+            query = (session.query(model.Submission)
+                .filter(model.Submission.id == ob_refs[0]))
 
         elif ob_type == 'rnode':
             arglen(len(ob_refs), 2, 2)
             query = (session.query(model.ResponseNode)
                 .filter(model.ResponseNode.qnode_id == ob_refs[0],
-                        model.ResponseNode.assessment_id == ob_refs[1]))
+                        model.ResponseNode.submission_id == ob_refs[1]))
 
         elif ob_type == 'response':
             arglen(len(ob_refs), 2, 2)
             query = (session.query(model.Response)
                 .filter(model.Response.measure_id == ob_refs[0],
-                        model.Response.assessment_id == ob_refs[1]))
+                        model.Response.submission_id == ob_refs[1]))
 
         else:
             raise model.ModelError("Can't subscribe to '%s' type" % ob_type)
@@ -502,17 +502,17 @@ class SubscriptionHandler(handlers.BaseHandler):
         if ob.ob_type in {'organisation', 'user', 'program'}:
             return
         elif ob.ob_type in {'survey', 'qnode', 'measure'}:
-            if hasattr(ob, 'hierarchy'):
-                hierarchy = ob.hierarchy
+            if hasattr(ob, 'survey'):
+                survey = ob.survey
             else:
-                hierarchy = ob
-            if not hierarchy in user.organisation.purchased_surveys:
+                survey = ob
+            if not survey in user.organisation.purchased_surveys:
                 raise handlers.AuthzError(
                     "You can't subscribe to a survey that you haven't"
                     " purchased.")
         elif ob.ob_type in {'submission', 'rnode', 'response'}:
-            if hasattr(ob, 'assessment'):
-                organisation_id = ob.assessment.organisation_id
+            if hasattr(ob, 'submission'):
+                organisation_id = ob.submission.organisation_id
             else:
                 organisation_id = ob.organisation_id
             if organisation_id != user.organisation_id:
@@ -546,9 +546,9 @@ class CardHandler(handlers.BaseHandler):
             }))
 
             if self.has_privillege('author', 'consultant'):
-                surveys = (session.query(model.Survey)
-                    .filter(model.Survey.finalised_date == None)
-                    .order_by(model.Survey.created.desc())
+                programs = (session.query(model.Program)
+                    .filter(model.Program.finalised_date == None)
+                    .order_by(model.Program.created.desc())
                     .limit(2)
                     .all())
                 sons += to_son([{
@@ -556,12 +556,12 @@ class CardHandler(handlers.BaseHandler):
                     'created': s.created,
                     'ob_type': 'program',
                     'ob_ids': [s.id],
-                } for s in surveys])
+                } for s in programs])
 
             if self.has_privillege('clerk'):
-                assessments = (session.query(model.Assessment)
-                    .filter(model.Assessment.organisation_id == org_id)
-                    .order_by(model.Assessment.created.desc())
+                submissions = (session.query(model.Submission)
+                    .filter(model.Submission.organisation_id == org_id)
+                    .order_by(model.Submission.created.desc())
                     .limit(2)
                     .all())
                 sons += to_son([{
@@ -569,7 +569,7 @@ class CardHandler(handlers.BaseHandler):
                     'created': a.created,
                     'ob_type': 'submission',
                     'ob_ids': [a.id],
-                } for a in assessments])
+                } for a in submissions])
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))

@@ -193,7 +193,7 @@ def get_mappings():
         (r"/systemconfig.json", crud.config.SystemConfigHandler, {}),
         (r"/systemconfig/(.*)", crud.config.SystemConfigItemHandler, {}),
         (r"/organisation/?([^/]*).json", crud.org.OrgHandler, {}),
-        (r"/organisation/?([^/]*)/hierarchy/?([^/]*).json",
+        (r"/organisation/?([^/]*)/survey/?([^/]*).json",
             crud.org.PurchasedSurveyHandler, {}),
         (r"/geo/(.*).json", crud.org.LocationSearchHandler, {}),
         (r"/user/?([^/]*).json", crud.user.UserHandler, {}),
@@ -207,26 +207,26 @@ def get_mappings():
             crud.activity.CardHandler, {}),
         (r"/password.json", crud.user.PasswordHandler, {}),
 
+        (r"/program/?([^/]*).json", crud.program.ProgramHandler, {}),
+        (r"/program/?([^/]*)/history.json", crud.program.ProgramTrackingHandler, {}),
         (r"/survey/?([^/]*).json", crud.survey.SurveyHandler, {}),
-        (r"/survey/?([^/]*)/history.json", crud.survey.SurveyTrackingHandler, {}),
-        (r"/hierarchy/?([^/]*).json", crud.hierarchy.HierarchyHandler, {}),
-        (r"/hierarchy/?([^/]*)/survey.json", crud.survey.SurveyHistoryHandler, {
-            'mapper': model.Hierarchy}),
+        (r"/survey/?([^/]*)/program.json", crud.program.ProgramHistoryHandler, {
+            'mapper': model.Survey}),
         (r"/qnode/?([^/]*).json", crud.qnode.QuestionNodeHandler, {}),
-        (r"/qnode/?([^/]*)/survey.json", crud.survey.SurveyHistoryHandler, {
+        (r"/qnode/?([^/]*)/program.json", crud.program.ProgramHistoryHandler, {
             'mapper': model.QuestionNode}),
         (r"/measure/?([^/]*).json", crud.measure.MeasureHandler, {}),
-        (r"/measure/?([^/]*)/survey.json", crud.survey.SurveyHistoryHandler, {
+        (r"/measure/?([^/]*)/program.json", crud.program.ProgramHistoryHandler, {
             'mapper': model.Measure}),
 
-        (r"/assessment/?([^/]*).json", crud.assessment.AssessmentHandler, {}),
-        (r"/assessment/([^/]*)/rnode/?([^/]*).json",
+        (r"/submission/?([^/]*).json", crud.submission.SubmissionHandler, {}),
+        (r"/submission/([^/]*)/rnode/?([^/]*).json",
             crud.rnode.ResponseNodeHandler, {}),
-        (r"/assessment/([^/]*)/response/?([^/]*).json",
+        (r"/submission/([^/]*)/response/?([^/]*).json",
             crud.response.ResponseHandler, {}),
-        (r"/assessment/([^/]*)/response/?([^/]*)/history.json",
+        (r"/submission/([^/]*)/response/?([^/]*)/history.json",
             crud.response.ResponseHistoryHandler, {}),
-        (r"/assessment/([^/]*)/measure/([^/]*)/attachment.json",
+        (r"/submission/([^/]*)/measure/([^/]*)/attachment.json",
             crud.attachment.ResponseAttachmentsHandler, {}),
         (r"/attachment/([^/]*).json",
             crud.attachment.AttachmentHandler, {}),
@@ -235,10 +235,10 @@ def get_mappings():
             statistics_handlers.StatisticsHandler, {}),
         (r"/diff.json",
             report_handlers.DiffHandler, {}),
-        (r"/export/survey/([^/]*)/hierarchy/([^/]*)/([^.]+)\.(.+)",
-            export_handlers.ExportSurveyHandler, {}),
-        (r"/export/assessment/([^/]*)/([^.]+)\.(.+)",
-            export_handlers.ExportAssessmentHandler, {}),
+        (r"/export/program/([^/]*)/survey/([^/]*)/([^.]+)\.(.+)",
+            export_handlers.ExportProgramHandler, {}),
+        (r"/export/submission/([^/]*)/([^.]+)\.(.+)",
+            export_handlers.ExportSubmissionHandler, {}),
         (r"/adhoc_query\.(.+)",
             report_handlers.AdHocHandler, {}),
         (r"/reformat.sql",
@@ -246,7 +246,7 @@ def get_mappings():
 
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response.json", import_handlers.ImportResponseHandler, {}),
-        (r"/import/assessment.json", import_handlers.ImportAssessmentHandler, {}),
+        (r"/import/submission.json", import_handlers.ImportSubmissionHandler, {}),
         (r"/redirect", handlers.RedirectHandler),
 
         (r"/(.*)", tornado.web.StaticFileHandler, {

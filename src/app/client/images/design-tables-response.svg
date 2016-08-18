@@ -174,12 +174,12 @@
          sodipodi:role="line"
          x="140"
          y="789"
-         style="font-size:12px">survey_id</tspan><tspan
+         style="font-size:12px">program_id</tspan><tspan
          sodipodi:role="line"
          x="140"
          y="804"
          style="font-size:12px"
-         id="tspan5143">hierarchy_id</tspan><tspan
+         id="tspan5143">survey_id</tspan><tspan
          sodipodi:role="line"
          x="140"
          y="819"
@@ -223,12 +223,12 @@
          y="820"
          x="370"
          sodipodi:role="line"
-         id="tspan5165">survey_id</tspan><tspan
+         id="tspan5165">program_id</tspan><tspan
          style="font-size:12px"
          y="835"
          x="370"
          sodipodi:role="line"
-         id="tspan5167">hierarchy_id</tspan><tspan
+         id="tspan5167">survey_id</tspan><tspan
          style="font-size:12px"
          y="850"
          x="370"
@@ -260,7 +260,7 @@
          x="370"
          y="760"
          id="tspan4948"
-         style="font-size:16px">assessment</tspan></text>
+         style="font-size:16px">submission</tspan></text>
     <rect
        style="fill:#ededed;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:2.12132025;stroke-miterlimit:10;stroke-opacity:1;stroke-dasharray:none"
        id="rect4950"
@@ -284,7 +284,7 @@
          x="610"
          y="804"
          style="font-size:12px"
-         id="tspan5221">survey_id</tspan><tspan
+         id="tspan5221">program_id</tspan><tspan
          sodipodi:role="line"
          x="610"
          y="819"
@@ -294,7 +294,7 @@
          x="610"
          y="834"
          style="font-size:12px"
-         id="tspan5225">assessment_id</tspan><tspan
+         id="tspan5225">submission_id</tspan><tspan
          sodipodi:role="line"
          x="610"
          y="849"
@@ -431,7 +431,7 @@
          x="850"
          y="819"
          style="font-size:12px"
-         id="tspan5285">survey_id</tspan><tspan
+         id="tspan5285">program_id</tspan><tspan
          sodipodi:role="line"
          x="850"
          y="834"
@@ -441,7 +441,7 @@
          x="850"
          y="849"
          style="font-size:12px"
-         id="tspan5289">assessment_id</tspan><tspan
+         id="tspan5289">submission_id</tspan><tspan
          sodipodi:role="line"
          x="850"
          y="864"
@@ -507,7 +507,7 @@
          id="tspan5096"
          y="690"
          x="370"
-         sodipodi:role="line">hierarchy</tspan></text>
+         sodipodi:role="line">survey</tspan></text>
     <rect
        y="670"
        x="600"

@@ -13,7 +13,7 @@
     </div>
     <h2 page-title>
         <i class="fa fa-fw fa-university"></i>
-        <a href="#/orgs">Organisations</a> &raquo;
+        <a href="#/1/orgs">Organisations</a> &raquo;
         <span>{{org.name}}</span> &raquo;
         <span>Add Survey</span>
     </h2>
@@ -21,31 +21,31 @@
 </div>
 
 
-<div class="container" ng-if="!survey">
+<div class="container" ng-if="!program">
     <div class="section">
         <h2 label="Pg">
             Programs
         </h2>
     </div>
 
-    <search-box model="search" result="surveys"></search-box>
+    <search-box model="search" result="programs"></search-box>
 
     <ul class="list-results">
-        <li ng-repeat="survey in surveys">
-            <a ng-href="#/org/{{org.id}}/survey/add?survey={{survey.id}}">
-                <h4>{{survey.title}}</h4>
-                <p class="truncate">{{survey.description}}</p>
+        <li ng-repeat="program in programs">
+            <a ng-href="#/1/org/{{org.id}}/survey/add?program={{program.id}}">
+                <h4>{{program.title}}</h4>
+                <p class="truncate">{{program.description}}</p>
             </a>
         </li>
     </ul>
 
-    <p ng-if="!surveys.length">
+    <p ng-if="!programs.length">
         No programs.
     </p>
 </div>
 
 
-<div class="container" ng-if="survey">
+<div class="container" ng-if="program">
     <div class="section">
         <h2 label="Sv">
             Surveys
@@ -53,19 +53,19 @@
     </div>
 
     <ul class="list-results">
-        <li ng-repeat="hierarchy in hierarchies">
-            <a href ng-click="addHierarchy(hierarchy)">
-                <h4>{{hierarchy.title}}</h4>
-                <p class="truncate">{{hierarchy.nMeasures}} measures</p>
+        <li ng-repeat="survey in surveys">
+            <a href ng-click="addSurvey(survey)">
+                <h4>{{survey.title}}</h4>
+                <p class="truncate">{{survey.nMeasures}} measures</p>
             </a>
         </li>
     </ul>
 
-    <p ng-if="!hierarchies.length" class="text-muted">
-        No surveys in <i>{{survey.title}}</i>.
+    <p ng-if="!surveys.length" class="text-muted">
+        No surveys in <i>{{program.title}}</i>.
     </p>
-    <p ng-if="hierarchies.length" class="text-muted">
-        Showing surveys in <i>{{survey.title}}</i>. Click on one to add
+    <p ng-if="surveys.length" class="text-muted">
+        Showing surveys in <i>{{program.title}}</i>. Click on one to add
         <i>{{org.name}}</i> as a participant.
     </p>
 </div>

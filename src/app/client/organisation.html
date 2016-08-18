@@ -19,12 +19,12 @@
                 ng-if="!edit.model && checkRole('org_modify')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/subscription/organisation?id={{org.id}}">
+                ng-href="#/1/subscription/organisation?id={{org.id}}">
             <i class="fa fa-envelope"></i></a>
     </div>
     <h2 page-title>
         <i class="fa fa-fw fa-university"></i>
-        <a href="#/orgs">Organisations</a> &raquo;
+        <a href="#/1/orgs">Organisations</a> &raquo;
         <span ng-if="org.name"
                 ng-class="{strike: org.deleted}">
             {{org.name}}</span>
@@ -441,11 +441,11 @@ suburb: {{loc.suburb}}">
 
 
 <div class="container" ng-controller="PurchasedSurveyCtrl"
-        ng-if="!edit.model && checkRole('assessment_browse')">
+        ng-if="!edit.model && checkRole('submission_browse')">
     <div class="section">
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="Add new"
-                    ng-href="#/org/{{org.id}}/survey/add"
+                    ng-href="#/1/org/{{org.id}}/survey/add"
                     ng-if="checkRole('survey_purchase')">
                 <i class="fa fa-fw fa-plus">
                     <i class="fa fa-badge fa-link"></i>
@@ -457,17 +457,17 @@ suburb: {{loc.suburb}}">
     </div>
 
     <ul class="list-results">
-        <li ng-repeat="hierarchy in hierarchies"
-                ng-class="{strike: hierarchy.deleted || hierarchy.survey.deleted}">
-            <a ng-href="#/hierarchy/{{hierarchy.id}}/choice?survey={{hierarchy.survey.id}}&organisation={{org.id}}">
-                <h4>{{hierarchy.title}}</h4>
-                <p class="truncate">In {{hierarchy.survey.title}} -
-                    {{hierarchy.nMeasures}} measures</p>
+        <li ng-repeat="survey in surveys"
+                ng-class="{strike: survey.deleted || survey.program.deleted}">
+            <a ng-href="#/1/survey/{{survey.id}}/choice?program={{survey.program.id}}&organisation={{org.id}}">
+                <h4>{{survey.title}}</h4>
+                <p class="truncate">In {{survey.program.title}} -
+                    {{survey.nMeasures}} measures</p>
             </a>
         </li>
     </ul>
 
-    <p ng-if="!hierarchies.length">
+    <p ng-if="!surveys.length">
         <i>{{org.name}}</i> is not participating in any surveys yet.
     </p>
 </div>

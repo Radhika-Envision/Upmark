@@ -41,11 +41,11 @@ class ImportStructureHandler(handlers.BaseHandler):
         fd = tempfile.NamedTemporaryFile()
         try:
             fd.write(fileinfo['body'])
-            survey_id = yield self.background_task(fd.name)
+            program_id = yield self.background_task(fd.name)
         finally:
             fd.close()
         self.set_header("Content-Type", "text/plain")
-        self.write(survey_id)
+        self.write(program_id)
         self.finish()
 
     @run_on_executor
@@ -53,8 +53,8 @@ class ImportStructureHandler(handlers.BaseHandler):
         i = Importer()
         title = self.get_argument('title')
         description = self.get_argument('description')
-        survey_id = i.process_structure_file(file_path, title, description)
-        return survey_id
+        program_id = i.process_structure_file(file_path, title, description)
+        return program_id
 
 
 class ImportResponseHandler(handlers.BaseHandler):
@@ -62,7 +62,7 @@ class ImportResponseHandler(handlers.BaseHandler):
 
     @handlers.authz('author')
     @gen.coroutine
-    def post(self, survey_id):
+    def post(self, program_id):
         fileinfo = self.request.files['file'][0]
         fd = tempfile.NamedTemporaryFile()
         try:
@@ -82,7 +82,7 @@ class ImportResponseHandler(handlers.BaseHandler):
         i.process_structure_file(file_path, title, description)
 
 
-class ImportAssessmentHandler(handlers.BaseHandler):
+class ImportSubmissionHandler(handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @handlers.authz('author')
@@ -92,24 +92,24 @@ class ImportAssessmentHandler(handlers.BaseHandler):
         fd = tempfile.NamedTemporaryFile()
         try:
             fd.write(fileinfo['body'])
-            survey_id = yield self.background_task(fd.name)
+            program_id = yield self.background_task(fd.name)
         finally:
             fd.close()
 
         self.set_header("Content-Type", "text/plain")
-        self.write(survey_id)
+        self.write(program_id)
         self.finish()
 
     @run_on_executor
     def background_task(self, file_path):
         i = Importer()
-        survey_id = self.get_argument('survey')
+        program_id = self.get_argument('program')
         organisation_id = self.get_argument('organisation')
-        hierarchy_id = self.get_argument("hierarchy")
+        survey_id = self.get_argument("survey")
         title = self.get_argument('title')
         user_id = self.get_current_user().id
-        survey_id = i.process_assessment_file(file_path, survey_id, hierarchy_id, organisation_id, title, user_id)
-        return survey_id
+        program_id = i.process_submission_file(file_path, program_id, survey_id, organisation_id, title, user_id)
+        return program_id
 
 
 class Importer():
@@ -137,27 +137,27 @@ class Importer():
 
         with model.session_scope() as session:
 
-            survey = model.Survey()
-            survey.title = title
-            survey.description = bleach.clean(description, strip=True)
+            program = model.Program()
+            program.title = title
+            program.description = bleach.clean(description, strip=True)
             with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                 'aquamark_response_types.json')) as file:
-                survey.response_types = json.load(file)
-            session.add(survey)
+                program.response_types = json.load(file)
+            session.add(program)
             session.flush()
-            survey_id = str(survey.id)
+            program_id = str(program.id)
 
-            hierarchy = model.Hierarchy()
-            hierarchy.survey_id = survey.id
-            hierarchy.title = "Imported Survey"
-            hierarchy.description = None
+            survey = model.Survey()
+            survey.program_id = program.id
+            survey.title = "Imported Survey"
+            survey.description = None
             with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                 'aquamark_hierarchy.json')) as data_file:
-                hierarchy.structure = json.load(data_file)
-            session.add(hierarchy)
+                survey.structure = json.load(data_file)
+            session.add(survey)
             session.flush()
 
-            log.info("hierarchy: %s" % hierarchy.id)
+            log.info("survey: %s" % survey.id)
 
             function_title_row = [{
                 "title": row[self.col2num("J")],
@@ -188,8 +188,8 @@ class Importer():
                     all_rows, function['row_num'])
 
                 qnode_function = model.QuestionNode()
+                qnode_function.program_id = program.id
                 qnode_function.survey_id = survey.id
-                qnode_function.hierarchy_id = hierarchy.id
                 qnode_function.seq = function_order - 1
                 qnode_function.title = function_title
                 qnode_function.description = bleach.clean(
@@ -211,8 +211,8 @@ class Importer():
                         all_rows, process['row_num'], "")
 
                     qnode_process = model.QuestionNode()
+                    qnode_process.program_id = program.id
                     qnode_process.survey_id = survey.id
-                    qnode_process.hierarchy_id = hierarchy.id
                     qnode_process.parent_id = qnode_function.id
                     qnode_process.seq = process_order - 1
                     qnode_process.title = process_title
@@ -235,8 +235,8 @@ class Importer():
                             all_rows, subprocess['row_num'], "")
 
                         qnode_subprocess = model.QuestionNode()
+                        qnode_subprocess.program_id = program.id
                         qnode_subprocess.survey_id = survey.id
-                        qnode_subprocess.hierarchy_id = hierarchy.id
                         qnode_subprocess.parent_id = qnode_process.id
                         qnode_subprocess.seq = subprocess_order - 1
                         qnode_subprocess.title = subprocess_title
@@ -265,7 +265,7 @@ class Importer():
                             measure_weight = measure['weight']
 
                             m = model.Measure()
-                            m.survey_id = survey.id
+                            m.program_id = program.id
                             m.title = measure_title
                             m.weight = measure_weight
                             m.description = bleach.clean(measure_description, strip=True)
@@ -278,10 +278,10 @@ class Importer():
                             session.flush()
                             qnode_subprocess.measures.append(m)
                             session.flush()
-            survey.update_stats_descendants()
-            return survey_id
+            program.update_stats_descendants()
+            return program_id
 
-    def process_response_file(self, path, survey_id):
+    def process_response_file(self, path, program_id):
         """
         Open and read an Excel file
         """
@@ -291,7 +291,7 @@ class Importer():
         TODO : process response
         '''
 
-    def process_assessment_file(self, path, survey_id, hierarchy_id, organisation_id, title, user_id):
+    def process_submission_file(self, path, program_id, survey_id, organisation_id, title, user_id):
         """
         Open and read an Excel file
         """
@@ -307,23 +307,23 @@ class Importer():
         model.connect_db(os.environ.get('DATABASE_URL'))
 
         with model.session_scope() as session:
-            survey = session.query(model.Survey).get(survey_id)
-            if survey is None:
-                raise Exception("There is no Survey.")
+            program = session.query(model.Program).get(program_id)
+            if program is None:
+                raise Exception("There is no program.")
 
-            hierarchy = (session.query(model.Hierarchy)
-                .filter_by(id=hierarchy_id, survey_id=survey.id)
+            survey = (session.query(model.Survey)
+                .filter_by(id=survey_id, program_id=program.id)
                 .one())
-            if hierarchy is None:
-                raise Exception("There is no Hierarchy.")
+            if survey is None:
+                raise Exception("There is no survey.")
 
-            assessment = model.Assessment()
-            assessment.survey_id = survey.id
-            assessment.hierarchy_id = hierarchy.id
-            assessment.organisation_id = organisation_id
-            assessment.title = title
-            assessment.approval = 'draft'
-            session.add(assessment)
+            submission = model.Submission()
+            submission.program_id = program.id
+            submission.survey_id = survey.id
+            submission.organisation_id = organisation_id
+            submission.title = title
+            submission.approval = 'draft'
+            session.add(submission)
             session.flush()
 
             all_rows = []
@@ -336,8 +336,8 @@ class Importer():
             subprocess_col_num = self.col2num("C")
             measure_col_num = self.col2num("D")
 
-            survey_qnodes = (session.query(model.QuestionNode)
-                .filter_by(survey_id=survey_id))
+            program_qnodes = (session.query(model.QuestionNode)
+                .filter_by(program_id=program_id))
 
             with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'aquamark_response_types.json')) as file:
                 response_types = json.load(file)
@@ -348,16 +348,16 @@ class Importer():
                 order = title = ''
                 for row_num in range(0, len(all_rows)-1):
                     order, title = self.parse_order_title(all_rows, row_num, "A", "{order} {title}")
-                    function = survey_qnodes.filter_by(parent_id=None, title=title).one()
+                    function = program_qnodes.filter_by(parent_id=None, title=title).one()
                     log.debug("function: %s", function)
                     function_order = order
 
                     order, title = self.parse_order_title(all_rows, row_num, "B", "{order} {title}")
-                    process = survey_qnodes.filter_by(parent_id=function.id, title=title).one()
+                    process = program_qnodes.filter_by(parent_id=function.id, title=title).one()
                     log.debug("process: %s", process)
 
                     order, title = self.parse_order_title(all_rows, row_num, "C", "{order} {title}")
-                    subprocess = survey_qnodes.filter_by(parent_id=process.id, title=title).one()
+                    subprocess = program_qnodes.filter_by(parent_id=process.id, title=title).one()
                     log.debug("subprocess: %s", subprocess)
 
                     order, title = self.parse_order_title(all_rows, row_num, "D", "{order} {title}")
@@ -366,7 +366,7 @@ class Importer():
                     if len(measure) == 1:
                         measure = measure[0]
                     else:
-                        raise Exception("This survey is not matching current open survey. ")
+                        raise Exception("This survey does not match the target survey. ")
                     log.debug("measure: %s", measure)
 
 
@@ -374,9 +374,9 @@ class Importer():
                     r_types = [r for r in response_types if r["id"] == measure.response_type][0]
 
                     response = model.Response()
-                    response.survey_id = survey_id
+                    response.program_id = program_id
                     response.measure_id = measure.id
-                    response.assessment_id = assessment.id
+                    response.submission_id = submission.id
                     response.user_id = user_id
                     response.comment = all_rows[row_num][self.col2num("K")]
                     response.not_relevant = False # Need to fix this hard coding
@@ -406,11 +406,11 @@ class Importer():
                     (row_num + 2, order, title, str(e)))
 
             try:
-                assessment.update_stats_descendants()
+                submission.update_stats_descendants()
             except model.ModelError as e:
                 raise handlers.ModelError(str(e))
 
-        return survey_id
+        return program_id
 
     def parse_response_type(self, all_rows, row_num, types, col_chr):
         response_text = all_rows[row_num][self.col2num(col_chr)]

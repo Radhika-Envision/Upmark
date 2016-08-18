@@ -28,12 +28,12 @@ MAX_WORKERS = 4
 log = logging.getLogger('app.export_handler')
 
 
-class ExportSurveyHandler(handlers.BaseHandler):
+class ExportProgramHandler(handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated
     @gen.coroutine
-    def get(self, survey_id, hierarchy_id, fmt, extension):
+    def get(self, program_id, survey_id, fmt, extension):
         if extension != 'xlsx':
             raise handlers.MissingDocError(
                 "File type not supported: %s" % extension)
@@ -42,16 +42,16 @@ class ExportSurveyHandler(handlers.BaseHandler):
                 "Unrecognised format: %s" % fmt)
 
         with model.session_scope() as session:
-            self.check_browse_survey(session, survey_id, hierarchy_id)
+            self.check_browse_program(session, program_id, survey_id)
 
-            hierarchy = (session.query(model.Hierarchy)
-                         .get((hierarchy_id, survey_id)))
-            if survey_id != str(hierarchy.survey_id):
+            survey = (session.query(model.Survey)
+                         .get((survey_id, program_id)))
+            if program_id != str(survey.program_id):
                 raise handlers.ModelError(
                     "Survey does not belong to specified program.")
 
         output_file = 'program_{0}_survey_{1}_{2}.xlsx'.format(
-            survey_id, hierarchy_id, fmt)
+            program_id, survey_id, fmt)
         base_url = ("%s://%s" % (self.request.protocol,
                 self.request.host))
 
@@ -59,11 +59,11 @@ class ExportSurveyHandler(handlers.BaseHandler):
             output_path = os.path.join(tmpdirname, output_file)
             if fmt == 'tabular':
                 yield self.export_tabular(
-                    output_path, survey_id, hierarchy_id,
+                    output_path, program_id, survey_id,
                     self.current_user.role, base_url)
             else:
                 yield self.export_nested(
-                    output_path, survey_id, hierarchy_id,
+                    output_path, program_id, survey_id,
                     self.current_user.role, base_url)
             self.set_header('Content-Type', 'application/octet-stream')
             self.set_header('Content-Disposition', 'attachment; filename='
@@ -79,24 +79,24 @@ class ExportSurveyHandler(handlers.BaseHandler):
         self.finish()
 
     @run_on_executor
-    def export_tabular(self, path, survey_id, hierarchy_id, user_role, base_url):
+    def export_tabular(self, path, program_id, survey_id, user_role, base_url):
         e = Exporter()
-        survey_id = e.process_tabular(
-            path, survey_id, hierarchy_id, None, user_role, base_url)
+        program_id = e.process_tabular(
+            path, program_id, survey_id, None, user_role, base_url)
 
     @run_on_executor
-    def export_nested(self, path, survey_id, hierarchy_id, user_role, base_url):
+    def export_nested(self, path, program_id, survey_id, user_role, base_url):
         e = Exporter()
-        survey_id = e.process_nested(
-            path, survey_id, hierarchy_id, None, user_role, base_url)
+        program_id = e.process_nested(
+            path, program_id, survey_id, None, user_role, base_url)
 
 
-class ExportAssessmentHandler(handlers.BaseHandler):
+class ExportSubmissionHandler(handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated
     @gen.coroutine
-    def get(self, assessment_id, fmt, extension):
+    def get(self, submission_id, fmt, extension):
         if extension != 'xlsx':
             raise handlers.MissingDocError(
                 "File type not supported: %s" % extension)
@@ -105,23 +105,23 @@ class ExportAssessmentHandler(handlers.BaseHandler):
                 "Unrecognised format: %s" % fmt)
 
         with model.session_scope() as session:
-            assessment = (session.query(model.Assessment)
-                          .get(assessment_id))
+            submission = (session.query(model.Submission)
+                          .get(submission_id))
 
-            if not assessment:
+            if not submission:
                 raise handlers.MissingDocError("No such submission")
-            elif assessment.deleted:
+            elif submission.deleted:
                 raise handlers.MissingDocError(
                     "That submission has been deleted")
 
-            if assessment.organisation.id != self.organisation.id:
+            if submission.organisation.id != self.organisation.id:
                 self.check_privillege('consultant')
 
-            hierarchy_id = str(assessment.hierarchy_id)
-            survey_id = str(assessment.survey_id)
-            self.check_browse_survey(session, survey_id, hierarchy_id)
+            survey_id = str(submission.survey_id)
+            program_id = str(submission.program_id)
+            self.check_browse_program(session, program_id, survey_id)
 
-        output_file = 'submission_{0}_{1}.xlsx'.format(assessment_id, fmt)
+        output_file = 'submission_{0}_{1}.xlsx'.format(submission_id, fmt)
         base_url = ("%s://%s" % (self.request.protocol,
                 self.request.host))
 
@@ -129,11 +129,11 @@ class ExportAssessmentHandler(handlers.BaseHandler):
             output_path = os.path.join(tmpdirname, output_file)
             if fmt == 'tabular':
                 yield self.export_tabular(
-                    output_path, survey_id, hierarchy_id, assessment_id,
+                    output_path, program_id, survey_id, submission_id,
                     self.current_user.role, base_url)
             else:
                 yield self.export_nested(
-                    output_path, survey_id, hierarchy_id, assessment_id,
+                    output_path, program_id, survey_id, submission_id,
                     self.current_user.role, base_url)
             self.set_header('Content-Type', 'application/octet-stream')
             self.set_header('Content-Disposition', 'attachment; filename='
@@ -149,19 +149,19 @@ class ExportAssessmentHandler(handlers.BaseHandler):
         self.finish()
 
     @run_on_executor
-    def export_tabular(self, path, survey_id, hierarchy_id,
-                       assessment_id, user_role, base_url):
+    def export_tabular(self, path, program_id, survey_id,
+                       submission_id, user_role, base_url):
         e = Exporter()
-        survey_id = e.process_tabular(
-            path, survey_id, hierarchy_id, assessment_id,
+        program_id = e.process_tabular(
+            path, program_id, survey_id, submission_id,
             user_role, base_url)
 
     @run_on_executor
-    def export_nested(self, path, survey_id, hierarchy_id,
-                      assessment_id, user_role, base_url):
+    def export_nested(self, path, program_id, survey_id,
+                      submission_id, user_role, base_url):
         e = Exporter()
-        survey_id = e.process_nested(
-            path, survey_id, hierarchy_id, assessment_id,
+        program_id = e.process_nested(
+            path, program_id, survey_id, submission_id,
             user_role, base_url)
 
 
@@ -177,7 +177,7 @@ class Exporter():
         return num
 
     def process_nested(
-            self, file_name, survey_id, hierarchy_id, assessment_id,
+            self, file_name, program_id, survey_id, submission_id,
             user_role, base_url):
         """
         Open and write an Excel file
@@ -190,26 +190,26 @@ class Exporter():
         worksheet.set_column(3, 3, 25)
 
         with model.session_scope() as session:
-            survey = session.query(model.Survey).get(survey_id)
-            if survey is None:
+            program = session.query(model.Program).get(program_id)
+            if program is None:
                 raise handlers.MissingDocError("No such program")
-            elif survey.deleted:
+            elif program.deleted:
                 raise handlers.MissingDocError("That program has been deleted")
 
-            hierarchy = session.query(model.Hierarchy).get((
-                hierarchy_id, survey_id))
-            if hierarchy is None:
+            survey = session.query(model.Survey).get((
+                survey_id, program_id))
+            if survey is None:
                 raise handlers.MissingDocError("No such survey")
-            elif hierarchy.deleted:
+            elif survey.deleted:
                 raise handlers.MissingDocError("That survey has been deleted")
 
-            self.response_types = survey._response_types
+            self.response_types = program._response_types
 
             prefix = ""
 
             list1 = (session.query(model.QuestionNode)
-                .filter(model.QuestionNode.survey_id == survey_id,
-                        model.QuestionNode.hierarchy_id == hierarchy.id,
+                .filter(model.QuestionNode.program_id == program_id,
+                        model.QuestionNode.survey_id == survey.id,
                         model.QuestionNode.deleted == False)
                 .all())
 
@@ -222,7 +222,7 @@ class Exporter():
                           for item in list1]
 
             list2 = session.query(model.QnodeMeasure).filter(
-                model.QnodeMeasure.survey_id == survey_id).all()
+                model.QnodeMeasure.program_id == program_id).all()
 
             measure_list = [{"measure_id": str(item.measure.id),
                              "qnode_id": str(item.qnode_id),
@@ -235,11 +235,11 @@ class Exporter():
 
             response_list = []
             response_qnode_list = []
-            log.debug('Exporting assessment %s of survey %s', assessment_id, survey_id)
-            if assessment_id != '':
+            log.debug('Exporting submission %s of program %s', submission_id, program_id)
+            if submission_id != '':
                 responses = (session.query(model.Response)
-                             .filter(model.Response.assessment_id == assessment_id,
-                                     model.Response.survey_id == survey_id)
+                             .filter(model.Response.submission_id == submission_id,
+                                     model.Response.program_id == program_id)
                              .all())
 
                 if responses:
@@ -251,8 +251,8 @@ class Exporter():
                                       "score": item.score}
                                      for item in responses]
                 response_nodes = session.query(model.ResponseNode)\
-                    .filter(model.ResponseNode.assessment_id == assessment_id,
-                            model.ResponseNode.survey_id == survey_id).all()
+                    .filter(model.ResponseNode.submission_id == submission_id,
+                            model.ResponseNode.program_id == program_id).all()
                 if response_nodes:
                     response_qnode_list = [{"qnode_id": str(item.qnode.id),
                                             "weight": item.qnode.total_weight,
@@ -506,7 +506,7 @@ class Exporter():
             self.line = self.line + 1
 
     def process_tabular(
-            self, file_name, survey_id, hierarchy_id, assessment_id,
+            self, file_name, program_id, survey_id, submission_id,
             user_role, base_url):
         """
         Open and write an Excel file
@@ -533,35 +533,35 @@ class Exporter():
 
         line = 1
         with model.session_scope() as session:
-            hierarchy = (session.query(model.Hierarchy)
-                .get((hierarchy_id, survey_id)))
+            survey = (session.query(model.Survey)
+                .get((survey_id, program_id)))
 
-            if not hierarchy:
+            if not survey:
                 raise handlers.MissingDocError("No such survey")
 
-            if not 'levels' in hierarchy.structure:
+            if not 'levels' in survey.structure:
                 raise handlers.InternalModelError("Survey is misconfigured")
 
-            if assessment_id:
-                assessment = (session.query(model.Assessment)
-                    .get(assessment_id))
-                if assessment.hierarchy_id != hierarchy.id:
+            if submission_id:
+                submission = (session.query(model.Submission)
+                    .get(submission_id))
+                if submission.survey_id != survey.id:
                     raise handlers.MissingDocError(
                         "That submission does not belong to that survey")
-                self.write_metadata(workbook, worksheet_metadata, assessment)
+                self.write_metadata(workbook, worksheet_metadata, submission)
             else:
-                assessment = None
+                submission = None
 
-            levels = hierarchy.structure["levels"]
+            levels = survey.structure["levels"]
             level_length = len(levels)
             worksheet.set_column(0, level_length, 50)
 
-            measures = list(hierarchy.ordered_measures)
+            measures = list(survey.ordered_measures)
 
             max_parts = 0
             longest_response_type = None
             for m in measures:
-                rt = hierarchy.survey.materialised_response_types[
+                rt = survey.program.materialised_response_types[
                     m.response_type]
                 if len(rt.parts) > max_parts:
                     longest_response_type = rt
@@ -584,27 +584,27 @@ class Exporter():
                 workbook, worksheet, levels, max_parts, response_parts)
 
             for measure in measures:
-                qnode = measure.get_parent(hierarchy)
+                qnode = measure.get_parent(survey)
                 self.write_qnode(
                     worksheet, qnode, line, format, level_length - 1)
 
-                seq = measure.get_seq(hierarchy) + 1
+                seq = measure.get_seq(survey) + 1
 
                 worksheet.write(
                     line, level_length, "%d. %s" % (seq, measure.title), format)
 
                 importance = None
                 urgency = None
-                if assessment:
-                    response = measure.get_response(assessment)
-                    url = base_url + "/#/measure/{}?assessment={}".format(
-                        measure.id, assessment.id)
+                if submission:
+                    response = measure.get_response(submission)
+                    url = base_url + "/#/1/measure/{}?submission={}".format(
+                        measure.id, submission.id)
 
                     # Walk up the tree to get the importance and urgency from the
                     # parent rnodes
                     parent = qnode
                     while parent and (importance is None or urgency is None):
-                        rnode = parent.get_rnode(assessment)
+                        rnode = parent.get_rnode(submission)
                         if rnode is not None:
                             if importance is None:
                                 importance = rnode.importance
@@ -614,8 +614,8 @@ class Exporter():
 
                 else:
                     response = None
-                    url = base_url + '/#/measure/{}?survey={}&parent={}'.format(
-                        measure.id, survey_id, qnode.id)
+                    url = base_url + '/#/1/measure/{}?program={}&parent={}'.format(
+                        measure.id, program_id, qnode.id)
 
                 worksheet.write(
                 line, level_length + max_parts + 1, importance, format_int)
@@ -705,7 +705,7 @@ class Exporter():
 
 
 
-    def write_metadata(self, workbook, sheet, assessment):
+    def write_metadata(self, workbook, sheet, submission):
         sheet.set_column(0, 1, 40)
 
         line = 0
@@ -714,19 +714,19 @@ class Exporter():
         format_header = workbook.add_format()
         format_header.set_text_wrap()
         format_header.set_bold()
-        log.info("assessment: %s", assessment.title)
+        log.info("submission: %s", submission.title)
 
         sheet.write(line, 0, "Program Name", format_header)
-        sheet.write(line, 1, assessment.survey.title, format)
+        sheet.write(line, 1, submission.program.title, format)
         line = line + 1
         sheet.write(line, 0, "Survey Name", format_header)
-        sheet.write(line, 1, assessment.hierarchy.title, format)
+        sheet.write(line, 1, submission.survey.title, format)
         line = line + 1
         sheet.write(line, 0, "Organisation", format_header)
-        sheet.write(line, 1, assessment.organisation.name, format)
+        sheet.write(line, 1, submission.organisation.name, format)
         line = line + 1
         sheet.write(line, 0, "Submission Name", format_header)
-        sheet.write(line, 1, assessment.title, format)
+        sheet.write(line, 1, submission.title, format)
         line = line + 1
 
     def write_response_header(self, workbook, sheet, levels,

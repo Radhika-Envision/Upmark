@@ -199,7 +199,6 @@ SCRIPTS = [
             '/js/home.js',
             '/js/response.js',
             '/js/subscription.js',
-            '/js/survey.js',
             '/js/survey-question.js',
             '/js/survey-answer.js',
             '/js/utils.js',
@@ -245,13 +244,13 @@ class BaseHandler(tornado.web.RequestHandler):
         if not self.has_privillege(*roles):
             raise AuthzError()
 
-    def check_browse_survey(self, session, survey_id, hierarchy_id):
+    def check_browse_program(self, session, program_id, survey_id):
         if self.has_privillege('consultant', 'author'):
             return
 
         n_purchased_surveys = (session.query(model.PurchasedSurvey)
-            .filter_by(survey_id=survey_id,
-                       hierarchy_id=hierarchy_id,
+            .filter_by(program_id=program_id,
+                       survey_id=survey_id,
                        organisation_id=self.current_user.organisation_id)
             .count())
 

@@ -15,27 +15,27 @@
         Box-and-Whisker Plot
     </h2>
     <h2 ng-class="layout.expandHeader ? null: 'pull-left'"
-            ng-if="struct2.survey && struct1.survey.id != struct2.survey.id">
+            ng-if="struct2.program && struct1.program.id != struct2.program.id">
         <span ng-if="!layout.expandHeader">L:</span>
         <span ng-if="layout.expandHeader">Left:</span>
     </h2>
-    <question-header entity="qnode1 || assessment1.hierarchy"
-        assessment="assessment1" get-url="getNavUrl"></question-header>
+    <question-header entity="qnode1 || submission1.survey"
+        submission="submission1" get-url="getNavUrl"></question-header>
     <h2 ng-class="layout.expandHeader ? null: 'pull-left'"
-            ng-if="struct2.survey && struct1.survey.id != struct2.survey.id">
+            ng-if="struct2.program && struct1.program.id != struct2.program.id">
         <span ng-if="!layout.expandHeader">R:</span>
         <span ng-if="layout.expandHeader">Right:</span>
     </h2>
-    <question-header entity="qnode2 || assessment2.hierarchy"
-        assessment="assessment2" get-url="getNavUrl"
-        ng-if="struct2.survey && struct1.survey.id != struct2.survey.id"
+    <question-header entity="qnode2 || submission2.survey"
+        submission="submission2" get-url="getNavUrl"
+        ng-if="struct2.program && struct1.program.id != struct2.program.id"
         ></question-header>
 </div>
 </div>
 
 <div class="subheader bg-muted">
 
-<div class="container text-muted assessment-header">
+<div class="container text-muted submission-header">
     <div class="toolbar">
         <button class="btn-round btn btn-default"
                 ng-click="toggleDropdown(1)"
@@ -46,20 +46,20 @@
                 ng-if="chooser != 1"></i>
         </button>
     </div>
-    <div ng-if="assessment2">
+    <div ng-if="submission2">
         <span>L:</span>
     </div>
     <div title="Organisation 1">
-        <a ng-href="#/org/{{assessment1.organisation.id}}"
+        <a ng-href="#/1/org/{{submission1.organisation.id}}"
                 class="stealth btn btn-link">
-            {{assessment1.organisation.name}}</a>
+            {{submission1.organisation.name}}</a>
     </div>
     <div title="Submission">
-        <a ng-href="#/assessment/{{assessment1.id}}"
+        <a ng-href="#/1/submission/{{submission1.id}}"
                 class="stealth btn btn-link">
-            {{assessment1.title}}</a>
+            {{submission1.title}}</a>
     </div>
-    <div title="Submission" ng-if="!assessment1">
+    <div title="Submission" ng-if="!submission1">
         <span>
             No first submission
         </span>
@@ -67,13 +67,13 @@
 </div>
 
 <div class="atop" ng-if="chooser == 1"
-        assessment-select="assessment1"
-        track survey="assessment1.survey"
+        submission-select="submission1"
+        track program="submission1.program"
         org="org1"
-        format-url="getAssessmentUrl1"
-        disallow-none="assessment2 == null"></div>
+        format-url="getSubmissionUrl1"
+        disallow-none="submission2 == null"></div>
 
-<div class="container text-muted assessment-header">
+<div class="container text-muted submission-header">
     <div class="toolbar">
         <button class="btn-round btn btn-default"
                 ng-click="toggleDropdown(2)"
@@ -84,20 +84,20 @@
                 ng-if="chooser != 2"></i>
         </button>
     </div>
-    <div ng-if="assessment2">
+    <div ng-if="submission2">
         <span>R:</span>
     </div>
-    <div title="Organisation 2" ng-if="assessment2">
-        <a ng-href="#/org/{{assessment2.organisation.id}}"
+    <div title="Organisation 2" ng-if="submission2">
+        <a ng-href="#/1/org/{{submission2.organisation.id}}"
                 class="stealth btn btn-link">
-            {{assessment2.organisation.name}}</a>
+            {{submission2.organisation.name}}</a>
     </div>
-    <div title="Submission" ng-if="assessment2">
-        <a ng-href="#/assessment/{{assessment2.id}}"
+    <div title="Submission" ng-if="submission2">
+        <a ng-href="#/1/submission/{{submission2.id}}"
                 class="stealth btn btn-link">
-            {{assessment2.title}}</a>
+            {{submission2.title}}</a>
     </div>
-    <div title="Submission" ng-if="!assessment2" class="hidden-print">
+    <div title="Submission" ng-if="!submission2" class="hidden-print">
         <span>
             No second submission
         </span>
@@ -105,11 +105,11 @@
 </div>
 
 <div class="atop" ng-if="chooser == 2"
-        assessment-select="assessment2"
-        track survey="assessment1.survey"
+        submission-select="submission2"
+        track program="submission1.program"
         org="org2"
-        format-url="getAssessmentUrl2"
-        disallow-none="assessment1 == null"></div>
+        format-url="getSubmissionUrl2"
+        disallow-none="submission1 == null"></div>
 
 </div>
 
@@ -127,7 +127,7 @@
     <i class="fa-li fa fa-bar-chart fa-border"></i>
     <h3>Legend</h3>
 
-    <p ng-if="!assessment2">
+    <p ng-if="!submission2">
         This is a
         <a href="https://en.wikipedia.org/wiki/Box_plot">
             box-and-whisker plot</a>
@@ -137,12 +137,12 @@
     </p>
     <img src="images/chart-box-sample.svg"
         class="img-responsive center-block"
-        ng-if="!assessment2">
-    <p ng-if="!assessment2">
+        ng-if="!submission2">
+    <p ng-if="!submission2">
         Each column shows eight pieces of information:
     </p>
 
-    <p ng-if="assessment2">
+    <p ng-if="submission2">
         This is a
         <a href="https://en.wikipedia.org/wiki/Box_plot">
             box and whisker plot</a>
@@ -152,8 +152,8 @@
     </p>
     <img src="images/chart-box-sample-compare.svg"
         class="img-responsive center-block"
-        ng-if="assessment2">
-    <p ng-if="assessment2">
+        ng-if="submission2">
+    <p ng-if="submission2">
         Each column relates to a single sub-category of the current category.
         The left side of the column shows the values for the first submission
         (<em>L</em>) while the right side shows the values of the second

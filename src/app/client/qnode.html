@@ -14,7 +14,7 @@
         </button>
 
         <delete-button model="qnode" editor="edit"
-                ng-if="!assessment && (editable || qnode.deleted) &&
+                ng-if="!submission && (editable || qnode.deleted) &&
                        !edit.model && checkRole('qnode_del')"></delete-button>
 
         <button class="btn btn-default btn-round" title="Cancel"
@@ -32,21 +32,21 @@
                 ng-if="editable && !edit.model">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/subscription/qnode?id={{qnode.id}}&id={{survey.id}}"
-                ng-if="!edit.model && !assessment">
+                ng-href="#/1/subscription/qnode?id={{qnode.id}}&id={{program.id}}"
+                ng-if="!edit.model && !submission">
             <i class="fa fa-envelope"></i></a>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/subscription/rnode?id={{qnode.id}}&id={{assessment.id}}"
-                ng-if="!edit.model && assessment">
+                ng-href="#/1/subscription/rnode?id={{qnode.id}}&id={{submission.id}}"
+                ng-if="!edit.model && submission">
             <i class="fa fa-envelope"></i></a>
-        <survey-history entity="qnode" service="QuestionNode"
-                ng-if="!assessment && !edit.model"></survey-history>
+        <program-history entity="qnode" service="QuestionNode"
+                ng-if="!submission && !edit.model"></program-history>
     </div>
-    <question-header entity="qnode" assessment="assessment"></question-header>
+    <question-header entity="qnode" submission="submission"></question-header>
 </div>
 </div>
 
-<assessment-header></assessment-header>
+<submission-header></submission-header>
 
 <div ng-if="edit.model">
 <div class="container">
@@ -95,7 +95,7 @@
 
         <div class="stats-group">
             <span title="Score"
-                  ng-if="rnode.score != null && !structure.survey.hideAggregate">
+                  ng-if="rnode.score != null && !structure.program.hideAggregate">
                 {{rnode.score | number:0}}
             </span>
             <span title="Progress">

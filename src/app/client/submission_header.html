@@ -1,0 +1,40 @@
+<div class="subheader bg-muted">
+
+<div>
+<div class="container text-center text-muted submission-header"
+         title="Switch to a different survey">
+    <div ng-if="!submission">
+        <span>
+            Viewing questions only
+        </span>
+    </div>
+    <div title="Organisation" ng-if="submission">
+        <a ng-href="#/1/org/{{submission.organisation.id}}"
+                class="stealth btn btn-link">
+            {{submission.organisation.name}}</a>
+    </div>
+    <div title="Submission" ng-if="submission">
+        <a ng-href="#/1/submission/{{submission.id}}"
+                class="stealth btn btn-link">
+            {{submission.title}}</a>
+    </div>
+    <div class="hidden-print">
+        <button class="btn-round btn btn-default"
+                ng-click="toggleDropdown()">
+            <i class="fa fa-caret-up"
+                ng-if="showSubmissionChooser"></i>
+            <i class="fa fa-caret-down"
+                ng-if="!showSubmissionChooser"></i>
+        </button>
+    </div>
+</div>
+</div>
+
+<div class="atop" ng-if="showSubmissionChooser"
+        submission-select="submission"
+        org="org"
+        track program="structure.program"
+        survey="structure.survey"
+        format-url="getSubmissionUrl"></div>
+
+</div>

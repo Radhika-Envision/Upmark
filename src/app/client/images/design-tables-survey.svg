@@ -160,7 +160,7 @@
          x="140"
          y="340"
          id="tspan4538"
-         style="font-size:16px">survey</tspan></text>
+         style="font-size:16px">program</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
@@ -177,7 +177,7 @@
          x="380"
          y="385"
          style="font-size:12px"
-         id="tspan4747">survey_id</tspan><tspan
+         id="tspan4747">program_id</tspan><tspan
          sodipodi:role="line"
          x="380"
          y="400"
@@ -209,7 +209,7 @@
          id="tspan4560"
          y="340"
          x="380"
-         sodipodi:role="line">hierarchy</tspan></text>
+         sodipodi:role="line">survey</tspan></text>
     <rect
        y="320"
        x="570"
@@ -233,12 +233,12 @@
          y="385"
          x="580"
          sodipodi:role="line"
-         id="tspan4790">survey_id</tspan><tspan
+         id="tspan4790">program_id</tspan><tspan
          style="font-size:12px"
          y="400"
          x="580"
          sodipodi:role="line"
-         id="tspan4792">hierarchy_id</tspan><tspan
+         id="tspan4792">survey_id</tspan><tspan
          style="font-size:12px"
          y="415"
          x="580"
@@ -304,7 +304,7 @@
          id="tspan4628"
          y="370"
          x="780"
-         sodipodi:role="line">survey_id</tspan><tspan
+         sodipodi:role="line">program_id</tspan><tspan
          style="font-size:12px"
          y="385"
          x="780"
@@ -355,7 +355,7 @@
          x="1030"
          y="385"
          style="font-size:12px"
-         id="tspan5225">survey_id</tspan><tspan
+         id="tspan5225">program_id</tspan><tspan
          sodipodi:role="line"
          x="1030"
          y="400"

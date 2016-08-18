@@ -45,7 +45,7 @@ def mock_user(email):
                 get_secure_cookie(user_email=email))
 
 
-def print_hierarchy(hierarchy):
+def print_survey(survey):
 
     def print_measure(qnode_measure, indent=""):
         print("{}{}".format(indent, qnode_measure.measure))
@@ -63,8 +63,8 @@ def print_hierarchy(hierarchy):
         for m in qnode.qnode_measures:
             print_measure(m, indent)
 
-    print(hierarchy)
-    for qnode in hierarchy.qnodes:
+    print(survey)
+    for qnode in survey.qnodes:
         print_qnode(qnode, indent="  ")
 
 
@@ -79,7 +79,7 @@ class AqModelTestBase(unittest.TestCase):
         model.initialise_schema(engine)
         model.connect_db_ro(os.environ.get('DATABASE_URL'))
         self.create_org_structure()
-        self.create_survey_structure()
+        self.create_program_structure()
 
     def create_org_structure(self):
         engine = model.connect_db(os.environ.get('DATABASE_URL'))
@@ -142,7 +142,7 @@ class AqModelTestBase(unittest.TestCase):
             user.set_password('bar')
             session.add(user)
 
-    def create_survey_structure(self):
+    def create_program_structure(self):
         proj_dir = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), '..')
 
@@ -150,7 +150,7 @@ class AqModelTestBase(unittest.TestCase):
                 proj_dir, 'client', 'default_response_types.json')) as file:
             response_types = json.load(file)
 
-        # Measure declaration, separate from hierarchy to allow cross-linking.
+        # Measure declaration, separate from survey to allow cross-linking.
         # Weights are chosen so that each combination gives a different sum.
         msons = [
             {
@@ -185,10 +185,10 @@ class AqModelTestBase(unittest.TestCase):
             },
         ]
 
-        # Hierarchy declaration, with qnodes and measures as descendants
+        # Survey declaration, with qnodes and measures as descendants
         hsons = [
             {
-                'title': "Hierarchy 1",
+                'title': "Survey 1",
                 'description': "Test",
                 'structure': {
                     'levels': [
@@ -266,7 +266,7 @@ class AqModelTestBase(unittest.TestCase):
                 ],
             },
             {
-                'title': "Hierarchy 2",
+                'title': "Survey 2",
                 'description': "Test",
                 'structure': {
                     'levels': [
@@ -305,7 +305,7 @@ class AqModelTestBase(unittest.TestCase):
                 ],
             },
             {
-                'title': "Hierarchy 3",
+                'title': "Survey 3",
                 'description': "Test",
                 'deleted': True,
                 'structure': {
@@ -348,28 +348,28 @@ class AqModelTestBase(unittest.TestCase):
 
         with model.session_scope() as session:
             # Create survey
-            survey = entity = model.Survey(
-                title='Test Survey 1',
-                description="This is a test survey")
-            survey.response_types = response_types
-            session.add(survey)
+            program = entity = model.Program(
+                title='Test Program 1',
+                description="This is a test program")
+            program.response_types = response_types
+            session.add(program)
 
             # Create measures
             all_measures = []
             for mson in msons:
-                measure = model.Measure(survey=survey, **mson)
+                measure = model.Measure(program=program, **mson)
                 session.add(measure)
                 all_measures.append(measure)
-            survey.measures = all_measures
+            program.measures = all_measures
 
-            # Create hierarchy and qnodes
-            def create_qnodes(qsons, hierarchy, parent=None):
+            # Create survey and qnodes
+            def create_qnodes(qsons, survey, parent=None):
                 qnodes = []
                 for qson in qsons:
                     qnode = model.QuestionNode(
-                        hierarchy=hierarchy,
-                        parent=parent,
                         survey=survey,
+                        parent=parent,
+                        program=program,
                         title=qson['title'],
                         description=qson['description'],
                         deleted=qson.get('deleted', False))
@@ -381,7 +381,7 @@ class AqModelTestBase(unittest.TestCase):
 
                     if 'children' in qson:
                         qnode.children = create_qnodes(
-                            qson['children'], hierarchy, parent=qnode)
+                            qson['children'], survey, parent=qnode)
                         qnode.children.reorder()
 
                     qnode.measures = [all_measures[i]
@@ -389,28 +389,28 @@ class AqModelTestBase(unittest.TestCase):
                     qnode.qnode_measures.reorder()
                 return qnodes
 
-            def create_hierarchies(hsons):
-                hierarchies = []
+            def create_surveys(hsons):
+                surveys = []
                 for hson in hsons:
-                    hierarchy = model.Hierarchy(
-                        survey=survey,
+                    survey = model.Survey(
+                        program=program,
                         title=hson['title'],
                         description=hson['description'],
                         deleted=hson.get('deleted', False))
-                    hierarchy.structure = hson['structure']
-                    session.add(hierarchy)
+                    survey.structure = hson['structure']
+                    session.add(survey)
 
                     # Explicitly add to collection because backref is one-way.
                     if not hson.get('deleted', False):
-                        survey.hierarchies.append(hierarchy)
+                        program.surveys.append(survey)
 
-                    hierarchy.qnodes = create_qnodes(
-                        hson['qnodes'], hierarchy)
-                    hierarchy.qnodes.reorder()
-                return hierarchies
+                    survey.qnodes = create_qnodes(
+                        hson['qnodes'], survey)
+                    survey.qnodes.reorder()
+                return surveys
 
-            create_hierarchies(hsons)
-            survey.update_stats_descendants()
+            create_surveys(hsons)
+            program.update_stats_descendants()
 
 
 class AqHttpTestBase(AqModelTestBase, AsyncHTTPTestCase):

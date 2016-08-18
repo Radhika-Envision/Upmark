@@ -42,12 +42,12 @@ def process_once(config):
     errors = []
     while True:
         with model.session_scope() as session:
-            record = (session.query(model.Assessment,
-                                   model.Hierarchy.modified)
-                .join(model.Hierarchy)
-                .filter((model.Assessment.modified < model.Hierarchy.modified) |
-                        ((model.Assessment.modified == None) &
-                         (model.Hierarchy.modified != None)))
+            record = (session.query(model.Submission,
+                                   model.Survey.modified)
+                .join(model.Survey)
+                .filter((model.Submission.modified < model.Survey.modified) |
+                        ((model.Submission.modified == None) &
+                         (model.Survey.modified != None)))
                 .first())
             if record is None:
                 break
@@ -65,9 +65,9 @@ def process_once(config):
                 errors.append({"submission_id": sub.id,
                                "submission_title": sub.title,
                                "error": str(error)})
-                sub = session.query(model.Assessment).get(sub.id)
+                sub = session.query(model.Submission).get(sub.id)
 
-            sub.modified = sub.hierarchy.modified
+            sub.modified = sub.survey.modified
             session.commit()
 
     if len(errors) != 0:

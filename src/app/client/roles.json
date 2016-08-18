@@ -9,11 +9,11 @@
 }, {
     "id": "authority",
     "name": "Authority",
-    "description": "Gives final approval to assessments"
+    "description": "Gives final approval to submissions"
 }, {
     "id": "consultant",
     "name": "Consultant",
-    "description": "Gives initial approval to assessments"
+    "description": "Gives initial approval to submissions"
 }, {
     "id": "org_admin",
     "name": "Organisation Administrator",

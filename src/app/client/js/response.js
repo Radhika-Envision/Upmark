@@ -284,7 +284,7 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             };
             $scope.isFinite = isFinite;
 
-            $scope.checkRole = authz(current, $scope.survey);
+            $scope.checkRole = authz(current, $scope.program);
 
             hotkeys.bindTo($scope)
                 .add({

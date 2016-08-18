@@ -50,23 +50,23 @@ class DiffHandler(handlers.BaseHandler):
     @tornado.web.authenticated
     @gen.coroutine
     def get(self):
-        survey_id_a = self.get_argument("surveyId1", '')
-        survey_id_b = self.get_argument("surveyId2", '')
-        hierarchy_id = self.get_argument("hierarchyId", '')
+        program_id_a = self.get_argument("programId1", '')
+        program_id_b = self.get_argument("programId2", '')
+        survey_id = self.get_argument("surveyId", '')
 
         ignore_tags = set().union(self.get_arguments("ignoreTag"))
 
-        if survey_id_a == '':
-            raise handlers.ModelError("Survey ID 1 required")
-        if survey_id_b == '':
-            raise handlers.ModelError("Survey ID 2 required")
-        if hierarchy_id == '':
-            raise handlers.ModelError("Hierarchy ID required")
+        if program_id_a == '':
+            raise handlers.ModelError("Program ID 1 required")
+        if program_id_b == '':
+            raise handlers.ModelError("Program ID 2 required")
+        if survey_id == '':
+            raise handlers.ModelError("Survey ID required")
 
         include_scores = self.current_user.role != 'clerk'
 
         son, details = yield self.background_task(
-            survey_id_a, survey_id_b, hierarchy_id, ignore_tags, include_scores)
+            program_id_a, program_id_b, survey_id, ignore_tags, include_scores)
 
         for i, message in enumerate(details):
             self.add_header('Profiling', "%d %s" % (i, message))
@@ -77,15 +77,15 @@ class DiffHandler(handlers.BaseHandler):
 
     @run_on_executor
     def background_task(
-            self, survey_id_a, survey_id_b, hierarchy_id, ignore_tags,
+            self, program_id_a, program_id_b, survey_id, ignore_tags,
             include_scores):
 
         with model.session_scope() as session:
-            self.check_browse_survey(session, survey_id_a, hierarchy_id)
-            self.check_browse_survey(session, survey_id_b, hierarchy_id)
+            self.check_browse_program(session, program_id_a, survey_id)
+            self.check_browse_program(session, program_id_b, survey_id)
 
             diff_engine = DiffEngine(
-                session, survey_id_a, survey_id_b, hierarchy_id, include_scores)
+                session, program_id_a, program_id_b, survey_id, include_scores)
             diff = diff_engine.execute()
             diff = [di for di in diff
                     if len(set().union(di['tags']).difference(ignore_tags)) > 0]
@@ -96,12 +96,12 @@ class DiffHandler(handlers.BaseHandler):
 
 
 class DiffEngine:
-    def __init__(self, session, survey_id_a, survey_id_b, hierarchy_id,
+    def __init__(self, session, program_id_a, program_id_b, survey_id,
                  include_scores=True):
         self.session = session
-        self.survey_id_a = survey_id_a
-        self.survey_id_b = survey_id_b
-        self.hierarchy_id = hierarchy_id
+        self.program_id_a = program_id_a
+        self.program_id_b = program_id_b
+        self.survey_id = survey_id
         self.include_scores = include_scores
         self.timing = []
 
@@ -171,13 +171,13 @@ class DiffEngine:
         duration = perf() - start
         self.timing.append("Sorting took %gs" % duration)
 
-        HA = model.Hierarchy
-        HB = aliased(model.Hierarchy, name='hierarchy_b')
-        hierarchy_a, hierarchy_b = (self.session.query(HA, HB)
+        HA = model.Survey
+        HB = aliased(model.Survey, name='survey_b')
+        survey_a, survey_b = (self.session.query(HA, HB)
             .join(HB, (HA.id == HB.id))
-            .filter(HA.survey_id == self.survey_id_a,
-                    HB.survey_id == self.survey_id_b,
-                    HA.id == self.hierarchy_id)
+            .filter(HA.program_id == self.program_id_a,
+                    HB.program_id == self.program_id_b,
+                    HA.id == self.survey_id)
             .first())
         to_son = ToSon(
             r'/id$',
@@ -186,14 +186,14 @@ class DiffEngine:
         )
         top_level_diff = [
             {
-                'type': 'survey',
+                'type': 'program',
                 'tags': ['context'],
-                'pair': [to_son(hierarchy_a.survey), to_son(hierarchy_b.survey)]
+                'pair': [to_son(survey_a.program), to_son(survey_b.program)]
             },
             {
-                'type': 'hierarchy',
+                'type': 'survey',
                 'tags': ['context'],
-                'pair': [to_son(hierarchy_a), to_son(hierarchy_b)]
+                'pair': [to_son(survey_a), to_son(survey_b)]
             }
         ]
         self.remove_unchanged_fields(top_level_diff)
@@ -211,10 +211,10 @@ class DiffEngine:
             .join(QB, QA.id == QB.id)
 
             # Basic survey membership
-            .filter(QA.survey_id == self.survey_id_a,
-                    QB.survey_id == self.survey_id_b,
-                    QA.hierarchy_id == self.hierarchy_id,
-                    QB.hierarchy_id == self.hierarchy_id)
+            .filter(QA.program_id == self.program_id_a,
+                    QB.program_id == self.program_id_b,
+                    QA.survey_id == self.survey_id,
+                    QB.survey_id == self.survey_id)
 
             # Filter for modified objects
             .filter((QA.title != QB.title) |
@@ -226,24 +226,24 @@ class DiffEngine:
         # Find deleted qnodes
         qnode_del_query = (self.session.query(QA, literal(None))
             .select_from(QA)
-            .filter(QA.survey_id == self.survey_id_a,
-                    QA.hierarchy_id == self.hierarchy_id,
+            .filter(QA.program_id == self.program_id_a,
+                    QA.survey_id == self.survey_id,
                     ~QA.id.in_(
                         self.session.query(QB.id)
-                            .filter(QB.survey_id == self.survey_id_b,
-                                    QB.hierarchy_id == self.hierarchy_id,
+                            .filter(QB.program_id == self.program_id_b,
+                                    QB.survey_id == self.survey_id,
                                     QB.deleted == False)))
         )
 
         # Find added qnodes
         qnode_add_query = (self.session.query(literal(None), QB)
             .select_from(QB)
-            .filter(QB.survey_id == self.survey_id_b,
-                    QB.hierarchy_id == self.hierarchy_id,
+            .filter(QB.program_id == self.program_id_b,
+                    QB.survey_id == self.survey_id,
                     ~QB.id.in_(
                         self.session.query(QA.id)
-                            .filter(QA.survey_id == self.survey_id_a,
-                                    QA.hierarchy_id == self.hierarchy_id,
+                            .filter(QA.program_id == self.program_id_a,
+                                    QA.survey_id == self.survey_id,
                                     QA.deleted == False)))
         )
 
@@ -270,23 +270,23 @@ class DiffEngine:
             .join(MB, MA.id == MB.id)
 
             .join(QMA,
-                  (QMA.survey_id == MA.survey_id) &
+                  (QMA.program_id == MA.program_id) &
                   (QMA.measure_id == MA.id))
             .join(QMB,
-                  (QMB.survey_id == MB.survey_id) &
+                  (QMB.program_id == MB.program_id) &
                   (QMB.measure_id == MB.id))
             .join(QA,
-                  (QMA.survey_id == QA.survey_id) &
+                  (QMA.program_id == QA.program_id) &
                   (QMA.qnode_id == QA.id))
             .join(QB,
-                  (QMB.survey_id == QB.survey_id) &
+                  (QMB.program_id == QB.program_id) &
                   (QMB.qnode_id == QB.id))
 
             # Basic survey membership
-            .filter(QA.survey_id == self.survey_id_a,
-                    QB.survey_id == self.survey_id_b,
-                    QA.hierarchy_id == self.hierarchy_id,
-                    QB.hierarchy_id == self.hierarchy_id)
+            .filter(QA.program_id == self.program_id_a,
+                    QB.program_id == self.program_id_b,
+                    QA.survey_id == self.survey_id,
+                    QB.survey_id == self.survey_id)
 
             # Filter for modified objects
             .filter((MA.title != MB.title) |
@@ -301,40 +301,40 @@ class DiffEngine:
         measure_del_query = (self.session.query(MA, literal(None))
             .select_from(MA)
             .join(QMA,
-                  (QMA.survey_id == MA.survey_id) &
+                  (QMA.program_id == MA.program_id) &
                   (QMA.measure_id == MA.id))
             .join(QA,
-                  (QMA.survey_id == QA.survey_id) &
+                  (QMA.program_id == QA.program_id) &
                   (QMA.qnode_id == QA.id))
-            .filter(QA.survey_id == self.survey_id_a,
-                    QA.hierarchy_id == self.hierarchy_id,
+            .filter(QA.program_id == self.program_id_a,
+                    QA.survey_id == self.survey_id,
                     ~QMA.measure_id.in_(
                         self.session.query(QMB.measure_id)
                             .join(QB,
-                                  (QMB.survey_id == QB.survey_id) &
+                                  (QMB.program_id == QB.program_id) &
                                   (QMB.qnode_id == QB.id))
-                            .filter(QB.survey_id == self.survey_id_b,
-                                    QB.hierarchy_id == self.hierarchy_id)))
+                            .filter(QB.program_id == self.program_id_b,
+                                    QB.survey_id == self.survey_id)))
         )
 
         # Find added measures
         measure_add_query = (self.session.query(literal(None), MB)
             .select_from(MB)
             .join(QMB,
-                  (QMB.survey_id == MB.survey_id) &
+                  (QMB.program_id == MB.program_id) &
                   (QMB.measure_id == MB.id))
             .join(QB,
-                  (QMB.survey_id == QB.survey_id) &
+                  (QMB.program_id == QB.program_id) &
                   (QMB.qnode_id == QB.id))
-            .filter(QB.survey_id == self.survey_id_b,
-                    QB.hierarchy_id == self.hierarchy_id,
+            .filter(QB.program_id == self.program_id_b,
+                    QB.survey_id == self.survey_id,
                     ~QMB.measure_id.in_(
                         self.session.query(QMA.measure_id)
                             .join(QA,
-                                  (QMA.survey_id == QA.survey_id) &
+                                  (QMA.program_id == QA.program_id) &
                                   (QMA.qnode_id == QA.id))
-                            .filter(QA.survey_id == self.survey_id_a,
-                                    QA.hierarchy_id == self.hierarchy_id)))
+                            .filter(QA.program_id == self.program_id_a,
+                                    QA.survey_id == self.survey_id)))
         )
 
         measures = list(measure_mod_query.all()
@@ -353,7 +353,7 @@ class DiffEngine:
                 # measure
                 if x.deleted:
                     return None
-                q = x.get_parent(self.hierarchy_id)
+                q = x.get_parent(self.survey_id)
             else:
                 # qnode
                 q = x
@@ -401,11 +401,11 @@ class DiffEngine:
         deleted = {str(a.id) for a, b in measure_pairs if b is None}
         added = {str(b.id) for a, b in measure_pairs if a is None}
         relocated = {str(a.id) for a, b in measure_pairs
-                     if a and b and (a.get_parent(self.hierarchy_id).id !=
-                                     b.get_parent(self.hierarchy_id).id)}
+                     if a and b and (a.get_parent(self.survey_id).id !=
+                                     b.get_parent(self.survey_id).id)}
         item_index = {str(a.id) for a, b in measure_pairs
-                      if a and b and (a.get_seq(self.hierarchy_id) !=
-                                      b.get_seq(self.hierarchy_id))}
+                      if a and b and (a.get_seq(self.survey_id) !=
+                                      b.get_seq(self.survey_id))}
 
         reorder_ignore = set().union(deleted, added, relocated)
 
@@ -413,13 +413,13 @@ class DiffEngine:
         for (a, b), diff_item in zip(measure_pairs, measure_diff):
             a_son, b_son = diff_item['pair']
             if a:
-                a_son['path'] = a.get_path(self.hierarchy_id)
-                a_son['parentId'] = str(a.get_parent(self.hierarchy_id).id)
-                a_son['seq'] = a.get_seq(self.hierarchy_id)
+                a_son['path'] = a.get_path(self.survey_id)
+                a_son['parentId'] = str(a.get_parent(self.survey_id).id)
+                a_son['seq'] = a.get_seq(self.survey_id)
             if b:
-                b_son['path'] = b.get_path(self.hierarchy_id)
-                b_son['parentId'] = str(b.get_parent(self.hierarchy_id).id)
-                b_son['seq'] = b.get_seq(self.hierarchy_id)
+                b_son['path'] = b.get_path(self.survey_id)
+                b_son['parentId'] = str(b.get_parent(self.survey_id).id)
+                b_son['seq'] = b.get_seq(self.survey_id)
             if a and b and a_son['parentId'] == b_son['parentId']:
                 start = perf()
                 if self.measure_was_reordered(a, b, reorder_ignore):
@@ -430,13 +430,13 @@ class DiffEngine:
     def qnode_was_reordered(self, a, b, reorder_ignore):
         a_siblings = (self.session.query(model.QuestionNode.id)
             .filter(model.QuestionNode.parent_id == a.parent_id,
-                    model.QuestionNode.survey_id == self.survey_id_a,
+                    model.QuestionNode.program_id == self.program_id_a,
                     ~model.QuestionNode.id.in_(reorder_ignore))
             .order_by(model.QuestionNode.seq)
             .all())
         b_siblings = (self.session.query(model.QuestionNode.id)
             .filter(model.QuestionNode.parent_id == b.parent_id,
-                    model.QuestionNode.survey_id == self.survey_id_b,
+                    model.QuestionNode.program_id == self.program_id_b,
                     ~model.QuestionNode.id.in_(reorder_ignore))
             .order_by(model.QuestionNode.seq)
             .all())
@@ -453,23 +453,23 @@ class DiffEngine:
         return a_siblings != b_siblings
 
     def measure_was_reordered(self, a, b, reorder_ignore):
-        a_parent = a.get_parent(self.hierarchy_id)
-        b_parent = b.get_parent(self.hierarchy_id)
+        a_parent = a.get_parent(self.survey_id)
+        b_parent = b.get_parent(self.survey_id)
         a_siblings = (self.session.query(model.Measure.id)
             .join(model.QnodeMeasure,
-                  (model.QnodeMeasure.survey_id == model.Measure.survey_id) &
+                  (model.QnodeMeasure.program_id == model.Measure.program_id) &
                   (model.QnodeMeasure.measure_id == model.Measure.id))
             .filter(model.QnodeMeasure.qnode_id == a_parent.id,
-                    model.QnodeMeasure.survey_id == self.survey_id_a,
+                    model.QnodeMeasure.program_id == self.program_id_a,
                     ~model.Measure.id.in_(reorder_ignore))
             .order_by(model.QnodeMeasure.seq)
             .all())
         b_siblings = (self.session.query(model.Measure.id)
             .join(model.QnodeMeasure,
-                  (model.QnodeMeasure.survey_id == model.Measure.survey_id) &
+                  (model.QnodeMeasure.program_id == model.Measure.program_id) &
                   (model.QnodeMeasure.measure_id == model.Measure.id))
             .filter(model.QnodeMeasure.qnode_id == b_parent.id,
-                    model.QnodeMeasure.survey_id == self.survey_id_b,
+                    model.QnodeMeasure.program_id == self.program_id_b,
                     ~model.Measure.id.in_(reorder_ignore))
             .order_by(model.QnodeMeasure.seq)
             .all())
