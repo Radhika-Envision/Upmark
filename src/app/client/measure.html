@@ -33,11 +33,11 @@
                 ng-if="editable && !edit.model">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/subscription/measure?id={{measure.id}}&id={{program.id}}"
+                ng-href="#/1/subscription/measure?id={{measure.id}}&id={{program.id}}"
                 ng-if="!edit.model && !submission">
             <i class="fa fa-envelope"></i></a>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/subscription/response?id={{measure.id}}&id={{submission.id}}"
+                ng-href="#/1/subscription/response?id={{measure.id}}&id={{submission.id}}"
                 ng-if="!edit.model && submission">
             <i class="fa fa-envelope"></i></a>
         <program-history entity="measure" service="Measure"
@@ -105,7 +105,7 @@
     measure:
     <ul ng-if="parents.length">
         <li ng-repeat="parent in parents">
-            <a ng-href="#/measure/{{measure.id}}?program={{program.id}}&parent={{parent.qnodes[parent.qnodes.length - 1].id}}">
+            <a ng-href="#/1/measure/{{measure.id}}?program={{program.id}}&parent={{parent.qnodes[parent.qnodes.length - 1].id}}">
                 <span ng-class="{strike: parent.survey.deleted}">
                     {{parent.survey.title}}
                 </span>
@@ -121,7 +121,7 @@
     </ul>
     <p ng-if="parent">
         This measure can be
-        <a ng-href="#/measure/{{measure.id}}?program={{program.id}}">
+        <a ng-href="#/1/measure/{{measure.id}}?program={{program.id}}">
             viewed without a survey</a>,
         but it can not be responded to like that.
     </p>
@@ -220,7 +220,7 @@
         <p ng-if="response.user.name" class="spaced text-center">
             <i class="fa fa-history"></i>
             Version {{response.version}} submitted by
-            <a ng-href="#/user/{{response.user.id}}">
+            <a ng-href="#/1/user/{{response.user.id}}">
                 {{response.user.name}}</a>,
             <span class="hidden-print">
                 {{response.modified * 1000 | timeAgo:'medium'}}.

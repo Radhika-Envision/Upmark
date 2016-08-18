@@ -101,12 +101,12 @@ angular.module('wsaa.aquamark',
 
         $routeProvider
 
-            .when('/', {
+            .when('/:uv/', {
                 templateUrl : 'home.html',
                 controller : 'HomeCtrl'
             })
 
-            .when('/admin', {
+            .when('/:uv/admin', {
                 templateUrl : 'systemconfig.html',
                 controller : 'SystemConfigCtrl',
                 resolve: {
@@ -116,16 +116,16 @@ angular.module('wsaa.aquamark',
                 }
             })
 
-            .when('/subscription/:type', {
+            .when('/:uv/subscription/:type', {
                 templateUrl : 'subscription.html',
                 controller : 'SubscriptionCtrl'
             })
 
-            .when('/users', {
+            .when('/:uv/users', {
                 templateUrl : 'user_list.html',
                 controller : 'UserListCtrl'
             })
-            .when('/user/new', {
+            .when('/:uv/user/new', {
                 templateUrl : 'user.html',
                 controller : 'UserCtrl',
                 resolve: {routeData: chain({
@@ -134,7 +134,7 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/user/:id', {
+            .when('/:uv/user/:id', {
                 templateUrl : 'user.html',
                 controller : 'UserCtrl',
                 resolve: {routeData: chain({
@@ -147,11 +147,11 @@ angular.module('wsaa.aquamark',
                 })}
             })
 
-            .when('/orgs', {
+            .when('/:uv/orgs', {
                 templateUrl : 'organisation_list.html',
                 controller : 'OrganisationListCtrl'
             })
-            .when('/org/new', {
+            .when('/:uv/org/new', {
                 templateUrl : 'organisation.html',
                 controller : 'OrganisationCtrl',
                 resolve: {
@@ -160,7 +160,7 @@ angular.module('wsaa.aquamark',
                     }
                 }
             })
-            .when('/org/:id', {
+            .when('/:uv/org/:id', {
                 templateUrl : 'organisation.html',
                 controller : 'OrganisationCtrl',
                 resolve: {
@@ -172,7 +172,7 @@ angular.module('wsaa.aquamark',
                     }]
                 }
             })
-            .when('/org/:id/program/add', {
+            .when('/:uv/org/:id/program/add', {
                 templateUrl : 'purchased_survey.html',
                 controller : 'PurchasedSurveyAddCtrl',
                 resolve: {
@@ -199,11 +199,11 @@ angular.module('wsaa.aquamark',
                 }
             })
 
-            .when('/programs', {
+            .when('/:uv/programs', {
                 templateUrl : 'program_list.html',
                 controller : 'ProgramListCtrl'
             })
-            .when('/program/new', {
+            .when('/:uv/program/new', {
                 templateUrl : 'program.html',
                 controller : 'ProgramCtrl',
                 resolve: {routeData: chain({
@@ -216,11 +216,11 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/program/import', {
+            .when('/:uv/program/import', {
                 templateUrl : 'program_import.html',
                 controller : 'ProgramImportCtrl'
             })
-            .when('/program/:program', {
+            .when('/:uv/program/:program', {
                 templateUrl : 'program.html',
                 controller : 'ProgramCtrl',
                 resolve: {routeData: chain({
@@ -232,7 +232,7 @@ angular.module('wsaa.aquamark',
                 })}
             })
 
-            .when('/survey/new', {
+            .when('/:uv/survey/new', {
                 templateUrl : 'survey.html',
                 controller : 'SurveyCtrl',
                 resolve: {routeData: chain({
@@ -243,7 +243,7 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/survey/:survey/choice', {
+            .when('/:uv/survey/:survey/choice', {
                 templateUrl : 'survey_choice.html',
                 controller : 'SurveyChoiceCtrl',
                 resolve: {routeData: chain({
@@ -267,7 +267,7 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/survey/:survey', {
+            .when('/:uv/survey/:survey', {
                 templateUrl : 'survey.html',
                 controller : 'SurveyCtrl',
                 resolve: {routeData: chain({
@@ -284,7 +284,7 @@ angular.module('wsaa.aquamark',
                 })}
             })
 
-            .when('/submission/new', {
+            .when('/:uv/submission/new', {
                 templateUrl : 'submission.html',
                 controller : 'SubmissionCtrl',
                 resolve: {routeData: chain({
@@ -317,7 +317,7 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/submission/duplicate', {
+            .when('/:uv/submission/duplicate', {
                 templateUrl : 'submission_dup.html',
                 controller : 'SubmissionDuplicateCtrl',
                 resolve: {routeData: chain({
@@ -336,7 +336,7 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/submission/import', {
+            .when('/:uv/submission/import', {
                 templateUrl : 'submission_import.html',
                 controller : 'SubmissionImportCtrl',
                 resolve: {routeData: chain({
@@ -361,7 +361,7 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/submission/:submission', {
+            .when('/:uv/submission/:submission', {
                 templateUrl : 'submission.html',
                 controller : 'SubmissionCtrl',
                 resolve: {routeData: chain({
@@ -377,7 +377,7 @@ angular.module('wsaa.aquamark',
                 })}
             })
 
-            .when('/qnode/new', {
+            .when('/:uv/qnode/new', {
                 templateUrl : 'qnode.html',
                 controller : 'QuestionNodeCtrl',
                 resolve: {routeData: chain({
@@ -403,7 +403,7 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/qnode/:qnode', {
+            .when('/:uv/qnode/:qnode', {
                 templateUrl : 'qnode.html',
                 controller : 'QuestionNodeCtrl',
                 resolve: {routeData: chain({
@@ -433,7 +433,7 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/qnode-link', {
+            .when('/:uv/qnode-link', {
                 templateUrl : 'qnode_link.html',
                 controller : 'QnodeLinkCtrl',
                 resolve: {routeData: chain({
@@ -462,7 +462,7 @@ angular.module('wsaa.aquamark',
                     }],
                 })}
             })
-            .when('/measure-link', {
+            .when('/:uv/measure-link', {
                 templateUrl : 'measure_link.html',
                 controller : 'MeasureLinkCtrl',
                 resolve: {routeData: chain({
@@ -481,7 +481,7 @@ angular.module('wsaa.aquamark',
                 })}
             })
 
-            .when('/statistics', {
+            .when('/:uv/statistics', {
                 templateUrl : 'statistics.html',
                 controller : 'StatisticsCtrl',
                 resolve: {routeData: chain({
@@ -594,7 +594,7 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/diff/:program1/:program2/:survey', {
+            .when('/:uv/diff/:program1/:program2/:survey', {
                 templateUrl: 'diff.html',
                 controller: 'DiffCtrl',
                 reloadOnSearch: false,
@@ -615,7 +615,7 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/adhoc', {
+            .when('/:uv/adhoc', {
                 templateUrl : 'adhoc.html',
                 controller : 'AdHocCtrl',
                 resolve: {
@@ -628,7 +628,7 @@ angular.module('wsaa.aquamark',
                 }
             })
 
-            .when('/measures', {
+            .when('/:uv/measures', {
                 templateUrl : 'measure_list.html',
                 controller : 'MeasureListCtrl',
                 resolve: {routeData: chain({
@@ -639,7 +639,7 @@ angular.module('wsaa.aquamark',
                     }],
                 })}
             })
-            .when('/measure/new', {
+            .when('/:uv/measure/new', {
                 templateUrl : 'measure.html',
                 controller : 'MeasureCtrl',
                 resolve: {routeData: chain({
@@ -659,7 +659,7 @@ angular.module('wsaa.aquamark',
                     }],
                 })}
             })
-            .when('/measure/:measure', {
+            .when('/:uv/measure/:measure', {
                 templateUrl : 'measure.html',
                 controller : 'MeasureCtrl',
                 resolve: {routeData: chain({
@@ -698,7 +698,7 @@ angular.module('wsaa.aquamark',
                 })}
             })
 
-            .when('/legal', {
+            .when('/:uv/legal', {
                 templateUrl : 'legal.html',
                 controller : 'EmptyCtrl'
             })
@@ -835,6 +835,56 @@ angular.module('wsaa.aquamark',
         '$route', 'checkLogin',
         function($rootScope, $window, $location, Notifications, log, timeAgo,
             $route, checkLogin) {
+
+    // Upgrade route version
+    // The route version should be a number in the range 0-z
+    $rootScope.$on('$routeChangeStart', function(event, next, current) {
+        var path = $location.path();
+        var vmatch = /^\/([0-9a-z])\//.exec(path);
+        var version = vmatch && vmatch[1] || '0';
+        if (version == '0') {
+            var oldUrl = $location.url();
+            var pElems = path.split('/');
+            if (pElems[1] == 'survey') {
+                pElems[1] = 'program';
+            } else if (pElems[1] == 'surveys') {
+                pElems[1] = 'programs';
+            } else if (pElems[1] == 'hierarchy') {
+                pElems[1] = 'survey';
+            } else if (pElems[1] == 'assessment') {
+                pElems[1] = 'submission';
+            }
+            pElems.splice(1, 0, '1');
+            $location.path(pElems.join('/'));
+
+            var search = $location.search();
+            if (search.survey) {
+                $location.search('program', search.survey);
+                $location.search('survey', null);
+            }
+            if (search.hierarchy) {
+                $location.search('survey', search.hierarchy);
+                $location.search('hierarchy', null);
+            }
+            if (search.assessment) {
+                $location.search('submission', search.assessment);
+                $location.search('assessment', null);
+            }
+            if (search.assessment1) {
+                $location.search('submission1', search.assessment1);
+                $location.search('assessment1', null);
+            }
+            if (search.assessment2) {
+                $location.search('submission2', search.assessment2);
+                $location.search('assessment2', null);
+            }
+            console.log("Upgraded route:", oldUrl, $location.url())
+        }
+
+        if (version != '1')
+            $location.replace();
+    });
+
     $rootScope.$on('$routeChangeError',
             function(event, current, previous, rejection) {
         var error;

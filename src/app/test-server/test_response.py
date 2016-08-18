@@ -5,7 +5,6 @@ import os
 import pprint
 import unittest
 from unittest import mock
-import urllib
 
 from sqlalchemy.sql import func
 from sqlalchemy.orm.session import make_transient

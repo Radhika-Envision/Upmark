@@ -196,11 +196,11 @@ angular.module('wsaa.admin', [
     }
 
     $scope.$on('EditSaved', function(event, model) {
-        $location.url('/user/' + model.id);
+        $location.url('/1/user/' + model.id);
     });
     $scope.$on('EditDeleted', function(event, model) {
         $location.url(format(
-            '/org/{}', model.organisation.id));
+            '/1/org/{}', model.organisation.id));
     });
 
     $scope.roles = routeData.roles;
@@ -350,10 +350,10 @@ angular.module('wsaa.admin', [
     $scope.attributions = [];
 
     $scope.$on('EditSaved', function(event, model) {
-        $location.url('/org/' + model.id);
+        $location.url('/1/org/' + model.id);
     });
     $scope.$on('EditDeleted', function(event, model) {
-        $location.url('/orgs');
+        $location.url('/1/orgs');
     });
 
     // ui-select can't be used directly with items in an ng-repeat. The ng-model
@@ -505,7 +505,7 @@ angular.module('wsaa.admin', [
             surveyId: survey.id
         }).$promise.then(
             function success() {
-                $location.url('/org/' + $scope.org.id);
+                $location.url('/1/org/' + $scope.org.id);
             },
             function failure(details) {
                 Notifications.set('edit', 'error',

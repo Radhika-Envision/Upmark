@@ -2,10 +2,10 @@
     <div class="container">
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="File Import"
-                    ng-href="#/program/import" ng-if="checkRole('program_add')">
+                    ng-href="#/1/program/import" ng-if="checkRole('program_add')">
                 <i class="fa fa-fw fa-cloud-upload"></i></a>
             <a class="btn btn-default btn-round" title="Add new"
-                    ng-href="#/program/new" ng-if="checkRole('program_add')">
+                    ng-href="#/1/program/new" ng-if="checkRole('program_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
         </div>
         <h2>
@@ -35,7 +35,7 @@
     <ul class="list-results">
         <li ng-repeat="program in programs"
                 ng-class="{strike: program.deleted}">
-            <a ng-href="#/program/{{program.id}}">
+            <a ng-href="#/1/program/{{program.id}}">
                 <h4>{{program.title}}</h4>
                 <p class="truncate">{{program.description}}</p>
             </a>

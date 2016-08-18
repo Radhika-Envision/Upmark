@@ -22,7 +22,7 @@ MESSAGE_CONTENT: |
     {messages}
 
     To opt out of these notifications, visit your profile page at:
-    /#/user/{user_id}
+    /#/1/user/{user_id}
 
 MESSAGE_BROADCAST: |
     {user_name} said:

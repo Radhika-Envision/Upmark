@@ -107,11 +107,11 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
-            '/submission/{}', model.id, $scope.program.id));
+            '/1/submission/{}', model.id, $scope.program.id));
     });
     $scope.$on('EditDeleted', function(event, model) {
         $location.url(format(
-            '/program/{}', $scope.program.id));
+            '/1/program/{}', $scope.program.id));
     });
 
     $scope.checkRole = authz(current, $scope.program, $scope.submission);
@@ -247,7 +247,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
             $scope.progress.isFinished = true;
         }, 1000);
         $timeout(function() {
-            $location.url('/program/' + response);
+            $location.url('/1/program/' + response);
         }, 5000);
     });
 

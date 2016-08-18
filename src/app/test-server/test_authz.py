@@ -3,7 +3,6 @@ import os
 import pprint
 import unittest
 from unittest import mock
-import urllib
 
 import sqlalchemy
 from sqlalchemy.sql import func

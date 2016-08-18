@@ -14,11 +14,11 @@
                        !edit.model && search.deleted === false">
             <i class="fa fa-fw fa-unsorted"></i></button>
         <a class="btn btn-default btn-round" title="Add new"
-                ng-href="#/qnode/new?{{query}}&parent={{qnode.id}}"
+                ng-href="#/1/qnode/new?{{query}}&parent={{qnode.id}}"
                 ng-if="editable && !edit.model">
             <i class="fa fa-fw fa-plus"></i></a>
         <a class="btn btn-default btn-round" title="Link to existing"
-                ng-href="#/qnode-link?{{query}}&parent={{qnode.id}}"
+                ng-href="#/1/qnode-link?{{query}}&parent={{qnode.id}}"
                 ng-if="editable && !edit.model">
             <i class="fa fa-fw fa-link"></i></a>
         <delete-cycle class="btn-round" model="search.deleted"
