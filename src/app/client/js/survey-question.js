@@ -2167,13 +2167,11 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
-.controller('MeasureCtrl', [
-        '$scope', 'Measure', 'routeData', 'Editor', 'questionAuthz',
-        '$location', 'Notifications', 'Current', 'Program', 'format', 'layout',
-        'Structure', 'Arrays', 'Response', 'hotkeys', '$q', '$timeout', '$window',
-        function($scope, Measure, routeData, Editor, authz,
-                 $location, Notifications, current, Program, format, layout,
-                 Structure, Arrays, Response, hotkeys, $q, $timeout, $window) {
+.controller('MeasureCtrl',
+        function($scope, Measure, routeData, Editor, questionAuthz,
+                 $location, Notifications, Current, Program, format, layout,
+                 Structure, Arrays, Response, hotkeys, $q, $timeout, $window,
+                 responseTypes) {
 
     $scope.layout = layout;
     $scope.parent = routeData.parent;
@@ -2367,7 +2365,7 @@ angular.module('wsaa.surveyQuestions', [
         }
         $scope.responseTypes = responseTypes;
 
-        $scope.checkRole = authz(current, $scope.program, $scope.submission);
+        $scope.checkRole = questionAuthz(Current, $scope.program, $scope.submission);
         $scope.editable = ($scope.program.isEditable &&
             !$scope.structure.deletedItem &&
             !$scope.submission && $scope.checkRole('measure_edit'));
@@ -2377,7 +2375,7 @@ angular.module('wsaa.surveyQuestions', [
         var rtId = vars[0];
         var rts = vars[1];
         var i = Arrays.indexOf(rts, rtId, 'id', null);
-        $scope.responseType = rts[i];
+        $scope.responseType = new responseTypes.ResponseType(rts[i]);
     });
 
     $scope.$on('EditSaved', function(event, model) {
@@ -2404,9 +2402,9 @@ angular.module('wsaa.surveyQuestions', [
 
     if ($scope.submission) {
         var t_approval;
-        if (current.user.role == 'clerk' || current.user.role == 'org_admin')
+        if (Current.user.role == 'clerk' || Current.user.role == 'org_admin')
             t_approval = 'final';
-        else if (current.user.role == 'consultant')
+        else if (Current.user.role == 'consultant')
             t_approval = 'reviewed';
         else
             t_approval = 'approved';
@@ -2431,7 +2429,7 @@ angular.module('wsaa.surveyQuestions', [
                 $scope.measure.parent && $scope.measure.parent.id || '');
         }
     };
-}])
+})
 
 
 .controller('ResponseAttachmentCtrl', [

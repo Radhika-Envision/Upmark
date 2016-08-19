@@ -221,16 +221,34 @@
         pressing the <i class="fa fa-fw fa-plus"></i> button above.
     </p>
 
-    <div class="section" ng-if="rt.parts.length > 1">
-    <div class="form-group" show-errors>
-        <label for="lformula{{$index}}">Score Formula</label>
-        <input type="text" class="form-control"
-            id="lformula{{$index}}" name="lformula{{$index}}"
-            ng-model="rt.formula" />
-    </div>
+    <div class="section">
+        <div class="form-group" show-errors>
+            <label for="lformula{{$index}}">Score Formula</label>
+            <input type="text" class="form-control"
+                id="lformula{{$index}}" name="lformula{{$index}}"
+                ng-model="rt.formula" />
+        </div>
     </div>
 
-    <response class="spaced well" type="rt" model="rtEdit.response" debug></response>
+    <p ng-if="rtEdit.responseType.declaredVars.length">
+        This response type declares the variables
+        <span class="commasep"
+            ><em ng-repeat="v in rtEdit.responseType.declaredVars"
+                >{{v}}</em
+            ></span>. You can use them in expressions.
+    </p>
+
+    <p ng-if="rtEdit.responseType.unboundVars.length">
+        <i class="fa fa-link fa-fw"></i>
+        The variables
+        <span class="commasep"
+            ><em ng-repeat="v in rtEdit.responseType.unboundVars"
+                >{{v}}</em
+            ></span> are not declared. They will need to be resolved when the
+            response type is used in a measure.
+    </p>
+
+    <response class="spaced well" type="rtEdit.responseType" model="rtEdit.response" debug></response>
 </form>
 
 <docs>

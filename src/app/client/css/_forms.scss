@@ -374,8 +374,13 @@ ul.list-form {
     padding: 15px;
 }
 
-.commasep > span:not(:last-child):after {
-    content: ',';
+.commasep {
+    > span,
+    > em {
+        &:not(:last-child):after {
+            content: ', ';
+        }
+    }
 }
 
 .btn-on-danger {

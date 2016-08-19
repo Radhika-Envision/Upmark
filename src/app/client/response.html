@@ -7,7 +7,7 @@
     <h2>
         Response
         <span ng-if="debug">Sample</span>
-        <span ng-if="checkRole('view_single_score') && responseType.parts.length"
+        <span ng-if="checkRole('view_single_score') && rt.parts.length"
                 class="text-muted pull-right" title="Score (weighted)">
             {{state.score * weight | number:0}}
         </span>

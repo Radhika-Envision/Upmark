@@ -4,15 +4,47 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
 
 
 .factory('responseTypes', function() {
-    // These classes are used to calculate scores and validate entered data.
-    // They should be kept in sync with the classes on the server; see
+
+    // These functions are used to calculate scores and validate entered data.
+    // NOTE: keep changes made to these classes in sync with those in
     // response_type.py.
+
+    var uniqueStrings = function(ss) {
+        var set = {},
+            res = [];
+        ss.forEach(function(s) {
+            if (set.hasOwnProperty(s))
+                return;
+            set[s] = true;
+            res.push(s);
+        });
+        return res.sort();
+    };
+    var parse = function(exp) {
+        return exp ? Parser.parse(exp) : null;
+    };
+    var refs = function(cExp) {
+        return cExp ? cExp.variables() : [];
+    };
+
 
     function ResponseType(rtDef) {
         this.id = rtDef.id;
         this.name = rtDef.name;
         this.parts = rtDef.parts && rtDef.parts.map(responsePart) || [];
-        this.formula = rtDef.formula ? Parser.parse(rtDef.formula) : null;
+        this.formula = parse(rtDef.formula);
+        this.declaredVars = uniqueStrings(
+            this.parts.reduce(function(prev, part) {
+                return prev.concat(part.declaredVars);
+            }, []));
+        this.freeVars = uniqueStrings(
+            this.parts.reduce(function(prev, part) {
+                return prev.concat(part.freeVars);
+            }, refs(this.formula)));
+        this.unboundVars = uniqueStrings(
+            this.freeVars.filter(function(fv) {
+                return this.declaredVars.indexOf(fv) < 0;
+            }, this));
     };
     ResponseType.prototype.zip = function(responseParts) {
         var partPairs = [];
@@ -100,6 +132,11 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
         this.options = pDef.options.map(function(oDef) {
             return new ResponseOption(oDef);
         });
+        this.declaredVars = this.id ? [this.id, this.id + '__i'] : [];
+        this.freeVars = uniqueStrings(
+            this.options.reduce(function(prev, option) {
+                return prev.concat(option.freeVars);
+            }, []));
     };
     MultipleChoice.prototype = Object.create(ResponsePart.prototype);
     MultipleChoice.prototype.score = function(part) {
@@ -127,7 +164,8 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
         this.score = oDef.score;
         this.name = oDef.name;
         this.description = oDef.description;
-        this.predicate = oDef['if'] ? Parser.parse(oDef['if']) : null;
+        this.predicate = parse(oDef['if']);
+        this.freeVars = refs(this.predicate);
     };
     ResponseOption.prototype.available = function(scope) {
         if (!this.predicate)
@@ -142,8 +180,11 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
 
     function Numerical(pDef) {
         ResponsePart.call(this, pDef);
-        this.lowerExp = pDef.lower ? Parser.parse(pDef.lower) : null;
-        this.upperExp = pDef.upper ? Parser.parse(pDef.upper) : null;
+        this.lowerExp = parse(pDef.lower);
+        this.upperExp = parse(pDef.upper);
+        this.declaredVars = this.id ? [this.id] : [];
+        this.freeVars = uniqueStrings(
+            refs(this.lowerExp).concat(refs(this.upperExp)));
     };
     Numerical.prototype = Object.create(ResponsePart.prototype);
     Numerical.prototype.score = function(part) {
@@ -187,11 +228,11 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
 })
 
 
-.directive('response', function(responseTypes) {
+.directive('response', function() {
     return {
         restrict: 'E',
         scope: {
-            responseType: '=type',
+            rt: '=type',
             response: '=model',
             weight_: '=weight',
             readonly: '=',
@@ -207,14 +248,6 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             $scope.$watch('weight_', function(weight) {
                 $scope.weight = weight == null ? 100 : weight;
             });
-
-            $scope.$watch('responseType', function(rtDef) {
-                if (!rtDef) {
-                    $scope.rt = null;
-                    return;
-                }
-                $scope.rt = new responseTypes.ResponseType(rtDef);
-            }, true);
 
             $scope.state = {
                 variables: null,
@@ -334,13 +367,14 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
 })
 
 
-.controller('ResponseTypeEditorCtrl', function($scope, Numbers) {
+.controller('ResponseTypeEditorCtrl', function($scope, Numbers, responseTypes) {
     $scope.rtEdit = {};
     $scope.editRt = function(model, index) {
         var rt = angular.copy(model.responseTypes[index]);
         $scope.rtEdit = {
             model: model,
             rt: rt,
+            responseType: null,
             i: index,
             response: {
                 responseParts: [],
@@ -433,6 +467,14 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
         if (item.options)
             $scope.updateFormula(rt);
     };
+
+    $scope.$watch('rtEdit.rt', function(rtDef) {
+        if (!rtDef) {
+            $scope.rtEdit.responseType = null;
+            return;
+        }
+        $scope.rtEdit.responseType = new responseTypes.ResponseType(rtDef);
+    }, true);
 
     $scope.partTypes = [
         {name: 'multiple_choice', desc: 'Multiple choice'},
