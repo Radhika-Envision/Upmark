@@ -73,11 +73,6 @@
                     placeholder="Name" />
             </div>
 
-            <p ng-if="!rt.parts.length">
-                This response type has no response parts. You can create one by
-                pressing the <i class="fa fa-fw fa-plus"></i> button above.
-            </p>
-
             <div class="input-group spaced">
                 <label for="formula" class="input-group-addon">Formula</label>
                 <input type="text" class="form-control"
@@ -110,6 +105,11 @@
                     ></span>. You can use it in expressions.
                 You can also use other "external" variables, which can be bound
                 to other measures.
+            </p>
+
+            <p ng-if="!rt.parts.length" class="text-muted">
+                This response type has no response parts. You can create one by
+                pressing the <i class="fa fa-fw fa-plus"></i> button above.
             </p>
         </uib-tab>
 
