@@ -39,8 +39,7 @@
     </ul>
 </div>
 
-<form highlight highlight-dismiss="cancelRt()"
-        ng-if="rtEdit.rt" ng-init="rt = rtEdit.rt">
+<form highlight ng-if="rtEdit.rt" ng-init="rt = rtEdit.rt">
     <div class="section">
         <div class="toolbar">
             <button class="btn btn-default btn-round" title="Cancel"
@@ -248,7 +247,19 @@
             response type is used in a measure.
     </p>
 
-    <response class="spaced well" type="rtEdit.responseType" model="rtEdit.response" debug></response>
+    <div class="section" ng-repeat="v in rtEdit.responseType.unboundVars">
+        <div class="form-group" show-errors>
+            <label for="extern_{{v}}">
+                External Variable <em>{{v}}</em>
+            </label>
+            <input type="text" class="form-control"
+                id="extern_{{v}}" name="extern_{{v}}"
+                ng-model="rtEdit.externs[v]" />
+        </div>
+    </div>
+
+    <response class="spaced well" type="rtEdit.responseType" model="rtEdit.response" debug
+        externs="rtEdit.externs"></response>
 </form>
 
 <docs>

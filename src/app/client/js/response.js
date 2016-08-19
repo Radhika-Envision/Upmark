@@ -236,7 +236,8 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             response: '=model',
             weight_: '=weight',
             readonly: '=',
-            hasQuality: '='
+            hasQuality: '=',
+            externs: '=',
         },
         replace: true,
         templateUrl: 'response.html',
@@ -271,10 +272,11 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
                 });
 
                 if ($scope.response.notRelevant) {
-                    $scope.state.variables = {};
+                    $scope.state.variables = angular.merge({}, $scope.externs);
                     $scope.state.score = 0;
                 } else {
-                    $scope.state.variables = rt.variables(partsR, true);
+                    $scope.state.variables = angular.merge(
+                        {}, $scope.externs, rt.variables(partsR, true));
                     try {
                         rt.validate(partsR, $scope.state.variables);
                         $scope.state.score = rt.score(
@@ -288,6 +290,7 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             });
             $scope.$watch('rt', recalculate);
             $scope.$watch('response.responseParts', recalculate, true);
+            $scope.$watch('externs', recalculate, true);
 
             $scope.getPartData = function(partSchema) {
                 var i = $scope.rt.parts.indexOf(partSchema);
