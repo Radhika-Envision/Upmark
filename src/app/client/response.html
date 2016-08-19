@@ -6,7 +6,16 @@
     </div>
     <h2>
         Response
-        <span ng-if="debug">Sample</span>
+
+        <span class="text-muted">
+            <small ng-if="state.message">
+                <i class="fa fa-exclamation fa-fw"></i> {{state.message}}
+            </small>
+            <small ng-if="!state.message">
+                <i class="fa fa-check fa-fw"></i> OK
+            </small>
+        </span>
+
         <span ng-if="checkRole('view_single_score') && rt.parts.length"
                 class="text-muted pull-right" title="Score (weighted)">
             {{state.score * weight | number:0}}
@@ -72,15 +81,6 @@
         </div>
     </li>
 </ol>
-
-<p class="text-muted  text-center">
-    <small ng-if="state.message">
-        <i class="fa fa-exclamation fa-fw"></i> {{state.message}}
-    </small>
-    <small ng-if="!state.message">
-        <i class="fa fa-check fa-fw"></i> OK
-    </small>
-</p>
 
 <docs>
     <i class="fa-li fa fa-check-square-o fa-border"></i>
@@ -183,12 +183,5 @@
         </div>
     </li>
 </ol>
-
-<div class="section">
-    <h2>
-        Approval
-        <span ng-if="debug">Sample</span>
-    </h2>
-</div>
 
 </div>

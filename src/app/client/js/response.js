@@ -370,7 +370,8 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
 })
 
 
-.controller('ResponseTypeEditorCtrl', function($scope, Numbers, responseTypes) {
+.controller('ResponseTypeEditorCtrl',
+        function($scope, Numbers, responseTypes, $timeout) {
     $scope.rtEdit = {};
     $scope.editRt = function(model, index) {
         var rt = angular.copy(model.responseTypes[index]);
@@ -378,11 +379,13 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             model: model,
             rt: rt,
             responseType: null,
+            externs: {},
             i: index,
             response: {
                 responseParts: [],
                 comment: ''
-            }
+            },
+            activeTab: 'details',
         };
     };
     $scope.saveRt = function() {
@@ -411,7 +414,7 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             parts: []
         })
     };
-    $scope.addPart = function(rt) {
+    $scope.addPart = function(rt, $event) {
         var ids = {};
         for (var i = 0; i < rt.parts.length; i++) {
             ids[rt.parts[i].id] = true;
@@ -429,6 +432,10 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
         $scope.setType(part, 'multiple_choice');
         rt.parts.push(part);
         $scope.updateFormula(rt);
+
+        $timeout(function() {
+            $scope.rtEdit.activeTab = rt.parts.indexOf(part);
+        });
     };
     $scope.setType = function(part, type) {
         part.type = type;

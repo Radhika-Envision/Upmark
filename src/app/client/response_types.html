@@ -54,29 +54,70 @@
         </h2>
     </div>
 
-    <div class="form-group" show-errors>
-        <label for="ltitle{{$index}}">Name</label>
-        <input type="text" class="form-control"
-            id="ltitle{{$index}}" name="ltitle{{$index}}"
-            title="Response type name"
-            ng-model="rt.name" required
-            placeholder="Name" />
-    </div>
-    <div class="form-group" show-errors>
-        <label for="lid{{$index}}">ID</label>
-        <input type="text" class="form-control"
-            id="lid{{$index}}" name="lid{{$index}}"
-            title="Response type ID (links to measures)"
-            ng-model="rt.id" required
-            placeholder="ID" />
-    </div>
+    <uib-tabset active="rtEdit.activeTab">
+        <uib-tab index="'details'" heading="Identity">
+            <div class="input-group spaced">
+                <label for="rtid" class="input-group-addon">
+                    ID:</label>
+                <input type="text" class="form-control"
+                    id="lid{{$index}}" name="lid{{$index}}"
+                    title="Response type ID (links to measures)"
+                    ng-model="rt.id" required
+                    placeholder="ID" />
+                <label for="rttitle" class="input-group-addon">
+                    Name:</label>
+                <input type="text" class="form-control"
+                    id="rttitle" name="rttitle"
+                    title="Response type name"
+                    ng-model="rt.name" required
+                    placeholder="Name" />
+            </div>
 
-    <div class="section">
-        <h3>Response Parts</h3>
-    </div>
-    <ul class="list-unstyled list-form">
-        <li ng-repeat="part in rt.parts" ng-init="rti = $index">
-            <div class="input-group">
+            <p ng-if="!rt.parts.length">
+                This response type has no response parts. You can create one by
+                pressing the <i class="fa fa-fw fa-plus"></i> button above.
+            </p>
+
+            <div class="input-group spaced">
+                <label for="formula" class="input-group-addon">Formula</label>
+                <input type="text" class="form-control"
+                    id="formula" name="formula"
+                    ng-model="rt.formula" />
+            </div>
+
+            <p ng-if="rtEdit.responseType.declaredVars.length == 1"
+                    class="text-muted">
+                This response type declares no variables.
+                You can also use "external" variables in expressions,
+                which can be bound to other measures.
+            </p>
+            <p ng-if="rtEdit.responseType.declaredVars.length > 1"
+                    class="text-muted">
+                This response type declares the variables
+                <span class="commasep"
+                    ><em ng-repeat="v in rtEdit.responseType.declaredVars"
+                        >{{v}}</em
+                    ></span>. You can use them in expressions.
+                You can also use other "external" variables, which can be bound
+                to other measures.
+            </p>
+            <p ng-if="rtEdit.responseType.declaredVars.length == 1"
+                    class="text-muted">
+                This response type declares the variable
+                <span class="commasep"
+                    ><em ng-repeat="v in rtEdit.responseType.declaredVars"
+                        >{{v}}</em
+                    ></span>. You can use it in expressions.
+                You can also use other "external" variables, which can be bound
+                to other measures.
+            </p>
+        </uib-tab>
+
+        <uib-tab index="$index" ng-repeat="part in rt.parts">
+            <uib-tab-heading>
+                <span>Part <em>{{part.id || '?'}}</em></span>
+            </uib-tab-heading>
+            <div class="input-group spaced">
                 <span uib-dropdown class="input-group-btn">
                     <button class="btn btn-success" title="Part type"
                             uib-dropdown-toggle>
@@ -92,19 +133,19 @@
                         </li>
                     </ul>
                 </span>
-                <label for="lid{{rti}}-{{$index}}" class="input-group-addon">
+                <label for="lid-{{$index}}" class="input-group-addon">
                     ID:</label>
                 <input type="text" class="form-control"
-                    id="lid{{rti}}-{{$index}}"
-                    name="lid{{rti}}-{{$index}}"
+                    id="lid-{{$index}}"
+                    name="lid-{{$index}}"
                     ng-model="part.id" empty-as-null
                     placeholder="Part ID"
                     title="Part ID" />
-                <label for="ltitle{{rti}}-{{$index}}" class="input-group-addon">
+                <label for="ltitle-{{$index}}" class="input-group-addon">
                     Name:</label>
                 <input type="text" class="form-control"
-                    id="ltitle{{rti}}-{{$index}}"
-                    name="ltitle{{rti}}-{{$index}}"
+                    id="ltitle-{{$index}}"
+                    name="ltitle-{{$index}}"
                     ng-model="part.name" empty-as-null
                     placeholder="{{rt.parts.length > 1 ?
                         'Part name (required for multi-part response types)' :
@@ -118,8 +159,8 @@
             </div>
             <div class="form-group">
                 <textarea class="form-control autoresize"
-                    id="ltitle{{rti}}-{{$index}}"
-                    name="ltitle{{rti}}-{{$index}}"
+                    id="ltitle-{{$index}}"
+                    name="ltitle-{{$index}}"
                     ng-model="part.description" empty-as-null
                     placeholder="Part description (optional)"
                     title="Part description"></textarea>
@@ -128,30 +169,30 @@
                 <li ng-repeat="opt in part.options"
                         ng-init="pi = $index">
                     <div class="input-group" show-errors>
-                        <label for="lscore{{rti}}-{{pi}}-{{$index}}"
+                        <label for="lscore-{{pi}}-{{$index}}"
                                 class="input-group-addon">
                             Value:</label>
                         <input type="number" step="any" class="form-control"
-                            id="lscore{{rti}}-{{pi}}-{{$index}}"
-                            name="lscore{{rti}}-{{pi}}-{{$index}}"
+                            id="lscore-{{pi}}-{{$index}}"
+                            name="lscore-{{pi}}-{{$index}}"
                             ng-model="opt.score" required
                             placeholder="Option score (0..1)"
                             title="The score for this option (0..1)"/>
-                        <label for="lname{{rti}}-{{pi}}-{{$index}}"
+                        <label for="lname-{{pi}}-{{$index}}"
                                 class="input-group-addon">
                             Name:</label>
                         <input type="text" class="form-control"
-                            id="lname{{rti}}-{{pi}}-{{$index}}"
-                            name="lname{{rti}}-{{pi}}-{{$index}}"
+                            id="lname-{{pi}}-{{$index}}"
+                            name="lname-{{pi}}-{{$index}}"
                             ng-model="opt.name" required
                             placeholder="Option name"
                             title="Option name"/>
-                        <label for="lif{{rti}}-{{pi}}-{{$index}}"
+                        <label for="lif-{{pi}}-{{$index}}"
                                 class="input-group-addon">
                             Condition:</label>
                         <input type="text" class="form-control"
-                            id="lif{{rti}}-{{pi}}-{{$index}}"
-                            name="lif{{rti}}-{{pi}}-{{$index}}"
+                            id="lif-{{pi}}-{{$index}}"
+                            name="lif-{{pi}}-{{$index}}"
                             ng-model="opt['if']" empty-as-null
                             placeholder="Condition (default: always)"
                             title="The condition under which this option is available (expression; see docs)" />
@@ -164,13 +205,13 @@
                         </span>
                     </div>
                     <div class="form-group" show-errors>
-                        <label for="ldesc{{rti}}-{{pi}}-{{$index}}"
+                        <label for="ldesc-{{pi}}-{{$index}}"
                         class="sr-only">
                             Option description</label>
                         <textarea type="text"
                             class="form-control autoresize"
-                            id="ldesc{{rti}}-{{pi}}-{{$index}}"
-                            name="ldesc{{rti}}-{{pi}}-{{$index}}"
+                            id="ldesc-{{pi}}-{{$index}}"
+                            name="ldesc-{{pi}}-{{$index}}"
                             ng-model="opt.description" empty-as-null
                             placeholder="Option description (optional)"
                             title="A tooltip to show to the user"
@@ -204,62 +245,37 @@
                     placeholder="E.g. 1.0 (default: +infinity)"
                     title="The upper bound (maximum) for this part (expression; see docs)"/>
             </div>
-        </li>
-        <li>
-            <button class="btn btn-default btn-block" title="Add part"
-                    ng-click="addPart(rt)">
-                <i class="fa fa-fw fa-plus"></i>
-                <span ng-if="rt.parts.length == 0">Add a response part</span>
-                <span ng-if="rt.parts.length > 0">Add another response part</span>
-            </button>
-        </li>
-    </ul>
+        </uib-tab>
+        <uib-tab index="'addPart'" select="addPart(rt, $event)">
+            <uib-tab-heading>
+                <i class="fa fa-plus"></i>
+            </uib-tab-heading>
+        </uib-tab>
 
-    <p ng-if="!rt.parts.length">
-        This response type has no response parts. You can create one by
-        pressing the <i class="fa fa-fw fa-plus"></i> button above.
-    </p>
+        <uib-tab index="'preview'" heading="Preview">
+            <response class="spaced" debug
+                type="rtEdit.responseType" model="rtEdit.response"
+                externs="rtEdit.externs"></response>
 
-    <div class="section">
-        <div class="form-group" show-errors>
-            <label for="lformula{{$index}}">Score Formula</label>
-            <input type="text" class="form-control"
-                id="lformula{{$index}}" name="lformula{{$index}}"
-                ng-model="rt.formula" />
-        </div>
-    </div>
-
-    <p ng-if="rtEdit.responseType.declaredVars.length">
-        This response type declares the variables
-        <span class="commasep"
-            ><em ng-repeat="v in rtEdit.responseType.declaredVars"
-                >{{v}}</em
-            ></span>. You can use them in expressions.
-    </p>
-
-    <p ng-if="rtEdit.responseType.unboundVars.length">
-        <i class="fa fa-link fa-fw"></i>
-        The variables
-        <span class="commasep"
-            ><em ng-repeat="v in rtEdit.responseType.unboundVars"
-                >{{v}}</em
-            ></span> are not declared. They will need to be resolved when the
-            response type is used in a measure.
-    </p>
-
-    <div class="section" ng-repeat="v in rtEdit.responseType.unboundVars">
-        <div class="form-group" show-errors>
-            <label for="extern_{{v}}">
-                External Variable <em>{{v}}</em>
-            </label>
-            <input type="text" class="form-control"
-                id="extern_{{v}}" name="extern_{{v}}"
-                ng-model="rtEdit.externs[v]" />
-        </div>
-    </div>
-
-    <response class="spaced well" type="rtEdit.responseType" model="rtEdit.response" debug
-        externs="rtEdit.externs"></response>
+            <div class="spaced" ng-if="rtEdit.responseType.unboundVars.length">
+                <h4>External Variables</h4>
+                <p class="text-muted">
+                    This response type uses external variables. These will
+                    ultimately be bound to other measures. You can provide
+                    values for them here for testing purposes.
+                </p>
+                <div class="input-group spaced"
+                        ng-repeat="v in rtEdit.responseType.unboundVars">
+                    <label for="extern_{{v}}" class="input-group-addon">
+                        {{v}}
+                    </label>
+                    <input type="text" class="form-control"
+                        id="extern_{{v}}" name="extern_{{v}}"
+                        ng-model="rtEdit.externs[v]" />
+                </div>
+            </div>
+        </uib-tab>
+    </uib-tabset>
 </form>
 
 <docs>

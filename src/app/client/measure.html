@@ -210,9 +210,12 @@
             <i class="fa fa-check fa-fw"></i></button>
     </response>
 
-    <approval-buttons model="response.approval"
-            ng-if="!structure.deletedItem"
-            set-state="setState(state)"></approval-buttons>
+    <div class="section">
+        <h2>Approval</h2>
+        <approval-buttons model="response.approval"
+                ng-if="!structure.deletedItem"
+                set-state="setState(state)"></approval-buttons>
+    </div>
 
     <div ng-class="structure.deletedItem ? null : 'visible-print-block'">
         Response status: {{response.approval}}
