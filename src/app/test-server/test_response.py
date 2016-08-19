@@ -99,6 +99,17 @@ TEST_RESPONSE_TYPES = [
         ]
     },
     {
+        "id": "external-var",
+        "name": "External Variable",
+        "parts": [
+            {
+                "id": "a",
+                "type": "numerical"
+            }
+        ],
+        "formula": "a / ext"
+    },
+    {
         "id": "comment",
         "name": "Comment Only (no score)",
         "parts": []
@@ -204,6 +215,22 @@ class ResponseTypeTest(unittest.TestCase):
                 {'value': 0.6},
                 {'value': 0.7},
             ])
+
+    def test_free_vars(self):
+        rt = self.rts['multi-part']
+        self.assertCountEqual(rt.declared_vars, ['a', 'a__i', 'b', 'b__i'])
+        self.assertCountEqual(rt.free_vars, ['a', 'a__i', 'b'])
+        self.assertCountEqual(rt.unbound_vars, [])
+
+        rt = self.rts['numerical-multi']
+        self.assertCountEqual(rt.declared_vars, ['a', 'b', 'c'])
+        self.assertCountEqual(rt.free_vars, ['a', 'b'])
+        self.assertCountEqual(rt.unbound_vars, [])
+
+        rt = self.rts['external-var']
+        self.assertCountEqual(rt.declared_vars, ['a'])
+        self.assertCountEqual(rt.free_vars, ['a', 'ext'])
+        self.assertCountEqual(rt.unbound_vars, ['ext'])
 
 
 class SubmissionTest(base.AqHttpTestBase):
