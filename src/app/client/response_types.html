@@ -74,7 +74,7 @@
             </div>
 
             <div class="input-group spaced">
-                <label for="formula" class="input-group-addon">Formula</label>
+                <label for="formula" class="input-group-addon">Formula:</label>
                 <input type="text" class="form-control"
                     id="formula" name="formula"
                     ng-model="rt.formula" />
@@ -267,7 +267,7 @@
                 <div class="input-group spaced"
                         ng-repeat="v in rtEdit.responseType.unboundVars">
                     <label for="extern_{{v}}" class="input-group-addon">
-                        {{v}}
+                        {{v}}:
                     </label>
                     <input type="text" class="form-control"
                         id="extern_{{v}}" name="extern_{{v}}"
