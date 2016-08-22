@@ -1,7 +1,8 @@
 <h3 ng-click="isCollapsed = !isCollapsed" class="clickable">
     Documentation
     <i class="fa fa-fw"
-        ng-class="isCollapsed ? 'fa-caret-right' : 'fa-caret-down'"></i>
+        ng-class="isCollapsed ? 'fa-caret-right' : 'fa-caret-down'"
+        highlight-any></i>
     <em class="text-muted" ng-show="isCollapsed">{{ndocs}}</em>
 </h3>
 <div uib-collapse="isCollapsed">

@@ -356,6 +356,19 @@ angular.module('vpac.widgets', [])
 })
 
 
+.directive('highlightAny', function(dimmer, $parse) {
+    return {
+        restrict: 'A',
+        link: function(scope, elem, attrs) {
+            scope.dimmer = dimmer;
+            scope.$watch('dimmer.dimmers.length > 0', function(highlight) {
+                elem.toggleClass('undim', !!highlight);
+            });
+        }
+    };
+})
+
+
 .directive('dimmer', ['dimmer', function(dimmer) {
     return {
         restrict: 'C',
