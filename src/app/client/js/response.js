@@ -28,11 +28,10 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
     };
 
 
-    function ResponseType(rtDef) {
-        this.id = rtDef.id;
-        this.name = rtDef.name;
-        this.parts = rtDef.parts && rtDef.parts.map(responsePart) || [];
-        this.formula = parse(rtDef.formula);
+    function ResponseType(name, partsDef, formula) {
+        this.name = name;
+        this.parts = partsDef && partsDef.map(responsePart) || [];
+        this.formula = parse(formula);
         this.declaredVars = uniqueStrings(
             this.parts.reduce(function(prev, part) {
                 return prev.concat(part.declaredVars);
@@ -481,7 +480,8 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             $scope.rtEdit.responseType = null;
             return;
         }
-        $scope.rtEdit.responseType = new responseTypes.ResponseType(rtDef);
+        $scope.rtEdit.responseType = new responseTypes.ResponseType(
+            rtDef.name, rtDef.parts, rtDef.formula);
     }, true);
 
     $scope.partTypes = [

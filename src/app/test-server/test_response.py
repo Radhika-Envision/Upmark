@@ -15,7 +15,7 @@ from tornado.web import Application
 import app
 import base
 import model
-from response_type import ExpressionError, ResponseTypeCache, ResponseError
+from response_type import ExpressionError, ResponseType, ResponseError
 from utils import ToSon
 
 
@@ -120,7 +120,10 @@ TEST_RESPONSE_TYPES = [
 class ResponseTypeTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.rts = ResponseTypeCache(TEST_RESPONSE_TYPES)
+        cls.rts = {
+            t['id']: ResponseType(t.get('name'), t['parts'], t.get('formula'))
+            for t in TEST_RESPONSE_TYPES
+        }
 
     def test_deserialise(self):
         proj_dir = os.path.join(
@@ -128,11 +131,17 @@ class ResponseTypeTest(unittest.TestCase):
 
         with open(os.path.join(
                 proj_dir, 'client', 'default_response_types.json')) as file:
-            ResponseTypeCache(json.load(file))
+            {
+                t['id']: ResponseType(t.get('name'), t['parts'], t.get('formula'))
+                for t in json.load(file)
+            }
 
         with open(os.path.join(
                 proj_dir, 'server', 'aquamark_response_types.json')) as file:
-            ResponseTypeCache(json.load(file))
+            {
+                t['id']: ResponseType(t.get('name'), t['parts'], t.get('formula'))
+                for t in json.load(file)
+            }
 
     def test_comment_only(self):
         rt = self.rts['comment']

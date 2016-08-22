@@ -14,8 +14,10 @@ from sqlalchemy.dialects.postgresql import ARRAY, JSON
 import sqlalchemy.exc
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.orderinglist import ordering_list
-from sqlalchemy.orm import backref, foreign, relationship, remote, sessionmaker
+from sqlalchemy.orm import backref, foreign, relationship, remote, \
+    sessionmaker, validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.schema import CheckConstraint, ForeignKeyConstraint, \
     Index, MetaData, UniqueConstraint
@@ -26,8 +28,7 @@ from voluptuous.humanize import validate_with_humanized_errors
 
 from guid import GUID
 from history_meta import Versioned, versioned_session
-from response_type import ResponseError, ResponseTypeCache, \
-    response_schema, response_type_schema
+import response_type
 
 
 log = logging.getLogger('app.model')
@@ -303,29 +304,10 @@ class Program(Observable, Base):
     description = Column(Text)
     has_quality = Column(Boolean, default=False, nullable=False)
     hide_aggregate = Column(Boolean, default=False, nullable=False)
-    _response_types = Column('response_types', JSON, nullable=False)
 
     @property
     def is_editable(self):
         return self.finalised_date is None
-
-    @property
-    def response_types(self):
-        return self._response_types
-
-    @response_types.setter
-    def response_types(self, rts):
-        self._response_types = validate_with_humanized_errors(
-            rts, response_type_schema)
-        if hasattr(self, '_materialised_response_types'):
-            del self._materialised_response_types
-
-    @property
-    def materialised_response_types(self):
-        if not hasattr(self, '_materialised_response_types'):
-            self._materialised_response_types = ResponseTypeCache(
-                self._response_types)
-        return self._materialised_response_types
 
     def update_stats_descendants(self):
         '''Updates the stats of an entire tree.'''
@@ -404,7 +386,7 @@ class Survey(Observable, Base):
     modified = Column(DateTime, nullable=True)
     deleted = Column(Boolean, default=False, nullable=False)
 
-    _structure = Column('structure', JSON, nullable=False)
+    structure = Column(JSON, nullable=False)
 
     _structure_schema = Schema({
         'levels': All([
@@ -420,13 +402,10 @@ class Survey(Observable, Base):
         }
     }, required=True)
 
-    @property
-    def structure(self):
-        return self._structure
 
-    @structure.setter
-    def structure(self, s):
-        self._structure = validate_with_humanized_errors(
+    @validates('structure')
+    def validate_structure(self, k, s):
+        self.structure = validate_with_humanized_errors(
             s, Survey._structure_schema)
 
     @property
@@ -590,15 +569,25 @@ class Measure(Observable, Base):
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     program_id = Column(
         GUID, ForeignKey("program.id"), nullable=False, primary_key=True)
+    response_type_id = Column(
+        GUID, ForeignKey("response_type.id"), nullable=False)
     deleted = Column(Boolean, default=False, nullable=False)
 
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=True)
     weight = Column(Float, nullable=False)
-    response_type = Column(Text, nullable=False)
 
     program = relationship(
         Program, backref=backref('measures', passive_deletes=True))
+    response_type = relationship(
+        'ResponseType', backref=backref('measures', passive_deletes=True))
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['response_type_id', 'program_id'],
+            ['response_type.id', 'response_type.program_id']
+        ),
+    )
 
     def get_parent(self, survey):
         if isinstance(survey, (str, uuid.UUID)):
@@ -746,6 +735,53 @@ class QnodeMeasure(Base):
             getattr(self.qnode, 'title', None),
             getattr(self.measure, 'title', None),
             getattr(self.program, 'title', None))
+
+
+class ResponseType(Base):
+    __tablename__ = 'response_type'
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    program_id = Column(
+        GUID, ForeignKey("program.id"), nullable=False, primary_key=True)
+    deleted = Column(Boolean, default=False, nullable=False)
+
+    name = Column(Text, nullable=False)
+    _parts = Column('parts', JSON, nullable=False)
+    _formula = Column('formula', Text)
+
+    program = relationship(
+        Program, backref=backref('response_types', passive_deletes=True))
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._type = None
+
+    @property
+    def rtype(self):
+        if self._rtype is None:
+            self._rtype = response_type.ResponseType(
+                self.title, self.parts, self.formula)
+        return self._rtype
+
+    @validates('parts')
+    def validate_parts(self, k, parts):
+        return validate_with_humanized_errors(
+            parts, response_type.response_parts_schema)
+
+    @hybrid_property
+    def parts(self):
+        return self._parts
+    @parts.setter
+    def parts(self, parts):
+        self._parts = parts
+        self._rtype = None
+
+    @hybrid_property
+    def formula(self):
+        return self._formula
+    @formula.setter
+    def formula(self, formula):
+        self._formula = formula
+        self._rtype = None
 
 
 class Submission(Observable, Base):
@@ -1017,7 +1053,7 @@ class Response(Observable, Versioned, Base):
 
     comment = Column(Text, nullable=False)
     not_relevant = Column(Boolean, nullable=False)
-    _response_parts = Column('response_parts', JSON, nullable=False)
+    response_parts = Column(JSON, nullable=False)
     audit_reason = Column(Text)
     modified = Column(DateTime, nullable=False)
     quality = Column(Float)
@@ -1074,14 +1110,10 @@ class Response(Observable, Versioned, Base):
             return None
         return qnode.get_rnode(self.submission)
 
-    @property
-    def response_parts(self):
-        return self._response_parts
-
-    @response_parts.setter
-    def response_parts(self, s):
-        self._response_parts = validate_with_humanized_errors(
-            s, response_schema)
+    @validates('response_parts')
+    def validate_response_parts(self, k, s):
+        self.response_parts = validate_with_humanized_errors(
+            s, response_type.response_schema)
 
     def lineage(self):
         return ([q.get_rnode(self.submission_id)
@@ -1130,7 +1162,7 @@ class Response(Observable, Versioned, Base):
                     self.measure.title)
             try:
                 score = rt.calculate_score(self.response_parts)
-            except ResponseError as e:
+            except response_type.ResponseError as e:
                 raise ModelError(
                     "Could not calculate score for response %s %s: %s" %
                     (self.measure.get_path(self.submission.survey),

@@ -6,40 +6,32 @@ from voluptuous import All, Any, Coerce, Length, Optional, Required, Schema
 
 log = logging.getLogger('app.response_type')
 
-response_type_schema = Schema([
+response_parts_schema = Schema([
     {
-        'id': All(str, Length(min=1)),
-        'name': All(str, Length(min=1)),
-        'parts': [
+        # Common fields
+        Required('id', default=None): Any(
+            All(str, Length(min=1)), None),
+        'type': Any('multiple_choice', 'numerical'),
+        Required('name', default=None): Any(
+            All(str, Length(min=1)), None),
+        Required('description', default=None): Any(
+            All(str, Length(min=1)), None),
+        # Fields that vary by type
+        # Multiple choice
+        Optional('options'): All([
             {
-                # Common fields
-                Required('id', default=None): Any(
-                    All(str, Length(min=1)), None),
-                'type': Any('multiple_choice', 'numerical'),
-                Required('name', default=None): Any(
+                'score': Coerce(float),
+                'name': All(str, Length(min=1)),
+                Required('if', default=None): Any(
                     All(str, Length(min=1)), None),
                 Required('description', default=None): Any(
-                    All(str, Length(min=1)), None),
-                # Fields that vary by type
-                # Multiple choice
-                Optional('options'): All([
-                    {
-                        'score': Coerce(float),
-                        'name': All(str, Length(min=1)),
-                        Required('if', default=None): Any(
-                            All(str, Length(min=1)), None),
-                        Required('description', default=None): Any(
-                            All(str, Length(min=1)), None)
-                    }
-                ], Length(min=2)),
-                # Numerical
-                Optional('lower'): Any(All(str, Length(min=1)), None),
-                Optional('upper'): Any(All(str, Length(min=1)), None),
-            },
-        ],
-        Required('formula', default=None): Any(
-            All(str, Length(min=1)), None)
-    }
+                    All(str, Length(min=1)), None)
+            }
+        ], Length(min=2)),
+        # Numerical
+        Optional('lower'): Any(All(str, Length(min=1)), None),
+        Optional('upper'): Any(All(str, Length(min=1)), None),
+    },
 ], required=True)
 
 
@@ -70,20 +62,6 @@ class ResponseError(ResponseTypeError):
     pass
 
 
-class ResponseTypeCache:
-    def __init__(self, rt_defs):
-        self.rt_defs = rt_defs
-        self.materialised_types = {}
-
-    def __getitem__(self, id_):
-        if id_ not in self.materialised_types:
-            for rt_def in self.rt_defs:
-                if rt_def['id'] == id_:
-                    self.materialised_types[id_] = ResponseType(rt_def)
-                    break
-        return self.materialised_types[id_]
-
-
 # These functions are used to calculate scores and validate entered data.
 # NOTE: keep changes made to these classes in sync with those in response.js.
 
@@ -107,11 +85,10 @@ def refs(c_exp):
 
 
 class ResponseType:
-    def __init__(self, rt_def):
-        self.id_ = rt_def['id']
-        self.name = rt_def['name']
-        self.parts = [response_part(p_def) for p_def in rt_def['parts']]
-        self.formula = parse(rt_def.get('formula'))
+    def __init__(self, name, parts_def, formula):
+        self.name = name
+        self.parts = [response_part(p_def) for p_def in parts_def]
+        self.formula = parse(formula)
         self.declared_vars = unique_strings([
             v for part in self.parts
             for v in part.declared_vars])
@@ -177,7 +154,7 @@ class ResponseType:
         return self.score(response_parts, scope)
 
     def __repr__(self):
-        return "ResponseType(%s)" % (self.name or self.id_)
+        return "ResponseType(%s)" % (self.name)
 
 
 def response_part(p_def):

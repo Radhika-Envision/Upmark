@@ -63,6 +63,19 @@ angular.module('wsaa.survey.services', [
 }])
 
 
+.factory('ResponseType', ['$resource', 'paged', function($resource, paged) {
+    return $resource('/rtype/:id.json', {id: '@id'}, {
+        get: { method: 'GET', cache: false },
+        create: { method: 'POST' },
+        save: { method: 'PUT' },
+        query: {
+            method: 'GET', isArray: true, cache: false,
+            interceptor: {response: paged}
+        },
+    });
+}])
+
+
 .factory('Attachment', ['$resource', function($resource) {
     return $resource('/submission/:submissionId/measure/:measureId/attachment.json',
             {submissionId: '@submissionId', measureId: '@measureId'}, {
