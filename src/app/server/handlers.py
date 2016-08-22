@@ -96,12 +96,20 @@ class InternalModelError(tornado.web.HTTPError):
 # mixture).
 
 STYLESHEETS = [
+    # Some stylesheets can't be minified, because they refer to assets in
+    # relative directories.
+    {
+        'href': '/.bower_components/bootstrap/dist/css/bootstrap.css'
+    },
+    {
+        'href': '/.bower_components/font-awesome/css/font-awesome.css'
+    },
+    {
+        'href': '/fonts/Ubuntu.css'
+    },
     {
         'min-href': '/minify/3rd-party-min.css',
         'hrefs': [
-            '/.bower_components/bootstrap/dist/css/bootstrap.css',
-            '/.bower_components/font-awesome/css/font-awesome.css',
-            '/fonts/Ubuntu.css',
             '/.bower_components/angular-hotkeys/build/hotkeys.css',
             '/.bower_components/angular-ui-select/dist/select.css',
             '/.bower_components/medium-editor/dist/css/medium-editor.min.css',
