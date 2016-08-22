@@ -22,7 +22,8 @@ header:before{
 
 .jumbotron,
 .header,
-.swatch-header {
+.swatch-header,
+.navbar-default .navbar-toggle {
     background: {{theme.header_bg}};
 }
 .jumbotron,
@@ -38,6 +39,10 @@ header:before{
 }
 .header .btn.btn-default[disabled] {
     color: {{theme.header_bg.twotone_complement(0.25)}};
+}
+.navbar-default .navbar-toggle:hover,
+.navbar-default .navbar-toggle:focus {
+    background-color: {{theme.header_bg.twotone_complement(-0.25)}};
 }
 
 .subheader,

@@ -485,6 +485,14 @@ class Survey(Observable, Base):
         self.update_stats()
 
     @property
+    def min_stats_approval(self):
+        '''
+        @returns The minimum approval state for which it's OK to display
+        statistical information
+        '''
+        return 'reviewed'
+
+    @property
     def ob_type(self):
         return 'survey'
 

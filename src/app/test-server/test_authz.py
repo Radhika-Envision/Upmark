@@ -43,23 +43,27 @@ class StatisticsAuthzTest(base.AqHttpTestBase):
 
         with base.mock_user('consultant'):
             self.fetch(
-                "/statistics/%s.json" % self.program_id,
+                "/statistics/program/%s/survey/%s.json?approval=reviewed" % (
+                    self.program_id, self.survey_id),
                 method='GET', expected=200, decode=False)
 
         with base.mock_user('authority'):
             self.fetch(
-                "/statistics/%s.json" % self.program_id,
+                "/statistics/program/%s/survey/%s.json?approval=reviewed" % (
+                    self.program_id, self.survey_id),
                 method='GET', expected=200, decode=False)
 
         with base.mock_user('clerk'):
             self.fetch(
-                "/statistics/%s.json" % self.program_id,
+                "/statistics/program/%s/survey/%s.json?approval=reviewed" % (
+                    self.program_id, self.survey_id),
                 method='GET', expected=403, decode=False)
 
         # Before purchase survey
         with base.mock_user('clerk'):
             self.fetch(
-                "/statistics/%s.json" % self.program_id,
+                "/statistics/program/%s/survey/%s.json?approval=reviewed" % (
+                    self.program_id, self.survey_id),
                 method='GET', expected=403, decode=False)
 
         # After purchase survey
@@ -68,7 +72,8 @@ class StatisticsAuthzTest(base.AqHttpTestBase):
 
         with base.mock_user('clerk'):
             self.fetch(
-                "/statistics/%s.json" % self.program_id,
+                "/statistics/program/%s/survey/%s.json?approval=reviewed" % (
+                    self.program_id, self.survey_id),
                 method='GET', expected=200, decode=False)
 
     def purchase_program(self):

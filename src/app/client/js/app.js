@@ -519,18 +519,47 @@ angular.module('wsaa.aquamark',
                             root: qnodeId ? null : ''
                         }).$promise;
                     }],
-                    approval: ['$route', function($route) {
-                        return $route.current.params.approval || 'draft';
+                    approvals: ['submission1', 'submission2', '$q',
+                            function(submission1, submission2, $q) {
+                        var approvalStates = [
+                            'draft', 'final', 'reviewed', 'approved'];
+                        var minIndex = approvalStates.indexOf(
+                            submission1.survey.minStatsApproval);
+                        if (minIndex < 0) {
+                            return $q.reject(
+                                "Statistics have been disabled for this survey");
+                        }
+                        if (submission2) {
+                            var minIndex2 = approvalStates.indexOf(
+                                submission2.survey.minStatsApproval);
+                            if (minIndex2 < 0) {
+                                return $q.reject(
+                                    "Statistics have been disabled for this survey");
+                            }
+                            if (minIndex2 > minIndex)
+                                minIndex = minIndex2;
+                        }
+                        return approvalStates.slice(minIndex);
+                    }],
+                    approval: ['$route', 'approvals', '$q',
+                            function($route, approvals, $q) {
+                        var approval = $route.current.params.approval || approvals[0];
+                        if (approvals.indexOf(approval) < 0) {
+                            return $q.reject(
+                                "You can't view data for that approval state");
+                        }
+                        return approval;
                     }],
                     stats1: ['Statistics', '$route', 'submission1', '$q',
-                             'submission2',
+                                'submission2', 'approval',
                             function(Statistics, $route, submission1, $q,
-                                submission2) {
+                                submission2, approval) {
                         return Statistics.get({
-                            id: submission1.program.id,
+                            programId: submission1.program.id,
+                            surveyId: submission1.survey.id,
                             parentId: $route.current.params.qnode == '' ?
                                 null : $route.current.params.qnode,
-                            approval: $route.current.params.approval || 'draft'
+                            approval: approval
                         }).$promise.then(function(stats1) {
                             if (!submission2 && stats1.length == 0) {
                                 return $q.reject(
@@ -544,19 +573,20 @@ angular.module('wsaa.aquamark',
                             return stats1;
                         });
                     }],
-                    stats2: ['Statistics', '$route', 'submission1',
-                             'submission2', 'stats1', '$q',
-                            function(Statistics, $route, submission1,
-                                     submission2, stats1, $q) {
+                    stats2: ['Statistics', '$route', 'submission1', '$q',
+                                     'submission2', 'approval', 'stats1',
+                             function(Statistics, $route, submission1, $q,
+                                     submission2, approval, stats1) {
                         if (!submission2)
                             return null;
                         if (submission1.program.id == submission2.program.id)
                             return stats1;
                         return Statistics.get({
-                            id: submission2.program.id,
+                            programId: submission2.program.id,
+                            surveyId: submission2.survey.id,
                             parentId: $route.current.params.qnode == '' ?
                                 null : $route.current.params.qnode,
-                            approval: $route.current.params.approval || 'draft'
+                            approval: approval
                         }).$promise.then(function(stats1) {
                             if (stats1.length == 0) {
                                 return $q.reject(

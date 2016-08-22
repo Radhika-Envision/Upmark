@@ -1,6 +1,6 @@
 <div class="btn-group btn-group-justified hidden-print
             btn-group-arrow-right">
-    <div class="btn-group">
+    <div class="btn-group" ng-if="!allowed || allowed.indexOf('draft') >= 0">
         <button class="btn btn-default"
                 ng-class="{active: active.draft}"
                 ng-click="setState({state: 'draft'})"
@@ -10,7 +10,7 @@
             Draft
         </button>
     </div>
-    <div class="btn-group">
+    <div class="btn-group" ng-if="!allowed || allowed.indexOf('final') >= 0">
         <button class="btn btn-default"
                 ng-class="{active: active.final}"
                 ng-click="setState({state: 'final'})"
@@ -20,7 +20,7 @@
             Final
         </button>
     </div>
-    <div class="btn-group">
+    <div class="btn-group" ng-if="!allowed || allowed.indexOf('reviewed') >= 0">
         <button class="btn btn-default"
                 ng-class="{active: active.reviewed}"
                 ng-click="setState({state: 'reviewed'})"
@@ -30,7 +30,7 @@
             Reviewed
         </button>
     </div>
-    <div class="btn-group">
+    <div class="btn-group" ng-if="!allowed || allowed.indexOf('approved') >= 0">
         <button class="btn btn-default"
                 ng-class="{active: active.approved}"
                 ng-click="setState({state: 'approved'})"

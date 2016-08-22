@@ -66,6 +66,7 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/organisation$',
                 r'/survey$',
                 r'/survey/structure.*$',
+                r'/survey/min_stats_approval$',
                 r'/program/hide_aggregate$',
             )
             son = to_son(submission)

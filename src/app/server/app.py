@@ -231,7 +231,7 @@ def get_mappings():
         (r"/attachment/([^/]*).json",
             crud.attachment.AttachmentHandler, {}),
 
-        (r"/statistics/([^/]*).json",
+        (r"/statistics/program/([^/]*)/survey/([^/]*).json",
             statistics_handlers.StatisticsHandler, {}),
         (r"/diff.json",
             report_handlers.DiffHandler, {}),
