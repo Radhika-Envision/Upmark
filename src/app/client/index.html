@@ -23,23 +23,21 @@
                 <button type="button" class="navbar-toggle collapsed"
                         data-toggle="collapse" data-target=".navbar-collapse">
                     <span class="sr-only">Toggle navigation</span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
+                    <i class="fa fa-bars fa-fw"></i>
                 </button>
                 <a href="#/1/" class="navbar-brand"
                         title="{{theme.app_name_long}}">
                     {% raw theme.clean_svg('theme_logo') %}
+
+                    {% if params.is_training %}
+                    <span class="training-mode"
+                          title="Training mode"
+                          uib-tooltip="{{!trainingDocs}}"
+                          tooltip-placement="bottom">
+                        <i class="fa fa-graduation-cap"></i>
+                    </span>
+                    {% end %}
                 </a>
-                {% if params.is_training %}
-                <span class="training-mode"
-                      title="Training mode"
-                      uib-tooltip="{{!trainingDocs}}"
-                      tooltip-placement="bottom"
-                      tooltip-trigger="click">
-                    <i class="fa fa-graduation-cap"></i>
-                </span>
-                {% end %}
             </div>
             <div class="collapse navbar-collapse">
                 <ul class="nav navbar-nav navbar-right">

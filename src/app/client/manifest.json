@@ -45,6 +45,7 @@
       "density": "4.0"
     }
   ],
+  "theme_color": "{{theme.nav_bg}}",
   "start_url": "/",
-  "display": "standalone",
+  "display": "standalone"
 }

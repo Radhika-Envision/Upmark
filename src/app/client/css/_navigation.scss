@@ -4,9 +4,11 @@ $nav-height: 60px;
 $nav-item-padding: 15px;
 $std-padding: 4px;
 
-.navbar-brand {
+.navbar-default .navbar-brand {
     padding: $std-padding $nav-item-padding;
     height: $nav-height;
+    position: relative;
+    color: inherit;
 }
 header {
     position: relative;
@@ -58,7 +60,7 @@ g#logo-text-subtitle {
 }
 
 .training-mode {
-    font-size: 40px;
-    line-height: 60px;
-    cursor: pointer;
+    position: absolute;
+    top: 6px;
+    right: 6px;
 }
