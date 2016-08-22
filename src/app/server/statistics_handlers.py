@@ -25,46 +25,48 @@ log = logging.getLogger('app.statistics_handler')
 class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
 
     @tornado.web.authenticated
-    def get(self, program_id):
+    def get(self, program_id, survey_id):
         if self.has_privillege('consultant') or self.has_privillege('authority') :
             pass
         else:
             with model.session_scope() as session:
                 purchased_survey = (session.query(model.PurchasedSurvey)
                     .filter_by(program_id=program_id,
+                               survey_id=survey_id,
                                organisation_id=self.organisation.id)
                     .first())
                 log.info("purchased_survey: %s", purchased_survey)
                 if purchased_survey==None:
-                    raise handlers.AuthzError("You should purchase this survey" +
-                        " to see this chart")
+                    raise handlers.AuthzError(
+                        "You should purchase this survey to see this chart")
 
         parent_id = self.get_argument("parentId", None)
         approval=self.get_argument("approval", "draft")
-        approval_status = ['draft', 'final', 'reviewed', 'approved']
-        approval_index = approval_status.index(approval)
-        included_approval_status=approval_status[approval_index:4]
+        approval_states = ['draft', 'final', 'reviewed', 'approved']
+        approval_index = approval_states.index(approval)
+        included_approval_states=approval_states[approval_index:]
         with model.session_scope() as session:
-            try:
-                responseNodes = (session.query(model.ResponseNode)
-                    .join(model.ResponseNode.qnode)
-                    .join(model.ResponseNode.submission)
-                    .options(joinedload(model.ResponseNode.qnode))
-                    .filter(model.ResponseNode.program_id == program_id,
-                            model.QuestionNode.parent_id == parent_id,
-                            model.Submission.approval.in_(included_approval_status),
-                            model.Submission.deleted == False,
-                            model.QuestionNode.deleted == False))
-
-                if responseNodes is None:
-                    raise ValueError("No such object")
-                # if submission.organisation.id != self.organisation.id:
-                #     self.check_privillege('author', 'consultant')
-            except (sqlalchemy.exc.StatementError,
-                    sqlalchemy.orm.exc.NoResultFound,
-                    ValueError):
+            survey = (session.query(model.Survey)
+                .filter(model.Survey.id == survey_id,
+                        model.Survey.program_id == program_id)
+                .first())
+            if not survey:
                 raise handlers.MissingDocError("No such survey")
+            min_approval_index = approval_states.index(survey.min_stats_approval)
+            if min_approval_index > approval_index:
+                raise handlers.AuthzError(
+                    "Can't display data for that approval state")
 
+            responseNodes = (session.query(model.ResponseNode)
+                .join(model.ResponseNode.qnode)
+                .join(model.ResponseNode.submission)
+                .options(joinedload(model.ResponseNode.qnode))
+                .filter(model.ResponseNode.program_id == program_id,
+                        model.QuestionNode.survey_id == survey_id,
+                        model.QuestionNode.parent_id == parent_id,
+                        model.Submission.approval.in_(included_approval_states),
+                        model.Submission.deleted == False,
+                        model.QuestionNode.deleted == False))
 
             response = []
             for responseNode in responseNodes:

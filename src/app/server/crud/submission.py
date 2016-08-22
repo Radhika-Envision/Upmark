@@ -66,10 +66,10 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/organisation$',
                 r'/survey$',
                 r'/survey/structure.*$',
+                r'/survey/min_stats_approval$',
                 r'/program/hide_aggregate$',
             )
             son = to_son(submission)
-            son['survey']['statsApprovals'] = ['reviewed', 'approved']
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()

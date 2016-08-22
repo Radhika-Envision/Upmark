@@ -521,24 +521,29 @@ angular.module('wsaa.aquamark',
                     }],
                     approvals: ['submission1', 'submission2', '$q',
                             function(submission1, submission2, $q) {
-                        var approvals = submission1.survey.statsApprovals.slice();
-                        if (submission2) {
-                            approvals = approvals.filter(function(a) {
-                                return submission2.survey.statsApprovals
-                                    .indexOf(a) >= 0;
-                            });
-                        }
-                        if (approvals.length == 0) {
+                        var approvalStates = [
+                            'draft', 'final', 'reviewed', 'approved'];
+                        var minIndex = approvalStates.indexOf(
+                            submission1.survey.minStatsApproval);
+                        if (minIndex < 0) {
                             return $q.reject(
                                 "Statistics have been disabled for this survey");
                         }
-                        return approvals;
+                        if (submission2) {
+                            var minIndex2 = approvalStates.indexOf(
+                                submission2.survey.minStatsApproval);
+                            if (minIndex2 < 0) {
+                                return $q.reject(
+                                    "Statistics have been disabled for this survey");
+                            }
+                            if (minIndex2 > minIndex)
+                                minIndex = minIndex2;
+                        }
+                        return approvalStates.slice(minIndex);
                     }],
                     approval: ['$route', 'approvals', '$q',
                             function($route, approvals, $q) {
-                        var approval = $route.current.params.approval;
-                        if (!approval)
-                            return approvals[0];
+                        var approval = $route.current.params.approval || approvals[0];
                         if (approvals.indexOf(approval) < 0) {
                             return $q.reject(
                                 "You can't view data for that approval state");
@@ -550,7 +555,8 @@ angular.module('wsaa.aquamark',
                             function(Statistics, $route, submission1, $q,
                                 submission2, approval) {
                         return Statistics.get({
-                            id: submission1.program.id,
+                            programId: submission1.program.id,
+                            surveyId: submission1.survey.id,
                             parentId: $route.current.params.qnode == '' ?
                                 null : $route.current.params.qnode,
                             approval: approval
@@ -576,7 +582,8 @@ angular.module('wsaa.aquamark',
                         if (submission1.program.id == submission2.program.id)
                             return stats1;
                         return Statistics.get({
-                            id: submission2.program.id,
+                            programId: submission2.program.id,
+                            surveyId: submission2.survey.id,
                             parentId: $route.current.params.qnode == '' ?
                                 null : $route.current.params.qnode,
                             approval: approval

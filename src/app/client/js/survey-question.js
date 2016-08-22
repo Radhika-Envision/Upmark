@@ -76,7 +76,10 @@ angular.module('wsaa.surveyQuestions', [
 
 
 .factory('Statistics', ['$resource', function($resource) {
-    return $resource('/statistics/:id.json', {id: '@id'}, {
+    return $resource('/statistics/program/:programId/survey/:surveyId.json', {
+        programId: '@programId',
+        surveyId: '@surveyId',
+    }, {
         get: { method: 'GET', isArray: true, cache: false }
     });
 }])
