@@ -1506,6 +1506,7 @@ angular.module('wsaa.surveyQuestions', [
     $scope.qnode1 = routeData.qnode1;
     $scope.qnode2 = routeData.qnode2;
     $scope.approval = routeData.approval;
+    $scope.allowedStates = routeData.approvals;
     $scope.struct1 = Structure(
         routeData.qnode1 || routeData.submission1.survey,
         routeData.submission1);

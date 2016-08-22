@@ -271,6 +271,7 @@ angular.module('vpac.widgets', [])
         scope: {
             model: '=',
             setState: '&',
+            allowed: '=',
         },
         link: function(scope, elem, attrs) {
             scope.updateView = function() {
