@@ -97,20 +97,11 @@ class InternalModelError(tornado.web.HTTPError):
 
 STYLESHEETS = [
     {
-        'cdn': '//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css', # @IgnorePep8
-        'href': '/.bower_components/bootstrap/dist/css/bootstrap.css'
-    },
-    {
-        'cdn': '//maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css', # @IgnorePep8
-        'href': '/.bower_components/font-awesome/css/font-awesome.css'
-    },
-    {
-        'cdn': '//fonts.googleapis.com/css?family=Ubuntu',
-        'href': '/fonts/Ubuntu.css'
-    },
-    {
         'min-href': '/minify/3rd-party-min.css',
         'hrefs': [
+            '/.bower_components/bootstrap/dist/css/bootstrap.css',
+            '/.bower_components/font-awesome/css/font-awesome.css',
+            '/fonts/Ubuntu.css',
             '/.bower_components/angular-hotkeys/build/hotkeys.css',
             '/.bower_components/angular-ui-select/dist/select.css',
             '/.bower_components/medium-editor/dist/css/medium-editor.min.css',
@@ -131,39 +122,20 @@ STYLESHEETS = [
 
 SCRIPTS = [
     {
-        'cdn': '//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js',
-        'href': '/.bower_components/jquery/dist/jquery.js'
+        'min-href': '/minify/3rd-party-min-1.js',
+        'hrefs': [
+            '/.bower_components/jquery/dist/jquery.js',
+            '/.bower_components/angular/angular.js',
+            '/.bower_components/angular-cookies/angular-cookies.js',
+            '/.bower_components/angular-route/angular-route.js',
+            '/.bower_components/angular-resource/angular-resource.js',
+            '/.bower_components/angular-animate/angular-animate.js',
+            '/.bower_components/angular-sanitize/angular-sanitize.js',
+            '/.bower_components/jquery-ui/jquery-ui.js',
+        ]
     },
     {
-        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular.min.js', # @IgnorePep8
-        'href': '/.bower_components/angular/angular.js'
-    },
-    {
-        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular-cookies.min.js', # @IgnorePep8
-        'href': '/.bower_components/angular-cookies/angular-cookies.js'
-    },
-    {
-        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular-route.min.js', # @IgnorePep8
-        'href': '/.bower_components/angular-route/angular-route.js'
-    },
-    {
-        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular-resource.min.js', # @IgnorePep8
-        'href': '/.bower_components/angular-resource/angular-resource.js'
-    },
-    {
-        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular-animate.min.js', # @IgnorePep8
-        'href': '/.bower_components/angular-animate/angular-animate.js'
-    },
-    {
-        'cdn': '//ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular-sanitize.min.js', # @IgnorePep8
-        'href': '/.bower_components/angular-sanitize/angular-sanitize.js'
-    },
-    {
-        'cdn': '//code.jquery.com/ui/1.11.4/jquery-ui.min.js',
-        'href': '/.bower_components/jquery-ui/jquery-ui.js'
-    },
-    {
-        'min-href': '/minify/3rd-party-min.js',
+        'min-href': '/minify/3rd-party-min-2.js',
         'hrefs': [
             '/.bower_components/bootstrap/dist/js/bootstrap.js',
             '/.bower_components/angular-bootstrap/ui-bootstrap-tpls.js',
