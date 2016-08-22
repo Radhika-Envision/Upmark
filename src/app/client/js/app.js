@@ -9,6 +9,7 @@ angular.module('wsaa.aquamark',
                 'wsaa.admin', 'wsaa.home', 'wsaa.subscription',
                 'wsaa.response',
                 'wsaa.surveyQuestions', 'wsaa.surveyAnswers',
+                'wsaa.survey.measure',
                 'vpac.utils', 'vpac.widgets', 'diff-match-patch'])
 
 

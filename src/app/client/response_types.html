@@ -27,6 +27,8 @@
                         <span ng-repeat="opt in rt.parts[0].options"><span
                                 ng-if="$index > 0">, </span>
                             {{opt.name}}</span>
+                        <span ng-if="rt.parts[0].type == 'numerical'">
+                            numerical</span>
                     </span>
                     <span ng-if="rt.parts.length > 1">(etc.)</span>
                 </p>

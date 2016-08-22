@@ -179,8 +179,10 @@ SCRIPTS = [
             '/js/home.js',
             '/js/response.js',
             '/js/subscription.js',
-            '/js/survey-question.js',
             '/js/survey-answer.js',
+            '/js/survey-measure.js',
+            '/js/survey-question.js',
+            '/js/survey-services.js',
             '/js/utils.js',
             '/js/widgets.js',
         ]
