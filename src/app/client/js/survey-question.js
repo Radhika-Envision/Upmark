@@ -2195,8 +2195,6 @@ angular.module('wsaa.surveyQuestions', [
     if ($scope.submission) {
         // Get the response that is associated with this measure and submission.
         // Create an empty one if it doesn't exist yet.
-        // Create an empty response for the time being so the response control
-        // doesn't create its own.
         $scope.lastSavedResponse = null;
         $scope.setResponse = function(response) {
             if (!response.responseParts)

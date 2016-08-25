@@ -192,7 +192,7 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
         restrict: 'E',
         scope: {
             responseType: '=type',
-            model: '=model',
+            response: '=model',
             weight_: '=weight',
             readonly: '=',
             hasQuality: '='
@@ -204,16 +204,6 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
                 'Notifications', 'Enqueue',
                 function($scope, hotkeys, current, authz, Notifications,
                     Enqueue) {
-            $scope.$watch('model', function(model) {
-                if (model) {
-                    $scope.response = model;
-                } else {
-                    $scope.response = {
-                        responseParts: [],
-                        comment: ''
-                    };
-                }
-            });
             $scope.$watch('weight_', function(weight) {
                 $scope.weight = weight == null ? 100 : weight;
             });
@@ -227,7 +217,6 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             }, true);
 
             $scope.state = {
-                partPairs: null,
                 variables: null,
                 score: 0,
                 active: 0
@@ -247,9 +236,6 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
                     if (!partsR[i])
                         partsR[i] = {};
                 });
-                var partPairs = rt.zip(partsR);
-                if (!angular.equals($scope.state.partPairs, partPairs))
-                    $scope.state.partPairs = partPairs;
 
                 if ($scope.response.notRelevant) {
                     $scope.state.variables = {};
@@ -270,11 +256,17 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             $scope.$watch('rt', recalculate);
             $scope.$watch('response.responseParts', recalculate, true);
 
-            $scope.choose = function(part, option) {
-                part.data.index = part.schema.options.indexOf(option);
-                part.data.note = option.name;
+            $scope.getPartData = function(partSchema) {
+                var i = $scope.rt.parts.indexOf(partSchema);
+                return $scope.response.responseParts[i];
+            };
+
+            $scope.choose = function(partSchema, option) {
+                var partData = $scope.getPartData(partSchema);
+                partData.index = partSchema.options.indexOf(option);
+                partData.note = option.name;
                 var nParts = $scope.rt.parts.length;
-                var iPart = $scope.rt.parts.indexOf(part.schema);
+                var iPart = $scope.rt.parts.indexOf(partSchema);
                 $scope.state.active = Math.min(iPart + 1, nParts - 1);
             };
             $scope.available = function(option) {
@@ -293,9 +285,10 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
                     callback: function(event, hotkey) {
                         var i = Number(String.fromCharCode(event.which)) - 1;
                         i = Math.max(0, i);
-                        i = Math.min($scope.state.partPairs.length, i);
-                        var part = $scope.state.partPairs[$scope.state.active];
-                        var option = part.schema.options[i];
+                        i = Math.min($scope.state.rt.parts.length, i);
+                        var partSchema = $scope.state.rt.parts[$scope.state.active];
+                        var partData = $scope.getPartData(partSchema);
+                        var option = partSchema.options[i];
                         $scope.choose(part, option);
                     }
                 })
@@ -348,7 +341,11 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
         $scope.rtEdit = {
             model: model,
             rt: rt,
-            i: index
+            i: index,
+            response: {
+                responseParts: [],
+                comment: ''
+            }
         };
     };
     $scope.saveRt = function() {
