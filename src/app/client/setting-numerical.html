@@ -4,7 +4,7 @@
             isFinite(setting.min) ? '' + setting.min + ' ≤' : ''
         }}
     </span>
-    <input type="number" class="form-control" id="{{setting.name}}"
+    <input type="number" step="any" class="form-control" id="{{setting.name}}"
         ng-model="setting.value" required />
     <span class="input-group-addon text-muted">
         {{
