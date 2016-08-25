@@ -116,13 +116,6 @@
 
 <p ng-if="readonly">{{response.comment || 'None'}}</p>
 
-<div class="section" ng-if="!response.notRelevant && hasQuality">
-    <h2>
-        Response Quality
-        <span ng-if="debug">Sample</span>
-    </h2>
-</div>
-
 <ol class="responses list-unstyled spaced" ng-if="!response.notRelevant && hasQuality">
     <li class="clearfix" title="Quality">
         <div class="hidden-print" ng-hide="readonly">
