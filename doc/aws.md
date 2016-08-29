@@ -206,10 +206,10 @@ First, copy [the config file][recalc] and edit it to contain your preferred mail
 settings:
 
 ```bash
-mkdir -p ~/aq_config
-cp src/app/config/recalculate.yaml ~/aq_config/
-nano ~/aq_config/recalculate.yaml
-echo DATABASE_URL="<DATABASE_URL>" > ~/aq_config/aq.conf
+mkdir -p ~/aq_conf
+cp src/app/config/recalculate.yaml ~/aq_conf/
+nano ~/aq_conf/recalculate.yaml
+echo DATABASE_URL="<DATABASE_URL>" > ~/aq_conf/aq.conf
 ```
 
 Important: If you are using Amazon SES, don't use port 25 for SMTP, because it's
@@ -220,10 +220,10 @@ Make sure the image has been built, and launch the script in a container:
 ```bash
 make
 sudo docker run -d --name recalc \
-    --env-file=$HOME/aq_config/aq.conf \
-    -v $HOME/aq_config:/usr/share/aquamark/app/config \
+    --env-file=$HOME/aq_conf/aq.conf \
+    -v $HOME/aq_conf:/usr/share/aquamark/app/config \
     --restart=always \
-    vpac/aquamark:latest python3 ./app/server/recalculate.py
+    vpac/aquamark:latest python3 ./server/recalculate.py
 ```
 
 [ec]: https://en.wikipedia.org/wiki/Eventual_consistency
@@ -246,10 +246,10 @@ First, copy [the config file][noti] and edit it to contain your preferred mail
 settings:
 
 ```bash
-mkdir -p ~/aq_config
-cp src/app/config/notification.yaml ~/aq_config/
-nano ~/aq_config/notification.yaml
-echo DATABASE_URL="<DATABASE_URL>" > ~/aq_config/aq.conf
+mkdir -p ~/aq_conf
+cp src/app/config/notification.yaml ~/aq_conf/
+nano ~/aq_conf/notification.yaml
+echo DATABASE_URL="<DATABASE_URL>" > ~/aq_conf/aq.conf
 ```
 
 Important: If you are using Amazon SES, don't use port 25 for SMTP, because it's
@@ -260,10 +260,10 @@ Now make sure the image has been built, and launch the script in a container:
 ```bash
 make
 sudo docker run -d --name notify \
-    --env-file=$HOME/aq_config/aq.conf \
-    -v $HOME/aq_config:/usr/share/aquamark/app/config \
+    --env-file=$HOME/aq_conf/aq.conf \
+    -v $HOME/aq_conf:/usr/share/aquamark/app/config \
     --restart=always \
-    vpac/aquamark:latest python3 ./app/server/notifications.py
+    vpac/aquamark:latest python3 ./server/notifications.py
 ```
 
 [db]: ../database/README.md
