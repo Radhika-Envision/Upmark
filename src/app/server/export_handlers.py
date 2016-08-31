@@ -491,7 +491,7 @@ class Exporter():
                 index = index + 1
 
             index = 0
-            if response and response["response_parts"]:
+            if response and response["response_parts"] and not response["not_relevant"]:
                 for part in response["response_parts"]:
                     if 'index' in part:
                         answer = "%d - %s" % (part['index'] + 1, part['note'])
@@ -629,9 +629,10 @@ class Exporter():
                 comment = None
                 quality = None
                 if response:
-                    self.write_response_parts(
-                        worksheet, response.response_parts, line, format_no_wrap,
-                            level_length + 1)
+                    if not response.not_relevant:
+                        self.write_response_parts(
+                            worksheet, response.response_parts, line,
+                            format_no_wrap, level_length + 1)
 
                     export_approval_status = ['final', 'reviewed', 'approved']
 
