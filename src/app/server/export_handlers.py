@@ -493,9 +493,12 @@ class Exporter():
             index = 0
             if response and response["response_parts"]:
                 for part in response["response_parts"]:
+                    if 'index' in part:
+                        answer = "%d - %s" % (part['index'] + 1, part['note'])
+                    else:
+                        answer = part['value']
                     worksheet.write(self.line - parts_len + index, 3,
-                                    "%d - %s" % (part["index"] + 1, part["note"]),
-                                    format_part_answer)
+                                    answer, format_part_answer)
                     index = index + 1
             else:
                 for i in range(0, parts_len):
