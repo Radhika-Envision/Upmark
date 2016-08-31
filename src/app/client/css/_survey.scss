@@ -397,6 +397,10 @@ dt.active:before {
         vertical-align: top;
     }
 
+    &.compact {
+        margin-top: -3px;
+    }
+
     @media print {
         display: none !important;
     }
@@ -521,6 +525,10 @@ ul.list-results {
     margin-bottom: 18px;
 }
 
+.container > .container-fluid {
+    padding: 0;
+}
+
 .response {
     h5 {
         color: mix(black, white, 70%);
@@ -535,6 +543,10 @@ ul.list-results {
         .btn-default[disabled] {
             background-color: lighten($button-bg, 3%);
         }
+        .btn {
+            padding-left: 0;
+            padding-right: 0;
+        }
 
         // On medium screens, use horizontal layout but with label on its own
         // row
@@ -543,7 +555,7 @@ ul.list-results {
             li {
                 display: block;
                 list-style: none;
-                margin: 4px 0;
+                margin: 24px 0;
             }
             li > div {
                 display: block;
@@ -555,7 +567,7 @@ ul.list-results {
             li {
                 display: block;
                 list-style: none;
-                margin: 4px 0;
+                margin: 24px 0;
             }
             li > div {
                 display: block;
@@ -565,7 +577,6 @@ ul.list-results {
 
         label {
             // Match size to buttons
-            padding: 6px 30px 3px 0;
             border: solid transparent;
             margin: 0;
             border-width: 1px 0 3px 0;
@@ -573,6 +584,9 @@ ul.list-results {
             line-height: 1.42857143;
             position: relative;
             white-space: nowrap;
+            text-align: center;
+            width: 100%;
+            color: #555;
 
             &:before {
                 @include fontawesome("\f0da");
@@ -599,6 +613,10 @@ ul.list-results {
             }
             .index {
                 color: #aaa;
+                display: inline-block;
+                width: 0;
+                position: relative;
+                left: -1.6ex;
             }
         }
 

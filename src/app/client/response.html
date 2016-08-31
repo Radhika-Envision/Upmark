@@ -1,7 +1,7 @@
 <div class="response">
 
-<div class="section">
-    <div class="toolbar">
+<div>
+    <div class="toolbar compact">
         <span ng-if="!edit.model" ng-transclude></span>
     </div>
     <h2>
@@ -29,7 +29,9 @@
             title="{{partSchema.description}}"
             class="clearfix">
         <div ng-if="partSchema.name" class="hidden-print" ng-hide="readonly">
-            <label ng-click="state.active = $index">{{partSchema.name}}</label>
+            <label ng-click="state.active = $index">
+                <span>{{partSchema.name}}</span>
+            </label>
         </div>
         <div class="hidden-print" ng-hide="readonly"
                 ng-init="partData = getPartData(partSchema)">
@@ -41,11 +43,10 @@
                             ng-class="{active: getPartData(partSchema).index == $index}"
                             ng-click="choose(partSchema, o)"
                             ng-disabled="!available(o)"
-                            title="{{o.description || partSchema.description}}">
-                        <span class="index">{{$index + 1}}</span>
-                        {{o.name}}
-                        <span class="text-hidden">{{$index + 1}}</span>
-                    </button>
+                            title="{{o.description || partSchema.description}}"
+                        ><span class="index">{{$index + 1}}</span
+                        ><span>{{o.name}}</span
+                    ></button>
                 </div>
                 <div class="input-group"
                         ng-if="partSchema.type == 'numerical'">

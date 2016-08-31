@@ -14,7 +14,7 @@ $anim-time: 0.3s;
 .btn, .btn-group-addon {
     border-bottom-width: $button-border-width;
     padding: 6px 12px (6px - $button-border-width);
-    @include transition-property(color, background-color, border-bottom-color);
+    @include transition-property(color, background-color, border-bottom-color, box-shadow);
     @include transition-duration($anim-time);
 
     &.disabled, &[disabled] {
@@ -180,15 +180,14 @@ div[textarea-label] {
         &:not([disabled]):not(.btn-round) {
             color: $button-fg;
             background-color: $primary-colour;
-            @include transform(scale(1.01, 1.05));
             border-radius: 3px !important;
+            box-shadow: 0 0 0 1px #bbe2f6;
         }
     }
 }
 .btn-default.ui-select-toggle:not([disabled]):not(.btn-round) {
     &:active, &:active:focus {
         background-color: $button-bg;
-        @include transform(scale(1));
         border-radius: 4px !important;
     }
 }

@@ -88,16 +88,14 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             } catch (e) {
                 var name;
                 if (part.schema.name) {
-                    name = '"' + part.schema.name + '"';
-                    if (this.parts.length > 1)
-                        name += " (part " + (index + 1) + ")";
+                    name = '' + part.schema.name;
                 } else {
                     if (this.parts.length > 1)
-                        name = "Response part " + (index + 1);
+                        name = "Part " + (index + 1);
                     else
                         name = "Response";
                 }
-                throw name + " is incomplete: " + e;
+                throw name + ": " + e;
             }
         }, this);
     };
@@ -153,10 +151,10 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
     };
     MultipleChoice.prototype.validate = function(part, scope) {
         if (part.index == null)
-            throw "Please choose an option";
+            throw "Choose an option";
         var option = this.options[part.index];
         if (!option.available(scope))
-            throw "Conditions for option " + option.name + " are not met";
+            throw "Can't select \"" + option.name + "\"";
     };
 
 
