@@ -192,8 +192,8 @@
                         <i class="fa fa-check fa-fw"></i></button>
                 </response>
 
-                <div class="section">
-                    <h2>Approval</h2>
+                <div class="part">
+                    <label>Approval</label>
                     <approval-buttons model="response.approval"
                             ng-if="!structure.deletedItem"
                             set-state="setState(state)"></approval-buttons>
@@ -204,7 +204,7 @@
                 </div>
 
                 <div>
-                    <p ng-if="response.user.name" class="spaced text-center">
+                    <p ng-if="response.user.name" class="spaced text-center text-muted">
                         <i class="fa fa-history"></i>
                         Version {{response.version}} submitted by
                         <a ng-href="#/1/user/{{response.user.id}}">
