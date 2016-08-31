@@ -1,20 +1,31 @@
+from concurrent.futures import ThreadPoolExecutor
 import datetime
 import itertools
 import logging
+import os
+import tempfile
 
-import tornado.web
+import numpy
 from sqlalchemy.orm import joinedload
+from tornado import gen
+from tornado.concurrent import run_on_executor
+import tornado.web
+import xlsxwriter
 
 import handlers
 import model
 
+BUF_SIZE = 4096
+MAX_WORKERS = 4
 
 log = logging.getLogger('app.report.temporal')
 
 
 class TemporalReportHandler(handlers.BaseHandler):
+    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated
+    @gen.coroutine
     def get(self, survey_id, extension):
 
         organisation_id = self.get_argument('organisationId', '')
@@ -69,15 +80,109 @@ class TemporalReportHandler(handlers.BaseHandler):
                     current_measure = r.measure
                     current_organisation = r.submission.organisation
                     current_row = [
-                        r.measure.get_path(survey_id),
-                        r.submission.organisation.name]
+                        r.measure,
+                        r.submission.organisation]
                     rows.append(current_row)
                 current_row.append(r.score)
 
-        import pprint
-        self.set_header("Content-Type", "text/plain")
-        self.write(pprint.pformat(rows))
+            if organisation_id:
+                rows = self.convert_to_stats(rows, organisation_id)
+
+            columns = self.get_titles(buckets, organisation_id)
+
+            # Export to csv/xls
+            if organisation_id:
+                outfile = "temporal_summary"
+            else:
+                outfile = "temporal_complete"
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+               output_path = os.path.join(tmpdir, outfile)
+
+               yield self.export_data(columns, rows, tmpdir, outfile, extension, survey_id)
+
+               self.set_header('Content-Type', 'application/octet-stream')
+               self.set_header('Content-Disposition', 'attachment; filename='
+                   + outfile + "." + extension)
+
+               with open(output_path + "." + extension, 'rb') as f:
+                   while True:
+                       data = f.read(BUF_SIZE)
+                       if not data:
+                           break
+                       self.write(data)
+
         self.finish()
+
+    @run_on_executor
+    def export_data(self, headings, data, outdir, outfile, filetype, survey_id):
+            if filetype == "xlsx":
+                filename = outfile + "." + filetype
+                outpath = os.path.join(outdir, filename)
+                workbook = xlsxwriter.Workbook(outpath)
+                worksheet = workbook.add_worksheet("Data")
+
+                # Format definitions
+                bold = workbook.add_format({'bold': 1})
+
+                # Write column headings
+                for i, heading in enumerate(headings):
+                    worksheet.write_string(0, i, heading, bold)
+
+                # Write data, this depends on requested report type.
+                for row_index, row_data in enumerate(data):
+                    for col_index in range(len(row_data)):
+                        if col_index == 0:
+                            worksheet.write(row_index + 1, col_index,
+                                row_data[col_index].get_path(survey_id))
+                        elif col_index == 1 and outfile == "temporal_complete":
+                            worksheet.write(row_index + 1, col_index,
+                                row_data[col_index].name)
+                        else:
+                            worksheet.write(row_index + 1, col_index,
+                                row_data[col_index])
+                workbook.close()
+            else:
+                raise handlers.MissingDocError(
+                    "File type not supported: %s" % extension)
+
+    def get_titles(self, buckets, org_id):
+        if org_id:
+            headers = ["Measure", "Statistic"]
+        else:
+            headers = ["Measure", "Organisation"]
+
+        for b in buckets:
+            headers.append(b.strftime('%m/%d/%y'))
+
+        return headers
+
+    def convert_to_stats(self, in_table, organisation_id):
+        out_table = []
+        for m, rs in itertools.groupby(in_table, key=lambda r: r[0]):
+            rs = list(rs)
+            columns = list(zip(*rs))
+            np_columns = [numpy.array(c) for c in columns[2:]]
+            stats = [self.compute_stats(n) for n in np_columns]
+            stats = list(zip(*stats))
+            org_row = [r for r in rs if str(r[1].id) == organisation_id][0]
+            out_table.append([m, "Self score"] + org_row[2:])
+            out_table.append([m, "Min"] + list(stats[0]))
+            out_table.append([m, "1st Quartile"] + list(stats[1]))
+            out_table.append([m, "Median"] + list(stats[2]))
+            out_table.append([m, "3rd Quartile"] + list(stats[3]))
+            out_table.append([m, "Max"] + list(stats[4]))
+
+        return out_table
+
+    def compute_stats(self, data):
+        results = (min(data),
+                    numpy.percentile(data, 25),
+                    numpy.percentile(data, 50),
+                    numpy.percentile(data, 75),
+                    max(data))
+
+        return results
 
 
     def lower_bound(self, date):
