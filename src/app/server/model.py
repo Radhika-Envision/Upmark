@@ -744,42 +744,22 @@ class ResponseType(Base):
         GUID, ForeignKey("program.id"), nullable=False, primary_key=True)
 
     name = Column(Text, nullable=False)
-    _parts = Column('parts', JSON, nullable=False)
-    _formula = Column('formula', Text)
+    parts = Column(JSON, nullable=False)
+    formula = Column(Text)
 
     program = relationship(Program)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._type = None
 
-    @property
-    def rtype(self):
-        if self._rtype is None:
-            self._rtype = response_type.ResponseType(
-                self.title, self.parts, self.formula)
-        return self._rtype
+    def to_rtype(self):
+        return response_type.ResponseType(
+            self.title, self.parts, self.formula)
 
     @validates('parts')
     def validate_parts(self, k, parts):
         return validate_with_humanized_errors(
             parts, response_type.response_parts_schema)
-
-    @hybrid_property
-    def parts(self):
-        return self._parts
-    @parts.setter
-    def parts(self, parts):
-        self._parts = parts
-        self._rtype = None
-
-    @hybrid_property
-    def formula(self):
-        return self._formula
-    @formula.setter
-    def formula(self, formula):
-        self._formula = formula
-        self._rtype = None
 
 
 class Submission(Observable, Base):

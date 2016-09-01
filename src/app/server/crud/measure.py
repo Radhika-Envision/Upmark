@@ -76,13 +76,14 @@ class MeasureHandler(
                 # Fields to match from only the root object
                 r'<^/description$',
                 r'^/weight$',
-                r'^/response_type$',
+                r'^/response_type(/.*)?$',
+                r'!^/response_type/measures$',
+                r'!^/response_type/program$',
                 # Descend into nested objects
                 r'/parent$',
                 r'/survey$',
                 r'/survey/program$',
                 r'/survey/structure.*$',
-                r'/response_types.*$',
                 r'/has_quality$',
             )
             if not submission_id:
