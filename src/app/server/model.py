@@ -567,27 +567,27 @@ class QuestionNode(Observable, Base):
 class Measure(Observable, Base):
     __tablename__ = 'measure'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    program_id = Column(
-        GUID, ForeignKey("program.id"), nullable=False, primary_key=True)
-    response_type_id = Column(
-        GUID, ForeignKey("response_type.id"), nullable=False)
+    program_id = Column(GUID, nullable=False, primary_key=True)
+    response_type_id = Column(GUID, nullable=False)
     deleted = Column(Boolean, default=False, nullable=False)
 
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=True)
     weight = Column(Float, nullable=False)
 
-    program = relationship(
-        Program, backref=backref('measures', passive_deletes=True))
-    response_type = relationship(
-        'ResponseType', backref=backref('measures', passive_deletes=True))
-
     __table_args__ = (
+        ForeignKeyConstraint(
+            ['program_id'],
+            ['program.id']
+        ),
         ForeignKeyConstraint(
             ['response_type_id', 'program_id'],
             ['response_type.id', 'response_type.program_id']
         ),
     )
+
+    program = relationship(
+        Program, backref=backref('measures', passive_deletes=True))
 
     def get_parent(self, survey):
         if isinstance(survey, (str, uuid.UUID)):
@@ -742,14 +742,12 @@ class ResponseType(Base):
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     program_id = Column(
         GUID, ForeignKey("program.id"), nullable=False, primary_key=True)
-    deleted = Column(Boolean, default=False, nullable=False)
 
     name = Column(Text, nullable=False)
     _parts = Column('parts', JSON, nullable=False)
     _formula = Column('formula', Text)
 
-    program = relationship(
-        Program, backref=backref('response_types', passive_deletes=True))
+    program = relationship(Program)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -1431,6 +1429,18 @@ Measure.qnode_measures = relationship(
 QuestionNode.measures = association_proxy('qnode_measures', 'measure')
 QuestionNode.measure_seq = association_proxy('qnode_measures', 'seq')
 Measure.parents = association_proxy('qnode_measures', 'qnode')
+
+
+Measure.response_type = relationship(
+    ResponseType,
+    primaryjoin=(foreign(Measure.response_type_id) == ResponseType.id) &
+                (ResponseType.program_id == Measure.program_id))
+
+
+ResponseType.measures = relationship(
+    Measure, back_populates='response_type', passive_deletes=True,
+    primaryjoin=(foreign(Measure.response_type_id) == ResponseType.id) &
+                (ResponseType.program_id == Measure.program_id))
 
 
 Submission.survey = relationship(
