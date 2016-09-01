@@ -32,8 +32,37 @@ def upgrade():
         sa.Column('name', sa.Text(), nullable=False),
         sa.Column('parts', postgresql.JSON(), nullable=False),
         sa.Column('formula', sa.Text(), nullable=True),
-        sa.ForeignKeyConstraint(['program_id'], ['program.id'], ),
-        sa.PrimaryKeyConstraint('id', 'program_id')
+        sa.PrimaryKeyConstraint('id', 'program_id'),
+        sa.ForeignKeyConstraint(
+            ['program_id'],
+            ['program.id']),
+        sa.Index(
+            'response_type_target_program_id_id_index',
+            'program_id', 'id'),
+    )
+    op.create_table('measure_variable',
+        sa.Column('program_id', GUID(), nullable=False),
+        sa.Column('target_measure_id', GUID(), nullable=False),
+        sa.Column('target_field', sa.Text(), nullable=False),
+        sa.Column('source_field', sa.Text(), nullable=False),
+        sa.Column('source_measure_id', GUID(), nullable=False),
+        sa.PrimaryKeyConstraint(
+            'program_id', 'target_measure_id', 'target_field'),
+        sa.ForeignKeyConstraint(
+            ['target_measure_id', 'program_id'],
+            ['measure.id', 'measure.program_id']),
+        sa.ForeignKeyConstraint(
+            ['source_measure_id', 'program_id'],
+            ['measure.id', 'measure.program_id']),
+        sa.ForeignKeyConstraint(
+            ['program_id'],
+            ['program.id']),
+        sa.Index(
+            'measure_variable_program_id_target_measure_id_index',
+            'program_id', 'target_measure_id'),
+        sa.Index(
+            'measure_variable_program_id_source_measure_id_index',
+            'program_id', 'source_measure_id'),
     )
     op.add_column('measure', sa.Column('response_type_id', GUID()))
 
@@ -91,6 +120,7 @@ def downgrade():
 
     op.drop_constraint('measure_response_type_id_fkey', 'measure', type_='foreignkey')
     op.drop_column('measure', 'response_type_id')
+    op.drop_table('measure_variable')
     op.drop_table('response_type')
 
 

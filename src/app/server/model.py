@@ -747,6 +747,15 @@ class ResponseType(Base):
     parts = Column(JSON, nullable=False)
     formula = Column(Text)
 
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['program_id'],
+            ['program.id']),
+        Index(
+            'response_type_target_program_id_id_index',
+            'program_id', 'id'),
+    )
+
     program = relationship(Program)
 
     def __init__(self, **kwargs):
@@ -760,6 +769,44 @@ class ResponseType(Base):
     def validate_parts(self, k, parts):
         return validate_with_humanized_errors(
             parts, response_type.response_parts_schema)
+
+
+class MeasureVariable(Base):
+    # This is an association object for measures <-> measures, so that external
+    # variables in a response type can be bound to another measure.
+    __tablename__ = 'measure_variable'
+    program_id = Column(GUID, nullable=False, primary_key=True)
+    target_measure_id = Column(GUID, nullable=False, primary_key=True)
+    target_field = Column(Text, nullable=False, primary_key=True)
+
+    source_measure_id = Column(GUID, nullable=False)
+    source_field = Column(Text)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['target_measure_id', 'program_id'],
+            ['measure.id', 'measure.program_id']),
+        ForeignKeyConstraint(
+            ['source_measure_id', 'program_id'],
+            ['measure.id', 'measure.program_id']),
+        ForeignKeyConstraint(
+            ['program_id'],
+            ['program.id']),
+        Index(
+            'measure_variable_program_id_target_measure_id_index',
+            'program_id', 'target_measure_id'),
+        Index(
+            'measure_variable_program_id_source_measure_id_index',
+            'program_id', 'source_measure_id'),
+    )
+
+    program = relationship(Program)
+
+    def __repr__(self):
+        return "MeasureVariable(target_measure={}, field={}, program={})".format(
+            getattr(self.target_measure, 'title', None),
+            self.target_field,
+            getattr(self.program, 'title', None))
 
 
 class Submission(Observable, Base):
@@ -1416,18 +1463,29 @@ Measure.response_type = relationship(
     primaryjoin=(foreign(Measure.response_type_id) == ResponseType.id) &
                 (ResponseType.program_id == Measure.program_id))
 
-
 ResponseType.measures = relationship(
     Measure, back_populates='response_type', passive_deletes=True,
     primaryjoin=(foreign(Measure.response_type_id) == ResponseType.id) &
                 (ResponseType.program_id == Measure.program_id))
 
 
+# Dependencies
+Measure.source_vars = relationship(
+    MeasureVariable, backref='source_measure',
+    primaryjoin=(foreign(MeasureVariable.source_measure_id) == Measure.id) &
+                (MeasureVariable.program_id == Measure.program_id))
+
+# Dependants
+Measure.target_vars = relationship(
+    MeasureVariable, backref='target_measure',
+    primaryjoin=(foreign(MeasureVariable.target_measure_id) == Measure.id) &
+                (MeasureVariable.program_id == Measure.program_id))
+
+
 Submission.survey = relationship(
     Survey,
     primaryjoin=(foreign(Submission.survey_id) == Survey.id) &
                 (Submission.program_id == Survey.program_id))
-
 
 Submission.responses = relationship(
     Response, backref='submission', passive_deletes=True)
