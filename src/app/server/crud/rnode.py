@@ -228,7 +228,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
 
                 try:
                     rnode.update_stats_ancestors()
-                except (model.ModelError, ResponseTypeError) as e:
+                except ResponseTypeError as e:
                     raise handlers.ModelError(str(e))
 
                 act = Activities(session)
@@ -297,7 +297,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 response.not_relevant = False
                 try:
                     response.update_stats()
-                except model.ModelError:
+                except ResponseTypeError:
                     # Could not mark response as not NA because it is lacking
                     # information and requires manual intervention.
                     response.not_relevant = True

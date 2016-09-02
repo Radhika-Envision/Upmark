@@ -25,6 +25,11 @@ from guid import GUID
 Session = sessionmaker()
 
 
+response = sa.sql.table('response',
+    sa.sql.column('variables', postgresql.JSON)
+)
+
+
 def upgrade():
     op.create_table('response_type',
         sa.Column('id', GUID(), nullable=False),
@@ -65,6 +70,7 @@ def upgrade():
             'program_id', 'source_measure_id'),
     )
     op.add_column('measure', sa.Column('response_type_id', GUID()))
+    op.add_column('response', sa.Column('variables', postgresql.JSON()))
 
     # Migrate response types from JSON to new table. Keep track of the IDs so
     # that response types can be tracked through time.
@@ -86,6 +92,9 @@ def upgrade():
                 measure.response_type = response_type
     session.flush()
 
+    op.execute(response.update().values({'variables': {}}))
+    op.alter_column('response', 'variables', nullable=False)
+
     op.create_foreign_key('measure_response_type_id_fkey',
         'measure', 'response_type',
         ['response_type_id', 'program_id'],
@@ -98,6 +107,7 @@ def upgrade():
 def downgrade():
     op.add_column('program', sa.Column('response_types', postgresql.JSON()))
     op.add_column('measure', sa.Column('response_type', sa.TEXT()))
+    op.drop_column('response', 'variables')
 
     session = Session(bind=op.get_bind())
     for response_type in session.query(ResponseType).all():

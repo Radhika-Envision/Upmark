@@ -1,4 +1,5 @@
 import datetime
+import logging
 import time
 import uuid
 
@@ -8,11 +9,9 @@ import sqlalchemy
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import object_session
 
+from activity import Activities
 import handlers
 import model
-import logging
-
-from activity import Activities
 from response_type import ResponseTypeError
 from utils import falsy, reorder, ToSon, truthy, updater
 
@@ -274,7 +273,7 @@ class ResponseHandler(handlers.BaseHandler):
 
                 try:
                     response.update_stats_ancestors()
-                except (model.ModelError, ResponseTypeError) as e:
+                except ResponseTypeError as e:
                     raise handlers.ModelError(str(e))
 
                 act = Activities(session)

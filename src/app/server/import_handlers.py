@@ -407,7 +407,7 @@ class Importer():
 
             try:
                 submission.update_stats_descendants()
-            except model.ModelError as e:
+            except ResponseTypeError as e:
                 raise handlers.ModelError(str(e))
 
         return program_id

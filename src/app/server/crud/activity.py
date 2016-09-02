@@ -479,7 +479,7 @@ class SubscriptionHandler(handlers.BaseHandler):
                         model.Response.submission_id == ob_refs[1]))
 
         else:
-            raise model.ModelError("Can't subscribe to '%s' type" % ob_type)
+            raise handlers.ModelError("Can't subscribe to '%s' type" % ob_type)
 
         return query.first()
 

@@ -61,7 +61,7 @@ def process_once(config):
             try:
                 sub.update_stats_descendants()
                 count += 1
-            except model.ModelError as error:
+            except ResponseTypeError as error:
                 errors.append({"submission_id": sub.id,
                                "submission_title": sub.title,
                                "error": str(error)})

@@ -15,6 +15,7 @@ import base
 import model
 import notifications
 import recalculate
+from response_type import ResponseTypeError
 import utils
 
 
@@ -287,7 +288,7 @@ class DaemonTest(base.AqHttpTestBase):
         messages = []
         with mock.patch('recalculate.send', send), \
                 mock.patch('model.Submission.update_stats_descendants',
-                           side_effect=model.ModelError):
+                           side_effect=ResponseTypeError):
             recalculate.process_once(config)
             self.assertEqual(len(messages), 1)
 

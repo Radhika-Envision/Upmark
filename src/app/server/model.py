@@ -758,13 +758,6 @@ class ResponseType(Base):
 
     program = relationship(Program)
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def to_rtype(self):
-        return response_type.ResponseType(
-            self.title, self.parts, self.formula)
-
     @validates('parts')
     def validate_parts(self, k, parts):
         return validate_with_humanized_errors(
@@ -1082,11 +1075,13 @@ class Response(Observable, Versioned, Base):
     audit_reason = Column(Text)
     modified = Column(DateTime, nullable=False)
     quality = Column(Float)
-
-    score = Column(Float, default=0.0, nullable=False)
     approval = Column(
         Enum('draft', 'final', 'reviewed', 'approved', native_enum=False),
         nullable=False)
+
+    # Fields derived from response_parts
+    score = Column(Float, default=0.0, nullable=False)
+    variables = Column(JSON, default=dict, nullable=False)
 
     __table_args__ = (
         ForeignKeyConstraint(
