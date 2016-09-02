@@ -1,6 +1,9 @@
 from response_type import ResponseError, ResponseType
 
 
+INF = float('inf')
+
+
 def is_cyclic(measure, path=None):
     '''@return True iff the measure has a cyclic dependency'''
     if path is None:
@@ -14,16 +17,7 @@ def is_cyclic(measure, path=None):
     return False
 
 
-# def deep_targets(measure):
-#     '''@returns an iterator over target (dependency) measures (depth first)'''
-#     q = [var.target for var in measure.target_vars]
-#     while len(q):
-#         measure = q.pop()
-#         yield measure
-#         q.extend((var.target for var in measure.target_vars))
-
-
-class Calculator:
+class GraphCalculator:
     '''
     Calculates submission scores.
 
@@ -39,138 +33,141 @@ class Calculator:
     Together these form a single graph. This calculator solves the graph. To
     use it:
 
-     1. Make changes to some rnodes and respones.
-     2. Mark them as dirty in the calculator using the `mark_rnode_dirty` and
-        `mark_response_dirty` methods.
+     1. Make changes to some rnodes and responses.
+     2. Mark them as dirty in the calculator using the `mark_dirty` method.
      3. Call `execute`.
 
-    If the entire submission needs to be recalculated, e.g. if the survey itself
-    has changed, call `mark_submission_dirty` instead.
+    This class is safe to use with graphs with cycles in them - but the
+    results will be non-deterministic.
     '''
 
     def __init__(self):
         self.rts = {}
-
-        self.dirty_rnode_levels = []
-        self.dirty_rnode_set = set()
-        self.rnode_depths = {}
-        self.rnode_parents = {}
-
-        self.dirty_response_set = set()
-        self.inverse_graph_depths = {}
+        self.node_parents = {}
+        self.dirty_set = set()
+        self.graph_depths = {}
         self.graph = []
 
     def execute(self):
         '''
         Recalculate all dirty nodes. This is done in dependency order.
         '''
-        # First calculate response scores and variables.
-        # Sort reponses by the depth of their dependants, such that the deepest
-        # items get evaluated first. The more negative items are deeper.
-        self.graph.sort(key=lambda entry: entry[0])
-        for _, response in self.graph:
-            self.calc_response(response)
+        self.graph.sort(key=lambda entry: entry[0:2])
+        for _, node in self.graph:
+            if self.node_type(node) == 'submission':
+                self.calc_submission(node)
+            elif self.node_type(node) == 'rnode':
+                self.calc_response(node)
+            else:
+                self.calc_rnode(node)
 
-        # Now propagate scores up the tree.
-        for rnode in itertools.chain(reversed(self.dirty_rnode_levels)):
-            self.calc_rnode(rnode)
-
-    def mark_submission_dirty(self, submission):
+    def mark_dirty(self, node, include_dependencies=False):
         '''
-        Mark all responses in the submission as dirty. This will result in a
-        full recalculation.
+        Add a node to the graph for recalculation.
+        @param include_dependencies recalculate the dependencies too.
         '''
-        for response in submission.responses:
-            self.mark_response_dirty(response)
-
-    def mark_response_dirty(self, response):
-        '''
-        Mark a response as dirty. All dependant responses and ancestor rnodes
-        will also be marked as dirty.
-        '''
-        if response in self.dirty_response_set:
+        if node in dirty_set:
             return
 
-        for target in response.measure.target_vars:
-            target_response = target.target_measure.get_response(response.submission)
-            if target_response is not None:
-                self.mark_response_dirty(target_response)
-        self.mark_rnode_dirty(response.parent)
-        self.graph.append((self.inverse_graph_depth(response.measure), response)
-        self.dirty_response_set.add(response)
+        # Just add it to the graph; it will be sorted later by depth.
+        self.graph.append((self.graph_depth(node), node))
+        self.dirty_set.add(node)
 
-    def mark_rnode_dirty(self, rnode):
+        if include_dependencies:
+            for dependency in self.dependencies(node):
+                self.mark_dirty(dependency, True)
+
+        for dependant in self.dependants(node):
+            self.mark_dirty(dependant)
+
+    def dependencies(self, node):
         '''
-        Mark an rnode (category response) as dirty. All ancestor rnodes will
-        also be marked as dirty.
+        @return an iterator over the direct dependencies of a node.
         '''
-        if rnode in self.dirty_rnode_set:
-            return
+        if self.node_type(node) == 'submission':
+            yield from node.responses
+        elif self.node_type(node) == 'rnode':
+            yield from node.children
+            yield from node.responses
 
-        depth = self.hierarchy_depth(rnode)
-        while len(self.dirty_rnode_levels) <= depth:
-            self.dirty_rnode_levels.append([])
-
-        parent = self.get_parent(rnode)
-        if parent:
-            self.mark_rnode_dirty(parent)
-        self.dirty_rnode_levels[depth].append(rnode)
-        self.dirty_rnode_set.add(rnode)
-
-    def inverse_graph_depth(self, measure):
+    def dependants(self, node):
         '''
-        @return the depth of a measure in the dependency graph. Leaf measures
+        @return an iterator over the direct dependants of a node.
+        '''
+        if self.node_type(node) == 'submission':
+            pass
+        elif self.node_type(node) == 'rnode':
+            parent = self.get_parent(node)
+            if node.parent is not None:
+                yield node.parent
+            else:
+                yield node.submission
+        else:
+            yield node.parent
+            yield from (var.target_measure for var in node.target_vars)
+
+    def graph_depth(self, node):
+        '''
+        @return the depth of a node in the dependency graph. Leaf nodes
         have a depth of -1; the next level is -2, then -3 and so on.
         '''
-        depth = self.inverse_graph_depths.get(measure)
+        depth = self.graph_depths.get(node)
         if depth is not None:
             return depth
 
-        depth = max((self.inverse_graph_depths(var.target_measure) for var in mesaure.target_vars), default=0)
-        self.inverse_graph_depths[measure] = depth - 1
-        return depth
-
-    def hierarchy_depth(self, rnode):
-        '''
-        @return the depth of an rnode in the hierarchy.
-        '''
-        depth = self.rnode_depths.get(rnode)
-        if depth is not None:
-            return depth
-        parent = self.get_parent(rnode)
-        if parent is None:
-            depth = 0
+        if self.node_type(node) == 'submission':
+            depth = (INF, 0)
+        elif self.node_type(node) == 'rnode':
+            depth = (INF, self.graph_depth(parent) - 1)
         else:
-            depth = self.hierarchy_depth(parent)
-        self.rnode_depths[rnode] = depth
+            depth = (min((self.graph_depth(var.target_measure)
+                          for var in node.target_vars), default=0) - 1,
+                     -INF)
+
+        self.graph_depths[node] = depth
         return depth
 
-    def get_parent(self, rnode):
+    def get_parent(self, node):
         '''
-        Get the parent of an rnode.
+        Get the parent of a node.
         '''
-        if rnode not in self.rnode_parents:
-            self.rnode_parents[rnode] = rnode.parent
-        return self.rnode_parents[rnode]
+        parent = self.node_parents.get(node)
+        if parent is not None:
+            return parent
+
+        if self.node_type(node) == 'submission':
+            parent = None
+        elif self.node_type(node) == 'rnode':
+            parent = node.parent
+            if parent is None:
+                parent = node.submission
+        else:
+            parent = node.parent
+
+        self.node_parents[node] = parent
+        return parent
 
     def get_rt(self, response_type):
         '''
         Convert a response type definition to a materialised response type.
         '''
-        if response_type not in self.rts:
-            self.rts[response_type] = ResponseType(
-                response_type.name, response_type.parts, response_type.formula)
-        return self.rts[response_type]
+        rt = self.rts.get(response_type)
+        if rt is not None:
+            return rt
+        rt = ResponseType(
+            response_type.name, response_type.parts, response_type.formula)
+        self.rts[response_type] = rt
+        return rt
 
-    def calc_response(self, response):
+    def calc_submission(self, submission):
         '''
-        Calculate the score and variables of a response, and write them back
-        to the response object.
+        Calculate the score and metadata of a submission, and write them back
+        to the submission object.
         '''
-        rt = self.get_rt(response.measure.response_type)
-        stats = ResponseStats(rt)
-        stats.update(response)
-        stats.to_response(response)
+        stats = ResponseNodeStats()
+        for c in submission.rnodes:
+            stats.add_rnode(c)
+        stats.to_submission(submission)
 
     def calc_rnode(self, rnode):
         '''
@@ -183,6 +180,23 @@ class Calculator:
         for r in rnode.responses:
             stats.add_response(r)
         stats.to_rnode(rnode)
+
+    def calc_response(self, response):
+        '''
+        Calculate the score and variables of a response, and write them back
+        to the response object.
+        '''
+        rt = self.get_rt(response.measure.response_type)
+        stats = ResponseStats(rt)
+        stats.update(response)
+        stats.to_response(response)
+
+    def node_type(self, node):
+        if hasattr(node, 'response_parts'):
+            return 'response'
+        if hasattr(node, 'submission_id'):
+            return 'submission'
+        return 'rnode'
 
 
 class ResponseNodeStats:
@@ -228,6 +242,9 @@ class ResponseNodeStats:
         rnode.n_not_relevant = self.n_not_relevant
         rnode.max_importance = rnode.importance or self.max_importance
         rnode.max_urgency = rnode.urgency or self.max_urgency
+
+    def to_submission(self, submission):
+        pass
 
 
 class ResponseStats:
