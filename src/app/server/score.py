@@ -1,3 +1,4 @@
+from cache import instance_method_lru_cache
 from response_type import ResponseError, ResponseType
 
 
@@ -42,11 +43,7 @@ class GraphCalculator:
     '''
 
     def __init__(self, submission):
-        self.rts = {}
-        self.node_parents = {}
         self.dirty_set = set()
-        self.graph_depths = {}
-        self.measure_responses = {}
         self.graph = []
         self.submission = submission
 
@@ -108,37 +105,28 @@ class GraphCalculator:
             yield from self.get_responses((
                 var.target_measure for var in node.target_vars))
 
+    @instance_method_lru_cache()
     def graph_depth(self, node):
         '''
         @return the depth of a node in the dependency graph. Leaf nodes
         have a depth of -1; the next level is -2, then -3 and so on.
         '''
-        depth = self.graph_depths.get(node)
-        if depth is not None:
-            return depth
-
         if self.node_type(node) == 'submission':
             depth = (INF, 0)
         elif self.node_type(node) == 'rnode':
             parent = self.get_parent(node)
-            if node.parent is not None:
-                depth = (INF, self.graph_depth(parent) - 1)
+            depth = (INF, self.graph_depth(parent) - 1)
         else:
             depth = (min((self.graph_depth(var.target_measure)
                           for var in node.target_vars), default=0) - 1,
                      -INF)
-
-        self.graph_depths[node] = depth
         return depth
 
+    @instance_method_lru_cache()
     def get_parent(self, node):
         '''
         Get the parent of a node.
         '''
-        parent = self.node_parents.get(node)
-        if parent is not None:
-            return parent
-
         if self.node_type(node) == 'submission':
             parent = None
         elif self.node_type(node) == 'rnode':
@@ -148,33 +136,23 @@ class GraphCalculator:
                 parent = node.submission
         else:
             parent = node.parent
-
-        self.node_parents[node] = parent
         return parent
 
+    @instance_method_lru_cache()
     def get_response(self, measure):
-        response = self.measure_responses.get(measure)
-        if response is not None:
-            return response
-        response = measure.get_response(self.submission)
-        self.measure_responses[measure] = response
-        return response
+        return measure.get_response(self.submission)
 
     def get_responses(self, measures):
         responses = (self.get_response(m) for m in measures)
         yield from (r for r in responses if r is not None)
 
-    def get_rt(self, response_type):
+    @instance_method_lru_cache()
+    def get_response_type(self, response_type):
         '''
         Convert a response type definition to a materialised response type.
         '''
-        rt = self.rts.get(response_type)
-        if rt is not None:
-            return rt
-        rt = ResponseType(
+        return ResponseType(
             response_type.name, response_type.parts, response_type.formula)
-        self.rts[response_type] = rt
-        return rt
 
     def calc_submission(self, submission):
         '''
@@ -203,9 +181,9 @@ class GraphCalculator:
         Calculate the score and variables of a response, and write them back
         to the response object.
         '''
-        rt = self.get_rt(response.measure.response_type)
+        response_type = self.get_response_type(response.measure.response_type)
         scope = self.external_variables(response)
-        stats = ResponseStats(rt)
+        stats = ResponseStats(response_type)
         stats.update(response, scope)
         stats.to_response(response)
 

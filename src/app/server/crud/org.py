@@ -15,7 +15,9 @@ import crud.program
 import handlers
 import model
 import logging
-from utils import LruCache, ToSon, truthy, updater
+
+from cache import LruCache
+from utils import ToSon, truthy, updater
 
 class OrgHandler(handlers.Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
