@@ -41,12 +41,14 @@ class GraphCalculator:
     results will be non-deterministic.
     '''
 
-    def __init__(self):
+    def __init__(self, submission):
         self.rts = {}
         self.node_parents = {}
         self.dirty_set = set()
         self.graph_depths = {}
+        self.measure_responses = {}
         self.graph = []
+        self.submission = submission
 
     def execute(self):
         '''
@@ -61,10 +63,10 @@ class GraphCalculator:
             else:
                 self.calc_rnode(node)
 
-    def mark_dirty(self, node, include_dependencies=False):
+    def add(self, node, dependencies=False, dependants=True):
         '''
         Add a node to the graph for recalculation.
-        @param include_dependencies recalculate the dependencies too.
+        @param dependencies recalculate the dependencies too.
         '''
         if node in dirty_set:
             return
@@ -73,12 +75,13 @@ class GraphCalculator:
         self.graph.append((self.graph_depth(node), node))
         self.dirty_set.add(node)
 
-        if include_dependencies:
+        if dependencies:
             for dependency in self.dependencies(node):
-                self.mark_dirty(dependency, True)
+                self.add(dependency, dependencies=dependencies, dependants=dependants)
 
-        for dependant in self.dependants(node):
-            self.mark_dirty(dependant)
+        if dependants:
+            for dependant in self.dependants(node):
+                self.add(dependant, dependencies=dependencies, dependants=dependants)
 
     def dependencies(self, node):
         '''
@@ -89,22 +92,21 @@ class GraphCalculator:
         elif self.node_type(node) == 'rnode':
             yield from node.children
             yield from node.responses
+        else:
+            yield from self.get_responses((
+                var.source_measure for var in node.source_vars))
 
     def dependants(self, node):
         '''
         @return an iterator over the direct dependants of a node.
         '''
-        if self.node_type(node) == 'submission':
-            pass
-        elif self.node_type(node) == 'rnode':
-            parent = self.get_parent(node)
-            if node.parent is not None:
-                yield node.parent
-            else:
-                yield node.submission
-        else:
-            yield node.parent
-            yield from (var.target_measure for var in node.target_vars)
+        parent = self.get_parent(node)
+        if parent is not None:
+            yield parent
+
+        if self.node_type(node) == 'response':
+            yield from self.get_responses((
+                var.target_measure for var in node.target_vars))
 
     def graph_depth(self, node):
         '''
@@ -118,7 +120,9 @@ class GraphCalculator:
         if self.node_type(node) == 'submission':
             depth = (INF, 0)
         elif self.node_type(node) == 'rnode':
-            depth = (INF, self.graph_depth(parent) - 1)
+            parent = self.get_parent(node)
+            if node.parent is not None:
+                depth = (INF, self.graph_depth(parent) - 1)
         else:
             depth = (min((self.graph_depth(var.target_measure)
                           for var in node.target_vars), default=0) - 1,
@@ -140,12 +144,25 @@ class GraphCalculator:
         elif self.node_type(node) == 'rnode':
             parent = node.parent
             if parent is None:
+                assert(self.submission == node.submission)
                 parent = node.submission
         else:
             parent = node.parent
 
         self.node_parents[node] = parent
         return parent
+
+    def get_response(self, measure):
+        response = self.measure_responses.get(measure)
+        if response is not None:
+            return response
+        response = measure.get_response(self.submission)
+        self.measure_responses[measure] = response
+        return response
+
+    def get_responses(self, measures):
+        responses = (self.get_response(m) for m in measures)
+        yield from (r for r in responses if r is not None)
 
     def get_rt(self, response_type):
         '''
