@@ -187,9 +187,23 @@ class GraphCalculator:
         to the response object.
         '''
         rt = self.get_rt(response.measure.response_type)
+        scope = self.external_variables(response)
         stats = ResponseStats(rt)
-        stats.update(response)
+        stats.update(response, scope)
         stats.to_response(response)
+
+    def external_variables(self, response):
+        scope = {}
+        for var in response.measures.source_vars:
+            source_response = var.source_measure.get_response(response.submission)
+            if source_response is None:
+                raise ResponseError(
+                    "Response %s depends on %s but it has not been filled in yet" %
+                    (response.measure.get_path(response.submission.survey),
+                     source_response.measure.get_path(response.submission.survey)))
+            value = source_response.variables.get(var.source_field)
+            scope[var.target_field] = value
+        return scope
 
     def node_type(self, node):
         if hasattr(node, 'response_parts'):
@@ -253,7 +267,7 @@ class ResponseStats:
         self.variables = {}
         self.response_type = response_type
 
-    def update(self, response):
+    def update(self, response, scope):
         if response.not_relevant:
             self.score = 0.0
             self.variables = {}
@@ -262,10 +276,12 @@ class ResponseStats:
         try:
             self.variables = self.response_type.variables(
                 response.response_parts)
+            scope = scope.copy()
+            scope.update(self.variables)
             self.response_type.validate(response_parts, scope)
             self.score = self.response_type.score(
                 response.response_parts, self.variables)
-        except ResponseTypeError as e:
+        except Exception as e:
             raise ResponseError(
                 "Could not calculate score for response %s %s: %s" %
                 (response.measure.get_path(response.submission.survey),
