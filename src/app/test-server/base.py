@@ -11,6 +11,7 @@ from tornado.web import Application
 
 import app
 import model
+from score import SurveyUpdater
 from utils import denormalise
 
 
@@ -407,10 +408,12 @@ class AqModelTestBase(unittest.TestCase):
                     survey.qnodes = create_qnodes(
                         hson['qnodes'], survey)
                     survey.qnodes.reorder()
+                    updater = SurveyUpdater(survey)
+                    updater.mark_all_measures_dirty()
+                    updater.execute()
                 return surveys
 
             create_surveys(hsons)
-            program.update_stats_descendants()
 
 
 class AqHttpTestBase(AqModelTestBase, AsyncHTTPTestCase):

@@ -18,6 +18,7 @@ import crud.program
 import handlers
 import model
 from response_type import ResponseTypeError
+from score import SubmissionUpdater
 from utils import reorder, ToSon, truthy, updater
 
 
@@ -227,7 +228,9 @@ class ResponseNodeHandler(handlers.BaseHandler):
                     verbs.append('update')
 
                 try:
-                    rnode.update_stats_ancestors()
+                    updater = SubmissionUpdater(submission)
+                    updater.mark_qnode_dirty(rnode.qnode)
+                    updater.execute()
                 except ResponseTypeError as e:
                     raise handlers.ModelError(str(e))
 
@@ -255,6 +258,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
         submission = rnode.submission
         changed = failed = created = 0
 
+        updater = SubmissionUpdater(submission)
         for response, is_new in self.walk_responses(session, rnode, missing):
             try:
                 crud.response.check_modify(self.current_user.role, response)
@@ -292,20 +296,11 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 else:
                     changed += 1
             else:
-                if not response.not_relevant:
-                    continue
                 response.not_relevant = False
-                try:
-                    response.update_stats()
-                except ResponseTypeError:
-                    # Could not mark response as not NA because it is lacking
-                    # information and requires manual intervention.
-                    response.not_relevant = True
-                    failed += 1
-                    continue
                 changed += 1
+            updater.mark_measure_dirty(response.measure)
 
-        rnode.update_stats_descendants()
+        updater.execute()
 
         if created:
             self.reason("Created %d" % created)
@@ -330,6 +325,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
         submission = rnode.submission
         promoted = demoted = created = 0
 
+        updater = SubmissionUpdater(submission)
         for response, is_new in self.walk_responses(session, rnode, missing):
             if is_new:
                 response.not_relevant = True
@@ -348,8 +344,9 @@ class ResponseNodeHandler(handlers.BaseHandler):
                     response.approval = approval
                     response.modified = func.now()
                     demoted += 1
+            updater.mark_measure_dirty(response.measure)
 
-        rnode.update_stats_descendants()
+        updater.execute()
 
         if created:
             self.reason("Created %d (NA)" % created)

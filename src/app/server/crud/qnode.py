@@ -14,6 +14,7 @@ from activity import Activities
 import crud
 import handlers
 import model
+from score import SurveyUpdater
 from utils import reorder, ToSon, truthy, updater
 
 
@@ -326,7 +327,10 @@ class QuestionNodeHandler(
                 # Need to flush so object has an ID to record action against.
                 session.flush()
 
-                qnode.update_stats_ancestors()
+                updater = SurveyUpdater(qnode.survey)
+                updater.mark_qnode_dirty(qnode)
+                updater.execute()
+
                 qnode_id = str(qnode.id)
 
                 act = Activities(session)
@@ -370,11 +374,14 @@ class QuestionNodeHandler(
 
                 qnode.deleted = True
 
+                updater = SurveyUpdater(qnode.survey)
                 if survey is not None:
                     survey.qnodes.reorder()
+                    updater.mark_survey_dirty(qnode)
                 if parent is not None:
                     parent.children.reorder()
-                    parent.update_stats_ancestors()
+                    updater.mark_qnode_dirty(parent)
+                updater.execute()
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Question node is in use")
@@ -406,7 +413,7 @@ class QuestionNodeHandler(
                 if session.is_modified(qnode):
                     verbs.append('update')
 
-                nodes_requiring_update = set()
+                updater = SurveyUpdater(qnode.survey)
                 if parent_id != '' and str(qnode.parent_id) != parent_id:
                     # Change parent
                     old_parent = qnode.parent
@@ -418,8 +425,8 @@ class QuestionNodeHandler(
                     old_parent.children.reorder()
                     new_parent.children.append(qnode)
                     new_parent.children.reorder()
-                    nodes_requiring_update.add(old_parent)
-                    nodes_requiring_update.add(qnode)
+                    updater.mark_qnode_dirty(old_parent)
+                    updater.mark_qnode_dirty(qnode)
                     self.reason("Moved from %s to %s" % (
                         old_parent.title, new_parent.title))
                     verbs.append('relation')
@@ -437,11 +444,10 @@ class QuestionNodeHandler(
                     qnode.deleted = False
                     collection.insert(qnode.seq, qnode)
                     collection.reorder()
-                    nodes_requiring_update.add(qnode)
+                    updater.mark_qnode_dirty(qnode)
                     verbs.append('undelete')
 
-                for n in nodes_requiring_update:
-                    n.update_stats_ancestors()
+                updater.execute()
 
                 act = Activities(session)
                 act.record(self.current_user, qnode, verbs)

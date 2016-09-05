@@ -9,6 +9,7 @@ from sqlalchemy import or_
 
 from mail import send
 import model
+from score import SubmissionUpdater
 import utils
 
 
@@ -59,7 +60,9 @@ def process_once(config):
                 log.info("Starting new job")
 
             try:
-                sub.update_stats_descendants()
+                updater = SubmissionUpdater(sub)
+                updater.mark_all_measures_dirty()
+                updater.execute()
                 count += 1
             except ResponseTypeError as error:
                 errors.append({"submission_id": sub.id,

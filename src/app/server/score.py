@@ -1,142 +1,198 @@
+'''
+Calculates submission scores.
+
+A survey is composed of two graphs:
+
+- The hierarchy, which starts with the survey, then various levels of
+rnodes, and has measures at the bottom. Everything in this graph is
+ultimately connected to the root (survey).
+
+- The dependency graph, which only contains measures. Measures can
+depend on other measures, or they may stand alone.
+
+Together these form a single graph. This module solves the graph.
+'''
+
+from datetime import datetime
+
 from cache import instance_method_lru_cache
 from response_type import ResponseError, ResponseType
+from dag import Graph, GraphBuilder, NodeBuilder, Ops
 
 
-INF = float('inf')
+# Convenience classes
 
 
-def is_cyclic(measure, path=None):
-    '''@return True iff the measure has a cyclic dependency'''
-    if path is None:
-        path = []
+class SurveyUpdater:
+    def __init__(self, survey):
+        self.factory = SurveyGraphFactory(survey)
+        self.builder = GraphBuilder()
 
-    for var in measure.target_vars:
-        if var.target_measure in path:
-            return True
-        if is_cyclic(var.target_measure, path + [var.target_measure], visited):
-            return True
-    return False
+    def mark_survey_dirty(self, survey):
+        self.builder.add_recursive(survey, self.factory.survey_builder)
 
+    def mark_qnode_dirty(self, qnode):
+        self.builder.add_recursive(qnode, self.factory.qnode_builder)
 
-class GraphCalculator:
-    '''
-    Calculates submission scores.
+    def mark_measure_dirty(self, measure):
+        self.builder.add_recursive(measure, self.factory.measure_builder)
 
-    A survey is composed of two graphs:
-
-     - The hierarchy, which starts with the survey, then various levels of
-       rnodes, and has measures at the bottom. Everything in this graph is
-       ultimately connected to the root (survey).
-
-     - The dependency graph, which only contains measures. Measures can
-       depend on other measures, or they may stand alone.
-
-    Together these form a single graph. This calculator solves the graph. To
-    use it:
-
-     1. Make changes to some rnodes and responses.
-     2. Mark them as dirty in the calculator using the `mark_dirty` method.
-     3. Call `execute`.
-
-    This class is safe to use with graphs with cycles in them - but the
-    results will be non-deterministic.
-    '''
-
-    def __init__(self, submission):
-        self.dirty_set = set()
-        self.graph = []
-        self.submission = submission
+    def mark_all_measures_dirty(self, survey):
+        for measure in survey.measures:
+            self.builder.add_recursive(measure, self.factory.measure_builder)
 
     def execute(self):
-        '''
-        Recalculate all dirty nodes. This is done in dependency order.
-        '''
-        self.graph.sort(key=lambda entry: entry[0:2])
-        for _, node in self.graph:
-            if self.node_type(node) == 'submission':
-                self.calc_submission(node)
-            elif self.node_type(node) == 'rnode':
-                self.calc_response(node)
-            else:
-                self.calc_rnode(node)
+        graph = self.builder.build()
+        graph.evaluate()
 
-    def add(self, node, dependencies=False, dependants=True):
-        '''
-        Add a node to the graph for recalculation.
-        @param dependencies recalculate the dependencies too.
-        '''
-        if node in dirty_set:
-            return
 
-        # Just add it to the graph; it will be sorted later by depth.
-        self.graph.append((self.graph_depth(node), node))
-        self.dirty_set.add(node)
+class SubmissionUpdater(SurveyUpdater):
+    def __init__(self, submission):
+        self.factory = SubmissionGraphFactory(submission)
+        self.builder = GraphBuilder()
 
-        if dependencies:
-            for dependency in self.dependencies(node):
-                self.add(dependency, dependencies=dependencies, dependants=dependants)
 
-        if dependants:
-            for dependant in self.dependants(node):
-                self.add(dependant, dependencies=dependencies, dependants=dependants)
+# Factories
 
-    def dependencies(self, node):
-        '''
-        @return an iterator over the direct dependencies of a node.
-        '''
-        if self.node_type(node) == 'submission':
-            yield from node.responses
-        elif self.node_type(node) == 'rnode':
-            yield from node.children
-            yield from node.responses
-        else:
-            yield from self.get_responses((
-                var.source_measure for var in node.source_vars))
+
+class SurveyGraphFactory:
+    def __init__(self, survey):
+        self.survey_builder = SurveyBuilder(self)
+        self.qnode_builder = QnodeBuilder(self)
+        self.measure_builder = MeasureBuilder(self, survey)
+        self.survey_ops = SurveyOps(survey)
+        self.qnode_ops = QnodeOps(survey)
+        self.measure_ops = MeasureOps(survey)
+
+
+class SubmissionGraphFactory(SurveyFactory):
+    def __init__(self, submission):
+        super().__init__(submission.survey)
+        self.survey_ops = SubmissionOps(submission)
+        self.qnode_ops = RnodeOps(submission)
+        self.measure_ops = ResponseOps(submission)
+
+
+# Structural stuff
+
+
+class SurveyBuilder(NodeBuilder):
+    def __init__(self, factory):
+        self.factory = factory
+
+    def ops(self, node):
+        return self.factory.survey_ops
+
+
+class QnodeBuilder(NodeBuilder):
+    def __init__(self, factory):
+        self.factory = factory
 
     def dependants(self, node):
-        '''
-        @return an iterator over the direct dependants of a node.
-        '''
-        parent = self.get_parent(node)
-        if parent is not None:
-            yield parent
-
-        if self.node_type(node) == 'response':
-            yield from self.get_responses((
-                var.target_measure for var in node.target_vars))
-
-    @instance_method_lru_cache()
-    def graph_depth(self, node):
-        '''
-        @return the depth of a node in the dependency graph. Leaf nodes
-        have a depth of -1; the next level is -2, then -3 and so on.
-        '''
-        if self.node_type(node) == 'submission':
-            depth = (INF, 0)
-        elif self.node_type(node) == 'rnode':
-            parent = self.get_parent(node)
-            depth = (INF, self.graph_depth(parent) - 1)
+        if node.parent is not None:
+            yield node.parent, self
         else:
-            depth = (min((self.graph_depth(var.target_measure)
-                          for var in node.target_vars), default=0) - 1,
-                     -INF)
-        return depth
+            yield node.survey, self.factory.qnode
 
-    @instance_method_lru_cache()
-    def get_parent(self, node):
-        '''
-        Get the parent of a node.
-        '''
-        if self.node_type(node) == 'submission':
-            parent = None
-        elif self.node_type(node) == 'rnode':
-            parent = node.parent
-            if parent is None:
-                assert(self.submission == node.submission)
-                parent = node.submission
-        else:
-            parent = node.parent
-        return parent
+    def ops(self, node):
+        return self.factory.qnode_ops
+
+
+class MeasureBuilder(NodeBuilder):
+    def __init__(self, factory, survey):
+        self.factory = factory
+        self.survey = survey
+
+    def dependants(self, node):
+        yield node.get_parent(self.survey), self.factory.qnode
+        yield from (var.target_measure, self for var in target_vars)
+
+    def ops(self, node):
+        return self.factory.measure_ops
+
+
+# Survey structure ops
+
+
+class SurveyOps(Ops):
+    def __init__(self, survey):
+        self.survey = survey
+
+    def evaluate(self, node, _, _):
+        node.n_measures = sum(qnode.n_measures for qnode in node.qnodes)
+        node.modified = datetime.utcnow()
+
+
+class QnodeOps(Ops):
+    def __init__(self, survey):
+        self.survey = survey
+
+    def evaluate(self, node, _, _):
+        total_weight = sum(measure.weight for measure in node.measures)
+        total_weight += sum(child.total_weight for child in node.children)
+        n_measures = len(node.measures)
+        n_measures += sum(child.n_measures for child in node.children)
+
+        node.total_weight = total_weight
+        node.n_measures = n_measures
+
+
+class MeasureOps(Ops):
+    def __init__(self, survey):
+        self.survey = survey
+
+    def evaluate(self, node, _, _):
+        pass
+
+
+# Submission score ops
+
+
+class SubmissionOps(Ops):
+    def __init__(self, submission):
+        self.submission = submission
+
+    def evaluate(self, node, _, _):
+        assert(self.submission.survey == node)
+        stats = ResponseNodeStats()
+        for c in self.submission.rnodes:
+            stats.add_rnode(c)
+        stats.to_submission(self.submission)
+
+
+class RnodeOps(Ops):
+    def __init__(self, submission):
+        self.submission = submission
+
+    def evaluate(self, node, _, _):
+        rnode = node.get_rnode(self.submission)
+        if rnode is None:
+            rnode = ResponseNode(
+                program=self.submission.program,
+                submission=self.submission,
+                qnode=qnode)
+            object_session(self).add(rnode)
+            object_session(self).flush()
+
+        stats = ResponseNodeStats()
+        for child in rnode.children:
+            stats.add_rnode(child)
+        for response in rnode.responses:
+            stats.add_response(response)
+        stats.to_rnode(rnode)
+
+
+class ResponseOps(Ops):
+    def __init__(self, submission):
+        self.submission = submission
+
+    def evaluate(self, node, _, _):
+        response = self.get_response(node)
+        response_type = self.get_response_type(node.response_type)
+        scope = self.external_variables(response, node)
+        stats = ResponseStats(response_type)
+        stats.update(response, scope)
+        stats.to_response(response)
 
     @instance_method_lru_cache()
     def get_response(self, measure):
@@ -154,43 +210,10 @@ class GraphCalculator:
         return ResponseType(
             response_type.name, response_type.parts, response_type.formula)
 
-    def calc_submission(self, submission):
-        '''
-        Calculate the score and metadata of a submission, and write them back
-        to the submission object.
-        '''
-        stats = ResponseNodeStats()
-        for c in submission.rnodes:
-            stats.add_rnode(c)
-        stats.to_submission(submission)
-
-    def calc_rnode(self, rnode):
-        '''
-        Calculate the score and metadata of an rnode, and write them back
-        to the rnode object.
-        '''
-        stats = ResponseNodeStats()
-        for c in rnode.children:
-            stats.add_rnode(c)
-        for r in rnode.responses:
-            stats.add_response(r)
-        stats.to_rnode(rnode)
-
-    def calc_response(self, response):
-        '''
-        Calculate the score and variables of a response, and write them back
-        to the response object.
-        '''
-        response_type = self.get_response_type(response.measure.response_type)
-        scope = self.external_variables(response)
-        stats = ResponseStats(response_type)
-        stats.update(response, scope)
-        stats.to_response(response)
-
-    def external_variables(self, response):
+    def external_variables(self, response, measure):
         scope = {}
-        for var in response.measures.source_vars:
-            source_response = var.source_measure.get_response(response.submission)
+        for var in measure.source_vars:
+            source_response = self.get_response(var.source_measure)
             if source_response is None:
                 raise ResponseError(
                     "Response %s depends on %s but it has not been filled in yet" %
@@ -199,13 +222,6 @@ class GraphCalculator:
             value = source_response.variables.get(var.source_field)
             scope[var.target_field] = value
         return scope
-
-    def node_type(self, node):
-        if hasattr(node, 'response_parts'):
-            return 'response'
-        if hasattr(node, 'submission_id'):
-            return 'submission'
-        return 'rnode'
 
 
 class ResponseNodeStats:

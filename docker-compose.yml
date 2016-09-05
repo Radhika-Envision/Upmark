@@ -6,6 +6,7 @@ web:
    - ../aq_conf/aq.conf
   environment:
     HISTFILE: /root/scratch/bash_history
+    XDG_CONFIG_HOME: /root/scratch
   volumes:
    - ./src/app:/usr/share/aquamark/app
    - ./scratch:/root/scratch
@@ -50,8 +51,12 @@ redirect:
 
 test:
   build: ./src/app/
+  environment:
+    HISTFILE: /root/scratch/bash_history
+    XDG_CONFIG_HOME: /root/scratch
   volumes:
    - ./src/app:/usr/share/aquamark/app
+   - ./scratch:/root/scratch
   links:
    - postgresTest:postgres
   working_dir: /usr/share/aquamark/app/test-server
@@ -76,6 +81,7 @@ dbadmin:
     PSQLRC: /root/scratch/psqlrc
     PSQL_HISTORY: /root/scratch/psql_history
     HISTFILE: /root/scratch/bash_history
+    XDG_CONFIG_HOME: /root/scratch
   volumes:
     - ../backup:/backup
     - ./scratch:/root/scratch

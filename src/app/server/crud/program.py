@@ -17,6 +17,7 @@ import voluptuous
 from activity import Activities
 import handlers
 import model
+from score import SurveyUpdater
 from utils import ToSon, truthy, updater
 
 
@@ -362,7 +363,10 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
         except voluptuous.Error as e:
             raise handlers.ModelError("Response types are invalid: %s" % str(e))
         if response_types_changed:
-            program.update_stats_descendants()
+            for survey in program.surveys:
+                updater = SurveyUpdater(survey)
+                updater.mark_all_measures_dirty()
+                updater.execute()
 
 class ProgramTrackingHandler(handlers.BaseHandler):
 

@@ -309,11 +309,6 @@ class Program(Observable, Base):
     def is_editable(self):
         return self.finalised_date is None
 
-    def update_stats_descendants(self):
-        '''Updates the stats of an entire tree.'''
-        for survey in self.surveys:
-            survey.update_stats_descendants()
-
     @property
     def ob_type(self):
         return 'program'
@@ -415,18 +410,6 @@ class Survey(Observable, Base):
             for measure in qnode.ordered_measures:
                 yield measure
 
-    def update_stats(self):
-        '''Updates the stats this survey.'''
-        n_measures = sum(qnode.n_measures for qnode in self.qnodes)
-        self.n_measures = n_measures
-        self.modified = datetime.utcnow()
-
-    def update_stats_descendants(self):
-        '''Updates the stats of an entire subtree.'''
-        for qnode in self.qnodes:
-            qnode.update_stats_descendants()
-        self.update_stats()
-
     @property
     def min_stats_approval(self):
         '''
@@ -502,29 +485,6 @@ class QuestionNode(Observable, Base):
         return (object_session(self).query(ResponseNode)
             .filter_by(submission_id=submission_id, qnode_id=self.id)
             .first())
-
-    def update_stats_ancestors(self):
-        '''Updates the stats this node, and all ancestors.'''
-        self.update_stats()
-        if self.parent is not None:
-            self.parent.update_stats_ancestors()
-        else:
-            self.survey.update_stats()
-
-    def update_stats_descendants(self):
-        '''Updates the stats of an entire subtree.'''
-        for child in self.children:
-            child.update_stats_descendants()
-        self.update_stats()
-
-    def update_stats(self):
-        total_weight = sum(measure.weight for measure in self.measures)
-        total_weight += sum(child.total_weight for child in self.children)
-        n_measures = len(self.measures)
-        n_measures += sum(child.n_measures for child in self.children)
-
-        self.total_weight = total_weight
-        self.n_measures = n_measures
 
     def lineage(self):
         if self.parent_id:
@@ -866,18 +826,6 @@ class Submission(Observable, Base):
         # all the submissions against it.
         return [self.organisation, self]
 
-    def update_stats_descendants(self):
-        for qnode in self.survey.qnodes:
-            rnode = qnode.get_rnode(self)
-            if rnode is None:
-                rnode = ResponseNode(
-                    program=self.program,
-                    submission=self,
-                    qnode=qnode)
-                object_session(self).add(rnode)
-                object_session(self).flush()
-            rnode.update_stats_descendants()
-
     def __repr__(self):
         return "Submission(program={}, org={})".format(
             getattr(self.program, 'title', None),
@@ -982,76 +930,6 @@ class ResponseNode(Observable, Base):
                    [q.id for q in self.qnode.lineage()])
         return ActionDescriptor(
             self.ob_title, self.ob_type, self.ob_ids, lineage)
-
-    def update_stats(self):
-        score = 0.0
-        n_approved = 0
-        n_reviewed = 0
-        n_final = 0
-        n_draft = 0
-        n_not_relevant = 0
-        max_importance = 0.0
-        max_urgency = 0.0
-
-        for c in self.children:
-            score += c.score
-            n_approved += c.n_approved
-            n_reviewed += c.n_reviewed
-            n_final += c.n_final
-            n_draft += c.n_draft
-            n_not_relevant += c.n_not_relevant
-            max_importance = max(max_importance, c.max_importance or 0.0)
-            max_urgency = max(max_urgency, c.max_urgency or 0.0)
-
-        for r in self.responses:
-            score += r.score
-            if r.approval in {'draft', 'final', 'reviewed', 'approved'}:
-                n_draft += 1
-            if r.approval in {'final', 'reviewed', 'approved'}:
-                n_final += 1
-            if r.approval in {'reviewed', 'approved'}:
-                n_reviewed += 1
-            if r.approval in {'approved'}:
-                n_approved += 1
-            if r.not_relevant:
-                n_not_relevant += 1
-
-        self.score = score
-        self.n_approved = n_approved
-        self.n_reviewed = n_reviewed
-        self.n_final = n_final
-        self.n_draft = n_draft
-        self.n_not_relevant = n_not_relevant
-        self.max_importance = self.importance or max_importance
-        self.max_urgency = self.urgency or max_urgency
-
-    def update_stats_descendants(self):
-        for qchild in self.qnode.children:
-            rchild = qchild.get_rnode(self.submission)
-            if rchild is None:
-                rchild = ResponseNode(
-                    program=self.program,
-                    submission=self.submission,
-                    qnode=qchild)
-                object_session(self).add(rchild)
-                object_session(self).flush()
-            rchild.update_stats_descendants()
-        for response in self.responses:
-            response.update_stats()
-        self.update_stats()
-
-    def update_stats_ancestors(self):
-        self.update_stats()
-        parent = self.parent
-        if parent is None:
-            qnode = self.qnode.parent
-            if qnode is None:
-                return
-            parent = ResponseNode(
-                program=self.program, submission=self.submission, qnode=qnode)
-            object_session(self).add(parent)
-            object_session(self).flush()
-        parent.update_stats_ancestors()
 
     def __repr__(self):
         org = getattr(self.submission, 'organisation', None)
@@ -1168,39 +1046,6 @@ class Response(Observable, Versioned, Base):
                    [self.measure_id])
         return ActionDescriptor(
             self.ob_title, self.ob_type, self.ob_ids, lineage)
-
-    def update_stats(self):
-        if self.not_relevant:
-            score = 0.0
-        else:
-            try:
-                rt = self.program.materialised_response_types[
-                    self.measure.response_type]
-            except KeyError:
-                raise ModelError(
-                    "Measure '%s': response type is not defined." %
-                    self.measure.title)
-            try:
-                score = rt.calculate_score(self.response_parts)
-            except response_type.ResponseError as e:
-                raise ModelError(
-                    "Could not calculate score for response %s %s: %s" %
-                    (self.measure.get_path(self.submission.survey),
-                     self.measure.title, str(e)))
-        self.score = score * self.measure.weight
-
-    def update_stats_ancestors(self):
-        self.update_stats()
-        parent = self.parent
-        if parent is None:
-            qnode = self.parent_qnode
-            if qnode is None:
-                return
-            parent = ResponseNode(
-                program=self.program, submission=self.submission, qnode=qnode)
-            object_session(self).add(parent)
-        object_session(self).flush()
-        parent.update_stats_ancestors()
 
     def __repr__(self):
         org = getattr(self.submission, 'organisation', None)

@@ -16,6 +16,7 @@ import app
 import base
 import model
 from response_type import ExpressionError, ResponseType, ResponseError
+from score import SubmissionUpdater
 from utils import ToSon
 
 
@@ -345,7 +346,9 @@ class SubmissionTest(base.AqHttpTestBase):
 
             session.flush()
 
-            submission.update_stats_descendants()
+            updater = SubmissionUpdater(submission)
+            updater.mark_all_measures_dirty()
+            updater.execute()
             submission.approval = 'final'
             session.flush()
 

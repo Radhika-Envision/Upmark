@@ -12,6 +12,7 @@ import crud
 import handlers
 import logging
 import model
+from score import SurveyUpdater
 from utils import falsy, reorder, ToSon, truthy, updater
 
 
@@ -236,6 +237,15 @@ class MeasureHandler(
                 # Need to flush so object has an ID to record action against.
                 session.flush()
 
+                updaters = {}
+                def get_updater(qnode):
+                    updater = updaters.get(qnode.survey)
+                    if updater is not None:
+                        return updater
+                    updater = SurveyUpdater(qnode.survey)
+                    updaters[qnode.survey] = updater
+                    return updater
+
                 parents = []
                 for parent_id in parent_ids:
                     qnode = session.query(model.QuestionNode)\
@@ -244,8 +254,12 @@ class MeasureHandler(
                         raise handlers.ModelError("No such question node")
                     qnode.measures.append(measure)
                     qnode.qnode_measures.reorder()
-                    qnode.update_stats_ancestors()
                     parents.append(qnode)
+                    get_updater(qnode.survey).mark_measure_dirty(measure)
+
+                for updater in updaters:
+                    updater.execute()
+
                 measure_id = str(measure.id)
 
                 verbs = ['create']
@@ -286,6 +300,15 @@ class MeasureHandler(
 
                 act = Activities(session)
 
+                updaters = {}
+                def get_updater(qnode):
+                    updater = updaters.get(qnode.survey)
+                    if updater is not None:
+                        return updater
+                    updater = SurveyUpdater(qnode.survey)
+                    updaters[qnode.survey] = updater
+                    return updater
+
                 # Just unlink from qnodes
                 for parent_id in parent_ids:
                     qnode = session.query(model.QuestionNode)\
@@ -298,7 +321,11 @@ class MeasureHandler(
                             "Measure does not belong to that question node")
                     qnode.measures.remove(measure)
                     qnode.qnode_measures.reorder()
-                    qnode.update_stats_ancestors()
+                    get_updater(qnode.survey).mark_qnode_dirty(qnode)
+
+                for updater in updaters:
+                    updater.execute()
+
                 act.record(self.current_user, measure, ['delete'])
                 if not act.has_subscription(self.current_user, measure):
                     act.subscribe(self.current_user, measure.program)
@@ -337,7 +364,18 @@ class MeasureHandler(
                 if session.is_modified(measure):
                     verbs.append('update')
 
-                affected_parents = set(measure.parents)
+                updaters = {}
+                def get_updater(qnode):
+                    updater = updaters.get(qnode.survey)
+                    if updater is not None:
+                        return updater
+                    updater = SurveyUpdater(qnode.survey)
+                    updaters[qnode.survey] = updater
+                    return updater
+
+                for parent in measure.parents:
+                    get_updater(parent).mark_qnode_dirty(parent)
+
                 has_relocated = False
                 for parent_id in parent_ids:
                     # Add links to parents. Links can't be removed like this;
@@ -361,12 +399,12 @@ class MeasureHandler(
                             self.reason('Moved from %s' % old_parent.title)
                     new_parent.measures.append(measure)
                     new_parent.qnode_measures.reorder()
-                    affected_parents.add(new_parent)
+                    get_updater(new_parent).mark_qnode_dirty(new_parent)
                 if has_relocated:
                     verbs.append('relation')
 
-                for parent in affected_parents:
-                    parent.update_stats_ancestors()
+                for updater in updaters.values():
+                    updater.execute()
 
                 act = Activities(session)
                 act.record(self.current_user, measure, verbs)

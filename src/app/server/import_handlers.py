@@ -20,6 +20,7 @@ import app
 import handlers
 import model
 import response_type
+from score import SubmissionUpdater, SurveyUpdater
 
 
 MAX_WORKERS = 4
@@ -278,7 +279,11 @@ class Importer():
                             session.flush()
                             qnode_subprocess.measures.append(m)
                             session.flush()
-            program.update_stats_descendants()
+
+            updater = SurveyUpdater(survey)
+            updater.mark_all_measures_dirty()
+            updater.execute()
+
             return program_id
 
     def process_response_file(self, path, program_id):
@@ -405,10 +410,9 @@ class Importer():
                     "Row %d: %s %s: %s" %
                     (row_num + 2, order, title, str(e)))
 
-            try:
-                submission.update_stats_descendants()
-            except ResponseTypeError as e:
-                raise handlers.ModelError(str(e))
+            updater = SubmissionUpdater(submission)
+            updater.mark_all_measures_dirty()
+            updater.execute()
 
         return program_id
 
