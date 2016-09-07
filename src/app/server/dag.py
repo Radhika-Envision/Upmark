@@ -1,4 +1,4 @@
-class Error(Exception):
+class DagError(Exception):
     def __init__(self, *args, ops=None, node=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.ops = ops
@@ -136,10 +136,29 @@ class Ops:
         Called instead of evaluate when a node is part of (or is downstream
         from) a cyclic dependency.
         '''
-        raise Error("Cyclic dependency", ops=self, node=node)
+        raise DagError("Cyclic dependency", ops=self, node=node)
 
     def __repr__(self):
         return "Ops"
+
+
+class OpsProxy:
+    '''
+    An ops object that can be bound to a node in the tree, but whose operation
+    can be replaced later.
+    '''
+
+    def __init__(self, ops=None):
+        self.ops = ops or NOOP
+
+    def evaluate(self, node, dependencies, dependants):
+        self.ops.evaluate(node, dependencies, dependants)
+
+    def cyclic(self, node, dependencies, dependants):
+        self.ops.evaluate(node, dependencies, dependants)
+
+    def __repr__(self):
+        return repr(self.ops)
 
 
 NOOP = Ops()

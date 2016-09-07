@@ -1,7 +1,7 @@
 from itertools import repeat
 import unittest
 
-from simple_dag import Error, Graph, GraphBuilder, NodeBuilder, Ops
+from dag import Graph, GraphBuilder, NodeBuilder, Ops, OpsProxy
 
 
 class DagTest(unittest.TestCase):
@@ -42,6 +42,21 @@ class DagTest(unittest.TestCase):
         graph.evaluate()
         self.assertEqual(a.value, 3)
         self.assertEqual(b.value, 7)
+
+    def test_proxy(self):
+        '''Test replacement of operations after tree is built'''
+        builder = GraphBuilder()
+        a = Value('a')
+        ops = OpsProxy()
+        builder.add(a).with_ops(ops)
+        builder.add(1).with_dependant(a)
+        builder.add(2).with_dependant(a)
+        graph = builder.build()
+        graph.evaluate()
+        self.assertEqual(a.value, 0)
+        ops.ops = Sum()
+        graph.evaluate()
+        self.assertEqual(a.value, 3)
 
     def test_self_build(self):
         '''Build a tree from nodes that know how they are connected'''
