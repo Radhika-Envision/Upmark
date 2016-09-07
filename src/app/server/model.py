@@ -305,6 +305,9 @@ class Program(Observable, Base):
     has_quality = Column(Boolean, default=False, nullable=False)
     hide_aggregate = Column(Boolean, default=False, nullable=False)
 
+    error = Column(Text)
+    n_errors = Column(Integer, default=0, nullable=False)
+
     @property
     def is_editable(self):
         return self.finalised_date is None
@@ -382,6 +385,8 @@ class Survey(Observable, Base):
     deleted = Column(Boolean, default=False, nullable=False)
 
     structure = Column(JSON, nullable=False)
+    error = Column(Text)
+    n_errors = Column(Integer, default=0, nullable=False)
 
     _structure_schema = Schema({
         'levels': All([
@@ -454,6 +459,8 @@ class QuestionNode(Observable, Base):
     seq = Column(Integer)
     n_measures = Column(Integer, default=0, nullable=False)
     total_weight = Column(Float, default=0, nullable=False)
+    error = Column(Text)
+    n_errors = Column(Integer, default=0, nullable=False)
 
     title = Column(Text, nullable=False)
     description = Column(Text)
@@ -530,6 +537,7 @@ class Measure(Observable, Base):
     program_id = Column(GUID, nullable=False, primary_key=True)
     response_type_id = Column(GUID, nullable=False)
     deleted = Column(Boolean, default=False, nullable=False)
+    error = Column(Text)
 
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=True)
@@ -550,45 +558,23 @@ class Measure(Observable, Base):
         Program, backref=backref('measures', passive_deletes=True))
 
     def get_parent(self, survey):
-        if isinstance(survey, (str, uuid.UUID)):
-            survey_id = survey
-        else:
-            survey_id = survey.id
-        for p in self.parents:
-            if str(p.survey_id) == str(survey_id):
-                return p
-        return None
+        sid = isinstance(survey, str) and survey or survey.id
+        qnode_measure = (object_session(self).query(Response)
+            .get((self.program_id, sid, self.id)))
+        return qnode_measure and qnode_measure.parent or None
 
     def get_qnode_measure(self, survey):
-        if isinstance(survey, (str, uuid.UUID)):
-            survey_id = survey
-        else:
-            survey_id = survey.id
-        for qm in self.qnode_measures:
-            if str(qm.qnode.survey_id) == str(survey_id):
-                return qm
-        return None
+        sid = isinstance(survey, str) and survey or survey.id
+        return (object_session(self).query(Response)
+            .get((self.program_id, sid, self.id)))
 
     def get_seq(self, survey):
         qm = self.get_qnode_measure(survey)
-        if qm:
-            return qm.seq
-        return None
+        return qm and qm.seq or None
 
     def get_path(self, survey):
         qm = self.get_qnode_measure(survey)
-        if qm:
-            return qm.get_path()
-        return None
-
-    def get_response(self, submission):
-        if isinstance(submission, str):
-            submission_id = submission
-        else:
-            submission_id = submission.id
-        return (object_session(self).query(Response)
-            .filter_by(submission_id=submission_id, measure_id=self.id)
-            .first())
+        return qm and qm.get_path() or None
 
     def lineage(self, survey=None):
         if survey is None:
@@ -634,10 +620,11 @@ class QnodeMeasure(Base):
     # This is an association object for qnodes <-> measures. Normally this would
     # be done with a raw table, but because we want access to the `seq` column,
     # it needs to be a mapped class.
-    __tablename__ = 'qnode_measure_link'
+    __tablename__ = 'qnode_measure'
     program_id = Column(GUID, nullable=False, primary_key=True)
-    qnode_id = Column(GUID, nullable=False, primary_key=True)
+    survey_id = Column(GUID, nullable=False, primary_key=True)
     measure_id = Column(GUID, nullable=False, primary_key=True)
+    qnode_id = Column(GUID, nullable=False)
 
     seq = Column(Integer)
 
@@ -649,6 +636,10 @@ class QnodeMeasure(Base):
         ForeignKeyConstraint(
             ['measure_id', 'program_id'],
             ['measure.id', 'measure.program_id']
+        ),
+        ForeignKeyConstraint(
+            ['survey_id', 'program_id'],
+            ['survey.id', 'survey.program_id']
         ),
         ForeignKeyConstraint(
             ['program_id'],
@@ -690,6 +681,15 @@ class QnodeMeasure(Base):
     def get_path(self):
         return "%s %d." % (self.qnode.get_path(), self.seq + 1)
 
+    def get_response(self, submission):
+        if isinstance(submission, str):
+            submission_id = submission
+        else:
+            submission_id = submission.id
+        return (object_session(self).query(Response)
+            .filter_by(submission_id=submission_id, measure_id=self.measure_id)
+            .first())
+
     def __repr__(self):
         return "QnodeMeasure(qnode={}, measure={}, program={})".format(
             getattr(self.qnode, 'title', None),
@@ -729,11 +729,12 @@ class MeasureVariable(Base):
     # variables in a response type can be bound to another measure.
     __tablename__ = 'measure_variable'
     program_id = Column(GUID, nullable=False, primary_key=True)
+    survey_id = Column(GUID, nullable=False, primary_key=True)
     target_measure_id = Column(GUID, nullable=False, primary_key=True)
     target_field = Column(Text, nullable=False, primary_key=True)
 
-    source_measure_id = Column(GUID, nullable=False)
-    source_field = Column(Text)
+    source_measure_id = Column(GUID, nullable=False, primary_key=True)
+    source_field = Column(Text, primary_key=True)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -742,6 +743,9 @@ class MeasureVariable(Base):
         ForeignKeyConstraint(
             ['source_measure_id', 'program_id'],
             ['measure.id', 'measure.program_id']),
+        ForeignKeyConstraint(
+            ['survey_id', 'program_id'],
+            ['survey.id', 'survey.program_id']),
         ForeignKeyConstraint(
             ['program_id'],
             ['program.id']),
@@ -1310,16 +1314,18 @@ ResponseType.measures = relationship(
 
 
 # Dependencies
-Measure.source_vars = relationship(
-    MeasureVariable, backref='source_measure',
-    primaryjoin=(foreign(MeasureVariable.source_measure_id) == Measure.id) &
-                (MeasureVariable.program_id == Measure.program_id))
+QnodeMeasure.source_vars = relationship(
+    MeasureVariable, backref='source_qnode_measure',
+    primaryjoin=(foreign(MeasureVariable.source_measure_id) == QnodeMeasure.measure_id) &
+                (MeasureVariable.survey_id == QnodeMeasure.survey_id) &
+                (MeasureVariable.program_id == QnodeMeasure.program_id))
 
 # Dependants
-Measure.target_vars = relationship(
-    MeasureVariable, backref='target_measure',
-    primaryjoin=(foreign(MeasureVariable.target_measure_id) == Measure.id) &
-                (MeasureVariable.program_id == Measure.program_id))
+QnodeMeasure.target_vars = relationship(
+    MeasureVariable, backref='target_qnode_measure',
+    primaryjoin=(foreign(MeasureVariable.target_measure_id) == QnodeMeasure.measure_id) &
+                (MeasureVariable.survey_id == QnodeMeasure.survey_id) &
+                (MeasureVariable.program_id == QnodeMeasure.program_id))
 
 
 Submission.survey = relationship(

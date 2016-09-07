@@ -31,6 +31,34 @@ response = sa.sql.table('response',
 
 
 def upgrade():
+    # Change primary key of qnode_measure
+    op.rename_table('qnode_measure_link', 'qnode_measure')
+    op.execute("""ALTER TABLE qnode_measure
+        RENAME CONSTRAINT qnode_measure_link_pkey
+        TO qnode_measure_pkey""")
+    op.execute("""ALTER TABLE qnode_measure
+        RENAME CONSTRAINT qnode_measure_link_measure_id_fkey
+        TO qnode_measure_measure_id_fkey""")
+    op.execute("""ALTER TABLE qnode_measure
+        RENAME CONSTRAINT qnode_measure_link_program_id_fkey
+        TO qnode_measure_program_id_fkey;""")
+    op.execute("""ALTER TABLE qnode_measure
+        RENAME CONSTRAINT qnode_measure_link_qnode_id_fkey
+        TO qnode_measure_qnode_id_fkey;""")
+    op.add_column('qnode_measure', sa.Column('survey_id', GUID()))
+    op.execute("""
+        UPDATE qnode_measure AS qm
+        SET survey_id = q.survey_id
+        FROM qnode AS q
+        WHERE q.program_id = qm.program_id
+            AND q.id = qm.qnode_id
+        """)
+    op.alter_column('qnode_measure', 'survey_id', nullable=False)
+    op.drop_constraint('qnode_measure_pkey', 'qnode_measure',
+        type_='primary')
+    op.create_primary_key('qnode_measure_pkey', 'qnode_measure',
+        ['program_id', 'survey_id', 'measure_id'])
+
     op.create_table('response_type',
         sa.Column('id', GUID(), nullable=False),
         sa.Column('program_id', GUID(), nullable=False),
@@ -47,12 +75,13 @@ def upgrade():
     )
     op.create_table('measure_variable',
         sa.Column('program_id', GUID(), nullable=False),
+        sa.Column('survey_id', GUID(), nullable=False),
         sa.Column('target_measure_id', GUID(), nullable=False),
         sa.Column('target_field', sa.Text(), nullable=False),
-        sa.Column('source_field', sa.Text(), nullable=False),
         sa.Column('source_measure_id', GUID(), nullable=False),
+        sa.Column('source_field', sa.Text(), nullable=False),
         sa.PrimaryKeyConstraint(
-            'program_id', 'target_measure_id', 'target_field'),
+            'program_id', 'survey_id', 'target_measure_id', 'target_field'),
         sa.ForeignKeyConstraint(
             ['target_measure_id', 'program_id'],
             ['measure.id', 'measure.program_id']),
@@ -95,6 +124,10 @@ def upgrade():
     op.execute(response.update().values({'variables': {}}))
     op.alter_column('response', 'variables', nullable=False)
 
+    op.create_foreign_key('qnode_measure_survey_id_fkey',
+        'qnode_measure', 'survey',
+        ['survey_id', 'program_id'],
+        ['id', 'program_id'])
     op.create_foreign_key('measure_response_type_id_fkey',
         'measure', 'response_type',
         ['response_type_id', 'program_id'],
@@ -132,6 +165,23 @@ def downgrade():
     op.drop_column('measure', 'response_type_id')
     op.drop_table('measure_variable')
     op.drop_table('response_type')
+
+    op.drop_column('qnode_measure', 'survey_id')
+    op.create_primary_key('qnode_measure_pkey', 'qnode_measure',
+        ['program_id', 'qnode_id', 'measure_id'])
+    op.execute("""ALTER TABLE qnode_measure
+        RENAME CONSTRAINT qnode_measure_qnode_id_fkey
+        TO qnode_measure_link_qnode_id_fkey;""")
+    op.execute("""ALTER TABLE qnode_measure
+        RENAME CONSTRAINT qnode_measure_program_id_fkey
+        TO qnode_measure_link_program_id_fkey;""")
+    op.execute("""ALTER TABLE qnode_measure
+        RENAME CONSTRAINT qnode_measure_measure_id_fkey
+        TO qnode_measure_link_measure_id_fkey""")
+    op.execute("""ALTER TABLE qnode_measure
+        RENAME CONSTRAINT qnode_measure_pkey
+        TO qnode_measure_link_pkey""")
+    op.rename_table('qnode_measure', 'qnode_measure_link')
 
 
 # Frozen schema

@@ -126,14 +126,14 @@ class QnodeBuilder(NodeBuilder):
 
 
 class MeasureBuilder(NodeBuilder):
-    # TODO: This should really operate on QnodeMeasures instead of plain
-    # Measures, since a plain measure has 0-* surveys.
     def __init__(self, config):
         self.config = config
 
-    def dependants(self, measure):
-        yield measure.get_parent(self.config.survey), self.config.qnode_builder
-        yield from ((var.target_measure, self) for var in target_vars)
+    def dependants(self, qnode_measure):
+        yield qnode_measure.qnode, self.config.qnode_builder
+        yield from (
+            (var.target_qnode_measure, self)
+            for var in qnode_measure.target_vars)
 
     def ops(self, measure):
         return self.config.measure_ops
@@ -169,7 +169,7 @@ class MeasureOps(Ops):
     def __init__(self, survey):
         self.survey = survey
 
-    def evaluate(self, measure, dependencies, dependants):
+    def evaluate(self, qnode_measure, dependencies, dependants):
         pass
 
 
@@ -214,21 +214,18 @@ class ResponseOps(Ops):
     def __init__(self, submission):
         self.submission = submission
 
-    def evaluate(self, measure, dependencies, dependants):
-        response = self.get_response(measure)
+    def evaluate(self, qnode_measure, dependencies, dependants):
+        measure = qnode_measure.measure
+        response = self.get_response(qnode_measure)
         response_type = self.get_response_type(measure.response_type)
-        scope = self.external_variables(response, measure)
+        scope = self.external_variables(response, qnode_measure)
         stats = ResponseStats(response_type)
         stats.update(response, scope)
         stats.to_response(response)
 
     @instance_method_lru_cache()
-    def get_response(self, measure):
-        return measure.get_response(self.submission)
-
-    def get_responses(self, measures):
-        responses = (self.get_response(m) for m in measures)
-        yield from (r for r in responses if r is not None)
+    def get_response(self, qnode_measure):
+        return qnode_measure.measure.get_response(self.submission)
 
     @instance_method_lru_cache()
     def get_response_type(self, response_type):
@@ -238,15 +235,15 @@ class ResponseOps(Ops):
         return ResponseType(
             response_type.name, response_type.parts, response_type.formula)
 
-    def external_variables(self, response, measure):
+    def external_variables(self, response, qnode_measure):
         scope = {}
-        for var in measure.source_vars:
-            source_response = self.get_response(var.source_measure)
+        for var in qnode_measure.source_vars:
+            source_response = self.get_response(var.source_qnode_measure)
             if source_response is None:
                 raise ResponseError(
                     "Response %s depends on %s but it has not been filled in yet" %
-                    (response.measure.get_path(response.submission.survey),
-                     source_response.measure.get_path(response.submission.survey)))
+                    (response.qnode_measure.get_path(),
+                     source_response.qnode_measure.get_path()))
             value = source_response.variables.get(var.source_field)
             scope[var.target_field] = value
         return scope

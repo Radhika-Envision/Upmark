@@ -260,7 +260,7 @@ class DiffEngine:
         MA = model.Measure
         MB = aliased(model.Measure, name='measure_b')
         QMA = model.QnodeMeasure
-        QMB = aliased(model.QnodeMeasure, name='qnode_measure_link_b')
+        QMB = aliased(model.QnodeMeasure, name='qnode_measure_b')
 
         start = perf()
 
