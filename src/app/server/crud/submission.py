@@ -18,7 +18,7 @@ import handlers
 import model
 import logging
 
-from score import SubmissionUpdater
+from score import Calculator
 from utils import reorder, ToSon, truthy, updater
 
 
@@ -304,9 +304,9 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
                 session.add(attachment)
 
         session.flush()
-        updater = SubmissionUpdater(submission)
-        updater.mark_all_measures_dirty()
-        updater.execute()
+        calculator = Calculator.scoring(submission)
+        calculator.mark_all_measures_dirty()
+        calculator.execute()
 
     def fill_random(self, submission, session):
         '''

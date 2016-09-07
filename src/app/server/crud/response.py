@@ -13,7 +13,7 @@ from activity import Activities
 import handlers
 import model
 from response_type import ResponseTypeError
-from score import SubmissionUpdater
+from score import Calculator
 from utils import falsy, reorder, ToSon, truthy, updater
 
 
@@ -273,9 +273,9 @@ class ResponseHandler(handlers.BaseHandler):
                 response.version_on_update = False
 
                 try:
-                    updater = SubmissionUpdater(submission)
-                    updater.mark_measure_dirty(response.measure)
-                    updater.execute()
+                    calculator = Calculator.scoring(submission)
+                    calculator.mark_measure_dirty(response.measure)
+                    calculator.execute()
                 except ResponseTypeError as e:
                     raise handlers.ModelError(str(e))
 

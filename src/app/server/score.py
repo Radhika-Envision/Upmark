@@ -17,143 +17,171 @@ from datetime import datetime
 
 from cache import instance_method_lru_cache
 from response_type import ResponseError, ResponseType
-from dag import Graph, GraphBuilder, NodeBuilder, Ops
+from dag import Graph, GraphBuilder, NodeBuilder, Ops, OpsProxy
+
+
+class ScoreError(Exception):
+    pass
 
 
 # Convenience classes
 
 
-class SurveyUpdater:
-    def __init__(self, survey):
-        self.factory = SurveyGraphFactory(survey)
+class Calculator:
+    def __init__(self, config):
+        self.config = config
         self.builder = GraphBuilder()
 
+    @classmethod
+    def structural(cls, survey):
+        config = GraphConfig(survey)
+        ops = SurveyOps(survey)
+        config.with_ops(ops)
+        return cls(config)
+
+    @classmethod
+    def scoring(cls, submission):
+        config = GraphConfig(submission.survey)
+        ops = SubmissionOps(submission)
+        config.with_ops(ops)
+        return cls(config)
+
     def mark_survey_dirty(self, survey):
-        self.builder.add_recursive(survey, self.factory.survey_builder)
+        self.builder.add_recursive(survey, self.config.survey_builder)
 
     def mark_qnode_dirty(self, qnode):
-        self.builder.add_recursive(qnode, self.factory.qnode_builder)
+        self.builder.add_recursive(qnode, self.config.qnode_builder)
 
     def mark_measure_dirty(self, measure):
-        self.builder.add_recursive(measure, self.factory.measure_builder)
+        self.builder.add_recursive(measure, self.config.measure_builder)
 
     def mark_all_measures_dirty(self, survey):
         for measure in survey.measures:
-            self.builder.add_recursive(measure, self.factory.measure_builder)
+            self.builder.add_recursive(measure, self.config.measure_builder)
 
     def execute(self):
         graph = self.builder.build()
         graph.evaluate()
 
 
-class SubmissionUpdater(SurveyUpdater):
-    def __init__(self, submission):
-        self.factory = SubmissionGraphFactory(submission)
-        self.builder = GraphBuilder()
-
-
 # Factories
 
 
-class SurveyGraphFactory:
+class GraphConfig:
     def __init__(self, survey):
+        self.survey = survey
         self.survey_builder = SurveyBuilder(self)
         self.qnode_builder = QnodeBuilder(self)
-        self.measure_builder = MeasureBuilder(self, survey)
+        self.measure_builder = MeasureBuilder(self)
+        self.survey_ops = OpsProxy()
+        self.qnode_ops = OpsProxy()
+        self.measure_ops = OpsProxy()
+        self.with_ops(StructureOps(survey))
+
+    def with_ops(self, ops):
+        self.survey_ops.ops = ops.survey_ops
+        self.qnode_ops.ops = ops.qnode_ops
+        self.measure_ops.ops = ops.measure_ops
+        return self
+
+
+class StructureOps:
+    def __init__(self, survey):
         self.survey_ops = SurveyOps(survey)
         self.qnode_ops = QnodeOps(survey)
         self.measure_ops = MeasureOps(survey)
 
 
-class SubmissionGraphFactory(SurveyFactory):
+class ScoreOps:
     def __init__(self, submission):
-        super().__init__(submission.survey)
         self.survey_ops = SubmissionOps(submission)
         self.qnode_ops = RnodeOps(submission)
         self.measure_ops = ResponseOps(submission)
 
 
-# Structural stuff
+# Survey builders - these know how to recursively build a DAG from the survey
+# structure.
 
 
 class SurveyBuilder(NodeBuilder):
-    def __init__(self, factory):
-        self.factory = factory
+    def __init__(self, config):
+        self.config = config
 
-    def ops(self, node):
-        return self.factory.survey_ops
+    def ops(self, survey):
+        return self.config.survey_ops
 
 
 class QnodeBuilder(NodeBuilder):
-    def __init__(self, factory):
-        self.factory = factory
+    def __init__(self, config):
+        self.config = config
 
-    def dependants(self, node):
-        if node.parent is not None:
-            yield node.parent, self
+    def dependants(self, qnode):
+        if qnode.parent is not None:
+            yield qnode.parent, self
         else:
-            yield node.survey, self.factory.qnode
+            yield qnode.survey, self.config.qnode_builder
 
-    def ops(self, node):
-        return self.factory.qnode_ops
+    def ops(self, qnode):
+        return self.config.qnode_ops
 
 
 class MeasureBuilder(NodeBuilder):
-    def __init__(self, factory, survey):
-        self.factory = factory
-        self.survey = survey
+    # TODO: This should really operate on QnodeMeasures instead of plain
+    # Measures, since a plain measure has 0-* surveys.
+    def __init__(self, config):
+        self.config = config
 
-    def dependants(self, node):
-        yield node.get_parent(self.survey), self.factory.qnode
-        yield from (var.target_measure, self for var in target_vars)
+    def dependants(self, measure):
+        yield measure.get_parent(self.config.survey), self.config.qnode_builder
+        yield from ((var.target_measure, self) for var in target_vars)
 
-    def ops(self, node):
-        return self.factory.measure_ops
+    def ops(self, measure):
+        return self.config.measure_ops
 
 
-# Survey structure ops
+# Survey structure ops - these update survey structure metadata.
 
 
 class SurveyOps(Ops):
     def __init__(self, survey):
         self.survey = survey
 
-    def evaluate(self, node, _, _):
-        node.n_measures = sum(qnode.n_measures for qnode in node.qnodes)
-        node.modified = datetime.utcnow()
+    def evaluate(self, survey, dependencies, dependants):
+        survey.n_measures = sum(qnode.n_measures for qnode in survey.qnodes)
+        survey.modified = datetime.utcnow()
 
 
 class QnodeOps(Ops):
     def __init__(self, survey):
         self.survey = survey
 
-    def evaluate(self, node, _, _):
-        total_weight = sum(measure.weight for measure in node.measures)
-        total_weight += sum(child.total_weight for child in node.children)
-        n_measures = len(node.measures)
-        n_measures += sum(child.n_measures for child in node.children)
+    def evaluate(self, qnode, dependencies, dependants):
+        total_weight = sum(measure.weight for measure in qnode.measures)
+        total_weight += sum(child.total_weight for child in qnode.children)
+        n_measures = len(qnode.measures)
+        n_measures += sum(child.n_measures for child in qnode.children)
 
-        node.total_weight = total_weight
-        node.n_measures = n_measures
+        qnode.total_weight = total_weight
+        qnode.n_measures = n_measures
 
 
 class MeasureOps(Ops):
     def __init__(self, survey):
         self.survey = survey
 
-    def evaluate(self, node, _, _):
+    def evaluate(self, measure, dependencies, dependants):
         pass
 
 
-# Submission score ops
+# Submission score ops - these update submission metadata (e.g. score).
 
 
 class SubmissionOps(Ops):
     def __init__(self, submission):
         self.submission = submission
 
-    def evaluate(self, node, _, _):
-        assert(self.submission.survey == node)
+    def evaluate(self, survey, dependencies, dependants):
+        assert(self.submission.survey == survey)
         stats = ResponseNodeStats()
         for c in self.submission.rnodes:
             stats.add_rnode(c)
@@ -164,8 +192,8 @@ class RnodeOps(Ops):
     def __init__(self, submission):
         self.submission = submission
 
-    def evaluate(self, node, _, _):
-        rnode = node.get_rnode(self.submission)
+    def evaluate(self, qnode, dependencies, dependants):
+        rnode = qnode.get_rnode(self.submission)
         if rnode is None:
             rnode = ResponseNode(
                 program=self.submission.program,
@@ -186,10 +214,10 @@ class ResponseOps(Ops):
     def __init__(self, submission):
         self.submission = submission
 
-    def evaluate(self, node, _, _):
-        response = self.get_response(node)
-        response_type = self.get_response_type(node.response_type)
-        scope = self.external_variables(response, node)
+    def evaluate(self, measure, dependencies, dependants):
+        response = self.get_response(measure)
+        response_type = self.get_response_type(measure.response_type)
+        scope = self.external_variables(response, measure)
         stats = ResponseStats(response_type)
         stats.update(response, scope)
         stats.to_response(response)
@@ -298,9 +326,9 @@ class ResponseStats:
                 (response.measure.get_path(response.submission.survey),
                  response.measure.title, str(e)))
 
-     def to_response(self, response):
-         response.score = self.score * response.measure.weight
-         response.variables = self.variables
-         response.variables['_raw'] = self.score
-         response.variables['_score'] = self.score * response.measure.weight
-         response.variables['_weight'] = response.measure.weight
+    def to_response(self, response):
+        response.score = self.score * response.measure.weight
+        response.variables = self.variables
+        response.variables['_raw'] = self.score
+        response.variables['_score'] = self.score * response.measure.weight
+        response.variables['_weight'] = response.measure.weight

@@ -1,3 +1,4 @@
+from collections import defaultdict
 import datetime
 import time
 import uuid
@@ -12,7 +13,7 @@ import crud
 import handlers
 import logging
 import model
-from score import SurveyUpdater
+from score import Calculator
 from utils import falsy, reorder, ToSon, truthy, updater
 
 
@@ -237,15 +238,7 @@ class MeasureHandler(
                 # Need to flush so object has an ID to record action against.
                 session.flush()
 
-                updaters = {}
-                def get_updater(qnode):
-                    updater = updaters.get(qnode.survey)
-                    if updater is not None:
-                        return updater
-                    updater = SurveyUpdater(qnode.survey)
-                    updaters[qnode.survey] = updater
-                    return updater
-
+                calculators = defaultdict(lambda s: Calculator.structural(s))
                 parents = []
                 for parent_id in parent_ids:
                     qnode = session.query(model.QuestionNode)\
@@ -255,10 +248,10 @@ class MeasureHandler(
                     qnode.measures.append(measure)
                     qnode.qnode_measures.reorder()
                     parents.append(qnode)
-                    get_updater(qnode.survey).mark_measure_dirty(measure)
+                    calculators[qnode.survey].mark_measure_dirty(measure)
 
-                for updater in updaters:
-                    updater.execute()
+                for calculator in calculators.values():
+                    calculator.execute()
 
                 measure_id = str(measure.id)
 
@@ -300,14 +293,7 @@ class MeasureHandler(
 
                 act = Activities(session)
 
-                updaters = {}
-                def get_updater(qnode):
-                    updater = updaters.get(qnode.survey)
-                    if updater is not None:
-                        return updater
-                    updater = SurveyUpdater(qnode.survey)
-                    updaters[qnode.survey] = updater
-                    return updater
+                calculators = defaultdict(lambda s: Calculator.structural(s))
 
                 # Just unlink from qnodes
                 for parent_id in parent_ids:
@@ -321,10 +307,10 @@ class MeasureHandler(
                             "Measure does not belong to that question node")
                     qnode.measures.remove(measure)
                     qnode.qnode_measures.reorder()
-                    get_updater(qnode.survey).mark_qnode_dirty(qnode)
+                    calculators[qnode.survey].mark_qnode_dirty(qnode)
 
-                for updater in updaters:
-                    updater.execute()
+                for calculator in calculators.values():
+                    calculator.execute()
 
                 act.record(self.current_user, measure, ['delete'])
                 if not act.has_subscription(self.current_user, measure):
@@ -364,17 +350,9 @@ class MeasureHandler(
                 if session.is_modified(measure):
                     verbs.append('update')
 
-                updaters = {}
-                def get_updater(qnode):
-                    updater = updaters.get(qnode.survey)
-                    if updater is not None:
-                        return updater
-                    updater = SurveyUpdater(qnode.survey)
-                    updaters[qnode.survey] = updater
-                    return updater
-
+                calculators = defaultdict(lambda s: Calculator.structural(s))
                 for parent in measure.parents:
-                    get_updater(parent).mark_qnode_dirty(parent)
+                    calculators[parent.survey].mark_qnode_dirty(parent)
 
                 has_relocated = False
                 for parent_id in parent_ids:
@@ -399,12 +377,12 @@ class MeasureHandler(
                             self.reason('Moved from %s' % old_parent.title)
                     new_parent.measures.append(measure)
                     new_parent.qnode_measures.reorder()
-                    get_updater(new_parent).mark_qnode_dirty(new_parent)
+                    calculators[new_parent.survey].mark_qnode_dirty(new_parent)
                 if has_relocated:
                     verbs.append('relation')
 
-                for updater in updaters.values():
-                    updater.execute()
+                for calculator in calculators.values():
+                    calculator.execute()
 
                 act = Activities(session)
                 act.record(self.current_user, measure, verbs)

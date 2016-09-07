@@ -16,7 +16,7 @@ import model
 import notifications
 import recalculate
 from response_type import ResponseTypeError
-from score import SubmissionUpdater
+from score import Calculator
 import utils
 
 
@@ -206,9 +206,9 @@ class DaemonTest(base.AqHttpTestBase):
                 else:
                     response.response_parts = [{'value': 1}]
 
-            updater = SubmissionUpdater(submission)
-            updater.mark_all_measures_dirty()
-            updater.execute()
+            calculator = Calculator.scoring(submission)
+            calculator.mark_all_measures_dirty()
+            calculator.execute()
 
             functions = list(submission.rnodes)
             self.assertAlmostEqual(functions[0].score, 20)

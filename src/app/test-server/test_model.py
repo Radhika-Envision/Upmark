@@ -14,7 +14,7 @@ from tornado.web import Application
 import app
 import base
 import model
-from score import SurveyUpdater
+from score import Calculator
 from utils import ToSon
 
 
@@ -95,9 +95,9 @@ class ProgramStructureTest(base.AqModelTestBase):
             self.assertEqual(q.measures[1].title, "Bar Measure")
             self.assertEqual(q.qnode_measures[1].seq, 1)
             q.measures.remove(q.measures[0])
-            updater = SurveyUpdater(h)
-            updater.mark_qnode_dirty(q)
-            updater.execute()
+            calculator = Calculator.structural(h)
+            calculator.mark_qnode_dirty(q)
+            calculator.execute()
             # Alter sequence: remove first element, and confirm that sequence
             # numbers update.
             session.flush()

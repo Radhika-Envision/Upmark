@@ -20,7 +20,7 @@ import app
 import handlers
 import model
 import response_type
-from score import SubmissionUpdater, SurveyUpdater
+from score import Calculator
 
 
 MAX_WORKERS = 4
@@ -280,9 +280,9 @@ class Importer():
                             qnode_subprocess.measures.append(m)
                             session.flush()
 
-            updater = SurveyUpdater(survey)
-            updater.mark_all_measures_dirty()
-            updater.execute()
+            calculator = Calculator.structural(survey)
+            calculator.mark_all_measures_dirty()
+            calculator.execute()
 
             return program_id
 
@@ -410,9 +410,9 @@ class Importer():
                     "Row %d: %s %s: %s" %
                     (row_num + 2, order, title, str(e)))
 
-            updater = SubmissionUpdater(submission)
-            updater.mark_all_measures_dirty()
-            updater.execute()
+            calculator = Calculator.scoring(submission)
+            calculator.mark_all_measures_dirty()
+            calculator.execute()
 
         return program_id
 

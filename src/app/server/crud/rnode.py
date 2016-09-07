@@ -18,7 +18,7 @@ import crud.program
 import handlers
 import model
 from response_type import ResponseTypeError
-from score import SubmissionUpdater
+from score import Calculator
 from utils import reorder, ToSon, truthy, updater
 
 
@@ -228,9 +228,9 @@ class ResponseNodeHandler(handlers.BaseHandler):
                     verbs.append('update')
 
                 try:
-                    updater = SubmissionUpdater(submission)
-                    updater.mark_qnode_dirty(rnode.qnode)
-                    updater.execute()
+                    calculator = Calculator.scoring(submission)
+                    calculator.mark_qnode_dirty(rnode.qnode)
+                    calculator.execute()
                 except ResponseTypeError as e:
                     raise handlers.ModelError(str(e))
 
@@ -258,7 +258,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
         submission = rnode.submission
         changed = failed = created = 0
 
-        updater = SubmissionUpdater(submission)
+        calculator = Calculator.scoring(submission)
         for response, is_new in self.walk_responses(session, rnode, missing):
             try:
                 crud.response.check_modify(self.current_user.role, response)
@@ -298,9 +298,9 @@ class ResponseNodeHandler(handlers.BaseHandler):
             else:
                 response.not_relevant = False
                 changed += 1
-            updater.mark_measure_dirty(response.measure)
+            calculator.mark_measure_dirty(response.measure)
 
-        updater.execute()
+        calculator.execute()
 
         if created:
             self.reason("Created %d" % created)
@@ -325,7 +325,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
         submission = rnode.submission
         promoted = demoted = created = 0
 
-        updater = SubmissionUpdater(submission)
+        calculator = Calculator.scoring(submission)
         for response, is_new in self.walk_responses(session, rnode, missing):
             if is_new:
                 response.not_relevant = True
@@ -344,9 +344,9 @@ class ResponseNodeHandler(handlers.BaseHandler):
                     response.approval = approval
                     response.modified = func.now()
                     demoted += 1
-            updater.mark_measure_dirty(response.measure)
+            calculator.mark_measure_dirty(response.measure)
 
-        updater.execute()
+        calculator.execute()
 
         if created:
             self.reason("Created %d (NA)" % created)
