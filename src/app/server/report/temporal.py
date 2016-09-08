@@ -134,7 +134,7 @@ class TemporalReportHandler(handlers.BaseHandler):
                     for col_index in range(len(row_data)):
                         if col_index == 0:
                             worksheet.write(row_index + 1, col_index,
-                                row_data[col_index].get_path(survey_id))
+                                row_data[col_index].title)
                         elif col_index == 1 and outfile == "temporal_complete":
                             worksheet.write(row_index + 1, col_index,
                                 row_data[col_index].name)
