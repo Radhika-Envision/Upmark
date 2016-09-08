@@ -61,7 +61,7 @@ def process_once(config):
 
             try:
                 calculator = Calculator.scoring(sub)
-                calculator.mark_all_measures_dirty()
+                calculator.mark_entire_survey_dirty()
                 calculator.execute()
                 count += 1
             except ResponseTypeError as error:

@@ -555,7 +555,7 @@ class Exporter():
             level_length = len(levels)
             worksheet.set_column(0, level_length, 50)
 
-            measures = list(survey.ordered_measures)
+            measures = [qm.m for qm in survey.ordered_qnode_measures]
 
             max_parts = 0
             longest_response_type = None

@@ -298,7 +298,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
             else:
                 response.not_relevant = False
                 changed += 1
-            calculator.mark_measure_dirty(response.measure)
+            calculator.mark_measure_dirty(response.qnode_measure)
 
         calculator.execute()
 
@@ -344,7 +344,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                     response.approval = approval
                     response.modified = func.now()
                     demoted += 1
-            calculator.mark_measure_dirty(response.measure)
+            calculator.mark_measure_dirty(response.qnode_measure)
 
         calculator.execute()
 

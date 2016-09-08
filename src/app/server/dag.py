@@ -1,3 +1,6 @@
+from collections import defaultdict
+
+
 class DagError(Exception):
     def __init__(self, *args, ops=None, node=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -34,7 +37,7 @@ class GraphBuilder:
     '''
 
     def __init__(self):
-        self.nodes = {}
+        self.meta_nodes = defaultdict(ProtoNodeMeta)
 
     def build(self):
         nodes_b = {}
@@ -46,7 +49,7 @@ class GraphBuilder:
             meta.depth = max((get_depth(nodes_b[b]) + 1 for b in deps), default=0)
             return meta.depth
 
-        for node, meta in self.nodes.items():
+        for node, meta in self.meta_nodes.items():
             nodes_b[node] = NodeMeta(node, meta.dependants.copy(), meta.ops)
 
         for meta_b in nodes_b.values():
@@ -60,27 +63,42 @@ class GraphBuilder:
 
         return Graph(graph)
 
-    def add_recursive(self, node, node_builder):
-        if node in self.nodes:
+    def add_with_dependants(self, node, node_builder):
+        '''
+        Add the node and all of its dependants to the graph.
+        '''
+        meta = self.meta_nodes[node]
+        if meta.dependants_added:
             return
-        meta = self.add(node).with_ops(node_builder.ops(node))
+        meta.dependants_added = True
+        meta.with_ops(node_builder.ops(node))
         for dependant, builder in node_builder.dependants(node):
             meta.with_dependant(dependant)
-            self.add_recursive(dependant, builder)
+            self.add_with_dependants(dependant, builder)
+
+    def add_with_dependencies(self, node, node_builder):
+        '''
+        Add the node, all of its dependencies, and all of their dependants,
+        to the graph.
+        '''
+        self.add_with_dependants(node, node_builder)
+        meta = self.meta_nodes[node]
+        if meta.dependencies_added:
+            return
+        meta.dependencies_added = True
+        for dependency, builder in node_builder.dependencies(node):
+            self.add_with_dependencies(dependency, builder)
 
     def add(self, node):
-        meta = self.nodes.get(node)
-        if meta is not None:
-            return meta
-        meta = ProtoNodeMeta()
-        self.nodes[node] = meta
-        return meta
+        return self.meta_nodes[node]
 
 
 class ProtoNodeMeta:
-    __slots__ = ('dependants', 'ops')
-    def __init__(self,):
+    __slots__ = ('dependants', 'dependants_added', 'dependencies_added', 'ops')
+    def __init__(self):
         self.dependants = set()
+        self.dependants_added = False
+        self.dependencies_added = False
         self.ops = NOOP
 
     def with_dependant(self, node):
@@ -112,6 +130,20 @@ class NodeBuilder:
             An iterator over the direct dependants of a node (towards the
             sinks / results). Any given dependant may appear in the sequence
             more than once.
+
+        This method must be overridden for a graph to be built.
+        '''
+        yield from ()
+
+    def dependencies(self, node):
+        '''
+        Returns:
+            An iterator over the direct dependencies of a node (towards the
+            source). Any given dependency may appear in the sequence
+            more than once.
+
+        This method is optional; it is only required for use with
+        `add_with_dependencies`.
         '''
         yield from ()
 

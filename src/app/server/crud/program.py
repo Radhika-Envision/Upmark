@@ -365,7 +365,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
         if response_types_changed:
             for survey in program.surveys:
                 calculator = Calculator.structural(survey)
-                calculator.mark_all_measures_dirty()
+                calculator.mark_entire_survey_dirty()
                 calculator.execute()
 
 class ProgramTrackingHandler(handlers.BaseHandler):

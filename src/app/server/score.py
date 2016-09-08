@@ -35,29 +35,32 @@ class Calculator:
     @classmethod
     def structural(cls, survey):
         config = GraphConfig(survey)
-        ops = SurveyOps(survey)
-        config.with_ops(ops)
+        manifest = StructureManifest(survey)
+        config.with_manifest(manifest)
         return cls(config)
 
     @classmethod
     def scoring(cls, submission):
         config = GraphConfig(submission.survey)
-        ops = SubmissionOps(submission)
-        config.with_ops(ops)
+        manifest = ScoreManifest(submission)
+        config.with_manifest(manifest)
         return cls(config)
 
-    def mark_survey_dirty(self, survey):
-        self.builder.add_recursive(survey, self.config.survey_builder)
+    def mark_survey_dirty(self):
+        self.builder.add_with_dependants(
+            self.config.survey, self.config.survey_builder)
+
+    def mark_entire_survey_dirty(self):
+        self.builder.add_with_dependencies(
+            self.config.survey, self.config.survey_builder)
 
     def mark_qnode_dirty(self, qnode):
-        self.builder.add_recursive(qnode, self.config.qnode_builder)
+        self.builder.add_with_dependants(
+            qnode, self.config.qnode_builder)
 
-    def mark_measure_dirty(self, measure):
-        self.builder.add_recursive(measure, self.config.measure_builder)
-
-    def mark_all_measures_dirty(self, survey):
-        for measure in survey.measures:
-            self.builder.add_recursive(measure, self.config.measure_builder)
+    def mark_measure_dirty(self, qnode_measure):
+        self.builder.add_with_dependants(
+            qnode_measure, self.config.measure_builder)
 
     def execute(self):
         graph = self.builder.build()
@@ -76,23 +79,22 @@ class GraphConfig:
         self.survey_ops = OpsProxy()
         self.qnode_ops = OpsProxy()
         self.measure_ops = OpsProxy()
-        self.with_ops(StructureOps(survey))
 
-    def with_ops(self, ops):
-        self.survey_ops.ops = ops.survey_ops
-        self.qnode_ops.ops = ops.qnode_ops
-        self.measure_ops.ops = ops.measure_ops
+    def with_manifest(self, manifest):
+        self.survey_ops.ops = manifest.survey_ops
+        self.qnode_ops.ops = manifest.qnode_ops
+        self.measure_ops.ops = manifest.measure_ops
         return self
 
 
-class StructureOps:
+class StructureManifest:
     def __init__(self, survey):
         self.survey_ops = SurveyOps(survey)
         self.qnode_ops = QnodeOps(survey)
         self.measure_ops = MeasureOps(survey)
 
 
-class ScoreOps:
+class ScoreManifest:
     def __init__(self, submission):
         self.survey_ops = SubmissionOps(submission)
         self.qnode_ops = RnodeOps(submission)
@@ -107,6 +109,10 @@ class SurveyBuilder(NodeBuilder):
     def __init__(self, config):
         self.config = config
 
+    def dependencies(self, survey):
+        yield from (
+            (qnode, self.config.qnode_builder) for qnode in survey.qnodes)
+
     def ops(self, survey):
         return self.config.survey_ops
 
@@ -119,7 +125,14 @@ class QnodeBuilder(NodeBuilder):
         if qnode.parent is not None:
             yield qnode.parent, self
         else:
-            yield qnode.survey, self.config.qnode_builder
+            yield qnode.survey, self.config.survey_builder
+
+    def dependencies(self, qnode):
+        yield from (
+            (child, self) for child in qnode.children)
+        yield from (
+            (qnode_measure, self.config.measure_builder)
+            for qnode_measure in qnode.qnode_measures)
 
     def ops(self, qnode):
         return self.config.qnode_ops
@@ -134,6 +147,11 @@ class MeasureBuilder(NodeBuilder):
         yield from (
             (var.target_qnode_measure, self)
             for var in qnode_measure.target_vars)
+
+    def dependencies(self, qnode_measure):
+        yield from (
+            (var.source_qnode_measure, self)
+            for var in qnode_measure.source_vars)
 
     def ops(self, measure):
         return self.config.measure_ops
@@ -156,9 +174,9 @@ class QnodeOps(Ops):
         self.survey = survey
 
     def evaluate(self, qnode, dependencies, dependants):
-        total_weight = sum(measure.weight for measure in qnode.measures)
+        total_weight = sum(qm.measure.weight for qm in qnode.qnode_measures)
         total_weight += sum(child.total_weight for child in qnode.children)
-        n_measures = len(qnode.measures)
+        n_measures = len(qnode.qnode_measures)
         n_measures += sum(child.n_measures for child in qnode.children)
 
         qnode.total_weight = total_weight
@@ -193,15 +211,7 @@ class RnodeOps(Ops):
         self.submission = submission
 
     def evaluate(self, qnode, dependencies, dependants):
-        rnode = qnode.get_rnode(self.submission)
-        if rnode is None:
-            rnode = ResponseNode(
-                program=self.submission.program,
-                submission=self.submission,
-                qnode=qnode)
-            object_session(self).add(rnode)
-            object_session(self).flush()
-
+        rnode = qnode.get_rnode(self.submission, create=True)
         stats = ResponseNodeStats()
         for child in rnode.children:
             stats.add_rnode(child)

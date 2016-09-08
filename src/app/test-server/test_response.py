@@ -132,17 +132,17 @@ class ResponseTypeTest(unittest.TestCase):
 
         with open(os.path.join(
                 proj_dir, 'client', 'default_response_types.json')) as file:
-            {
-                t['id']: ResponseType(t.get('name'), t['parts'], t.get('formula'))
+            [
+                ResponseType(t.get('name'), t['parts'], t.get('formula'))
                 for t in json.load(file)
-            }
+            ]
 
         with open(os.path.join(
                 proj_dir, 'server', 'aquamark_response_types.json')) as file:
-            {
-                t['id']: ResponseType(t.get('name'), t['parts'], t.get('formula'))
+            [
+                ResponseType(t.get('name'), t['parts'], t.get('formula'))
                 for t in json.load(file)
-            }
+            ]
 
     def test_comment_only(self):
         rt = self.rts['comment']
@@ -310,7 +310,7 @@ class SubmissionTest(base.AqHttpTestBase):
             session.flush()
 
             for m in program.measures:
-                if not any(p.survey_id == survey_1.id for p in m.parents):
+                if survey_1 not in (qm.survey for qm in m.qnode_measures):
                     continue
                 response = model.Response(
                     program_id=program.id,
@@ -347,7 +347,7 @@ class SubmissionTest(base.AqHttpTestBase):
             session.flush()
 
             calculator = Calculator.scoring(submission)
-            calculator.mark_all_measures_dirty()
+            calculator.mark_entire_survey_dirty()
             calculator.execute()
             submission.approval = 'final'
             session.flush()

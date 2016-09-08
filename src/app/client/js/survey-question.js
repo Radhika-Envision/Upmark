@@ -90,15 +90,6 @@ angular.module('wsaa.surveyQuestions', [
         });
         $scope.surveys = null;
         $scope.edit.edit();
-        $http.get('/default_response_types.json').then(
-            function success(response) {
-                $scope.edit.model.responseTypes = response.data;
-            },
-            function failure(details) {
-                Notifications.set('edit', 'warning',
-                    "Could not get response types: " + details.statusText);
-            }
-        );
         $scope.duplicating = false;
     }
 

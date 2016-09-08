@@ -39,25 +39,25 @@ class ProgramStructureTest(base.AqModelTestBase):
             self.assertEqual(q.title, "Function 1")
             self.assertEqual(q.seq, 0)
             self.assertEqual(len(q.children), 2)
-            self.assertEqual(len(q.measures), 0)
+            self.assertEqual(len(q.qnode_measures), 0)
             self.assertEqual(q.n_measures, 3)
 
             q = q.children[0]
             self.assertEqual(q.title, "Process 1.1")
             self.assertEqual(q.seq, 0)
             self.assertEqual(len(q.children), 0)
-            self.assertEqual(len(q.measures), 2)
+            self.assertEqual(len(q.qnode_measures), 2)
             self.assertEqual(q.n_measures, 2)
 
             # Test association proxy from measure to qnode (via qnode_measure)
             self.assertEqual(q.qnode_measures[0].seq, 0)
             self.assertEqual(q.qnode_measures[1].seq, 1)
-            m = q.measures[0]
+            m = q.qnode_measures[0].measure
             self.assertEqual(m.title, "Foo Measure")
-            self.assertIn(q, m.parents)
+            self.assertIn(q.qnode_measures[0], m.qnode_measures)
 
             # Test association proxy from qnode to measure (via qnode_measure)
-            self.assertEqual(m.parents[0], q)
+            self.assertEqual(m.m.qnode_measures[0], q.qnode_measures[0])
 
 #            to_son = ToSon(
 #                r'/title$',
@@ -88,21 +88,21 @@ class ProgramStructureTest(base.AqModelTestBase):
             program = session.query(model.Program).first()
             h = program.surveys[0]
             q = h.qnodes[0].children[0]
-            self.assertEqual(len(q.measures), 2)
+            self.assertEqual(len(q.qnode_measures), 2)
             self.assertEqual(q.parent.n_measures, 3)
-            self.assertEqual(q.measures[0].title, "Foo Measure")
+            self.assertEqual(q.qnode_measures[0].measure.title, "Foo Measure")
             self.assertEqual(q.qnode_measures[0].seq, 0)
-            self.assertEqual(q.measures[1].title, "Bar Measure")
+            self.assertEqual(q.qnode_measures[1].measure.title, "Bar Measure")
             self.assertEqual(q.qnode_measures[1].seq, 1)
-            q.measures.remove(q.measures[0])
+            q.qnode_measures.remove(q.qnode_measures[0])
             calculator = Calculator.structural(h)
             calculator.mark_qnode_dirty(q)
             calculator.execute()
             # Alter sequence: remove first element, and confirm that sequence
             # numbers update.
             session.flush()
-            self.assertEqual(len(q.measures), 1)
-            self.assertEqual(q.measures[0].title, "Bar Measure")
+            self.assertEqual(len(q.qnode_measures), 1)
+            self.assertEqual(q.qnode_measures[0].measure.title, "Bar Measure")
             self.assertEqual(q.qnode_measures[0].seq, 0)
             self.assertEqual(q.n_measures, 1)
             self.assertEqual(q.parent.n_measures, 2)
@@ -112,7 +112,7 @@ class ProgramStructureTest(base.AqModelTestBase):
         with model.session_scope() as session:
             program = session.query(model.Program).first()
             q = program.surveys[0].qnodes[0].children[0]
-            q.measures.remove(q.measures[0])
+            q.qnode_measures.remove(q.qnode_measures[0])
 
         # Find orphans using outer join
         with model.session_scope() as session:
@@ -213,24 +213,14 @@ class ProgramTest(base.AqHttpTestBase):
         with model.session_scope() as session:
             program = session.query(model.Program).first()
             h = program.surveys[0]
-            q = h.qnodes[0].children[0]
-            q2 = h.qnodes[0].children[1]
             sid = str(program.id)
             hid = str(h.id)
-            qid = str(q.id)
-            qid2 = str(q2.id)
-            mid1 = str(q.measures[0].id)
-            mid2 = str(q.measures[0].id)
             m3 = (session.query(model.Measure)
                 .filter_by(title='Baz Measure')
                 .one())
-            mid3 = str(m3.id)
             user = (session.query(model.AppUser)
                     .filter_by(email='author')
                     .one())
-            self.organisation_id = str(user.organisation.id)
-            program_id = program.id
-            survey_id = h.id
 
         with base.mock_user('author'):
             # Query for qnodes based on deletion
@@ -278,9 +268,9 @@ class ModifyProgramTest(base.AqHttpTestBase):
             self.hid = str(h.id)
             self.qidA, self.qidB, self.qidAA, self.qidAB = [
                 str(q.id) for q in (qA, qB, qAA, qAB)]
-            self.midAAA = str(qAA.measures[0].id)
-            self.midAAB = str(qAA.measures[1].id)
-            self.midABA = str(qAB.measures[0].id)
+            self.midAAA = str(qAA.qnode_measures[0].measure_id)
+            self.midAAB = str(qAA.qnode_measures[1].measure_id)
+            self.midABA = str(qAB.qnode_measures[0].measure_id)
             user = (session.query(model.AppUser)
                     .filter_by(email='author')
                     .one())
@@ -303,8 +293,8 @@ class ModifyProgramTest(base.AqHttpTestBase):
         def measures(roots):
             # All measures under a qnode
             for qn in qnodes(roots):
-                for m in qn.measures:
-                    yield m
+                for qm in qn.qnode_measures:
+                    yield qm.m
 
         with model.session_scope() as session:
             for h in (session.query(model.Survey)
@@ -565,10 +555,6 @@ class ModifyProgramTest(base.AqHttpTestBase):
                 for qma, qmb in zip(a.qnode_measures, b.qnode_measures):
                     visit_qnode_measure(qma, qmb, a, b)
 
-                self.assertEqual(len(a.measures), len(b.measures))
-                for ma, mb in zip(a.measures, b.measures):
-                    visit_measure(ma, mb, None, None, a, b)
-
             def visit_qnode_measure(a, b, qa, qb):
                 log.info("Visiting qnode_measure pair %s and %s", a, b)
                 self.assertEqual(a.qnode_id, b.qnode_id)
@@ -585,9 +571,9 @@ class ModifyProgramTest(base.AqHttpTestBase):
                 self.assertEqual(a.qnode, qa)
                 self.assertEqual(b.qnode, qb)
 
-                visit_measure(a.measure, b.measure, a, b, qa, qb)
+                visit_measure(a.measure, b.measure, a, b)
 
-            def visit_measure(a, b, qma, qmb, pa, pb):
+            def visit_measure(a, b, qma, qmb):
                 log.info("Visiting measure pair %s and %s", a, b)
                 self.assertEqual(a.id, b.id)
                 self.assertNotEqual(a, b)
@@ -603,19 +589,13 @@ class ModifyProgramTest(base.AqHttpTestBase):
                     self.assertIn(qmb, b.qnode_measures)
                     self.assertNotIn(qmb, a.qnode_measures)
 
-                if pa is not None:
-                    self.assertIn(pa, a.parents)
-                    self.assertNotIn(pa, b.parents)
-                    self.assertIn(pb, b.parents)
-                    self.assertNotIn(pb, a.parents)
-
             # A has five measures, but two are only referenced by deleted nodes.
             self.assertEqual(len(sa.measures), 5)
             self.assertEqual(len(sb.measures), 3)
             measures_in_a = {m.id: m for m in sa.measures}
             for b in sb.measures:
                 a = measures_in_a[b.id]
-                visit_measure(a, b, None, None, None, None)
+                visit_measure(a, b, None, None)
 
             # A has three surveys, but one is deleted.
             self.assertEqual(len(sa.surveys), 2)

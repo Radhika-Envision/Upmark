@@ -158,31 +158,31 @@ class AqModelTestBase(unittest.TestCase):
                 'title': "Foo Measure",
                 'description': "Foo",
                 'weight': 3,
-                'response_type': 'yes-no'
+                'response_type': 'Yes / No'
             },
             {
                 'title': "Bar Measure",
                 'description': "Bar",
                 'weight': 6,
-                'response_type': 'yes-no'
+                'response_type': 'Yes / No'
             },
             {
                 'title': "Baz Measure",
                 'description': "Baz",
                 'weight': 11,
-                'response_type': 'numerical'
+                'response_type': 'Numerical'
             },
             {
                 'title': "Unreferenced Measure 1",
                 'description': "Deleted",
                 'weight': 12,
-                'response_type': 'yes-no'
+                'response_type': 'Yes / No'
             },
             {
                 'title': "Unreferenced Measure 2",
                 'description': "Deleted",
                 'weight': 13,
-                'response_type': 'yes-no'
+                'response_type': 'Yes / No'
             },
         ]
 
@@ -245,7 +245,7 @@ class AqModelTestBase(unittest.TestCase):
                     },
                     {
                         'title': "Function 2",
-                        'description': "Test",
+                        'description': "Empty category",
                     },
                     {
                         'title': "Function 3",
@@ -355,15 +355,25 @@ class AqModelTestBase(unittest.TestCase):
             program.response_types = response_types
             session.add(program)
 
+            # Create response types
+            rts = {}
+            for rt_def in response_types:
+                rt = model.ResponseType(program=program, **rt_def)
+                rts[rt_def['name']] = rt
+                session.add(rt)
+
             # Create measures
             all_measures = []
             for mson in msons:
-                measure = model.Measure(program=program, **mson)
+                mson_clean = mson.copy()
+                del mson_clean['response_type']
+                measure = model.Measure(program=program, **mson_clean)
+                measure.response_type = rts[mson['response_type']]
                 session.add(measure)
                 all_measures.append(measure)
             program.measures = all_measures
 
-            # Create survey and qnodes
+            # Create qnodes
             def create_qnodes(qsons, survey, parent=None):
                 qnodes = []
                 for qson in qsons:
@@ -390,6 +400,7 @@ class AqModelTestBase(unittest.TestCase):
                     qnode.qnode_measures.reorder()
                 return qnodes
 
+            # Create survey
             def create_surveys(hsons):
                 surveys = []
                 for hson in hsons:
@@ -409,7 +420,7 @@ class AqModelTestBase(unittest.TestCase):
                         hson['qnodes'], survey)
                     survey.qnodes.reorder()
                     calculator = Calculator.structural(survey)
-                    calculator.mark_all_measures_dirty()
+                    calculator.mark_entire_survey_dirty()
                     calculator.execute()
                 return surveys
 

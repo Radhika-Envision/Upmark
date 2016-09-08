@@ -374,13 +374,13 @@ class QuestionNodeHandler(
 
                 qnode.deleted = True
 
-                calculator = Calculator.structural(qnode.survey)
-                if survey is not None:
-                    survey.qnodes.reorder()
-                    calculator.mark_survey_dirty(qnode)
+                calculator = Calculator.structural(survey)
                 if parent is not None:
                     parent.children.reorder()
                     calculator.mark_qnode_dirty(parent)
+                else:
+                    survey.qnodes.reorder()
+                    calculator.mark_survey_dirty()
                 calculator.execute()
 
         except sqlalchemy.exc.IntegrityError as e:

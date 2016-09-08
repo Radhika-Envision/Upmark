@@ -188,7 +188,7 @@ class DaemonTest(base.AqHttpTestBase):
             session.add(submission)
 
             for m in program.measures:
-                if not any(p.survey_id == survey.id for p in m.parents):
+                if not any(qm.survey == survey for qm in m.qnode_measures):
                     continue
                 response = model.Response(
                     program_id=program.id,
@@ -207,7 +207,7 @@ class DaemonTest(base.AqHttpTestBase):
                     response.response_parts = [{'value': 1}]
 
             calculator = Calculator.scoring(submission)
-            calculator.mark_all_measures_dirty()
+            calculator.mark_entire_survey_dirty()
             calculator.execute()
 
             functions = list(submission.rnodes)

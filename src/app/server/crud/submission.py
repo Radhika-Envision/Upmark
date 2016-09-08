@@ -239,8 +239,8 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
 
         survey_id = str(submission.survey.id)
         measure_ids = {str(m.id) for m in submission.program.measures
-                       if any(str(p.survey_id) == survey_id
-                              for p in m.parents)}
+                       if any(str(qm.survey_id) == survey_id
+                              for qm in m.qnode_measures)}
 
         qnode_ids = {str(r[0]) for r in
                 session.query(model.QuestionNode.id)
@@ -305,7 +305,7 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
 
         session.flush()
         calculator = Calculator.scoring(submission)
-        calculator.mark_all_measures_dirty()
+        calculator.mark_entire_survey_dirty()
         calculator.execute()
 
     def fill_random(self, submission, session):
@@ -329,8 +329,8 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
             score = 0
             for child in qnode.children:
                 score += visit_qnode(child, new_bias(bias))
-            for measure in qnode.measures:
-                score += new_bias(bias) * measure.weight
+            for qnode_measure in qnode.qnode_measures:
+                score += new_bias(bias) * qnode_measure.measure.weight
             rnode.score = score
             return score
 

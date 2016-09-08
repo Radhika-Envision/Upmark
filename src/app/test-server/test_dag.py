@@ -77,10 +77,10 @@ class DagTest(unittest.TestCase):
 
         builder = GraphBuilder()
         vbuilder = VBuilder()
-        builder.add_recursive(one, vbuilder)
-        builder.add_recursive(two, vbuilder)
-        builder.add_recursive(three, vbuilder)
-        builder.add_recursive(four, vbuilder)
+        builder.add_with_dependants(one, vbuilder)
+        builder.add_with_dependants(two, vbuilder)
+        builder.add_with_dependants(three, vbuilder)
+        builder.add_with_dependants(four, vbuilder)
         graph = builder.build()
         graph.evaluate()
 
@@ -108,10 +108,10 @@ class DagTest(unittest.TestCase):
 
         builder = GraphBuilder()
         vbuilder = VBuilder()
-        builder.add_recursive(one, vbuilder)
-        builder.add_recursive(two, vbuilder)
-        builder.add_recursive(three, vbuilder)
-        builder.add_recursive(four, vbuilder)
+        builder.add_with_dependants(one, vbuilder)
+        builder.add_with_dependants(two, vbuilder)
+        builder.add_with_dependants(three, vbuilder)
+        builder.add_with_dependants(four, vbuilder)
         graph = builder.build()
         graph.evaluate()
 

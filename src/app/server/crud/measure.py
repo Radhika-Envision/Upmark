@@ -1,4 +1,3 @@
-from collections import defaultdict
 import datetime
 import time
 import uuid
@@ -14,7 +13,7 @@ import handlers
 import logging
 import model
 from score import Calculator
-from utils import falsy, reorder, ToSon, truthy, updater
+from utils import falsy, keydefaultdict, reorder, ToSon, truthy, updater
 
 
 log = logging.getLogger('app.crud.measure')
@@ -179,7 +178,7 @@ class MeasureHandler(
             sons = to_son(measures)
 
             for mson, measure in zip(sons, measures):
-                mson['orphan'] = len(measure.parents) == 0
+                mson['orphan'] = len(measure.qnode_measures) == 0
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
@@ -190,7 +189,6 @@ class MeasureHandler(
             # Only children of a certain qnode
             qnode = session.query(model.QuestionNode)\
                 .get((qnode_id, self.program_id))
-            measures = qnode.measures
 
             to_son = ToSon(
                 # Fields to match from any visited object
@@ -204,14 +202,11 @@ class MeasureHandler(
                 r'/[0-9]+$',
                 r'/program$',
             )
-            sons = to_son(measures)
-
-            # Add seq field to measures, because it's not available on the
-            # measure objects themselves: the ordinal lives in a separate
-            # association table.
-            measure_seq = qnode.measure_seq
-            for mson, seq in zip(sons, measure_seq):
-                mson['seq'] = seq
+            sons = []
+            for qm in qnode.qnode_measures:
+                mson = to_son(qm.measure)
+                mson.update(to_son(qm))
+                sons.append(mson)
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
@@ -238,17 +233,19 @@ class MeasureHandler(
                 # Need to flush so object has an ID to record action against.
                 session.flush()
 
-                calculators = defaultdict(lambda s: Calculator.structural(s))
-                parents = []
+                calculators = keydefaultdict(lambda s: Calculator.structural(s))
                 for parent_id in parent_ids:
                     qnode = session.query(model.QuestionNode)\
                         .get((parent_id, self.program_id))
                     if qnode is None:
                         raise handlers.ModelError("No such question node")
-                    qnode.measures.append(measure)
+                    qnode_measure = model.QnodeMeasure(
+                        program=qnode.program, survey=qnode.survey,
+                        qnode=qnode, measure=measure)
+                    qnode.qnode_measures.append(qnode_measure)
+                    measure.qnode_measures.append(qnode_measure)
                     qnode.qnode_measures.reorder()
-                    parents.append(qnode)
-                    calculators[qnode.survey].mark_measure_dirty(measure)
+                    calculators[qnode.survey].mark_measure_dirty(qnode_measure)
 
                 for calculator in calculators.values():
                     calculator.execute()
@@ -256,7 +253,7 @@ class MeasureHandler(
                 measure_id = str(measure.id)
 
                 verbs = ['create']
-                if len(parents) > 0:
+                if len(parent_ids) > 0:
                     verbs.append('relation')
 
                 act = Activities(session)
@@ -293,19 +290,21 @@ class MeasureHandler(
 
                 act = Activities(session)
 
-                calculators = defaultdict(lambda s: Calculator.structural(s))
+                calculators = keydefaultdict(lambda s: Calculator.structural(s))
 
                 # Just unlink from qnodes
                 for parent_id in parent_ids:
-                    qnode = session.query(model.QuestionNode)\
-                        .get((parent_id, self.program_id))
+                    qnode = (session.query(model.QuestionNode)
+                        .get((parent_id, self.program_id)))
                     if qnode is None:
                         raise handlers.MissingDocError(
                             "No such question node")
-                    if measure not in qnode.measures:
+                    qnode_measure = (session.query(model.QnodeMeasure)
+                        .get((self.program_id, qnode.survey_id, qnode.id)))
+                    if qnode_measure is None:
                         raise handlers.ModelError(
                             "Measure does not belong to that question node")
-                    qnode.measures.remove(measure)
+                    qnode.qnode_measures.remove(qnode_measure)
                     qnode.qnode_measures.reorder()
                     calculators[qnode.survey].mark_qnode_dirty(qnode)
 
@@ -350,9 +349,10 @@ class MeasureHandler(
                 if session.is_modified(measure):
                     verbs.append('update')
 
-                calculators = defaultdict(lambda s: Calculator.structural(s))
-                for parent in measure.parents:
-                    calculators[parent.survey].mark_qnode_dirty(parent)
+                calculators = keydefaultdict(lambda s: Calculator.structural(s))
+                for qnode_measure in measure.qnode_measures:
+                    calculators[qnode_measure.survey].mark_measure_dirty(
+                        qnode_measure)
 
                 has_relocated = False
                 for parent_id in parent_ids:
@@ -362,7 +362,7 @@ class MeasureHandler(
                         .get((parent_id, self.program_id))
                     if new_parent is None:
                         raise handlers.ModelError("No such question node")
-                    if new_parent in measure.parents:
+                    if new_parent in (qm.qnode for qm in measure.qnode_measures):
                         continue
                     self.reason('Added to %s' % new_parent.title)
                     has_relocated = True
@@ -375,7 +375,10 @@ class MeasureHandler(
                             session.delete(old_qm)
                             old_parent.qnode_measures.reorder()
                             self.reason('Moved from %s' % old_parent.title)
-                    new_parent.measures.append(measure)
+                    qnode_measure = QnodeMeasure(
+                        program=measure.program, survey=new_parent.survey,
+                        parent=new_parent, measure=measure)
+                    new_parent.qnode_measures.append(qnode_measure)
                     new_parent.qnode_measures.reorder()
                     calculators[new_parent.survey].mark_qnode_dirty(new_parent)
                 if has_relocated:

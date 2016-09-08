@@ -40,6 +40,10 @@ class ModelError(Exception):
     pass
 
 
+def is_id(ob_or_id):
+    return isinstance(ob_or_id, (str, uuid.UUID))
+
+
 ActionDescriptor = namedtuple(
     'ActionDescriptor',
     'message, ob_type, ob_ids, ob_refs')
@@ -408,11 +412,10 @@ class Survey(Observable, Base):
         return validate_with_humanized_errors(s, Survey._structure_schema)
 
     @property
-    def ordered_measures(self):
+    def ordered_qnode_measures(self):
         '''Returns all measures in depth-first order'''
         for qnode in self.qnodes:
-            for measure in qnode.ordered_measures:
-                yield measure
+            yield from qnode.ordered_qnode_measures
 
     @property
     def min_stats_approval(self):
@@ -483,14 +486,19 @@ class QuestionNode(Observable, Base):
 
     program = relationship(Program)
 
-    def get_rnode(self, submission):
-        if isinstance(submission, (str, uuid.UUID)):
-            submission_id = submission
-        else:
-            submission_id = submission.id
-        return (object_session(self).query(ResponseNode)
-            .filter_by(submission_id=submission_id, qnode_id=self.id)
+    def get_rnode(self, submission, create=False):
+        sid = is_id(submission) and submission or submission.id
+        rnode = (object_session(self).query(ResponseNode)
+            .filter_by(submission_id=sid, qnode_id=self.id)
             .first())
+        if not rnode and create:
+            rnode = ResponseNode(program=self.program, qnode=self)
+            if is_id(submission):
+                rnode.submission_id = submission
+            else:
+                rnode.submission = submission
+            object_session(self).add(rnode)
+        return rnode
 
     def lineage(self):
         if self.parent_id:
@@ -505,13 +513,11 @@ class QuestionNode(Observable, Base):
         return self.deleted or self.parent_id and self.parent.any_deleted()
 
     @property
-    def ordered_measures(self):
-        '''Returns all measures in depth-first order'''
+    def ordered_qnode_measures(self):
+        '''Returns all qnode/measures in depth-first order'''
         for child in self.children:
-            for measure in child.ordered_measures:
-                yield measure
-        for measure in self.measures:
-            yield measure
+            yield from child.ordered_qnode_measures
+        yield from self.qnode_measures
 
     @property
     def ob_type(self):
@@ -605,7 +611,7 @@ class Measure(Observable, Base):
 
     @property
     def action_lineage(self):
-        hs = [p.survey for p in self.parents]
+        hs = [qm.survey for qm in self.qnode_measures]
         return [self.program] + hs + self.lineage()
 
     def __repr__(self):
@@ -647,33 +653,6 @@ class QnodeMeasure(Base):
     )
 
     program = relationship(Program)
-
-    # This constructor is used by association_proxy when adding items to the
-    # collection.
-    def __init__(self, measure=None, qnode=None, seq=None, program=None,
-                 **kwargs):
-        self.measure = measure
-        self.qnode = qnode
-        self.seq = seq
-
-        # Accessing measure.program or qnode.program may cause a flush if it
-        # hasn't been initialised yet - but we don't want that to happen now,
-        # because this object hasn't been fully initialised, which would mean
-        # the insertion would fail and cause a rollback. Instead, fall back to
-        # assigning the program ID instead of using the relationship.
-        with object_session(self).no_autoflush:
-            if program:
-                self.program = program
-            elif measure:
-                self.program = measure.program
-                if not self.program:
-                    self.program_id = measure.program_id
-            elif qnode:
-                self.program = qnode.program
-                if not self.program:
-                    self.program_id = qnode.program_id
-
-        super().__init__(**kwargs)
 
     def get_path(self):
         return "%s %d." % (self.qnode.get_path(), self.seq + 1)
@@ -982,22 +961,8 @@ class Response(Observable, Versioned, Base):
     user = relationship(AppUser)
 
     @property
-    def parent_qnode(self):
-        for p in self.measure.parents:
-            if p.survey_id == self.submission.survey_id:
-                return p
-        # Might happen if a measure is unlinked after the response is
-        # created
-        return None
-
-    @property
     def parent(self):
-        qnode = self.parent_qnode
-        if qnode is None:
-            # Might happen if a measure is unlinked after the response is
-            # created
-            return None
-        return qnode.get_rnode(self.submission)
+        return self.qnode_measure.qnode.get_rnode(self.submission)
 
     @validates('response_parts')
     def validate_response_parts(self, k, s):
@@ -1005,7 +970,7 @@ class Response(Observable, Versioned, Base):
 
     def lineage(self):
         return ([q.get_rnode(self.submission_id)
-                 for q in self.parent_qnode.lineage()] +
+                 for q in self.qnode_measure.qnode.lineage()] +
                 [self])
 
     @property
@@ -1032,7 +997,7 @@ class Response(Observable, Versioned, Base):
         # Use qnodes and the measure instead of rnodes and the response for
         # lineage, because rnode.id and response.id are not part of the API.
         lineage = ([self.submission.id] +
-                   [q.id for q in self.parent_qnode.lineage()] +
+                   [q.id for q in self.qnode_measure.qnode.lineage()] +
                    [self.measure_id])
         return ActionDescriptor(
             self.ob_title, self.ob_type, self.ob_ids, lineage)
@@ -1286,11 +1251,6 @@ Measure.qnode_measures = relationship(
     QnodeMeasure, backref='measure',
     primaryjoin=(foreign(QnodeMeasure.measure_id) == Measure.id) &
                 (QnodeMeasure.program_id == Measure.program_id))
-
-
-QuestionNode.measures = association_proxy('qnode_measures', 'measure')
-QuestionNode.measure_seq = association_proxy('qnode_measures', 'seq')
-Measure.parents = association_proxy('qnode_measures', 'qnode')
 
 
 Measure.response_type = relationship(

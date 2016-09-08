@@ -277,11 +277,15 @@ class Importer():
                             m.response_type = response_type
                             session.add(m)
                             session.flush()
-                            qnode_subprocess.measures.append(m)
+                            qnode_measure = QnodeMeasure(
+                                program=program, survey=survey,
+                                parent=qnode_subprocess, measure=m)
+                            qnode_subprocess.qnode_measures.append(m)
+                            qnode_subprocess.qnode_measures.reorder()
                             session.flush()
 
             calculator = Calculator.structural(survey)
-            calculator.mark_all_measures_dirty()
+            calculator.mark_entire_survey_dirty()
             calculator.execute()
 
             return program_id
@@ -412,7 +416,7 @@ class Importer():
                     (row_num + 2, order, title, str(e)))
 
             calculator = Calculator.scoring(submission)
-            calculator.mark_all_measures_dirty()
+            calculator.mark_entire_survey_dirty()
             calculator.execute()
 
         return program_id

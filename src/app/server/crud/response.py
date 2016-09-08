@@ -274,7 +274,7 @@ class ResponseHandler(handlers.BaseHandler):
 
                 try:
                     calculator = Calculator.scoring(submission)
-                    calculator.mark_measure_dirty(response.measure)
+                    calculator.mark_measure_dirty(response.qnode_measure)
                     calculator.execute()
                 except ResponseTypeError as e:
                     raise handlers.ModelError(str(e))
