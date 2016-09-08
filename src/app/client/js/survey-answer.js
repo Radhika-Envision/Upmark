@@ -45,10 +45,11 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         'Notifications', 'Structure', '$http',
         function($scope, Submission, Survey, routeData, Editor, authz,
                  layout, $location, current, format, $filter, Notifications,
-                 Structure, $http) {
+                 Structure, $http, uibDateParser) {
 
     $scope.layout = layout;
     $scope.program = routeData.program;
+    $scope.format = "dd/MM/yyyy";
     $scope.edit = Editor('submission', $scope, {});
     if (routeData.submission) {
         // Editing old
@@ -75,6 +76,8 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         $scope.edit.edit();
     }
 
+    $scope.date = new Date(1000 * $scope.submission.created);
+
     $scope.$watchGroup(['submission', 'submission.deleted'], function(vars) {
         var submission = vars[0];
         if (!submission)
@@ -92,6 +95,39 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         }
         $scope.edit.params.surveyId = survey.id;
     });
+
+    $scope.$watch('edit.model.created', function (created) {
+        if (!$scope.edit.model)
+            return;
+        $scope.edit.model.$created = new Date(1000 * created);
+    });
+    $scope.$watch('edit.model.$created', function (created) {
+        if (!$scope.edit.model)
+            return;
+        if (created != null) {
+            $scope.edit.model.created = created.getTime() / 1000;
+            $scope.date = created;
+        };
+    });
+
+    $scope.calender = {
+      opened: false
+    };
+    $scope.dateOptions = {
+      dateDisabled: disabled,
+      formatYear: 'yy',
+      startingDay: 1
+    };
+    // Disable weekend selection
+    function disabled(data) {
+      var date = data.date,
+      mode = data.mode;
+    return mode === 'day' && (date.getDay() === 0 || date.getDay() === 6);
+    };
+
+    $scope.openCalender = function() {
+        $scope.calender.opened = true
+    };
 
     $scope.setState = function(state) {
         $scope.submission.$save({approval: state},

@@ -104,6 +104,20 @@
             <input type="text" class="form-control" id="title" name="title"
                 ng-model="edit.model.title" required />
         </div>
+        <div class="form-group" show-errors>
+            <label> Submission Date</label>
+            <div class="input-group">
+                <input type="text" uib-datepicker-popup="{{format}}"
+                        class="form-control" ng-model="edit.model.$created"
+                        is-open="calender.opened" datepicker-options="dateOptions"
+                        ng-required="true" close-text="Close">
+                </input>
+                <span class="input-group-btn">
+                    <button type="button" class="btn btn-default" ng-click="openCalender()">
+                        <i class="glyphicon glyphicon-calendar"></i></button>
+                </span>
+            </div>
+        </div>
         <div class="checkbox"
                 ng-if="!edit.model.id && !duplicate && checkRole('program_edit')">
             <label>
@@ -128,6 +142,8 @@
     <!-- Don't wrap the contents of this tag! -->
     <p ng-if="submission.survey.description"
             class="formatted">Submission against {{submission.survey.description}}</p>
+
+    <label> Submission Date: </label><span> {{date.toDateString()}} </span>
 
     <approval-buttons class="spaced" model="submission.approval"
             ng-if="!structure.deletedItem"
