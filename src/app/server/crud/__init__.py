@@ -8,6 +8,7 @@ from . import program
 from . import survey
 from . import qnode
 from . import measure
+from . import response_type
 
 from . import submission
 from . import rnode

@@ -20,7 +20,7 @@ from score import Calculator
 import utils
 
 
-log = logging.getLogger('app.test_daemon')
+log = logging.getLogger('app.test.test_daemon')
 
 
 class ExpectedError(Exception):

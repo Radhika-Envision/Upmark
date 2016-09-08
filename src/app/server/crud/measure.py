@@ -77,9 +77,7 @@ class MeasureHandler(
                 # Fields to match from only the root object
                 r'<^/description$',
                 r'^/weight$',
-                r'^/response_type(/.*)?$',
-                r'!^/response_type/measures$',
-                r'!^/response_type/program$',
+                r'^/response_type_id$',
                 # Descend into nested objects
                 r'/parent$',
                 r'/survey$',
@@ -434,4 +432,3 @@ class MeasureHandler(
         update('title', son)
         update('weight', son)
         update('description', son, sanitise=True)
-        update('response_type', son)

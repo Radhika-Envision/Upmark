@@ -20,7 +20,7 @@ from score import Calculator
 from utils import ToSon
 
 
-log = logging.getLogger('app.test_response')
+log = logging.getLogger('app.test.test_response')
 
 
 TEST_RESPONSE_TYPES = [

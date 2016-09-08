@@ -17,7 +17,7 @@ import model
 from utils import ToSon
 
 
-log = logging.getLogger('app.test_authz')
+log = logging.getLogger('app.test.test_authz')
 
 
 class StatisticsAuthzTest(base.AqHttpTestBase):

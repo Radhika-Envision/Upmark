@@ -88,7 +88,6 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/is_editable$',
                 r'/has_quality$',
                 r'/hide_aggregate$',
-                r'/response_types.*$'
             )
             if not self.has_privillege('author'):
                 to_son.exclude(
@@ -352,21 +351,12 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         Apply program-provided data to the saved model.
         '''
-        response_types_changed = program.response_types != son['response_types']
         update = updater(program)
         update('title', son)
         update('description', son, sanitise=True)
         update('has_quality', son)
         update('hide_aggregate', son)
-        try:
-            update('response_types', son)
-        except voluptuous.Error as e:
-            raise handlers.ModelError("Response types are invalid: %s" % str(e))
-        if response_types_changed:
-            for survey in program.surveys:
-                calculator = Calculator.structural(survey)
-                calculator.mark_entire_survey_dirty()
-                calculator.execute()
+
 
 class ProgramTrackingHandler(handlers.BaseHandler):
 

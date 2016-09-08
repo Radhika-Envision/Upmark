@@ -692,8 +692,19 @@ class ResponseType(Base):
 
     @validates('parts')
     def validate_parts(self, k, parts):
-        return validate_with_humanized_errors(
+        parts = validate_with_humanized_errors(
             parts, response_type.response_parts_schema)
+        response_type.validate_parts(parts)
+        return parts
+
+    @validates('formula')
+    def validate_parts(self, k, formula):
+        response_type.validate_formula(formula)
+        return formula
+
+    @property
+    def n_measures(self):
+        return object_session(self).query(Measure).with_parent(self).count()
 
 
 class MeasureVariable(Base):

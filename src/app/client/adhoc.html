@@ -182,9 +182,9 @@
                 surveys, but not between programs (there is a many-to-many
                 relationship with the <code>qnode</code> table, via the
                 <code>qnode_measure</code> table). The
-                <code>response_type</code> determines
-                the options available to the user. That field is a soft link to
-                data in <code>program.response_types</code>.
+                <code>response_type_id</code> determines
+                the options available to the user; it links to the
+                <code>response_type</code> table.
             </dd>
         </dl>
     </docs>

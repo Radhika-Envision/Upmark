@@ -5,7 +5,7 @@ import unittest
 from unittest import mock
 
 from sqlalchemy.sql import func
-from tornado.escape import json_decode
+from tornado.escape import json_decode, json_encode
 from tornado.testing import AsyncHTTPTestCase
 from tornado.web import Application
 
@@ -18,7 +18,7 @@ from utils import denormalise
 app.parse_options()
 
 
-log = logging.getLogger('app.test_model')
+log = logging.getLogger('app.test.test_model')
 
 
 def get_secure_cookie(user_email=None, super_email=None):
@@ -352,7 +352,6 @@ class AqModelTestBase(unittest.TestCase):
             program = entity = model.Program(
                 title='Test Program 1',
                 description="This is a test program")
-            program.response_types = response_types
             session.add(program)
 
             # Create response types
@@ -439,6 +438,9 @@ class AqHttpTestBase(AqModelTestBase, AsyncHTTPTestCase):
         return Application(app.get_mappings(), **settings)
 
     def fetch(self, path, expected=None, decode=False, encoding='utf8', **kwargs):
+        log.debug("%s %s", kwargs.get('method'), path)
+        if 'body' in kwargs and not isinstance(kwargs['body'], (str, bytes)):
+            kwargs['body'] = json_encode(kwargs['body'])
         response = super().fetch(path, **kwargs)
         if response.code == 599:
             response.rethrow()
@@ -448,7 +450,7 @@ class AqHttpTestBase(AqModelTestBase, AsyncHTTPTestCase):
                 self.assertEqual(
                     expected, response.code,
                     msg="{} failed: {}\n\n{}\n(body may be truncated)".format(
-                        path, response.reason, body[:100]))
+                        path, response.reason, body[:1000]))
             else:
                 body = response.body
                 self.assertEqual(

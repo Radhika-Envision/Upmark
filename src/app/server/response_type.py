@@ -62,6 +62,15 @@ class ResponseError(ResponseTypeError):
     pass
 
 
+def validate_parts(parts):
+    for p_def in parts:
+        response_part(p_def)
+
+
+def validate_formula(formula):
+    parse(formula)
+
+
 # These functions are used to calculate scores and validate entered data.
 # NOTE: keep changes made to these classes in sync with those in response.js.
 
