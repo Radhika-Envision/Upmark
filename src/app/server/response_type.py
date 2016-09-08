@@ -85,9 +85,9 @@ def refs(c_exp):
 
 
 class ResponseType:
-    def __init__(self, name, parts_def, formula):
+    def __init__(self, name, parts, formula):
         self.name = name
-        self.parts = [response_part(p_def) for p_def in parts_def]
+        self.parts = [response_part(p_def) for p_def in parts]
         self.formula = parse(formula)
         self.declared_vars = unique_strings([
             v for part in self.parts

@@ -238,8 +238,7 @@ class Exporter():
             log.debug('Exporting submission %s of program %s', submission_id, program_id)
             if submission_id != '':
                 responses = (session.query(model.Response)
-                             .filter(model.Response.submission_id == submission_id,
-                                     model.Response.program_id == program_id)
+                             .filter(model.Response.submission_id == submission_id)
                              .all())
 
                 if responses:
@@ -584,9 +583,9 @@ class Exporter():
                 workbook, worksheet, levels, max_parts, response_parts)
 
             for measure in measures:
-                qnode = measure.get_parent(survey)
+                qnode_measure = measure.get_qnode_measure(survey)
                 self.write_qnode(
-                    worksheet, qnode, line, format, level_length - 1)
+                    worksheet, qnode_measure.qnode, line, format, level_length - 1)
 
                 seq = measure.get_seq(survey) + 1
 
@@ -596,13 +595,13 @@ class Exporter():
                 importance = None
                 urgency = None
                 if submission:
-                    response = measure.get_response(submission)
+                    response = qnode_measure.get_response(submission)
                     url = base_url + "/#/1/measure/{}?submission={}".format(
                         measure.id, submission.id)
 
                     # Walk up the tree to get the importance and urgency from the
                     # parent rnodes
-                    parent = qnode
+                    parent = qnode_measure.qnode
                     while parent and (importance is None or urgency is None):
                         rnode = parent.get_rnode(submission)
                         if rnode is not None:
@@ -615,7 +614,7 @@ class Exporter():
                 else:
                     response = None
                     url = base_url + '/#/1/measure/{}?program={}&parent={}'.format(
-                        measure.id, program_id, qnode.id)
+                        measure.id, program_id, qnode_measure.qnode_id)
 
                 worksheet.write(
                 line, level_length + max_parts + 1, importance, format_int)

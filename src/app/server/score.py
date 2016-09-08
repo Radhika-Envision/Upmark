@@ -225,7 +225,7 @@ class ResponseOps(Ops):
 
     @instance_method_lru_cache()
     def get_response(self, qnode_measure):
-        return qnode_measure.measure.get_response(self.submission)
+        return qnode_measure.get_response(self.submission)
 
     @instance_method_lru_cache()
     def get_response_type(self, response_type):

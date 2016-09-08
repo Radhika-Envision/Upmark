@@ -380,6 +380,7 @@ class Importer():
 
                     response = model.Response()
                     response.program_id = program_id
+                    response.survey_id = survey_id
                     response.measure_id = measure.id
                     response.submission_id = submission.id
                     response.user_id = user_id

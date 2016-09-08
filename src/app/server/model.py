@@ -405,8 +405,7 @@ class Survey(Observable, Base):
 
     @validates('structure')
     def validate_structure(self, k, s):
-        self.structure = validate_with_humanized_errors(
-            s, Survey._structure_schema)
+        return validate_with_humanized_errors(s, Survey._structure_schema)
 
     @property
     def ordered_measures(self):
@@ -558,14 +557,12 @@ class Measure(Observable, Base):
         Program, backref=backref('measures', passive_deletes=True))
 
     def get_parent(self, survey):
-        sid = isinstance(survey, str) and survey or survey.id
-        qnode_measure = (object_session(self).query(Response)
-            .get((self.program_id, sid, self.id)))
+        qnode_measure = self.get_qnode_measure(survey)
         return qnode_measure and qnode_measure.parent or None
 
     def get_qnode_measure(self, survey):
         sid = isinstance(survey, str) and survey or survey.id
-        return (object_session(self).query(Response)
+        return (object_session(self).query(QnodeMeasure)
             .get((self.program_id, sid, self.id)))
 
     def get_seq(self, survey):
@@ -682,13 +679,9 @@ class QnodeMeasure(Base):
         return "%s %d." % (self.qnode.get_path(), self.seq + 1)
 
     def get_response(self, submission):
-        if isinstance(submission, str):
-            submission_id = submission
-        else:
-            submission_id = submission.id
+        sid = isinstance(submission, str) and submission or submission.id
         return (object_session(self).query(Response)
-            .filter_by(submission_id=submission_id, measure_id=self.measure_id)
-            .first())
+            .get((self.program_id, sid, self.measure_id)))
 
     def __repr__(self):
         return "QnodeMeasure(qnode={}, measure={}, program={})".format(
@@ -804,8 +797,9 @@ class Submission(Observable, Base):
     @property
     def ordered_responses(self):
         '''Returns all responses in depth-first order'''
-        for rnode in self.rnodes:
-            for response in rnode.ordered_responses:
+        for qnode_measure in self.survey.ordered_qnode_measures:
+            response = qnode_measure.get_response(self)
+            if response is not None:
                 yield response
 
     @property
@@ -899,8 +893,8 @@ class ResponseNode(Observable, Base):
 
     @property
     def responses(self):
-        for measure in self.qnode.measures:
-            response = measure.get_response(self.submission)
+        for qnode_measure in self.qnode.qnode_measures:
+            response = qnode_measure.get_response(self.submission)
             if response is not None:
                 yield response
 
@@ -945,10 +939,10 @@ class ResponseNode(Observable, Base):
 
 class Response(Observable, Versioned, Base):
     __tablename__ = 'response'
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    submission_id = Column(GUID, nullable=False, primary_key=True)
+    measure_id = Column(GUID, nullable=False, primary_key=True)
     program_id = Column(GUID, nullable=False)
-    measure_id = Column(GUID, nullable=False)
-    submission_id = Column(GUID, nullable=False)
+    survey_id = Column(GUID, nullable=False)
     user_id = Column(GUID, nullable=False)
 
     comment = Column(Text, nullable=False)
@@ -967,13 +961,8 @@ class Response(Observable, Versioned, Base):
 
     __table_args__ = (
         ForeignKeyConstraint(
-            ['measure_id', 'program_id'],
-            ['measure.id', 'measure.program_id'],
-            info={'version': True}
-        ),
-        ForeignKeyConstraint(
-            ['program_id'],
-            ['program.id'],
+            ['program_id', 'survey_id', 'measure_id'],
+            ['qnode_measure.program_id', 'qnode_measure.survey_id', 'qnode_measure.measure_id'],
             info={'version': True}
         ),
         ForeignKeyConstraint(
@@ -986,12 +975,10 @@ class Response(Observable, Versioned, Base):
             ['submission.id'],
             info={'version': True}
         ),
-        UniqueConstraint('measure_id', 'submission_id'),
         Index('response_submission_id_measure_id_index',
               submission_id, measure_id),
     )
 
-    program = relationship(Program)
     user = relationship(AppUser)
 
     @property
@@ -1014,8 +1001,7 @@ class Response(Observable, Versioned, Base):
 
     @validates('response_parts')
     def validate_response_parts(self, k, s):
-        self.response_parts = validate_with_humanized_errors(
-            s, response_type.response_schema)
+        return validate_with_humanized_errors(s, response_type.response_schema)
 
     def lineage(self):
         return ([q.get_rnode(self.submission_id)
@@ -1068,7 +1054,8 @@ class Attachment(Base):
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     organisation_id = Column(
         GUID, ForeignKey("organisation.id"), nullable=False)
-    response_id = Column(GUID, ForeignKey("response.id"), nullable=False)
+    submission_id = Column(GUID, nullable=False)
+    measure_id = Column(GUID, nullable=False)
 
     storage = Column(
         Enum('external', 'aws', 'database', native_enum=False),
@@ -1078,7 +1065,11 @@ class Attachment(Base):
     blob = Column(LargeBinary, nullable=True)
 
     __table_args__ = (
-        Index('attachment_response_id_index', response_id),
+        Index('attachment_response_id_index', submission_id, measure_id),
+        ForeignKeyConstraint(
+            ['submission_id', 'measure_id'],
+            ['response.submission_id', 'response.measure_id']
+        ),
     )
 
     response = relationship(Response, backref='attachments')
@@ -1343,10 +1334,10 @@ ResponseNode.qnode = relationship(
                 (ResponseNode.program_id == QuestionNode.program_id))
 
 
-Response.measure = relationship(
-    Measure,
-    primaryjoin=(foreign(Response.measure_id) == Measure.id) &
-                (Response.program_id == Measure.program_id))
+Response.qnode_measure = relationship(
+    QnodeMeasure)
+    # primaryjoin=(foreign(Response.measure_id) == Measure.id) &
+    #             (Response.program_id == Measure.program_id))
 
 
 ResponseHistory.user = relationship(

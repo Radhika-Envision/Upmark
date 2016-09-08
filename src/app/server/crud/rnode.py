@@ -359,16 +359,15 @@ class ResponseNodeHandler(handlers.BaseHandler):
             self.reason("No changes to approval status")
 
     def walk_responses(self, session, rnode, missing):
-        for measure in rnode.qnode.ordered_measures:
-            response = measure.get_response(rnode.submission)
+        for qnode_measure in rnode.qnode.ordered_qnode_measures:
+            response = qnode_measure.get_response(rnode.submission)
             if not response:
                 if missing != 'CREATE':
                     continue
                 response = model.Response(
                     user_id=self.current_user.id,
                     submission=rnode.submission,
-                    measure=measure,
-                    program=rnode.submission.program)
+                    qnode_measure=qnode_measure)
                 response.modified = func.now()
                 session.add(response)
                 created = True
