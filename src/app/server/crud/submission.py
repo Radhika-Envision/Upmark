@@ -254,10 +254,12 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
                 .all())
 
         for rnode in s_rnodes:
+            if str(rnode.qnode_id) not in qnode_ids:
+                continue
+
             # Duplicate
             session.expunge(rnode)
             make_transient(rnode)
-            rnode.id = None
 
             # Customise
             rnode.program = submission.program
@@ -278,7 +280,6 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
             # Duplicate
             session.expunge(response)
             make_transient(response)
-            response.id = None
 
             # Customise
             response.program = submission.program
@@ -305,7 +306,7 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
 
         session.flush()
         calculator = Calculator.scoring(submission)
-        calculator.mark_entire_survey_dirty()
+        calculator.mark_entire_survey_dirty(submission.survey)
         calculator.execute()
 
     def fill_random(self, submission, session):

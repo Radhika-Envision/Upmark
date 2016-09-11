@@ -59,6 +59,7 @@ def print_survey(survey):
         indent += "  "
         print("{}seq: {}".format(indent, qnode.seq))
         print("{}total_weight: {}".format(indent, qnode.total_weight))
+        print("{}n_measures: {}".format(indent, qnode.n_measures))
         for c in qnode.children:
             print_qnode(c, indent)
         for m in qnode.qnode_measures:
@@ -293,7 +294,7 @@ class AqModelTestBase(unittest.TestCase):
                         'description': "Test",
                         'children': [
                             {
-                                'title': "SubSection 1",
+                                'title': "SubSection 1.1",
                                 'description': "Test",
                                 'measures': [1, 2],
                             },
@@ -333,7 +334,7 @@ class AqModelTestBase(unittest.TestCase):
                         'description': "Test",
                         'children': [
                             {
-                                'title': "Division 1",
+                                'title': "Sub-Division 1.1",
                                 'description': "Test",
                                 'measures': [1, 2],
                             },
@@ -362,15 +363,17 @@ class AqModelTestBase(unittest.TestCase):
                 session.add(rt)
 
             # Create measures
-            all_measures = []
+            ordered_measures = []
             for mson in msons:
                 mson_clean = mson.copy()
                 del mson_clean['response_type']
                 measure = model.Measure(program=program, **mson_clean)
                 measure.response_type = rts[mson['response_type']]
                 session.add(measure)
-                all_measures.append(measure)
-            program.measures = all_measures
+                ordered_measures.append(measure)
+            # Note that program.measures is unordered so can't be accessed by
+            # index
+            program.measures = ordered_measures
 
             # Create qnodes
             def create_qnodes(qsons, survey, parent=None):
@@ -394,8 +397,11 @@ class AqModelTestBase(unittest.TestCase):
                             qson['children'], survey, parent=qnode)
                         qnode.children.reorder()
 
-                    qnode.measures = [all_measures[i]
-                                      for i in qson.get('measures', [])]
+                    msons = qson.get('measures', [])
+                    for measure in (ordered_measures[i] for i in msons):
+                        qm = model.QnodeMeasure(
+                            program=program, survey=survey,
+                            qnode=qnode, measure=measure)
                     qnode.qnode_measures.reorder()
                 return qnodes
 
@@ -418,12 +424,22 @@ class AqModelTestBase(unittest.TestCase):
                     survey.qnodes = create_qnodes(
                         hson['qnodes'], survey)
                     survey.qnodes.reorder()
-                    calculator = Calculator.structural(survey)
-                    calculator.mark_entire_survey_dirty()
+                    calculator = Calculator.structural()
+                    calculator.mark_entire_survey_dirty(survey)
                     calculator.execute()
+                    # print_survey(survey)
                 return surveys
 
             create_surveys(hsons)
+
+
+def printable(mime_type):
+    if 'text/' in mime_type:
+        return True
+    if '/xml' in mime_type or '+xml' in mime_type:
+        return True
+    if 'application/json' in mime_type:
+        return True
 
 
 class AqHttpTestBase(AqModelTestBase, AsyncHTTPTestCase):
@@ -437,7 +453,7 @@ class AqHttpTestBase(AqModelTestBase, AsyncHTTPTestCase):
         settings['serve_traceback'] = True
         return Application(app.get_mappings(), **settings)
 
-    def fetch(self, path, expected=None, decode=False, encoding='utf8', **kwargs):
+    def fetch(self, path, expected=None, decode=False, **kwargs):
         log.debug("%s %s", kwargs.get('method'), path)
         if 'body' in kwargs and not isinstance(kwargs['body'], (str, bytes)):
             kwargs['body'] = json_encode(kwargs['body'])
@@ -445,18 +461,16 @@ class AqHttpTestBase(AqModelTestBase, AsyncHTTPTestCase):
         if response.code == 599:
             response.rethrow()
         if expected is not None:
-            if encoding:
-                body = response.body and response.body.decode(encoding) or ''
-                self.assertEqual(
-                    expected, response.code,
-                    msg="{} failed: {}\n\n{}\n(body may be truncated)".format(
-                        path, response.reason, body[:1000]))
+            if printable(response.headers["Content-Type"]):
+                body = '\n\n' + response.body.decode('utf-8')
+                if len(body) > 10000:
+                    body = body[:9900] + '\n(body is truncated)'
             else:
-                body = response.body
-                self.assertEqual(
-                    expected, response.code,
-                    msg="{} failed: {}\n".format(
-                        path, response.reason))
+                body = '\n\n(non-text)'
+            self.assertEqual(
+                expected, response.code,
+                msg="{} {}\nReason: {}{}".format(
+                    kwargs.get('method'), path, response.reason, body))
 
         if decode:
             return denormalise(json_decode(response.body))

@@ -107,10 +107,10 @@ class ExporterAuthzTest(base.AqHttpTestBase):
         with base.mock_user('admin'):
             self.fetch("/export/program/%s/survey/%s/nested.xlsx" %
                 (self.program_id, self.survey_id),
-                method='GET', expected=200, encoding=None)
+                method='GET', expected=200)
             self.fetch("/export/program/%s/survey/%s/tabular.xlsx" %
                 (self.program_id, self.survey_id),
-                method='GET', expected=200, encoding=None)
+                method='GET', expected=200)
 
     def test_submission_exporter(self):
         with base.mock_user('admin'):
@@ -127,26 +127,26 @@ class ExporterAuthzTest(base.AqHttpTestBase):
         with base.mock_user('author'):
             self.fetch(
                 "/export/submission/%s/tabular.xlsx" % submission_id,
-                method='GET', expected=403, decode=False, encoding=None)
+                method='GET', expected=403, decode=False)
             self.fetch(
                 "/export/submission/%s/nested.xlsx" % submission_id,
-                method='GET', expected=403, decode=False, encoding=None)
+                method='GET', expected=403, decode=False)
 
         with base.mock_user('consultant'):
             self.fetch(
                 "/export/submission/%s/tabular.xlsx" % submission_id,
-                method='GET', expected=200, decode=False, encoding=None)
+                method='GET', expected=200, decode=False)
             self.fetch(
                 "/export/submission/%s/nested.xlsx" % submission_id,
-                method='GET', expected=200, decode=False, encoding=None)
+                method='GET', expected=200, decode=False)
 
         with base.mock_user('clerk'):
             self.fetch(
                 "/export/submission/%s/tabular.xlsx" % submission_id,
-                method='GET', expected=200, decode=False, encoding=None)
+                method='GET', expected=200, decode=False)
             self.fetch(
                 "/export/submission/%s/nested.xlsx" % submission_id,
-                method='GET', expected=200, decode=False, encoding=None)
+                method='GET', expected=200, decode=False)
 
     def purchase_program(self):
         self.fetch(

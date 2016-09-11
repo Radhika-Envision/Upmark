@@ -77,14 +77,14 @@ def verbs(action):
 
 def send_email(config, user, activities, messages, app_name_short):
     template = config['MESSAGE_CONTENT']
-    content = mail_content(config, activities)
-    message_str = "\n".join(messages)
-    msg = MIMEText(
-        template.format(
-            activities=content, messages=message_str, user_id=user.id,
-            app_name_short=app_name_short),
-        'plain')
-    msg['Subject'] = config['MESSAGE_SUBJECT']
+    params = {
+        'user_id': user.id,
+        'app_name_short': app_name_short}
+    subject = config['MESSAGE_SUBJECT'].format(**params)
+    params['activities'] = mail_content(config, activities)
+    params['messages'] = "\n".join(messages)
+    msg = MIMEText(template.format(**params), 'plain')
+    msg['Subject'] = subject
 
     send(config, msg, user.email)
 

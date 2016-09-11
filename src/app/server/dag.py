@@ -63,18 +63,26 @@ class GraphBuilder:
 
         return Graph(graph)
 
-    def add_with_dependants(self, node, node_builder):
+    def add_with_dependants(self, node, node_builder, force=False):
         '''
         Add the node and all of its dependants to the graph.
+
+        Args:
+            node: The node to add.
+            node_builder: A NodeBuilder that knows how to get dependants for
+                the node.
+            force: Add this node and its dependants even if they have already
+                been added to the graph. Use this if the graph topology might
+                have changed since the last addition.
         '''
         meta = self.meta_nodes[node]
-        if meta.dependants_added:
+        if meta.dependants_added and not force:
             return
         meta.dependants_added = True
         meta.with_ops(node_builder.ops(node))
         for dependant, builder in node_builder.dependants(node):
             meta.with_dependant(dependant)
-            self.add_with_dependants(dependant, builder)
+            self.add_with_dependants(dependant, builder, force)
 
     def add_with_dependencies(self, node, node_builder):
         '''

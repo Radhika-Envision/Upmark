@@ -33,34 +33,38 @@ class Calculator:
         self.builder = GraphBuilder()
 
     @classmethod
-    def structural(cls, survey):
-        config = GraphConfig(survey)
-        manifest = StructureManifest(survey)
+    def structural(cls):
+        config = GraphConfig()
+        manifest = StructureManifest()
         config.with_manifest(manifest)
         return cls(config)
 
     @classmethod
     def scoring(cls, submission):
-        config = GraphConfig(submission.survey)
+        config = GraphConfig()
         manifest = ScoreManifest(submission)
         config.with_manifest(manifest)
         return cls(config)
 
-    def mark_survey_dirty(self):
+    def mark_program_dirty(self, program, force_dependants=False):
         self.builder.add_with_dependants(
-            self.config.survey, self.config.survey_builder)
+            program, self.config.program_builder, force_dependants)
 
-    def mark_entire_survey_dirty(self):
+    def mark_survey_dirty(self, survey, force_dependants=False):
+        self.builder.add_with_dependants(
+            survey, self.config.survey_builder, force_dependants)
+
+    def mark_entire_survey_dirty(self, survey):
         self.builder.add_with_dependencies(
-            self.config.survey, self.config.survey_builder)
+            survey, self.config.survey_builder)
 
-    def mark_qnode_dirty(self, qnode):
+    def mark_qnode_dirty(self, qnode, force_dependants=False):
         self.builder.add_with_dependants(
-            qnode, self.config.qnode_builder)
+            qnode, self.config.qnode_builder, force_dependants)
 
-    def mark_measure_dirty(self, qnode_measure):
+    def mark_measure_dirty(self, qnode_measure, force_dependants=False):
         self.builder.add_with_dependants(
-            qnode_measure, self.config.measure_builder)
+            qnode_measure, self.config.measure_builder, force_dependants)
 
     def execute(self):
         graph = self.builder.build()
@@ -71,16 +75,18 @@ class Calculator:
 
 
 class GraphConfig:
-    def __init__(self, survey):
-        self.survey = survey
+    def __init__(self):
+        self.program_builder = ProgramBuilder(self)
         self.survey_builder = SurveyBuilder(self)
         self.qnode_builder = QnodeBuilder(self)
         self.measure_builder = MeasureBuilder(self)
+        self.program_ops = OpsProxy()
         self.survey_ops = OpsProxy()
         self.qnode_ops = OpsProxy()
         self.measure_ops = OpsProxy()
 
     def with_manifest(self, manifest):
+        self.program_ops.ops = manifest.program_ops
         self.survey_ops.ops = manifest.survey_ops
         self.qnode_ops.ops = manifest.qnode_ops
         self.measure_ops.ops = manifest.measure_ops
@@ -88,14 +94,16 @@ class GraphConfig:
 
 
 class StructureManifest:
-    def __init__(self, survey):
-        self.survey_ops = SurveyOps(survey)
-        self.qnode_ops = QnodeOps(survey)
-        self.measure_ops = MeasureOps(survey)
+    def __init__(self):
+        self.program_ops = ProgramOps()
+        self.survey_ops = SurveyOps()
+        self.qnode_ops = QnodeOps()
+        self.measure_ops = MeasureOps()
 
 
 class ScoreManifest:
     def __init__(self, submission):
+        self.program_ops = ProgramOps()
         self.survey_ops = SubmissionOps(submission)
         self.qnode_ops = RnodeOps(submission)
         self.measure_ops = ResponseOps(submission)
@@ -105,9 +113,24 @@ class ScoreManifest:
 # structure.
 
 
+class ProgramBuilder(NodeBuilder):
+    def __init__(self, config):
+        self.config = config
+
+    def dependencies(self, program):
+        yield from (
+            (survey, self.config.survey_builder) for survey in program.surveys)
+
+    def ops(self, survey):
+        return self.config.program_ops
+
+
 class SurveyBuilder(NodeBuilder):
     def __init__(self, config):
         self.config = config
+
+    def dependants(self, survey):
+        yield survey.program, self.config.program_builder
 
     def dependencies(self, survey):
         yield from (
@@ -160,19 +183,18 @@ class MeasureBuilder(NodeBuilder):
 # Survey structure ops - these update survey structure metadata.
 
 
-class SurveyOps(Ops):
-    def __init__(self, survey):
-        self.survey = survey
+class ProgramOps(Ops):
+    def evaluate(self, program, dependencies, dependants):
+        pass
 
+
+class SurveyOps(Ops):
     def evaluate(self, survey, dependencies, dependants):
         survey.n_measures = sum(qnode.n_measures for qnode in survey.qnodes)
         survey.modified = datetime.utcnow()
 
 
 class QnodeOps(Ops):
-    def __init__(self, survey):
-        self.survey = survey
-
     def evaluate(self, qnode, dependencies, dependants):
         total_weight = sum(qm.measure.weight for qm in qnode.qnode_measures)
         total_weight += sum(child.total_weight for child in qnode.children)
@@ -184,9 +206,6 @@ class QnodeOps(Ops):
 
 
 class MeasureOps(Ops):
-    def __init__(self, survey):
-        self.survey = survey
-
     def evaluate(self, qnode_measure, dependencies, dependants):
         pass
 
@@ -324,13 +343,13 @@ class ResponseStats:
                 response.response_parts)
             scope = scope.copy()
             scope.update(self.variables)
-            self.response_type.validate(response_parts, scope)
+            self.response_type.validate(response.response_parts, scope)
             self.score = self.response_type.score(
                 response.response_parts, self.variables)
         except Exception as e:
             raise ResponseError(
                 "Could not calculate score for response %s %s: %s" %
-                (response.measure.get_path(response.submission.survey),
+                (response.qnode_measure.get_path(),
                  response.measure.title, str(e)))
 
     def to_response(self, response):

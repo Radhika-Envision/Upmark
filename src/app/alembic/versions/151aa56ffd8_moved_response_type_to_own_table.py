@@ -33,7 +33,9 @@ response = sa.sql.table('response',
 def upgrade():
     upgrade_qnode_measure()
     upgrade_response()
+    upgrade_rnode()
     upgrade_response_type()
+    upgrade_activity()
     upgrade_variable()
 
 
@@ -168,6 +170,15 @@ def upgrade_response():
     op.alter_column('attachment', 'measure_id', nullable=False)
 
 
+def upgrade_rnode():
+    op.drop_constraint('rnode_pkey', 'rnode', type_='primary')
+    op.drop_constraint('rnode_qnode_id_assessment_id_key', 'rnode')
+    op.drop_index('rnode_qnode_id_submission_id_index', 'rnode')
+    op.drop_column('rnode', 'id')
+    op.create_primary_key('rnode_pkey', 'rnode',
+        ['submission_id', 'qnode_id'])
+
+
 def upgrade_response_type():
     op.create_table('response_type',
         sa.Column('id', GUID(), nullable=False),
@@ -218,9 +229,30 @@ def upgrade_response_type():
     op.drop_column('program', 'response_types')
 
 
+def upgrade_activity():
+    op.drop_constraint('activity_ob_type_check', 'activity', type_='check')
+    op.drop_constraint('subscription_ob_type_check', 'subscription', type_='check')
+    op.create_check_constraint(
+        'activity_ob_type_check', 'activity',
+        """ob_type = ANY (ARRAY[
+            'organisation', 'user',
+            'program', 'survey', 'qnode', 'measure', 'response_type',
+            'submission', 'rnode', 'response'
+        ])""")
+    op.create_check_constraint(
+        'subscription_ob_type_check', 'subscription',
+        """ob_type = ANY (ARRAY[
+            'organisation', 'user',
+            'program', 'survey', 'qnode', 'measure', 'response_type',
+            'submission', 'rnode', 'response'
+        ])""")
+
+
 def downgrade():
     downgrade_variable()
+    downgrade_activity()
     downgrade_response_type()
+    downgrade_rnode()
     downgrade_response()
     downgrade_qnode_measure()
 
@@ -256,6 +288,25 @@ def downgrade_response_type():
     op.drop_constraint('measure_response_type_id_fkey', 'measure', type_='foreignkey')
     op.drop_column('measure', 'response_type_id')
     op.drop_table('response_type')
+
+
+def downgrade_rnode():
+    op.drop_constraint('rnode_pkey', 'rnode', type_='primary')
+    op.add_column('rnode', sa.Column('id', GUID()))
+
+    op.execute("""
+        UPDATE rnode AS rn
+        SET id = md5(random()::text || clock_timestamp()::text)::uuid
+        """)
+
+    op.create_index(
+        'rnode_qnode_id_submission_id_index', 'rnode',
+        ['qnode_id', 'submission_id'])
+    op.create_unique_constraint(
+        'rnode_qnode_id_assessment_id_key', 'rnode',
+        ['qnode_id', 'submission_id'])
+    op.create_primary_key('rnode_pkey', 'rnode', ['id'])
+    op.alter_column('rnode', 'id', nullable=False)
 
 
 def downgrade_response():
@@ -353,6 +404,24 @@ def downgrade_qnode_measure():
         TO qnode_measure_link_pkey""")
     op.rename_table('qnode_measure', 'qnode_measure_link')
 
+
+def downgrade_activity():
+    op.drop_constraint('activity_ob_type_check', 'activity', type_='check')
+    op.drop_constraint('subscription_ob_type_check', 'subscription', type_='check')
+    op.create_check_constraint(
+        'activity_ob_type_check', 'activity',
+        """ob_type = ANY (ARRAY[
+            'organisation', 'user',
+            'program', 'survey', 'qnode', 'measure',
+            'submission', 'rnode', 'response'
+        ])""")
+    op.create_check_constraint(
+        'subscription_ob_type_check', 'subscription',
+        """ob_type = ANY (ARRAY[
+            'organisation', 'user',
+            'program', 'survey', 'qnode', 'measure',
+            'submission', 'rnode', 'response'
+        ])""")
 
 # Frozen schema
 

@@ -114,7 +114,7 @@ class DiffEngine:
             r'/parent_id$',
             r'/title$',
             r'</description$',
-            r'/response_type$',
+            r'/response_type_id$',
             r'/seq$',
             # Descend
             r'/[0-9]+$',
@@ -349,11 +349,11 @@ class DiffEngine:
             if not x:
                 return None
 
-            if hasattr(x, 'get_parent'):
+            if hasattr(x, 'get_qnode_measure'):
                 # measure
                 if x.deleted:
                     return None
-                q = x.get_parent(self.survey_id)
+                q = x.get_qnode_measure(self.survey_id).qnode
             else:
                 # qnode
                 q = x
@@ -401,11 +401,11 @@ class DiffEngine:
         deleted = {str(a.id) for a, b in measure_pairs if b is None}
         added = {str(b.id) for a, b in measure_pairs if a is None}
         relocated = {str(a.id) for a, b in measure_pairs
-                     if a and b and (a.get_parent(self.survey_id).id !=
-                                     b.get_parent(self.survey_id).id)}
+                     if a and b and (a.get_qnode_measure(self.survey_id).qnode_id !=
+                                     b.get_qnode_measure(self.survey_id).qnode_id)}
         item_index = {str(a.id) for a, b in measure_pairs
-                      if a and b and (a.get_seq(self.survey_id) !=
-                                      b.get_seq(self.survey_id))}
+                      if a and b and (a.get_qnode_measure(self.survey_id).seq !=
+                                      b.get_qnode_measure(self.survey_id).seq)}
 
         reorder_ignore = set().union(deleted, added, relocated)
 
@@ -414,12 +414,12 @@ class DiffEngine:
             a_son, b_son = diff_item['pair']
             if a:
                 a_son['path'] = a.get_path(self.survey_id)
-                a_son['parentId'] = str(a.get_parent(self.survey_id).id)
-                a_son['seq'] = a.get_seq(self.survey_id)
+                a_son['parentId'] = str(a.get_qnode_measure(self.survey_id).qnode_id)
+                a_son['seq'] = a.get_qnode_measure(self.survey_id).seq
             if b:
                 b_son['path'] = b.get_path(self.survey_id)
-                b_son['parentId'] = str(b.get_parent(self.survey_id).id)
-                b_son['seq'] = b.get_seq(self.survey_id)
+                b_son['parentId'] = str(b.get_qnode_measure(self.survey_id).qnode_id)
+                b_son['seq'] = b.get_qnode_measure(self.survey_id).seq
             if a and b and a_son['parentId'] == b_son['parentId']:
                 start = perf()
                 if self.measure_was_reordered(a, b, reorder_ignore):
@@ -453,13 +453,13 @@ class DiffEngine:
         return a_siblings != b_siblings
 
     def measure_was_reordered(self, a, b, reorder_ignore):
-        a_parent = a.get_parent(self.survey_id)
-        b_parent = b.get_parent(self.survey_id)
+        a_qnode_measure = a.get_qnode_measure(self.survey_id)
+        b_qnode_measure = b.get_qnode_measure(self.survey_id)
         a_siblings = (self.session.query(model.Measure.id)
             .join(model.QnodeMeasure,
                   (model.QnodeMeasure.program_id == model.Measure.program_id) &
                   (model.QnodeMeasure.measure_id == model.Measure.id))
-            .filter(model.QnodeMeasure.qnode_id == a_parent.id,
+            .filter(model.QnodeMeasure.qnode_id == a_qnode_measure.qnode_id,
                     model.QnodeMeasure.program_id == self.program_id_a,
                     ~model.Measure.id.in_(reorder_ignore))
             .order_by(model.QnodeMeasure.seq)
@@ -468,7 +468,7 @@ class DiffEngine:
             .join(model.QnodeMeasure,
                   (model.QnodeMeasure.program_id == model.Measure.program_id) &
                   (model.QnodeMeasure.measure_id == model.Measure.id))
-            .filter(model.QnodeMeasure.qnode_id == b_parent.id,
+            .filter(model.QnodeMeasure.qnode_id == b_qnode_measure.qnode_id,
                     model.QnodeMeasure.program_id == self.program_id_b,
                     ~model.Measure.id.in_(reorder_ignore))
             .order_by(model.QnodeMeasure.seq)

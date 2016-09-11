@@ -347,7 +347,7 @@ class SubmissionTest(base.AqHttpTestBase):
             session.flush()
 
             calculator = Calculator.scoring(submission)
-            calculator.mark_entire_survey_dirty()
+            calculator.mark_entire_survey_dirty(submission.survey)
             calculator.execute()
             submission.approval = 'final'
             session.flush()

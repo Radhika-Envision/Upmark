@@ -44,6 +44,14 @@ def is_id(ob_or_id):
     return isinstance(ob_or_id, (str, uuid.UUID))
 
 
+def to_id(ob_or_id):
+    if ob_or_id is None:
+        return None
+    if is_id(ob_or_id):
+        return ob_or_id
+    return ob_or_id.id
+
+
 ActionDescriptor = namedtuple(
     'ActionDescriptor',
     'message, ob_type, ob_ids, ob_refs')
@@ -82,7 +90,7 @@ class Observable:
         '''
         @return a list of IDs that give a detailed path to the object, in order
         of increasing specificity. E.g.
-        [program_id, program_id, qnode_id, qnode_id, measure_id]
+        [program_id, survey_id, survey_id, qnode_id, qnode_id, measure_id]
         '''
         raise NotImplementedError()
 
@@ -487,17 +495,19 @@ class QuestionNode(Observable, Base):
     program = relationship(Program)
 
     def get_rnode(self, submission, create=False):
-        sid = is_id(submission) and submission or submission.id
+        sid = to_id(submission)
         rnode = (object_session(self).query(ResponseNode)
-            .filter_by(submission_id=sid, qnode_id=self.id)
-            .first())
+            .get((sid, self.id)))
         if not rnode and create:
             rnode = ResponseNode(program=self.program, qnode=self)
-            if is_id(submission):
-                rnode.submission_id = submission
-            else:
-                rnode.submission = submission
+            rnode.submission_id = sid
             object_session(self).add(rnode)
+            # Without this flush, rnode.responses may be incomplete. Test with
+            # test_daemon.DaemonTest.
+            # TODO: Perahps this could be avoided if the recalculation was done
+            # in two stages: first create required rnodes, then flush, then
+            # update their scores?
+            object_session(self).flush()
         return rnode
 
     def lineage(self):
@@ -532,8 +542,9 @@ class QuestionNode(Observable, Base):
         return [self.program, self.survey] + self.lineage()
 
     def __repr__(self):
-        return "QuestionNode(title={}, program={})".format(
-            self.title, getattr(self.program, 'title', None))
+        return "QuestionNode(path={}, title={}, program={})".format(
+            self.get_path(), self.title,
+            getattr(self.program, 'title', None))
 
 
 class Measure(Observable, Base):
@@ -562,30 +573,25 @@ class Measure(Observable, Base):
     program = relationship(
         Program, backref=backref('measures', passive_deletes=True))
 
+    @property
+    def parents(self):
+        return (qm.qnode for qm in self.qnode_measures)
+
     def get_parent(self, survey):
         qnode_measure = self.get_qnode_measure(survey)
-        return qnode_measure and qnode_measure.parent or None
+        return qnode_measure and qnode_measure.qnode or None
 
     def get_qnode_measure(self, survey):
-        sid = isinstance(survey, str) and survey or survey.id
+        sid = to_id(survey)
         return (object_session(self).query(QnodeMeasure)
             .get((self.program_id, sid, self.id)))
-
-    def get_seq(self, survey):
-        qm = self.get_qnode_measure(survey)
-        return qm and qm.seq or None
 
     def get_path(self, survey):
         qm = self.get_qnode_measure(survey)
         return qm and qm.get_path() or None
 
     def lineage(self, survey=None):
-        if survey is None:
-            survey_id = None
-        elif isinstance(survey, (str, uuid.UUID)):
-            survey_id = survey
-        else:
-            survey_id = survey.id
+        survey_id = to_id(survey)
 
         if survey_id:
             qms = [qm for qm in self.qnode_measures
@@ -654,22 +660,34 @@ class QnodeMeasure(Base):
 
     program = relationship(Program)
 
+    def __init__(self, program=None, survey=None, qnode=None, measure=None,
+                 **kwargs):
+        # if qnode:
+        #     raise ModelError(
+        #         "Construction using a qnode is not allowed. Append the new"
+        #         " QnodeMeasure to qnode.qnode_measures instead, to ensure"
+        #         " the seq field is set correctly.")
+        super().__init__(
+            program=program, survey=survey, qnode=qnode, measure=measure,
+            **kwargs)
+
     def get_path(self):
         return "%s %d." % (self.qnode.get_path(), self.seq + 1)
 
     def get_response(self, submission):
-        sid = isinstance(submission, str) and submission or submission.id
+        submission_id = to_id(submission)
         return (object_session(self).query(Response)
-            .get((self.program_id, sid, self.measure_id)))
+            .get((submission_id, self.measure_id)))
 
     def __repr__(self):
-        return "QnodeMeasure(qnode={}, measure={}, program={})".format(
-            getattr(self.qnode, 'title', None),
-            getattr(self.measure, 'title', None),
-            getattr(self.program, 'title', None))
+        return "QnodeMeasure(path={}, program={}, survey={}, measure={})".format(
+            self.get_path(),
+            getattr(self.program, 'title', None),
+            getattr(self.survey, 'title', None),
+            getattr(self.measure, 'title', None))
 
 
-class ResponseType(Base):
+class ResponseType(Observable, Base):
     __tablename__ = 'response_type'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     program_id = Column(
@@ -705,6 +723,26 @@ class ResponseType(Base):
     @property
     def n_measures(self):
         return object_session(self).query(Measure).with_parent(self).count()
+
+    @property
+    def ob_title(self):
+        return self.name
+
+    @property
+    def ob_type(self):
+        return 'response_type'
+
+    @property
+    def ob_ids(self):
+        return [self.id, self.program_id]
+
+    @property
+    def action_lineage(self):
+        return [self.program, self]
+
+    def __repr__(self):
+        return "ResponseType(name={}, program={})".format(
+            self.name, getattr(self.program, 'title', None))
 
 
 class MeasureVariable(Base):
@@ -822,10 +860,9 @@ class Submission(Observable, Base):
 
 class ResponseNode(Observable, Base):
     __tablename__ = 'rnode'
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    submission_id = Column(GUID, nullable=False, primary_key=True)
+    qnode_id = Column(GUID, nullable=False, primary_key=True)
     program_id = Column(GUID, nullable=False)
-    submission_id = Column(GUID, nullable=False)
-    qnode_id = Column(GUID, nullable=False)
 
     n_draft = Column(Integer, default=0, nullable=False)
     n_final = Column(Integer, default=0, nullable=False)
@@ -921,9 +958,9 @@ class ResponseNode(Observable, Base):
 
     def __repr__(self):
         org = getattr(self.submission, 'organisation', None)
-        return "ResponseNode(qnode={}, program={}, org={})".format(
-            getattr(self.qnode, 'title', None),
-            getattr(self.program, 'title', None),
+        return "ResponseNode(path={}, submission={}, org={})".format(
+            self.qnode and self.qnode.get_path() or None,
+            getattr(self.submission, 'title', None),
             getattr(org, 'name', None))
 
 
@@ -1006,7 +1043,8 @@ class Response(Observable, Versioned, Base):
     @property
     def action_descriptor(self):
         # Use qnodes and the measure instead of rnodes and the response for
-        # lineage, because rnode.id and response.id are not part of the API.
+        # lineage, because rnode.id is not part of the API, and response has
+        # no ID of its own.
         lineage = ([self.submission.id] +
                    [q.id for q in self.qnode_measure.qnode.lineage()] +
                    [self.measure_id])
@@ -1015,9 +1053,9 @@ class Response(Observable, Versioned, Base):
 
     def __repr__(self):
         org = getattr(self.submission, 'organisation', None)
-        return "Response(measure={}, program={}, org={})".format(
-            getattr(self.measure, 'title', None),
-            getattr(self.program, 'title', None),
+        return "Response(path={}, submission={}, org={})".format(
+            self.qnode_measure.get_path(),
+            getattr(self.submission, 'title', None),
             getattr(org, 'name', None))
 
 
@@ -1079,7 +1117,7 @@ class Activity(Base):
     # columns are for looking up the target object (e.g. to create a hyperlink).
     ob_type = Column(Enum(
         'organisation', 'user',
-        'program', 'survey', 'qnode', 'measure',
+        'program', 'survey', 'qnode', 'measure', 'response_type',
         'submission', 'rnode', 'response',
         native_enum=False))
     ob_ids = Column(ARRAY(GUID), nullable=False)
@@ -1131,7 +1169,7 @@ class Subscription(Base):
     # http://stackoverflow.com/questions/19959735/postgresql-gin-index-on-array-of-uuid
     ob_type = Column(Enum(
         'organisation', 'user',
-        'program', 'survey', 'qnode', 'measure',
+        'program', 'survey', 'qnode', 'measure', 'response_type',
         'submission', 'rnode', 'response',
         native_enum=False))
     ob_refs = Column(ARRAY(GUID), nullable=False)
@@ -1264,15 +1302,10 @@ Measure.qnode_measures = relationship(
                 (QnodeMeasure.program_id == Measure.program_id))
 
 
-Measure.response_type = relationship(
-    ResponseType,
-    primaryjoin=(foreign(Measure.response_type_id) == ResponseType.id) &
-                (ResponseType.program_id == Measure.program_id))
-
-ResponseType.measures = relationship(
-    Measure, back_populates='response_type', passive_deletes=True,
-    primaryjoin=(foreign(Measure.response_type_id) == ResponseType.id) &
-                (ResponseType.program_id == Measure.program_id))
+QnodeMeasure.survey = relationship(
+    Survey,
+    primaryjoin=(foreign(QnodeMeasure.survey_id) == remote(Survey.id)) &
+                (QnodeMeasure.program_id == remote(Survey.program_id)))
 
 
 # Dependencies
@@ -1288,6 +1321,17 @@ QnodeMeasure.target_vars = relationship(
     primaryjoin=(foreign(MeasureVariable.target_measure_id) == QnodeMeasure.measure_id) &
                 (MeasureVariable.survey_id == QnodeMeasure.survey_id) &
                 (MeasureVariable.program_id == QnodeMeasure.program_id))
+
+
+Measure.response_type = relationship(
+    ResponseType,
+    primaryjoin=(foreign(Measure.response_type_id) == ResponseType.id) &
+                (ResponseType.program_id == Measure.program_id))
+
+ResponseType.measures = relationship(
+    Measure, back_populates='response_type', passive_deletes=True,
+    primaryjoin=(foreign(Measure.response_type_id) == ResponseType.id) &
+                (ResponseType.program_id == Measure.program_id))
 
 
 Submission.survey = relationship(
@@ -1310,12 +1354,12 @@ Response.qnode_measure = relationship(
     # primaryjoin=(foreign(Response.measure_id) == Measure.id) &
     #             (Response.program_id == Measure.program_id))
 
+Response.measure = association_proxy('qnode_measure', 'measure')
+
 
 ResponseHistory.user = relationship(
     AppUser, backref='user', passive_deletes=True)
 
-## submission_id, measure_id
-## version fileds need to have index on ResponseHistory
 
 Session = None
 VersionedSession = None

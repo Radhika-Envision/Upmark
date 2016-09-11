@@ -49,15 +49,13 @@ class ProgramStructureTest(base.AqModelTestBase):
             self.assertEqual(len(q.qnode_measures), 2)
             self.assertEqual(q.n_measures, 2)
 
-            # Test association proxy from measure to qnode (via qnode_measure)
+            # Test association from measure to qnode (via qnode_measure)
             self.assertEqual(q.qnode_measures[0].seq, 0)
             self.assertEqual(q.qnode_measures[1].seq, 1)
             m = q.qnode_measures[0].measure
             self.assertEqual(m.title, "Foo Measure")
             self.assertIn(q.qnode_measures[0], m.qnode_measures)
-
-            # Test association proxy from qnode to measure (via qnode_measure)
-            self.assertEqual(m.m.qnode_measures[0], q.qnode_measures[0])
+            self.assertEqual(m.qnode_measures[0], q.qnode_measures[0])
 
     def test_list_measures(self):
         with model.session_scope() as session:
@@ -79,7 +77,7 @@ class ProgramStructureTest(base.AqModelTestBase):
             self.assertEqual(q.qnode_measures[1].measure.title, "Bar Measure")
             self.assertEqual(q.qnode_measures[1].seq, 1)
             q.qnode_measures.remove(q.qnode_measures[0])
-            calculator = Calculator.structural(h)
+            calculator = Calculator.structural()
             calculator.mark_qnode_dirty(q)
             calculator.execute()
             # Alter sequence: remove first element, and confirm that sequence
@@ -278,7 +276,7 @@ class ModifyProgramTest(base.AqHttpTestBase):
             # All measures under a qnode
             for qn in qnodes(roots):
                 for qm in qn.qnode_measures:
-                    yield qm.m
+                    yield qm.measure
 
         with model.session_scope() as session:
             for h in (session.query(model.Survey)
@@ -605,23 +603,26 @@ class ResponseTypeTest(base.AqHttpTestBase):
 
     def test_get(self):
         with model.session_scope() as session:
-            programs = session.query(model.Program).all()
-            program_id = str(programs[0].id)
+            survey = session.query(model.Survey).first()
+            pid = str(survey.program_id)
 
         with base.mock_user('clerk'):
             rts = self.fetch(
-                "/response_type.json?programId=%s" % program_id,
+                "/response_type.json?programId=%s" % pid,
                 method='GET', expected=200, decode=True)
             self.assertGreater(len(rts), 1)
             self.assertIn('Yes / No', (rt['name'] for rt in rts))
 
-            rt = next((rt for rt in rts if rt['name'] == 'Numerical'))
-            self.assertEqual(1, rt['n_measures'])
-            rt = next((rt for rt in rts if rt['name'] == 'Yes / No'))
-            self.assertEqual(4, rt['n_measures'])
-            rt_id = rt['id']
+            rts = self.fetch(
+                "/response_type.json?programId=%s&term=Yes%%20/%%20No" % pid,
+                method='GET', expected=200, decode=True)
+            self.assertEqual(len(rts), 1)
+            self.assertEqual('Yes / No', rts[0]['name'])
+            self.assertEqual(4, rts[0]['n_measures'])
+
+            rt_id = rts[0]['id']
             rt = self.fetch(
-                "/response_type/%s.json?programId=%s" % (rt_id, program_id),
+                "/response_type/%s.json?programId=%s" % (rt_id, pid),
                 method='GET', expected=200, decode=True)
             self.assertEqual([
                 {
@@ -635,18 +636,55 @@ class ResponseTypeTest(base.AqHttpTestBase):
             ], rt['parts'])
 
             self.fetch(
-                "/response_type/%s.json?programId=%s" % (rt_id, program_id),
+                "/response_type/%s.json?programId=%s" % (rt_id, pid),
                 method='DELETE', expected=403)
+
+            rts = self.fetch(
+                "/response_type.json?programId=%s&term=Numerical" % pid,
+                method='GET', expected=200, decode=True)
+            self.assertEqual(len(rts), 1)
+            self.assertEqual('Numerical', rts[0]['name'])
+            self.assertEqual(1, rts[0]['n_measures'])
 
     def test_modify(self):
         with model.session_scope() as session:
-            programs = session.query(model.Program).all()
-            program_id = str(programs[0].id)
+            survey = session.query(model.Survey).first()
+            pid = str(survey.program_id)
+            mtime = survey.modified
+
+        # Save an RT with no modifications
+        with base.mock_user('author'):
+            rt = self.fetch(
+                "/response_type.json?programId=%s&term=Yes%%20/%%20No" % pid,
+                method='GET', expected=200, decode=True)[0]
+            rt = self.fetch(
+                "/response_type/%s.json?programId=%s" % (rt['id'], pid),
+                method='PUT', expected=200, body=rt, decode=True)
+
+        with model.session_scope() as session:
+            survey = session.query(model.Survey).first()
+            self.assertEqual(survey.modified, mtime)
+
+        # Modify an RT and check that it updates the survey appropriately
+        with base.mock_user('author'):
+            rt['parts'][0]['options'].append({'name': 'Oh yes', 'score': 2.0})
+            rt = self.fetch(
+                "/response_type/%s.json?programId=%s" % (rt['id'], pid),
+                method='PUT', expected=200, body=rt, decode=True)
+
+        with model.session_scope() as session:
+            survey = session.query(model.Survey).first()
+            self.assertGreater(survey.modified, mtime)
+
+    def test_authz(self):
+        with model.session_scope() as session:
+            survey = session.query(model.Survey).first()
+            pid = str(survey.program_id)
 
         # Create a new RT and check that it can only be modified by an author
         with base.mock_user('author'):
             rt = self.fetch(
-                "/response_type.json?programId=%s" % (program_id),
+                "/response_type.json?programId=%s" % (pid),
                 method='POST', expected=200, body={
                     'name': "Test RT",
                     'parts': []
@@ -654,33 +692,33 @@ class ResponseTypeTest(base.AqHttpTestBase):
             self.assertEqual(0, rt['n_measures'])
             rt_id = rt['id']
             rt = self.fetch(
-                "/response_type/%s.json?programId=%s" % (rt_id, program_id),
+                "/response_type/%s.json?programId=%s" % (rt_id, pid),
                 method='PUT', expected=200, body=rt, decode=True)
 
         with base.mock_user('clerk'):
             self.fetch(
-                "/response_type/%s.json?programId=%s" % (rt_id, program_id),
+                "/response_type/%s.json?programId=%s" % (rt_id, pid),
                 method='PUT', expected=403, body=rt)
             self.fetch(
-                "/response_type.json?programId=%s" % (program_id),
+                "/response_type.json?programId=%s" % (pid),
                 method='POST', expected=403, body={
                     'name': "Test RT",
                     'parts': []
                 })
             self.fetch(
-                "/response_type/%s.json?programId=%s" % (rt_id, program_id),
+                "/response_type/%s.json?programId=%s" % (rt_id, pid),
                 method='DELETE', expected=403)
 
         with base.mock_user('author'):
             rts1 = self.fetch(
-                "/response_type.json?programId=%s" % program_id,
+                "/response_type.json?programId=%s" % pid,
                 method='GET', expected=200, decode=True)
             self.assertIn('Test RT', (rt['name'] for rt in rts1))
             self.fetch(
-                "/response_type/%s.json?programId=%s" % (rt_id, program_id),
+                "/response_type/%s.json?programId=%s" % (rt_id, pid),
                 method='DELETE', expected=200)
             rts2 = self.fetch(
-                "/response_type.json?programId=%s" % program_id,
+                "/response_type.json?programId=%s" % pid,
                 method='GET', expected=200, decode=True)
             self.assertEqual(len(rts1), len(rts2) + 1)
             self.assertNotIn('Test RT', (rt['name'] for rt in rts2))

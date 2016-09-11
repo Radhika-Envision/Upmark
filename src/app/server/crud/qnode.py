@@ -327,7 +327,7 @@ class QuestionNodeHandler(
                 # Need to flush so object has an ID to record action against.
                 session.flush()
 
-                calculator = Calculator.structural(qnode.survey)
+                calculator = Calculator.structural()
                 calculator.mark_qnode_dirty(qnode)
                 calculator.execute()
 
@@ -374,13 +374,13 @@ class QuestionNodeHandler(
 
                 qnode.deleted = True
 
-                calculator = Calculator.structural(survey)
+                calculator = Calculator.structural()
                 if parent is not None:
                     parent.children.reorder()
                     calculator.mark_qnode_dirty(parent)
                 else:
                     survey.qnodes.reorder()
-                    calculator.mark_survey_dirty()
+                    calculator.mark_survey_dirty(survey)
                 calculator.execute()
 
         except sqlalchemy.exc.IntegrityError as e:
@@ -413,7 +413,7 @@ class QuestionNodeHandler(
                 if session.is_modified(qnode):
                     verbs.append('update')
 
-                calculator = Calculator.structural(qnode.survey)
+                calculator = Calculator.structural()
                 if parent_id != '' and str(qnode.parent_id) != parent_id:
                     # Change parent
                     old_parent = qnode.parent

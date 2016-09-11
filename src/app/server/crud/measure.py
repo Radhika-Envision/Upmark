@@ -1,3 +1,4 @@
+from collections import defaultdict
 import datetime
 import time
 import uuid
@@ -13,7 +14,7 @@ import handlers
 import logging
 import model
 from score import Calculator
-from utils import falsy, keydefaultdict, reorder, ToSon, truthy, updater
+from utils import falsy, reorder, ToSon, truthy, updater
 
 
 log = logging.getLogger('app.crud.measure')
@@ -93,13 +94,14 @@ class MeasureHandler(
             son = to_son(measure)
 
             if survey_id:
-                parent = measure.get_parent(survey_id)
-                if not parent:
+                qnode_measure = measure.get_qnode_measure(survey_id)
+                if not qnode_measure:
                      raise handlers.MissingDocError(
                          "This measure does not belong to that survey")
+                parent = qnode_measure.qnode
 
                 son['parent'] = to_son(parent)
-                son['seq'] = measure.get_seq(survey_id)
+                son['seq'] = qnode_measure.seq
                 prev = (session.query(model.QnodeMeasure)
                     .filter(model.QnodeMeasure.qnode_id == parent.id,
                             model.QnodeMeasure.program_id == measure.program_id,
@@ -231,7 +233,7 @@ class MeasureHandler(
                 # Need to flush so object has an ID to record action against.
                 session.flush()
 
-                calculators = keydefaultdict(lambda s: Calculator.structural(s))
+                calculators = defaultdict(lambda: Calculator.structural())
                 for parent_id in parent_ids:
                     qnode = session.query(model.QuestionNode)\
                         .get((parent_id, self.program_id))
@@ -240,8 +242,6 @@ class MeasureHandler(
                     qnode_measure = model.QnodeMeasure(
                         program=qnode.program, survey=qnode.survey,
                         qnode=qnode, measure=measure)
-                    qnode.qnode_measures.append(qnode_measure)
-                    measure.qnode_measures.append(qnode_measure)
                     qnode.qnode_measures.reorder()
                     calculators[qnode.survey].mark_measure_dirty(qnode_measure)
 
@@ -288,7 +288,7 @@ class MeasureHandler(
 
                 act = Activities(session)
 
-                calculators = keydefaultdict(lambda s: Calculator.structural(s))
+                calculators = defaultdict(lambda: Calculator.structural())
 
                 # Just unlink from qnodes
                 for parent_id in parent_ids:
@@ -298,7 +298,7 @@ class MeasureHandler(
                         raise handlers.MissingDocError(
                             "No such question node")
                     qnode_measure = (session.query(model.QnodeMeasure)
-                        .get((self.program_id, qnode.survey_id, qnode.id)))
+                        .get((self.program_id, qnode.survey_id, measure.id)))
                     if qnode_measure is None:
                         raise handlers.ModelError(
                             "Measure does not belong to that question node")
@@ -347,7 +347,7 @@ class MeasureHandler(
                 if session.is_modified(measure):
                     verbs.append('update')
 
-                calculators = keydefaultdict(lambda s: Calculator.structural(s))
+                calculators = defaultdict(lambda: Calculator.structural())
                 for qnode_measure in measure.qnode_measures:
                     calculators[qnode_measure.survey].mark_measure_dirty(
                         qnode_measure)
@@ -373,10 +373,9 @@ class MeasureHandler(
                             session.delete(old_qm)
                             old_parent.qnode_measures.reorder()
                             self.reason('Moved from %s' % old_parent.title)
-                    qnode_measure = QnodeMeasure(
-                        program=measure.program, survey=new_parent.survey,
-                        parent=new_parent, measure=measure)
-                    new_parent.qnode_measures.append(qnode_measure)
+                    qnode_measure = model.QnodeMeasure(
+                        program=new_parent.program, survey=new_parent.survey,
+                        qnode=new_parent, measure=measure)
                     new_parent.qnode_measures.reorder()
                     calculators[new_parent.survey].mark_qnode_dirty(new_parent)
                 if has_relocated:

@@ -200,6 +200,12 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
             session.add(entity)
             return entity
 
+        def dup_repsonse_types(response_types):
+            for response_type in response_types:
+                log.debug('Duplicating %s', response_type)
+                dissociate(response_type)
+                response_type.program_id = target_program.id
+
         def dup_surveys(surveys):
             for survey in surveys:
                 if survey.deleted:
@@ -240,6 +246,10 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
             measure.program_id = target_program.id
             processed_measure_ids.add(measure.id)
 
+        source_response_types = (session.query(model.ResponseType)
+            .filter(model.ResponseType.program_id == source_program.id)
+            .all())
+        dup_repsonse_types(source_response_types)
         dup_surveys(source_program.surveys)
 
     @handlers.authz('author')

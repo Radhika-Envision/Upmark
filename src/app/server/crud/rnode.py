@@ -39,12 +39,11 @@ class ResponseNodeHandler(handlers.BaseHandler):
 
         with model.session_scope() as session:
             rnode = (session.query(model.ResponseNode)
-                    .filter_by(submission_id=submission_id,
-                               qnode_id=qnode_id)
-                    .first())
+                .get((submission_id, qnode_id)))
 
             if rnode is None:
-                # Create an empty one, and roll back later
+                # Create an empty one, and roll back later (because GET
+                # shouldn't modify anything).
                 qnode, submission = (session.query(
                         model.QuestionNode, model.Submission)
                     .join(model.Program)
@@ -117,8 +116,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
 
         with model.session_scope() as session:
             submission = (session.query(model.Submission)
-                .filter_by(id=submission_id)
-                .first())
+                .get((submission_id,)))
 
             if submission is None:
                 raise handlers.MissingDocError("No such submission")
@@ -128,10 +126,10 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 children = submission.rnodes
             else:
                 rnode = (session.query(model.ResponseNode)
-                    .filter_by(submission_id=submission_id,
-                               qnode_id=parent_id)
-                    .first())
+                    .get((submission_id, parent_id)))
                 if rnode is None:
+                    # Rnodes get created from the bottom of the tree up, so if
+                    # the parent doesn't exist, its children shouldn't either.
                     children = []
                 else:
                     children = rnode.children
@@ -186,9 +184,8 @@ class ResponseNodeHandler(handlers.BaseHandler):
 
                 self._check_authz(submission)
 
-                query = (session.query(model.ResponseNode).filter_by(
-                     submission_id=submission_id, qnode_id=qnode_id))
-                rnode = query.first()
+                rnode = (session.query(model.ResponseNode)
+                    .get((submission_id, qnode_id)))
 
                 verbs = []
 
@@ -197,11 +194,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                         .get((qnode_id, submission.program.id)))
                     if qnode is None:
                         raise handlers.MissingDocError("No such question node")
-                    rnode = model.ResponseNode(
-                        submission_id=submission_id,
-                        qnode_id=qnode_id,
-                        program_id=submission.program.id)
-                    session.add(rnode)
+                    rnode = qnode.get_rnode(submission, create=True)
 
                 importance = self.request_son.get('importance')
                 if importance is not None:

@@ -188,26 +188,26 @@ class DaemonTest(base.AqHttpTestBase):
             session.add(submission)
 
             for m in program.measures:
-                if not any(qm.survey == survey for qm in m.qnode_measures):
+                qnode_measure = m.get_qnode_measure(survey)
+                if not qnode_measure:
                     continue
                 response = model.Response(
-                    program_id=program.id,
-                    measure_id=m.id,
                     submission=submission,
-                    user_id=user.id)
+                    qnode_measure=qnode_measure,
+                    user=user)
                 response.attachments = []
                 response.not_relevant = False
                 response.modified = sa.func.now()
                 response.approval = 'final'
                 response.comment = "Response for %s" % m.title
                 session.add(response)
-                if m.response_type == 'yes-no':
+                if m.response_type.name == 'Yes / No':
                     response.response_parts = [{'index': 1, 'note': "Yes"}]
                 else:
                     response.response_parts = [{'value': 1}]
 
             calculator = Calculator.scoring(submission)
-            calculator.mark_entire_survey_dirty()
+            calculator.mark_entire_survey_dirty(submission.survey)
             calculator.execute()
 
             functions = list(submission.rnodes)

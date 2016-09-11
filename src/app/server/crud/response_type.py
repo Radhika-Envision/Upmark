@@ -13,7 +13,7 @@ import handlers
 import logging
 import model
 from score import Calculator
-from utils import falsy, keydefaultdict, reorder, ToSon, truthy, updater
+from utils import falsy, reorder, ToSon, truthy, updater
 
 
 log = logging.getLogger('app.crud.response_type')
@@ -25,7 +25,6 @@ class ResponseTypeHandler(
     @tornado.web.authenticated
     def get(self, response_type_id):
         '''Get single response type'''
-        # print('GET', response_type_id)
         if not response_type_id:
             self.query()
             return
@@ -50,10 +49,17 @@ class ResponseTypeHandler(
 
     def query(self):
         '''Get a list.'''
+        term = self.get_argument('term', None)
+
         with model.session_scope() as session:
             query = (session.query(model.ResponseType)
                 .filter(model.ResponseType.program_id == self.program_id)
                 .order_by(model.ResponseType.name))
+
+            if term:
+                query = query.filter(
+                    model.ResponseType.name.ilike(r'%{}%'.format(term)))
+
             query = self.paginate(query)
             rts = query.all()
 
@@ -83,6 +89,13 @@ class ResponseTypeHandler(
             self._update(response_type, self.request_son)
             session.flush()
             response_type_id = str(response_type.id)
+            # No need for survey update: RT is not being used yet
+
+            act = Activities(session)
+            act.record(self.current_user, response_type, ['create'])
+            if not act.has_subscription(self.current_user, response_type):
+                act.subscribe(self.current_user, response_type.program)
+                self.reason("Subscribed to program")
         self.get(response_type_id)
 
     @handlers.authz('author')
@@ -94,6 +107,14 @@ class ResponseTypeHandler(
             if not response_type:
                 raise handlers.MissingDocError("No such response type")
             session.delete(response_type)
+            # No need for survey update: delete will fail if any measures are
+            # using this RT
+
+            act = Activities(session)
+            act.record(self.current_user, response_type, ['delete'])
+            if not act.has_subscription(self.current_user, response_type):
+                act.subscribe(self.current_user, response_type.program)
+                self.reason("Subscribed to program")
         self.set_header("Content-Type", "text/plain")
         self.finish()
 
@@ -105,7 +126,25 @@ class ResponseTypeHandler(
                 .get((response_type_id, self.program_id)))
             if not response_type:
                 raise handlers.MissingDocError("No such response type")
+
             self._update(response_type, self.request_son)
+
+            verbs = []
+            # Check if modified now to avoid problems with autoflush later
+            if session.is_modified(response_type):
+                verbs.append('update')
+                calculator = Calculator.structural()
+                for measure in response_type.measures:
+                    for qnode_measure in measure.qnode_measures:
+                        calculator.mark_measure_dirty(qnode_measure)
+                calculator.execute()
+
+            act = Activities(session)
+            act.record(self.current_user, response_type, verbs)
+            if not act.has_subscription(self.current_user, response_type):
+                act.subscribe(self.current_user, response_type.program)
+                self.reason("Subscribed to program")
+
         self.get(response_type_id)
 
     def _update(self, measure, son):
