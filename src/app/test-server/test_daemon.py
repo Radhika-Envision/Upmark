@@ -291,7 +291,7 @@ class DaemonTest(base.AqHttpTestBase):
 
         messages = []
         with mock.patch('recalculate.send', send), \
-                mock.patch('model.Submission.update_stats_descendants',
+                mock.patch('response_type.ResponseType.validate',
                            side_effect=ResponseTypeError):
             recalculate.process_once(config)
             self.assertEqual(len(messages), 1)

@@ -59,16 +59,15 @@ def process_once(config):
             if count == 0 and len(errors) == 0:
                 log.info("Starting new job")
 
-            try:
-                calculator = Calculator.scoring(sub)
-                calculator.mark_entire_survey_dirty(sub.survey)
-                calculator.execute()
-                count += 1
-            except ResponseTypeError as error:
+            calculator = Calculator.scoring(sub)
+            calculator.mark_entire_survey_dirty(sub.survey)
+            calculator.execute()
+            if sub.error:
                 errors.append({"submission_id": sub.id,
                                "submission_title": sub.title,
-                               "error": str(error)})
-                sub = session.query(model.Submission).get(sub.id)
+                               "error": sub.error})
+            else:
+                count += 1
 
             sub.modified = sub.survey.modified
             session.commit()
