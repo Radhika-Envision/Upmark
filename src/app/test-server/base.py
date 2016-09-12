@@ -51,12 +51,16 @@ def print_survey(survey):
     def print_measure(qnode_measure, indent=""):
         print("{}{}".format(indent, qnode_measure.measure))
         indent += "  "
+        if qnode_measure.error:
+            print("{}error: {}".format(indent, qnode_measure.error))
         print("{}seq: {}".format(indent, qnode_measure.seq))
         print("{}weight: {}".format(indent, qnode_measure.measure.weight))
 
     def print_qnode(qnode, indent=""):
         print("{}{}".format(indent, qnode))
         indent += "  "
+        if qnode.error:
+            print("{}error: {}".format(indent, qnode.error))
         print("{}seq: {}".format(indent, qnode.seq))
         print("{}total_weight: {}".format(indent, qnode.total_weight))
         print("{}n_measures: {}".format(indent, qnode.n_measures))
@@ -66,6 +70,8 @@ def print_survey(survey):
             print_measure(m, indent)
 
     print(survey)
+    if survey.error:
+        print("  error: ", survey.error)
     for qnode in survey.qnodes:
         print_qnode(qnode, indent="  ")
 

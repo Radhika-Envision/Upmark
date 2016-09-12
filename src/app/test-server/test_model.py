@@ -122,7 +122,7 @@ class ProgramStructureTest(base.AqModelTestBase):
             m = measures[1]
             self.assertEqual(m.title, "Baz Measure")
 
-    def test_cyclic(self):
+    def test_graph(self):
         with model.session_scope() as session:
             survey = (session.query(model.Survey)
                 .filter(model.Survey.title == 'Survey 1')
@@ -141,76 +141,97 @@ class ProgramStructureTest(base.AqModelTestBase):
 
             assert_error_free()
 
-            qnode_measure_1 = (session.query(model.Measure)
-                .filter(model.Measure.title == 'Foo Measure')
-                .first()
-                .get_qnode_measure(survey))
-            qnode_measure_2 = (session.query(model.Measure)
-                .filter(model.Measure.title == 'Bar Measure')
-                .first()
-                .get_qnode_measure(survey))
-            qnode_measure_3 = (session.query(model.Measure)
-                .filter(model.Measure.title == 'Baz Measure')
-                .first()
-                .get_qnode_measure(survey))
+            qnode_measure_111 = survey.qnodes[0].children[0].qnode_measures[0]
+            qnode_measure_112 = survey.qnodes[0].children[0].qnode_measures[1]
+            qnode_measure_121 = survey.qnodes[0].children[1].qnode_measures[0]
 
-            self.assertEqual(0, len(qnode_measure_1.target_vars))
-            self.assertEqual(0, len(qnode_measure_1.source_vars))
-            self.assertEqual(0, len(qnode_measure_2.target_vars))
-            self.assertEqual(0, len(qnode_measure_2.source_vars))
-            self.assertEqual(0, len(qnode_measure_3.target_vars))
-            self.assertEqual(0, len(qnode_measure_3.source_vars))
+            self.assertEqual(0, len(qnode_measure_111.target_vars))
+            self.assertEqual(0, len(qnode_measure_111.source_vars))
+            self.assertEqual(0, len(qnode_measure_112.target_vars))
+            self.assertEqual(0, len(qnode_measure_112.source_vars))
+            self.assertEqual(0, len(qnode_measure_121.target_vars))
+            self.assertEqual(0, len(qnode_measure_121.source_vars))
 
             # Make measure 1 a dependency (source) of measure 2 (target)
             mv = model.MeasureVariable(
                 program=program, survey=survey,
-                source_qnode_measure=qnode_measure_1, source_field='_score',
-                target_qnode_measure=qnode_measure_2, target_field='a')
+                source_qnode_measure=qnode_measure_111, source_field='foo',
+                target_qnode_measure=qnode_measure_112, target_field='ext')
             session.add(mv)
             # session.flush()
 
             # Check that relationships have updated
-            self.assertEqual(1, len(qnode_measure_1.target_vars))
-            self.assertEqual(0, len(qnode_measure_1.source_vars))
-            self.assertEqual(0, len(qnode_measure_2.target_vars))
-            self.assertEqual(1, len(qnode_measure_2.source_vars))
-            self.assertEqual(0, len(qnode_measure_3.target_vars))
-            self.assertEqual(0, len(qnode_measure_3.source_vars))
+            self.assertEqual(1, len(qnode_measure_111.target_vars))
+            self.assertEqual(0, len(qnode_measure_111.source_vars))
+            self.assertEqual(0, len(qnode_measure_112.target_vars))
+            self.assertEqual(1, len(qnode_measure_112.source_vars))
+            self.assertEqual(0, len(qnode_measure_121.target_vars))
+            self.assertEqual(0, len(qnode_measure_121.source_vars))
 
-            # Check that survey graph is constructed correctly
+            # Check that dependency is marked as superfluous (because it's not
+            # required by the response type)
             calculator = Calculator.structural()
-            calculator.mark_measure_dirty(qnode_measure_1)
+            calculator.mark_measure_dirty(qnode_measure_111)
+            calculator.execute()
+            self.assertIn('superfluous', qnode_measure_112.error.lower())
+
+            # Add response type that uses the connection, but which declares
+            # a different variable ('a' instead of 'foo')
+            ext_response_type = model.ResponseType(
+                program=program,
+                name="External",
+                parts=[{"id": "a", "type": "numerical"}],
+                formula="a / ext")
+            session.add(ext_response_type)
+            qnode_measure_112.measure.response_type = ext_response_type
+            # session.flush()
+            calculator = Calculator.structural()
+            calculator.mark_measure_dirty(qnode_measure_112)
+            calculator.execute()
+            self.assertIn("doesn't declare", qnode_measure_112.error.lower())
+
+            # Change the binding to the right field
+            mv.source_field = 'a'
+            calculator = Calculator.structural()
+            calculator.mark_measure_dirty(qnode_measure_112)
             calculator.execute()
             assert_error_free()
+
+            # Configure measure to have an unbound variable
+            qnode_measure_111.measure.response_type = ext_response_type
+            calculator = Calculator.structural()
+            calculator.mark_measure_dirty(qnode_measure_111)
+            calculator.execute()
+            self.assertIn('unbound', qnode_measure_111.error.lower())
 
             # Make measure 2 a dependency (source) of measure 1 (target)
             mv = model.MeasureVariable(
                 program=program, survey=survey,
-                source_qnode_measure=qnode_measure_2, source_field='_score',
-                target_qnode_measure=qnode_measure_1, target_field='a')
+                source_qnode_measure=qnode_measure_112, source_field='a',
+                target_qnode_measure=qnode_measure_111, target_field='ext')
             session.add(mv)
             # session.flush()
 
             # Check that relationships have updated
-            self.assertEqual(1, len(qnode_measure_1.target_vars))
-            self.assertEqual(1, len(qnode_measure_1.source_vars))
-            self.assertEqual(1, len(qnode_measure_2.target_vars))
-            self.assertEqual(1, len(qnode_measure_2.source_vars))
-            self.assertEqual(0, len(qnode_measure_3.target_vars))
-            self.assertEqual(0, len(qnode_measure_3.source_vars))
+            self.assertEqual(1, len(qnode_measure_111.target_vars))
+            self.assertEqual(1, len(qnode_measure_111.source_vars))
+            self.assertEqual(1, len(qnode_measure_112.target_vars))
+            self.assertEqual(1, len(qnode_measure_112.source_vars))
+            self.assertEqual(0, len(qnode_measure_121.target_vars))
+            self.assertEqual(0, len(qnode_measure_121.source_vars))
 
             # Check that survey graph is constructed correctly
             calculator = Calculator.structural()
-            calculator.mark_measure_dirty(qnode_measure_2)
+            calculator.mark_measure_dirty(qnode_measure_112)
             calculator.execute()
-            self.assertIn('cyclic', qnode_measure_1.error.lower())
-            self.assertIn('cyclic', qnode_measure_2.error.lower())
-            self.assertIn('cyclic', qnode_measure_1.qnode.error.lower())
-            self.assertIn('cyclic', qnode_measure_1.qnode.parent.error.lower())
+            self.assertIn('cyclic', qnode_measure_111.error.lower())
+            self.assertIn('cyclic', qnode_measure_112.error.lower())
+            self.assertIn('cyclic', qnode_measure_111.qnode.error.lower())
+            self.assertIn('cyclic', qnode_measure_111.qnode.parent.error.lower())
             self.assertIn('cyclic', survey.error.lower())
             self.assertIn('cyclic', program.error.lower())
-            self.assertIs(qnode_measure_3.error, None)
-            self.assertIs(qnode_measure_3.qnode.error, None)
+            self.assertIs(qnode_measure_121.error, None)
+            self.assertIs(qnode_measure_121.qnode.error, None)
 
 
     def test_history(self):

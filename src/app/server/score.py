@@ -16,8 +16,8 @@ Together these form a single graph. This module solves the graph.
 from datetime import datetime
 
 from cache import instance_method_lru_cache
-from response_type import ResponseError, ResponseType
 from dag import Graph, GraphBuilder, NodeBuilder, Ops, OpsProxy
+from response_type import ResponseError, ResponseType
 
 
 class ScoreError(Exception):
@@ -199,6 +199,7 @@ def pluralize(n, singular_exp, plural_exp):
 
 class ProgramOps(CyclicMixin, Ops):
     def evaluate(self, program, dependencies, dependants):
+        '''Update stats'''
         self.errors(program, sum(1 for x in program.surveys if x.error))
 
     def errors(self, entity, n_errors):
@@ -208,6 +209,7 @@ class ProgramOps(CyclicMixin, Ops):
 
 class SurveyOps(CyclicMixin, Ops):
     def evaluate(self, survey, dependencies, dependants):
+        '''Update stats'''
         survey.n_measures = sum(qnode.n_measures for qnode in survey.qnodes)
         survey.modified = datetime.utcnow()
         self.errors(survey, sum(1 for x in survey.qnodes if x.error))
@@ -219,6 +221,7 @@ class SurveyOps(CyclicMixin, Ops):
 
 class QnodeOps(CyclicMixin, Ops):
     def evaluate(self, qnode, dependencies, dependants):
+        '''Update stats'''
         total_weight = sum(qm.measure.weight for qm in qnode.qnode_measures)
         total_weight += sum(child.total_weight for child in qnode.children)
         n_measures = len(qnode.qnode_measures)
@@ -253,11 +256,48 @@ class QnodeOps(CyclicMixin, Ops):
 
 class MeasureOps(CyclicMixin, Ops):
     def evaluate(self, qnode_measure, dependencies, dependants):
+        '''Validate inter-measure variables'''
+        bindings = {var.target_field for var in qnode_measure.source_vars}
+        target_response_type = self.get_response_type(
+            qnode_measure.measure.response_type)
+
+        for field in target_response_type.unbound_vars:
+            if field not in bindings:
+                qnode_measure.error = "Unbound variable %s" % field
+                return
+
+        for field in bindings:
+            if field not in target_response_type.unbound_vars:
+                qnode_measure.error = (
+                    "Variable binding '%s' is superfluous" % field)
+                return
+
+        for var in qnode_measure.source_vars:
+            if var.source_field in {'_raw', '_score', '_weight'}:
+                continue
+            source_response_type = self.get_response_type(
+                var.source_qnode_measure.measure.response_type)
+            if var.source_field not in source_response_type.declared_vars:
+                qnode_measure.error = (
+                    "Variable '%s' is bound to '%s' on measure %s, but that"
+                    " measure's response type doesn't declare such a field" %
+                    (field, var.source_field,
+                     var.source_qnode_measure.get_path()))
+                return
+
         self.errors(qnode_measure, 0)
 
     def errors(self, entity, n_errors):
         entity.error = pluralize(
             n_errors, "A measure has an error", "%d measures have errors")
+
+    @instance_method_lru_cache()
+    def get_response_type(self, response_type):
+        '''
+        Convert a response type definition to a materialised response type.
+        '''
+        return ResponseType(
+            response_type.name, response_type.parts, response_type.formula)
 
 
 # Submission score ops - these update submission metadata (e.g. score).
@@ -328,14 +368,6 @@ class ResponseOps(MeasureOps):
     @instance_method_lru_cache()
     def get_response(self, qnode_measure):
         return qnode_measure.get_response(self.submission)
-
-    @instance_method_lru_cache()
-    def get_response_type(self, response_type):
-        '''
-        Convert a response type definition to a materialised response type.
-        '''
-        return ResponseType(
-            response_type.name, response_type.parts, response_type.formula)
 
     def external_variables(self, response, qnode_measure):
         scope = {}
