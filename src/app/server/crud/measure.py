@@ -233,7 +233,7 @@ class MeasureHandler(
                 # Need to flush so object has an ID to record action against.
                 session.flush()
 
-                calculators = defaultdict(lambda: Calculator.structural())
+                calculator = Calculator.structural()
                 for parent_id in parent_ids:
                     qnode = session.query(model.QuestionNode)\
                         .get((parent_id, self.program_id))
@@ -243,10 +243,9 @@ class MeasureHandler(
                         program=qnode.program, survey=qnode.survey,
                         qnode=qnode, measure=measure)
                     qnode.qnode_measures.reorder()
-                    calculators[qnode.survey].mark_measure_dirty(qnode_measure)
+                    calculator.mark_measure_dirty(qnode_measure)
 
-                for calculator in calculators.values():
-                    calculator.execute()
+                calculator.execute()
 
                 measure_id = str(measure.id)
 
@@ -288,7 +287,7 @@ class MeasureHandler(
 
                 act = Activities(session)
 
-                calculators = defaultdict(lambda: Calculator.structural())
+                calculator = Calculator.structural()
 
                 # Just unlink from qnodes
                 for parent_id in parent_ids:
@@ -302,12 +301,12 @@ class MeasureHandler(
                     if qnode_measure is None:
                         raise handlers.ModelError(
                             "Measure does not belong to that question node")
+                    calculator.mark_measure_dirty(
+                        qnode_measure, force_dependants=True)
                     qnode.qnode_measures.remove(qnode_measure)
                     qnode.qnode_measures.reorder()
-                    calculators[qnode.survey].mark_qnode_dirty(qnode)
 
-                for calculator in calculators.values():
-                    calculator.execute()
+                calculator.execute()
 
                 act.record(self.current_user, measure, ['delete'])
                 if not act.has_subscription(self.current_user, measure):
@@ -344,13 +343,11 @@ class MeasureHandler(
 
                 verbs = []
                 # Check if modified now to avoid problems with autoflush later
+                calculator = Calculator.structural()
                 if session.is_modified(measure):
                     verbs.append('update')
-
-                calculators = defaultdict(lambda: Calculator.structural())
-                for qnode_measure in measure.qnode_measures:
-                    calculators[qnode_measure.survey].mark_measure_dirty(
-                        qnode_measure)
+                    for qnode_measure in measure.qnode_measures:
+                        calculator.mark_measure_dirty(qnode_measure)
 
                 has_relocated = False
                 for parent_id in parent_ids:
@@ -360,29 +357,32 @@ class MeasureHandler(
                         .get((parent_id, self.program_id))
                     if new_parent is None:
                         raise handlers.ModelError("No such question node")
-                    if new_parent in (qm.qnode for qm in measure.qnode_measures):
-                        continue
-                    self.reason('Added to %s' % new_parent.title)
+                    self.reason('Added to %s' % new_parent.get_path())
+                    qnode_measure = measure.get_qnode_measure(new_parent.survey_id)
+                    if qnode_measure:
+                        old_parent = qnode_measure.qnode
+                        if old_parent == new_parent:
+                            continue
+                        # Mark dirty now, before the move, to cause old parents
+                        # to be updated.
+                        calculator.mark_measure_dirty(qnode_measure)
+                        self.reason('Moved from %s' % old_parent.get_path())
+                        qnode_measure.qnode = new_parent
+                        old_parent.qnode_measures.reorder()
+                    else:
+                        qnode_measure = model.QnodeMeasure(
+                            program=new_parent.program, survey=new_parent.survey,
+                            qnode=new_parent, measure=measure)
                     has_relocated = True
-                    for old_qm in list(measure.qnode_measures):
-                        old_parent = old_qm.qnode
-                        old_hid = old_parent.survey_id
-                        if str(old_hid) == str(new_parent.survey_id):
-                            old_parent.qnode_measures.remove(old_qm)
-                            measure.qnode_measures.remove(old_qm)
-                            session.delete(old_qm)
-                            old_parent.qnode_measures.reorder()
-                            self.reason('Moved from %s' % old_parent.title)
-                    qnode_measure = model.QnodeMeasure(
-                        program=new_parent.program, survey=new_parent.survey,
-                        qnode=new_parent, measure=measure)
                     new_parent.qnode_measures.reorder()
-                    calculators[new_parent.survey].mark_qnode_dirty(new_parent)
+                    # Mark dirty again.
+                    calculator.mark_measure_dirty(
+                        qnode_measure, force_dependants=True)
+
                 if has_relocated:
                     verbs.append('relation')
 
-                for calculator in calculators.values():
-                    calculator.execute()
+                calculator.execute()
 
                 act = Activities(session)
                 act.record(self.current_user, measure, verbs)
