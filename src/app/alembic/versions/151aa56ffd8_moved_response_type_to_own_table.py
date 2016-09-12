@@ -233,6 +233,7 @@ def upgrade_response_type():
 def upgrade_activity():
     op.drop_constraint('activity_ob_type_check', 'activity', type_='check')
     op.drop_constraint('subscription_ob_type_check', 'subscription', type_='check')
+    op.execute('ALTER TABLE activity ALTER COLUMN ob_type TYPE character varying(13)')
     op.create_check_constraint(
         'activity_ob_type_check', 'activity',
         """ob_type = ANY (ARRAY[
@@ -426,6 +427,7 @@ def downgrade_qnode_measure():
 def downgrade_activity():
     op.drop_constraint('activity_ob_type_check', 'activity', type_='check')
     op.drop_constraint('subscription_ob_type_check', 'subscription', type_='check')
+    op.execute('ALTER TABLE activity ALTER COLUMN ob_type TYPE character varying(12)')
     op.create_check_constraint(
         'activity_ob_type_check', 'activity',
         """ob_type = ANY (ARRAY[

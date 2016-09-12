@@ -69,6 +69,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
 
             to_son = ToSon(
                 # Fields to match from any visited object
+                r'/ob_type$',
                 r'/id$',
                 r'/score$',
                 r'/total_weight$',

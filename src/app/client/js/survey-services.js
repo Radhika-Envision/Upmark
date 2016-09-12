@@ -64,7 +64,7 @@ angular.module('wsaa.survey.services', [
 
 
 .factory('ResponseType', ['$resource', 'paged', function($resource, paged) {
-    return $resource('/rtype/:id.json', {id: '@id'}, {
+    return $resource('/response_type/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         create: { method: 'POST' },
         save: { method: 'PUT' },

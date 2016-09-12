@@ -384,131 +384,110 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
 })
 
 
-.controller('ResponseTypeEditorCtrl',
-        function($scope, Numbers, responseTypes, $timeout) {
-    $scope.rtEdit = {};
-    $scope.editRt = function(model, index) {
-        var rt = angular.copy(model.responseTypes[index]);
-        $scope.rtEdit = {
-            model: model,
-            rt: rt,
-            responseType: null,
-            externs: {},
-            i: index,
-            response: {
-                responseParts: [],
-                comment: ''
-            },
-            activeTab: 'details',
-        };
-    };
-    $scope.saveRt = function() {
-        var rts = $scope.rtEdit.model.responseTypes;
-        var rt = angular.copy($scope.rtEdit.rt);
-        rt.parts.forEach(function (part) {
-            // Clean up unused fields
-            if (part.type != 'multiple_choice')
-                delete part.options;
-            if (part.type != 'numerical') {
-                delete part.lower;
-                delete part.upper;
-            }
-        });
-        rts[$scope.rtEdit.i] = angular.copy(rt);
-        $scope.rtEdit = {};
-    };
-    $scope.cancelRt = function() {
-        $scope.rtEdit = {};
-    };
-    $scope.addRt = function(model) {
-        var i = model.responseTypes.length + 1;
-        model.responseTypes.push({
-            id: 'response_' + i,
-            name: 'Response Type ' + i,
-            parts: []
-        })
-    };
-    $scope.addPart = function(rt, $event) {
-        var ids = {};
-        for (var i = 0; i < rt.parts.length; i++) {
-            ids[rt.parts[i].id] = true;
-        }
-        var id;
-        for (var i = 0; i <= rt.parts.length; i++) {
-            id = Numbers.idOf(i);
-            if (!ids[id])
-                break;
-        }
-        var part = {
-            id: id,
-            name: 'Response part ' + id.toUpperCase(),
-        };
-        $scope.setType(part, 'multiple_choice');
-        rt.parts.push(part);
-        $scope.updateFormula(rt);
+.directive('responseTypeEditor', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            rt: '=responseTypeEditor',
+            weight: '=',
+        },
+        templateUrl: 'response_type.html',
+        controller: function($scope, Numbers, responseTypes, $timeout) {
+            $scope.$watch('rt', function(rt) {
+                $scope.rtEdit = {
+                    rt: rt,
+                    responseType: null,
+                    externs: {},
+                    response: {
+                        responseParts: [],
+                        comment: ''
+                    },
+                    activeTab: 'details',
+                };
+            });
+            $scope.addPart = function(rt, $event) {
+                var ids = {};
+                for (var i = 0; i < rt.parts.length; i++) {
+                    ids[rt.parts[i].id] = true;
+                }
+                var id;
+                for (var i = 0; i <= rt.parts.length; i++) {
+                    id = Numbers.idOf(i);
+                    if (!ids[id])
+                        break;
+                }
+                var part = {
+                    id: id,
+                    name: 'Response part ' + id.toUpperCase(),
+                };
+                $scope.setType(part, 'multiple_choice');
+                rt.parts.push(part);
+                $scope.updateFormula(rt);
 
-        $timeout(function() {
-            $scope.rtEdit.activeTab = rt.parts.indexOf(part);
-        });
-    };
-    $scope.setType = function(part, type) {
-        part.type = type;
-        if (type == 'multiple_choice' && !part.options) {
-            part.options = [
-                {score: 0, name: 'No', 'if': null},
-                {score: 1, name: 'Yes', 'if': null}
+                $timeout(function() {
+                    $scope.rtEdit.activeTab = rt.parts.indexOf(part);
+                });
+            };
+            $scope.setType = function(part, type) {
+                part.type = type;
+                if (type == 'multiple_choice' && !part.options) {
+                    part.options = [
+                        {score: 0, name: 'No', 'if': null},
+                        {score: 1, name: 'Yes', 'if': null}
+                    ];
+                }
+            };
+            $scope.addOption = function(part) {
+                part.options.push({
+                    score: 0,
+                    name: 'Option ' + (part.options.length + 1)
+                })
+            };
+            $scope.updateFormula = function(rt) {
+                if (rt.parts.length <= 1) {
+                    rt.formula = null;
+                    return;
+                }
+                var formula = "";
+                for (var i = 0; i < rt.parts.length; i++) {
+                    var part = rt.parts[i];
+                    if (i > 0)
+                        formula += " + ";
+                    if (part.id)
+                        formula += part.id;
+                    else
+                        formula += "?";
+                }
+                rt.formula = formula;
+            };
+            $scope.remove = function(rt, list, item) {
+                var i = list.indexOf(item);
+                if (i < 0)
+                    return;
+                list.splice(i, 1);
+                if (item.options)
+                    $scope.updateFormula(rt);
+            };
+
+            $scope.$watch('rtEdit.rt', function(rtDef) {
+                if (!rtDef) {
+                    $scope.rtEdit.responseType = null;
+                    return;
+                }
+                $scope.rtEdit.responseType = new responseTypes.ResponseType(
+                    rtDef.name, rtDef.parts, rtDef.formula);
+            }, true);
+
+            $scope.partTypes = [
+                {name: 'multiple_choice', desc: 'Multiple choice'},
+                {name: 'numerical', desc: 'Numerical'},
             ];
-        }
+            $scope.partTypeMap = $scope.partTypes.reduce(function(ts, t){
+                ts[t.name] = t.desc;
+                return ts;
+            }, {});
+        },
     };
-    $scope.addOption = function(part) {
-        part.options.push({
-            score: 0,
-            name: 'Option ' + (part.options.length + 1)
-        })
-    };
-    $scope.updateFormula = function(rt) {
-        if (rt.parts.length <= 1) {
-            rt.formula = null;
-            return;
-        }
-        var formula = "";
-        for (var i = 0; i < rt.parts.length; i++) {
-            var part = rt.parts[i];
-            if (i > 0)
-                formula += " + ";
-            if (part.id)
-                formula += part.id;
-            else
-                formula += "?";
-        }
-        rt.formula = formula;
-    };
-    $scope.remove = function(rt, list, item) {
-        var i = list.indexOf(item);
-        if (i < 0)
-            return;
-        list.splice(i, 1);
-        if (item.options)
-            $scope.updateFormula(rt);
-    };
-
-    $scope.$watch('rtEdit.rt', function(rtDef) {
-        if (!rtDef) {
-            $scope.rtEdit.responseType = null;
-            return;
-        }
-        $scope.rtEdit.responseType = new responseTypes.ResponseType(
-            rtDef.name, rtDef.parts, rtDef.formula);
-    }, true);
-
-    $scope.partTypes = [
-        {name: 'multiple_choice', desc: 'Multiple choice'},
-        {name: 'numerical', desc: 'Numerical'},
-    ];
-    $scope.partTypeMap = $scope.partTypes.reduce(function(ts, t){
-        ts[t.name] = t.desc;
-        return ts;
-    }, {});
 })
 
 

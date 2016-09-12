@@ -79,6 +79,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
                 raise handlers.MissingDocError("No such program")
 
             to_son = ToSon(
+                r'/ob_type$',
                 r'/id$',
                 r'/tracking_id$',
                 r'/title$',

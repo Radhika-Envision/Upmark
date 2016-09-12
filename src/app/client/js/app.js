@@ -725,6 +725,13 @@ angular.module('wsaa.aquamark',
                                 : $route.current.params.parent,
                             submissionId: $route.current.params.submission
                         }).$promise;
+                    }],
+                    responseType: ['measure', 'ResponseType',
+                            function(measure, ResponseType) {
+                        return ResponseType.get({
+                            id: measure.responseTypeId,
+                            programId: measure.programId
+                        }).$promise;
                     }]
                 })}
             })

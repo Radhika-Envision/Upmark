@@ -1,18 +1,21 @@
 'use strict';
 
 angular.module('wsaa.survey.measure', [
-    'wsaa.surveyQuestions', 'wsaa.survey.services'])
+    'wsaa.surveyQuestions', 'wsaa.survey.services', 'wsaa.response'])
 
 
 .controller('MeasureCtrl',
         function($scope, Measure, routeData, Editor, questionAuthz,
                  $location, Notifications, Current, Program, format, layout,
                  Structure, Arrays, Response, hotkeys, $q, $timeout, $window,
-                 responseTypes) {
+                 responseTypes, ResponseType) {
 
     $scope.layout = layout;
     $scope.parent = routeData.parent;
     $scope.submission = routeData.submission;
+    $scope.rt = {
+        responseType: routeData.responseType || {},
+    };
 
     if (routeData.measure) {
         // Editing old
@@ -23,7 +26,7 @@ angular.module('wsaa.survey.measure', [
             parent: routeData.parent,
             program: routeData.program,
             weight: 100,
-            responseType: null
+            responseTypeId: null
         });
     }
 
@@ -171,37 +174,6 @@ angular.module('wsaa.survey.measure', [
         }
     });
     $scope.$watch('structure.program', function(program) {
-        // Do a little processing on the response types
-        if (!program.responseTypes)
-            return;
-        var responseType = null;
-        var responseTypes = angular.copy(program.responseTypes);
-        for (var i = 0; i < responseTypes.length; i++) {
-            var t = responseTypes[i];
-            if (t.parts.length == 0) {
-                t.description = "No parts";
-            } else {
-                if (t.parts.length == 1) {
-                    t.description = "1 part";
-                } else {
-                    t.description = "" + t.parts.length + " parts";
-                }
-                var optNames = null;
-                if (t.parts[0].type == 'multiple_choice') {
-                    optNames = t.parts[0].options.map(function(o) {
-                        return o.name;
-                    }).filter(function(n) {
-                        return !!n;
-                    }).join(', ');
-                }
-                if (optNames)
-                    t.description += ': ' + optNames;
-                if (t.parts.length > 1)
-                    t.description += ' etc.';
-            }
-        }
-        $scope.responseTypes = responseTypes;
-
         $scope.checkRole = questionAuthz(Current, $scope.program, $scope.submission);
         $scope.editable = ($scope.program.isEditable &&
             !$scope.structure.deletedItem &&
@@ -215,6 +187,22 @@ angular.module('wsaa.survey.measure', [
         $scope.responseType = new responseTypes.ResponseType(rts[i]);
     });
 
+    $scope.save = function() {
+        if (!$scope.edit.model)
+            return;
+        $scope.rt.responseType.$save({
+                programId: $scope.rt.responseType.programId
+        }).then(
+            function success(responseType) {
+                $scope.edit.model.responseTypeId = responseType.id;
+                return $scope.edit.save();
+            },
+            function failure(details) {
+                Notifications.set('edit', 'error',
+                    "Could not save response type: " + details.statusText);
+            }
+        );
+    };
     $scope.$on('EditSaved', function(event, model) {
         if (model.parent) {
             $location.url(format(

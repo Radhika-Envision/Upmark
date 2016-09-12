@@ -52,6 +52,7 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
 
             to_son = ToSon(
                 # Any
+                r'/ob_type$',
                 r'/id$',
                 r'/title$',
                 r'/name$',

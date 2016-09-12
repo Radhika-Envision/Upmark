@@ -68,11 +68,13 @@ class MeasureHandler(
 
             to_son = ToSon(
                 # Fields to match from any visited object
+                r'/ob_type$',
                 r'/id$',
                 r'/title$',
                 r'/seq$',
                 r'/deleted$',
                 r'/is_editable$',
+                r'/program_id$',
                 r'/program/tracking_id$',
                 r'/program/created$',
                 # Fields to match from only the root object
@@ -357,7 +359,6 @@ class MeasureHandler(
                         .get((parent_id, self.program_id))
                     if new_parent is None:
                         raise handlers.ModelError("No such question node")
-                    self.reason('Added to %s' % new_parent.get_path())
                     qnode_measure = measure.get_qnode_measure(new_parent.survey_id)
                     if qnode_measure:
                         old_parent = qnode_measure.qnode
@@ -366,13 +367,16 @@ class MeasureHandler(
                         # Mark dirty now, before the move, to cause old parents
                         # to be updated.
                         calculator.mark_measure_dirty(qnode_measure)
-                        self.reason('Moved from %s' % old_parent.get_path())
+                        self.reason(
+                            'Moved from %s to %s' %
+                            (old_parent.get_path(), new_parent.get_path()))
                         qnode_measure.qnode = new_parent
                         old_parent.qnode_measures.reorder()
                     else:
                         qnode_measure = model.QnodeMeasure(
                             program=new_parent.program, survey=new_parent.survey,
                             qnode=new_parent, measure=measure)
+                        self.reason('Added to %s' % new_parent.get_path())
                     has_relocated = True
                     new_parent.qnode_measures.reorder()
                     # Mark dirty again.

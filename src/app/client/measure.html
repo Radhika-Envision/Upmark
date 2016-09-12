@@ -23,7 +23,7 @@
                 ng-if="edit.model && edit.model.id">
             <i class="fa fa-times"></i></button>
         <button class="btn btn-default btn-round" title="Save"
-                ng-click="edit.save()"
+                ng-click="save()"
                 ng-if="edit.model"
                 form="editor"
                 form-save-button="editor">
@@ -50,7 +50,10 @@
 <submission-header></submission-header>
 
 <div ng-if="edit.model" class="container">
-    <form novalidate name="form" id="editor" form-nav-warn>
+  <form novalidate name="form" id="editor" form-nav-warn class="container-fluid">
+    <div class="row">
+      <div class="col-md-6">
+        <h3>Measure Details</h3>
         <div class="form-group" show-errors>
             <label for="title">Name</label>
             <span class="help-label" ng-if="form.title.$error.required">
@@ -67,20 +70,20 @@
             <input type="number" class="form-control" id="weight" name="weight"
                 ng-model="edit.model.weight" min="0" step="any" required />
         </div>
-        <div class="form-group" show-errors>
-            <label for="responseType">Response Type</label>
-            <select type="text" class="form-control"
-                id="responseType" name="responseType"
-                ng-options="rt.id as (rt.name + ' - ' + rt.description) for rt in responseTypes"
-                ng-model="edit.model.responseType"></select>
-        </div>
         <div class="form-group">
             <label for="description">Description</label>
             <markdown-editor id="description"
                 ng-model="edit.model.description"
                 title="Description"></markdown-editor>
         </div>
-    </form>
+      </div> <!-- .col- -->
+
+      <div class="col-md-6">
+        <h3>Response Type</h3>
+        <div response-type-editor="rt.responseType" weight="edit.model.weight"></div>
+      </div> <!-- .col- -->
+    </div> <!-- .row -->
+  </form> <!-- .container-fluid -->
 </div>
 
 <docs ng-if="structure.deletedItem">

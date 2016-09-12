@@ -44,6 +44,7 @@ class SurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
 
             to_son = ToSon(
                 # Any
+                r'/ob_type$',
                 r'/id$',
                 r'/title$',
                 r'/seq$',

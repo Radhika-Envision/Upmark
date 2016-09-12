@@ -103,6 +103,7 @@ class ResponseHandler(handlers.BaseHandler):
 
             to_son = ToSon(
                 # Fields to match from any visited object
+                r'/ob_type$',
                 r'/id$',
                 r'/title$',
                 r'/name$',

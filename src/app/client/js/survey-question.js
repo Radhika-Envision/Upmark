@@ -481,12 +481,14 @@ angular.module('wsaa.surveyQuestions', [
         var stack = [];
         while (entity) {
             stack.push(entity);
-            if (entity.parent)
-                entity = entity.parent;
-            else if (entity.survey)
-                entity = entity.survey;
-            else if (entity.program)
+            if (entity.obType == 'measure')
+                entity = entity.parent || entity.program;
+            else if (entity.obType == 'qnode')
+                entity = entity.parent || entity.survey;
+            else if (entity.obType == 'survey')
                 entity = entity.program;
+            else if (entity.obType == 'program')
+                entity = null;
             else
                 entity = null;
         }
@@ -509,7 +511,7 @@ angular.module('wsaa.surveyQuestions', [
         }
         // Survey, or orphaned measure
         if (stack.length > 1) {
-            if (stack[1].responseType !== undefined) {
+            if (stack[1].obType == 'measure') {
                 measure = stack[1];
                 hstack.push({
                     path: 'measure',
@@ -544,7 +546,7 @@ angular.module('wsaa.surveyQuestions', [
         var qnodes = [];
         if (stack.length > 2 && survey) {
             var qnodeMaxIndex = stack.length - 1;
-            if (stack[stack.length - 1].responseType !== undefined) {
+            if (stack[stack.length - 1].obType == 'measure') {
                 measure = stack[stack.length - 1];
                 qnodeMaxIndex = stack.length - 2;
             } else {

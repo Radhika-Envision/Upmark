@@ -36,6 +36,7 @@ class ResponseTypeHandler(
                 raise handlers.MissingDocError("No such response type")
             to_son = ToSon(
                 r'/id$',
+                r'/program_id$',
                 r'/name$',
                 r'/parts$',
                 r'/parts/.*',
