@@ -195,7 +195,7 @@ class OpsProxy:
         self.ops.evaluate(node, dependencies, dependants)
 
     def cyclic(self, node, dependencies, dependants):
-        self.ops.evaluate(node, dependencies, dependants)
+        self.ops.cyclic(node, dependencies, dependants)
 
     def __repr__(self):
         return repr(self.ops)

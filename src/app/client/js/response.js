@@ -80,6 +80,23 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
         });
         return scope;
     };
+    ResponseType.prototype.humanize_variable = function(field_name) {
+        if (field_name == '_raw')
+            return 'Raw score';
+        if (field_name == '_score')
+            return 'Weighted score';
+        if (field_name == '_weight')
+            return 'Measure weight';
+        for (var i = 0; i < this.parts.length; i++) {
+            var part = this.parts[i];
+            if (field_name != part.name)
+                continue;
+            if (part.name)
+                return 'Part ' + part.name;
+            return 'Part ' + i;
+        }
+        return 'Unknown field ' + field_name;
+    };
     ResponseType.prototype.validate = function(responseParts, scope) {
         this.zip(responseParts).forEach(function(part, index) {
             try {

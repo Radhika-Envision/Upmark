@@ -122,6 +122,97 @@ class ProgramStructureTest(base.AqModelTestBase):
             m = measures[1]
             self.assertEqual(m.title, "Baz Measure")
 
+    def test_cyclic(self):
+        with model.session_scope() as session:
+            survey = (session.query(model.Survey)
+                .filter(model.Survey.title == 'Survey 1')
+                .first())
+            program = survey.program
+
+            def assert_error_free():
+                self.assertIs(program.error, None)
+                self.assertIs(survey.error, None)
+                for fn in survey.qnodes:
+                    self.assertIs(fn.error, None)
+                    for proc in fn.children:
+                        self.assertIs(proc.error, None)
+                        for qm in proc.qnode_measures:
+                            self.assertIs(qm.error, None)
+
+            assert_error_free()
+
+            qnode_measure_1 = (session.query(model.Measure)
+                .filter(model.Measure.title == 'Foo Measure')
+                .first()
+                .get_qnode_measure(survey))
+            qnode_measure_2 = (session.query(model.Measure)
+                .filter(model.Measure.title == 'Bar Measure')
+                .first()
+                .get_qnode_measure(survey))
+            qnode_measure_3 = (session.query(model.Measure)
+                .filter(model.Measure.title == 'Baz Measure')
+                .first()
+                .get_qnode_measure(survey))
+
+            self.assertEqual(0, len(qnode_measure_1.target_vars))
+            self.assertEqual(0, len(qnode_measure_1.source_vars))
+            self.assertEqual(0, len(qnode_measure_2.target_vars))
+            self.assertEqual(0, len(qnode_measure_2.source_vars))
+            self.assertEqual(0, len(qnode_measure_3.target_vars))
+            self.assertEqual(0, len(qnode_measure_3.source_vars))
+
+            # Make measure 1 a dependency (source) of measure 2 (target)
+            mv = model.MeasureVariable(
+                program=program, survey=survey,
+                source_qnode_measure=qnode_measure_1, source_field='_score',
+                target_qnode_measure=qnode_measure_2, target_field='a')
+            session.add(mv)
+            # session.flush()
+
+            # Check that relationships have updated
+            self.assertEqual(1, len(qnode_measure_1.target_vars))
+            self.assertEqual(0, len(qnode_measure_1.source_vars))
+            self.assertEqual(0, len(qnode_measure_2.target_vars))
+            self.assertEqual(1, len(qnode_measure_2.source_vars))
+            self.assertEqual(0, len(qnode_measure_3.target_vars))
+            self.assertEqual(0, len(qnode_measure_3.source_vars))
+
+            # Check that survey graph is constructed correctly
+            calculator = Calculator.structural()
+            calculator.mark_measure_dirty(qnode_measure_1)
+            calculator.execute()
+            assert_error_free()
+
+            # Make measure 2 a dependency (source) of measure 1 (target)
+            mv = model.MeasureVariable(
+                program=program, survey=survey,
+                source_qnode_measure=qnode_measure_2, source_field='_score',
+                target_qnode_measure=qnode_measure_1, target_field='a')
+            session.add(mv)
+            # session.flush()
+
+            # Check that relationships have updated
+            self.assertEqual(1, len(qnode_measure_1.target_vars))
+            self.assertEqual(1, len(qnode_measure_1.source_vars))
+            self.assertEqual(1, len(qnode_measure_2.target_vars))
+            self.assertEqual(1, len(qnode_measure_2.source_vars))
+            self.assertEqual(0, len(qnode_measure_3.target_vars))
+            self.assertEqual(0, len(qnode_measure_3.source_vars))
+
+            # Check that survey graph is constructed correctly
+            calculator = Calculator.structural()
+            calculator.mark_measure_dirty(qnode_measure_2)
+            calculator.execute()
+            self.assertIn('cyclic', qnode_measure_1.error.lower())
+            self.assertIn('cyclic', qnode_measure_2.error.lower())
+            self.assertIn('cyclic', qnode_measure_1.qnode.error.lower())
+            self.assertIn('cyclic', qnode_measure_1.qnode.parent.error.lower())
+            self.assertIn('cyclic', survey.error.lower())
+            self.assertIn('cyclic', program.error.lower())
+            self.assertIs(qnode_measure_3.error, None)
+            self.assertIs(qnode_measure_3.qnode.error, None)
+
+
     def test_history(self):
         # Duplicate a couple of objects
         with model.session_scope() as session:

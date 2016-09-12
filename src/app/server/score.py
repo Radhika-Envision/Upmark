@@ -103,7 +103,7 @@ class StructureManifest:
 
 class ScoreManifest:
     def __init__(self, submission):
-        self.program_ops = ProgramOps()
+        self.program_ops = SubmissionProgramOps()
         self.survey_ops = SubmissionOps(submission)
         self.qnode_ops = RnodeOps(submission)
         self.measure_ops = ResponseOps(submission)
@@ -183,18 +183,41 @@ class MeasureBuilder(NodeBuilder):
 # Survey structure ops - these update survey structure metadata.
 
 
-class ProgramOps(Ops):
+class CyclicMixin:
+    def cyclic(self, node, dependencies, dependants):
+        node.error = "Cyclic dependency"
+
+
+def pluralize(n, singular_exp, plural_exp):
+    if n == 1:
+        return singular_exp
+    elif n > 1:
+        return plural_exp % n
+    else:
+        return None
+
+
+class ProgramOps(CyclicMixin, Ops):
     def evaluate(self, program, dependencies, dependants):
-        pass
+        self.errors(program, sum(1 for x in program.surveys if x.error))
+
+    def errors(self, entity, n_errors):
+        entity.error = pluralize(
+            n_errors, "A survey has an error", "%d surveys have errors")
 
 
-class SurveyOps(Ops):
+class SurveyOps(CyclicMixin, Ops):
     def evaluate(self, survey, dependencies, dependants):
         survey.n_measures = sum(qnode.n_measures for qnode in survey.qnodes)
         survey.modified = datetime.utcnow()
+        self.errors(survey, sum(1 for x in survey.qnodes if x.error))
+
+    def errors(self, entity, n_errors):
+        entity.error = pluralize(
+            n_errors, "A category has an error", "%d categories have errors")
 
 
-class QnodeOps(Ops):
+class QnodeOps(CyclicMixin, Ops):
     def evaluate(self, qnode, dependencies, dependants):
         total_weight = sum(qm.measure.weight for qm in qnode.qnode_measures)
         total_weight += sum(child.total_weight for child in qnode.children)
@@ -204,16 +227,52 @@ class QnodeOps(Ops):
         qnode.total_weight = total_weight
         qnode.n_measures = n_measures
 
+        self.errors(
+            qnode,
+            sum(1 for x in qnode.children if x.error),
+            sum(1 for x in qnode.qnode_measures if x.error))
 
-class MeasureOps(Ops):
+    def errors(self, entity, n_child_errors, n_measure_errors):
+        if n_child_errors > 0 and n_measure_errors > 0:
+            "{} and {} have errors".format(
+                pluralize(
+                    n_child_errors, "A sub-category", "%d sub-categories"),
+                pluralize(
+                    n_measure_errors, "a measure", "%d measures"))
+        elif n_child_errors > 0:
+            entity.error = pluralize(
+                n_child_errors,
+                "A sub-category has an error", "%d sub-categories have errors")
+        elif n_measure_errors > 0:
+            entity.error = pluralize(
+                n_measure_errors,
+                "A measure has an error", "%d measures have errors")
+        else:
+            entity.error = None
+
+
+class MeasureOps(CyclicMixin, Ops):
     def evaluate(self, qnode_measure, dependencies, dependants):
-        pass
+        self.errors(qnode_measure, 0)
+
+    def errors(self, entity, n_errors):
+        entity.error = pluralize(
+            n_errors, "A measure has an error", "%d measures have errors")
 
 
 # Submission score ops - these update submission metadata (e.g. score).
 
 
-class SubmissionOps(Ops):
+class SubmissionProgramOps(Ops):
+    '''Dummy ops to prevent making changes to program when calculating score'''
+    def evaluate(self, survey, dependencies, dependants):
+        pass
+
+    def cyclic(self, survey, dependencies, dependants):
+        pass
+
+
+class SubmissionOps(SurveyOps):
     def __init__(self, submission):
         self.submission = submission
 
@@ -223,9 +282,12 @@ class SubmissionOps(Ops):
         for c in self.submission.rnodes:
             stats.add_rnode(c)
         stats.to_submission(self.submission)
+        self.errors(
+            self.submission,
+            sum(1 for x in self.submission.rnodes if x.error))
 
 
-class RnodeOps(Ops):
+class RnodeOps(QnodeOps):
     def __init__(self, submission):
         self.submission = submission
 
@@ -238,8 +300,13 @@ class RnodeOps(Ops):
             stats.add_response(response)
         stats.to_rnode(rnode)
 
+        self.errors(
+            rnode,
+            sum(1 for x in rnode.children if x.error),
+            sum(1 for x in rnode.responses if x.error))
 
-class ResponseOps(Ops):
+
+class ResponseOps(MeasureOps):
     def __init__(self, submission):
         self.submission = submission
 
@@ -247,10 +314,16 @@ class ResponseOps(Ops):
         measure = qnode_measure.measure
         response = self.get_response(qnode_measure)
         response_type = self.get_response_type(measure.response_type)
-        scope = self.external_variables(response, qnode_measure)
+
         stats = ResponseStats(response_type)
-        stats.update(response, scope)
-        stats.to_response(response)
+        try:
+            scope = self.external_variables(response, qnode_measure)
+            stats.update(response, scope)
+            stats.to_response(response)
+            response.error = None
+        except ResponseError as e:
+            stats.reset(response)
+            response.error = str(e)
 
     @instance_method_lru_cache()
     def get_response(self, qnode_measure):
@@ -270,10 +343,19 @@ class ResponseOps(Ops):
             source_response = self.get_response(var.source_qnode_measure)
             if source_response is None:
                 raise ResponseError(
-                    "Response %s depends on %s but it has not been filled in yet" %
-                    (response.qnode_measure.get_path(),
-                     source_response.qnode_measure.get_path()))
-            value = source_response.variables.get(var.source_field)
+                    "Response depends on another response (%s) which has not"
+                    " been filled in yet" %
+                    var.source_qnode_measure.get_path())
+            try:
+                value = source_response.variables[var.source_field]
+            except KeyError:
+                source_rt = self.get_response_type(
+                    var.source_qnode_measure.mesaure.response_type)
+                human_field_name = source_rt.humanize_variable(human_field_name)
+                raise ResponseError(
+                    "Response depends on another response (%s). It has been"
+                    " filled in, but the required field (%s) is missing." %
+                    (var.source_qnode_measure.get_path(), human_field_name))
             scope[var.target_field] = value
         return scope
 
@@ -345,7 +427,7 @@ class ResponseStats:
             scope.update(self.variables)
             self.response_type.validate(response.response_parts, scope)
             self.score = self.response_type.score(
-                response.response_parts, self.variables)
+                response.response_parts, scope)
         except Exception as e:
             raise ResponseError(
                 "Could not calculate score for response %s %s: %s" %
@@ -358,3 +440,7 @@ class ResponseStats:
         response.variables['_raw'] = self.score
         response.variables['_score'] = self.score * response.measure.weight
         response.variables['_weight'] = response.measure.weight
+
+    def reset(self, response):
+        response.score = 0.0
+        response.variables = {}

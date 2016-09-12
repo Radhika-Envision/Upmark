@@ -227,14 +227,15 @@ class ResponseHandler(handlers.BaseHandler):
 
                 verbs = []
                 if response is None:
-                    measure = (session.query(model.Measure)
-                        .get((measure_id, submission.program.id)))
-                    if measure is None:
+                    program_id = submission.program_id
+                    survey_id = submission.survey_id
+                    qnode_measure = (session.query(model.QnodeMeasure)
+                        .get((program_id, survey_id, measure_id)))
+                    if qnode_measure is None:
                         raise handlers.MissingDocError("No such measure")
                     response = model.Response(
-                        submission_id=submission_id,
-                        measure_id=measure_id,
-                        program_id=submission.program.id,
+                        qnode_measure=qnode_measure,
+                        submission=submission,
                         approval='draft')
                     session.add(response)
                     verbs.append('create')

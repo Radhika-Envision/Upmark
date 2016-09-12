@@ -37,6 +37,7 @@ def upgrade():
     upgrade_response_type()
     upgrade_activity()
     upgrade_variable()
+    upgrade_errors()
 
 
 def upgrade_variable():
@@ -248,13 +249,30 @@ def upgrade_activity():
         ])""")
 
 
+def upgrade_errors():
+    tables = ['program', 'survey', 'submission', 'qnode', 'rnode', 'qnode_measure', 'response']
+    for table in tables:
+        op.add_column(table, sa.Column('error', sa.TEXT()))
+        # op.add_column(table, sa.Column('n_errors', sa.Integer()))
+        # op.execute("UPDATE %s AS x SET n_errors = 0" % table)
+        # op.alter_column(table, 'n_errors', nullable=False)
+
+
 def downgrade():
+    downgrade_errors()
     downgrade_variable()
     downgrade_activity()
     downgrade_response_type()
     downgrade_rnode()
     downgrade_response()
     downgrade_qnode_measure()
+
+
+def downgrade_errors():
+    tables = ['program', 'survey', 'submission', 'qnode', 'rnode', 'qnode_measure', 'response']
+    for table in tables:
+        op.drop_column(table, 'error')
+        # op.drop_column(table, 'n_errors')
 
 
 def downgrade_variable():

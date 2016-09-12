@@ -316,9 +316,7 @@ class Program(Observable, Base):
     description = Column(Text)
     has_quality = Column(Boolean, default=False, nullable=False)
     hide_aggregate = Column(Boolean, default=False, nullable=False)
-
     error = Column(Text)
-    n_errors = Column(Integer, default=0, nullable=False)
 
     @property
     def is_editable(self):
@@ -398,7 +396,6 @@ class Survey(Observable, Base):
 
     structure = Column(JSON, nullable=False)
     error = Column(Text)
-    n_errors = Column(Integer, default=0, nullable=False)
 
     _structure_schema = Schema({
         'levels': All([
@@ -470,7 +467,6 @@ class QuestionNode(Observable, Base):
     n_measures = Column(Integer, default=0, nullable=False)
     total_weight = Column(Float, default=0, nullable=False)
     error = Column(Text)
-    n_errors = Column(Integer, default=0, nullable=False)
 
     title = Column(Text, nullable=False)
     description = Column(Text)
@@ -553,7 +549,6 @@ class Measure(Observable, Base):
     program_id = Column(GUID, nullable=False, primary_key=True)
     response_type_id = Column(GUID, nullable=False)
     deleted = Column(Boolean, default=False, nullable=False)
-    error = Column(Text)
 
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=True)
@@ -636,6 +631,7 @@ class QnodeMeasure(Base):
     qnode_id = Column(GUID, nullable=False)
 
     seq = Column(Integer)
+    error = Column(Text)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -781,8 +777,10 @@ class MeasureVariable(Base):
     program = relationship(Program)
 
     def __repr__(self):
-        return "MeasureVariable(target_measure={}, field={}, program={})".format(
-            getattr(self.target_measure, 'title', None),
+        return "MeasureVariable({}#{} <- {}#{}, program={})".format(
+            self.source_qnode_measure.get_path(),
+            self.source_field,
+            self.target_qnode_measure.get_path(),
             self.target_field,
             getattr(self.program, 'title', None))
 
@@ -801,6 +799,7 @@ class Submission(Observable, Base):
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
     modified = Column(DateTime, nullable=True)
     deleted = Column(Boolean, default=False, nullable=False)
+    error = Column(Text)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -870,6 +869,7 @@ class ResponseNode(Observable, Base):
     n_approved = Column(Integer, default=0, nullable=False)
     n_not_relevant = Column(Integer, default=0, nullable=False)
     score = Column(Float, default=0.0, nullable=False)
+    error = Column(Text)
 
     importance = Column(Float)
     urgency = Column(Float)
@@ -985,6 +985,7 @@ class Response(Observable, Versioned, Base):
     # Fields derived from response_parts
     score = Column(Float, default=0.0, nullable=False)
     variables = Column(JSON, default=dict, nullable=False)
+    error = Column(Text)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -1308,19 +1309,40 @@ QnodeMeasure.survey = relationship(
                 (QnodeMeasure.program_id == remote(Survey.program_id)))
 
 
-# Dependencies
-QnodeMeasure.source_vars = relationship(
+#
+# Suppose qnode_measure_a is a dependency of qnode_measure_b. Then:
+#
+#     qnode_measure_a.target = measure_variable_ab
+#     mes_variable_ab.source_qnode_measure = qnode_measure_a
+#     mes_variable_ab.target_qnode_measure = qnode_measure_b
+#     qnode_measure_b.source = measure_variable_ab
+#
+#    ┌─────────────────────┐  ┌────────────────────┐  ┌─────────────────────┐
+#    │   QnodeMeasure A    │  │ MeasureVariable AB │  │   QnodeMeasure B    │
+#    ╞═════════════════════╡  ╞════════════════════╡  ╞═════════════════════╡
+#  x━┥ sources     targets ┝━━┥ source      target ┝━━┥ sources     targets ┝━x
+#    └─────────────────────┘  └────────────────────┘  └─────────────────────┘
+#
+
+# Dependencies - yes, the source is the target. It's funny how that is.
+QnodeMeasure.target_vars = relationship(
     MeasureVariable, backref='source_qnode_measure',
     primaryjoin=(foreign(MeasureVariable.source_measure_id) == QnodeMeasure.measure_id) &
                 (MeasureVariable.survey_id == QnodeMeasure.survey_id) &
                 (MeasureVariable.program_id == QnodeMeasure.program_id))
 
-# Dependants
-QnodeMeasure.target_vars = relationship(
+# Dependants - yes, the target is the source. It's funny how that is.
+QnodeMeasure.source_vars = relationship(
     MeasureVariable, backref='target_qnode_measure',
     primaryjoin=(foreign(MeasureVariable.target_measure_id) == QnodeMeasure.measure_id) &
                 (MeasureVariable.survey_id == QnodeMeasure.survey_id) &
                 (MeasureVariable.program_id == QnodeMeasure.program_id))
+
+
+MeasureVariable.survey = relationship(
+    Survey,
+    primaryjoin=(foreign(MeasureVariable.survey_id) == Survey.id) &
+                (MeasureVariable.program_id == Survey.program_id))
 
 
 Measure.response_type = relationship(

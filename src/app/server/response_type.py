@@ -137,6 +137,21 @@ class ResponseType:
                         "Response part %d is invalid: %s" % (i, e))
         return scope
 
+    def humanize_variable(self, field_name):
+        if field_name == '_raw':
+            return 'Raw score'
+        if field_name == '_score':
+            return 'Weighted score'
+        if field_name == '_weight':
+            return 'Measure weight'
+        for i, part in self.parts:
+            if field_name != part.id_:
+                continue
+            if part.name:
+                return 'Part %s' % part.name
+            return 'Part %d' % i
+        return 'Unknown field %s' % field_name
+
     def validate(self, response_parts, scope):
         for i, (part_t, part_r) in enumerate(zip(self.parts, response_parts)):
             try:
