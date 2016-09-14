@@ -434,6 +434,8 @@ def downgrade_qnode_measure():
 def downgrade_activity():
     op.drop_constraint('activity_ob_type_check', 'activity', type_='check')
     op.drop_constraint('subscription_ob_type_check', 'subscription', type_='check')
+    op.execute("DELETE FROM activity WHERE ob_type = 'response_type'")
+    op.execute("DELETE FROM subscription WHERE ob_type = 'response_type'")
     op.execute('ALTER TABLE activity ALTER COLUMN ob_type TYPE character varying(12)')
     op.create_check_constraint(
         'activity_ob_type_check', 'activity',
