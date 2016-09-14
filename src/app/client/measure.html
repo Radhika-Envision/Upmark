@@ -80,7 +80,51 @@
 
       <div class="col-md-6">
         <h3>Response Type</h3>
-        <div response-type-editor="rt.responseType" weight="edit.model.weight"></div>
+        <div response-type-editor="rt.definition" weight="edit.model.weight"
+                is-bound="rt.definition.id == measure.responseTypeId"></div>
+
+        <h3 ng-if="rt.responseType">Variable Bindings</h3>
+        <div ng-if="rt.responseType">
+            <p ng-if="!rt.responseType.unboundVars.length" class="text-muted">
+                This response type requires no external bindings.
+            </p>
+            <p ng-if="rt.responseType.unboundVars.length" class="text-muted">
+                This response type has free variables that must be sourced from
+                other measures:
+            </p>
+            <ul class="list-unstyled">
+                <li ng-repeat="mv in edit.model.sourceMeasureVariables"
+                        class="input-group"
+                        ng-class="{
+                            'binding-warning': mv.unused
+                        }">
+                    <label for="source-measure-{{$index}}"
+                            class="input-group-addon">
+                        {{mv.targetField}}
+                        <i class="fa" ng-class="mv.unused ?
+                            'fa-exclamation' :
+                            'fa-long-arrow-left'"></i>
+                    </label>
+                    <input type="text" class="form-control"
+                        id="source-measure-{{$index}}"
+                        name="source-measure-{{$index}}"
+                        ng-model="mv.sourceMeasure"
+                        uib-typeahead="m as m.title for m in searchMeasures($viewValue)"
+                        autocomplete="off"
+                        title="Source measure: {{mv.sourceMeasure.title}}"
+                        placeholder="Source measure">
+                    <label for="source-field-{{$index}}"
+                            class="input-group-addon">
+                        •
+                    </label>
+                    <input type="text" class="form-control"
+                        id="source-field-{{$index}}"
+                        name="source-field-{{$index}}"
+                        ng-model="mv.sourceField"
+                        placeholder="Source variable">
+                </li>
+            </ul>
+        </div>
       </div> <!-- .col- -->
     </div> <!-- .row -->
   </form> <!-- .container-fluid -->

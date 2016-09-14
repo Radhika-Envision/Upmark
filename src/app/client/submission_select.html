@@ -36,7 +36,8 @@
                 ng-if="checkRole('submission_review')"
                 ng-model="aSearch.organisation"
                 uib-typeahead="org as org.name for org in searchOrg($viewValue)"
-                typeahead-append-to-body="true">
+                typeahead-append-to-body="true"
+                autocomplete="off">
     </div>
 
     <search-box class="spaced" model="search" result="submissions">

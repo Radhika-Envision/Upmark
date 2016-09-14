@@ -245,6 +245,13 @@ a.stealth {
     z-index: 1002 !important;
 }
 
+.binding-warning {
+    .input-group-addon,
+    input[type=text] {
+        background-color: #fdd;
+    }
+}
+
 ul.dropdown-menu {
     border: none;
 

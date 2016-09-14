@@ -60,7 +60,7 @@
                 ng-disabled="!checkRole('user_change_org')"
                 ng-model="edit.model.organisation"
                 uib-typeahead="org as org.name for org in searchOrg($viewValue)"
-                typeahead-append-to-body="true" >
+                autocomplete="off">
         </div>
         <div class="form-group" show-errors>
             <label for="user_role">Role</label>

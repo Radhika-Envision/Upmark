@@ -10,11 +10,23 @@ angular.module('wsaa.survey.measure', [
                  Structure, Arrays, Response, hotkeys, $q, $timeout, $window,
                  responseTypes, ResponseType) {
 
+     $scope.newResponseType = function() {
+         return new ResponseType({
+             name: null,
+             parts: [{type: 'multiple_choice', id: 'a', options: [
+                 {name: 'No', score: 0},
+                 {name: 'Yes', score: 1}]
+             }],
+             formula: null,
+         });
+     };
+
     $scope.layout = layout;
     $scope.parent = routeData.parent;
     $scope.submission = routeData.submission;
     $scope.rt = {
-        responseType: routeData.responseType || {},
+        definition: routeData.responseType || $scope.newResponseType(),
+        responseType: null,
     };
 
     if (routeData.measure) {
@@ -23,10 +35,12 @@ angular.module('wsaa.survey.measure', [
     } else {
         // Creating new
         $scope.measure = new Measure({
+            obType: 'measure',
             parent: routeData.parent,
             program: routeData.program,
             weight: 100,
-            responseTypeId: null
+            responseTypeId: null,
+            sourceMeasureVariables: [],
         });
     }
 
@@ -184,6 +198,46 @@ angular.module('wsaa.survey.measure', [
         $scope.rt.responseType = new responseTypes.ResponseType(
             rtDef.name, rtDef.parts, rtDef.formula);
     }, true);
+    $scope.$watchGroup(['rt.responseType', 'edit.model'], function(vars) {
+        var responseType = vars[0],
+            measure = vars[1];
+        if (!responseType || !measure)
+            return;
+        var measureVariables = measure.sourceMeasureVariables.filter(
+            function(measureVariable) {
+                // Remove bindings that have not been set yet
+                return measureVariable.sourceMeasure;
+            }
+        );
+        measureVariables.forEach(function(measureVariable) {
+            measureVariable.unused = true;
+        });
+        responseType.unboundVars.forEach(function(targetField) {
+            var measureVariable;
+            for (var i = 0; i < measureVariables.length; i++) {
+                var mv = measureVariables[i];
+                if (mv.targetField == targetField) {
+                    mv.unused = false;
+                    return;
+                }
+            }
+            measureVariables.push({
+                targetField: targetField,
+                sourceMeasure: null,
+                sourceField: null,
+            });
+        });
+        measureVariables.sort(function(a, b) {
+            return a.targetField.localeCompare(b);
+        });
+        measure.sourceMeasureVariables = measureVariables;
+    });
+    $scope.searchMeasures = function(term) {
+        return Measure.query({
+            term: term,
+            programId: $scope.structure.program.id
+        }).$promise;
+    };
 
     $scope.save = function() {
         if (!$scope.edit.model)

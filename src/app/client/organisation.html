@@ -67,17 +67,14 @@
         <table class="table" ng-if="edit.model.locations.length">
             <tr class="form-row" ng-repeat="(i, loc) in edit.model.locations track by $index">
                 <td>
-                    <input type="text" class="form-control" id="loc-search-{{$index}}"
-                            ng-model="edit.model.locations[$index]"
-                            uib-typeahead="l as l.description for l in searchLoc($viewValue)"
-                            typeahead-wait-ms="700"
-                            typeahead-min-length="2"
-                            typeahead-append-to-body="true"
-                            typeahead-loading="loadingLocations" >
+                    <input type="text" class="form-control"
+                        id="loc-search-{{$index}}" name="loc-search-{{$index}}"
+                        ng-model="edit.model.locations[i]"
+                        uib-typeahead="l as l.description for l in searchLoc($viewValue)"
+                        typeahead-wait-ms="700"
+                        typeahead-min-length="2"
+                        autocomplete="off" >
 
-                    <p ng-show="loadingLocations" class="text-muted">
-                        Loading...
-                    </p>
                     <p ng-show="!loadingLocations" class="text-muted commasep">
                         <span class="" ng-if="loc.country">
                             country:
