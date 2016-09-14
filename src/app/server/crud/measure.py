@@ -6,6 +6,7 @@ import uuid
 from tornado.escape import json_decode, json_encode
 import tornado.web
 import sqlalchemy
+from sqlalchemy import cast, String
 from sqlalchemy.orm import joinedload
 
 from activity import Activities
@@ -156,9 +157,27 @@ class MeasureHandler(
                 query = session.query(model.Measure)\
                     .filter_by(program_id=self.program_id)
 
-            if term != '':
+            rt_term = None
+            if term:
+                plain_parts = []
+                for part in term.split(' '):
+                    if part.startswith('rt:'):
+                        rt_term = part[3:]
+                    else:
+                        plain_parts.append(part)
+                term = ' '.join(plain_parts)
+
+            if term:
                 query = query.filter(
                     model.Measure.title.ilike(r'%{}%'.format(term)))
+
+            if rt_term:
+                query = (query
+                    .join(model.ResponseType)
+                    .filter(
+                        (cast(model.ResponseType.id, String) == rt_term) |
+                        (model.ResponseType.name.ilike(r'%{}%'.format(rt_term)))
+                    ))
 
             query = self.paginate(query)
 

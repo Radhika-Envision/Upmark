@@ -5,6 +5,7 @@ import uuid
 from tornado.escape import json_decode, json_encode
 import tornado.web
 import sqlalchemy
+from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 from activity import Activities
@@ -30,8 +31,13 @@ class ResponseTypeHandler(
             return
 
         with model.session_scope() as session:
-            response_type = (session.query(model.ResponseType)
-                .get((response_type_id, self.program_id)))
+            response_type, count = (
+                session.query(model.ResponseType, func.count(model.Measure.id))
+                .join(model.Measure)
+                .filter(model.ResponseType.id == response_type_id)
+                .filter(model.ResponseType.program_id == self.program_id)
+                .group_by(model.ResponseType.id, model.ResponseType.program_id)
+                .first()) or (None, None)
             if not response_type:
                 raise handlers.MissingDocError("No such response type")
             to_son = ToSon(
@@ -44,6 +50,7 @@ class ResponseTypeHandler(
                 r'/n_measures$',
             )
             son = to_son(response_type)
+            son['nMeasures'] = count
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
@@ -53,24 +60,27 @@ class ResponseTypeHandler(
         term = self.get_argument('term', None)
 
         with model.session_scope() as session:
-            query = (session.query(model.ResponseType)
+            query = (
+                session.query(model.ResponseType, func.count(model.Measure.id))
+                .join(model.Measure)
                 .filter(model.ResponseType.program_id == self.program_id)
-                .order_by(model.ResponseType.name))
+                .group_by(model.ResponseType.id, model.ResponseType.program_id))
 
             if term:
                 query = query.filter(
                     model.ResponseType.name.ilike(r'%{}%'.format(term)))
 
             query = self.paginate(query)
-            rts = query.all()
+            rtcs = query.all()
 
             to_son = ToSon(
                 r'/id$',
                 r'/name$',
                 r'/n_measures$',
-                r'/[0-9]+$',
             )
-            sons = to_son(rts)
+            sons = []
+            for rt, count in rtcs:
+                sons.append(to_son(rt))
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))

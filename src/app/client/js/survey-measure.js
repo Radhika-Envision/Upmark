@@ -257,16 +257,16 @@ angular.module('wsaa.survey.measure', [
 })
 
 
-.controller('MeasureListCtrl', ['$scope', 'questionAuthz', 'Measure', 'Current',
-        'layout', 'routeData',
-        function($scope, authz, Measure, current, layout, routeData) {
+.controller('MeasureListCtrl',
+        function($scope, questionAuthz, Measure, Current, layout, routeData,
+            $routeParams) {
 
     $scope.layout = layout;
-    $scope.checkRole = authz(current, null);
+    $scope.checkRole = questionAuthz(Current, null);
     $scope.program = routeData.program;
 
     $scope.search = {
-        term: "",
+        term: $routeParams.initialTerm || "",
         programId: $scope.program && $scope.program.id,
         orphan: null,
         page: 0,
@@ -291,7 +291,7 @@ angular.module('wsaa.survey.measure', [
                 break;
         }
     };
-}])
+})
 
 
 ;

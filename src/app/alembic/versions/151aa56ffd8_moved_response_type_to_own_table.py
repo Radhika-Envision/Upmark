@@ -173,8 +173,14 @@ def upgrade_response():
 
 def upgrade_rnode():
     op.drop_constraint('rnode_pkey', 'rnode', type_='primary')
-    op.drop_constraint('rnode_qnode_id_assessment_id_key', 'rnode')
-    op.drop_index('rnode_qnode_id_submission_id_index', 'rnode')
+    op.execute("""
+        ALTER TABLE rnode
+        DROP CONSTRAINT IF EXISTS rnode_qnode_id_assessment_id_key""")
+    op.execute("""
+        ALTER TABLE rnode
+        DROP CONSTRAINT IF EXISTS rnode_qnode_id_submission_id_key""")
+    op.execute("DROP INDEX IF EXISTS rnode_qnode_id_assessment_id_index")
+    op.execute("DROP INDEX IF EXISTS rnode_qnode_id_submission_id_index")
     op.drop_column('rnode', 'id')
     op.create_primary_key('rnode_pkey', 'rnode',
         ['submission_id', 'qnode_id'])
@@ -322,7 +328,7 @@ def downgrade_rnode():
         'rnode_qnode_id_submission_id_index', 'rnode',
         ['qnode_id', 'submission_id'])
     op.create_unique_constraint(
-        'rnode_qnode_id_assessment_id_key', 'rnode',
+        'rnode_qnode_id_submission_id_key', 'rnode',
         ['qnode_id', 'submission_id'])
     op.create_primary_key('rnode_pkey', 'rnode', ['id'])
     op.alter_column('rnode', 'id', nullable=False)

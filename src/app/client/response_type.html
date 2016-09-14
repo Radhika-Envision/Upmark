@@ -18,10 +18,10 @@
                 title="The fomula to use to compute the score"/>
         </div>
 
-        <p ng-if="rtEdit.responseType.declaredVars.length == 1"
+        <p ng-if="rtEdit.responseType.declaredVars.length < 1"
                 class="text-muted">
             This response type declares no variables.
-            You can also use "external" variables in expressions,
+            However you can use external variables in the formula,
             which can be bound to other measures.
         </p>
         <p ng-if="rtEdit.responseType.declaredVars.length > 1"
@@ -31,7 +31,7 @@
                 ><em ng-repeat="v in rtEdit.responseType.declaredVars"
                     >{{v}}</em
                 ></span>. You can use them in expressions.
-            You can also use other "external" variables, which can be bound
+            You can also use other external variables, which can be bound
             to other measures.
         </p>
         <p ng-if="rtEdit.responseType.declaredVars.length == 1"
@@ -41,13 +41,23 @@
                 ><em ng-repeat="v in rtEdit.responseType.declaredVars"
                     >{{v}}</em
                 ></span>. You can use it in expressions.
-            You can also use other "external" variables, which can be bound
+            You can also use other external variables, which can be bound
             to other measures.
         </p>
 
         <p ng-if="!rt.parts.length" class="text-muted">
             This response type has no response parts. You can create one by
             pressing the <i class="fa fa-fw fa-plus"></i> button above.
+        </p>
+
+        <p ng-if="rt.nMeasures" class="text-muted">
+            This response type is used by
+            <a ng-href="#/1/measures?program={{rt.programId}}&initialTerm=rt:{{rt.id}}">
+                <ng-pluralize count="rt.nMeasures" when="{
+                    '1': '1 measure',
+                    'other': '{} measures',
+                }"></ng-pluralize
+            ></a>.
         </p>
     </uib-tab>
 
