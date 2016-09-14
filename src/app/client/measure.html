@@ -93,7 +93,7 @@
                 other measures:
             </p>
             <ul class="list-unstyled">
-                <li ng-repeat="mv in edit.model.sourceMeasureVariables"
+                <li ng-repeat="mv in edit.model.sourceVars"
                         class="input-group"
                         ng-class="{
                             'binding-warning': mv.unused
@@ -109,7 +109,8 @@
                         id="source-measure-{{$index}}"
                         name="source-measure-{{$index}}"
                         ng-model="mv.sourceMeasure"
-                        uib-typeahead="m as m.title for m in searchMeasures($viewValue)"
+                        uib-typeahead="m as m.title for m in searchMeasuresToBind($viewValue)"
+                        typeahead-on-select="measureBound($item, $model)"
                         autocomplete="off"
                         title="Source measure: {{mv.sourceMeasure.title}}"
                         placeholder="Source measure">
@@ -122,6 +123,15 @@
                         name="source-field-{{$index}}"
                         ng-model="mv.sourceField"
                         placeholder="Source variable">
+                    <a ng-href="{{
+                                mv.sourceMeasure ?
+                                '#/1/measure/' + mv.sourceMeasure.id +
+                                '?program=' + structure.program.id +
+                                '&survey=' + structure.survey.id'" : ''}}
+                            ng-disabled="!mv.sourceMeasure"
+                            class="btn btn-default input-group-addon">
+                        <i class="fa fa-link"></i>
+                    </a>
                 </li>
             </ul>
         </div>

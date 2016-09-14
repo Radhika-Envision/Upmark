@@ -74,15 +74,12 @@ class MeasureHandler(
                 r'/title$',
                 r'/seq$',
                 r'/deleted$',
-                r'/is_editable$',
                 r'/program_id$',
                 r'/program/tracking_id$',
                 r'/program/created$',
-                # Fields to match from only the root object
                 r'<^/description$',
                 r'^/weight$',
                 r'^/response_type_id$',
-                # Descend into nested objects
                 r'/parent$',
                 r'/survey$',
                 r'/survey/program$',
@@ -101,18 +98,39 @@ class MeasureHandler(
                 if not qnode_measure:
                      raise handlers.MissingDocError(
                          "This measure does not belong to that survey")
-                parent = qnode_measure.qnode
 
-                son['parent'] = to_son(parent)
-                son['seq'] = qnode_measure.seq
+                to_son = ToSon(
+                    r'/id$',
+                    r'/ob_type$',
+                    r'/seq$',
+                    r'/\w+_vars/?[0-9]*$',
+                    r'/\w+_qnode_measure$',
+                    r'/\w+_field$',
+                    r'/title$',
+                    r'/qnode$',
+                    r'/parent$',
+                    r'/deleted$',
+                    r'/survey$',
+                    r'/survey/program$',
+                    r'/is_editable$',
+                    r'/survey/structure.*$',
+                    r'/survey/program_id$',
+                    r'/survey/program/tracking_id$',
+                    r'/survey/program/created$',
+                    r'/has_quality$',
+                )
+                son.update(to_son(qnode_measure))
+                son['parent'] = son['qnode']
+                del son['qnode']
+
                 prev = (session.query(model.QnodeMeasure)
-                    .filter(model.QnodeMeasure.qnode_id == parent.id,
+                    .filter(model.QnodeMeasure.qnode_id == qnode_measure.qnode_id,
                             model.QnodeMeasure.program_id == measure.program_id,
                             model.QnodeMeasure.seq < son['seq'])
                     .order_by(model.QnodeMeasure.seq.desc())
                     .first())
                 next_ = (session.query(model.QnodeMeasure)
-                    .filter(model.QnodeMeasure.qnode_id == parent.id,
+                    .filter(model.QnodeMeasure.qnode_id == qnode_measure.qnode_id,
                             model.QnodeMeasure.program_id == measure.program_id,
                             model.QnodeMeasure.seq > son['seq'])
                     .order_by(model.QnodeMeasure.seq)
@@ -139,6 +157,21 @@ class MeasureHandler(
 
         orphan = self.get_argument('orphan', '')
         term = self.get_argument('term', '')
+        survey_id = self.get_argument('surveyId', '')
+
+        to_son = ToSon(
+            # Fields to match from any visited object
+            r'/id$',
+            r'/title$',
+            r'<^/description$',
+            r'/seq$',
+            r'/weight$',
+            r'/deleted$',
+            r'/program/tracking_id$',
+            # Descend into nested objects
+            r'/[0-9]+$',
+            r'/program$',
+        )
 
         with model.session_scope() as session:
             if orphan != '' and truthy(orphan):
@@ -179,23 +212,25 @@ class MeasureHandler(
                         (model.ResponseType.name.ilike(r'%{}%'.format(rt_term)))
                     ))
 
+            if truthy(self.get_argument('withResponseTypes')):
+                query = (query.options(joinedload('response_type')))
+                to_son.add(
+                    r'/response_type$',
+                    r'/response_type/id$',
+                    r'/response_type/name$',
+                    r'/response_type/parts.*$',
+                    r'/response_type/formula$',
+                    r'!/response_type/program$',
+                )
+
+            if survey_id:
+                query = (query
+                    .join(model.QnodeMeasure)
+                    .filter(model.QnodeMeasure.survey_id == survey_id))
+
             query = self.paginate(query)
 
             measures = query.all()
-
-            to_son = ToSon(
-                # Fields to match from any visited object
-                r'/id$',
-                r'/title$',
-                r'<^/description$',
-                r'/seq$',
-                r'/weight$',
-                r'/deleted$',
-                r'/program/tracking_id$',
-                # Descend into nested objects
-                r'/[0-9]+$',
-                r'/program$',
-            )
             sons = to_son(measures)
 
             for mson, measure in zip(sons, measures):

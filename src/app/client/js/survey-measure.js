@@ -40,7 +40,7 @@ angular.module('wsaa.survey.measure', [
             program: routeData.program,
             weight: 100,
             responseTypeId: null,
-            sourceMeasureVariables: [],
+            sourceVars: [],
         });
     }
 
@@ -203,7 +203,7 @@ angular.module('wsaa.survey.measure', [
             measure = vars[1];
         if (!responseType || !measure)
             return;
-        var measureVariables = measure.sourceMeasureVariables.filter(
+        var measureVariables = measure.sourceVars.filter(
             function(measureVariable) {
                 // Remove bindings that have not been set yet
                 return measureVariable.sourceMeasure;
@@ -230,13 +230,20 @@ angular.module('wsaa.survey.measure', [
         measureVariables.sort(function(a, b) {
             return a.targetField.localeCompare(b);
         });
-        measure.sourceMeasureVariables = measureVariables;
+        measure.sourceVars = measureVariables;
     });
-    $scope.searchMeasures = function(term) {
+    $scope.searchMeasuresToBind = function(term) {
         return Measure.query({
             term: term,
-            programId: $scope.structure.program.id
+            programId: $scope.structure.program.id,
+            surveyId: $scope.structure.survey.id,
+            withResponseTypes: true,
         }).$promise;
+    };
+    $scope.measureBound = function(item, model) {
+        var rtDef = item.responseType;
+        item.$responseType = new responseTypes.ResponseType(
+            rtDef.name, rtDef.parts, rtDef.formula);
     };
 
     $scope.save = function() {

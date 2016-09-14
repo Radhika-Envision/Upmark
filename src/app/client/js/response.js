@@ -21,7 +21,13 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
         return res.sort();
     };
     var parse = function(exp) {
-        return exp ? Parser.parse(exp) : null;
+        try {
+            return exp ? Parser.parse(exp) : null;
+        } catch (e) {
+            if (/parse error/.exec(e))
+                console.log("Failed to parse expression '" + exp + "': " + e)
+            return null;
+        }
     };
     var refs = function(cExp) {
         return cExp ? cExp.variables() : [];
