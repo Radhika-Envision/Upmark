@@ -200,6 +200,7 @@ def upgrade_response_type():
         sa.Index(
             'response_type_target_program_id_id_index',
             'program_id', 'id'),
+        sa.UniqueConstraint('program_id', 'name'),
     )
     op.add_column('measure', sa.Column('response_type_id', GUID()))
 

@@ -390,6 +390,7 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
         scope: {
             rt: '=responseTypeEditor',
             weight: '=',
+            isBound: '=',
         },
         templateUrl: 'response_type.html',
         controller: function($scope, Numbers, responseTypes, $timeout) {
@@ -486,6 +487,16 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
                 ts[t.name] = t.desc;
                 return ts;
             }, {});
+
+            $scope.$watchGroup(['rt.nMeasures', 'isBound'], function(vars) {
+                var nMeasures = vars[0];
+                if ($scope.isBound)
+                    $scope.nMeasures = nMeasures - 1;
+                else
+                    $scope.nMeasures = nMeasures;
+            });
+        },
+        link: function(scope, elem, attrs) {
         },
     };
 })

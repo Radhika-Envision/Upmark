@@ -6,8 +6,7 @@
             <input type="text" class="form-control"
                 id="rttitle" name="rttitle"
                 title="Response type name"
-                ng-model="rt.name" required
-                placeholder="Name" />
+                ng-model="rt.name" required />
         </div>
 
         <div class="input-group spaced">
@@ -50,14 +49,14 @@
             pressing the <i class="fa fa-fw fa-plus"></i> button above.
         </p>
 
-        <p ng-if="rt.nMeasures" class="text-muted">
+        <p ng-if="nMeasures > 0" class="text-muted">
             This response type is used by
-            <a ng-href="#/1/measures?program={{rt.programId}}&initialTerm=rt:{{rt.id}}">
-                <ng-pluralize count="rt.nMeasures" when="{
-                    '1': '1 measure',
-                    'other': '{} measures',
+            <a ng-href="#/1/measures?program={{rt.programId}}&initialTerm=rt:{{rt.id}}"
+                ><ng-pluralize ng-if="!isBound" count="nMeasures" when="{
+                    '1': '1 other measure',
+                    'other': '{} other measures',
                 }"></ng-pluralize
-            ></a>.
+            ></a>. Keep this in mind when making changes.
         </p>
     </uib-tab>
 
@@ -87,8 +86,8 @@
                 id="lid-{{$index}}"
                 name="lid-{{$index}}"
                 ng-model="part.id" empty-as-null
-                placeholder="Part ID"
-                title="Part ID" />
+                placeholder="Variable name"
+                title="The name to assign this part; allows the part to be referenced in expressions" />
             <span class="input-group-btn">
                 <button class="btn btn-default" title="Remove"
                         ng-click="remove(rt, rt.parts, part)">
@@ -103,8 +102,8 @@
                 name="ltitle-{{$index}}"
                 ng-model="part.name" empty-as-null
                 placeholder="{{rt.parts.length > 1 ?
-                    'Part name (required for multi-part response types)' :
-                    'Part name (optional for one-part response types)'}}"
+                    '' :
+                    'Optional because there is only one part'}}"
                 title="Part name" />
         </div>
         <div class="form-group">
@@ -112,7 +111,7 @@
                 id="ltitle-{{$index}}"
                 name="ltitle-{{$index}}"
                 ng-model="part.description" empty-as-null
-                placeholder="Part description (optional)"
+                placeholder="Description"
                 title="Part description"></textarea>
         </div>
         <ul class="list-unstyled list-form" ng-if="part.type == 'multiple_choice'">
@@ -126,7 +125,7 @@
                         id="lname-{{pi}}-{{$index}}"
                         name="lname-{{pi}}-{{$index}}"
                         ng-model="opt.name" required
-                        placeholder="Option name"
+                        placeholder="Enter a name"
                         title="Option name"/>
                     <label for="lscore-{{pi}}-{{$index}}"
                             class="input-group-addon">
@@ -135,7 +134,7 @@
                         id="lscore-{{pi}}-{{$index}}"
                         name="lscore-{{pi}}-{{$index}}"
                         ng-model="opt.score" required
-                        placeholder="score"
+                        placeholder="Enter a value"
                         title="The score for this option (the range 0..1 is recommended)"/>
                     <span class="input-group-btn"
                             ng-if="part.options.length > 2 && $last">
@@ -183,18 +182,18 @@
         </ul>
         <div class="input-group" ng-if="part.type == 'numerical'">
             <label for="lower_{{$index}}" class="input-group-addon">
-                Lower bound:</label>
+                Min:</label>
             <input type="text" class="form-control"
                 id="lower_{{$index}}"
                 ng-model="part.lower"
-                placeholder="E.g. 0.0 (default: -infinity)"
+                placeholder="E.g. 0.0"
                 title="The lower bound (minimum) for this part (expression; see docs)"/>
             <label for="upper_{{$index}}" class="input-group-addon">
-                Upper bound:</label>
+                Max:</label>
             <input type="text" class="form-control"
                 id="upper_{{$index}}"
                 ng-model="part.upper"
-                placeholder="E.g. 1.0 (default: +infinity)"
+                placeholder="E.g. 1.0"
                 title="The upper bound (maximum) for this part (expression; see docs)"/>
         </div>
     </uib-tab>

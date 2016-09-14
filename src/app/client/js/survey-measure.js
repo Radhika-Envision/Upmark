@@ -179,22 +179,20 @@ angular.module('wsaa.survey.measure', [
             !$scope.structure.deletedItem &&
             !$scope.submission && $scope.checkRole('measure_edit'));
     });
-    $scope.$watchGroup(['measure.responseType', 'structure.program.responseTypes'],
-                       function(vars) {
-        var rtId = vars[0];
-        var rts = vars[1];
-        var i = Arrays.indexOf(rts, rtId, 'id', null);
-        $scope.responseType = new responseTypes.ResponseType(rts[i]);
-    });
+
+    $scope.$watch('rt.definition', function(rtDef) {
+        $scope.rt.responseType = new responseTypes.ResponseType(
+            rtDef.name, rtDef.parts, rtDef.formula);
+    }, true);
 
     $scope.save = function() {
         if (!$scope.edit.model)
             return;
-        $scope.rt.responseType.$save({
-                programId: $scope.rt.responseType.programId
+        $scope.rt.definition.$save({
+                programId: $scope.rt.definition.programId
         }).then(
-            function success(responseType) {
-                $scope.edit.model.responseTypeId = responseType.id;
+            function success(definition) {
+                $scope.edit.model.responseTypeId = definition.id;
                 return $scope.edit.save();
             },
             function failure(details) {

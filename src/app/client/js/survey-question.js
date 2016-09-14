@@ -1964,7 +1964,8 @@ angular.module('wsaa.surveyQuestions', [
     $scope.program = routeData.program;
 
     $scope.qnode = {
-        survey: $scope.parent || $scope.survey,
+        obType: 'qnode',
+        survey: $scope.parent ? $scope.parent.survey : $scope.survey,
         parent: $scope.parent
     };
     $scope.structure = Structure($scope.qnode);

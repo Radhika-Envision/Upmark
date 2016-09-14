@@ -700,6 +700,7 @@ class ResponseType(Observable, Base):
         Index(
             'response_type_target_program_id_id_index',
             'program_id', 'id'),
+        UniqueConstraint('program_id', 'name'),
     )
 
     program = relationship(Program)
