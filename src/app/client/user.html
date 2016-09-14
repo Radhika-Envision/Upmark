@@ -56,17 +56,11 @@
         </div>
         <div class="form-group">
             <label for="user_org">Organisation</label>
-            <ui-select ng-model="edit.model.organisation"
-                    ng-disabled="!checkRole('user_change_org')"
-                    reset-search-input="false">
-                <ui-select-match placeholder="Type to select organisation">{{edit.model.organisation.name}}</ui-select-match>
-                <ui-select-choices
-                        repeat="organisation in organisations | filter: $select.search"
-                        refresh="searchOrg($select.search)"
-                        refresh-delay="0">
-                    <div ng-bind-html="organisation.name | highlight: $select.search"></div>
-                </ui-select-choices>
-            </ui-select>
+            <input type="text" class="form-control" id="user_org"
+                ng-disabled="!checkRole('user_change_org')"
+                ng-model="edit.model.organisation"
+                uib-typeahead="org as org.name for org in searchOrg($viewValue)"
+                typeahead-append-to-body="true" >
         </div>
         <div class="form-group" show-errors>
             <label for="user_role">Role</label>

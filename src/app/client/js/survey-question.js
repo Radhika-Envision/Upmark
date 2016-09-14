@@ -200,9 +200,7 @@ angular.module('wsaa.surveyQuestions', [
             });
 
             $scope.searchOrg = function(term) {
-                Organisation.query({term: term}).$promise.then(function(orgs) {
-                    $scope.organisations = orgs;
-                });
+                return Organisation.query({term: term}).$promise;
             };
             $scope.$watch('aSearch.organisation', function(organisation) {
                 if (organisation)

@@ -28,18 +28,16 @@
         </h2>
     </div>
 
-    <ui-select ng-model="aSearch.organisation" reset-search-input="false"
-            ng-if="checkRole('submission_review')">
-        <ui-select-match placeholder="Type to select organisation">
+    <div class="input-group">
+        <label for="org-search" class="input-group-addon">
             <i class="fa fa-university"></i>
-            {{aSearch.organisation.name}}</ui-select-match>
-        <ui-select-choices
-                repeat="organisation in organisations | filter: $select.search"
-                refresh="searchOrg($select.search)"
-                refresh-delay="0">
-            <div ng-bind-html="organisation.name | highlight: $select.search"></div>
-        </ui-select-choices>
-    </ui-select>
+        </label>
+        <input type="text" class="form-control" id="org-search"
+                ng-if="checkRole('submission_review')"
+                ng-model="aSearch.organisation"
+                uib-typeahead="org as org.name for org in searchOrg($viewValue)"
+                typeahead-append-to-body="true">
+    </div>
 
     <search-box class="spaced" model="search" result="submissions">
         <button class="btn btn-default" type="button"
