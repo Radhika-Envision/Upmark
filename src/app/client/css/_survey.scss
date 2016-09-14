@@ -224,13 +224,25 @@ a.stealth {
     background: white;
     border-radius: 1px;
 }
-.undim, .btn.undim, .btn.pull-right.undim {
+.toolbar.undim {
+    border-radius: 13px;
+}
+.undim,
+[highlight].undim,
+.btn.undim,
+.btn.pull-right.undim {
     position: relative;
     z-index: 1001;
     box-shadow: 0 0 0 12px white, 0 0 20px 12px rgba(0, 0, 0, 0.1);
 }
+[highlight-half].undim {
+    box-shadow: 0 0 0 6px white, 0 0 20px 6px rgba(0, 0, 0, 0.1);
+}
 .popover-container {
     height: 0;
+}
+.ui-sortable-helper {
+    z-index: 1002 !important;
 }
 
 ul.dropdown-menu {

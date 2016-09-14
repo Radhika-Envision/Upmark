@@ -30,7 +30,9 @@ $anim-time: 0.3s;
         padding: 0;
         line-height: $round-button-width - 1px;
         font-size: $round-button-width - 8px;
-        margin-left: $round-button-width / 3;
+        &:not(:first-child) {
+            margin-left: $round-button-width / 3;
+        }
     }
 }
 
@@ -201,7 +203,7 @@ div[textarea-label] {
         border-color: transparent;
     }
     &:hover, &:active, &.active, &.active:hover, &.active:focus, &:focus,
-    &:active.focus, &:active:focus {
+    &:active.focus, &:active:focus, &:active:hover {
         outline: none;
         border-color: transparent;
         box-shadow: none;

@@ -1,5 +1,5 @@
 <div class="section">
-    <div class="toolbar">
+    <div class="toolbar" highlight="edit.model" highlight-half>
         <button class="btn btn-default btn-round" title="Reset order"
                 ng-click="edit.cancel()"
                 ng-if="edit.model">
@@ -64,8 +64,11 @@
                     ng-if="!submission">
                 1
             </td>
-            <td class="shrink grab-handle" ng-if="edit.model">
-                <i class="fa fa-fw fa-unsorted"></i></td>
+            <td class="shrink grab-handle" ng-if="edit.model"
+               ><span class="btn btn-default btn-round"
+                   title="Drag to reorder"
+                   highlight highlight-half>
+               <i class="fa fa-fw fa-unsorted"></i></span></td>
         </tr>
     </tbody>
 </table>
