@@ -26,14 +26,17 @@ class TemporalReportHandler(handlers.BaseHandler):
 
     @tornado.web.authenticated
     @gen.coroutine
-    def get(self, survey_id, extension):
+    def post(self, survey_id, extension):
 
-        organisation_id = self.get_argument('organisationId', '')
+        parameters = self.request_son
+
+        organisation_id = parameters.get('organisation_id')
 
         with model.session_scope() as session:
             if organisation_id:
                 pass
 
+            # All responses to current survey
             query = (session.query(model.Response)
                     .options(joinedload('submission'))
                     .options(joinedload('submission.organisation'))
@@ -92,9 +95,9 @@ class TemporalReportHandler(handlers.BaseHandler):
 
             # Export to csv/xls
             if organisation_id:
-                outfile = "temporal_summary"
+                outfile = "summary_report"
             else:
-                outfile = "temporal_complete"
+                outfile = "detailed_report"
 
             with tempfile.TemporaryDirectory() as tmpdir:
                output_path = os.path.join(tmpdir, outfile)
@@ -135,7 +138,7 @@ class TemporalReportHandler(handlers.BaseHandler):
                         if col_index == 0:
                             worksheet.write(row_index + 1, col_index,
                                 row_data[col_index].title)
-                        elif col_index == 1 and outfile == "temporal_complete":
+                        elif col_index == 1 and outfile == "detailed_report":
                             worksheet.write(row_index + 1, col_index,
                                 row_data[col_index].name)
                         else:
