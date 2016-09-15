@@ -78,9 +78,7 @@ class ResponseHandler(handlers.BaseHandler):
 
         with model.session_scope() as session:
             response = (session.query(model.Response)
-                    .filter_by(submission_id=submission_id,
-                               measure_id=measure_id)
-                    .first())
+                .get((submission_id, measure_id)))
 
             if response is None:
                 raise handlers.MissingDocError("No such response")
@@ -91,8 +89,7 @@ class ResponseHandler(handlers.BaseHandler):
                 except ValueError:
                     raise handlers.ModelError("Invalid version number")
                 response_history = (session.query(model.ResponseHistory)
-                        .filter_by(id=response.id, version=version)
-                        .first())
+                    .get((submission_id, measure_id, version)))
 
                 if response is None:
                     raise handlers.MissingDocError("No such response version")
@@ -118,6 +115,7 @@ class ResponseHandler(handlers.BaseHandler):
                 r'^/approval$',
                 r'^/version$',
                 r'^/modified$',
+                r'^/latest_modified$',
                 r'^/quality$',
                 # Descend
                 r'/parent$',
@@ -142,7 +140,7 @@ class ResponseHandler(handlers.BaseHandler):
                                    program_id=submission.program_id)
                         .first())
                 qnode_measure = measure.get_qnode_measure(submission.survey_id)
-                parent = qnode_measure.get_rnode(submission)
+                parent = qnode_measure.qnode.get_rnode(submission)
                 user = (session.query(model.AppUser)
                         .filter_by(id=response_history.user_id)
                         .first())
@@ -150,9 +148,16 @@ class ResponseHandler(handlers.BaseHandler):
                     'parent': parent,
                     'measure': measure,
                     'submission': submission,
-                    'user': user
+                    'user': user,
                 }
                 son.update(to_son(dummy_relations))
+
+            # Always include the mtime of the most recent version. This is used
+            # to avoid edit conflicts.
+            dummy_relations = {
+                'latest_modified': response.modified,
+            }
+            son.update(to_son(dummy_relations))
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -248,7 +253,7 @@ class ResponseHandler(handlers.BaseHandler):
                     if same_user and hours_since_update < 8:
                         response.version_on_update = False
 
-                    modified = self.request_son.get("modified", 0)
+                    modified = self.request_son.get("latest_modified", 0)
                     # Convert to int to avoid string conversion errors during
                     # JSON marshalling.
                     if int(modified) < int(response.modified.timestamp()):

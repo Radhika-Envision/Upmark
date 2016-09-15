@@ -67,8 +67,11 @@ def upgrade_variable():
             'program_id', 'source_measure_id'),
     )
     op.add_column('response', sa.Column('variables', postgresql.JSON()))
-    op.execute(response.update().values({'variables': {}}))
+    op.add_column('response_history', sa.Column('variables', postgresql.JSON()))
+    op.execute("UPDATE response SET variables = '{}'")
+    op.execute("UPDATE response_history SET variables = '{}'")
     op.alter_column('response', 'variables', nullable=False)
+    op.alter_column('response_history', 'variables', nullable=False)
 
 
 def upgrade_qnode_measure():
@@ -258,12 +261,11 @@ def upgrade_activity():
 
 
 def upgrade_errors():
-    tables = ['program', 'survey', 'submission', 'qnode', 'rnode', 'qnode_measure', 'response']
+    tables = [
+        'program', 'survey', 'submission', 'qnode', 'qnode_measure',
+        'rnode', 'response', 'response_history']
     for table in tables:
         op.add_column(table, sa.Column('error', sa.TEXT()))
-        # op.add_column(table, sa.Column('n_errors', sa.Integer()))
-        # op.execute("UPDATE %s AS x SET n_errors = 0" % table)
-        # op.alter_column(table, 'n_errors', nullable=False)
 
 
 def downgrade():
@@ -277,14 +279,16 @@ def downgrade():
 
 
 def downgrade_errors():
-    tables = ['program', 'survey', 'submission', 'qnode', 'rnode', 'qnode_measure', 'response']
+    tables = [
+        'program', 'survey', 'submission', 'qnode', 'qnode_measure',
+        'rnode', 'response', 'response_history']
     for table in tables:
         op.drop_column(table, 'error')
-        # op.drop_column(table, 'n_errors')
 
 
 def downgrade_variable():
     op.drop_column('response', 'variables')
+    op.drop_column('response_history', 'variables')
     op.drop_table('measure_variable')
 
 

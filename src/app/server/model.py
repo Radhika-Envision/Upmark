@@ -1063,6 +1063,7 @@ class Response(Observable, Versioned, Base):
 
 ResponseHistory = Response.__history_mapper__.class_
 ResponseHistory.response_parts = Response.response_parts
+ResponseHistory.ob_type = property(lambda self: 'response')
 
 
 class Attachment(Base):
