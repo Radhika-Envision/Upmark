@@ -159,6 +159,20 @@ class ResponseHandler(handlers.BaseHandler):
             }
             son.update(to_son(dummy_relations))
 
+            def gather_variables(response):
+                source_responses = {
+                    mv.source_qnode_measure: mv.source_qnode_measure.get_response(
+                        response.submission)
+                    for mv in response.qnode_measure.source_vars}
+                source_variables = {
+                    source_qnode_measure: response and response.variables or {}
+                    for source_qnode_measure, response in source_responses.items()}
+                return {
+                    mv.target_field:
+                    source_variables[mv.source_qnode_measure].get(mv.source_field)
+                    for mv in response.qnode_measure.source_vars}
+            son['sourceVars'] = gather_variables(response)
+
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
