@@ -137,6 +137,7 @@ class ResponseHandler(handlers.BaseHandler):
                 r'^/not_relevant$',
                 r'^/attachments$',
                 r'^/audit_reason$',
+                r'^/error$',
                 r'^/approval$',
                 r'^/version$',
                 r'^/modified$',
@@ -241,11 +242,10 @@ class ResponseHandler(handlers.BaseHandler):
                 r'/approval$',
                 r'/modified$',
                 r'/not_relevant$',
+                r'^/[0-9]+/error$',
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/measure$',
-                # The IDs of rnodes and responses are not part of the API
-                r'!^/[0-9]+/id$',
             )
             if self.current_user.role == 'clerk':
                 to_son.exclude(r'/score$')

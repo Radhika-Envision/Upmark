@@ -1705,6 +1705,7 @@ angular.module('wsaa.surveyQuestions', [
                         ],
                         importance: rnode.maxImportance,
                         urgency: rnode.maxUrgency,
+                        error: rnode.error,
                     };
                 }
                 $scope.rnodeMap = rmap;
@@ -1743,6 +1744,7 @@ angular.module('wsaa.surveyQuestions', [
         ],
         importance: 0,
         urgency: 0,
+        error: null,
     };
     $scope.getStats = function(qnodeId) {
         if ($scope.rnodeMap && $scope.rnodeMap[qnodeId])
@@ -1821,7 +1823,8 @@ angular.module('wsaa.surveyQuestions', [
                                 value: nApproved,
                                 fraction: nApproved
                             },
-                        ]
+                        ],
+                        error: r.error
                     };
                 }
                 $scope.responseMap = rmap;
@@ -1857,7 +1860,8 @@ angular.module('wsaa.surveyQuestions', [
                 value: 0,
                 fraction: 0
             },
-        ]
+        ],
+        error: null
     };
     $scope.getStats = function(measureId) {
         if ($scope.responseMap && $scope.responseMap[measureId])
@@ -2392,6 +2396,25 @@ angular.module('wsaa.surveyQuestions', [
             }
         });
 }])
+
+
+.directive('errorHeader', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            structureNode: '=',
+            submissionNode: '='
+        },
+        templateUrl: '/error_header.html',
+        link: function(scope, elem, attrs) {
+            elem.addClass('subheader bg-warning');
+            scope.$watchGroup(['structureNode.error', 'submissionNode.error'],
+                    function(vars) {
+                elem.toggleClass('ng-hide', !vars[0] && !vars[1]);
+            });
+        }
+    };
+})
 
 
 ;

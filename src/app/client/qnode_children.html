@@ -32,10 +32,19 @@
         <tr ng-repeat="item in edit.model || model"
                 any-href="/2/qnode/{{item.id}}?{{query}}"
                 ng-disabled="edit.model"
-                ng-class="{strike: item.deleted,
-                           'strike-black': getStats(item.id).notRelevant}">
+                ng-class="{
+                    'strike': item.deleted,
+                    'strike-black': getStats(item.id).notRelevant,
+                    'warning': item.error || getStats(item.id).error,
+                }">
             <td class="shrink">{{item.seq + 1}}</td>
-            <td>{{item.title}}</td>
+            <td>
+                {{item.title}}
+                <span ng-if="item.error || getStats(item.id).error"
+                        class="text-muted">
+                    <i class="fa fa-exclamation-triangle"></i>
+                </span>
+            </td>
             <td class="shrink text-muted numeric" title="Importance and Urgency"
                     ng-if="submission"
                ><span ng-if="getStats(item.id).importance"

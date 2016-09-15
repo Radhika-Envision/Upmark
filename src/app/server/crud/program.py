@@ -87,6 +87,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/created$',
                 r'/deleted$',
                 r'/is_editable$',
+                r'^/error$',
                 r'/has_quality$',
                 r'/hide_aggregate$',
             )
@@ -132,6 +133,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/title$',
                 r'</description$',
                 r'/deleted$',
+                r'^/[0-9]+/error$',
                 r'/[0-9]+$'
             )
             sons = to_son(query.all())

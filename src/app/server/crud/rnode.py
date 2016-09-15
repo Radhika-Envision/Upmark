@@ -83,6 +83,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 r'/n_not_relevant$',
                 r'/(max_)?importance$',
                 r'/(max_)?urgency$',
+                r'^/error$',
                 # Descend into nested objects
                 r'/qnode$',
                 # The IDs of rnodes and responses are not part of the API
@@ -148,6 +149,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 r'/n_not_relevant$',
                 r'/max_importance$',
                 r'/max_urgency$',
+                r'^/[0-9]+/error$',
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/qnode$',

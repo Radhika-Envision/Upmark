@@ -92,6 +92,7 @@ class MeasureHandler(
                     r'/ob_type$',
                     r'/seq$',
                     r'/title$',
+                    r'^/error$',
                     r'/qnode$',
                     r'/parent$',
                     r'/deleted$',
@@ -168,7 +169,6 @@ class MeasureHandler(
             # Fields to match from any visited object
             r'/id$',
             r'/title$',
-            r'<^/description$',
             r'/seq$',
             r'/weight$',
             r'/deleted$',
@@ -230,6 +230,7 @@ class MeasureHandler(
 
             if survey_id:
                 query = (query
+                    .options(joinedload('qnode_measures'))
                     .join(model.QnodeMeasure)
                     .filter(model.QnodeMeasure.survey_id == survey_id))
 
@@ -240,6 +241,9 @@ class MeasureHandler(
 
             for mson, measure in zip(sons, measures):
                 mson['orphan'] = len(measure.qnode_measures) == 0
+                if survey_id:
+                    qnode_measure = measure.get_qnode_measure(survey_id)
+                    mson['error'] = qnode_measure.error
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
@@ -256,6 +260,7 @@ class MeasureHandler(
                 # Fields to match from any visited object
                 r'/id$',
                 r'/title$',
+                r'^/error$',
                 r'/seq$',
                 r'/weight$',
                 r'/deleted$',
@@ -405,12 +410,12 @@ class MeasureHandler(
                 if measure is None:
                     raise handlers.MissingDocError("No such measure")
 
-                verbs = []
+                verbs = set()
                 calculator = Calculator.structural()
                 self._update(measure, self.request_son)
                 # Check if modified now to avoid problems with autoflush later
                 if session.is_modified(measure):
-                    verbs.append('update')
+                    verbs.add('update')
                     for qnode_measure in measure.qnode_measures:
                         calculator.mark_measure_dirty(qnode_measure)
 
@@ -421,10 +426,16 @@ class MeasureHandler(
                         raise handlers.MissingDocError("No such measure in that survey")
                     self._update_qnode_measure(qnode_measure, self.request_son)
 
+                    # If relations have changed, mark this measure dirty.
+                    # No need to check target_vars, because they aren't
+                    # updated here (that must be done via the other measure).
                     if session.is_modified(qnode_measure):
-                        if not 'update' in verbs:
-                            verbs.append('update')
+                        verbs.add('update')
                         calculator.mark_measure_dirty(qnode_measure)
+                    for mv in qnode_measure.source_vars:
+                        if session.is_modified(mv):
+                            verbs.add('update')
+                            calculator.mark_measure_dirty(qnode_measure)
 
                 def relink(parent_id):
                     # Add links to parents. Links can't be removed like this;
@@ -459,7 +470,7 @@ class MeasureHandler(
 
                 if parent_id:
                     if relink(parent_id):
-                        verbs.append('relation')
+                        verbs.add('relation')
 
                 calculator.execute()
 

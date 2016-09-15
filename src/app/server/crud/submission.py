@@ -61,6 +61,8 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/created$',
                 r'/deleted$',
                 r'/n_measures$',
+                r'^/error$',
+                r'^/survey/error$',
                 r'/program/tracking_id$',
                 # Nested
                 r'/program$',
@@ -135,6 +137,7 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/created$',
                 r'/deleted$',
                 r'/program/tracking_id$',
+                r'^/[0-9]+/error$',
                 # Descend
                 r'/[0-9]+$',
                 r'/organisation$',

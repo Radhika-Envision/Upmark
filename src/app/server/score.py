@@ -464,11 +464,10 @@ class ResponseStats:
             self.response_type.validate(response.response_parts, scope)
             self.score = self.response_type.score(
                 response.response_parts, scope)
+        except ResponseError:
+            raise
         except Exception as e:
-            raise ResponseError(
-                "Could not calculate score for response %s %s: %s" %
-                (response.qnode_measure.get_path(),
-                 response.measure.title, str(e)))
+            raise ResponseError("Could not calculate score: %s" % str(e))
 
     def to_response(self, response):
         response.score = self.score * response.measure.weight

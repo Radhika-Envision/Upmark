@@ -59,14 +59,21 @@
 
     <ul class="list-results spaced">
         <li ng-repeat="a in submissions"
-                ng-class="{active: a.id == submission.id,
-                           strike: a.deleted}">
+                ng-class="{
+                    'active': a.id == submission.id,
+                    'strike': a.deleted,
+                    'bg-warning': survey.error,
+                }">
             <a ng-href="#{{getSubmissionUrl(a)}}"
                     ng-click="toggleDropdown()">
-                <h4>{{a.title}}
+                <h4>
+                    {{a.title}}
+                    <i ng-if="a.error"
+                        class="fa fa-exclamation-triangle text-muted"></i>
                     <span class="pull-right">
                         <approval model="a.approval"></approval>
-                    </span></h4>
+                    </span>
+                </h4>
                 <p class="truncate">
                     {{a.survey.title}} in {{a.program.title}}
                     <span class="hidden-print">

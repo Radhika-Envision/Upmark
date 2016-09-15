@@ -395,16 +395,22 @@ dt.active:before {
     margin-bottom: 20px;
     padding-top: 4px;
     padding-bottom: 4px;
+    p {
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
 }
 .header+.subheader {
     margin-top: -20px;
 }
 .subheader+.subheader {
     margin-top: -20px;
-    border-top: solid 1px #ECECEC;
 }
 .jumbotron+.subheader {
     margin-top: -30px;
+}
+.subheader.bg-warning {
+    background: $warning-colour;
 }
 
 .toolbar {

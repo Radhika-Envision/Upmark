@@ -38,6 +38,7 @@
     <question-header entity="program" type="program"></question-header>
 </div>
 </div>
+<div error-header structure-node="program"></div>
 
 <div ng-if="edit.model" class="container">
     <form novalidate name="form" id="editor" form-nav-warn>
@@ -158,9 +159,16 @@
 
     <ul class="list-results">
         <li ng-repeat="survey in surveys"
-                ng-class="{strike: survey.deleted}">
+                ng-class="{
+                    'strike': survey.deleted,
+                    'bg-warning': survey.error,
+                }">
             <a ng-href="#/2/survey/{{survey.id}}/choice?program={{program.id}}">
-                <h4>{{survey.title}}</h4>
+                <h4>
+                    {{survey.title}}
+                    <i ng-if="survey.error"
+                        class="fa fa-exclamation-triangle text-muted"></i>
+                </h4>
                 <p class="truncate">{{survey.nMeasures}} measures</p>
             </a>
         </li>

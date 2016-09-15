@@ -29,9 +29,18 @@
         <tr ng-repeat="item in edit.model || model"
                 any-href="/2/measure/{{item.id}}?{{query}}"
                 ng-disabled="edit.model"
-                ng-class="{'strike-black': getStats(item.id).notRelevant}">
+                ng-class="{
+                    'strike-black': getStats(item.id).notRelevant,
+                    'warning': item.error || getStats(item.id).error,
+                }">
             <td class="shrink numeric">{{item.seq + 1}}</td>
-            <td>{{item.title}}</td>
+            <td>
+                {{item.title}}
+                <span ng-if="item.error || getStats(item.id).error"
+                        class="text-muted">
+                    <i class="fa fa-exclamation-triangle"></i>
+                </span>
+            </td>
             <td class="shrink text-muted numeric"
                     title="Score"
                     ng-if="submission && checkRole('view_aggregate_score')">

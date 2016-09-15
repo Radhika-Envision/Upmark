@@ -55,6 +55,7 @@ class QuestionNodeHandler(
                 r'/total_weight$',
                 r'/n_measures$',
                 r'/is_editable$',
+                r'^/error$',
                 r'/program/tracking_id$',
                 r'/program/created$',
                 r'/program/hide_aggregate$',
@@ -151,6 +152,7 @@ class QuestionNodeHandler(
                 r'/deleted$',
                 r'/n_measures$',
                 r'/total_weight$',
+                r'^/[0-9]+/error$',
                 # Descend into nested objects
                 r'/[0-9]+$',
             )
