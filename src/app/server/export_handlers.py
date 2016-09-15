@@ -590,7 +590,7 @@ class Exporter():
                 urgency = None
                 if submission:
                     response = qnode_measure.get_response(submission)
-                    url = base_url + "/#/1/measure/{}?submission={}".format(
+                    url = base_url + "/#/2/measure/{}?submission={}".format(
                         measure.id, submission.id)
 
                     # Walk up the tree to get the importance and urgency from the
@@ -607,8 +607,8 @@ class Exporter():
 
                 else:
                     response = None
-                    url = base_url + '/#/1/measure/{}?program={}&parent={}'.format(
-                        measure.id, program_id, qnode_measure.qnode_id)
+                    url = base_url + '/#/2/measure/{}?program={}&survey={}'.format(
+                        measure.id, program_id, qnode_measure.survey_id)
 
                 worksheet.write(
                 line, level_length + max_parts + 1, importance, format_int)

@@ -196,11 +196,11 @@ angular.module('wsaa.admin', [
     }
 
     $scope.$on('EditSaved', function(event, model) {
-        $location.url('/1/user/' + model.id);
+        $location.url('/2/user/' + model.id);
     });
     $scope.$on('EditDeleted', function(event, model) {
         $location.url(format(
-            '/1/org/{}', model.organisation.id));
+            '/2/org/{}', model.organisation.id));
     });
 
     $scope.roles = routeData.roles;
@@ -348,10 +348,10 @@ angular.module('wsaa.admin', [
     $scope.attributions = [];
 
     $scope.$on('EditSaved', function(event, model) {
-        $location.url('/1/org/' + model.id);
+        $location.url('/2/org/' + model.id);
     });
     $scope.$on('EditDeleted', function(event, model) {
-        $location.url('/1/orgs');
+        $location.url('/2/orgs');
     });
 
     $scope.$watch('org.locations', function(locations) {
@@ -474,7 +474,7 @@ angular.module('wsaa.admin', [
             surveyId: survey.id
         }).$promise.then(
             function success() {
-                $location.url('/1/org/' + $scope.org.id);
+                $location.url('/2/org/' + $scope.org.id);
             },
             function failure(details) {
                 Notifications.set('edit', 'error',

@@ -32,8 +32,9 @@ class MeasureHandler(
             return
 
         '''Get a single measure.'''
-        parent_id = self.get_argument('parentId', '')
+        program_id = self.get_argument('programId', '')
         submission_id = self.get_argument('submissionId', '')
+        survey_id = self.get_argument('surveyId', '')
 
         with model.session_scope() as session:
             if submission_id:
@@ -42,29 +43,19 @@ class MeasureHandler(
                     raise handlers.MissingDocError("No such submission")
                 program_id = submission.program_id
                 survey_id = submission.survey_id
-                parent = None
-            elif parent_id:
-                program_id = self.program_id
-                parent = (session.query(model.QuestionNode)
-                    .get((parent_id, program_id)))
-                if not parent:
-                     raise handlers.MissingDocError("No such category")
-                survey_id = parent.survey_id
-            else:
-                program_id = self.program_id
-                parent = None
-                survey_id = None
 
             self.check_browse_program(session, program_id, survey_id)
 
-            try:
-                measure = session.query(model.Measure)\
-                    .get((measure_id, program_id))
-                if measure is None:
-                    raise ValueError("No such object")
-            except (sqlalchemy.exc.StatementError,
-                    sqlalchemy.orm.exc.NoResultFound,
-                    ValueError):
+            query = (session.query(model.Measure)
+                .filter(model.Measure.id == measure_id)
+                .filter(model.Measure.program_id == program_id))
+            if survey_id:
+                query = (query
+                    .join(model.QnodeMeasure)
+                    .filter(model.QnodeMeasure.survey_id == survey_id))
+
+            measure = query.first()
+            if not measure:
                 raise handlers.MissingDocError("No such measure")
 
             to_son = ToSon(
@@ -95,9 +86,6 @@ class MeasureHandler(
 
             if survey_id:
                 qnode_measure = measure.get_qnode_measure(survey_id)
-                if not qnode_measure:
-                     raise handlers.MissingDocError(
-                         "This measure does not belong to that survey")
 
                 to_son = ToSon(
                     r'/id$',
@@ -157,6 +145,7 @@ class MeasureHandler(
 
         orphan = self.get_argument('orphan', '')
         term = self.get_argument('term', '')
+        program_id = self.get_argument('programId', '')
         survey_id = self.get_argument('surveyId', '')
 
         to_son = ToSon(
@@ -178,17 +167,17 @@ class MeasureHandler(
                 # Orphans only
                 query = session.query(model.Measure)\
                     .outerjoin(model.QnodeMeasure)\
-                    .filter(model.Measure.program_id == self.program_id)\
+                    .filter(model.Measure.program_id == program_id)\
                     .filter(model.QnodeMeasure.qnode_id == None)
             elif orphan != '' and falsy(orphan):
                 # Non-orphans only
                 query = session.query(model.Measure)\
                     .join(model.QnodeMeasure)\
-                    .filter(model.Measure.program_id == self.program_id)
+                    .filter(model.Measure.program_id == program_id)
             else:
                 # All measures
                 query = session.query(model.Measure)\
-                    .filter_by(program_id=self.program_id)
+                    .filter_by(program_id=program_id)
 
             rt_term = None
             if term:
@@ -212,7 +201,7 @@ class MeasureHandler(
                         (model.ResponseType.name.ilike(r'%{}%'.format(rt_term)))
                     ))
 
-            if truthy(self.get_argument('withResponseTypes')):
+            if truthy(self.get_argument('withResponseTypes', '')):
                 query = (query.options(joinedload('response_type')))
                 to_son.add(
                     r'/response_type$',
@@ -241,10 +230,11 @@ class MeasureHandler(
         self.finish()
 
     def query_children_of(self, qnode_id):
+        program_id = self.get_argument('programId', '')
         with model.session_scope() as session:
             # Only children of a certain qnode
             qnode = session.query(model.QuestionNode)\
-                .get((qnode_id, self.program_id))
+                .get((qnode_id, program_id))
 
             to_son = ToSon(
                 # Fields to match from any visited object
@@ -277,12 +267,13 @@ class MeasureHandler(
 
         self.check_editable()
 
+        program_id = self.get_argument('programId', '')
         parent_ids = [p for p in self.get_arguments('parentId')
                       if p != '']
 
         try:
             with model.session_scope() as session:
-                measure = model.Measure(program_id=self.program_id)
+                measure = model.Measure(program_id=program_id)
                 session.add(measure)
                 self._update(measure, self.request_son)
 
@@ -292,7 +283,7 @@ class MeasureHandler(
                 calculator = Calculator.structural()
                 for parent_id in parent_ids:
                     qnode = session.query(model.QuestionNode)\
-                        .get((parent_id, self.program_id))
+                        .get((parent_id, program_id))
                     if qnode is None:
                         raise handlers.ModelError("No such question node")
                     qnode_measure = model.QnodeMeasure(
@@ -326,6 +317,7 @@ class MeasureHandler(
         if measure_id == '':
             raise handlers.MethodError("Measure ID required")
 
+        program_id = self.get_argument('programId', '')
         parent_ids = [p for p in self.get_arguments('parentId')
                       if p != '']
 
@@ -337,7 +329,7 @@ class MeasureHandler(
         try:
             with model.session_scope() as session:
                 measure = session.query(model.Measure)\
-                    .get((measure_id, self.program_id))
+                    .get((measure_id, program_id))
                 if measure is None:
                     raise handlers.MissingDocError("No such measure")
 
@@ -348,12 +340,12 @@ class MeasureHandler(
                 # Just unlink from qnodes
                 for parent_id in parent_ids:
                     qnode = (session.query(model.QuestionNode)
-                        .get((parent_id, self.program_id)))
+                        .get((parent_id, program_id)))
                     if qnode is None:
                         raise handlers.MissingDocError(
                             "No such question node")
                     qnode_measure = (session.query(model.QnodeMeasure)
-                        .get((self.program_id, qnode.survey_id, measure.id)))
+                        .get((program_id, qnode.survey_id, measure.id)))
                     if qnode_measure is None:
                         raise handlers.ModelError(
                             "Measure does not belong to that question node")
@@ -386,13 +378,14 @@ class MeasureHandler(
             self.ordering()
             return
 
+        program_id = self.get_argument('programId', '')
         parent_ids = [p for p in self.get_arguments('parentId')
                       if p != '']
 
         try:
             with model.session_scope() as session:
                 measure = session.query(model.Measure)\
-                    .get((measure_id, self.program_id))
+                    .get((measure_id, program_id))
                 if measure is None:
                     raise handlers.MissingDocError("No such measure")
                 self._update(measure, self.request_son)
@@ -410,7 +403,7 @@ class MeasureHandler(
                     # Add links to parents. Links can't be removed like this;
                     # use the delete method instead.
                     new_parent = session.query(model.QuestionNode)\
-                        .get((parent_id, self.program_id))
+                        .get((parent_id, program_id))
                     if new_parent is None:
                         raise handlers.ModelError("No such question node")
                     qnode_measure = measure.get_qnode_measure(new_parent.survey_id)
@@ -457,6 +450,7 @@ class MeasureHandler(
 
         self.check_editable()
 
+        program_id = self.get_argument('programId', '')
         qnode_id = self.get_argument('qnodeId', '')
         if qnode_id == None:
             raise handlers.MethodError("Question node ID is required.")
@@ -465,7 +459,7 @@ class MeasureHandler(
         try:
             with model.session_scope() as session:
                 qnode = session.query(model.QuestionNode)\
-                    .get((qnode_id, self.program_id))
+                    .get((qnode_id, program_id))
                 reorder(
                     qnode.qnode_measures, self.request_son,
                     id_attr='measure_id')

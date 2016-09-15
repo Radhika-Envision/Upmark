@@ -19,12 +19,12 @@
                 ng-if="!edit.model && checkRole('org_modify')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/1/subscription/organisation?id={{org.id}}">
+                ng-href="#/2/subscription/organisation?id={{org.id}}">
             <i class="fa fa-envelope"></i></a>
     </div>
     <h2 page-title>
         <i class="fa fa-fw fa-university"></i>
-        <a href="#/1/orgs">Organisations</a> &raquo;
+        <a href="#/2/orgs">Organisations</a> &raquo;
         <span ng-if="org.name"
                 ng-class="{strike: org.deleted}">
             {{org.name}}</span>
@@ -440,7 +440,7 @@ suburb: {{loc.suburb}}">
     <div class="section">
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="Add new"
-                    ng-href="#/1/org/{{org.id}}/survey/add"
+                    ng-href="#/2/org/{{org.id}}/survey/add"
                     ng-if="checkRole('survey_purchase')">
                 <i class="fa fa-fw fa-plus">
                     <i class="fa fa-badge fa-link"></i>
@@ -454,7 +454,7 @@ suburb: {{loc.suburb}}">
     <ul class="list-results">
         <li ng-repeat="survey in surveys"
                 ng-class="{strike: survey.deleted || survey.program.deleted}">
-            <a ng-href="#/1/survey/{{survey.id}}/choice?program={{survey.program.id}}&organisation={{org.id}}">
+            <a ng-href="#/2/survey/{{survey.id}}/choice?program={{survey.program.id}}&organisation={{org.id}}">
                 <h4>{{survey.title}}</h4>
                 <p class="truncate">In {{survey.program.title}} -
                     {{survey.nMeasures}} measures</p>

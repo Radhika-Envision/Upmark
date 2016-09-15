@@ -5,7 +5,7 @@
         <button class="btn btn-default btn-round"
                 title="Unlink from parent"
                 ng-click="edit.del()"
-                ng-if="parent && editable && !edit.model && checkRole('measure_del')">
+                ng-if="structure.survey && editable && !edit.model && checkRole('measure_del')">
             <i class="fa fa-trash-o"></i>
         </button>
         <button class="btn btn-default btn-round" title="Collapse"
@@ -33,11 +33,11 @@
                 ng-if="editable && !edit.model">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/1/subscription/measure?id={{measure.id}}&id={{program.id}}"
+                ng-href="#/2/subscription/measure?id={{measure.id}}&id={{program.id}}"
                 ng-if="!edit.model && !submission">
             <i class="fa fa-envelope"></i></a>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/1/subscription/response?id={{measure.id}}&id={{submission.id}}"
+                ng-href="#/2/subscription/response?id={{measure.id}}&id={{submission.id}}"
                 ng-if="!edit.model && submission">
             <i class="fa fa-envelope"></i></a>
         <program-history entity="measure" service="Measure"
@@ -125,7 +125,7 @@
                         placeholder="Source variable">
                     <a ng-href="{{
                                 mv.sourceMeasure ?
-                                '#/1/measure/' + mv.sourceMeasure.id +
+                                '#/2/measure/' + mv.sourceMeasure.id +
                                 '?program=' + structure.program.id +
                                 '&survey=' + structure.survey.id'" : ''}}
                             ng-disabled="!mv.sourceMeasure"
@@ -264,7 +264,7 @@
                     <p ng-if="response.user.name" class="spaced text-center text-muted">
                         <i class="fa fa-history"></i>
                         Version {{response.version}} submitted by
-                        <a ng-href="#/1/user/{{response.user.id}}">
+                        <a ng-href="#/2/user/{{response.user.id}}">
                             {{response.user.name}}</a>,
                         <span class="hidden-print">
                             {{response.modified * 1000 | timeAgo:'medium'}}.
@@ -466,7 +466,7 @@
     measure:
     <ul ng-if="parents.length">
         <li ng-repeat="parent in parents">
-            <a ng-href="#/1/measure/{{measure.id}}?program={{program.id}}&parent={{parent.qnodes[parent.qnodes.length - 1].id}}">
+            <a ng-href="#/2/measure/{{measure.id}}?program={{structure.program.id}}&survey={{parent.survey.id}}">
                 <span ng-class="{strike: parent.survey.deleted}">
                     {{parent.survey.title}}
                 </span>
@@ -480,9 +480,9 @@
             </a>
         </li>
     </ul>
-    <p ng-if="parent">
+    <p ng-if="structure.survey">
         This measure can be
-        <a ng-href="#/1/measure/{{measure.id}}?program={{program.id}}">
+        <a ng-href="#/2/measure/{{measure.id}}?program={{program.id}}">
             viewed without a survey</a>,
         but it can not be responded to like that.
     </p>

@@ -14,11 +14,11 @@
                        !edit.model && search.deleted === false">
             <i class="fa fa-fw fa-unsorted"></i></button>
         <a class="btn btn-default btn-round" title="Add new"
-                ng-href="#/1/qnode/new?{{query}}&parent={{qnode.id}}"
+                ng-href="#/2/qnode/new?{{query}}&parent={{qnode.id}}"
                 ng-if="editable && !edit.model">
             <i class="fa fa-fw fa-plus"></i></a>
         <a class="btn btn-default btn-round" title="Link to existing"
-                ng-href="#/1/qnode-link?{{query}}&parent={{qnode.id}}"
+                ng-href="#/2/qnode-link?{{query}}&parent={{qnode.id}}"
                 ng-if="editable && !edit.model">
             <i class="fa fa-fw fa-link"></i></a>
         <delete-cycle class="btn-round" model="search.deleted"
@@ -30,7 +30,7 @@
 <table class="table table-hover">
     <tbody ui-sortable="dragOpts" ng-model="edit.model">
         <tr ng-repeat="item in edit.model || model"
-                any-href="/1/qnode/{{item.id}}?{{query}}"
+                any-href="/2/qnode/{{item.id}}?{{query}}"
                 ng-disabled="edit.model"
                 ng-class="{strike: item.deleted,
                            'strike-black': getStats(item.id).notRelevant}">

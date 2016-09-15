@@ -10,8 +10,9 @@ angular.module('wsaa.survey.measure', [
                  Structure, Arrays, Response, hotkeys, $q, $timeout, $window,
                  responseTypes, ResponseType) {
 
-     $scope.newResponseType = function() {
+     $scope.newResponseType = function(programId) {
          return new ResponseType({
+             programId: programId,
              name: null,
              parts: [{type: 'multiple_choice', id: 'a', options: [
                  {name: 'No', score: 0},
@@ -24,10 +25,6 @@ angular.module('wsaa.survey.measure', [
     $scope.layout = layout;
     $scope.parent = routeData.parent;
     $scope.submission = routeData.submission;
-    $scope.rt = {
-        definition: routeData.responseType || $scope.newResponseType(),
-        responseType: null,
-    };
 
     if (routeData.measure) {
         // Editing old
@@ -37,12 +34,17 @@ angular.module('wsaa.survey.measure', [
         $scope.measure = new Measure({
             obType: 'measure',
             parent: routeData.parent,
-            program: routeData.program,
+            programId: routeData.program.id,
             weight: 100,
             responseTypeId: null,
             sourceVars: [],
         });
     }
+    $scope.rt = {
+        definition: routeData.responseType ||
+            $scope.newResponseType($scope.measure.programId),
+        responseType: null,
+    };
 
     if ($scope.submission) {
         // Get the response that is associated with this measure and submission.
@@ -173,7 +175,8 @@ angular.module('wsaa.survey.measure', [
         $scope.structure = Structure(measure, $scope.submission);
         $scope.program = $scope.structure.program;
         $scope.edit = Editor('measure', $scope, {
-            parentId: $scope.parent && $scope.parent.id,
+            parentId: measure.parent && measure.parent.id,
+            surveyId: measure.parent && measure.parent.survey.id,
             programId: $scope.program.id
         });
         if (!measure.id)
@@ -249,9 +252,7 @@ angular.module('wsaa.survey.measure', [
     $scope.save = function() {
         if (!$scope.edit.model)
             return;
-        $scope.rt.definition.$save({
-                programId: $scope.rt.definition.programId
-        }).then(
+        $scope.rt.definition.$createOrSave().then(
             function success(definition) {
                 $scope.edit.model.responseTypeId = definition.id;
                 return $scope.edit.save();
@@ -263,22 +264,22 @@ angular.module('wsaa.survey.measure', [
         );
     };
     $scope.$on('EditSaved', function(event, model) {
-        if (model.parent) {
+        if (model.survey) {
             $location.url(format(
-                '/1/measure/{}?program={}&parent={}', model.id, $scope.program.id,
-                $scope.parent.id));
+                '/2/measure/{}?program={}&survey={}', model.id, model.programId,
+                model.survey.id));
         } else {
             $location.url(format(
-                '/1/measure/{}?program={}', model.id, $scope.program.id));
+                '/2/measure/{}?program={}', model.id, model.programId));
         }
     });
     $scope.$on('EditDeleted', function(event, model) {
         if (model.parent) {
             $location.url(format(
-                '/1/qnode/{}?program={}', model.parent.id, $scope.program.id));
+                '/2/qnode/{}?program={}', model.parent.id, model.programId));
         } else {
             $location.url(format(
-                '/1/measures?program={}', $scope.program.id));
+                '/2/measures?program={}', model.programId));
         }
     });
 
@@ -304,13 +305,13 @@ angular.module('wsaa.survey.measure', [
 
     $scope.getSubmissionUrl = function(submission) {
         if (submission) {
-            return format('/1/measure/{}?submission={}',
+            return format('/2/measure/{}?submission={}',
                 $scope.measure.id, submission.id,
                 $scope.parent && $scope.parent.id || '');
         } else {
-            return format('/1/measure/{}?program={}&parent={}',
-                $scope.measure.id, $scope.program.id,
-                $scope.measure.parent && $scope.measure.parent.id || '');
+            return format('/2/measure/{}?program={}&survey={}',
+                $scope.measure.id, $scope.structure.program.id,
+                $scope.structure.survey.id || '');
         }
     };
 })

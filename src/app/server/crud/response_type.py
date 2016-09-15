@@ -33,7 +33,7 @@ class ResponseTypeHandler(
         with model.session_scope() as session:
             response_type, count = (
                 session.query(model.ResponseType, func.count(model.Measure.id))
-                .join(model.Measure)
+                .outerjoin(model.Measure)
                 .filter(model.ResponseType.id == response_type_id)
                 .filter(model.ResponseType.program_id == self.program_id)
                 .group_by(model.ResponseType.id, model.ResponseType.program_id)

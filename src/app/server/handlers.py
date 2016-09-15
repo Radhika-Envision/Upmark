@@ -154,6 +154,7 @@ SCRIPTS = [
             '/.bower_components/angular-timeago/dist/angular-timeago.js',
             '/.bower_components/angular-ui-select/dist/select.js',
             '/.bower_components/angular-ui-sortable/sortable.js',
+            '/.bower_components/domurl/url.min.js',
             '/.bower_components/tinycolor/dist/tinycolor-min.js',
             '/.bower_components/angular-color-picker/dist/angularjs-color-picker.js',
             '/.bower_components/dropzone/dist/dropzone.js',

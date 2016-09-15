@@ -94,10 +94,10 @@ angular.module('wsaa.surveyQuestions', [
     }
 
     $scope.$on('EditSaved', function(event, model) {
-        $location.url('/1/program/' + model.id);
+        $location.url('/2/program/' + model.id);
     });
     $scope.$on('EditDeleted', function(event, model) {
-        $location.url('/1/programs');
+        $location.url('/2/programs');
     });
 
     $scope.checkRole = questionAuthz(Current, $scope.program);
@@ -139,7 +139,7 @@ angular.module('wsaa.surveyQuestions', [
             description: "Add a new question set",
             callback: function(event, hotkey) {
                 $location.url(
-                    format("/1/survey/new?program={{}}", $scope.program.id));
+                    format("/2/survey/new?program={{}}", $scope.program.id));
             }
         })
         .add({
@@ -147,7 +147,7 @@ angular.module('wsaa.surveyQuestions', [
             description: "Search for measures",
             callback: function(event, hotkey) {
                 $location.url(
-                    format("/1/measures?program={{}}", $scope.program.id));
+                    format("/2/measures?program={{}}", $scope.program.id));
             }
         });
 })
@@ -291,9 +291,9 @@ angular.module('wsaa.surveyQuestions', [
                     return $scope.formatUrl(submission)
 
                 if (submission) {
-                    return format('/1/submission/{}', submission.id);
+                    return format('/2/submission/{}', submission.id);
                 } else {
-                    return format('/1/survey/{}?program={}',
+                    return format('/2/survey/{}?program={}',
                         $scope.survey.id, $scope.program.id);
                 }
             };
@@ -385,7 +385,7 @@ angular.module('wsaa.surveyQuestions', [
             $scope.progress.isFinished = true;
         }, 1000);
         $timeout(function() {
-            $location.url('/1/program/' + response);
+            $location.url('/2/program/' + response);
         }, 5000);
     });
 
@@ -440,13 +440,13 @@ angular.module('wsaa.surveyQuestions', [
 
             $scope.navigate = function(program) {
                 if ($scope.entity == $scope.structure.program)
-                    $location.url('/1/program/' + program.id);
+                    $location.url('/2/program/' + program.id);
                 else
                     $location.search('program', program.id);
             };
             $scope.isActive = function(program) {
                 if ($scope.entity == $scope.structure.program)
-                    return $location.url().indexOf('/1/program/' + program.id) >= 0;
+                    return $location.url().indexOf('/2/program/' + program.id) >= 0;
                 else
                     return $location.search().program == program.id;
             };
@@ -461,7 +461,7 @@ angular.module('wsaa.surveyQuestions', [
                     s2 = program;
                 }
                 var url = format(
-                    '/1/diff/{}/{}/{}?ignoreTags=list+index',
+                    '/2/diff/{}/{}/{}?ignoreTags=list+index',
                     s1.id,
                     s2.id,
                     $scope.structure.survey.id);
@@ -483,6 +483,8 @@ angular.module('wsaa.surveyQuestions', [
                 entity = entity.parent || entity.program;
             else if (entity.obType == 'qnode')
                 entity = entity.parent || entity.survey;
+            else if (entity.obType == 'submission')
+                entity = entity.survey;
             else if (entity.obType == 'survey')
                 entity = entity.program;
             else if (entity.obType == 'program')
@@ -531,7 +533,7 @@ angular.module('wsaa.surveyQuestions', [
         }
 
         if (submission) {
-            // Submissions slot in after survey.
+            // Submissions (when explicitly provided) slot in after survey.
             hstack.splice(2, 0, {
                 path: 'submission',
                 title: 'Submissions',
@@ -647,7 +649,7 @@ angular.module('wsaa.surveyQuestions', [
                         return url;
                 }
 
-                var path = format("#/1/{}/{}", item.path, key);
+                var path = format("#/2/{}/{}", item.path, key);
                 var query = [];
                 if (item.path == 'program' || item.path == 'submission') {
                 } else if (item.path == 'survey') {
@@ -674,7 +676,7 @@ angular.module('wsaa.surveyQuestions', [
                     callback: function(event, hotkey) {
                         var url = $scope.itemUrl($scope.upItem);
                         if (!url)
-                            url = '/1/programs';
+                            url = '/2/programs';
                         $location.url(url.substring(1));
                     }
                 })
@@ -715,7 +717,7 @@ angular.module('wsaa.surveyQuestions', [
     $scope.structure = Structure($scope.survey);
 
     if (current.user.role == 'author')
-        $location.path('/1/survey/' + $scope.survey.id);
+        $location.path('/2/survey/' + $scope.survey.id);
 
     $scope.Survey = Survey;
     $scope.checkRole = questionAuthz(current, $scope.program);
@@ -765,11 +767,11 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
-            '/1/survey/{}?program={}', model.id, $scope.program.id));
+            '/2/survey/{}?program={}', model.id, $scope.program.id));
     });
     $scope.$on('EditDeleted', function(event, model) {
         $location.url(format(
-            '/1/program/{}', $scope.program.id));
+            '/2/program/{}', $scope.program.id));
     });
 
     $scope.addLevel = function(model) {
@@ -873,16 +875,16 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
-            '/1/qnode/{}?program={}', model.id, $scope.program.id));
+            '/2/qnode/{}?program={}', model.id, $scope.program.id));
     });
     $scope.$on('EditDeleted', function(event, model) {
         if (model.parent) {
             $location.url(format(
-                '/1/qnode/{}?program={}', model.parent.id,
+                '/2/qnode/{}?program={}', model.parent.id,
                 $scope.program.id));
         } else {
             $location.url(format(
-                '/1/survey/{}?program={}', model.survey.id,
+                '/2/survey/{}?program={}', model.survey.id,
                 $scope.program.id));
         }
     });
@@ -1097,10 +1099,10 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.getSubmissionUrl = function(submission) {
         if (submission) {
-            return format('/1/qnode/{}?submission={}',
+            return format('/2/qnode/{}?submission={}',
                 $scope.qnode.id, submission.id);
         } else {
-            return format('/1/qnode/{}?program={}',
+            return format('/2/qnode/{}?program={}',
                 $scope.qnode.id, $scope.program.id);
         }
     };
@@ -1435,7 +1437,7 @@ angular.module('wsaa.surveyQuestions', [
             query = format('submission1={}',
                 $scope.submission2 ? $scope.submission2.id : '');
         }
-        return format('/1/statistics?{}&qnode={}&approval={}',
+        return format('/2/statistics?{}&qnode={}&approval={}',
             query, $location.search()['qnode'] || '', $scope.approval);
     };
     $scope.getSubmissionUrl2 = function(submission) {
@@ -1448,7 +1450,7 @@ angular.module('wsaa.surveyQuestions', [
             query = format('submission1={}',
                 $scope.submission1 ? $scope.submission1.id : '');
         }
-        return format('/1/statistics?{}&qnode={}&approval={}',
+        return format('/2/statistics?{}&qnode={}&approval={}',
             query, $location.search()['qnode'] || '', $scope.approval);
     };
 
@@ -1457,11 +1459,11 @@ angular.module('wsaa.surveyQuestions', [
         var aid2 = $scope.submission2 ? $scope.submission2.id : ''
         if (item.path == 'qnode') {
             return format(
-                '#/1/statistics?submission1={}&submission2={}&qnode={}&approval={}',
+                '#/2/statistics?submission1={}&submission2={}&qnode={}&approval={}',
                 aid1, aid2, key, $scope.approval);
         } else if (item.path == 'submission') {
             return format(
-                '#/1/statistics?submission1={}&submission2={}&approval={}',
+                '#/2/statistics?submission1={}&submission2={}&approval={}',
                 aid1, aid2, $scope.approval);
         }
         return null;
@@ -1772,7 +1774,7 @@ angular.module('wsaa.surveyQuestions', [
         $scope.query = 'submission=' + $scope.submission.id;
     } else {
         $scope.query = 'program=' + $scope.program.id;
-        $scope.query += "&parent=" + $scope.qnode.id;
+        $scope.query += "&survey=" + $scope.qnode.survey.id;
     }
 
     $scope.edit.params = {
@@ -1927,14 +1929,14 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.getItemUrl = function(item, entity, program) {
         if (item.type == 'qnode')
-            return format("/1/qnode/{}?program={}", entity.id, program.id);
+            return format("/2/qnode/{}?program={}", entity.id, program.id);
         else if (item.type == 'measure')
-            return format("/1/measure/{}?program={}&parent={}",
-                entity.id, program.id, entity.parentId);
+            return format("/2/measure/{}?program={}&survey={}",
+                entity.id, program.id, entity.surveyId);
         else if (item.type == 'program')
-            return format("/1/program/{}", program.id);
+            return format("/2/program/{}", program.id);
         else if (item.type == 'survey')
-            return format("/1/survey/{}?program={}", entity.id, program.id);
+            return format("/2/survey/{}?program={}", entity.id, program.id);
     };
 
     $scope.chooser = false;
@@ -1983,7 +1985,7 @@ angular.module('wsaa.surveyQuestions', [
                     message += ': ' + headers('Operation-Details');
                 Notifications.set('edit', 'success', message);
                 $location.url(format(
-                    '/1/qnode/{}?program={}', $scope.parent.id, $scope.program.id));
+                    '/2/qnode/{}?program={}', $scope.parent.id, $scope.program.id));
             },
             function failure(details) {
                 Notifications.set('edit', 'error',
@@ -2046,7 +2048,7 @@ angular.module('wsaa.surveyQuestions', [
                     message += ': ' + headers('Operation-Details');
                 Notifications.set('edit', 'success', message);
                 $location.url(format(
-                    '/1/qnode/{}?program={}', $scope.qnode.id, $scope.program.id));
+                    '/2/qnode/{}?program={}', $scope.qnode.id, $scope.program.id));
             },
             function failure(details) {
                 Notifications.set('edit', 'error',

@@ -111,6 +111,7 @@ class DiffEngine:
 
         to_son = ToSon(
             r'/id$',
+            r'/survey_id$',
             r'/parent_id$',
             r'/title$',
             r'</description$',

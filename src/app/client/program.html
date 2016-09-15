@@ -8,7 +8,7 @@
             <i class="fa fa-print"></i>
         </button>
         <a class="btn btn-default btn-round" title="Duplicate"
-                ng-href="#/1/program/new?duplicate={{program.id}}"
+                ng-href="#/2/program/new?duplicate={{program.id}}"
                 ng-if="!edit.model && checkRole('program_dup')">
             <small><i class="fa fa-clone"></i></small></button></a>
         <delete-button model="program" editor="edit"
@@ -30,7 +30,7 @@
                     checkRole('program_edit')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/1/subscription/program?id={{program.id}}">
+                ng-href="#/2/subscription/program?id={{program.id}}">
             <i class="fa fa-envelope"></i></a>
         <program-history entity="program" service="Program"
                 ng-if="!edit.model"></program-history>
@@ -85,7 +85,7 @@
         </p>
         <p>
             If you want to create a fresh program with no lineage,
-            <a href="#/1/programs">go back</a> and use the Add
+            <a href="#/2/programs">go back</a> and use the Add
             <i class="fa fa-plus"></i> function instead.
         </p>
     </docs>
@@ -96,7 +96,7 @@
             be possible to link responses from other programs to this one.
         </p>
         <p>
-            If you wish to preserve lineage, <a href="#/1/programs">open an
+            If you wish to preserve lineage, <a href="#/2/programs">open an
             existing program</a> and use the Duplicate
             <i class="fa fa-clone"></i> function instead.
         </p>
@@ -143,10 +143,10 @@
     <div class="section">
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="Search for measures"
-                    ng-href="#/1/measures?program={{program.id}}">
+                    ng-href="#/2/measures?program={{program.id}}">
                 <i class="fa fa-fw fa-search"></i></a>
             <a class="btn btn-default btn-round" title="Add new"
-                    ng-href="#/1/survey/new?program={{program.id}}"
+                    ng-href="#/2/survey/new?program={{program.id}}"
                     ng-if="program.isEditable && checkRole('survey_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
             <delete-cycle class="btn-round" model="search.deleted"></delete-cycle>
@@ -159,7 +159,7 @@
     <ul class="list-results">
         <li ng-repeat="survey in surveys"
                 ng-class="{strike: survey.deleted}">
-            <a ng-href="#/1/survey/{{survey.id}}/choice?program={{program.id}}">
+            <a ng-href="#/2/survey/{{survey.id}}/choice?program={{program.id}}">
                 <h4>{{survey.title}}</h4>
                 <p class="truncate">{{survey.nMeasures}} measures</p>
             </a>

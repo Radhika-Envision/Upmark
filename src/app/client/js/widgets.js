@@ -468,12 +468,9 @@ angular.module('vpac.widgets', [])
         if (angular.isArray(this.model)) {
             log.info("Reordering list");
             p = this.resource.reorder(this.params, this.model, success, failure);
-        } else if (!this.model.id) {
-            log.info("Saving as new entry");
-            p = this.model.$create(this.params, success, failure);
         } else {
-            log.info("Saving over old entry");
-            p = this.model.$save(this.params, success, failure);
+            log.info("Saving entry");
+            p = this.model.$createOrSave(this.params, success, failure);
         }
         this.saving = true;
         Notifications.set('edit', 'info', "Saving");
