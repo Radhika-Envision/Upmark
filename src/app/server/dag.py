@@ -63,7 +63,7 @@ class GraphBuilder:
 
         return Graph(graph)
 
-    def add_with_dependants(self, node, node_builder, force=False):
+    def add_with_dependants(self, node, node_builder, force=False, cycle_set=None):
         '''
         Add the node and all of its dependants to the graph.
 
@@ -79,10 +79,18 @@ class GraphBuilder:
         if meta.dependants_added and not force:
             return
         meta.dependants_added = True
+
+        if cycle_set is None:
+            cycle_set = set()
+        if meta in cycle_set:
+            return
+        cycle_set.add(meta)
+
         meta.with_ops(node_builder.ops(node))
         for dependant, builder in node_builder.dependants(node):
             meta.with_dependant(dependant)
-            self.add_with_dependants(dependant, builder, force)
+            self.add_with_dependants(dependant, builder, force, cycle_set)
+        cycle_set.remove(meta)
 
     def add_with_dependencies(self, node, node_builder):
         '''
