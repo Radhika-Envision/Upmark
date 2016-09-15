@@ -264,14 +264,7 @@ angular.module('wsaa.survey.measure', [
         );
     };
     $scope.$on('EditSaved', function(event, model) {
-        if (model.survey) {
-            $location.url(format(
-                '/2/measure/{}?program={}&survey={}', model.id, model.programId,
-                model.survey.id));
-        } else {
-            $location.url(format(
-                '/2/measure/{}?program={}', model.id, model.programId));
-        }
+        $location.url($scope.getUrl(model));
     });
     $scope.$on('EditDeleted', function(event, model) {
         if (model.parent) {
@@ -303,6 +296,17 @@ angular.module('wsaa.survey.measure', [
             });
     }
 
+    $scope.getUrl = function(measure) {
+        if ($scope.structure.submission) {
+            return format('/2/measure/{}?submission={}',
+                measure.id, $scope.structure.submission.id);
+        } else {
+            return format('/2/measure/{}?program={}&survey={}',
+                measure.id, $scope.structure.program.id,
+                $scope.structure.survey && $scope.structure.survey.id || '');
+        }
+    };
+
     $scope.getSubmissionUrl = function(submission) {
         if (submission) {
             return format('/2/measure/{}?submission={}',
@@ -311,7 +315,7 @@ angular.module('wsaa.survey.measure', [
         } else {
             return format('/2/measure/{}?program={}&survey={}',
                 $scope.measure.id, $scope.structure.program.id,
-                $scope.structure.survey.id || '');
+                $scope.structure.survey && $scope.structure.survey.id || '');
         }
     };
 })

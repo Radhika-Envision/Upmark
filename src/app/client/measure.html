@@ -123,11 +123,7 @@
                         name="source-field-{{$index}}"
                         ng-model="mv.sourceField"
                         placeholder="Source variable">
-                    <a ng-href="{{
-                                mv.sourceMeasure ?
-                                '#/2/measure/' + mv.sourceMeasure.id +
-                                '?program=' + structure.program.id +
-                                '&survey=' + structure.survey.id'" : ''}}
+                    <a ng-href="getUrl(mv.sourceMeasure)"
                             ng-disabled="!mv.sourceMeasure"
                             class="btn btn-default input-group-addon">
                         <i class="fa fa-link"></i>
@@ -161,7 +157,7 @@
                 <em>
                     This measure.{{mv.targetField}} ←
                 </em>
-                <a ng-href="#/2/measure/{{mv.sourceMeasure.id}}?program={{structure.program.id}}&survey={{structure.survey.id}}"}}>
+                <a ng-href="#{{getUrl(mv.sourceMeasure)}}"}}>
                     <em>{{mv.sourceMeasure.title}}</em
                     ><em>.{{mv.sourceField}}</em>
                 </a>
@@ -177,7 +173,7 @@
                 <em>
                     This measure.{{mv.sourceField}} →
                 </em>
-                <a ng-href="#/2/measure/{{mv.targetMeasure.id}}?program={{structure.program.id}}&survey={{structure.survey.id}}"}}>
+                <a ng-href="#{{getUrl(mv.targetMeasure)}}"}}>
                     <em>{{mv.targetMeasure.title}}</em
                     ><em>.{{mv.targetField}}</em>
                 </a>
@@ -502,7 +498,7 @@
     </div>
 </div>
 
-<docs ng-if="!edit.model && parents && checkRole('measure_edit')">
+<docs ng-if="!structure.submission && !edit.model && parents && checkRole('measure_edit')">
     <i class="fa-li fa fa-sitemap fa-border"></i>
     <h3>Hierarchy</h3>
     A program's measures can be shared between its surveys.
