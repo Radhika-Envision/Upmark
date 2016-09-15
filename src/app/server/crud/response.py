@@ -197,10 +197,12 @@ class ResponseHandler(handlers.BaseHandler):
                 source_variables = {
                     source_qnode_measure: response and response.variables or {}
                     for source_qnode_measure, response in source_responses.items()}
-                return {
+                variables_by_target = {
                     mv.target_field:
                     source_variables[mv.source_qnode_measure].get(mv.source_field)
                     for mv in response.qnode_measure.source_vars}
+                # Filter out blank/null variables
+                return {k: v for k, v in variables_by_target.items() if v}
             son['sourceVars'] = gather_variables(response)
 
             # Explicit rollback to avoid committing dummy response.
