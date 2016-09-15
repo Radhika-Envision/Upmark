@@ -104,9 +104,7 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
         externals = son["externals"]
         with model.session_scope() as session:
             response = (session.query(model.Response)
-                    .filter_by(submission_id=submission_id,
-                                measure_id=measure_id)
-                    .first())
+                .get((submission_id, measure_id)))
 
             if response is None:
                 raise handlers.MissingDocError("No such response")
@@ -121,12 +119,13 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
                 if url == '':
                     raise handlers.ModelError(
                         "URL required for link '%s'" % file_name)
-                attachment = model.Attachment()
-                attachment.organisation_id = response.submission.organisation_id
-                attachment.response_id = response.id
-                attachment.url = url
-                attachment.file_name = file_name
-                attachment.storage = "external"
+                attachment = model.Attachment(
+                    organisation=response.submission.organisation,
+                    response=response,
+                    url=url,
+                    file_name=file_name,
+                    storage='external'
+                )
 
                 session.add(attachment)
         self.get(submission_id, measure_id)
@@ -138,9 +137,7 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
         fileinfo = self.request.files['file'][0]
         with model.session_scope() as session:
             response = (session.query(model.Response)
-                    .filter_by(submission_id=submission_id,
-                               measure_id=measure_id)
-                    .first())
+                .get((submission_id, measure_id)))
 
             if response is None:
                 raise handlers.MissingDocError("No such response")
@@ -171,10 +168,11 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
                     raise handlers.InternalModelError(
                         "Failed to write to data store", log_message=str(e))
 
-            attachment = model.Attachment()
-            attachment.organisation_id = response.submission.organisation_id
-            attachment.response_id = response.id
-            attachment.file_name = fileinfo["filename"]
+            attachment = model.Attachment(
+                organisation=response.submission.organisation,
+                response=response,
+                file_name=fileinfo["filename"]
+            )
 
             if aws.session is not None:
                 attachment.storage = "aws"
@@ -200,9 +198,7 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
     def get(self, submission_id, measure_id):
         with model.session_scope() as session:
             response = (session.query(model.Response)
-                    .filter_by(submission_id=submission_id,
-                               measure_id=measure_id)
-                    .first())
+                .get((submission_id, measure_id)))
 
             if response is None:
                 raise handlers.MissingDocError("No such response")
@@ -210,7 +206,7 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
             self._check_authz(response.submission)
 
             query = (session.query(model.Attachment)
-                    .filter_by(response_id=response.id))
+                    .filter(model.Attachment.response == response))
 
             to_son = ToSon(
                 r'/id$',

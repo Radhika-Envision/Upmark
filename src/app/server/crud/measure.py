@@ -482,4 +482,5 @@ class MeasureHandler(
         update = updater(measure)
         update('title', son)
         update('weight', son)
+        update('response_type_id', son)
         update('description', son, sanitise=True)

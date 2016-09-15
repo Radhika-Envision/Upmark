@@ -98,7 +98,12 @@ class ResponseTypeHandler(
             response_type = model.ResponseType(program=program)
             session.add(response_type)
             self._update(response_type, self.request_son)
-            session.flush()
+
+            try:
+                session.flush()
+            except sqlalchemy.exc.IntegrityError as e:
+                raise handlers.ModelError.from_sa(e)
+
             response_type_id = str(response_type.id)
             # No need for survey update: RT is not being used yet
 

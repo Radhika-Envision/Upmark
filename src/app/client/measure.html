@@ -170,7 +170,8 @@
             </div>
 
             <div class="col-md-6" ng-if="submission">
-                <response type="responseType" model="response" weight="measure.weight"
+                <response type="rt.responseType" model="response"
+                        weight="measure.weight"
                         readonly="!!structure.deletedItem"
                         has-quality="structure.program.hasQuality"
                         externs="{}">
