@@ -39,23 +39,14 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
     });
 }])
 
-.factory('LocationSearch', ['$resource', function($resource) {
-    return $resource('/geo/:term.json', {}, {
-        get: { method: 'GET', cache: false },
-    });
-}])
 
-.controller('SubmissionCtrl', [
-        '$scope', 'Submission', 'Survey', 'routeData', 'Editor',
-        'questionAuthz', 'layout', '$location', 'Current', 'format', '$filter',
-        'Notifications', 'Structure', '$http', 'LocationSearch',
-        function($scope, Submission, Survey, routeData, Editor, authz,
-                 layout, $location, current, format, $filter, Notifications,
-                 Structure, $http, LocationSearch, uibDateParser) {
+.controller('SubmissionCtrl',
+        function($scope, Submission, Survey, routeData, Editor, questionAuthz,
+             layout, $location, Current, format, $filter, Notifications,
+             Structure, $http, LocationSearch) {
 
     $scope.layout = layout;
     $scope.program = routeData.program;
-    $scope.format = "dd/MM/yyyy";
     $scope.edit = Editor('submission', $scope, {});
     if (routeData.submission) {
         // Editing old
@@ -82,7 +73,29 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
         $scope.edit.edit();
     }
 
+    $scope.format = "dd/MM/yyyy";
+    $scope.$watch('edit.model.created', function (created) {
+        if (!$scope.edit.model)
+            return;
+        $scope.edit.model.$created = new Date(1000 * created);
+    });
+    $scope.$watch('edit.model.$created', function (created) {
+        if (!$scope.edit.model)
+            return;
+        if (created != null) {
+            $scope.edit.model.created = created.getTime() / 1000;
+            $scope.date = created;
+        };
+    });
+    $scope.$watch('edit.model.created', function (created) {
+        if (!$scope.edit.model)
+            return;
+        $scope.edit.model.$created = new Date(1000 * created);
+    });
     $scope.date = new Date(1000 * $scope.submission.created);
+    $scope.reports = {
+        formOpen: false,
+    };
 
     $scope.$watchGroup(['submission', 'submission.deleted'], function(vars) {
         var submission = vars[0];
@@ -102,24 +115,52 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
         $scope.edit.params.surveyId = survey.id;
     });
 
-    $scope.$watch('edit.model.created', function (created) {
-        if (!$scope.edit.model)
-            return;
-        $scope.edit.model.$created = new Date(1000 * created);
+    $scope.setState = function(state) {
+        $scope.submission.$save({approval: state},
+            function success() {
+                Notifications.set('edit', 'success', "Saved", 5000);
+            },
+            function failure(details) {
+                Notifications.set('edit', 'error',
+                    "Could not save object: " + details.statusText);
+            }
+        );
+    };
+
+    $scope.$on('EditSaved', function(event, model) {
+        $location.url(format(
+            '/1/submission/{}', model.id, $scope.program.id));
     });
-    $scope.$watch('edit.model.$created', function (created) {
-        if (!$scope.edit.model)
-            return;
-        if (created != null) {
-            $scope.edit.model.created = created.getTime() / 1000;
-            $scope.date = created;
-        };
+    $scope.$on('EditDeleted', function(event, model) {
+        $location.url(format(
+            '/1/program/{}', $scope.program.id));
     });
-    $scope.$watch('edit.model.created', function (created) {
-        if (!$scope.edit.model)
-            return;
-        $scope.edit.model.$created = new Date(1000 * created);
-    });
+
+    $scope.checkRole = questionAuthz(Current, $scope.program, $scope.submission);
+
+    $scope.download = function(url, data) {
+        $http.post(url, data, { responseType: "arraybuffer", cache: false }).then(
+            function success(response) {
+                var message = "Export finished";
+                Notifications.set('export', 'info', message, 5000);
+                var blob = new Blob(
+                    [response.data], {type: response.headers('Content-Type')});
+                var name = /filename=(.*)/.exec(
+                    response.headers('Content-Disposition'))[1];
+                saveAs(blob, name);
+            },
+            function failure(response) {
+                Notifications.set('export', 'error',
+                    "Error: " + response.statusText);
+            }
+        );
+    };
+})
+
+
+.controller('SubmissionExportCtrl',
+        function($scope, $location, Notifications, $http, LocationSearch) {
+
     $scope.calender = {
       opened: false
     };
@@ -346,6 +387,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
     };
 
     $scope.closeReportForm = function() {
+        $scope.reports.formOpen = false;
         $scope.reportForm = null;
         $scope.reportSpec = null;
         $scope.startCalender.opened = false;
@@ -368,75 +410,11 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
         if (!$scope.specTest(query)) {
             return;
         }
-
-        $http.post('/export/temporal/' + survey_id + '.' + file_type, query,
-                   {responseType: 'blob'}).then(
-            function success(response) {
-                var message = "Report finished";
-                if (response.headers('Operation-Details'))
-                    message += ': ' + response.headers('Operation-Details');
-                Notifications.set('report', 'info', message, 5000);
-
-                var blob = new Blob(
-                    [response.data], {type: response.headers('Content-Type')});
-                var name = /filename=(.*)/.exec(
-                    response.headers('Content-Disposition'))[1];
-                saveAs(blob, name);
-            },
-            function failure(response) {
-                Notifications.set('report', 'error',
-                    "Error: " + response.statusText);
-            }
-        );
+        $scope.download('/export/temporal/' + survey_id + '.' + file_type, query);
     };
 
-    $scope.exportReport = function(spec) {
-        var url = '/export/temporal/' + $scope.submission.survey.id;
-        url += '.xlsx';
-        if (spec.type == 'Summary') {
-            url += '?organisationId=' + $scope.submission.organisation.id;
-        };
-
-        $http.get(url, { responseType: "arraybuffer", cache: false }).then(
-            function success(response) {
-                var message = "Export finished";
-                Notifications.set('export', 'info', message, 5000);
-                var blob = new Blob(
-                    [response.data], {type: response.headers('Content-Type')});
-                var name = /filename=(.*)/.exec(
-                    response.headers('Content-Disposition'))[1];
-                saveAs(blob, name);
-            },
-            function failure(response) {
-                Notifications.set('export', 'error',
-                    "Error: " + response.statusText);
-            }
-        );
-    };
-
-    $scope.setState = function(state) {
-        $scope.submission.$save({approval: state},
-            function success() {
-                Notifications.set('edit', 'success', "Saved", 5000);
-            },
-            function failure(details) {
-                Notifications.set('edit', 'error',
-                    "Could not save object: " + details.statusText);
-            }
-        );
-    };
-
-    $scope.$on('EditSaved', function(event, model) {
-        $location.url(format(
-            '/1/submission/{}', model.id, $scope.program.id));
-    });
-    $scope.$on('EditDeleted', function(event, model) {
-        $location.url(format(
-            '/1/program/{}', $scope.program.id));
-    });
-
-    $scope.checkRole = authz(current, $scope.program, $scope.submission);
-}])
+    $scope.openReportForm();
+})
 
 
 .controller('SubmissionDuplicateCtrl', [

@@ -3,7 +3,7 @@
 <div class="container">
     <div class="toolbar">
         <button class="btn btn-default btn-round" title="Report"
-            ng-click="openReportForm()"
+            ng-click="reports.formOpen = !reports.formOpen"
             ng-if="!structure.deletedItem && !edit.model">
             <i class="fa fa-cloud-download"> </i>
         </button>
@@ -115,7 +115,8 @@
 
 </div>
 
-<div ng-if="!edit.model" class="container">
+<div ng-if="!edit.model && reports.formOpen" class="container"
+        ng-controller="SubmissionExportCtrl">
   <form highlight highlight-dismiss="closeReportForm()" ng-if="reportForm"
         class="report-form">
         <div class="section">
