@@ -48,7 +48,7 @@ angular.module('wsaa.survey.services', [
 
 
 .factory('Measure', ['$resource', 'paged', function($resource, paged) {
-    var Measure = $resource('/measure/:id.json?surveyId=:surveyId', {id: '@id'}, {
+    return $resource('/measure/:id.json?surveyId=:surveyId', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         create: { method: 'POST' },
         save: { method: 'PUT' },
@@ -60,13 +60,6 @@ angular.module('wsaa.survey.services', [
         history: { method: 'GET', url: '/measure/:id/program.json',
             isArray: true, cache: false }
     });
-    Measure.prototype.$createOrSave = function(parameters, success, error) {
-        if (!this.id)
-            return this.$create(parameters, success, error);
-        else
-            return this.$save(parameters, success, error);
-    };
-    return Measure;
 }])
 
 

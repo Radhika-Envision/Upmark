@@ -12,6 +12,7 @@ angular.module('wsaa.survey.measure', [
 
      $scope.newResponseType = function(programId) {
          return new ResponseType({
+             obType: 'response_type',
              programId: programId,
              name: null,
              parts: [{type: 'multiple_choice', id: 'a', options: [

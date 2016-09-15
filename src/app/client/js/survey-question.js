@@ -86,6 +86,7 @@ angular.module('wsaa.surveyQuestions', [
         // Creating new
         $scope.edit = Editor('program', $scope);
         $scope.program = new Program({
+            obType: 'program',
             responseTypes: []
         });
         $scope.surveys = null;
@@ -741,6 +742,7 @@ angular.module('wsaa.surveyQuestions', [
     } else {
         // Creating new
         $scope.survey = new Survey({
+            obType: 'survey',
             program: $scope.program,
             structure: {
                 measure: {
@@ -843,8 +845,9 @@ angular.module('wsaa.surveyQuestions', [
     } else {
         // Creating new
         $scope.qnode = new QuestionNode({
-            'parent': routeData.parent,
-            'survey': routeData.survey
+            obType: 'qnode',
+            parent: routeData.parent,
+            survey: routeData.survey
         });
         $scope.children = null;
         $scope.measures = null;
