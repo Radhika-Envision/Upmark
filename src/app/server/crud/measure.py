@@ -532,6 +532,10 @@ class MeasureHandler(
 
             source_vars = []
             for mv_son in son['source_vars']:
+                if not mv_son.get('source_measure'):
+                    continue
+                if not mv_son.get('source_field'):
+                    continue
                 k = mv_son['target_field']
                 mv = source_var_map.get(k)
                 if mv is None:
@@ -540,7 +544,8 @@ class MeasureHandler(
                         survey=qnode_measure.survey,
                         target_qnode_measure=qnode_measure,
                         target_field=mv_son['target_field'])
-                mv.source_measure_id = mv_son['source_measure']['id']
-                mv.source_field = mv_son['source_field']
+                sm = mv_son.get('source_measure')
+                mv.source_measure_id = sm and sm.get('id') or None
+                mv.source_field = mv_son.get('source_field') or None
                 source_vars.append(mv)
             qnode_measure.source_vars = source_vars

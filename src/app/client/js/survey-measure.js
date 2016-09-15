@@ -213,14 +213,14 @@ angular.module('wsaa.survey.measure', [
             }
         );
         measureVariables.forEach(function(measureVariable) {
-            measureVariable.unused = true;
+            measureVariable.$unused = true;
         });
         responseType.unboundVars.forEach(function(targetField) {
             var measureVariable;
             for (var i = 0; i < measureVariables.length; i++) {
                 var mv = measureVariables[i];
                 if (mv.targetField == targetField) {
-                    mv.unused = false;
+                    mv.$unused = false;
                     return;
                 }
             }
@@ -254,7 +254,11 @@ angular.module('wsaa.survey.measure', [
             return;
         $scope.rt.definition.$createOrSave().then(
             function success(definition) {
-                $scope.edit.model.responseTypeId = definition.id;
+                var measure = $scope.edit.model;
+                measure.sourceVars = measure.sourceVars.filter(function(mv) {
+                    return !mv.$unused;
+                });
+                measure.responseTypeId = definition.id;
                 return $scope.edit.save();
             },
             function failure(details) {
