@@ -48,7 +48,8 @@
 </div>
 
 <submission-header></submission-header>
-<div error-header structure-node="measure" submission-node="response"></div>
+<div error-header structure-node="measure" submission-node="response"
+    ng-if="!edit.model"></div>
 
 <div ng-if="edit.model" class="container">
   <form novalidate name="form" id="editor" form-nav-warn class="container-fluid">

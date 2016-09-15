@@ -47,7 +47,8 @@
 </div>
 
 <submission-header></submission-header>
-<div error-header structure-node="qnode" submission-node="rnode"></div>
+<div error-header structure-node="qnode" submission-node="rnode"
+    ng-if="!edit.model"></div>
 
 <div ng-if="edit.model">
 <div class="container">
