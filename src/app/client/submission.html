@@ -107,7 +107,7 @@
                 ng-model="edit.model.title" required />
         </div>
         <div class="checkbox"
-                ng-if="!edit.model.id && !duplicate && checkRole('program_edit')">
+                ng-if="!edit.model.id && !duplicate && checkRole('program_edit') && releaseMode.dev">
             <label>
                 <input type="checkbox" id="fillRandom" name="fillRandom"
                     ng-model="edit.params.fillRandom" />

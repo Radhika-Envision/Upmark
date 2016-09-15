@@ -42,10 +42,10 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 .controller('SubmissionCtrl', [
         '$scope', 'Submission', 'Survey', 'routeData', 'Editor',
         'questionAuthz', 'layout', '$location', 'Current', 'format', '$filter',
-        'Notifications', 'Structure', '$http',
+        'Notifications', 'Structure', '$http', 'releaseMode',
         function($scope, Submission, Survey, routeData, Editor, authz,
                  layout, $location, current, format, $filter, Notifications,
-                 Structure, $http) {
+                 Structure, $http, releaseMode) {
 
     $scope.layout = layout;
     $scope.program = routeData.program;
@@ -136,6 +136,8 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
             }
         );
     };
+
+    $scope.releaseMode = releaseMode;
 }])
 
 
