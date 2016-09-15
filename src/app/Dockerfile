@@ -2,6 +2,11 @@ FROM ubuntu:14.04
 
 MAINTAINER Alex Fraser <alex@vpac-innovations.com.au>
 
+RUN locale-gen en_AU.UTF-8
+ENV LANG en_AU.UTF-8
+ENV LANGUAGE en_AU.en
+ENV LC_ALL en_AU.UTF-8
+
 # build-essentials is required for building many pip packages
 # Git is required by Bower
 # cairo2, ffi, jpeg and lxml are required by cariosvg
