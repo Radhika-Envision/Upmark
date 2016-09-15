@@ -150,6 +150,42 @@
     </p>
 </docs>
 
+<script type="text/ng-template" id="/inline/measure_variable_list.html">
+    <h3 ng-if="measure.sourceVars.length || measure.targetVars.length">Variable Bindings</h3>
+    <div ng-if="measure.sourceVars.length">
+        <p class="text-muted">
+            This measure gets some data from these other measures:
+        </p>
+        <ul class="list-unstyled">
+            <li ng-repeat="mv in measure.sourceVars">
+                <em>
+                    This measure.{{mv.targetField}} ←
+                </em>
+                <a ng-href="#/2/measure/{{mv.sourceMeasure.id}}?program={{structure.program.id}}&survey={{structure.survey.id}}"}}>
+                    <em>{{mv.sourceMeasure.title}}</em
+                    ><em>.{{mv.sourceField}}</em>
+                </a>
+            </li>
+        </ul>
+    </div>
+    <div ng-if="measure.targetVars.length">
+        <p class="text-muted">
+            These measures use data from this measure:
+        </p>
+        <ul class="list-unstyled">
+            <li ng-repeat="mv in measure.targetVars">
+                <em>
+                    This measure.{{mv.sourceField}} →
+                </em>
+                <a ng-href="#/2/measure/{{mv.targetMeasure.id}}?program={{structure.program.id}}&survey={{structure.survey.id}}"}}>
+                    <em>{{mv.targetMeasure.title}}</em
+                    ><em>.{{mv.targetField}}</em>
+                </a>
+            </li>
+        </ul>
+    </div>
+</script>
+
 <div ng-if="!edit.model" class="container">
     <div class="container-fluid">
         <div class="row">
@@ -167,6 +203,8 @@
                     The response form will be displayed here when filling out a
                     submission.
                 </p>
+
+                <div ng-include src="'/inline/measure_variable_list.html'"></div>
             </div>
 
             <div class="col-md-6" ng-if="submission">
@@ -449,12 +487,17 @@
                         </span>
                     </li>
                 </ul>
-                <p class="text-warning text-center hidden-print"><small>
+                <p class="text-warning text-center hidden-print">
+                  <small>
                     <i class="fa fa-bug"></i>
                     Attachments are not scanned for viruses.
-                </small></p>
+                  </small>
+                </p>
                 </div>
+
+                <div ng-include src="'/inline/measure_variable_list.html'"></div>
             </div>
+
         </div>
     </div>
 </div>

@@ -91,9 +91,6 @@ class MeasureHandler(
                     r'/id$',
                     r'/ob_type$',
                     r'/seq$',
-                    r'/\w+_vars/?[0-9]*$',
-                    r'/\w+_qnode_measure$',
-                    r'/\w+_field$',
                     r'/title$',
                     r'/qnode$',
                     r'/parent$',
@@ -110,6 +107,25 @@ class MeasureHandler(
                 son.update(to_son(qnode_measure))
                 son['parent'] = son['qnode']
                 del son['qnode']
+
+                # Variables, handled separately to avoid excessive recursion
+                to_son = ToSon()
+                son['sourceVars'] = to_son([{
+                    'source_measure': {
+                        'id': mv.source_qnode_measure.measure_id,
+                        'title': mv.source_qnode_measure.measure.title,
+                    },
+                    'source_field': mv.source_field,
+                    'target_field': mv.target_field,
+                } for mv in qnode_measure.source_vars])
+                son['targetVars'] = to_son([{
+                    'target_measure': {
+                        'id': mv.target_qnode_measure.measure_id,
+                        'title': mv.target_qnode_measure.measure.title,
+                    },
+                    'source_field': mv.source_field,
+                    'target_field': mv.target_field,
+                } for mv in qnode_measure.target_vars])
 
                 prev = (session.query(model.QnodeMeasure)
                     .filter(model.QnodeMeasure.qnode_id == qnode_measure.qnode_id,
@@ -268,8 +284,8 @@ class MeasureHandler(
         self.check_editable()
 
         program_id = self.get_argument('programId', '')
-        parent_ids = [p for p in self.get_arguments('parentId')
-                      if p != '']
+        survey_id = self.get_argument('surveyId', '')
+        parent_id = self.get_argument('parentId', '')
 
         try:
             with model.session_scope() as session:
@@ -281,7 +297,7 @@ class MeasureHandler(
                 session.flush()
 
                 calculator = Calculator.structural()
-                for parent_id in parent_ids:
+                if parent_id:
                     qnode = session.query(model.QuestionNode)\
                         .get((parent_id, program_id))
                     if qnode is None:
@@ -290,6 +306,7 @@ class MeasureHandler(
                         program=qnode.program, survey=qnode.survey,
                         qnode=qnode, measure=measure)
                     qnode.qnode_measures.reorder()
+                    self._update_qnode_measure(qnode_measure, self.request_son)
                     calculator.mark_measure_dirty(qnode_measure)
 
                 calculator.execute()
@@ -297,7 +314,7 @@ class MeasureHandler(
                 measure_id = str(measure.id)
 
                 verbs = ['create']
-                if len(parent_ids) > 0:
+                if parent_id:
                     verbs.append('relation')
 
                 act = Activities(session)
@@ -318,10 +335,9 @@ class MeasureHandler(
             raise handlers.MethodError("Measure ID required")
 
         program_id = self.get_argument('programId', '')
-        parent_ids = [p for p in self.get_arguments('parentId')
-                      if p != '']
+        parent_id = self.get_argument('parentId', '')
 
-        if len(parent_ids) == 0:
+        if not parent_id:
             raise handlers.ModelError("Please specify a parent to unlink from")
 
         self.check_editable()
@@ -338,7 +354,7 @@ class MeasureHandler(
                 calculator = Calculator.structural()
 
                 # Just unlink from qnodes
-                for parent_id in parent_ids:
+                if parent_id:
                     qnode = (session.query(model.QuestionNode)
                         .get((parent_id, program_id)))
                     if qnode is None:
@@ -379,8 +395,8 @@ class MeasureHandler(
             return
 
         program_id = self.get_argument('programId', '')
-        parent_ids = [p for p in self.get_arguments('parentId')
-                      if p != '']
+        survey_id = self.get_argument('surveyId', '')
+        parent_id = self.get_argument('parentId', '')
 
         try:
             with model.session_scope() as session:
@@ -388,18 +404,29 @@ class MeasureHandler(
                     .get((measure_id, program_id))
                 if measure is None:
                     raise handlers.MissingDocError("No such measure")
-                self._update(measure, self.request_son)
 
                 verbs = []
-                # Check if modified now to avoid problems with autoflush later
                 calculator = Calculator.structural()
+                self._update(measure, self.request_son)
+                # Check if modified now to avoid problems with autoflush later
                 if session.is_modified(measure):
                     verbs.append('update')
                     for qnode_measure in measure.qnode_measures:
                         calculator.mark_measure_dirty(qnode_measure)
 
-                has_relocated = False
-                for parent_id in parent_ids:
+                if survey_id:
+                    qnode_measure = (session.query(model.QnodeMeasure)
+                        .get((program_id, survey_id, measure_id)))
+                    if not qnode_measure:
+                        raise handlers.MissingDocError("No such measure in that survey")
+                    self._update_qnode_measure(qnode_measure, self.request_son)
+
+                    if session.is_modified(qnode_measure):
+                        if not 'update' in verbs:
+                            verbs.append('update')
+                        calculator.mark_measure_dirty(qnode_measure)
+
+                def relink(parent_id):
                     # Add links to parents. Links can't be removed like this;
                     # use the delete method instead.
                     new_parent = session.query(model.QuestionNode)\
@@ -410,7 +437,7 @@ class MeasureHandler(
                     if qnode_measure:
                         old_parent = qnode_measure.qnode
                         if old_parent == new_parent:
-                            continue
+                            return False
                         # Mark dirty now, before the move, to cause old parents
                         # to be updated.
                         calculator.mark_measure_dirty(qnode_measure)
@@ -424,14 +451,15 @@ class MeasureHandler(
                             program=new_parent.program, survey=new_parent.survey,
                             qnode=new_parent, measure=measure)
                         self.reason('Added to %s' % new_parent.get_path())
-                    has_relocated = True
                     new_parent.qnode_measures.reorder()
                     # Mark dirty again.
                     calculator.mark_measure_dirty(
                         qnode_measure, force_dependants=True)
+                    return True
 
-                if has_relocated:
-                    verbs.append('relation')
+                if parent_id:
+                    if relink(parent_id):
+                        verbs.append('relation')
 
                 calculator.execute()
 
@@ -484,3 +512,24 @@ class MeasureHandler(
         update('weight', son)
         update('response_type_id', son)
         update('description', son, sanitise=True)
+
+    def _update_qnode_measure(self, qnode_measure, son):
+        if 'source_vars' in son:
+            source_var_map = {
+                mv.target_field: mv
+                for mv in qnode_measure.source_vars}
+
+            source_vars = []
+            for mv_son in son['source_vars']:
+                k = mv_son['target_field']
+                mv = source_var_map.get(k)
+                if mv is None:
+                    mv = model.MeasureVariable(
+                        program=qnode_measure.program,
+                        survey=qnode_measure.survey,
+                        target_qnode_measure=qnode_measure,
+                        target_field=mv_son['target_field'])
+                mv.source_measure_id = mv_son['source_measure']['id']
+                mv.source_field = mv_son['source_field']
+                source_vars.append(mv)
+            qnode_measure.source_vars = source_vars

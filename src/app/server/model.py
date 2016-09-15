@@ -1328,14 +1328,14 @@ QnodeMeasure.survey = relationship(
 
 # Dependencies - yes, the source is the target. It's funny how that is.
 QnodeMeasure.target_vars = relationship(
-    MeasureVariable, backref='source_qnode_measure',
+    MeasureVariable, backref='source_qnode_measure', cascade="all, delete-orphan",
     primaryjoin=(foreign(MeasureVariable.source_measure_id) == QnodeMeasure.measure_id) &
                 (MeasureVariable.survey_id == QnodeMeasure.survey_id) &
                 (MeasureVariable.program_id == QnodeMeasure.program_id))
 
 # Dependants - yes, the target is the source. It's funny how that is.
 QnodeMeasure.source_vars = relationship(
-    MeasureVariable, backref='target_qnode_measure',
+    MeasureVariable, backref='target_qnode_measure', cascade="all, delete-orphan",
     primaryjoin=(foreign(MeasureVariable.target_measure_id) == QnodeMeasure.measure_id) &
                 (MeasureVariable.survey_id == QnodeMeasure.survey_id) &
                 (MeasureVariable.program_id == QnodeMeasure.program_id))

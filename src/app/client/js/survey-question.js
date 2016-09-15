@@ -660,9 +660,8 @@ angular.module('wsaa.surveyQuestions', [
                     else
                         query.push('program=' + $scope.structure.program.id);
                 }
-                if (item.path == 'measure' && item.entity.parent
-                        && !$scope.submission) {
-                    query.push('parent=' + item.entity.parent.id);
+                if (item.path == 'measure' && !$scope.submission) {
+                    query.push('survey=' + $scope.structure.survey.id);
                 }
                 url = path + '?' + query.join('&');
 
