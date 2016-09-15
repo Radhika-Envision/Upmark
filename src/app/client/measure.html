@@ -109,7 +109,6 @@
                         name="source-measure-{{$index}}"
                         ng-model="mv.sourceMeasure"
                         uib-typeahead="m as m.title for m in searchMeasuresToBind($viewValue)"
-                        typeahead-on-select="measureBound($item, $model)"
                         autocomplete="off"
                         title="Source measure: {{mv.sourceMeasure.title}}"
                         placeholder="Source measure">
@@ -121,6 +120,9 @@
                         id="source-field-{{$index}}"
                         name="source-field-{{$index}}"
                         ng-model="mv.sourceField"
+                        uib-typeahead="f for f in mv.sourceMeasure.declaredVars"
+                        autocomplete="off"
+                        typeahead-min-length="0"
                         placeholder="Source variable">
                 </li>
             </ul>

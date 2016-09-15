@@ -1,5 +1,6 @@
 from collections import defaultdict
 import datetime
+import re
 import time
 import uuid
 
@@ -10,10 +11,12 @@ from sqlalchemy import cast, String
 from sqlalchemy.orm import joinedload
 
 from activity import Activities
+from cache import instance_method_lru_cache
 import crud
 import handlers
 import logging
 import model
+from response_type import ResponseType
 from score import Calculator
 from utils import falsy, reorder, ToSon, truthy, updater
 
@@ -115,6 +118,7 @@ class MeasureHandler(
                     'source_measure': {
                         'id': mv.source_qnode_measure.measure_id,
                         'title': mv.source_qnode_measure.measure.title,
+                        'declared_vars': self.get_declared_vars(mv.source_qnode_measure.measure)
                     },
                     'source_field': mv.source_field,
                     'target_field': mv.target_field,
@@ -164,6 +168,7 @@ class MeasureHandler(
         term = self.get_argument('term', '')
         program_id = self.get_argument('programId', '')
         survey_id = self.get_argument('surveyId', '')
+        with_declared_variables = truthy(self.get_argument('withDeclaredVariables', ''))
 
         to_son = ToSon(
             # Fields to match from any visited object
@@ -217,16 +222,8 @@ class MeasureHandler(
                         (model.ResponseType.name.ilike(r'%{}%'.format(rt_term)))
                     ))
 
-            if truthy(self.get_argument('withResponseTypes', '')):
+            if with_declared_variables:
                 query = (query.options(joinedload('response_type')))
-                to_son.add(
-                    r'/response_type$',
-                    r'/response_type/id$',
-                    r'/response_type/name$',
-                    r'/response_type/parts.*$',
-                    r'/response_type/formula$',
-                    r'!/response_type/program$',
-                )
 
             if survey_id:
                 query = (query
@@ -244,10 +241,37 @@ class MeasureHandler(
                 if survey_id:
                     qnode_measure = measure.get_qnode_measure(survey_id)
                     mson['error'] = qnode_measure.error
+                if with_declared_variables:
+                    mson['declaredVars'] = self.get_declared_vars(measure)
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
         self.finish()
+
+    I_REGEX = re.compile(r'(.*)__i')
+
+    def get_declared_vars(self, measure):
+        response_type = self.get_response_type(measure.response_type)
+        return ['_raw', '_score', '_weight'] + response_type.declared_vars
+        # declared_vars = [
+        #     {'id': '_raw', 'name': "Raw score"},
+        #     {'id': '_score', 'name': "Weighted score"},
+        #     {'id': '_weight', 'name': "Measure weight"},
+        # ]
+        # for v in response_type.declared_vars:
+        #     match = MeasureHandler.I_REGEX.match(v)
+        #     if match:
+        #         declared_vars.append({
+        #             'id': v,
+        #             'name': "%s (index)" % match.group(1)})
+        #     else:
+        #         declared_vars.append({'id': v, 'name': v})
+        # return declared_vars
+
+    @instance_method_lru_cache()
+    def get_response_type(self, response_type):
+        return ResponseType(
+            response_type.name, response_type.parts, response_type.formula)
 
     def query_children_of(self, qnode_id):
         program_id = self.get_argument('programId', '')

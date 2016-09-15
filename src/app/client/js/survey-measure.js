@@ -240,13 +240,8 @@ angular.module('wsaa.survey.measure', [
             term: term,
             programId: $scope.structure.program.id,
             surveyId: $scope.structure.survey.id,
-            withResponseTypes: true,
+            withDeclaredVariables: true,
         }).$promise;
-    };
-    $scope.measureBound = function(item, model) {
-        var rtDef = item.responseType;
-        item.$responseType = new responseTypes.ResponseType(
-            rtDef.name, rtDef.parts, rtDef.formula);
     };
 
     $scope.save = function() {
