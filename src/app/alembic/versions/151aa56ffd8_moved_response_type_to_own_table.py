@@ -312,6 +312,10 @@ def downgrade_response_type():
             measure.response_type_ = str(response_type.id)
     session.flush()
 
+    op.execute("""
+        UPDATE program
+        SET response_types = '[]'
+        WHERE response_types IS NULL""")
     op.alter_column('program', 'response_types', nullable=False)
     op.alter_column('measure', 'response_type', nullable=False)
 
