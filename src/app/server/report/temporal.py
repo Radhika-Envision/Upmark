@@ -290,10 +290,14 @@ class TemporalReportHandler(handlers.BaseHandler):
             this_month = today.month
 
             delta = (this_month - date.month) % value
+            bucket_year = date.year
             if (delta == 0):
                 bucket_month = date.month
             else:
                 bucket_month = date.month + delta
+                if bucket_month > 12:
+                    bucket_month = bucket_month % 12
+                    bucket_year += 1
 
-            return date.replace(month=bucket_month, day=1,
+            return date.replace(year=bucket_year, month=bucket_month, day=1,
                 hour=0, minute=0, second=0, microsecond=0)
