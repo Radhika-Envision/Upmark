@@ -80,8 +80,33 @@ class ResponseHandler(handlers.BaseHandler):
             response = (session.query(model.Response)
                 .get((submission_id, measure_id)))
 
+            dummy = False
             if response is None:
-                raise handlers.MissingDocError("No such response")
+                # Synthesise response so it can be returned. The session will be
+                # rolled back to avoid actually making this change.
+                submission = (session.query(model.Submission)
+                    .get(submission_id))
+                if not submission:
+                    raise handlers.MissingDocError("No such submission")
+
+                qnode_measure = (session.query(model.QnodeMeasure)
+                    .get((submission.program_id, submission.survey_id, measure_id)))
+                if not qnode_measure:
+                    raise handlers.MissingDocError(
+                        "That survey has no such measure")
+
+                response = model.Response(
+                    qnode_measure=qnode_measure,
+                    submission=submission,
+                    user_id=self.current_user.id,
+                    comment='',
+                    response_parts=[],
+                    variables={},
+                    not_relevant=False,
+                    approval='draft',
+                    modified=datetime.datetime.fromtimestamp(0),
+                )
+                dummy = True
 
             if version != '' and version != response.version:
                 try:
@@ -123,6 +148,10 @@ class ResponseHandler(handlers.BaseHandler):
                 r'/submission$',
                 r'/user$',
             )
+
+            if dummy:
+                to_son.add(r'!/user$')
+
             to_son.exclude(
                 # The IDs of rnodes and responses are not part of the API
                 r'^/id$',
@@ -172,6 +201,9 @@ class ResponseHandler(handlers.BaseHandler):
                     source_variables[mv.source_qnode_measure].get(mv.source_field)
                     for mv in response.qnode_measure.source_vars}
             son['sourceVars'] = gather_variables(response)
+
+            # Explicit rollback to avoid committing dummy response.
+            session.rollback()
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))

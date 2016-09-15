@@ -353,6 +353,10 @@ class ResponseOps(MeasureOps):
     def evaluate(self, qnode_measure, dependencies, dependants):
         measure = qnode_measure.measure
         response = self.get_response(qnode_measure)
+        if not response:
+            # This is a dependant response that hasn't been filled in yet.
+            # Just ignore it.
+            return
         response_type = self.get_response_type(measure.response_type)
 
         stats = ResponseStats(response_type)
