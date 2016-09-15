@@ -184,10 +184,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
             return;
         }
 
-        if (unit == 'Weeks'){
-            $scope.reportForm.intervalNumbers = [
-                1, 2];
-        } else if (unit == 'Months') {
+        if (unit == 'Months') {
             $scope.reportForm.intervalNumbers = [
                 1, 3, 6];
         } else if (unit == 'Years') {
@@ -196,9 +193,6 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
         };
     });
     $scope.roundInterval = function () {
-        if ($scope.reportSpec.intervalUnit == 'Weeks') {
-            return 'week'
-        };
         if ($scope.reportSpec.intervalUnit == 'Months') {
             return 'month'
         };
@@ -208,67 +202,45 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
     };
 
     // Location filter settings
-    $scope.$watch('reportForm.locations', function(locations) {
-        if (!$scope.reportForm) {
-            return;
-        };
-        if (!locations) {
-            $scope.reportForm.boxed_locations = null;
-            return;
-        }
-        $scope.reportForm.boxed_locations = locations.map(function(loc) {
-            return {data: loc};
-        });
-
-        if (!$scope.reportSpec || locations == null) {
-            return;
-        };
-        // Update reportSpec
-        $scope.reportSpec.locations = locations.map(function(loc) {
-            return loc;
-        });
-    }, true);
-    $scope.$watch('reportForm.boxed_locations', function(locations) {
-        if (!$scope.reportForm)
-            return;
-        if (!locations) {
-            $scope.reportForm.locations = null;
-            return;
-        }
-        $scope.reportForm.locations = locations.map(function(loc) {
-            return loc.data;
-        });
-    }, true);
-
     $scope.searchLoc = function(term) {
-        if (term.length < 3)
-            return;
-        LocationSearch.query({term: term}).$promise.then(function(locations) {
-            $scope.locations = locations;
-        });
+        return LocationSearch.query({term: term}).$promise;
     };
     $scope.deleteLocation = function(i) {
         $scope.reportForm.locations.splice(i, 1);
     };
+    $scope.$watch('reportForm.locations', function(loc) {
+        if (!$scope.reportForm || !$scope.reportSpec) {
+          return;
+        }
+
+        $scope.reportSpec.locations = loc
+    })
 
     // Organisation size filter settings
-    $scope.$watch('reportSpec.minFtes', function(min_ftes) {
+    $scope.$watch('reportSpec.minFtes', function(ftes) {
         if (!$scope.reportSpec) {
             return
         };
-        if (min_ftes <= 0) {
+        if (ftes <= 0) {
             $scope.reportSpec.minFtes = null;
             return
         };
+        if (ftes != null) {
+            $scope.reportSpec.filterSize = true;
+        };
     });
-    $scope.$watch('reportSpec.maxFtes', function(max_ftes) {
+    $scope.$watch('reportSpec.maxFtes', function(ftes) {
         if (!$scope.reportSpec) {
             return
         };
-        if (max_ftes <= 0) {
+        if (ftes <= 0) {
             $scope.reportSpec.maxFtes = null;
             return
         };
+        if (ftes != null) {
+            $scope.reportSpec.filterSize = true;
+        };
+
     });
     $scope.$watch('reportSpec.minContractors', function(contractors) {
         if (!$scope.reportSpec) {
@@ -276,6 +248,9 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
         };
         if (contractors <= 0) {
             $scope.reportSpec.minContractors = null;
+        };
+        if (contractors != null) {
+            $scope.reportSpec.filterSize = true;
         };
     });
     $scope.$watch('reportSpec.maxContractors', function(contractors) {
@@ -285,6 +260,9 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
         if (contractors <= 0) {
             $scope.reportSpec.maxContractors = null;
         };
+        if (contractors != null) {
+            $scope.reportSpec.filterSize = true;
+        };
     });
     $scope.$watch('reportSpec.minEmployees', function(employees) {
         if (!$scope.reportSpec) {
@@ -292,6 +270,9 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
         };
         if (employees <= 0) {
             $scope.reportSpec.minEmployees = null;
+        };
+        if (employees != null) {
+            $scope.reportSpec.filterSize = true;
         };
     });
     $scope.$watch('reportSpec.maxEmployees', function(employees) {
@@ -301,6 +282,10 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
         if (employees <= 0) {
             $scope.reportSpec.maxEmployees = null;
         };
+        if (employees != null) {
+            $scope.reportSpec.filterSize = true;
+        };
+
     });
 
     // Response quality filter settings
@@ -327,10 +312,9 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
             $scope.reportForm = {
                 type: 'Summary',
                 reportTypes: ['Detailed', 'Summary'],
-                intervalUnits: ['Weeks', 'Months', 'Years'],
+                intervalUnits: ['Months', 'Years'],
                 responseQualities: ['None', 1, 2, 3, 4, 5],
                 allowedStates: ['reviewed', 'approved'],
-                boxed_locations: [],
                 locations: [],
                 min_date: dt,
                 max_date: new Date()
@@ -346,6 +330,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
                 maxDate: null,
                 intervalNum: 1,
                 intervalUnit: 'Months',
+                filterSize: false,
                 minFtes: null,
                 maxFtes: null,
                 minContractors: null,
@@ -404,6 +389,13 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
             }
         );
     };
+
+    $scope.exportReport = function(spec) {
+        var url = '/export/temporal/' + $scope.submission.survey.id;
+        url += '.xlsx';
+        if (spec.type == 'Summary') {
+            url += '?organisationId=' + $scope.submission.organisation.id;
+        };
 
         $http.get(url, { responseType: "arraybuffer", cache: false }).then(
             function success(response) {

@@ -6,6 +6,7 @@ import os
 import tempfile
 
 import numpy
+from sqlalchemy import true, false
 from sqlalchemy.orm import joinedload
 from tornado import gen
 from tornado.concurrent import run_on_executor
@@ -29,7 +30,6 @@ class TemporalReportHandler(handlers.BaseHandler):
     def post(self, survey_id, extension):
 
         parameters = self.request_son
-
         organisation_id = parameters.get('organisation_id')
 
         with model.session_scope() as session:
@@ -42,10 +42,92 @@ class TemporalReportHandler(handlers.BaseHandler):
                     .options(joinedload('submission.organisation'))
                     .options(joinedload('measure'))
                     .join(model.Submission)
+                    .join(model.Organisation)
                     .filter(model.Submission.survey_id == survey_id)
                     .order_by(model.Response.measure_id,
                         model.Submission.organisation_id,
                         model.Submission.created))
+
+            # Date filter
+            min_date = (datetime.datetime
+                .fromtimestamp(parameters.get('min_date')))
+            max_date = (datetime.datetime
+                .fromtimestamp(parameters.get('max_date')))
+            query = query.filter(model.Submission.created > min_date)
+            query = query.filter(model.Submission.created < max_date)
+
+            interval = [parameters.get('interval_num'),
+                parameters.get('interval_unit')]
+
+            # Response quality filter
+            if parameters.get('quality'):
+                quality = parameters.get('quality')
+                query = query.filter(model.Response.quality >= quality)
+
+            # Submission approval state filter
+            if parameters.get('approval'):
+                approval = parameters.get('approval')
+                approval_states = ['draft', 'final', 'reviewed', 'approved']
+                approval_index = approval_states.index(approval)
+                included_approval_states=approval_states[approval_index:]
+
+                query = query.filter(
+                    model.Submission.approval.in_(included_approval_states))
+
+            # Location filter
+            if parameters.get('locations'):
+                locations = parameters.get('locations')
+
+                query = query.join(model.OrgLocation)
+                union_loc_filter = false()
+
+                for loc in locations:
+                    loc_filter = true()
+                    if loc.get('country'):
+                        loc_filter &= model.OrgLocation.country == loc.get('country')
+                    if loc.get('state'):
+                        loc_filter &= model.OrgLocation.state == loc.get('state')
+                    if loc.get('region'):
+                        loc_filter &= model.OrgLocation.region == loc.get('region')
+                    if loc.get('county'):
+                        loc_filter &= model.OrgLocation.county == loc.get('county')
+                    if loc.get('city'):
+                        loc_filter &= model.OrgLocation.city == loc.get('city')
+                    if loc.get('postcode'):
+                        loc_filter &= model.OrgLocation.postcode == loc.get('postcode')
+                    if loc.get('suburb'):
+                        loc_filter &= model.OrgLocation.suburb == loc.get('suburb')
+                    union_loc_filter |= loc_filter
+                query = query.filter(union_loc_filter)
+
+            # Size filter
+            if parameters.get('filter_size'):
+                query = query.join(model.OrgMeta)
+
+                if parameters.get('min_ftes'):
+                    min_ftes = parameters.get('min_ftes')
+                    query = query.filter(model.OrgMeta.number_fte >= min_ftes)
+                if parameters.get('max_ftes'):
+                    max_ftes = parameters.get('max_ftes')
+                    query = query.filter(model.OrgMeta.number_fte <= max_ftes)
+                if parameters.get('min_contractors'):
+                    min_contractors = parameters.get('min_contractors')
+                    query = query.filter(
+                        model.OrgMeta.number_fte_ext >= min_contractors)
+                if parameters.get('max_contractors'):
+                    max_contractors = parameters.get('max_contractors')
+                    query = query.filter(
+                        model.OrgMeta.number_fte_ext <= max_contractors)
+                if parameters.get('min_employees'):
+                    min_employees = parameters.get('min_employees')
+                    query = query.filter(
+                        (model.OrgMeta.number_fte +
+                            model.OrgMeta.number_fte_ext) >= min_employees)
+                if parameters.get('max_employees'):
+                    max_employees = parameters.get('max_employees')
+                    query = query.filter(
+                        (model.OrgMeta.number_fte +
+                            model.OrgMeta.number_fte_ext) <= max_employees)
 
             responses = query.all()
 
@@ -54,7 +136,7 @@ class TemporalReportHandler(handlers.BaseHandler):
             measures = set()
             organisations = set()
             for response in responses:
-                bucket = self.lower_bound(response.submission.created)
+                bucket = self.lower_bound(response.submission.created, interval)
                 k = (response.measure, response.submission.organisation,
                     bucket)
 
@@ -187,6 +269,31 @@ class TemporalReportHandler(handlers.BaseHandler):
 
         return results
 
+    def lower_bound(self, date, interval):
+        value = interval[0]
+        unit = interval[1]
+        today = date.today()
 
-    def lower_bound(self, date):
-        return date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        if unit == 'Years':
+            this_year = today.year
+
+            delta = (this_year - date.year) % value
+            if (delta == 0):
+                bucket_year = date.year
+            else:
+                bucket_year = date.year + delta
+
+            return date.replace(year=bucket_year, month=1, day=1,
+                hour=0, minute=0, second=0, microsecond=0)
+
+        if unit == 'Months':
+            this_month = today.month
+
+            delta = (this_month - date.month) % value
+            if (delta == 0):
+                bucket_month = date.month
+            else:
+                bucket_month = date.month + delta
+
+            return date.replace(month=bucket_month, day=1,
+                hour=0, minute=0, second=0, microsecond=0)

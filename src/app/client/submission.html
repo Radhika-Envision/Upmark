@@ -220,44 +220,36 @@
                     Location of organisation
                 </h3>
             </div>
-            <table class="table" ng-if="reportForm.boxed_locations.length">
-                <tr class="form-row" ng-repeat="loc in reportForm.boxed_locations">
+            <table class="table" ng-if="reportForm.locations.length">
+                <tr class="form-row" ng-repeat="(i, loc) in reportForm.locations track by $index">
                     <td>
-                        <ui-select ng-model="loc.data" reset-search-input="false">
-                            <ui-select-match placeholder="Type to select a location">
-                                {{loc.data.description}}
-                            </ui-select-match>
-                            <ui-select-choices
-                                repeat="l in locations"
-                                refresh="searchLoc($select.search)"
-                                refresh-delay="1000">
-                                <div ng-bind-html="l.description |
-                                                  highlight: $select.search">
-                                </div>
-                            </ui-select-choices>
-                        </ui-select>
+                        <input type="text" class="form-control" id="loc-search-{{$index}}"
+                            ng-model="reportForm.locations[$index]"
+                            uib-typeahead="l as l.description for l in searchLoc($viewValue)"
+                            typeahead-wait-ms="700" typeahead-min-length="2"
+                            autocomplete="off">
                         <p class="text-muted commasep">
-                            <span class="" ng-if="loc.data.country">
+                            <span class="" ng-if="loc.country">
                                 country:
-                                {{loc.data.country}}</span><!--
-                         --><span class="" ng-if="loc.data.state">
+                                {{loc.country}}</span><!--
+                         --><span class="" ng-if="loc.state">
                                 state:
-                                {{loc.data.state}}</span><!--
-                         --><span class="" ng-if="loc.data.region">
+                                {{loc.state}}</span><!--
+                         --><span class="" ng-if="loc.region">
                                 region/state district:
-                                {{loc.data.region}}</span><!--
-                         --><span class="" ng-if="loc.data.county">
+                                {{loc.region}}</span><!--
+                         --><span class="" ng-if="loc.county">
                                 county:
-                                {{loc.data.county}}</span><!--
-                         --><span class="" ng-if="loc.data.postcode">
+                                {{loc.county}}</span><!--
+                         --><span class="" ng-if="loc.postcode">
                                 postcode:
-                                {{loc.data.postcode}}</span><!--
-                         --><span class="" ng-if="loc.data.city">
+                                {{loc.postcode}}</span><!--
+                         --><span class="" ng-if="loc.city">
                                 city/town:
-                                {{loc.data.city}}</span><!--
-                         --><span class="" ng-if="loc.data.suburb">
+                                {{loc.city}}</span><!--
+                         --><span class="" ng-if="loc.suburb">
                                 suburb:
-                                {{loc.data.suburb}}</span>
+                                {{loc.suburb}}</span>
                         </p>
                     </td>
                     <td class="shrink">
@@ -268,7 +260,7 @@
                     </td>
                 </tr>
             </table>
-            <p ng-if="!reportForm.boxed_locations.length" class="text-muted">
+            <p ng-if="!reportForm.locations.length" class="text-muted">
                 No locations have been selected. Press the
                 <i class="fa fa-plus"></i> button to add one.
             </p>
