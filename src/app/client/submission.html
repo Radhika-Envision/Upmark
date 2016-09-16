@@ -339,8 +339,9 @@
             </h3>
             <div class="input-group">
                 <approval-buttons class="spaced" model="reportSpec.approval"
-                                  allowed='reportForm.allowedStates'
-                                  set-state='setReportApproval(state)'>
+                      allowed='reportForm.allowedStates'
+                      mode="greater-or-equal"
+                      set-state='setReportApproval(state)'>
                 </approval-buttons>
             </div>
         </div>

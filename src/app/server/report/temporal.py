@@ -69,6 +69,9 @@ class TemporalReportHandler(handlers.BaseHandler):
                 approval = parameters.get('approval')
                 approval_states = ['draft', 'final', 'reviewed', 'approved']
                 approval_index = approval_states.index(approval)
+                if approval_index < 2:
+                    raise handlers.ModelError(
+                        "Can't generate a report for that approval state")
                 included_approval_states=approval_states[approval_index:]
 
                 query = query.filter(
