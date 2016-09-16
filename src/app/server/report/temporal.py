@@ -166,15 +166,14 @@ class TemporalReportHandler(handlers.BaseHandler):
             current_measure = None
             current_organisation = None
             for k in itertools.product(measures, organisations, buckets):
-                r = bucketed_responses[k]
-                if r.measure != current_measure or r.submission.organisation != current_organisation:
-                    current_measure = r.measure
-                    current_organisation = r.submission.organisation
-                    current_row = [
-                        r.measure,
-                        r.submission.organisation]
+                r = bucketed_responses.get(k)
+                measure, organisation, bucket = k
+                if measure != current_measure or organisation != current_organisation:
+                    current_measure = measure
+                    current_organisation = organisation
+                    current_row = [measure, organisation]
                     rows.append(current_row)
-                current_row.append(r.score)
+                current_row.append(r and r.score or None)
 
             if organisation_id:
                 rows = self.convert_to_stats(rows, organisation_id)
@@ -252,9 +251,8 @@ class TemporalReportHandler(handlers.BaseHandler):
         out_table = []
         for m, rs in itertools.groupby(in_table, key=lambda r: r[0]):
             rs = list(rs)
-            columns = list(zip(*rs))
-            np_columns = [numpy.array(c) for c in columns[2:]]
-            stats = [self.compute_stats(n) for n in np_columns]
+            cells = list(zip(*rs))
+            stats = [self.compute_stats(c) for c in cells[2:]]
             stats = list(zip(*stats))
             org_row = [r for r in rs if str(r[1].id) == organisation_id][0]
             out_table.append([m, "Self score"] + org_row[2:])
@@ -266,12 +264,16 @@ class TemporalReportHandler(handlers.BaseHandler):
 
         return out_table
 
-    def compute_stats(self, data):
-        results = (min(data),
-                    numpy.percentile(data, 25),
-                    numpy.percentile(data, 50),
-                    numpy.percentile(data, 75),
-                    max(data))
+    def compute_stats(self, cells):
+        constituents = [c for c in cells if c is not None]
+        if len(constituents) < 5:
+            return (None,) * 5
+        np_columns = numpy.array(constituents)
+        results = (min(np_columns),
+                    numpy.percentile(np_columns, 25),
+                    numpy.percentile(np_columns, 50),
+                    numpy.percentile(np_columns, 75),
+                    max(np_columns))
 
         return results
 
