@@ -42,8 +42,11 @@ class TemporalReportHandler(handlers.BaseHandler):
                     .options(joinedload('submission.organisation'))
                     .options(joinedload('measure'))
                     .join(model.Submission)
+                    .join(model.Survey)
                     .join(model.Organisation)
                     .filter(model.Submission.survey_id == survey_id)
+                    .filter(~model.Submission.deleted)
+                    .filter(~model.Survey.deleted)
                     .order_by(model.Response.measure_id,
                         model.Submission.organisation_id,
                         model.Submission.created))
