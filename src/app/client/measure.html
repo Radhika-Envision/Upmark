@@ -56,26 +56,21 @@
     <div class="row">
       <div class="col-md-6">
         <h3>Measure Details</h3>
-        <div class="form-group" show-errors>
-            <label for="title">Name</label>
-            <span class="help-label" ng-if="form.title.$error.required">
-                Please provide a title.</span>
+        <div class="input-group" show-errors>
+            <label for="title" class="input-group-addon align-md">Name:</label>
             <input type="text" class="form-control" id="title" name="title"
                 ng-model="edit.model.title" required />
         </div>
-        <div class="form-group" show-errors>
-            <label for="title">Weight</label>
-            <span class="help-label" ng-if="form.weight.$error.required">
-                Please provide a weight.</span>
-            <span class="help-label" ng-if="form.weight.$error.min">
-                Negative numbers are not allowed</span>
+        <div class="input-group" show-errors>
+            <label for="weight" class="input-group-addon align-md">Weight:</label>
             <input type="number" class="form-control" id="weight" name="weight"
                 ng-model="edit.model.weight" min="0" step="any" required />
         </div>
         <div class="form-group">
-            <label for="description">Description</label>
+            <label for="description" class="sr-only">Description</label>
             <markdown-editor id="description"
                 ng-model="edit.model.description"
+                placeholder="Description"
                 title="Description"></markdown-editor>
         </div>
       </div> <!-- .col- -->
@@ -83,7 +78,7 @@
       <div class="col-md-6">
         <h3>Response Type</h3>
         <div response-type-editor="rt.definition" weight="edit.model.weight"
-                is-bound="rt.definition.id == measure.responseTypeId"></div>
+                is-bound="rt.definition.id && rt.definition.id == measure.responseTypeId"></div>
 
         <h3 ng-if="rt.responseType">Variable Bindings</h3>
         <div ng-if="rt.responseType">
@@ -101,7 +96,7 @@
                             'binding-warning': mv.$unused
                         }">
                     <label for="source-measure-{{$index}}"
-                            class="input-group-addon">
+                            class="input-group-addon align-sm-md">
                         {{mv.targetField}} ←
                     </label>
                     <input type="text" class="form-control"
@@ -162,7 +157,7 @@
     </div>
     <div ng-if="measure.targetVars.length">
         <p class="text-muted">
-            These measures use data from this measure:
+            These other measures use data from this measure:
         </p>
         <ul class="list-unstyled">
             <li ng-repeat="mv in measure.targetVars">

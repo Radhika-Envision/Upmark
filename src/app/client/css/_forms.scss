@@ -105,16 +105,11 @@ div[textarea-label] {
     position: relative;
     &:after {
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        top: 7px;
+        left: 13px;
         content: attr(textarea-label);
         text-align: center;
-        line-height: 60px;
-        font-size: 40px;
-        font-weight: bold;
-        opacity: 0.2;
+        opacity: 0.5;
         pointer-events: none;
     }
 }
@@ -135,6 +130,15 @@ div[textarea-label] {
     &.text-muted {
         color: #888;
     }
+}
+label.input-group-addon {
+    text-align: left;
+}
+label.input-group-addon.align-sm-md {
+    min-width: 75px;
+}
+label.input-group-addon.align-md {
+    min-width: 100px;
 }
 
 .input-group-btn {

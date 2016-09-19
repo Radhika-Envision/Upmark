@@ -1,7 +1,7 @@
 <uib-tabset active="rtEdit.activeTab">
     <uib-tab index="'details'" heading="Identity">
         <div class="input-group spaced">
-            <label for="rttitle" class="input-group-addon">
+            <label for="rttitle" class="input-group-addon align-md">
                 Name:</label>
             <input type="text" class="form-control"
                 id="rttitle" name="rttitle"
@@ -9,8 +9,8 @@
                 ng-model="rt.name" required />
         </div>
 
-        <div class="input-group spaced">
-            <label for="formula" class="input-group-addon">Formula:</label>
+        <div class="input-group">
+            <label for="formula" class="input-group-addon align-md">Formula:</label>
             <input type="text" class="form-control"
                 id="formula" name="formula"
                 ng-model="rt.formula"
@@ -49,14 +49,24 @@
             pressing the <i class="fa fa-fw fa-plus"></i> button above.
         </p>
 
-        <p ng-if="nMeasures > 0" class="text-muted">
-            This response type is used by
-            <a ng-href="#/2/measures?program={{rt.programId}}&initialTerm=rt:{{rt.id}}"
-                ><ng-pluralize ng-if="!isBound" count="nMeasures" when="{
-                    '1': '1 other measure',
-                    'other': '{} other measures',
-                }"></ng-pluralize
-            ></a>. Keep this in mind when making changes.
+        <p class="text-muted">
+            <span ng-if="!rt.nMeasures">
+                This response type is not used by any measures yet.
+            </span>
+            <span ng-if="rt.nMeasures">
+                This response type is used by
+                <a ng-href="#/2/measures?program={{rt.programId}}&initialTerm=rt:{{rt.id}}"
+                    ><ng-pluralize count="rt.nMeasures" when="{
+                        '1': '1 measure',
+                        'other': '{} measures',
+                    }"></ng-pluralize
+                ></a
+                ><span ng-if="isBound"> (including this one)</span>.
+                <span ng-if="(isBound && rt.nMeasures > 1) ||
+                        (!isBound && rt.nMeasures > 0)">
+                    Keep this in mind when making changes.
+                </span>
+            </span>
         </p>
     </uib-tab>
 
@@ -95,7 +105,7 @@
             </span>
         </div>
         <div class="input-group">
-            <label for="ltitle-{{$index}}" class="input-group-addon">
+            <label for="ltitle-{{$index}}" class="input-group-addon align-md">
                 Name:</label>
             <input type="text" class="form-control"
                 id="ltitle-{{$index}}"
@@ -119,8 +129,8 @@
                     ng-init="pi = $index">
                 <div class="input-group" show-errors>
                     <label for="lname-{{pi}}-{{$index}}"
-                            class="input-group-addon">
-                        Name:</label>
+                            class="input-group-addon align-md">
+                        Option:</label>
                     <input type="text" class="form-control"
                         id="lname-{{pi}}-{{$index}}"
                         name="lname-{{pi}}-{{$index}}"
@@ -146,7 +156,7 @@
                 </div>
                 <div class="input-group" show-errors>
                     <label for="lif-{{pi}}-{{$index}}"
-                            class="input-group-addon">
+                            class="input-group-addon align-md">
                         Condition:</label>
                     <input type="text" class="form-control"
                         id="lif-{{pi}}-{{$index}}"
@@ -164,7 +174,7 @@
                         id="ldesc-{{pi}}-{{$index}}"
                         name="ldesc-{{pi}}-{{$index}}"
                         ng-model="opt.description" empty-as-null
-                        placeholder="Option description (optional)"
+                        placeholder="Option description"
                         title="A tooltip to show to the user"
                         ></textarea>
                 </div>
@@ -181,7 +191,7 @@
             </li>
         </ul>
         <div class="input-group" ng-if="part.type == 'numerical'">
-            <label for="lower_{{$index}}" class="input-group-addon">
+            <label for="lower_{{$index}}" class="input-group-addon align-md">
                 Min:</label>
             <input type="text" class="form-control"
                 id="lower_{{$index}}"
@@ -217,7 +227,7 @@
             </p>
             <div class="input-group spaced"
                     ng-repeat="v in rtEdit.responseType.unboundVars">
-                <label for="extern_{{v}}" class="input-group-addon">
+                <label for="extern_{{v}}" class="input-group-addon align-md">
                     {{v}}:
                 </label>
                 <input type="text" class="form-control"

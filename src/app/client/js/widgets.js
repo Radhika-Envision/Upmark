@@ -926,9 +926,6 @@ angular.module('vpac.widgets', [])
             disableDoubleReturn: true,
             disableExtraSpaces: true,
         };
-        scope.$watch('placeholder', function(placeholder) {
-            scope.options.placeholder.text = placeholder;
-        });
 
         // View to model
         ngModel.$parsers.unshift(function (inputValue) {
@@ -1008,7 +1005,7 @@ angular.module('vpac.widgets', [])
     return {
         restrict: 'E',
         scope: {
-            placeholder: '='
+            placeholder: '@'
         },
         templateUrl: 'markdown_editor.html',
         require: 'ngModel',
