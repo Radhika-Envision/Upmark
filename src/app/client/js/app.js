@@ -878,7 +878,9 @@ angular.module('wsaa.aquamark',
     // The route version should be a number in the range 0-z
     $rootScope.$on('$routeChangeStart', function(event, next, current) {
         var CURRENT_VERSION = 2;
-        var originalUrl = new Url($location.url(), true);
+        // Initialise from $location because it is aware of the hash. This
+        // should probably work with HTML5 mode URLs too.
+        var originalUrl = new Url($location.url() || '/', true);
         var vmatch = /^\/([0-9a-z])\//.exec(originalUrl.path);
         var version = Number(vmatch && vmatch[1] || '0');
 
@@ -886,12 +888,23 @@ angular.module('wsaa.aquamark',
             return;
         event.preventDefault();
 
+        // Special case for root location, since it gets used a lot (landing
+        // page).
+        if (originalUrl.toString() == '/') {
+            $location.url('/' + CURRENT_VERSION + '/');
+            return;
+        }
+
         var deferred = $q.defer();
         deferred.resolve(originalUrl);
         var promise = deferred.promise;
 
         if (version < 1) {
             promise = promise.then(function(oldUrl) {
+                // Version 1: Rename:
+                //  - survey -> program
+                //  - hierarchy -> survey
+                //  - assessment -> submission
                 var url = new Url(oldUrl.toString(), true);
                 if (url.path == "")
                     url.path = "/";
@@ -937,6 +950,8 @@ angular.module('wsaa.aquamark',
 
         if (version < 2) {
             promise = promise.then(function(oldUrl) {
+                // Version 2: When accessing a measure, replace parent ID with
+                // survey ID - except for new measures.
                 var url = new Url(oldUrl.toString(), true);
                 var measureMatch = /^\/1\/measure\/([\w-]+)/.exec(oldUrl);
                 var subPromise = null;
