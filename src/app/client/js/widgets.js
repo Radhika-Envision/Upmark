@@ -193,7 +193,11 @@ angular.module('vpac.widgets', [])
                     return;
                 $scope.model.page = 0;
             }, true);
-        }]
+        }],
+        link: function(scope, elem, attrs) {
+            if (attrs.focusInit !== undefined)
+                elem.find('input').focus();
+        }
     };
 }])
 
@@ -350,6 +354,19 @@ angular.module('vpac.widgets', [])
             scope.$on('$destroy', function(event) {
                 dimmer.remove(key);
                 key = dismiss = scope = null;
+            });
+        }
+    };
+})
+
+
+.directive('highlightAny', function(dimmer, $parse) {
+    return {
+        restrict: 'A',
+        link: function(scope, elem, attrs) {
+            scope.dimmer = dimmer;
+            scope.$watch('dimmer.dimmers.length > 0', function(highlight) {
+                elem.toggleClass('undim', !!highlight);
             });
         }
     };
@@ -913,9 +930,6 @@ angular.module('vpac.widgets', [])
             disableDoubleReturn: true,
             disableExtraSpaces: true,
         };
-        scope.$watch('placeholder', function(placeholder) {
-            scope.options.placeholder.text = placeholder;
-        });
 
         // View to model
         ngModel.$parsers.unshift(function (inputValue) {
@@ -995,7 +1009,7 @@ angular.module('vpac.widgets', [])
     return {
         restrict: 'E',
         scope: {
-            placeholder: '='
+            placeholder: '@'
         },
         templateUrl: 'markdown_editor.html',
         require: 'ngModel',

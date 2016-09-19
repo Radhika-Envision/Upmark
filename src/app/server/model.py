@@ -14,20 +14,21 @@ from sqlalchemy.dialects.postgresql import ARRAY, JSON
 import sqlalchemy.exc
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.orderinglist import ordering_list
-from sqlalchemy.orm import backref, foreign, relationship, remote, sessionmaker
+from sqlalchemy.orm import backref, foreign, relationship, remote, \
+    sessionmaker, validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.schema import CheckConstraint, ForeignKeyConstraint, \
     Index, MetaData, UniqueConstraint
 from sqlalchemy.sql import func
 from passlib.hash import sha256_crypt
-from voluptuous import All, Any, Coerce, Length, Optional, Range, Required, \
-    Schema
+from voluptuous import All, Length, Schema
 from voluptuous.humanize import validate_with_humanized_errors
 
 from guid import GUID
 from history_meta import Versioned, versioned_session
-from response_type import ResponseError, ResponseTypeCache
+import response_type
 
 
 log = logging.getLogger('app.model')
@@ -37,6 +38,18 @@ Base = declarative_base(metadata=metadata)
 
 class ModelError(Exception):
     pass
+
+
+def is_id(ob_or_id):
+    return isinstance(ob_or_id, (str, uuid.UUID))
+
+
+def to_id(ob_or_id):
+    if ob_or_id is None:
+        return None
+    if is_id(ob_or_id):
+        return ob_or_id
+    return ob_or_id.id
 
 
 ActionDescriptor = namedtuple(
@@ -77,7 +90,7 @@ class Observable:
         '''
         @return a list of IDs that give a detailed path to the object, in order
         of increasing specificity. E.g.
-        [program_id, program_id, qnode_id, qnode_id, measure_id]
+        [program_id, survey_id, survey_id, qnode_id, qnode_id, measure_id]
         '''
         raise NotImplementedError()
 
@@ -303,70 +316,11 @@ class Program(Observable, Base):
     description = Column(Text)
     has_quality = Column(Boolean, default=False, nullable=False)
     hide_aggregate = Column(Boolean, default=False, nullable=False)
-    _response_types = Column('response_types', JSON, nullable=False)
+    error = Column(Text)
 
     @property
     def is_editable(self):
         return self.finalised_date is None
-
-    _response_types_schema = Schema([
-        {
-            'id': All(str, Length(min=1)),
-            'name': All(str, Length(min=1)),
-            'parts': [
-                {
-                    # Common fields
-                    Required('id', default=None): Any(
-                        All(str, Length(min=1)), None),
-                    'type': Any('multiple_choice', 'numerical'),
-                    Required('name', default=None): Any(
-                        All(str, Length(min=1)), None),
-                    Required('description', default=None): Any(
-                        All(str, Length(min=1)), None),
-                    # Fields that vary by type
-                    # Multiple choice
-                    Optional('options'): All([
-                        {
-                            'score': Coerce(float),
-                            'name': All(str, Length(min=1)),
-                            Required('if', default=None): Any(
-                                All(str, Length(min=1)), None),
-                            Required('description', default=None): Any(
-                                All(str, Length(min=1)), None)
-                        }
-                    ], Length(min=2)),
-                    # Numerical
-                    Optional('lower'): Any(All(str, Length(min=1)), None),
-                    Optional('upper'): Any(All(str, Length(min=1)), None),
-                },
-            ],
-            Required('formula', default=None): Any(
-                All(str, Length(min=1)), None)
-        }
-    ], required=True)
-
-    @property
-    def response_types(self):
-        return self._response_types
-
-    @response_types.setter
-    def response_types(self, rts):
-        self._response_types = validate_with_humanized_errors(
-            rts, Program._response_types_schema)
-        if hasattr(self, '_materialised_response_types'):
-            del self._materialised_response_types
-
-    @property
-    def materialised_response_types(self):
-        if not hasattr(self, '_materialised_response_types'):
-            self._materialised_response_types = ResponseTypeCache(
-                self._response_types)
-        return self._materialised_response_types
-
-    def update_stats_descendants(self):
-        '''Updates the stats of an entire tree.'''
-        for survey in self.surveys:
-            survey.update_stats_descendants()
 
     @property
     def ob_type(self):
@@ -440,7 +394,8 @@ class Survey(Observable, Base):
     modified = Column(DateTime, nullable=True)
     deleted = Column(Boolean, default=False, nullable=False)
 
-    _structure = Column('structure', JSON, nullable=False)
+    structure = Column(JSON, nullable=False)
+    error = Column(Text)
 
     _structure_schema = Schema({
         'levels': All([
@@ -456,33 +411,16 @@ class Survey(Observable, Base):
         }
     }, required=True)
 
-    @property
-    def structure(self):
-        return self._structure
 
-    @structure.setter
-    def structure(self, s):
-        self._structure = validate_with_humanized_errors(
-            s, Survey._structure_schema)
+    @validates('structure')
+    def validate_structure(self, k, s):
+        return validate_with_humanized_errors(s, Survey._structure_schema)
 
     @property
-    def ordered_measures(self):
+    def ordered_qnode_measures(self):
         '''Returns all measures in depth-first order'''
         for qnode in self.qnodes:
-            for measure in qnode.ordered_measures:
-                yield measure
-
-    def update_stats(self):
-        '''Updates the stats this survey.'''
-        n_measures = sum(qnode.n_measures for qnode in self.qnodes)
-        self.n_measures = n_measures
-        self.modified = datetime.utcnow()
-
-    def update_stats_descendants(self):
-        '''Updates the stats of an entire subtree.'''
-        for qnode in self.qnodes:
-            qnode.update_stats_descendants()
-        self.update_stats()
+            yield from qnode.ordered_qnode_measures
 
     @property
     def min_stats_approval(self):
@@ -528,6 +466,7 @@ class QuestionNode(Observable, Base):
     seq = Column(Integer)
     n_measures = Column(Integer, default=0, nullable=False)
     total_weight = Column(Float, default=0, nullable=False)
+    error = Column(Text)
 
     title = Column(Text, nullable=False)
     description = Column(Text)
@@ -551,37 +490,21 @@ class QuestionNode(Observable, Base):
 
     program = relationship(Program)
 
-    def get_rnode(self, submission):
-        if isinstance(submission, (str, uuid.UUID)):
-            submission_id = submission
-        else:
-            submission_id = submission.id
-        return (object_session(self).query(ResponseNode)
-            .filter_by(submission_id=submission_id, qnode_id=self.id)
-            .first())
-
-    def update_stats_ancestors(self):
-        '''Updates the stats this node, and all ancestors.'''
-        self.update_stats()
-        if self.parent is not None:
-            self.parent.update_stats_ancestors()
-        else:
-            self.survey.update_stats()
-
-    def update_stats_descendants(self):
-        '''Updates the stats of an entire subtree.'''
-        for child in self.children:
-            child.update_stats_descendants()
-        self.update_stats()
-
-    def update_stats(self):
-        total_weight = sum(measure.weight for measure in self.measures)
-        total_weight += sum(child.total_weight for child in self.children)
-        n_measures = len(self.measures)
-        n_measures += sum(child.n_measures for child in self.children)
-
-        self.total_weight = total_weight
-        self.n_measures = n_measures
+    def get_rnode(self, submission, create=False):
+        sid = to_id(submission)
+        rnode = (object_session(self).query(ResponseNode)
+            .get((sid, self.id)))
+        if not rnode and create:
+            rnode = ResponseNode(program=self.program, qnode=self)
+            rnode.submission_id = sid
+            object_session(self).add(rnode)
+            # Without this flush, rnode.responses may be incomplete. Test with
+            # test_daemon.DaemonTest.
+            # TODO: Perahps this could be avoided if the recalculation was done
+            # in two stages: first create required rnodes, then flush, then
+            # update their scores?
+            object_session(self).flush()
+        return rnode
 
     def lineage(self):
         if self.parent_id:
@@ -596,13 +519,11 @@ class QuestionNode(Observable, Base):
         return self.deleted or self.parent_id and self.parent.any_deleted()
 
     @property
-    def ordered_measures(self):
-        '''Returns all measures in depth-first order'''
+    def ordered_qnode_measures(self):
+        '''Returns all qnode/measures in depth-first order'''
         for child in self.children:
-            for measure in child.ordered_measures:
-                yield measure
-        for measure in self.measures:
-            yield measure
+            yield from child.ordered_qnode_measures
+        yield from self.qnode_measures
 
     @property
     def ob_type(self):
@@ -617,73 +538,55 @@ class QuestionNode(Observable, Base):
         return [self.program, self.survey] + self.lineage()
 
     def __repr__(self):
-        return "QuestionNode(title={}, program={})".format(
-            self.title, getattr(self.program, 'title', None))
+        return "QuestionNode(path={}, title={}, program={})".format(
+            self.get_path(), self.title,
+            getattr(self.program, 'title', None))
 
 
 class Measure(Observable, Base):
     __tablename__ = 'measure'
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    program_id = Column(
-        GUID, ForeignKey("program.id"), nullable=False, primary_key=True)
+    program_id = Column(GUID, nullable=False, primary_key=True)
+    response_type_id = Column(GUID, nullable=False)
     deleted = Column(Boolean, default=False, nullable=False)
 
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=True)
     weight = Column(Float, nullable=False)
-    response_type = Column(Text, nullable=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['program_id'],
+            ['program.id']
+        ),
+        ForeignKeyConstraint(
+            ['response_type_id', 'program_id'],
+            ['response_type.id', 'response_type.program_id']
+        ),
+    )
 
     program = relationship(
         Program, backref=backref('measures', passive_deletes=True))
 
+    @property
+    def parents(self):
+        return (qm.qnode for qm in self.qnode_measures)
+
     def get_parent(self, survey):
-        if isinstance(survey, (str, uuid.UUID)):
-            survey_id = survey
-        else:
-            survey_id = survey.id
-        for p in self.parents:
-            if str(p.survey_id) == str(survey_id):
-                return p
-        return None
+        qnode_measure = self.get_qnode_measure(survey)
+        return qnode_measure and qnode_measure.qnode or None
 
     def get_qnode_measure(self, survey):
-        if isinstance(survey, (str, uuid.UUID)):
-            survey_id = survey
-        else:
-            survey_id = survey.id
-        for qm in self.qnode_measures:
-            if str(qm.qnode.survey_id) == str(survey_id):
-                return qm
-        return None
-
-    def get_seq(self, survey):
-        qm = self.get_qnode_measure(survey)
-        if qm:
-            return qm.seq
-        return None
+        sid = to_id(survey)
+        return (object_session(self).query(QnodeMeasure)
+            .get((self.program_id, sid, self.id)))
 
     def get_path(self, survey):
         qm = self.get_qnode_measure(survey)
-        if qm:
-            return qm.get_path()
-        return None
-
-    def get_response(self, submission):
-        if isinstance(submission, str):
-            submission_id = submission
-        else:
-            submission_id = submission.id
-        return (object_session(self).query(Response)
-            .filter_by(submission_id=submission_id, measure_id=self.id)
-            .first())
+        return qm and qm.get_path() or None
 
     def lineage(self, survey=None):
-        if survey is None:
-            survey_id = None
-        elif isinstance(survey, (str, uuid.UUID)):
-            survey_id = survey
-        else:
-            survey_id = survey.id
+        survey_id = to_id(survey)
 
         if survey_id:
             qms = [qm for qm in self.qnode_measures
@@ -709,7 +612,7 @@ class Measure(Observable, Base):
 
     @property
     def action_lineage(self):
-        hs = [p.survey for p in self.parents]
+        hs = [qm.survey for qm in self.qnode_measures]
         return [self.program] + hs + self.lineage()
 
     def __repr__(self):
@@ -721,12 +624,14 @@ class QnodeMeasure(Base):
     # This is an association object for qnodes <-> measures. Normally this would
     # be done with a raw table, but because we want access to the `seq` column,
     # it needs to be a mapped class.
-    __tablename__ = 'qnode_measure_link'
+    __tablename__ = 'qnode_measure'
     program_id = Column(GUID, nullable=False, primary_key=True)
-    qnode_id = Column(GUID, nullable=False, primary_key=True)
+    survey_id = Column(GUID, nullable=False, primary_key=True)
     measure_id = Column(GUID, nullable=False, primary_key=True)
+    qnode_id = Column(GUID, nullable=False)
 
     seq = Column(Integer)
+    error = Column(Text)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -738,6 +643,10 @@ class QnodeMeasure(Base):
             ['measure.id', 'measure.program_id']
         ),
         ForeignKeyConstraint(
+            ['survey_id', 'program_id'],
+            ['survey.id', 'survey.program_id']
+        ),
+        ForeignKeyConstraint(
             ['program_id'],
             ['program.id']
         ),
@@ -747,40 +656,133 @@ class QnodeMeasure(Base):
 
     program = relationship(Program)
 
-    # This constructor is used by association_proxy when adding items to the
-    # collection.
-    def __init__(self, measure=None, qnode=None, seq=None, program=None,
+    def __init__(self, program=None, survey=None, qnode=None, measure=None,
                  **kwargs):
-        self.measure = measure
-        self.qnode = qnode
-        self.seq = seq
-
-        # Accessing measure.program or qnode.program may cause a flush if it
-        # hasn't been initialised yet - but we don't want that to happen now,
-        # because this object hasn't been fully initialised, which would mean
-        # the insertion would fail and cause a rollback. Instead, fall back to
-        # assigning the program ID instead of using the relationship.
-        with object_session(self).no_autoflush:
-            if program:
-                self.program = program
-            elif measure:
-                self.program = measure.program
-                if not self.program:
-                    self.program_id = measure.program_id
-            elif qnode:
-                self.program = qnode.program
-                if not self.program:
-                    self.program_id = qnode.program_id
-
-        super().__init__(**kwargs)
+        # if qnode:
+        #     raise ModelError(
+        #         "Construction using a qnode is not allowed. Append the new"
+        #         " QnodeMeasure to qnode.qnode_measures instead, to ensure"
+        #         " the seq field is set correctly.")
+        super().__init__(
+            program=program, survey=survey, qnode=qnode, measure=measure,
+            **kwargs)
 
     def get_path(self):
         return "%s %d." % (self.qnode.get_path(), self.seq + 1)
 
+    def get_response(self, submission):
+        submission_id = to_id(submission)
+        return (object_session(self).query(Response)
+            .get((submission_id, self.measure_id)))
+
     def __repr__(self):
-        return "QnodeMeasure(qnode={}, measure={}, program={})".format(
-            getattr(self.qnode, 'title', None),
-            getattr(self.measure, 'title', None),
+        return "QnodeMeasure(path={}, program={}, survey={}, measure={})".format(
+            self.get_path(),
+            getattr(self.program, 'title', None),
+            getattr(self.survey, 'title', None),
+            getattr(self.measure, 'title', None))
+
+
+class ResponseType(Observable, Base):
+    __tablename__ = 'response_type'
+    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    program_id = Column(
+        GUID, ForeignKey("program.id"), nullable=False, primary_key=True)
+
+    name = Column(Text, nullable=False)
+    parts = Column(JSON, nullable=False)
+    formula = Column(Text)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['program_id'],
+            ['program.id']),
+        Index(
+            'response_type_target_program_id_id_index',
+            'program_id', 'id'),
+        UniqueConstraint('program_id', 'name'),
+    )
+
+    program = relationship(Program)
+
+    @validates('parts')
+    def validate_parts(self, k, parts):
+        parts = validate_with_humanized_errors(
+            parts, response_type.response_parts_schema)
+        response_type.validate_parts(parts)
+        return parts
+
+    @validates('formula')
+    def validate_parts(self, k, formula):
+        response_type.validate_formula(formula)
+        return formula
+
+    @property
+    def n_measures(self):
+        return object_session(self).query(Measure).with_parent(self).count()
+
+    @property
+    def ob_title(self):
+        return self.name
+
+    @property
+    def ob_type(self):
+        return 'response_type'
+
+    @property
+    def ob_ids(self):
+        return [self.id, self.program_id]
+
+    @property
+    def action_lineage(self):
+        return [self.program, self]
+
+    def __repr__(self):
+        return "ResponseType(name={}, program={})".format(
+            self.name, getattr(self.program, 'title', None))
+
+
+class MeasureVariable(Base):
+    # This is an association object for measures <-> measures, so that external
+    # variables in a response type can be bound to another measure.
+    __tablename__ = 'measure_variable'
+    program_id = Column(GUID, nullable=False, primary_key=True)
+    survey_id = Column(GUID, nullable=False, primary_key=True)
+    target_measure_id = Column(GUID, nullable=False, primary_key=True)
+    target_field = Column(Text, nullable=False, primary_key=True)
+
+    source_measure_id = Column(GUID, nullable=False, primary_key=True)
+    source_field = Column(Text, primary_key=True)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['target_measure_id', 'program_id'],
+            ['measure.id', 'measure.program_id']),
+        ForeignKeyConstraint(
+            ['source_measure_id', 'program_id'],
+            ['measure.id', 'measure.program_id']),
+        ForeignKeyConstraint(
+            ['survey_id', 'program_id'],
+            ['survey.id', 'survey.program_id']),
+        ForeignKeyConstraint(
+            ['program_id'],
+            ['program.id']),
+        Index(
+            'measure_variable_program_id_target_measure_id_index',
+            'program_id', 'target_measure_id'),
+        Index(
+            'measure_variable_program_id_source_measure_id_index',
+            'program_id', 'source_measure_id'),
+    )
+
+    program = relationship(Program)
+
+    def __repr__(self):
+        return "MeasureVariable({}#{} <- {}#{}, program={})".format(
+            self.source_qnode_measure.get_path(),
+            self.source_field,
+            self.target_qnode_measure.get_path(),
+            self.target_field,
             getattr(self.program, 'title', None))
 
 
@@ -798,6 +800,7 @@ class Submission(Observable, Base):
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
     modified = Column(DateTime, nullable=True)
     deleted = Column(Boolean, default=False, nullable=False)
+    error = Column(Text)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -822,8 +825,9 @@ class Submission(Observable, Base):
     @property
     def ordered_responses(self):
         '''Returns all responses in depth-first order'''
-        for rnode in self.rnodes:
-            for response in rnode.ordered_responses:
+        for qnode_measure in self.survey.ordered_qnode_measures:
+            response = qnode_measure.get_response(self)
+            if response is not None:
                 yield response
 
     @property
@@ -848,18 +852,6 @@ class Submission(Observable, Base):
         # all the submissions against it.
         return [self.organisation, self]
 
-    def update_stats_descendants(self):
-        for qnode in self.survey.qnodes:
-            rnode = qnode.get_rnode(self)
-            if rnode is None:
-                rnode = ResponseNode(
-                    program=self.program,
-                    submission=self,
-                    qnode=qnode)
-                object_session(self).add(rnode)
-                object_session(self).flush()
-            rnode.update_stats_descendants()
-
     def __repr__(self):
         return "Submission(program={}, org={})".format(
             getattr(self.program, 'title', None),
@@ -868,10 +860,9 @@ class Submission(Observable, Base):
 
 class ResponseNode(Observable, Base):
     __tablename__ = 'rnode'
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    submission_id = Column(GUID, nullable=False, primary_key=True)
+    qnode_id = Column(GUID, nullable=False, primary_key=True)
     program_id = Column(GUID, nullable=False)
-    submission_id = Column(GUID, nullable=False)
-    qnode_id = Column(GUID, nullable=False)
 
     n_draft = Column(Integer, default=0, nullable=False)
     n_final = Column(Integer, default=0, nullable=False)
@@ -879,6 +870,7 @@ class ResponseNode(Observable, Base):
     n_approved = Column(Integer, default=0, nullable=False)
     n_not_relevant = Column(Integer, default=0, nullable=False)
     score = Column(Float, default=0.0, nullable=False)
+    error = Column(Text)
 
     importance = Column(Float)
     urgency = Column(Float)
@@ -929,8 +921,8 @@ class ResponseNode(Observable, Base):
 
     @property
     def responses(self):
-        for measure in self.qnode.measures:
-            response = measure.get_response(self.submission)
+        for qnode_measure in self.qnode.qnode_measures:
+            response = qnode_measure.get_response(self.submission)
             if response is not None:
                 yield response
 
@@ -965,113 +957,41 @@ class ResponseNode(Observable, Base):
         return ActionDescriptor(
             self.ob_title, self.ob_type, self.ob_ids, lineage)
 
-    def update_stats(self):
-        score = 0.0
-        n_approved = 0
-        n_reviewed = 0
-        n_final = 0
-        n_draft = 0
-        n_not_relevant = 0
-        max_importance = 0.0
-        max_urgency = 0.0
-
-        for c in self.children:
-            score += c.score
-            n_approved += c.n_approved
-            n_reviewed += c.n_reviewed
-            n_final += c.n_final
-            n_draft += c.n_draft
-            n_not_relevant += c.n_not_relevant
-            max_importance = max(max_importance, c.max_importance or 0.0)
-            max_urgency = max(max_urgency, c.max_urgency or 0.0)
-
-        for r in self.responses:
-            score += r.score
-            if r.approval in {'draft', 'final', 'reviewed', 'approved'}:
-                n_draft += 1
-            if r.approval in {'final', 'reviewed', 'approved'}:
-                n_final += 1
-            if r.approval in {'reviewed', 'approved'}:
-                n_reviewed += 1
-            if r.approval in {'approved'}:
-                n_approved += 1
-            if r.not_relevant:
-                n_not_relevant += 1
-
-        self.score = score
-        self.n_approved = n_approved
-        self.n_reviewed = n_reviewed
-        self.n_final = n_final
-        self.n_draft = n_draft
-        self.n_not_relevant = n_not_relevant
-        self.max_importance = self.importance or max_importance
-        self.max_urgency = self.urgency or max_urgency
-
-    def update_stats_descendants(self):
-        for qchild in self.qnode.children:
-            rchild = qchild.get_rnode(self.submission)
-            if rchild is None:
-                rchild = ResponseNode(
-                    program=self.program,
-                    submission=self.submission,
-                    qnode=qchild)
-                object_session(self).add(rchild)
-                object_session(self).flush()
-            rchild.update_stats_descendants()
-        for response in self.responses:
-            response.update_stats()
-        self.update_stats()
-
-    def update_stats_ancestors(self):
-        self.update_stats()
-        parent = self.parent
-        if parent is None:
-            qnode = self.qnode.parent
-            if qnode is None:
-                return
-            parent = ResponseNode(
-                program=self.program, submission=self.submission, qnode=qnode)
-            object_session(self).add(parent)
-            object_session(self).flush()
-        parent.update_stats_ancestors()
-
     def __repr__(self):
         org = getattr(self.submission, 'organisation', None)
-        return "ResponseNode(qnode={}, program={}, org={})".format(
-            getattr(self.qnode, 'title', None),
-            getattr(self.program, 'title', None),
+        return "ResponseNode(path={}, submission={}, org={})".format(
+            self.qnode and self.qnode.get_path() or None,
+            getattr(self.submission, 'title', None),
             getattr(org, 'name', None))
 
 
 class Response(Observable, Versioned, Base):
     __tablename__ = 'response'
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    submission_id = Column(GUID, nullable=False, primary_key=True)
+    measure_id = Column(GUID, nullable=False, primary_key=True)
     program_id = Column(GUID, nullable=False)
-    measure_id = Column(GUID, nullable=False)
-    submission_id = Column(GUID, nullable=False)
+    survey_id = Column(GUID, nullable=False)
     user_id = Column(GUID, nullable=False)
 
     comment = Column(Text, nullable=False)
     not_relevant = Column(Boolean, nullable=False)
-    _response_parts = Column('response_parts', JSON, nullable=False)
+    response_parts = Column(JSON, nullable=False)
     audit_reason = Column(Text)
     modified = Column(DateTime, nullable=False)
     quality = Column(Float)
-
-    score = Column(Float, default=0.0, nullable=False)
     approval = Column(
         Enum('draft', 'final', 'reviewed', 'approved', native_enum=False),
         nullable=False)
 
+    # Fields derived from response_parts
+    score = Column(Float, default=0.0, nullable=False)
+    variables = Column(JSON, default=dict, nullable=False)
+    error = Column(Text)
+
     __table_args__ = (
         ForeignKeyConstraint(
-            ['measure_id', 'program_id'],
-            ['measure.id', 'measure.program_id'],
-            info={'version': True}
-        ),
-        ForeignKeyConstraint(
-            ['program_id'],
-            ['program.id'],
+            ['program_id', 'survey_id', 'measure_id'],
+            ['qnode_measure.program_id', 'qnode_measure.survey_id', 'qnode_measure.measure_id'],
             info={'version': True}
         ),
         ForeignKeyConstraint(
@@ -1084,56 +1004,23 @@ class Response(Observable, Versioned, Base):
             ['submission.id'],
             info={'version': True}
         ),
-        UniqueConstraint('measure_id', 'submission_id'),
         Index('response_submission_id_measure_id_index',
               submission_id, measure_id),
     )
 
-    program = relationship(Program)
     user = relationship(AppUser)
 
     @property
-    def parent_qnode(self):
-        for p in self.measure.parents:
-            if p.survey_id == self.submission.survey_id:
-                return p
-        # Might happen if a measure is unlinked after the response is
-        # created
-        return None
-
-    @property
     def parent(self):
-        qnode = self.parent_qnode
-        if qnode is None:
-            # Might happen if a measure is unlinked after the response is
-            # created
-            return None
-        return qnode.get_rnode(self.submission)
+        return self.qnode_measure.qnode.get_rnode(self.submission)
 
-    _response_parts_schema = Schema([
-        Any(
-            {
-                'index': int,
-                'note': All(str, Length(min=1)),
-            },
-            {
-                'value': Coerce(float),
-            },
-        )
-    ], required=True)
-
-    @property
-    def response_parts(self):
-        return self._response_parts
-
-    @response_parts.setter
-    def response_parts(self, s):
-        self._response_parts = validate_with_humanized_errors(
-            s, Response._response_parts_schema)
+    @validates('response_parts')
+    def validate_response_parts(self, k, s):
+        return validate_with_humanized_errors(s, response_type.response_schema)
 
     def lineage(self):
         return ([q.get_rnode(self.submission_id)
-                 for q in self.parent_qnode.lineage()] +
+                 for q in self.qnode_measure.qnode.lineage()] +
                 [self])
 
     @property
@@ -1158,56 +1045,25 @@ class Response(Observable, Versioned, Base):
     @property
     def action_descriptor(self):
         # Use qnodes and the measure instead of rnodes and the response for
-        # lineage, because rnode.id and response.id are not part of the API.
+        # lineage, because rnode.id is not part of the API, and response has
+        # no ID of its own.
         lineage = ([self.submission.id] +
-                   [q.id for q in self.parent_qnode.lineage()] +
+                   [q.id for q in self.qnode_measure.qnode.lineage()] +
                    [self.measure_id])
         return ActionDescriptor(
             self.ob_title, self.ob_type, self.ob_ids, lineage)
 
-    def update_stats(self):
-        if self.not_relevant:
-            score = 0.0
-        else:
-            try:
-                rt = self.program.materialised_response_types[
-                    self.measure.response_type]
-            except KeyError:
-                raise ModelError(
-                    "Measure '%s': response type is not defined." %
-                    self.measure.title)
-            try:
-                score = rt.calculate_score(self.response_parts)
-            except ResponseError as e:
-                raise ModelError(
-                    "Could not calculate score for response %s %s: %s" %
-                    (self.measure.get_path(self.submission.survey),
-                     self.measure.title, str(e)))
-        self.score = score * self.measure.weight
-
-    def update_stats_ancestors(self):
-        self.update_stats()
-        parent = self.parent
-        if parent is None:
-            qnode = self.parent_qnode
-            if qnode is None:
-                return
-            parent = ResponseNode(
-                program=self.program, submission=self.submission, qnode=qnode)
-            object_session(self).add(parent)
-        object_session(self).flush()
-        parent.update_stats_ancestors()
-
     def __repr__(self):
         org = getattr(self.submission, 'organisation', None)
-        return "Response(measure={}, program={}, org={})".format(
-            getattr(self.measure, 'title', None),
-            getattr(self.program, 'title', None),
+        return "Response(path={}, submission={}, org={})".format(
+            self.qnode_measure.get_path(),
+            getattr(self.submission, 'title', None),
             getattr(org, 'name', None))
 
 
 ResponseHistory = Response.__history_mapper__.class_
 ResponseHistory.response_parts = Response.response_parts
+ResponseHistory.ob_type = property(lambda self: 'response')
 
 
 class Attachment(Base):
@@ -1215,7 +1071,8 @@ class Attachment(Base):
     id = Column(GUID, default=uuid.uuid4, primary_key=True)
     organisation_id = Column(
         GUID, ForeignKey("organisation.id"), nullable=False)
-    response_id = Column(GUID, ForeignKey("response.id"), nullable=False)
+    submission_id = Column(GUID, nullable=False)
+    measure_id = Column(GUID, nullable=False)
 
     storage = Column(
         Enum('external', 'aws', 'database', native_enum=False),
@@ -1225,7 +1082,11 @@ class Attachment(Base):
     blob = Column(LargeBinary, nullable=True)
 
     __table_args__ = (
-        Index('attachment_response_id_index', response_id),
+        Index('attachment_response_id_index', submission_id, measure_id),
+        ForeignKeyConstraint(
+            ['submission_id', 'measure_id'],
+            ['response.submission_id', 'response.measure_id']
+        ),
     )
 
     response = relationship(Response, backref='attachments')
@@ -1259,7 +1120,7 @@ class Activity(Base):
     # columns are for looking up the target object (e.g. to create a hyperlink).
     ob_type = Column(Enum(
         'organisation', 'user',
-        'program', 'survey', 'qnode', 'measure',
+        'program', 'survey', 'qnode', 'measure', 'response_type',
         'submission', 'rnode', 'response',
         native_enum=False))
     ob_ids = Column(ARRAY(GUID), nullable=False)
@@ -1311,7 +1172,7 @@ class Subscription(Base):
     # http://stackoverflow.com/questions/19959735/postgresql-gin-index-on-array-of-uuid
     ob_type = Column(Enum(
         'organisation', 'user',
-        'program', 'survey', 'qnode', 'measure',
+        'program', 'survey', 'qnode', 'measure', 'response_type',
         'submission', 'rnode', 'response',
         native_enum=False))
     ob_refs = Column(ARRAY(GUID), nullable=False)
@@ -1444,16 +1305,63 @@ Measure.qnode_measures = relationship(
                 (QnodeMeasure.program_id == Measure.program_id))
 
 
-QuestionNode.measures = association_proxy('qnode_measures', 'measure')
-QuestionNode.measure_seq = association_proxy('qnode_measures', 'seq')
-Measure.parents = association_proxy('qnode_measures', 'qnode')
+QnodeMeasure.survey = relationship(
+    Survey,
+    primaryjoin=(foreign(QnodeMeasure.survey_id) == remote(Survey.id)) &
+                (QnodeMeasure.program_id == remote(Survey.program_id)))
+
+
+#
+# Suppose qnode_measure_a is a dependency of qnode_measure_b. Then:
+#
+#     qnode_measure_a.target = measure_variable_ab
+#     mes_variable_ab.source_qnode_measure = qnode_measure_a
+#     mes_variable_ab.target_qnode_measure = qnode_measure_b
+#     qnode_measure_b.source = measure_variable_ab
+#
+#    ┌─────────────────────┐  ┌────────────────────┐  ┌─────────────────────┐
+#    │   QnodeMeasure A    │  │ MeasureVariable AB │  │   QnodeMeasure B    │
+#    ╞═════════════════════╡  ╞════════════════════╡  ╞═════════════════════╡
+#  x━┥ sources     targets ┝━━┥ source      target ┝━━┥ sources     targets ┝━x
+#    └─────────────────────┘  └────────────────────┘  └─────────────────────┘
+#
+
+# Dependencies - yes, the source is the target. It's funny how that is.
+QnodeMeasure.target_vars = relationship(
+    MeasureVariable, backref='source_qnode_measure', cascade="all, delete-orphan",
+    primaryjoin=(foreign(MeasureVariable.source_measure_id) == QnodeMeasure.measure_id) &
+                (MeasureVariable.survey_id == QnodeMeasure.survey_id) &
+                (MeasureVariable.program_id == QnodeMeasure.program_id))
+
+# Dependants - yes, the target is the source. It's funny how that is.
+QnodeMeasure.source_vars = relationship(
+    MeasureVariable, backref='target_qnode_measure', cascade="all, delete-orphan",
+    primaryjoin=(foreign(MeasureVariable.target_measure_id) == QnodeMeasure.measure_id) &
+                (MeasureVariable.survey_id == QnodeMeasure.survey_id) &
+                (MeasureVariable.program_id == QnodeMeasure.program_id))
+
+
+MeasureVariable.survey = relationship(
+    Survey,
+    primaryjoin=(foreign(MeasureVariable.survey_id) == Survey.id) &
+                (MeasureVariable.program_id == Survey.program_id))
+
+
+Measure.response_type = relationship(
+    ResponseType,
+    primaryjoin=(foreign(Measure.response_type_id) == ResponseType.id) &
+                (ResponseType.program_id == Measure.program_id))
+
+ResponseType.measures = relationship(
+    Measure, back_populates='response_type', passive_deletes=True,
+    primaryjoin=(foreign(Measure.response_type_id) == ResponseType.id) &
+                (ResponseType.program_id == Measure.program_id))
 
 
 Submission.survey = relationship(
     Survey,
     primaryjoin=(foreign(Submission.survey_id) == Survey.id) &
                 (Submission.program_id == Survey.program_id))
-
 
 Submission.responses = relationship(
     Response, backref='submission', passive_deletes=True)
@@ -1465,17 +1373,17 @@ ResponseNode.qnode = relationship(
                 (ResponseNode.program_id == QuestionNode.program_id))
 
 
-Response.measure = relationship(
-    Measure,
-    primaryjoin=(foreign(Response.measure_id) == Measure.id) &
-                (Response.program_id == Measure.program_id))
+Response.qnode_measure = relationship(
+    QnodeMeasure)
+    # primaryjoin=(foreign(Response.measure_id) == Measure.id) &
+    #             (Response.program_id == Measure.program_id))
+
+Response.measure = association_proxy('qnode_measure', 'measure')
 
 
 ResponseHistory.user = relationship(
     AppUser, backref='user', passive_deletes=True)
 
-## submission_id, measure_id
-## version fileds need to have index on ResponseHistory
 
 Session = None
 VersionedSession = None

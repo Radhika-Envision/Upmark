@@ -1,5 +1,5 @@
 <div class="section">
-    <div class="toolbar">
+    <div class="toolbar" highlight="edit.model" highlight-half>
         <button class="btn btn-default btn-round" title="Reset order"
                 ng-click="edit.cancel()"
                 ng-if="edit.model">
@@ -13,11 +13,11 @@
                 ng-if="editable && model.length > 1 && !edit.model">
             <i class="fa fa-fw fa-unsorted"></i></button>
         <a class="btn btn-default btn-round" title="Add new"
-                ng-href="#/1/measure/new?{{query}}"
+                ng-href="#/2/measure/new?program={{program.id}}&parent={{qnode.id}}"
                 ng-if="editable && !edit.model">
             <i class="fa fa-fw fa-plus"></i></a>
         <a class="btn btn-default btn-round" title="Link to existing"
-                ng-href="#/1/measure-link?{{query}}"
+                ng-href="#/2/measure-link?program={{program.id}}&parent={{qnode.id}}"
                 ng-if="editable && !edit.model">
             <i class="fa fa-fw fa-link"></i></a>
     </div>
@@ -27,11 +27,20 @@
 <table class="table table-hover">
     <tbody ui-sortable="dragOpts" ng-model="edit.model">
         <tr ng-repeat="item in edit.model || model"
-                any-href="/1/measure/{{item.id}}?{{query}}"
+                any-href="/2/measure/{{item.id}}?{{query}}"
                 ng-disabled="edit.model"
-                ng-class="{'strike-black': getStats(item.id).notRelevant}">
+                ng-class="{
+                    'strike-black': getStats(item.id).notRelevant,
+                    'warning': item.error || getStats(item.id).error,
+                }">
             <td class="shrink numeric">{{item.seq + 1}}</td>
-            <td>{{item.title}}</td>
+            <td>
+                {{item.title}}
+                <span ng-if="item.error || getStats(item.id).error"
+                        class="text-muted">
+                    <i class="fa fa-exclamation-triangle"></i>
+                </span>
+            </td>
             <td class="shrink text-muted numeric"
                     title="Score"
                     ng-if="submission && checkRole('view_aggregate_score')">
@@ -64,8 +73,11 @@
                     ng-if="!submission">
                 1
             </td>
-            <td class="shrink grab-handle" ng-if="edit.model">
-                <i class="fa fa-fw fa-unsorted"></i></td>
+            <td class="shrink grab-handle" ng-if="edit.model"
+               ><span class="btn btn-default btn-round"
+                   title="Drag to reorder"
+                   highlight highlight-half>
+               <i class="fa fa-fw fa-unsorted"></i></span></td>
         </tr>
     </tbody>
 </table>

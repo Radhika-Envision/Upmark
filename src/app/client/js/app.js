@@ -9,6 +9,7 @@ angular.module('wsaa.aquamark',
                 'wsaa.admin', 'wsaa.home', 'wsaa.subscription',
                 'wsaa.response',
                 'wsaa.surveyQuestions', 'wsaa.surveyAnswers',
+                'wsaa.survey.measure',
                 'vpac.utils', 'vpac.widgets', 'diff-match-patch'])
 
 
@@ -701,17 +702,6 @@ angular.module('wsaa.aquamark',
                             id: $route.current.params.submission
                         }).$promise;
                     }],
-                    parent: ['QuestionNode', '$route',
-                            function(QuestionNode, $route) {
-                        if ($route.current.params.submission)
-                            return null;
-                        if (!$route.current.params.parent)
-                            return null;
-                        return QuestionNode.get({
-                            id: $route.current.params.parent,
-                            programId: $route.current.params.program,
-                        }).$promise;
-                    }],
                     measure: ['Measure', '$route',
                             function(Measure, $route) {
                         return Measure.get({
@@ -719,10 +709,30 @@ angular.module('wsaa.aquamark',
                             programId: $route.current.params.submission
                                 ? null
                                 : $route.current.params.program,
-                            parentId: $route.current.params.submission
+                            surveyId: $route.current.params.submission
                                 ? null
-                                : $route.current.params.parent,
+                                : $route.current.params.survey,
                             submissionId: $route.current.params.submission
+                        }).$promise;
+                    }],
+                    responseType: ['measure', 'ResponseType',
+                            function(measure, ResponseType) {
+                        return ResponseType.get({
+                            id: measure.responseTypeId,
+                            programId: measure.programId
+                        }).$promise;
+                    }]
+                })}
+            })
+            .when('/:uv/response-type/:responseType', {
+                templateUrl : 'response_type.html',
+                controller : 'ResponseTypeCtrl',
+                resolve: {routeData: chain({
+                    responseType: ['ResponseType', '$route',
+                            function(ResponseType, $route) {
+                        return ResponseType.get({
+                            id: $route.current.params.responseType,
+                            programId: $route.current.params.program
                         }).$promise;
                     }]
                 })}
@@ -861,62 +871,111 @@ angular.module('wsaa.aquamark',
 }])
 
 
-.run(['$rootScope', '$window', '$location', 'Notifications', 'log', 'timeAgo',
-        '$route', 'checkLogin',
-        function($rootScope, $window, $location, Notifications, log, timeAgo,
-            $route, checkLogin) {
+.run(function($rootScope, $window, $location, Notifications, log, timeAgo,
+        $route, checkLogin, $q, QuestionNode) {
 
     // Upgrade route version
     // The route version should be a number in the range 0-z
     $rootScope.$on('$routeChangeStart', function(event, next, current) {
-        var path = $location.path();
-        var vmatch = /^\/([0-9a-z])\//.exec(path);
-        var version = vmatch && vmatch[1] || '0';
-        if (version == '0') {
-            var oldUrl = $location.url();
-            if (path == "")
-                path = "/";
-            var pElems = path.split('/').map(function(elem) {
-                if (elem == 'survey')
-                    return 'program';
-                else if (elem == 'surveys')
-                    return 'programs';
-                else if (elem == 'hierarchy')
-                    return 'survey';
-                else if (elem == 'assessment')
-                    return 'submission';
-                else
-                    return elem;
-            });
-            pElems.splice(1, 0, '1');
-            $location.path(pElems.join('/'));
+        var CURRENT_VERSION = 2;
+        // Initialise from $location because it is aware of the hash. This
+        // should probably work with HTML5 mode URLs too.
+        var originalUrl = new Url($location.url() || '/', true);
+        var vmatch = /^\/([0-9a-z])\//.exec(originalUrl.path);
+        var version = Number(vmatch && vmatch[1] || '0');
 
-            var search = $location.search();
-            if (search.survey) {
-                $location.search('program', search.survey);
-                $location.search('survey', null);
-            }
-            if (search.hierarchy) {
-                $location.search('survey', search.hierarchy);
-                $location.search('hierarchy', null);
-            }
-            if (search.assessment) {
-                $location.search('submission', search.assessment);
-                $location.search('assessment', null);
-            }
-            if (search.assessment1) {
-                $location.search('submission1', search.assessment1);
-                $location.search('assessment1', null);
-            }
-            if (search.assessment2) {
-                $location.search('submission2', search.assessment2);
-                $location.search('assessment2', null);
-            }
-            console.log("Upgraded route:", oldUrl, $location.url())
+        if (version >= CURRENT_VERSION)
+            return;
+        event.preventDefault();
+
+        // Special case for root location, since it gets used a lot (landing
+        // page).
+        if (originalUrl.toString() == '/') {
+            $location.url('/' + CURRENT_VERSION + '/');
+            return;
         }
 
-        if (version != '1')
-            $location.replace();
+        var deferred = $q.defer();
+        deferred.resolve(originalUrl);
+        var promise = deferred.promise;
+
+        if (version < 1) {
+            promise = promise.then(function(oldUrl) {
+                // Version 1: Rename:
+                //  - survey -> program
+                //  - hierarchy -> survey
+                //  - assessment -> submission
+                var url = new Url(oldUrl.toString(), true);
+                if (url.path == "")
+                    url.path = "/";
+                var pElems = url.path.split('/').map(function(elem) {
+                    if (elem == 'survey')
+                        return 'program';
+                    else if (elem == 'surveys')
+                        return 'programs';
+                    else if (elem == 'hierarchy')
+                        return 'survey';
+                    else if (elem == 'assessment')
+                        return 'submission';
+                    else
+                        return elem;
+                });
+                pElems.splice(1, 0, '1');
+                url.path = pElems.join('/');
+
+                var search = $location.search();
+                if (search.survey) {
+                    url.query.program = url.query.survey;
+                    delete url.query.survey;
+                }
+                if (search.hierarchy) {
+                    url.query.survey = url.query.hierarchy;
+                    delete url.query.hierarchy;
+                }
+                if (search.assessment) {
+                    url.query.submission = url.query.assessment;
+                    delete url.query.assessment;
+                }
+                if (search.assessment1) {
+                    url.query.submission1 = url.query.assessment1;
+                    delete url.query.assessment1;
+                }
+                if (search.assessment2) {
+                    url.query.submission2 = url.query.assessment2;
+                    delete url.query.assessment2;
+                }
+                return url;
+            });
+        }
+
+        if (version < 2) {
+            promise = promise.then(function(oldUrl) {
+                // Version 2: When accessing a measure, replace parent ID with
+                // survey ID - except for new measures.
+                var url = new Url(oldUrl.toString(), true);
+                var measureMatch = /^\/1\/measure\/([\w-]+)/.exec(oldUrl);
+                var subPromise = null;
+                if (measureMatch && measureMatch[1] != 'new') {
+                    subPromise = QuestionNode.get({
+                        id: url.query.parent,
+                        programId: url.query.program,
+                    }).$promise.then(function(qnode) {
+                        url.query.survey = qnode.survey.id;
+                        delete url.query.parent;
+                    });
+                }
+                return $q.when(subPromise).then(function() {
+                    url.path = url.path.replace(/^\/\d+\//, '/2/');
+                    return url;
+                });
+            });
+        }
+
+        promise.then(function(newUrl) {
+            console.log('Upgraded route to v' + CURRENT_VERSION +
+                ':\n' + originalUrl + '\n' + newUrl);
+            $location.url(newUrl);
+        });
     });
 
     $rootScope.$on('$routeChangeError',
@@ -952,7 +1011,7 @@ angular.module('wsaa.aquamark',
     var oneDay = 60 * 60 * 24;
     timeAgo.settings.allowFuture = true;
     timeAgo.settings.fullDateAfterSeconds = oneDay * 3;
-}])
+})
 
 
 .controller('RootCtrl', ['$scope', 'hotkeys', '$cookies', 'User',

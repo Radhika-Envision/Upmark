@@ -17,6 +17,7 @@ import voluptuous
 from activity import Activities
 import handlers
 import model
+from score import Calculator
 from utils import ToSon, truthy, updater
 
 
@@ -78,6 +79,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
                 raise handlers.MissingDocError("No such program")
 
             to_son = ToSon(
+                r'/ob_type$',
                 r'/id$',
                 r'/tracking_id$',
                 r'/title$',
@@ -85,9 +87,9 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/created$',
                 r'/deleted$',
                 r'/is_editable$',
+                r'^/error$',
                 r'/has_quality$',
                 r'/hide_aggregate$',
-                r'/response_types.*$'
             )
             if not self.has_privillege('author'):
                 to_son.exclude(
@@ -131,6 +133,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/title$',
                 r'</description$',
                 r'/deleted$',
+                r'^/[0-9]+/error$',
                 r'/[0-9]+$'
             )
             sons = to_son(query.all())
@@ -200,6 +203,12 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
             session.add(entity)
             return entity
 
+        def dup_repsonse_types(response_types):
+            for response_type in response_types:
+                log.debug('Duplicating %s', response_type)
+                dissociate(response_type)
+                response_type.program_id = target_program.id
+
         def dup_surveys(surveys):
             for survey in surveys:
                 if survey.deleted:
@@ -240,6 +249,10 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
             measure.program_id = target_program.id
             processed_measure_ids.add(measure.id)
 
+        source_response_types = (session.query(model.ResponseType)
+            .filter(model.ResponseType.program_id == source_program.id)
+            .all())
+        dup_repsonse_types(source_response_types)
         dup_surveys(source_program.surveys)
 
     @handlers.authz('author')
@@ -351,18 +364,12 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         Apply program-provided data to the saved model.
         '''
-        response_types_changed = program.response_types != son['response_types']
         update = updater(program)
         update('title', son)
         update('description', son, sanitise=True)
         update('has_quality', son)
         update('hide_aggregate', son)
-        try:
-            update('response_types', son)
-        except voluptuous.Error as e:
-            raise handlers.ModelError("Response types are invalid: %s" % str(e))
-        if response_types_changed:
-            program.update_stats_descendants()
+
 
 class ProgramTrackingHandler(handlers.BaseHandler):
 

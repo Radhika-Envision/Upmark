@@ -42,10 +42,10 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 .controller('SubmissionCtrl', [
         '$scope', 'Submission', 'Survey', 'routeData', 'Editor',
         'questionAuthz', 'layout', '$location', 'Current', 'format', '$filter',
-        'Notifications', 'Structure', '$http',
+        'Notifications', 'Structure', '$http', 'releaseMode',
         function($scope, Submission, Survey, routeData, Editor, authz,
                  layout, $location, current, format, $filter, Notifications,
-                 Structure, $http) {
+                 Structure, $http, releaseMode) {
 
     $scope.layout = layout;
     $scope.program = routeData.program;
@@ -107,11 +107,11 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
-            '/1/submission/{}', model.id, $scope.program.id));
+            '/2/submission/{}', model.id, $scope.program.id));
     });
     $scope.$on('EditDeleted', function(event, model) {
         $location.url(format(
-            '/1/program/{}', $scope.program.id));
+            '/2/program/{}', $scope.program.id));
     });
 
     $scope.checkRole = authz(current, $scope.program, $scope.submission);
@@ -136,6 +136,8 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
             }
         );
     };
+
+    $scope.releaseMode = releaseMode;
 }])
 
 
@@ -247,7 +249,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
             $scope.progress.isFinished = true;
         }, 1000);
         $timeout(function() {
-            $location.url('/1/program/' + response);
+            $location.url('/2/program/' + response);
         }, 5000);
     });
 

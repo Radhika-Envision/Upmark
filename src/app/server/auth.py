@@ -80,7 +80,7 @@ class AuthLoginHandler(handlers.TemplateHandler):
         # Make sure the XSRF token expires at the same time
         self.xsrf_token
 
-        self.redirect('/' + self.get_argument("next", "#/1/"))
+        self.redirect('/' + self.get_argument("next", "#/2/"))
 
     @property
     def xsrf_token(self):

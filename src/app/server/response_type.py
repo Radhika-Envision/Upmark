@@ -1,10 +1,51 @@
-
 import logging
 
-from simpleeval import simple_eval, InvalidExpression
+from py_expression_eval import Parser
+from voluptuous import All, Any, Coerce, Length, Optional, Required, Schema
 
 
 log = logging.getLogger('app.response_type')
+
+response_parts_schema = Schema([
+    {
+        # Common fields
+        Required('id', default=None): Any(
+            All(str, Length(min=1)), None),
+        'type': Any('multiple_choice', 'numerical'),
+        Required('name', default=None): Any(
+            All(str, Length(min=1)), None),
+        Required('description', default=None): Any(
+            All(str, Length(min=1)), None),
+        # Fields that vary by type
+        # Multiple choice
+        Optional('options'): All([
+            {
+                'score': Coerce(float),
+                'name': All(str, Length(min=1)),
+                Required('if', default=None): Any(
+                    All(str, Length(min=1)), None),
+                Required('description', default=None): Any(
+                    All(str, Length(min=1)), None)
+            }
+        ], Length(min=2)),
+        # Numerical
+        Optional('lower'): Any(All(str, Length(min=1)), None),
+        Optional('upper'): Any(All(str, Length(min=1)), None),
+    },
+], required=True)
+
+
+response_schema = Schema([
+    Any(
+        {
+            'index': int,
+            'note': All(str, Length(min=1)),
+        },
+        {
+            'value': Coerce(float),
+        },
+    )
+], required=True)
 
 
 class ResponseTypeError(Exception):
@@ -21,34 +62,57 @@ class ResponseError(ResponseTypeError):
     pass
 
 
-class ResponseTypeCache:
-    def __init__(self, rt_defs):
-        self.rt_defs = rt_defs
-        self.materialised_types = {}
+def validate_parts(parts):
+    for p_def in parts:
+        response_part(p_def)
 
-    def __getitem__(self, id_):
-        if id_ not in self.materialised_types:
-            for rt_def in self.rt_defs:
-                if rt_def['id'] == id_:
-                    self.materialised_types[id_] = ResponseType(rt_def)
-                    break
-        return self.materialised_types[id_]
 
-# Important: keep changes made to these classes in sync with those in
-# response.js.
+def validate_formula(formula):
+    parse(formula)
+
+
+# These functions are used to calculate scores and validate entered data.
+# NOTE: keep changes made to these classes in sync with those in response.js.
+
+
+parser = Parser()
+
+
+def unique_strings(ss):
+    return sorted(set(ss))
+
+
+def parse(exp):
+    try:
+        return parser.parse(exp) if exp else None
+    except Exception as e:
+        raise ExpressionError("'%s': %s" % (exp, e))
+
+
+def refs(c_exp):
+    return c_exp.variables() if c_exp else []
+
 
 class ResponseType:
-    def __init__(self, rt_def):
-        self.id_ = rt_def['id']
-        self.name = rt_def['name']
-        self.parts = [response_part(p_def) for p_def in rt_def['parts']]
-        self.formula = rt_def.get('formula', None)
+    def __init__(self, name, parts, formula):
+        self.name = name
+        self.parts = [response_part(p_def) for p_def in parts]
+        self.formula = parse(formula)
+        self.declared_vars = unique_strings([
+            v for part in self.parts
+            for v in part.declared_vars])
+        self.free_vars = unique_strings([
+            v for part in self.parts
+            for v in part.free_vars] + refs(self.formula))
+        self.unbound_vars = unique_strings([
+            v for v in self.free_vars
+            if v not in self.declared_vars])
 
     def score(self, response_parts, scope):
         if self.formula is not None:
             try:
-                return simple_eval(self.formula, names=scope)
-            except InvalidExpression as e:
+                return self.formula.evaluate(scope)
+            except Exception as e:
                 raise ExpressionError(str(e))
 
         score = 0.0
@@ -72,6 +136,21 @@ class ResponseType:
                     raise ResponseError(
                         "Response part %d is invalid: %s" % (i, e))
         return scope
+
+    def humanize_variable(self, field_name):
+        if field_name == '_raw':
+            return 'Raw score'
+        if field_name == '_score':
+            return 'Weighted score'
+        if field_name == '_weight':
+            return 'Measure weight'
+        for i, part in enumerate(self.parts):
+            if field_name != part.id_:
+                continue
+            if part.name:
+                return '%s' % part.name
+            return 'Part %d' % i
+        return 'Unknown field %s' % field_name
 
     def validate(self, response_parts, scope):
         for i, (part_t, part_r) in enumerate(zip(self.parts, response_parts)):
@@ -99,7 +178,7 @@ class ResponseType:
         return self.score(response_parts, scope)
 
     def __repr__(self):
-        return "ResponseType(%s)" % (self.name or self.id_)
+        return "ResponseType(%s)" % (self.name)
 
 
 def response_part(p_def):
@@ -111,9 +190,10 @@ def response_part(p_def):
 
 class ResponsePart:
     def __init__(self, p_def):
-        self.id_ = p_def.get('id', None)
-        self.name = p_def.get('name', None)
-        self.description = p_def.get('description', None)
+        self.id_ = p_def.get('id')
+        self.name = p_def.get('name')
+        self.type = p_def['type']
+        self.description = p_def.get('description')
 
 
 class MultipleChoice(ResponsePart):
@@ -121,6 +201,10 @@ class MultipleChoice(ResponsePart):
         super().__init__(p_def)
         self.options = [ResponseOption(o_def)
                         for o_def in p_def['options']]
+        self.declared_vars = [self.id_, self.id_ + '__i'] if self.id_ else []
+        self.free_vars = unique_strings([
+            v for opt in self.options
+            for v in opt.free_vars])
 
     def get_option(self, part_r):
         try:
@@ -158,14 +242,15 @@ class ResponseOption:
     def __init__(self, o_def):
         self.score = o_def['score']
         self.name = o_def['name']
-        self.predicate = o_def.get('if', None)
+        self.predicate = parse(o_def.get('if'))
+        self.free_vars = refs(self.predicate)
 
     def available(self, scope):
         if not self.predicate:
             return True
 
         try:
-            return bool(simple_eval(self.predicate, names=scope))
+            return bool(self.predicate.evaluate(scope))
         except Exception:
             return False
 
@@ -176,8 +261,11 @@ class ResponseOption:
 class Numerical(ResponsePart):
     def __init__(self, p_def):
         super().__init__(p_def)
-        self.lower_exp = p_def.get('lower')
-        self.upper_exp = p_def.get('upper')
+        self.lower_exp = parse(p_def.get('lower'))
+        self.upper_exp = parse(p_def.get('upper'))
+        self.declared_vars = [self.id_] if self.id_ else []
+        self.free_vars = unique_strings(
+            refs(self.lower_exp) + refs(self.upper_exp))
 
     def score(self, part_r):
         try:
@@ -195,26 +283,30 @@ class Numerical(ResponsePart):
         if not self.lower_exp:
             return float('-inf')
         try:
-            return simple_eval(self.lower_exp, names=scope)
-        except (InvalidExpression, TypeError) as e:
-            log.debug('Could not evaulate lower_exp: %s: %s', self.lower_exp, e)
+            return self.lower_exp.evaluate(scope)
+        except Exception as e:
+            log.debug('Could not evaluate lower_exp: %s: %s',
+                      self.lower_exp.toString(), e)
             raise ExpressionError(str(e))
 
     def upper(self, scope):
         if not self.upper_exp:
             return float('inf')
         try:
-            return simple_eval(self.upper_exp, names=scope)
-        except (InvalidExpression, TypeError) as e:
-            log.debug('Could not evaulate upper_exp: %s: %s', self.upper_exp, e)
+            return self.upper_exp.evaluate(scope)
+        except Exception as e:
+            log.debug('Could not evaluate upper_exp: %s: %s',
+                      self.upper_exp.toString(), e)
             raise ExpressionError(str(e))
 
     def validate(self, part_r, scope):
         score = self.score(part_r)
         if self.lower(scope) > score:
-            raise ResponseError("Value must be greater than %s" % self.lower(scope))
+            raise ResponseError("Value must be greater than %s" %
+                                self.lower(scope))
         if self.upper(scope) < score:
-            raise ResponseError("Value must be less than %s" % self.upper(scope))
+            raise ResponseError("Value must be less than %s" %
+                                self.upper(scope))
 
     def __repr__(self):
         return "Numerical(%s)" % (self.name or self.id_)

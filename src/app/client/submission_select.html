@@ -4,17 +4,17 @@
     <div class="section">
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="Import"
-                    ng-href="#/1/submission/import?program={{program.id}}&organisation={{aSearch.organisation.id}}"
+                    ng-href="#/2/submission/import?program={{program.id}}&organisation={{aSearch.organisation.id}}"
                     ng-if="showEdit && purchasedSurvey && checkRole('submission_add')">
                 <i class="fa fa-fw fa-cloud-upload"></i></a>
             <a class="btn btn-default btn-round" title="Duplicate existing"
-                    ng-href="#/1/submission/duplicate?program={{program.id}}&organisation={{aSearch.organisation.id}}"
+                    ng-href="#/2/submission/duplicate?program={{program.id}}&organisation={{aSearch.organisation.id}}"
                     ng-if="showEdit && purchasedSurvey && checkRole('submission_add')">
                 <i class="fa fa-fw fa-clone">
                     <i class="fa fa-link fa-badge"></i>
                 </i></a>
             <a class="btn btn-default btn-round" title="Add new"
-                    ng-href="#/1/submission/new?program={{program.id}}&organisation={{aSearch.organisation.id}}"
+                    ng-href="#/2/submission/new?program={{program.id}}&organisation={{aSearch.organisation.id}}"
                     ng-if="showEdit && purchasedSurvey && checkRole('submission_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
             <a ng-href="#{{getSubmissionUrl(null)}}"
@@ -28,18 +28,17 @@
         </h2>
     </div>
 
-    <ui-select ng-model="aSearch.organisation" reset-search-input="false"
-            ng-if="checkRole('submission_review')">
-        <ui-select-match placeholder="Type to select organisation">
+    <div class="input-group">
+        <label for="org-search" class="input-group-addon">
             <i class="fa fa-university"></i>
-            {{aSearch.organisation.name}}</ui-select-match>
-        <ui-select-choices
-                repeat="organisation in organisations | filter: $select.search"
-                refresh="searchOrg($select.search)"
-                refresh-delay="0">
-            <div ng-bind-html="organisation.name | highlight: $select.search"></div>
-        </ui-select-choices>
-    </ui-select>
+        </label>
+        <input type="text" class="form-control" id="org-search"
+                ng-if="checkRole('submission_review')"
+                ng-model="aSearch.organisation"
+                uib-typeahead="org as org.name for org in searchOrg($viewValue)"
+                typeahead-append-to-body="true"
+                autocomplete="off">
+    </div>
 
     <search-box class="spaced" model="search" result="submissions">
         <button class="btn btn-default" type="button"
@@ -60,14 +59,21 @@
 
     <ul class="list-results spaced">
         <li ng-repeat="a in submissions"
-                ng-class="{active: a.id == submission.id,
-                           strike: a.deleted}">
+                ng-class="{
+                    'active': a.id == submission.id,
+                    'strike': a.deleted,
+                    'bg-warning': survey.error,
+                }">
             <a ng-href="#{{getSubmissionUrl(a)}}"
                     ng-click="toggleDropdown()">
-                <h4>{{a.title}}
+                <h4>
+                    {{a.title}}
+                    <i ng-if="a.error"
+                        class="fa fa-exclamation-triangle text-muted"></i>
                     <span class="pull-right">
                         <approval model="a.approval"></approval>
-                    </span></h4>
+                    </span>
+                </h4>
                 <p class="truncate">
                     {{a.survey.title}} in {{a.program.title}}
                     <span class="hidden-print">
@@ -103,7 +109,7 @@
         </span>
     </p>
     <div class="text-center hidden-print">
-        <a ng-href="#/1/submission/new?program={{program.id}}&organisation={{aSearch.organisation.id}}"
+        <a ng-href="#/2/submission/new?program={{program.id}}&organisation={{aSearch.organisation.id}}"
                 class="btn btn-link btn-lg"
                 ng-if="purchasedSurvey && checkRole('submission_add') && showEdit && !submissions.length">
             <i class="fa fa-plus"></i>

@@ -14,7 +14,7 @@ $anim-time: 0.3s;
 .btn, .btn-group-addon {
     border-bottom-width: $button-border-width;
     padding: 6px 12px (6px - $button-border-width);
-    @include transition-property(color, background-color, border-bottom-color);
+    @include transition-property(color, background-color, border-bottom-color, box-shadow);
     @include transition-duration($anim-time);
 
     &.disabled, &[disabled] {
@@ -30,7 +30,9 @@ $anim-time: 0.3s;
         padding: 0;
         line-height: $round-button-width - 1px;
         font-size: $round-button-width - 8px;
-        margin-left: $round-button-width / 3;
+        &:not(:first-child) {
+            margin-left: $round-button-width / 3;
+        }
     }
 }
 
@@ -103,16 +105,11 @@ div[textarea-label] {
     position: relative;
     &:after {
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        top: 7px;
+        left: 13px;
         content: attr(textarea-label);
         text-align: center;
-        line-height: 60px;
-        font-size: 40px;
-        font-weight: bold;
-        opacity: 0.2;
+        opacity: 0.5;
         pointer-events: none;
     }
 }
@@ -133,6 +130,15 @@ div[textarea-label] {
     &.text-muted {
         color: #888;
     }
+}
+label.input-group-addon {
+    text-align: left;
+}
+label.input-group-addon.align-sm-md {
+    min-width: 75px;
+}
+label.input-group-addon.align-md {
+    min-width: 100px;
 }
 
 .input-group-btn {
@@ -180,15 +186,14 @@ div[textarea-label] {
         &:not([disabled]):not(.btn-round) {
             color: $button-fg;
             background-color: $primary-colour;
-            @include transform(scale(1.01, 1.05));
             border-radius: 3px !important;
+            box-shadow: 0 0 0 1px #bbe2f6;
         }
     }
 }
 .btn-default.ui-select-toggle:not([disabled]):not(.btn-round) {
     &:active, &:active:focus {
         background-color: $button-bg;
-        @include transform(scale(1));
         border-radius: 4px !important;
     }
 }
@@ -202,7 +207,7 @@ div[textarea-label] {
         border-color: transparent;
     }
     &:hover, &:active, &.active, &.active:hover, &.active:focus, &:focus,
-    &:active.focus, &:active:focus {
+    &:active.focus, &:active:focus, &:active:hover {
         outline: none;
         border-color: transparent;
         box-shadow: none;
@@ -374,8 +379,13 @@ ul.list-form {
     padding: 15px;
 }
 
-.commasep > span:not(:last-child):after {
-    content: ',';
+.commasep {
+    > span,
+    > em {
+        &:not(:last-child):after {
+            content: ', ';
+        }
+    }
 }
 
 .btn-on-danger {

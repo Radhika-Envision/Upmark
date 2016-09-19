@@ -9,8 +9,10 @@
     </button>
 </div>
 
-<div class="form-control spaced" ng-if="model.mode == 'rendered'" medium-editor
-    ng-model="model.viewValue" bind-options="options"></div>
+<div textarea-label="{{!model.viewValue ? placeholder : ''}}">
+    <div class="form-control" ng-if="model.mode == 'rendered'" medium-editor
+        ng-model="model.viewValue" bind-options="options"></div>
 
-<textarea ng-if="model.mode != 'rendered'" class="form-control spaced autoresize"
-    ng-model="model.viewValue"></textarea>
+    <textarea ng-if="model.mode != 'rendered'" class="form-control autoresize"
+        ng-model="model.viewValue"></textarea>
+</div>

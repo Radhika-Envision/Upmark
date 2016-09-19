@@ -1,6 +1,5 @@
 [
     {
-        "id": "yes-no",
         "name": "Yes / No",
         "parts": [
             {
@@ -14,7 +13,6 @@
         ]
     },
     {
-        "id": "numerical",
         "name": "Numerical",
         "parts": [
             {
@@ -26,7 +24,6 @@
         ]
     },
     {
-        "id": "comment",
         "name": "Comment Only (no score)",
         "parts": []
     }

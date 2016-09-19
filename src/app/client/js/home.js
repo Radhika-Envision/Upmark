@@ -92,6 +92,8 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
         switch (action.obType || action) {
         case 'qnode':
             return 'survey category';
+        case 'response_type':
+            return 'response type';
         case 'rnode':
             return 'submission category';
         default:
@@ -105,27 +107,30 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
 
         switch (action.obType) {
         case 'organisation':
-            return format("/1/org/{}", action.obIds[0]);
+            return format("/2/org/{}", action.obIds[0]);
         case 'user':
-            return format("/1/user/{}", action.obIds[0]);
+            return format("/2/user/{}", action.obIds[0]);
         case 'program':
-            return format("/1/program/{}", action.obIds[0]);
+            return format("/2/program/{}", action.obIds[0]);
         case 'survey':
-            return format("/1/survey/{}?program={}",
+            return format("/2/survey/{}?program={}",
                 action.obIds[0], action.obIds[1]);
         case 'qnode':
-            return format("/1/qnode/{}?program={}",
+            return format("/2/qnode/{}?program={}",
                 action.obIds[0], action.obIds[1]);
         case 'measure':
-            return format("/1/measure/{}?program={}",
+            return format("/2/measure/{}?program={}",
+                action.obIds[0], action.obIds[1]);
+        case 'response_type':
+            return format("/2/response-type/{}?program={}",
                 action.obIds[0], action.obIds[1]);
         case 'submission':
-            return format("/1/submission/{}", action.obIds[0]);
+            return format("/2/submission/{}", action.obIds[0]);
         case 'rnode':
-            return format("/1/qnode/{}?submission={}",
+            return format("/2/qnode/{}?submission={}",
                 action.obIds[0], action.obIds[1]);
         case 'response':
-            return format("/1/measure/{}?submission={}",
+            return format("/2/measure/{}?submission={}",
                 action.obIds[0], action.obIds[1]);
         default:
             return '';
@@ -147,6 +152,7 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
         case 'survey':
         case 'qnode':
         case 'measure':
+        case 'response_type':
             return 'question';
         case 'submission':
         case 'rnode':
@@ -288,7 +294,7 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
     };
 
     $scope.subscriptionUrl = function(action) {
-        var url = '/1/subscription/' + action.obType;
+        var url = '/2/subscription/' + action.obType;
         for (var i = 0; i < action.obIds.length; i++) {
             if (i == 0)
                 url += '?';

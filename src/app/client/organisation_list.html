@@ -2,7 +2,7 @@
     <div class="container">
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="Add new"
-                    href="#/1/org/new" ng-if="checkRole('org_add')">
+                    href="#/2/org/new" ng-if="checkRole('org_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
         </div>
         <h2 page-title>
@@ -19,7 +19,7 @@
     <ul class="list-results">
         <li ng-repeat="org in orgs"
                 ng-class="{strike: org.deleted}">
-            <a ng-href="#/1/org/{{org.id}}">
+            <a ng-href="#/2/org/{{org.id}}">
                 <h4>{{org.name}}</h4>
                 <p class="truncate" ng-if="org.locations.length">
                     {{org.locations[0].description}}

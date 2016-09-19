@@ -14,6 +14,7 @@ from activity import Activities
 import crud
 import handlers
 import model
+from score import Calculator
 from utils import reorder, ToSon, truthy, updater
 
 
@@ -46,6 +47,7 @@ class QuestionNodeHandler(
 
             to_son = ToSon(
                 # Fields to match from any visited object
+                r'/ob_type$',
                 r'/id$',
                 r'/title$',
                 r'/seq$',
@@ -53,6 +55,7 @@ class QuestionNodeHandler(
                 r'/total_weight$',
                 r'/n_measures$',
                 r'/is_editable$',
+                r'^/error$',
                 r'/program/tracking_id$',
                 r'/program/created$',
                 r'/program/hide_aggregate$',
@@ -149,6 +152,7 @@ class QuestionNodeHandler(
                 r'/deleted$',
                 r'/n_measures$',
                 r'/total_weight$',
+                r'^/[0-9]+/error$',
                 # Descend into nested objects
                 r'/[0-9]+$',
             )
@@ -326,7 +330,10 @@ class QuestionNodeHandler(
                 # Need to flush so object has an ID to record action against.
                 session.flush()
 
-                qnode.update_stats_ancestors()
+                calculator = Calculator.structural()
+                calculator.mark_qnode_dirty(qnode)
+                calculator.execute()
+
                 qnode_id = str(qnode.id)
 
                 act = Activities(session)
@@ -370,11 +377,14 @@ class QuestionNodeHandler(
 
                 qnode.deleted = True
 
-                if survey is not None:
-                    survey.qnodes.reorder()
+                calculator = Calculator.structural()
                 if parent is not None:
                     parent.children.reorder()
-                    parent.update_stats_ancestors()
+                    calculator.mark_qnode_dirty(parent)
+                else:
+                    survey.qnodes.reorder()
+                    calculator.mark_survey_dirty(survey)
+                calculator.execute()
 
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError("Question node is in use")
@@ -406,7 +416,7 @@ class QuestionNodeHandler(
                 if session.is_modified(qnode):
                     verbs.append('update')
 
-                nodes_requiring_update = set()
+                calculator = Calculator.structural()
                 if parent_id != '' and str(qnode.parent_id) != parent_id:
                     # Change parent
                     old_parent = qnode.parent
@@ -418,8 +428,8 @@ class QuestionNodeHandler(
                     old_parent.children.reorder()
                     new_parent.children.append(qnode)
                     new_parent.children.reorder()
-                    nodes_requiring_update.add(old_parent)
-                    nodes_requiring_update.add(qnode)
+                    calculator.mark_qnode_dirty(old_parent)
+                    calculator.mark_qnode_dirty(qnode)
                     self.reason("Moved from %s to %s" % (
                         old_parent.title, new_parent.title))
                     verbs.append('relation')
@@ -437,11 +447,10 @@ class QuestionNodeHandler(
                     qnode.deleted = False
                     collection.insert(qnode.seq, qnode)
                     collection.reorder()
-                    nodes_requiring_update.add(qnode)
+                    calculator.mark_qnode_dirty(qnode)
                     verbs.append('undelete')
 
-                for n in nodes_requiring_update:
-                    n.update_stats_ancestors()
+                calculator.execute()
 
                 act = Activities(session)
                 act.record(self.current_user, qnode, verbs)

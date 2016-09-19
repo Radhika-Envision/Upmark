@@ -18,6 +18,7 @@ import crud.program
 import handlers
 import model
 from response_type import ResponseTypeError
+from score import Calculator
 from utils import reorder, ToSon, truthy, updater
 
 
@@ -38,12 +39,11 @@ class ResponseNodeHandler(handlers.BaseHandler):
 
         with model.session_scope() as session:
             rnode = (session.query(model.ResponseNode)
-                    .filter_by(submission_id=submission_id,
-                               qnode_id=qnode_id)
-                    .first())
+                .get((submission_id, qnode_id)))
 
             if rnode is None:
-                # Create an empty one, and roll back later
+                # Create an empty one, and roll back later (because GET
+                # shouldn't modify anything).
                 qnode, submission = (session.query(
                         model.QuestionNode, model.Submission)
                     .join(model.Program)
@@ -69,6 +69,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
 
             to_son = ToSon(
                 # Fields to match from any visited object
+                r'/ob_type$',
                 r'/id$',
                 r'/score$',
                 r'/total_weight$',
@@ -82,6 +83,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 r'/n_not_relevant$',
                 r'/(max_)?importance$',
                 r'/(max_)?urgency$',
+                r'^/error$',
                 # Descend into nested objects
                 r'/qnode$',
                 # The IDs of rnodes and responses are not part of the API
@@ -116,8 +118,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
 
         with model.session_scope() as session:
             submission = (session.query(model.Submission)
-                .filter_by(id=submission_id)
-                .first())
+                .get((submission_id,)))
 
             if submission is None:
                 raise handlers.MissingDocError("No such submission")
@@ -127,10 +128,10 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 children = submission.rnodes
             else:
                 rnode = (session.query(model.ResponseNode)
-                    .filter_by(submission_id=submission_id,
-                               qnode_id=parent_id)
-                    .first())
+                    .get((submission_id, parent_id)))
                 if rnode is None:
+                    # Rnodes get created from the bottom of the tree up, so if
+                    # the parent doesn't exist, its children shouldn't either.
                     children = []
                 else:
                     children = rnode.children
@@ -148,6 +149,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 r'/n_not_relevant$',
                 r'/max_importance$',
                 r'/max_urgency$',
+                r'^/[0-9]+/error$',
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/qnode$',
@@ -185,9 +187,8 @@ class ResponseNodeHandler(handlers.BaseHandler):
 
                 self._check_authz(submission)
 
-                query = (session.query(model.ResponseNode).filter_by(
-                     submission_id=submission_id, qnode_id=qnode_id))
-                rnode = query.first()
+                rnode = (session.query(model.ResponseNode)
+                    .get((submission_id, qnode_id)))
 
                 verbs = []
 
@@ -196,11 +197,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                         .get((qnode_id, submission.program.id)))
                     if qnode is None:
                         raise handlers.MissingDocError("No such question node")
-                    rnode = model.ResponseNode(
-                        submission_id=submission_id,
-                        qnode_id=qnode_id,
-                        program_id=submission.program.id)
-                    session.add(rnode)
+                    rnode = qnode.get_rnode(submission, create=True)
 
                 importance = self.request_son.get('importance')
                 if importance is not None:
@@ -227,8 +224,10 @@ class ResponseNodeHandler(handlers.BaseHandler):
                     verbs.append('update')
 
                 try:
-                    rnode.update_stats_ancestors()
-                except (model.ModelError, ResponseTypeError) as e:
+                    calculator = Calculator.scoring(submission)
+                    calculator.mark_qnode_dirty(rnode.qnode)
+                    calculator.execute()
+                except ResponseTypeError as e:
                     raise handlers.ModelError(str(e))
 
                 act = Activities(session)
@@ -255,6 +254,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
         submission = rnode.submission
         changed = failed = created = 0
 
+        calculator = Calculator.scoring(submission)
         for response, is_new in self.walk_responses(session, rnode, missing):
             try:
                 crud.response.check_modify(self.current_user.role, response)
@@ -292,20 +292,11 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 else:
                     changed += 1
             else:
-                if not response.not_relevant:
-                    continue
                 response.not_relevant = False
-                try:
-                    response.update_stats()
-                except model.ModelError:
-                    # Could not mark response as not NA because it is lacking
-                    # information and requires manual intervention.
-                    response.not_relevant = True
-                    failed += 1
-                    continue
                 changed += 1
+            calculator.mark_measure_dirty(response.qnode_measure)
 
-        rnode.update_stats_descendants()
+        calculator.execute()
 
         if created:
             self.reason("Created %d" % created)
@@ -330,6 +321,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
         submission = rnode.submission
         promoted = demoted = created = 0
 
+        calculator = Calculator.scoring(submission)
         for response, is_new in self.walk_responses(session, rnode, missing):
             if is_new:
                 response.not_relevant = True
@@ -348,8 +340,9 @@ class ResponseNodeHandler(handlers.BaseHandler):
                     response.approval = approval
                     response.modified = func.now()
                     demoted += 1
+            calculator.mark_measure_dirty(response.qnode_measure)
 
-        rnode.update_stats_descendants()
+        calculator.execute()
 
         if created:
             self.reason("Created %d (NA)" % created)
@@ -362,16 +355,15 @@ class ResponseNodeHandler(handlers.BaseHandler):
             self.reason("No changes to approval status")
 
     def walk_responses(self, session, rnode, missing):
-        for measure in rnode.qnode.ordered_measures:
-            response = measure.get_response(rnode.submission)
+        for qnode_measure in rnode.qnode.ordered_qnode_measures:
+            response = qnode_measure.get_response(rnode.submission)
             if not response:
                 if missing != 'CREATE':
                     continue
                 response = model.Response(
                     user_id=self.current_user.id,
                     submission=rnode.submission,
-                    measure=measure,
-                    program=rnode.submission.program)
+                    qnode_measure=qnode_measure)
                 response.modified = func.now()
                 session.add(response)
                 created = True

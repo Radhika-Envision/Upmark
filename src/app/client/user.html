@@ -23,16 +23,16 @@
                 ng-if="!edit.model && checkRole('user_edit')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/1/subscription/user?id={{user.id}}">
+                ng-href="#/2/subscription/user?id={{user.id}}">
             <i class="fa fa-envelope"></i></a>
     </div>
     <h2 page-title>
         <i class="fa fa-fw fa-user"></i>
-        <a href="#/1/org/{{user.organisation.id}}"
+        <a href="#/2/org/{{user.organisation.id}}"
                 ng-if="user.organisation"
                 ng-class="{strike: user.organisation.deleted}">
             {{user.organisation.name}}</a>
-        <a href="#/1/org/{{user.organisation.id}}"
+        <a href="#/2/org/{{user.organisation.id}}"
                 ng-if="!user.organisation">
             Users</a>
         &raquo;
@@ -56,17 +56,11 @@
         </div>
         <div class="form-group">
             <label for="user_org">Organisation</label>
-            <ui-select ng-model="edit.model.organisation"
-                    ng-disabled="!checkRole('user_change_org')"
-                    reset-search-input="false">
-                <ui-select-match placeholder="Type to select organisation">{{edit.model.organisation.name}}</ui-select-match>
-                <ui-select-choices
-                        repeat="organisation in organisations | filter: $select.search"
-                        refresh="searchOrg($select.search)"
-                        refresh-delay="0">
-                    <div ng-bind-html="organisation.name | highlight: $select.search"></div>
-                </ui-select-choices>
-            </ui-select>
+            <input type="text" class="form-control" id="user_org"
+                ng-disabled="!checkRole('user_change_org')"
+                ng-model="edit.model.organisation"
+                uib-typeahead="org as org.name for org in searchOrg($viewValue)"
+                autocomplete="off">
         </div>
         <div class="form-group" show-errors>
             <label for="user_role">Role</label>
@@ -101,7 +95,7 @@
             <h3>Email notifications</h3>
             <p>
                 Notifications can be sent to your email address when activity
-                in <a href="/#/1/">your timeline</a> changes. To opt out, set the
+                in <a href="/#/2/">your timeline</a> changes. To opt out, set the
                 email frequency to zero. The maximum interval is two weeks.
             </p>
         </docs>
@@ -144,7 +138,7 @@
     <dl>
         <dt>Organisation</dt>
         <dd>
-            <a ng-href="#/1/org/{{user.organisation.id}}">
+            <a ng-href="#/2/org/{{user.organisation.id}}">
                 {{user.organisation.name}}</a>
         </dd>
     </dl>

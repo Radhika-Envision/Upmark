@@ -35,6 +35,12 @@
             vertical-align: middle;
         }
     }
+
+    > tbody > tr.warning > td,
+    > tbody > tr > td.warning {
+        background-color: $warning-colour;
+    }
+
     .str-wrap {
         min-width: 40ex;
         max-width: 40ex;

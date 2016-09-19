@@ -20,6 +20,7 @@ import app
 import handlers
 import model
 import response_type
+from score import Calculator
 
 
 MAX_WORKERS = 4
@@ -140,11 +141,19 @@ class Importer():
             program = model.Program()
             program.title = title
             program.description = bleach.clean(description, strip=True)
+            session.add(program)
+            response_types = {}
             with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                 'aquamark_response_types.json')) as file:
                 program.response_types = json.load(file)
-            session.add(program)
-            session.flush()
+                for rt_def in response_types:
+                    response_type = model.ResponseType(
+                        program=program,
+                        name=rt_def['name'],
+                        parts=rt_def['parts'],
+                        formula=rt_def.get('formula'))
+                    session.add(response_type)
+                    response_types[rt_def['id']] = response_type
             program_id = str(program.id)
 
             survey = model.Survey()
@@ -269,16 +278,23 @@ class Importer():
                             m.title = measure_title
                             m.weight = measure_weight
                             m.description = bleach.clean(measure_description, strip=True)
-                            response_type = "standard"
+                            rt_id = "standard"
                             if function_order == 7:
-                                response_type = "business-support-%s" % int(measure['resp_num'])
-                            # log.info("response_type: %s", response_type)
-                            m.response_type = response_type
+                                rt_id = "business-support-%s" % int(measure['resp_num'])
+                            # log.info("response_type: %s", rt_id)
+                            m.response_type = response_types[rt_id]
                             session.add(m)
                             session.flush()
-                            qnode_subprocess.measures.append(m)
+                            qnode_measure = QnodeMeasure(
+                                program=program, survey=survey,
+                                parent=qnode_subprocess, measure=m)
+                            qnode_subprocess.qnode_measures.reorder()
                             session.flush()
-            program.update_stats_descendants()
+
+            calculator = Calculator.structural()
+            calculator.mark_entire_survey_dirty(survey)
+            calculator.execute()
+
             return program_id
 
     def process_response_file(self, path, program_id):
@@ -361,7 +377,9 @@ class Importer():
                     log.debug("subprocess: %s", subprocess)
 
                     order, title = self.parse_order_title(all_rows, row_num, "D", "{order} {title}")
-                    measure = [m for m in subprocess.measures if m.title == title]
+                    measure = [
+                        qm.measure for qm in subprocess.qnode_measures
+                        if qm.measure.title == title]
 
                     if len(measure) == 1:
                         measure = measure[0]
@@ -370,11 +388,11 @@ class Importer():
                     log.debug("measure: %s", measure)
 
 
-                    log.debug("measure response_type: %s", [r for r in response_types if r["id"] == measure.response_type][0])
-                    r_types = [r for r in response_types if r["id"] == measure.response_type][0]
+                    log.debug("measure response_type: %s", measure.response_type.name)
 
                     response = model.Response()
                     response.program_id = program_id
+                    response.survey_id = survey_id
                     response.measure_id = measure.id
                     response.submission_id = submission.id
                     response.user_id = user_id
@@ -384,11 +402,11 @@ class Importer():
                     response.approval = 'draft'
                     response_part = []
 
-                    response_part.append(self.parse_response_type(all_rows, row_num, r_types, "E"))
+                    response_part.append(self.parse_response_type(all_rows, row_num, measure.response_type, "E"))
                     if function_order != "7":
-                        response_part.append(self.parse_response_type(all_rows, row_num, r_types, "F"))
-                        response_part.append(self.parse_response_type(all_rows, row_num, r_types, "G"))
-                        response_part.append(self.parse_response_type(all_rows, row_num, r_types, "H"))
+                        response_part.append(self.parse_response_type(all_rows, row_num, measure.response_type, "F"))
+                        response_part.append(self.parse_response_type(all_rows, row_num, measure.response_type, "G"))
+                        response_part.append(self.parse_response_type(all_rows, row_num, measure.response_type, "H"))
                     response.response_parts  = response_part
                     response.audit_reason = "Import"
                     session.add(response)
@@ -405,25 +423,24 @@ class Importer():
                     "Row %d: %s %s: %s" %
                     (row_num + 2, order, title, str(e)))
 
-            try:
-                submission.update_stats_descendants()
-            except model.ModelError as e:
-                raise handlers.ModelError(str(e))
+            calculator = Calculator.scoring(submission)
+            calculator.mark_entire_survey_dirty(submission.survey)
+            calculator.execute()
 
         return program_id
 
-    def parse_response_type(self, all_rows, row_num, types, col_chr):
+    def parse_response_type(self, all_rows, row_num, response_type, col_chr):
         response_text = all_rows[row_num][self.col2num(col_chr)]
         index =  ord(col_chr) - ord("E")
 
         try:
             response_options = [
                 r["name"].replace(" ", "").lower()
-                for r in types["parts"][index]["options"]]
+                for r in response_type.parts[index]["options"]]
         except IndexError:
             raise ImportError(
                 "This measure only has %d part(s)" %
-                len(types["parts"]))
+                len(response_type.parts))
 
         try:
             response_index = response_options.index(response_text.replace(" ", "").lower())

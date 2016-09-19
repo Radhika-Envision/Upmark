@@ -18,6 +18,7 @@ import handlers
 import model
 import logging
 
+from score import Calculator
 from utils import reorder, ToSon, truthy, updater
 
 
@@ -51,6 +52,7 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
 
             to_son = ToSon(
                 # Any
+                r'/ob_type$',
                 r'/id$',
                 r'/title$',
                 r'/name$',
@@ -59,6 +61,8 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/created$',
                 r'/deleted$',
                 r'/n_measures$',
+                r'^/error$',
+                r'^/survey/error$',
                 r'/program/tracking_id$',
                 # Nested
                 r'/program$',
@@ -133,6 +137,7 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/created$',
                 r'/deleted$',
                 r'/program/tracking_id$',
+                r'^/[0-9]+/error$',
                 # Descend
                 r'/[0-9]+$',
                 r'/organisation$',
@@ -238,8 +243,8 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
 
         survey_id = str(submission.survey.id)
         measure_ids = {str(m.id) for m in submission.program.measures
-                       if any(str(p.survey_id) == survey_id
-                              for p in m.parents)}
+                       if any(str(qm.survey_id) == survey_id
+                              for qm in m.qnode_measures)}
 
         qnode_ids = {str(r[0]) for r in
                 session.query(model.QuestionNode.id)
@@ -253,10 +258,12 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
                 .all())
 
         for rnode in s_rnodes:
+            if str(rnode.qnode_id) not in qnode_ids:
+                continue
+
             # Duplicate
             session.expunge(rnode)
             make_transient(rnode)
-            rnode.id = None
 
             # Customise
             rnode.program = submission.program
@@ -277,7 +284,6 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
             # Duplicate
             session.expunge(response)
             make_transient(response)
-            response.id = None
 
             # Customise
             response.program = submission.program
@@ -303,7 +309,9 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
                 session.add(attachment)
 
         session.flush()
-        submission.update_stats_descendants()
+        calculator = Calculator.scoring(submission)
+        calculator.mark_entire_survey_dirty(submission.survey)
+        calculator.execute()
 
     def fill_random(self, submission, session):
         '''
@@ -326,8 +334,8 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
             score = 0
             for child in qnode.children:
                 score += visit_qnode(child, new_bias(bias))
-            for measure in qnode.measures:
-                score += new_bias(bias) * measure.weight
+            for qnode_measure in qnode.qnode_measures:
+                score += new_bias(bias) * qnode_measure.measure.weight
             rnode.score = score
             return score
 

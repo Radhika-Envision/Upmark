@@ -4,3 +4,4 @@
 .cookies.txt
 *database/wal*
 *~
+scratch/*

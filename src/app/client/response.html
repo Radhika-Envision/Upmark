@@ -1,13 +1,22 @@
 <div class="response">
 
-<div class="section">
-    <div class="toolbar">
+<div>
+    <div class="toolbar compact">
         <span ng-if="!edit.model" ng-transclude></span>
     </div>
     <h2>
         Response
-        <span ng-if="debug">Sample</span>
-        <span ng-if="checkRole('view_single_score') && responseType.parts.length"
+
+        <span class="text-muted">
+            <small ng-if="state.message">
+                <i class="fa fa-exclamation fa-fw"></i> {{state.message}}
+            </small>
+            <small ng-if="!state.message">
+                <i class="fa fa-check fa-fw"></i> OK
+            </small>
+        </span>
+
+        <span ng-if="checkRole('view_single_score') && rt.parts.length"
                 class="text-muted pull-right" title="Score (weighted)">
             {{state.score * weight | number:0}}
         </span>
@@ -18,9 +27,11 @@
     <li ng-repeat="partSchema in rt.parts"
             ng-class="{active: $index == state.active}"
             title="{{partSchema.description}}"
-            class="clearfix">
+            class="clearfix part">
         <div ng-if="partSchema.name" class="hidden-print" ng-hide="readonly">
-            <label ng-click="state.active = $index">{{partSchema.name}}</label>
+            <label ng-click="state.active = $index">
+                <span>{{partSchema.name}}</span>
+            </label>
         </div>
         <div class="hidden-print" ng-hide="readonly"
                 ng-init="partData = getPartData(partSchema)">
@@ -32,11 +43,10 @@
                             ng-class="{active: getPartData(partSchema).index == $index}"
                             ng-click="choose(partSchema, o)"
                             ng-disabled="!available(o)"
-                            title="{{o.description || partSchema.description}}">
-                        <span class="index">{{$index + 1}}</span>
-                        {{o.name}}
-                        <span class="text-hidden">{{$index + 1}}</span>
-                    </button>
+                            title="{{o.description || partSchema.description}}"
+                        ><span class="index">{{$index + 1}}</span
+                        ><span>{{o.name}}</span
+                    ></button>
                 </div>
                 <div class="input-group"
                         ng-if="partSchema.type == 'numerical'">
@@ -73,15 +83,6 @@
     </li>
 </ol>
 
-<p class="text-muted  text-center">
-    <small ng-if="state.message">
-        <i class="fa fa-exclamation fa-fw"></i> {{state.message}}
-    </small>
-    <small ng-if="!state.message">
-        <i class="fa fa-check fa-fw"></i> OK
-    </small>
-</p>
-
 <docs>
     <i class="fa-li fa fa-check-square-o fa-border"></i>
 
@@ -104,91 +105,78 @@
     </div>
 </docs>
 
-<label for="comments" class="sr-only">Comments</label>
-<p ng-class="readonly ? null : 'visible-print-block'">Comments:</p>
-<div ng-if="!readonly"
-        textarea-label="{{!response.comment ? 'Comments' : ''}}">
-    <markdown-editor id="comments"
-        ng-model="response.comment" placeholder="''"
-        markdown-editor-focus-on="focus-comment" title="Comments"
-        markdown-editor-blur-on="blur-comment"></markdown-editor>
+<div class="part">
+    <label for="comments">Comments</label>
+    <div ng-if="!readonly">
+        <markdown-editor id="comments"
+            ng-model="response.comment"
+            markdown-editor-focus-on="focus-comment" title="Comments"
+            markdown-editor-blur-on="blur-comment"></markdown-editor>
+    </div>
 </div>
 
 <p ng-if="readonly">{{response.comment || 'None'}}</p>
 
-<div class="section" ng-if="!response.notRelevant && hasQuality">
-    <h2>
-        Response Quality
-        <span ng-if="debug">Sample</span>
-    </h2>
-</div>
-
-<ol class="responses list-unstyled spaced" ng-if="!response.notRelevant && hasQuality">
-    <li class="clearfix" title="Quality">
-        <div class="hidden-print" ng-hide="readonly">
-            <div class="btn-group btn-group-justified">
-                <div class="btn-group">
-                    <button class="btn btn-default"
-                            ng-class="{active: !response.quality}"
-                            ng-click="response.quality = 0"
-                            title="Do not specify a rating for quality of this response">
-                        Unspecified
-                    </button>
-                </div>
-                <div class="btn-group">
-                    <button class="btn btn-default"
-                            ng-class="{active: response.quality == 1}"
-                            ng-click="response.quality = 1"
-                            title="Rate quality of this response as 1">
-                        1: Low quality
-                    </button>
-                </div>
-                <div class="btn-group">
-                    <button class="btn btn-default"
-                            ng-class="{active: response.quality == 2}"
-                            ng-click="response.quality = 2"
-                            title="Rate quality of this response as 2">
-                        2
-                    </button>
-                </div>
-                <div class="btn-group">
-                    <button class="btn btn-default"
-                            ng-class="{active: response.quality == 3}"
-                            ng-click="response.quality = 3"
-                            title="Rate quality of this response as 3">
-                        3
-                    </button>
-                </div>
-                <div class="btn-group">
-                    <button class="btn btn-default"
-                            ng-class="{active: response.quality == 4}"
-                            ng-click="response.quality = 4"
-                            title="Rate quality of this response as 4">
-                        4
-                    </button>
-                </div>
-                <div class="btn-group">
-                    <button class="btn btn-default"
-                            ng-class="{active: response.quality == 5}"
-                            ng-click="response.quality = 5"
-                            title="Rate quality of this response as 5">
-                        5: High quality
-                    </button>
-                </div>
+<div class="part" ng-if="hasQuality">
+    <label>Quality</label>
+    <div class="hidden-print" ng-hide="readonly">
+        <div class="btn-group btn-group-justified">
+            <div class="btn-group">
+                <button class="btn btn-default"
+                        ng-class="{active: !response.quality}"
+                        ng-click="response.quality = 0"
+                        title="Do not specify a rating for quality of this response">
+                    <i class="fa fa-question"></i>
+                </button>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-default"
+                        ng-class="{active: response.quality == 1}"
+                        ng-click="response.quality = 1"
+                        title="Rate quality of this response as 1">
+                    1
+                    <span class="text-muted">Low</span>
+                </button>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-default"
+                        ng-class="{active: response.quality == 2}"
+                        ng-click="response.quality = 2"
+                        title="Rate quality of this response as 2">
+                    2
+                </button>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-default"
+                        ng-class="{active: response.quality == 3}"
+                        ng-click="response.quality = 3"
+                        title="Rate quality of this response as 3">
+                    3
+                </button>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-default"
+                        ng-class="{active: response.quality == 4}"
+                        ng-click="response.quality = 4"
+                        title="Rate quality of this response as 4">
+                    4
+                </button>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-default"
+                        ng-class="{active: response.quality == 5}"
+                        ng-click="response.quality = 5"
+                        title="Rate quality of this response as 5">
+                    5
+                    <span class="text-muted">High</span>
+                </button>
             </div>
         </div>
-        <div ng-class="readonly ? null : 'visible-print-block'">
-            <span>Quality:</span>
-            <span>{{response.quality}}</span>
-        </div>
-    </li>
-</ol>
-
-<div class="section">
-    <h2>
-        Approval
-        <span ng-if="debug">Sample</span>
-    </h2>
+    </div>
+    <div ng-class="readonly ? null : 'visible-print-block'">
+        <span>Quality:</span>
+        <span>{{response.quality}}</span>
+    </div>
 </div>
 
 </div>
