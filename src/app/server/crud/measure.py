@@ -79,6 +79,7 @@ class MeasureHandler(
                 r'/survey/program$',
                 r'/survey/structure.*$',
                 r'/has_quality$',
+                r'/is_editable$',
             )
             if not submission_id:
                 to_son.add(

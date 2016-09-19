@@ -218,8 +218,11 @@ angular.module('wsaa.survey.measure', [
     $scope.$watchGroup(['rt.responseType', 'edit.model'], function(vars) {
         var responseType = vars[0],
             measure = vars[1];
-        if (!responseType || !measure)
+        if (!responseType || !measure || !measure.sourceVars) {
+            // A measure only has source variables when viewed in the context
+            // of a survey.
             return;
+        }
         var measureVariables = measure.sourceVars.filter(
             function(measureVariable) {
                 // Remove bindings that have not been set yet
@@ -288,9 +291,11 @@ angular.module('wsaa.survey.measure', [
         $scope.rt.definition.$createOrSave().then(
             function success(definition) {
                 var measure = $scope.edit.model;
-                measure.sourceVars = measure.sourceVars.filter(function(mv) {
-                    return !mv.$unused;
-                });
+                if (measure.sourceVars) {
+                    measure.sourceVars = measure.sourceVars.filter(function(mv) {
+                        return !mv.$unused;
+                    });
+                }
                 measure.responseTypeId = definition.id;
                 return $scope.edit.save();
             },

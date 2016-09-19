@@ -145,7 +145,15 @@
             <p ng-if="!rt.responseType.unboundVars.length" class="text-muted">
                 This response type requires no external bindings.
             </p>
-            <p ng-if="rt.responseType.unboundVars.length" class="text-muted">
+            <p ng-if="rt.responseType.unboundVars.length && !edit.model.sourceVars"
+                    class="text-muted">
+                This response type has free variables that must be sourced from
+                other measures. You can not bind them now because you are
+                viewing this measure outside the context of a survey. You can
+                choose a survey in the Documentation panel.
+            </p>
+            <p ng-if="rt.responseType.unboundVars.length && edit.model.sourceVars"
+                    class="text-muted">
                 This response type has free variables that must be sourced from
                 other measures:
             </p>
