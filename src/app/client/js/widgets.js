@@ -193,7 +193,11 @@ angular.module('vpac.widgets', [])
                     return;
                 $scope.model.page = 0;
             }, true);
-        }]
+        }],
+        link: function(scope, elem, attrs) {
+            if (attrs.focusInit !== undefined)
+                elem.find('input').focus();
+        }
     };
 }])
 

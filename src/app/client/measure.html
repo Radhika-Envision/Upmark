@@ -104,7 +104,7 @@
 
         <div ng-if="rt.showSearch" class="popover-container spaced">
             <div class="undim">
-                <search-box model="rt.search" result="rt.searchRts"></search-box>
+                <search-box model="rt.search" result="rt.searchRts" focus-init></search-box>
                 <ul class="list-results">
                     <li ng-repeat="rtDef in rt.searchRts">
                         <a href="" ng-click="chooseResponseType(rtDef)">
