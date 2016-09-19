@@ -30,7 +30,8 @@
 
     <uib-tab index="$index" ng-repeat="part in rt.parts">
         <uib-tab-heading>
-            <span>Part <em>{{part.id || '?'}}</em></span>
+            <span ng-if="part.id">{{$index + 1}}: <em>{{part.id}}</em></span>
+            <span ng-if="!part.id">Part {{$index + 1}}</span>
         </uib-tab-heading>
         <div class="input-group spaced">
             <span uib-dropdown class="input-group-btn">
