@@ -144,11 +144,11 @@ class ResponseType:
             return 'Weighted score'
         if field_name == '_weight':
             return 'Measure weight'
-        for i, part in self.parts:
+        for i, part in enumerate(self.parts):
             if field_name != part.id_:
                 continue
             if part.name:
-                return 'Part %s' % part.name
+                return '%s' % part.name
             return 'Part %d' % i
         return 'Unknown field %s' % field_name
 

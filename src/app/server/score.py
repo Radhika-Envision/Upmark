@@ -386,8 +386,8 @@ class ResponseOps(MeasureOps):
                 value = source_response.variables[var.source_field]
             except KeyError:
                 source_rt = self.get_response_type(
-                    var.source_qnode_measure.mesaure.response_type)
-                human_field_name = source_rt.humanize_variable(human_field_name)
+                    var.source_qnode_measure.measure.response_type)
+                human_field_name = source_rt.humanize_variable(var.source_field)
                 raise ResponseError(
                     "Response depends on another response (%s). It has been"
                     " filled in, but the required field (%s) is missing." %
