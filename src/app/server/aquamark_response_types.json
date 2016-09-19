@@ -12,7 +12,7 @@
                     {"score": 0.48, "name": "Informal", "description": "Process Objective / Outcomes:No defined and the need is not clearly recognised\nProcess Development:None"},
                     {"score": 0.56, "name": "Aware", "description": "Process Objective / Outcomes:Has been defined and the need is understood\nProcess Development:Initiated"},
                     {"score": 0.64, "name": "Formulated", "description": "Process Objective / Outcomes:Has been defined and the need is understood\nProcess Development:Significantly developed\nProcess Robustness:The process includes some aspects of the measure definition"},
-                    {"score": 0.74, "name": "Advanced", "description": "Process Objective / Outcomes:Has been defined and the need is understood in detail\nProcess Development:Substantially complete\nProcess Robustness:The process incorporates most aspects of the measure definition"},
+                    {"score": 0.72, "name": "Advanced", "description": "Process Objective / Outcomes:Has been defined and the need is understood in detail\nProcess Development:Substantially complete\nProcess Robustness:The process incorporates most aspects of the measure definition"},
                     {"score": 0.80, "name": "Robust", "description": "Process Objective / Outcomes:Has been defined and the need is understood in detail\nProcess Development:Complete\nProcess Robustness:The process incorporates most aspects of the measure definition"}
                 ]
             },
