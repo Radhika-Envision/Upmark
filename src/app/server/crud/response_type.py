@@ -64,7 +64,8 @@ class ResponseTypeHandler(
                 session.query(model.ResponseType, func.count(model.Measure.id))
                 .join(model.Measure)
                 .filter(model.ResponseType.program_id == self.program_id)
-                .group_by(model.ResponseType.id, model.ResponseType.program_id))
+                .group_by(model.ResponseType.id, model.ResponseType.program_id)
+                .order_by(model.ResponseType.name))
 
             if term:
                 query = query.filter(
@@ -76,11 +77,20 @@ class ResponseTypeHandler(
             to_son = ToSon(
                 r'/id$',
                 r'/name$',
+            )
+            to_son_extra = ToSon(
                 r'/n_measures$',
+                r'/n_parts$',
             )
             sons = []
             for rt, count in rtcs:
-                sons.append(to_son(rt))
+                rt_son = to_son(rt)
+                extra = {
+                    'n_parts': len(rt.parts),
+                    'n_measures': count,
+                }
+                rt_son.update(to_son_extra(extra))
+                sons.append(rt_son)
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))

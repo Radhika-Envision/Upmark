@@ -399,7 +399,7 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             isBound: '=',
         },
         templateUrl: 'response_type.html',
-        controller: function($scope, Numbers, responseTypes, $timeout) {
+        controller: function($scope, Numbers, responseTypes, $timeout, Enqueue) {
             $scope.$watch('rt', function(rt) {
                 $scope.rtEdit = {
                     rt: rt,
@@ -476,14 +476,17 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
                     $scope.updateFormula(rt);
             };
 
-            $scope.$watch('rtEdit.rt', function(rtDef) {
+            var rtDefChanged = Enqueue(function() {
+                var rtDef = $scope.rtEdit.rt;
                 if (!rtDef) {
                     $scope.rtEdit.responseType = null;
                     return;
                 }
                 $scope.rtEdit.responseType = new responseTypes.ResponseType(
                     rtDef.name, rtDef.parts, rtDef.formula);
-            }, true);
+            });
+            $scope.$watch('rtEdit.rt', rtDefChanged);
+            $scope.$watch('rtEdit.rt', rtDefChanged, true);
 
             $scope.partTypes = [
                 {name: 'multiple_choice', desc: 'Multiple choice'},

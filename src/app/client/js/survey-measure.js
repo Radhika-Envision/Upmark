@@ -8,20 +8,7 @@ angular.module('wsaa.survey.measure', [
         function($scope, Measure, routeData, Editor, questionAuthz,
                  $location, Notifications, Current, Program, format, layout,
                  Structure, Arrays, Response, hotkeys, $q, $timeout, $window,
-                 responseTypes, ResponseType) {
-
-     $scope.newResponseType = function(programId) {
-         return new ResponseType({
-             obType: 'response_type',
-             programId: programId,
-             name: null,
-             parts: [{type: 'multiple_choice', id: 'a', options: [
-                 {name: 'No', score: 0},
-                 {name: 'Yes', score: 1}]
-             }],
-             formula: null,
-         });
-     };
+                 responseTypes, ResponseType, Enqueue) {
 
     $scope.layout = layout;
     $scope.parent = routeData.parent;
@@ -41,11 +28,34 @@ angular.module('wsaa.survey.measure', [
             sourceVars: [],
         });
     }
-    $scope.rt = {
-        definition: routeData.responseType ||
-            $scope.newResponseType($scope.measure.programId),
-        responseType: null,
+    $scope.newResponseType = function() {
+        return new ResponseType({
+            obType: 'response_type',
+            programId: $scope.measure.programId,
+            name: null,
+            parts: [{type: 'multiple_choice', id: 'a', options: [
+                {name: 'No', score: 0},
+                {name: 'Yes', score: 1}]
+            }],
+            formula: null,
+        });
     };
+    $scope.cloneResponseType = function() {
+        var rtDef = angular.copy($scope.rt.definition)
+        rtDef.id = null;
+        rtDef.name = rtDef.name + ' (Copy)'
+        rtDef.nMeasures = 0;
+        return rtDef;
+    };
+    $scope.rt = {
+        definition: routeData.responseType || $scope.newResponseType(),
+        responseType: null,
+        search: {
+            programId: $scope.measure.programId,
+            pageSize: 5,
+        },
+    };
+
 
     if ($scope.submission) {
         // Get the response that is associated with this measure and submission.
@@ -198,10 +208,13 @@ angular.module('wsaa.survey.measure', [
             !$scope.submission && $scope.checkRole('measure_edit'));
     });
 
-    $scope.$watch('rt.definition', function(rtDef) {
+    var rtDefChanged = Enqueue(function() {
+        var rtDef = $scope.rt.definition;
         $scope.rt.responseType = new responseTypes.ResponseType(
             rtDef.name, rtDef.parts, rtDef.formula);
-    }, true);
+    });
+    $scope.$watch('rt.definition', rtDefChanged);
+    $scope.$watch('rt.definition', rtDefChanged, true);
     $scope.$watchGroup(['rt.responseType', 'edit.model'], function(vars) {
         var responseType = vars[0],
             measure = vars[1];
@@ -243,6 +256,30 @@ angular.module('wsaa.survey.measure', [
             surveyId: $scope.structure.survey.id,
             withDeclaredVariables: true,
         }).$promise;
+    };
+
+    var applyRtSearch = Enqueue(function() {
+        if (!$scope.rt.showSearch)
+            return;
+        ResponseType.query($scope.rt.search).$promise.then(
+            function success(rtDefs) {
+                $scope.rt.searchRts = rtDefs;
+            },
+            function failure(details) {
+                Notifications.set('measure', 'error',
+                    "Could not get response type list: " + details.statusText);
+            }
+        );
+    }, 100);
+    $scope.$watch('rt.search', applyRtSearch, true);
+    $scope.$watch('rt.showSearch', applyRtSearch, true);
+    $scope.chooseResponseType = function(rtDef) {
+        ResponseType.get(rtDef, {
+            programId: $scope.structure.program.id
+        }).$promise.then(function(resolvedRtDef) {
+            $scope.rt.definition = resolvedRtDef;
+        });
+        $scope.rt.showSearch = false;
     };
 
     $scope.save = function() {
