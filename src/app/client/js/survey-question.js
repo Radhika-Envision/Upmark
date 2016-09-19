@@ -482,6 +482,8 @@ angular.module('wsaa.surveyQuestions', [
             stack.push(entity);
             if (entity.obType == 'measure')
                 entity = entity.parent || entity.program;
+            else if (entity.obType == 'response_type')
+                entity = entity.program;
             else if (entity.obType == 'qnode')
                 entity = entity.parent || entity.survey;
             else if (entity.obType == 'submission')
@@ -499,6 +501,7 @@ angular.module('wsaa.surveyQuestions', [
         var program = null;
         var survey = null;
         var measure = null;
+        var responseType = null;
         // Program
         if (stack.length > 0) {
             program = stack[0];
@@ -520,6 +523,15 @@ angular.module('wsaa.surveyQuestions', [
                     label: 'M',
                     entity: measure,
                     level: 'm'
+                });
+            } else if (stack[1].obType == 'response_type') {
+                responseType = stack[1];
+                hstack.push({
+                    path: 'response-type',
+                    title: 'Response Types',
+                    label: 'RT',
+                    entity: responseType,
+                    level: 't'
                 });
             } else {
                 survey = stack[1];
@@ -605,6 +617,7 @@ angular.module('wsaa.surveyQuestions', [
             submission: submission,
             qnodes: qnodes,
             measure: measure,
+            responseType: responseType,
             hstack: hstack,
             deletedItem: deletedItem
         };

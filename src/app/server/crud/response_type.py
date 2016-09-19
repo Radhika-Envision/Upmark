@@ -43,11 +43,14 @@ class ResponseTypeHandler(
             to_son = ToSon(
                 r'/id$',
                 r'/program_id$',
+                r'/ob_type$',
                 r'/name$',
+                r'/title$',
                 r'/parts$',
                 r'/parts/.*',
                 r'/formula$',
                 r'/n_measures$',
+                r'/program$',
             )
             son = to_son(response_type)
             son['nMeasures'] = count

@@ -219,6 +219,8 @@ def get_mappings():
         (r"/measure/?([^/]*)/program.json", crud.program.ProgramHistoryHandler, {
             'mapper': model.Measure}),
         (r"/response_type/?([^/]*).json", crud.response_type.ResponseTypeHandler, {}),
+        (r"/response_type/?([^/]*)/program.json", crud.program.ProgramHistoryHandler, {
+            'mapper': model.ResponseType}),
 
         (r"/submission/?([^/]*).json", crud.submission.SubmissionHandler, {}),
         (r"/submission/([^/]*)/rnode/?([^/]*).json",

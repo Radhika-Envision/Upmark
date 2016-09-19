@@ -724,6 +724,19 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
+            .when('/:uv/response-type/:responseType', {
+                templateUrl : 'response_type.html',
+                controller : 'ResponseTypeCtrl',
+                resolve: {routeData: chain({
+                    responseType: ['ResponseType', '$route',
+                            function(ResponseType, $route) {
+                        return ResponseType.get({
+                            id: $route.current.params.responseType,
+                            programId: $route.current.params.program
+                        }).$promise;
+                    }]
+                })}
+            })
 
             .when('/:uv/legal', {
                 templateUrl : 'legal.html',

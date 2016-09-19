@@ -398,7 +398,7 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             weight: '=',
             isBound: '=',
         },
-        templateUrl: 'response_type.html',
+        templateUrl: 'response_type_editor.html',
         controller: function($scope, Numbers, responseTypes, $timeout, Enqueue) {
             $scope.$watch('rt', function(rt) {
                 $scope.rtEdit = {
@@ -510,5 +510,15 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
     };
 })
 
+
+.controller('ResponseTypeCtrl',
+        function($scope, questionAuthz, Measure, Current, layout, routeData,
+            ResponseType) {
+
+    $scope.layout = layout;
+    $scope.checkRole = questionAuthz(Current, null);
+    $scope.responseType = routeData.responseType;
+    $scope.ResponseType = ResponseType;
+})
 
 ;
