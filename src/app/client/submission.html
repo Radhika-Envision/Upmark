@@ -194,8 +194,10 @@
                 </ui-select>
             </div>
             <p class="text-muted commasep">
-                <span class="">
-                    Dates will be rounded to the start of the nearest {{roundInterval()}} </span>
+                Report will use data from the most recent submission within each date interval for each organisation
+            </p>
+            <p class="text-muted commasep">
+                Intervals will go from the start of a {{roundInterval()}} to the end of a {{roundInterval()}} {{reportSpec.intervalNum}} {{roundInterval()}}s later
             </p>
         </div>
 
