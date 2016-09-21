@@ -45,10 +45,13 @@
                     title="Score"
                     ng-if="submission && checkRole('view_aggregate_score')">
                 <span>{{getStats(item.id).score | number:0}}</span
-               ><span class="text-muted hidden-sm hidden-xs">/</span
-               ><br class="visible-sm visible-xs"
-               ><span class="denominator-sm denominator-xs"
-                   >{{item.weight | number:0}}</span>
+                ><span ng-if="!structure.program.hideAggregate"
+                    ><span class="text-muted hidden-sm hidden-xs">/</span
+                    ><br class="visible-sm visible-xs"
+                    ><span class="denominator-sm denominator-xs"
+                        >{{item.weight | number:0}}</span
+                    ></span
+                >
             </td>
             <td class="shrink text-muted numeric"
                     title="Weight"

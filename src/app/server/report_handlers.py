@@ -18,6 +18,7 @@ import tornado.web
 from tornado.concurrent import run_on_executor
 import xlsxwriter
 
+import config
 import handlers
 import model
 import logging
@@ -549,61 +550,44 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
     def get(self, file_type):
         to_son = ToSon(r'.*')
         self.set_header("Content-Type", "application/json")
-        self.write(json_encode(to_son(self.config)))
+        with model.session_scope() as session:
+            conf = {
+                'wall_time': config.get_setting(session, 'adhoc_timeout') * 1000,
+                'max_limit': config.get_setting(session, 'adhoc_max_limit'),
+            }
+        self.write(json_encode(to_son(conf)))
         self.finish()
 
     @handlers.authz('consultant')
     @gen.coroutine
     def post(self, file_type):
         query = to_basestring(self.request.body)
-        limit = int(self.get_argument('limit', self.config['max_limit']))
-        if limit > self.config['max_limit']:
-            raise handlers.ModelError(
-                'Limit is too high. Max %d' % self.config['max_limit'])
+        try:
+            limit = float(self.get_argument('limit', '0'))
+        except ValueError:
+            raise handlers.ModelError(str(e))
+
+        with model.session_scope() as session:
+            max_limit = config.get_setting(session, 'adhoc_timeout') * 1000
+            if limit == 0:
+                limit = max_limit
+            elif limit < 0:
+                raise handlers.ModelError('Limit is too low')
+            elif limit > max_limit:
+                raise handlers.ModelError('Limit is too high')
+            conf = {
+                'wall_time': int(config.get_setting(session, 'adhoc_timeout') * 1000),
+                'limit': int(limit),
+            }
 
         if file_type == 'json':
-            yield self.as_json(query, limit)
+            yield self.as_json(query, conf)
         elif file_type == 'csv':
-            yield self.as_csv(query, limit)
+            yield self.as_csv(query, conf)
         elif file_type == 'xlsx':
-            yield self.as_xlsx(query, limit)
+            yield self.as_xlsx(query, conf)
         else:
             raise handlers.MissingDocError('%s not supported' % file_type)
-
-    @property
-    def config(self):
-        log.debug("Reading config")
-        if hasattr(self, '_config'):
-            return self._config
-
-        _config = {}
-        with model.session_scope() as session:
-            try:
-                wall_time = (session.query(model.SystemConfig)
-                    .get('adhoc_timeout'))
-                if wall_time is None:
-                    raise ValueError("adhoc_timeout is not defined")
-                _config['wall_time'] = int(float(wall_time.value) * 1000)
-                if _config['wall_time'] < 0:
-                    raise ValueError("adhoc_timeout must be non-negative")
-            except (ValueError, sqlalchemy.exc.SQLAlchemyError) as e:
-                raise handlers.ModelError(
-                    "Failed to get settings: %s" % e)
-
-            try:
-                max_limit = (session.query(model.SystemConfig)
-                    .get('adhoc_max_limit'))
-                if max_limit is None:
-                    raise ValueError("adhoc_max_limit is not defined")
-                _config['max_limit'] = int(max_limit.value)
-                if _config['max_limit'] < 0:
-                    raise ValueError("adhoc_max_limit must be positive")
-            except (ValueError, sqlalchemy.exc.SQLAlchemyError) as e:
-                raise handlers.ModelError(
-                    "Failed to get settings: %s" % e)
-
-        self._config = _config
-        return self._config
 
     def parse_cols(self, cursor):
         return [{
@@ -613,20 +597,20 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
                 'type_code': c.type_code
             } for c in cursor.description]
 
-    def apply_config(self, session):
-        log.debug("Setting wall time to %d" % self._config['wall_time'])
+    def apply_config(self, session, conf):
+        log.debug("Setting wall time to %d" % conf['wall_time'])
         try:
             session.execute("SET statement_timeout TO :wall_time",
-                            {'wall_time': self._config['wall_time']})
+                            {'wall_time': conf['wall_time']})
         except sqlalchemy.exc.SQLAlchemyError as e:
             raise handlers.ModelError(
                 "Failed to prepare database session: %s" % e)
 
     @run_on_executor
-    def export_json(self, path, query, limit):
+    def export_json(self, path, query, conf):
         with model.session_scope(readonly=True) as session, \
                 open(path, 'w', encoding='utf-8') as f:
-            self.apply_config(session)
+            self.apply_config(session, conf)
             log.debug("Executing query for JSON export")
 
             try:
@@ -647,9 +631,9 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
             to_son = ToSon(
                 r'/[0-9]+$',
             )
-            chunksize = min(limit, AdHocHandler.CHUNKSIZE)
+            chunksize = min(conf['limit'], AdHocHandler.CHUNKSIZE)
             n_read = 0
-            while n_read < limit:
+            while n_read < conf['limit']:
                 rows = result.fetchmany(chunksize)
                 if len(rows) == 0:
                     break
@@ -665,10 +649,10 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
                 self.reason('Row limit reached; data truncated.')
 
     @run_on_executor
-    def export_csv(self, path, query, limit):
+    def export_csv(self, path, query, conf):
         with model.session_scope(readonly=True) as session, \
                 open(path, 'w', encoding='utf-8') as f:
-            self.apply_config(session)
+            self.apply_config(session, conf)
             log.debug("Executing query for CSV export")
 
             writer = csv.writer(f)
@@ -681,9 +665,9 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
             cols = self.parse_cols(result.context.cursor)
             writer.writerow([c['name'] for c in cols])
 
-            chunksize = min(limit, AdHocHandler.CHUNKSIZE)
+            chunksize = min(conf['limit'], AdHocHandler.CHUNKSIZE)
             n_read = 0
-            while n_read < limit:
+            while n_read < conf['limit']:
                 rows = result.fetchmany(chunksize)
                 if len(rows) == 0:
                     break
@@ -694,10 +678,10 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
                 self.reason('Row limit reached; data truncated.')
 
     @run_on_executor
-    def export_excel(self, path, query, limit):
+    def export_excel(self, path, query, conf):
         with model.session_scope(readonly=True) as session, \
                 closing(xlsxwriter.Workbook(path)) as workbook:
-            self.apply_config(session)
+            self.apply_config(session, conf)
             log.debug("Executing query for Excel export")
 
             try:
@@ -739,9 +723,9 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
             for c, col in enumerate(cols):
                 worksheet_r.write(0, c, col['name'])
 
-            chunksize = min(limit, AdHocHandler.CHUNKSIZE)
+            chunksize = min(conf['limit'], AdHocHandler.CHUNKSIZE)
             n_read = 0
-            while n_read < limit:
+            while n_read < conf['limit']:
                 rows = result.fetchmany(chunksize)
                 if len(rows) == 0:
                     break
@@ -770,10 +754,10 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
             worksheet_r.activate()
 
     @gen.coroutine
-    def as_json(self, query, limit):
+    def as_json(self, query, conf):
         with tempfile.TemporaryDirectory() as tempdir:
             path = os.path.join(tempdir, 'query_result.json')
-            yield self.export_json(path, query, limit)
+            yield self.export_json(path, query, conf)
 
             self.set_header("Content-Type", "application/json")
             self.set_header(
@@ -782,10 +766,10 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
         self.finish()
 
     @gen.coroutine
-    def as_csv(self, query, limit):
+    def as_csv(self, query, conf):
         with tempfile.TemporaryDirectory() as tempdir:
             path = os.path.join(tempdir, 'query_result.csv')
-            yield self.export_csv(path, query, limit)
+            yield self.export_csv(path, query, conf)
 
             self.set_header("Content-Type", "text/csv")
             self.set_header(
@@ -794,10 +778,10 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
         self.finish()
 
     @gen.coroutine
-    def as_xlsx(self, query, limit):
+    def as_xlsx(self, query, conf):
         with tempfile.TemporaryDirectory() as tempdir:
             path = os.path.join(tempdir, 'query_result.xlsx')
-            yield self.export_excel(path, query, limit)
+            yield self.export_excel(path, query, conf)
 
             self.set_header("Content-Type",
                             "application/vnd.openxmlformats-officedocument"

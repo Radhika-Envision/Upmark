@@ -56,13 +56,14 @@
                     {{getStats(item.id).urgency}}</span>
             </td>
             <td class="shrink text-muted numeric" title="Score"
-                    ng-if="submission && checkRole('view_aggregate_score')
-                            && !structure.program.hideAggregate">
+                    ng-if="submission && checkRole('view_aggregate_score')">
                 <span>{{getStats(item.id).score | number:0}}</span
-               ><span class="text-muted hidden-sm hidden-xs">/</span
-               ><br class="visible-sm visible-xs"
-               ><span class="denominator-sm denominator-xs"
-                   >{{item.totalWeight | number:0}}</span>
+                ><span ng-if="!structure.program.hideAggregate"
+                    ><span class="text-muted hidden-sm hidden-xs">/</span
+                    ><br class="visible-sm visible-xs"
+                    ><span class="denominator-sm denominator-xs"
+                        >{{item.totalWeight | number:0}}</span></span
+                >
             </td>
             <td class="shrink text-muted numeric" title="Weight"
                     ng-if="!submission && checkRole('view_aggregate_score')">

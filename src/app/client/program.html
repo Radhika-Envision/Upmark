@@ -59,16 +59,35 @@
             <label>
                 <input type="checkbox" id="inclQuality" name="inclQuality"
                     ng-model="edit.model.hasQuality">
-                    Include response quality
+                    Ask for quality self-assessment
             </label>
         </div>
         <div class="checkbox">
             <label>
                 <input type="checkbox" id="hideAggregate" name="hideAggregate"
                     ng-model="edit.model.hideAggregate">
-                    Disable aggregate category scores
+                    Show aggregate scores
             </label>
         </div>
+        <docs>
+            <i class="fa-li fa fa-server fa-border"></i>
+            <h3>Program Settings</h3>
+            <h4>Quality</h4>
+            <p>
+                Display a non-optional <em>Quality</em> field for each response.
+                This allows you to filter the data based on how good the
+                respondent thinks it is.
+            </p>
+            <h4>Scoring</h4>
+            <p>
+                Aggregate scores are the scores at the category level. These
+                are calculated by adding together the scores of any child
+                categories and measures. This is usually what you want, but
+                for some surveys it doesn't make sense.
+                This setting also controls whether the measure weight is
+                shown as the divisor.
+            </p>
+        </docs>
 
     </form>
 
