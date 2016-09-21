@@ -110,20 +110,24 @@ class TemporalReportHandler(handlers.BaseHandler):
             if parameters.get('filter_size'):
                 query = query.join(model.OrgMeta)
 
-                if parameters.get('min_ftes'):
-                    min_ftes = parameters.get('min_ftes')
-                    query = query.filter(model.OrgMeta.number_fte >= min_ftes)
-                if parameters.get('max_ftes'):
-                    max_ftes = parameters.get('max_ftes')
-                    query = query.filter(model.OrgMeta.number_fte <= max_ftes)
-                if parameters.get('min_contractors'):
-                    min_contractors = parameters.get('min_contractors')
+                if parameters.get('min_internal_ftes'):
+                    min_ftes = parameters.get('min_internal_ftes')
                     query = query.filter(
-                        model.OrgMeta.number_fte_ext >= min_contractors)
-                if parameters.get('max_contractors'):
-                    max_contractors = parameters.get('max_contractors')
+                        model.OrgMeta.number_fte >= min_ftes)
+                if parameters.get('max_internal_ftes'):
+                    max_ftes = parameters.get('max_internal_ftes')
                     query = query.filter(
-                        model.OrgMeta.number_fte_ext <= max_contractors)
+                        model.OrgMeta.number_fte <= max_ftes)
+
+                if parameters.get('min_external_ftes'):
+                    min_ftes = parameters.get('min_external_ftes')
+                    query = query.filter(
+                        model.OrgMeta.number_fte_ext >= min_ftes)
+                if parameters.get('max_external_ftes'):
+                    max_ftes = parameters.get('max_external_ftes')
+                    query = query.filter(
+                        model.OrgMeta.number_fte_ext <= max_ftes)
+
                 if parameters.get('min_employees'):
                     min_employees = parameters.get('min_employees')
                     query = query.filter(
@@ -134,6 +138,15 @@ class TemporalReportHandler(handlers.BaseHandler):
                     query = query.filter(
                         (model.OrgMeta.number_fte +
                             model.OrgMeta.number_fte_ext) <= max_employees)
+
+                if parameters.get('min_population'):
+                    min_population = parameters.get('min_population')
+                    query = query.filter(
+                        model.OrgMeta.population_served >= min_population)
+                if parameters.get('max_population'):
+                    max_population = parameters.get('max_population')
+                    query = query.filter(
+                        model.OrgMeta.population_served <= max_employees)
 
             responses = query.all()
 

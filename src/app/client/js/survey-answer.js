@@ -274,24 +274,24 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
     })
 
     // Organisation size filter settings
-    $scope.$watch('reportSpec.minFtes', function(ftes) {
+    $scope.$watch('reportSpec.minInternalFtes', function(ftes) {
         if (!$scope.reportSpec) {
             return
         };
         if (ftes <= 0) {
-            $scope.reportSpec.minFtes = null;
+            $scope.reportSpec.minInternalFtes = null;
             return
         };
         if (ftes != null) {
             $scope.reportSpec.filterSize = true;
         };
     });
-    $scope.$watch('reportSpec.maxFtes', function(ftes) {
+    $scope.$watch('reportSpec.maxInternalFtes', function(ftes) {
         if (!$scope.reportSpec) {
             return
         };
         if (ftes <= 0) {
-            $scope.reportSpec.maxFtes = null;
+            $scope.reportSpec.maxInternalFtes = null;
             return
         };
         if (ftes != null) {
@@ -310,12 +310,12 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
             $scope.reportSpec.filterSize = true;
         };
     });
-    $scope.$watch('reportSpec.maxContractors', function(contractors) {
+    $scope.$watch('reportSpec.maxExternalFtes', function(contractors) {
         if (!$scope.reportSpec) {
             return
         };
         if (contractors <= 0) {
-            $scope.reportSpec.maxContractors = null;
+            $scope.reportSpec.maxExternalFtes = null;
         };
         if (contractors != null) {
             $scope.reportSpec.filterSize = true;
@@ -344,14 +344,26 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
         };
 
     });
-
-    // Response quality filter settings
-    $scope.$watch('reportSpec.quality', function(quality) {
+    $scope.$watch('reportSpec.minPopulation', function(population) {
         if (!$scope.reportSpec) {
             return
         };
-        if (quality == 'None') {
-            $scope.reportSpec.quality = null;
+        if (population <= 0) {
+            $scope.reportSpec.minPopulation = null;
+        };
+        if (population != null) {
+            $scope.reportSpec.filterSize = true;
+        };
+    });
+    $scope.$watch('reportSpec.maxPopulation', function(population) {
+        if (!$scope.reportSpec) {
+            return
+        };
+        if (population <= 0) {
+            $scope.reportSpec.maxPopulation = null;
+        };
+        if (population != null) {
+            $scope.reportSpec.filterSize = true;
         };
     });
 
@@ -388,13 +400,15 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
                 intervalNum: 1,
                 intervalUnit: 'Months',
                 filterSize: false,
-                minFtes: null,
-                maxFtes: null,
+                minInternalFtes: null,
+                maxInternalFtes: null,
                 minContractors: null,
-                maxContractors: null,
+                maxExternalFtes: null,
                 minEmployees: null,
                 maxEmployees: null,
                 quality: null,
+                minPopulation: null,
+                maxPopulation: null,
                 approval: 'reviewed',
                 locations: null,
                 organisationId: null

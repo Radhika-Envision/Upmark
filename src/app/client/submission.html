@@ -270,51 +270,59 @@
             </h3>
             <div class="input-group">
                 <label class="input-group-addon">
-                    Min FTEs:
+                    Min FTEs (internal):
                 </label>
                 <input type="number" class="form-control"
-                        ng-model="reportSpec.minFtes" empty-as-null
-                        placeholder="Minimum number of FTEs"
-                        title="Only include responses from organisations with more than this many FTEs"/>
+                        ng-model="reportSpec.minInternalFtes" empty-as-null
+                        title="Only include responses from organisations with more than this many internal FTEs"/>
                 <label class="input-group-addon">
-                    Max FTEs:
+                    Max FTEs (internal):
                 </label>
                 <input type="number" class="form-control"
-                        ng-model="reportSpec.maxFtes" empty-as-null
-                        placeholder="Maximum number of FTEs"
-                        title="Only include responses from organisations with less than this many FTEs"/>
+                        ng-model="reportSpec.maxInternalFtes" empty-as-null
+                        title="Only include responses from organisations with less than this many internal FTEs"/>
             </div>
             <div class="input-group">
                 <label class="input-group-addon">
-                    Min Contractors:
+                    Min FTEs (external):
                 </label>
                 <input type="number" class="form-control"
-                        ng-model="reportSpec.minContractors" empty-as-null
-                        placeholder="Minimum number of contractors"
-                        title="Only include responses from organisations with more than this many contractors"/>
+                        ng-model="reportSpec.minExternalFtes" empty-as-null
+                        title="Only include responses from organisations with more than this many external FTEs"/>
                 <label class="input-group-addon">
-                    Max Contractors:
+                    Max FTEs (external):
                 </label>
                 <input type="number" class="form-control"
-                        ng-model="reportSpec.maxContractors" empty-as-null
-                        placeholder="Maximum number of contractors"
-                        title="Only include responses from organisations with less than this many contractors"/>
+                        ng-model="reportSpec.maxExternalFtes" empty-as-null
+                        title="Only include responses from organisations with less than this many external FTEs"/>
             </div>
             <div class="input-group">
                 <label class="input-group-addon">
-                    Min Employees:
+                    Min Total FTEs:
                 </label>
                 <input type="number" class="form-control"
                         ng-model="reportSpec.minEmployees" empty-as-null
-                        placeholder="Minimum total employees"
-                        title="Only include responses from organisations with more than this many employees"/>
+                        title="Only include responses from organisations with more than this many total FTEs"/>
                 <label class="input-group-addon">
-                    Max Employees:
+                    Max Total FTEs:
                 </label>
                 <input type="number" class="form-control"
                         ng-model="reportSpec.maxEmployees" empty-as-null
-                        placeholder="Maximum total employees"
-                        title="Only include responses from organisations with less than this many employees"/>
+                        title="Only include responses from organisations with less than this many total FTEs"/>
+            </div>
+            <div class="input-group">
+                <label class="input-group-addon">
+                    Min Population Served:
+                </label>
+                <input type="number" class="form-control"
+                        ng-model="reportSpec.minPopulation" empty-as-null
+                        title="Only include responses from organisations who serve populations of at least this many people"/>
+                <label class="input-group-addon">
+                    Max Population Served:
+                </label>
+                <input type="number" class="form-control"
+                        ng-model="reportSpec.maxPopulation" empty-as-null
+                        title="Only include responses from organisations who serve populations of at most this many people"/>
             </div>
             <h3>
                 Response quality
