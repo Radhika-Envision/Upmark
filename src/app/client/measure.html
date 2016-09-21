@@ -48,6 +48,28 @@
 </div>
 
 <submission-header></submission-header>
+<div ng-if="!structure.survey" class="subheader bg-warning">
+    <div class="container">
+        <p>
+            You are viewing this measure outside the scope of any survey.
+            <span ng-if="measure.parents.length">
+                Please choose a survey:
+            </span>
+            <span ng-if="!measure.parents.length">
+                This measure is an orphan: it belongs to no categories.
+            </span>
+        </p>
+        <ul ng-if="measure.parents.length">
+            <li ng-repeat="parent in measure.parents">
+                <a ng-href="#/2/measure/{{measure.id}}?program={{structure.program.id}}&survey={{parent.survey.id}}">
+                    <span ng-class="{strike: parent.survey.deleted}">
+                        {{parent.survey.title}}
+                    </span>
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
 <div error-header structure-node="measure" submission-node="response"
     ng-if="!edit.model"></div>
 
@@ -561,31 +583,23 @@
     <i class="fa-li fa fa-sitemap fa-border"></i>
     <h3>Hierarchy</h3>
     A program's measures can be shared between its surveys.
-    Respondents can use the following category paths to reach this
-    measure:
-    <ul ng-if="parents.length">
-        <li ng-repeat="parent in parents">
+    <span ng-if="measure.parents.length">
+        <!-- Only show this if the measure is being shown as part of a survey,
+             because otherwise the surveys will be listed in the body of the
+             page above. -->
+        This measure is available in the following surveys:
+    </span>
+    <ul ng-if="measure.parents.length">
+        <li ng-repeat="parent in measure.parents">
             <a ng-href="#/2/measure/{{measure.id}}?program={{structure.program.id}}&survey={{parent.survey.id}}">
                 <span ng-class="{strike: parent.survey.deleted}">
                     {{parent.survey.title}}
                 </span>
-                <span ng-repeat="item in parent.qnodes"
-                        ng-class="{strike: item.deleted}">
-                    &raquo;
-                    <span ng-if="item.seq != null">
-                        {{item.seq + 1}}.</span>
-                    {{item.title}}
-                </span>
             </a>
         </li>
     </ul>
-    <p ng-if="structure.survey">
-        This measure can be
-        <a ng-href="#/2/measure/{{measure.id}}?program={{program.id}}">
-            viewed without a survey</a>,
-        but it can not be responded to like that.
-    </p>
-    <p ng-if="!parents.length">
-        This measure is an orphan: it belongs to no categories.
-    </p>
+    This measure can be
+    <a ng-href="#/2/measure/{{measure.id}}?program={{program.id}}">
+        viewed without a survey</a>,
+    but it can not be responded to like that.
 </docs>
