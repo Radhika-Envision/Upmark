@@ -21,7 +21,7 @@ def clean_svg(svg):
         '--quiet',
         '--remove-metadata',
         '--set-precision=5',
-    ])[0]
+    ])
     output = scour.scourString(svg, opts)
     return output
 

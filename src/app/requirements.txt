@@ -11,7 +11,7 @@ passlib~=1.6.2
 passwordmeter~=0.1.1
 py_expression_eval~=0.3.3
 pyyaml~=3.11
-scour~=0.34
+scour~=0.35
 # simpleeval is still required by the version upgrade scripts
 simpleeval~=0.8.5
 slimit~=0.8.1
