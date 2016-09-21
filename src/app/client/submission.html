@@ -124,8 +124,8 @@
                 <button class="btn btn-default btn-round" title="Cancel"
                         ng-click="closeReportForm()">
                     <i class="fa fa-fw fa-times"></i></button>
-                <button class="btn btn-default btn-round" title="OK"
-                        ng-click="downloadReport(reportSpec, 'xlsx', submission.survey.id)">
+                <button class="btn btn-default btn-round" title="Download report"
+                        ng-click="downloadReportDebounced(reportSpec, 'xlsx', submission.survey.id)">
                     <i class="fa fa-fw fa-check"></i></button>
             </div>
             <h2>

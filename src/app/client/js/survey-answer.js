@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
-                                      'ui.select'])
+                                      'ui.select', 'vpac.utils'])
 
 
 .factory('Submission', ['$resource', 'paged', function($resource, paged) {
@@ -180,7 +180,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
 
 
 .controller('SubmissionExportCtrl',
-        function($scope, $location, Notifications, $http, LocationSearch) {
+        function($scope, $location, Notifications, $http, LocationSearch, debounce) {
 
     $scope.startCalender = {
       opened: false
@@ -442,6 +442,8 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
         }
         $scope.download('/export/temporal/' + survey_id + '.' + file_type, query);
     };
+
+    $scope.downloadReportDebounced = debounce($scope.downloadReport, 500, false);
 
     $scope.openReportForm();
 })
