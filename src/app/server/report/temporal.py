@@ -234,12 +234,19 @@ class TemporalReportHandler(handlers.BaseHandler):
 
                 # Format definitions
                 bold = workbook.add_format({'bold': 1})
+                date_format = (workbook.add_format(
+                    {'num_format': 'dd/mm/yyyy','bold': 1}))
                 url_format = workbook.add_format(
                     {'font_color': 'blue', 'underline':  1})
 
                 # Write column headings
                 for i, heading in enumerate(headings):
-                    worksheet.write_string(0, i, heading, bold)
+                    if i < 2:
+                        worksheet.set_column(i, i, 20)
+                        worksheet.write(0, i, heading, bold)
+                    else:
+                        worksheet.set_column(i, i, 12)
+                        worksheet.write(0, i, heading, date_format)
 
                 # Write data, this depends on requested report type.
                 for row_index, row_data in enumerate(data):
@@ -276,7 +283,7 @@ class TemporalReportHandler(handlers.BaseHandler):
             headers = ["Measure", "Organisation"]
 
         for b in buckets:
-            headers.append(b.strftime('%m/%d/%y'))
+            headers.append(b)
 
         headers.append("Link")
 
