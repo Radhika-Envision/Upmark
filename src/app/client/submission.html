@@ -179,15 +179,9 @@
                 <label class="input-group-addon">
                     Interval:
                 </label>
-                <ui-select ng-model="reportSpec.intervalNum" search-enabled="false">
-                    <ui-select-match placeholder="Select time inteval">
-                        <span>{{reportSpec.intervalNum}}</span>
-                    </ui-select-match>
-                    <ui-select-choices
-                        repeat="number in reportForm.intervalNumbers | filter: $select.search">
-                            <div ng-bind-html="number"></div>
-                    </ui-select-choices>
-                </ui-select>
+                <input type="number" class="form-control"
+                        ng-model="reportForm.intervalNum"
+                        placeholder="Select time interval"/>
                 <label class="input-group-addon"></label>
                 <ui-select ng-model="reportSpec.intervalUnit" search-enabled="false">
                     <ui-select-match placeholder="Select time inteval">

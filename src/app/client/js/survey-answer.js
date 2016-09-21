@@ -236,19 +236,27 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
 
         $scope.reportSpec.maxDate = max.getTime() / 1000;
     });
-    $scope.$watch('reportSpec.intervalUnit', function(unit) {
-        if (!$scope.reportSpec) {
+    $scope.$watch('reportForm.intervalNum', function(num) {
+        if (!$scope.reportForm || !$scope.reportSpec) {
             return;
         }
 
-        if (unit == 'Months') {
-            $scope.reportForm.intervalNumbers = [
-                1, 3, 6];
-        } else if (unit == 'Years') {
-            $scope.reportForm.intervalNumbers = [
-                1, 3, 5];
+        // Interval length must be a positive integer
+        if (num <= 0.0) {
+            $scope.reportForm.intervalNum = null;
+        };
+        if (num % 1 != 0.0) {
+            $scope.reportForm.intervalNum = Math.floor(num)
+        };
+
+        // Write to reportSpec
+        if ($scope.reportForm.intervalNum != null) {
+            $scope.reportSpec.intervalNum = $scope.reportForm.intervalNum;
+        } else {
+            $scope.reportSpec.intervalNum = 1.0;
         };
     });
+
     $scope.roundInterval = function () {
         if ($scope.reportSpec.intervalUnit == 'Months') {
             return 'month'
@@ -382,6 +390,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
                 type: 'Summary',
                 reportTypes: ['Detailed', 'Summary'],
                 intervalUnits: ['Months', 'Years'],
+                intervalNum: 1.0,
                 responseQualities: ['None', 1, 2, 3, 4, 5],
                 allowedStates: ['reviewed', 'approved'],
                 locations: [],
@@ -397,7 +406,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
             $scope.reportSpec = {
                 minDate: null,
                 maxDate: null,
-                intervalNum: 1,
+                intervalNum: null,
                 intervalUnit: 'Months',
                 filterSize: false,
                 minInternalFtes: null,
