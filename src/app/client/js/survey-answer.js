@@ -155,15 +155,33 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
             }
         );
     };
+
+    $scope.calender = {
+      opened: false
+    };
+
+    $scope.dateOptions = {
+      dateDisabled: disabled,
+      formatYear: 'yy',
+      startingDay: 1,
+      maxDate: new Date()
+    };
+    // Disable weekend selection
+    function disabled(data) {
+      var date = data.date,
+      mode = data.mode;
+    return mode === 'day' && (date.getDay() === 0 || date.getDay() === 6);
+    };
+
+    $scope.openCalender = function() {
+        $scope.calender.opened = true
+    };
 })
 
 
 .controller('SubmissionExportCtrl',
         function($scope, $location, Notifications, $http, LocationSearch) {
 
-    $scope.calender = {
-      opened: false
-    };
     $scope.startCalender = {
       opened: false
     };
@@ -182,9 +200,6 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
     return mode === 'day' && (date.getDay() === 0 || date.getDay() === 6);
     };
 
-    $scope.openCalender = function() {
-        $scope.calender.opened = true
-    };
     $scope.openStartCalender = function() {
         $scope.startCalender.opened = true;
     };
