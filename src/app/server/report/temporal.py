@@ -186,7 +186,8 @@ class TemporalReportHandler(handlers.BaseHandler):
                     current_organisation = organisation
                     current_row = [measure, organisation]
                     rows.append(current_row)
-                current_row.append(r and r.score or None)
+
+                current_row.append(None or r and r.score)
 
             if organisation_id:
                 rows = self.convert_to_stats(rows, organisation_id)
