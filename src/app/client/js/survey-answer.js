@@ -191,7 +191,8 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
     $scope.dateOptions = {
       dateDisabled: disabled,
       formatYear: 'yy',
-      startingDay: 1
+      startingDay: 1,
+      maxDate: new Date()
     };
     // Disable weekend selection
     function disabled(data) {
