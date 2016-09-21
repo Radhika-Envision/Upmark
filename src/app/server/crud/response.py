@@ -1,4 +1,5 @@
 import datetime
+import logging
 import time
 import uuid
 
@@ -8,12 +9,11 @@ import sqlalchemy
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import object_session
 
+from activity import Activities
 import handlers
 import model
-import logging
-
-from activity import Activities
 from response_type import ResponseTypeError
+from score import Calculator
 from utils import falsy, reorder, ToSon, truthy, updater
 
 
@@ -78,12 +78,35 @@ class ResponseHandler(handlers.BaseHandler):
 
         with model.session_scope() as session:
             response = (session.query(model.Response)
-                    .filter_by(submission_id=submission_id,
-                               measure_id=measure_id)
-                    .first())
+                .get((submission_id, measure_id)))
 
+            dummy = False
             if response is None:
-                raise handlers.MissingDocError("No such response")
+                # Synthesise response so it can be returned. The session will be
+                # rolled back to avoid actually making this change.
+                submission = (session.query(model.Submission)
+                    .get(submission_id))
+                if not submission:
+                    raise handlers.MissingDocError("No such submission")
+
+                qnode_measure = (session.query(model.QnodeMeasure)
+                    .get((submission.program_id, submission.survey_id, measure_id)))
+                if not qnode_measure:
+                    raise handlers.MissingDocError(
+                        "That survey has no such measure")
+
+                response = model.Response(
+                    qnode_measure=qnode_measure,
+                    submission=submission,
+                    user_id=self.current_user.id,
+                    comment='',
+                    response_parts=[],
+                    variables={},
+                    not_relevant=False,
+                    approval='draft',
+                    modified=datetime.datetime.fromtimestamp(0),
+                )
+                dummy = True
 
             if version != '' and version != response.version:
                 try:
@@ -91,8 +114,7 @@ class ResponseHandler(handlers.BaseHandler):
                 except ValueError:
                     raise handlers.ModelError("Invalid version number")
                 response_history = (session.query(model.ResponseHistory)
-                        .filter_by(id=response.id, version=version)
-                        .first())
+                    .get((submission_id, measure_id, version)))
 
                 if response is None:
                     raise handlers.MissingDocError("No such response version")
@@ -103,6 +125,7 @@ class ResponseHandler(handlers.BaseHandler):
 
             to_son = ToSon(
                 # Fields to match from any visited object
+                r'/ob_type$',
                 r'/id$',
                 r'/title$',
                 r'/name$',
@@ -114,9 +137,11 @@ class ResponseHandler(handlers.BaseHandler):
                 r'^/not_relevant$',
                 r'^/attachments$',
                 r'^/audit_reason$',
+                r'^/error$',
                 r'^/approval$',
                 r'^/version$',
                 r'^/modified$',
+                r'^/latest_modified$',
                 r'^/quality$',
                 # Descend
                 r'/parent$',
@@ -124,6 +149,10 @@ class ResponseHandler(handlers.BaseHandler):
                 r'/submission$',
                 r'/user$',
             )
+
+            if dummy:
+                to_son.add(r'!/user$')
+
             to_son.exclude(
                 # The IDs of rnodes and responses are not part of the API
                 r'^/id$',
@@ -140,8 +169,8 @@ class ResponseHandler(handlers.BaseHandler):
                         .filter_by(id=response_history.measure_id,
                                    program_id=submission.program_id)
                         .first())
-                parent = (measure.get_parent(submission.survey_id)
-                        .get_rnode(submission_id))
+                qnode_measure = measure.get_qnode_measure(submission.survey_id)
+                parent = qnode_measure.qnode.get_rnode(submission)
                 user = (session.query(model.AppUser)
                         .filter_by(id=response_history.user_id)
                         .first())
@@ -149,9 +178,35 @@ class ResponseHandler(handlers.BaseHandler):
                     'parent': parent,
                     'measure': measure,
                     'submission': submission,
-                    'user': user
+                    'user': user,
                 }
                 son.update(to_son(dummy_relations))
+
+            # Always include the mtime of the most recent version. This is used
+            # to avoid edit conflicts.
+            dummy_relations = {
+                'latest_modified': response.modified,
+            }
+            son.update(to_son(dummy_relations))
+
+            def gather_variables(response):
+                source_responses = {
+                    mv.source_qnode_measure: mv.source_qnode_measure.get_response(
+                        response.submission)
+                    for mv in response.qnode_measure.source_vars}
+                source_variables = {
+                    source_qnode_measure: response and response.variables or {}
+                    for source_qnode_measure, response in source_responses.items()}
+                variables_by_target = {
+                    mv.target_field:
+                    source_variables[mv.source_qnode_measure].get(mv.source_field)
+                    for mv in response.qnode_measure.source_vars}
+                # Filter out blank/null variables
+                return {k: v for k, v in variables_by_target.items() if v}
+            son['sourceVars'] = gather_variables(response)
+
+            # Explicit rollback to avoid committing dummy response.
+            session.rollback()
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -189,11 +244,10 @@ class ResponseHandler(handlers.BaseHandler):
                 r'/approval$',
                 r'/modified$',
                 r'/not_relevant$',
+                r'^/[0-9]+/error$',
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/measure$',
-                # The IDs of rnodes and responses are not part of the API
-                r'!^/[0-9]+/id$',
             )
             if self.current_user.role == 'clerk':
                 to_son.exclude(r'/score$')
@@ -227,14 +281,15 @@ class ResponseHandler(handlers.BaseHandler):
 
                 verbs = []
                 if response is None:
-                    measure = (session.query(model.Measure)
-                        .get((measure_id, submission.program.id)))
-                    if measure is None:
+                    program_id = submission.program_id
+                    survey_id = submission.survey_id
+                    qnode_measure = (session.query(model.QnodeMeasure)
+                        .get((program_id, survey_id, measure_id)))
+                    if qnode_measure is None:
                         raise handlers.MissingDocError("No such measure")
                     response = model.Response(
-                        submission_id=submission_id,
-                        measure_id=measure_id,
-                        program_id=submission.program.id,
+                        qnode_measure=qnode_measure,
+                        submission=submission,
                         approval='draft')
                     session.add(response)
                     verbs.append('create')
@@ -246,7 +301,7 @@ class ResponseHandler(handlers.BaseHandler):
                     if same_user and hours_since_update < 8:
                         response.version_on_update = False
 
-                    modified = self.request_son.get("modified", 0)
+                    modified = self.request_son.get("latest_modified", 0)
                     # Convert to int to avoid string conversion errors during
                     # JSON marshalling.
                     if int(modified) < int(response.modified.timestamp()):
@@ -273,8 +328,10 @@ class ResponseHandler(handlers.BaseHandler):
                 response.version_on_update = False
 
                 try:
-                    response.update_stats_ancestors()
-                except (model.ModelError, ResponseTypeError) as e:
+                    calculator = Calculator.scoring(submission)
+                    calculator.mark_measure_dirty(response.qnode_measure)
+                    calculator.execute()
+                except ResponseTypeError as e:
                     raise handlers.ModelError(str(e))
 
                 act = Activities(session)

@@ -39,14 +39,14 @@
         <i class="fa fa-circle-o"></i>
         Changes to this {{acts.obType(subscription)}}
         <strong>will appear</strong>
-        in <a href="#/1/">your timeline</a> because:
+        in <a href="#/2/">your timeline</a> because:
     </p>
     <p ng-if="!subscription.effectivelySubscribed"
             class="alert alert-warning">
         <i class="fa fa-times"></i>
         Changes to this {{acts.obType(subscription)}}
         will <strong>not</strong> appear
-        in <a href="#/1/">your timeline</a> because:
+        in <a href="#/2/">your timeline</a> because:
     </p>
     <ul class="list-results fa-ul fa-ul-big timeline">
         <li ng-repeat="sub in subscriptions"
@@ -121,7 +121,7 @@
             changes, or when any of its children change. For example, if you
             are subscribed to a category, you will be notified of when someone
             changes the title of a measure inside that category. Notifications
-            appear in <a href="#/1/">your timeline</a>.
+            appear in <a href="#/2/">your timeline</a>.
         </p>
         <p>
             <strong>Tip:</strong> usually you should subscribe to higher-level

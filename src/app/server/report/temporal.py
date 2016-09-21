@@ -40,7 +40,7 @@ class TemporalReportHandler(handlers.BaseHandler):
             query = (session.query(model.Response)
                     .options(joinedload('submission'))
                     .options(joinedload('submission.organisation'))
-                    .options(joinedload('measure'))
+                    .options(joinedload('qnode_measure'))
                     .join(model.Submission)
                     .join(model.Survey)
                     .join(model.Organisation)
@@ -152,11 +152,11 @@ class TemporalReportHandler(handlers.BaseHandler):
 
             bucketed_responses = {}
             buckets = set()
-            measures = set()
+            qnode_measures = set()
             organisations = set()
             for response in responses:
                 bucket = self.lower_bound(response.submission.created, interval)
-                k = (response.measure, response.submission.organisation,
+                k = (response.qnode_measure, response.submission.organisation,
                     bucket)
 
                 if k in bucketed_responses:
@@ -167,33 +167,33 @@ class TemporalReportHandler(handlers.BaseHandler):
                 bucketed_responses[k] = response
 
                 buckets.add(bucket)
-                measures.add(response.measure)
+                qnode_measures.add(response.qnode_measure)
                 organisations.add(response.submission.organisation)
 
             buckets = sorted(buckets)
-            measures = sorted(measures, key=lambda m: m.get_path(survey_id))
+            qnode_measures = sorted(qnode_measures, key=lambda m: m.get_path())
             organisations = sorted(organisations, key=lambda o: o.name)
 
             rows = []
             current_row = None
-            current_measure = None
+            current_qnode_measure = None
             current_organisation = None
-            for k in itertools.product(measures, organisations, buckets):
+            for k in itertools.product(qnode_measures, organisations, buckets):
                 r = bucketed_responses.get(k)
-                measure, organisation, bucket = k
-                if measure != current_measure or organisation != current_organisation:
-                    current_measure = measure
+                qnode_measure, organisation, bucket = k
+                if qnode_measure != current_qnode_measure or organisation != current_organisation:
+                    current_qnode_measure = qnode_measure
                     current_organisation = organisation
-                    current_row = [measure, organisation]
+                    current_row = [qnode_measure, organisation]
                     rows.append(current_row)
 
                 current_row.append(None or r and r.score)
 
             if organisation_id:
                 rows = self.convert_to_stats(rows, organisation_id)
-                urls = self.get_measure_urls(measures, responses[0])
+                urls = self.get_measure_urls(qnode_measures)
             else:
-                urls = self.get_submission_urls(measures, organisations,
+                urls = self.get_submission_urls(qnode_measures, organisations,
                     buckets, bucketed_responses)
 
             columns = self.get_titles(buckets, organisation_id)
@@ -253,7 +253,7 @@ class TemporalReportHandler(handlers.BaseHandler):
                     for col_index in range(len(row_data)):
                         if col_index == 0:
                             worksheet.write(row_index + 1, col_index,
-                                row_data[col_index].title)
+                                row_data[col_index].measure.title)
                         elif col_index == 1 and outfile == "detailed_report":
                             worksheet.write(row_index + 1, col_index,
                                 row_data[col_index].name)
@@ -289,40 +289,37 @@ class TemporalReportHandler(handlers.BaseHandler):
 
         return headers
 
-    def get_measure_urls(self, measures, response):
+    def get_measure_urls(self, qnode_measures):
         base_url = ("%s://%s" % (self.request.protocol, self.request.host))
 
         # Get url for each measure for link column
         urls = []
-        survey = response.submission.survey
-        for m in measures:
-            program_id = m.program_id
-            qnode = m.get_parent(survey)
+        for qm in qnode_measures:
             urls.append(base_url
-                + '/#/1/measure/{}?program={}&parent={}'.format(
-                    m.id, program_id, qnode.id))
+                + '/#/2/measure/{}?program={}&survey={}'.format(
+                    qm.measure_id, qm.program_id, qm.survey_id))
 
         return urls
 
-    def get_submission_urls(self, measures, organisations, buckets, responses):
+    def get_submission_urls(self, qnode_measures, organisations, buckets, responses):
         base_url = ("%s://%s" % (self.request.protocol, self.request.host))
 
         # Get url for link column if we don't already have one
         # Use most recent submission we can find for each
         # measure/organisation pair
-        current_measure = None
+        current_qnode_measure = None
         current_organisation = None
         urls = []
         initial = True
-        for k in itertools.product(measures, organisations, buckets):
+        for k in itertools.product(qnode_measures, organisations, buckets):
             r = responses.get(k)
-            measure, organisation, bucket = k
-            if measure != current_measure or organisation != current_organisation:
+            qnode_measure, organisation, bucket = k
+            if qnode_measure != current_qnode_measure or organisation != current_organisation:
                 # New row, write previous url to list and reset
                 if not initial:
                     urls.append(current_url)
 
-                current_measure = measure
+                current_qnode_measure = qnode_measure
                 current_organisation = organisation
                 current_url = None
                 initial = False
@@ -330,7 +327,7 @@ class TemporalReportHandler(handlers.BaseHandler):
             if r and not current_url:
                 # Found first available submission, get url.
                 current_url = (base_url
-                    + "/#/1/measure/{}?submission={}".format(measure.id,
+                    + "/#/2/measure/{}?submission={}".format(r.measure_id,
                     r.submission.id))
 
         # url for last row

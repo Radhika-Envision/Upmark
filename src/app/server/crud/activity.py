@@ -461,6 +461,12 @@ class SubscriptionHandler(handlers.BaseHandler):
                 .filter(model.Measure.id == ob_refs[0],
                         model.Measure.program_id == ob_refs[1]))
 
+        elif ob_type == 'response_type':
+            arglen(len(ob_refs), 2, 2)
+            query = (session.query(model.ResponseType)
+                .filter(model.ResponseType.id == ob_refs[0],
+                        model.ResponseType.program_id == ob_refs[1]))
+
         elif ob_type == 'submission':
             arglen(len(ob_refs), 1)
             query = (session.query(model.Submission)
@@ -479,7 +485,7 @@ class SubscriptionHandler(handlers.BaseHandler):
                         model.Response.submission_id == ob_refs[1]))
 
         else:
-            raise model.ModelError("Can't subscribe to '%s' type" % ob_type)
+            raise handlers.ModelError("Can't subscribe to '%s' type" % ob_type)
 
         return query.first()
 

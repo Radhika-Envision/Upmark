@@ -8,7 +8,7 @@
             <i class="fa fa-cloud-download"> </i>
         </button>
         <a class="btn btn-default btn-round" title="Statistics"
-                ng-href="#/1/statistics?submission1={{submission.id}}"
+                ng-href="#/2/statistics?submission1={{submission.id}}"
                 ng-if="!structure.deletedItem && !edit.model &&
                        checkRole('submission_admin')">
             <i class="fa fa-sml fa-bar-chart-o"></i></a>
@@ -31,7 +31,7 @@
                 ng-if="edit.model && edit.model.id">
             <i class="fa fa-times"></i></button>
         <a class="btn btn-default btn-round" title="Cancel"
-                ng-href="#/1/program/{{program.id}}"
+                ng-href="#/2/program/{{program.id}}"
                 ng-if="edit.model && !edit.model.id">
             <i class="fa fa-times"></i></a>
         <button class="btn btn-default btn-round" title="Save"
@@ -46,7 +46,7 @@
                        checkRole('submission_edit')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/1/subscription/submission?id={{submission.id}}"
+                ng-href="#/2/subscription/submission?id={{submission.id}}"
                 ng-if="!edit.model">
             <i class="fa fa-envelope"></i></a>
     </div>
@@ -55,6 +55,8 @@
 </div>
 
 <submission-header ng-if="!edit.model"></submission-header>
+<div error-header structure-node="submission.survey" submission-node="submission"
+    ng-if="!edit.model"></div>
 
 <div class="container" ng-if="edit.model && !edit.model.survey">
     <p>
@@ -96,7 +98,7 @@
             </div>
         </div>
         <div class="checkbox"
-                ng-if="!edit.model.id && !duplicate && checkRole('program_edit')">
+                ng-if="!edit.model.id && !duplicate && checkRole('program_edit') && releaseMode.dev">
             <label>
                 <input type="checkbox" id="fillRandom" name="fillRandom"
                     ng-model="edit.params.fillRandom" />

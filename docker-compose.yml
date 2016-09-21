@@ -4,8 +4,12 @@ web:
    - "8000:8000"
   env_file:
    - ../aq_conf/aq.conf
+  environment:
+    HISTFILE: /root/scratch/bash_history
+    XDG_CONFIG_HOME: /root/scratch
   volumes:
    - ./src/app:/usr/share/aquamark/app
+   - ./scratch:/root/scratch
   links:
    - postgres:postgres
   restart: always
@@ -47,8 +51,12 @@ redirect:
 
 test:
   build: ./src/app/
+  environment:
+    HISTFILE: /root/scratch/bash_history
+    XDG_CONFIG_HOME: /root/scratch
   volumes:
    - ./src/app:/usr/share/aquamark/app
+   - ./scratch:/root/scratch
   links:
    - postgresTest:postgres
   working_dir: /usr/share/aquamark/app/test-server
@@ -70,8 +78,32 @@ dbadmin:
     PGUSER: postgres
     PGDATABASE: postgres
     PGPASSWORD: postgres
+    PSQLRC: /root/scratch/psqlrc
+    PSQL_HISTORY: /root/scratch/psql_history
+    HISTFILE: /root/scratch/bash_history
+    XDG_CONFIG_HOME: /root/scratch
   volumes:
     - ../backup:/backup
+    - ./scratch:/root/scratch
+  working_dir: /backup
+  command: ['psql']
+
+dbadmin-test:
+  image: postgres:9
+  links:
+    - postgresTest:postgres
+  environment:
+    PGHOST: postgres
+    PGUSER: postgres
+    PGDATABASE: postgres
+    PGPASSWORD: postgres
+    PSQLRC: /root/scratch/psqlrc
+    PSQL_HISTORY: /root/scratch/psql_history
+    HISTFILE: /root/scratch/bash_history
+    XDG_CONFIG_HOME: /root/scratch
+  volumes:
+    - ../backup:/backup
+    - ./scratch:/root/scratch
   working_dir: /backup
   command: ['psql']
 

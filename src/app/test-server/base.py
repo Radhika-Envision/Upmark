@@ -5,19 +5,20 @@ import unittest
 from unittest import mock
 
 from sqlalchemy.sql import func
-from tornado.escape import json_decode
+from tornado.escape import json_decode, json_encode
 from tornado.testing import AsyncHTTPTestCase
 from tornado.web import Application
 
 import app
 import model
+from score import Calculator
 from utils import denormalise
 
 
 app.parse_options()
 
 
-log = logging.getLogger('app.test_model')
+log = logging.getLogger('app.test.test_model')
 
 
 def get_secure_cookie(user_email=None, super_email=None):
@@ -50,20 +51,27 @@ def print_survey(survey):
     def print_measure(qnode_measure, indent=""):
         print("{}{}".format(indent, qnode_measure.measure))
         indent += "  "
+        if qnode_measure.error:
+            print("{}error: {}".format(indent, qnode_measure.error))
         print("{}seq: {}".format(indent, qnode_measure.seq))
         print("{}weight: {}".format(indent, qnode_measure.measure.weight))
 
     def print_qnode(qnode, indent=""):
         print("{}{}".format(indent, qnode))
         indent += "  "
+        if qnode.error:
+            print("{}error: {}".format(indent, qnode.error))
         print("{}seq: {}".format(indent, qnode.seq))
         print("{}total_weight: {}".format(indent, qnode.total_weight))
+        print("{}n_measures: {}".format(indent, qnode.n_measures))
         for c in qnode.children:
             print_qnode(c, indent)
         for m in qnode.qnode_measures:
             print_measure(m, indent)
 
     print(survey)
+    if survey.error:
+        print("  error: ", survey.error)
     for qnode in survey.qnodes:
         print_qnode(qnode, indent="  ")
 
@@ -157,31 +165,31 @@ class AqModelTestBase(unittest.TestCase):
                 'title': "Foo Measure",
                 'description': "Foo",
                 'weight': 3,
-                'response_type': 'yes-no'
+                'response_type': 'Yes / No'
             },
             {
                 'title': "Bar Measure",
                 'description': "Bar",
                 'weight': 6,
-                'response_type': 'yes-no'
+                'response_type': 'Yes / No'
             },
             {
                 'title': "Baz Measure",
                 'description': "Baz",
                 'weight': 11,
-                'response_type': 'numerical'
+                'response_type': 'Numerical'
             },
             {
                 'title': "Unreferenced Measure 1",
                 'description': "Deleted",
                 'weight': 12,
-                'response_type': 'yes-no'
+                'response_type': 'Yes / No'
             },
             {
                 'title': "Unreferenced Measure 2",
                 'description': "Deleted",
                 'weight': 13,
-                'response_type': 'yes-no'
+                'response_type': 'Yes / No'
             },
         ]
 
@@ -244,7 +252,7 @@ class AqModelTestBase(unittest.TestCase):
                     },
                     {
                         'title': "Function 2",
-                        'description': "Test",
+                        'description': "Empty category",
                     },
                     {
                         'title': "Function 3",
@@ -292,7 +300,7 @@ class AqModelTestBase(unittest.TestCase):
                         'description': "Test",
                         'children': [
                             {
-                                'title': "SubSection 1",
+                                'title': "SubSection 1.1",
                                 'description': "Test",
                                 'measures': [1, 2],
                             },
@@ -332,7 +340,7 @@ class AqModelTestBase(unittest.TestCase):
                         'description': "Test",
                         'children': [
                             {
-                                'title': "Division 1",
+                                'title': "Sub-Division 1.1",
                                 'description': "Test",
                                 'measures': [1, 2],
                             },
@@ -351,18 +359,29 @@ class AqModelTestBase(unittest.TestCase):
             program = entity = model.Program(
                 title='Test Program 1',
                 description="This is a test program")
-            program.response_types = response_types
             session.add(program)
 
-            # Create measures
-            all_measures = []
-            for mson in msons:
-                measure = model.Measure(program=program, **mson)
-                session.add(measure)
-                all_measures.append(measure)
-            program.measures = all_measures
+            # Create response types
+            rts = {}
+            for rt_def in response_types:
+                rt = model.ResponseType(program=program, **rt_def)
+                rts[rt_def['name']] = rt
+                session.add(rt)
 
-            # Create survey and qnodes
+            # Create measures
+            ordered_measures = []
+            for mson in msons:
+                mson_clean = mson.copy()
+                del mson_clean['response_type']
+                measure = model.Measure(program=program, **mson_clean)
+                measure.response_type = rts[mson['response_type']]
+                session.add(measure)
+                ordered_measures.append(measure)
+            # Note that program.measures is unordered so can't be accessed by
+            # index
+            program.measures = ordered_measures
+
+            # Create qnodes
             def create_qnodes(qsons, survey, parent=None):
                 qnodes = []
                 for qson in qsons:
@@ -384,11 +403,15 @@ class AqModelTestBase(unittest.TestCase):
                             qson['children'], survey, parent=qnode)
                         qnode.children.reorder()
 
-                    qnode.measures = [all_measures[i]
-                                      for i in qson.get('measures', [])]
+                    msons = qson.get('measures', [])
+                    for measure in (ordered_measures[i] for i in msons):
+                        qm = model.QnodeMeasure(
+                            program=program, survey=survey,
+                            qnode=qnode, measure=measure)
                     qnode.qnode_measures.reorder()
                 return qnodes
 
+            # Create survey
             def create_surveys(hsons):
                 surveys = []
                 for hson in hsons:
@@ -407,10 +430,22 @@ class AqModelTestBase(unittest.TestCase):
                     survey.qnodes = create_qnodes(
                         hson['qnodes'], survey)
                     survey.qnodes.reorder()
+                    calculator = Calculator.structural()
+                    calculator.mark_entire_survey_dirty(survey)
+                    calculator.execute()
+                    # print_survey(survey)
                 return surveys
 
             create_surveys(hsons)
-            program.update_stats_descendants()
+
+
+def printable(mime_type):
+    if 'text/' in mime_type:
+        return True
+    if '/xml' in mime_type or '+xml' in mime_type:
+        return True
+    if 'application/json' in mime_type:
+        return True
 
 
 class AqHttpTestBase(AqModelTestBase, AsyncHTTPTestCase):
@@ -424,23 +459,24 @@ class AqHttpTestBase(AqModelTestBase, AsyncHTTPTestCase):
         settings['serve_traceback'] = True
         return Application(app.get_mappings(), **settings)
 
-    def fetch(self, path, expected=None, decode=False, encoding='utf8', **kwargs):
+    def fetch(self, path, expected=None, decode=False, **kwargs):
+        log.debug("%s %s", kwargs.get('method'), path)
+        if 'body' in kwargs and not isinstance(kwargs['body'], (str, bytes)):
+            kwargs['body'] = json_encode(kwargs['body'])
         response = super().fetch(path, **kwargs)
         if response.code == 599:
             response.rethrow()
         if expected is not None:
-            if encoding:
-                body = response.body and response.body.decode(encoding) or ''
-                self.assertEqual(
-                    expected, response.code,
-                    msg="{} failed: {}\n\n{}\n(body may be truncated)".format(
-                        path, response.reason, body[:100]))
+            if printable(response.headers["Content-Type"]):
+                body = '\n\n' + response.body.decode('utf-8')
+                if len(body) > 10000:
+                    body = body[:9900] + '\n(body is truncated)'
             else:
-                body = response.body
-                self.assertEqual(
-                    expected, response.code,
-                    msg="{} failed: {}\n".format(
-                        path, response.reason))
+                body = '\n\n(non-text)'
+            self.assertEqual(
+                expected, response.code,
+                msg="{} {}\nReason: {}{}".format(
+                    kwargs.get('method'), path, response.reason, body))
 
         if decode:
             return denormalise(json_decode(response.body))

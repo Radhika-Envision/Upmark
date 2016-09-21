@@ -196,11 +196,11 @@ angular.module('wsaa.admin', [
     }
 
     $scope.$on('EditSaved', function(event, model) {
-        $location.url('/1/user/' + model.id);
+        $location.url('/2/user/' + model.id);
     });
     $scope.$on('EditDeleted', function(event, model) {
         $location.url(format(
-            '/1/org/{}', model.organisation.id));
+            '/2/org/{}', model.organisation.id));
     });
 
     $scope.roles = routeData.roles;
@@ -211,9 +211,7 @@ angular.module('wsaa.admin', [
     }
 
     $scope.searchOrg = function(term) {
-        Organisation.query({term: term}).$promise.then(function(orgs) {
-            $scope.organisations = orgs;
-        });
+        return Organisation.query({term: term}).$promise;
     };
 
     $scope.checkRole = userAuthz(Current, $scope.user);
@@ -350,36 +348,11 @@ angular.module('wsaa.admin', [
     $scope.attributions = [];
 
     $scope.$on('EditSaved', function(event, model) {
-        $location.url('/1/org/' + model.id);
+        $location.url('/2/org/' + model.id);
     });
     $scope.$on('EditDeleted', function(event, model) {
-        $location.url('/1/orgs');
+        $location.url('/2/orgs');
     });
-
-    // ui-select can't be used directly with items in an ng-repeat. The ng-model
-    // needs to be a field within the item. We use a bidirectional transform
-    // on the locations array to box the values.
-    $scope.boxed_locations = null;
-    $scope.$watch('edit.model.locations', function(locations) {
-        if (!locations) {
-            $scope.boxed_locations = null;
-            return;
-        }
-        $scope.boxed_locations = locations.map(function(loc) {
-            return {data: loc};
-        });
-    }, true);
-    $scope.$watch('boxed_locations', function(locations) {
-        if (!$scope.edit.model)
-            return;
-        if (!locations) {
-            $scope.edit.model.locations = null;
-            return;
-        }
-        $scope.edit.model.locations = locations.map(function(loc) {
-            return loc.data;
-        });
-    }, true);
 
     $scope.$watch('org.locations', function(locations) {
         if (!locations) {
@@ -399,11 +372,7 @@ angular.module('wsaa.admin', [
     };
 
     $scope.searchLoc = function(term) {
-        if (term.length < 3)
-            return;
-        LocationSearch.query({term: term}).$promise.then(function(locations) {
-            $scope.locations = locations;
-        });
+        return LocationSearch.query({term: term}).$promise;
     };
 
     $scope.ownershipTypes = [
@@ -505,7 +474,7 @@ angular.module('wsaa.admin', [
             surveyId: survey.id
         }).$promise.then(
             function success() {
-                $location.url('/1/org/' + $scope.org.id);
+                $location.url('/2/org/' + $scope.org.id);
             },
             function failure(details) {
                 Notifications.set('edit', 'error',

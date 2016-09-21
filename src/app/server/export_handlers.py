@@ -203,8 +203,6 @@ class Exporter():
             elif survey.deleted:
                 raise handlers.MissingDocError("That survey has been deleted")
 
-            self.response_types = program._response_types
-
             prefix = ""
 
             list1 = (session.query(model.QuestionNode)
@@ -238,8 +236,7 @@ class Exporter():
             log.debug('Exporting submission %s of program %s', submission_id, program_id)
             if submission_id != '':
                 responses = (session.query(model.Response)
-                             .filter(model.Response.submission_id == submission_id,
-                                     model.Response.program_id == program_id)
+                             .filter(model.Response.submission_id == submission_id)
                              .all())
 
                 if responses:
@@ -416,9 +413,6 @@ class Exporter():
 
 
         for qnode_measure in filtered_list:
-            response_types = [type for type in self.response_types
-                              if type["id"] == qnode_measure["response_type"]]
-
             response = [r for r in response_list
                         if r["measure_id"] == qnode_measure["measure_id"]]
             if response:
@@ -482,9 +476,10 @@ class Exporter():
             worksheet.write(self.line, 2, "Not Relevant", format_end2)
             worksheet.write(self.line, 3, not_relevant, format_end3)
             # answer option
-            parts_len = len(response_types[0]["parts"])
+            rt = qnode_measure['response_type']
+            parts_len = len(rt.parts)
             index = 0
-            for part in response_types[0]["parts"]:
+            for part in rt.parts:
                 if 'name' in part:
                     worksheet.write(self.line - parts_len + index, 2,
                                     part["name"], format_part)
@@ -559,20 +554,18 @@ class Exporter():
             level_length = len(levels)
             worksheet.set_column(0, level_length, 50)
 
-            measures = list(survey.ordered_measures)
+            measures = [qm.measure for qm in survey.ordered_qnode_measures]
 
             max_parts = 0
             longest_response_type = None
             for m in measures:
-                rt = survey.program.materialised_response_types[
-                    m.response_type]
-                if len(rt.parts) > max_parts:
-                    longest_response_type = rt
-                    max_parts = len(rt.parts)
+                if len(m.response_type.parts) > max_parts:
+                    longest_response_type = m.response_type
+                    max_parts = len(m.response_type.parts)
 
             if longest_response_type:
                 response_parts = [
-                    p.name or "Part %s" % string.ascii_uppercase[i]
+                    p.get('name') or "Part %s" % string.ascii_uppercase[i]
                     for i, p in enumerate(longest_response_type.parts)]
             else:
                 response_parts = []
@@ -587,11 +580,11 @@ class Exporter():
                 workbook, worksheet, levels, max_parts, response_parts)
 
             for measure in measures:
-                qnode = measure.get_parent(survey)
+                qnode_measure = measure.get_qnode_measure(survey)
                 self.write_qnode(
-                    worksheet, qnode, line, format, level_length - 1)
+                    worksheet, qnode_measure.qnode, line, format, level_length - 1)
 
-                seq = measure.get_seq(survey) + 1
+                seq = qnode_measure.seq + 1
 
                 worksheet.write(
                     line, level_length, "%d. %s" % (seq, measure.title), format)
@@ -599,13 +592,13 @@ class Exporter():
                 importance = None
                 urgency = None
                 if submission:
-                    response = measure.get_response(submission)
-                    url = base_url + "/#/1/measure/{}?submission={}".format(
+                    response = qnode_measure.get_response(submission)
+                    url = base_url + "/#/2/measure/{}?submission={}".format(
                         measure.id, submission.id)
 
                     # Walk up the tree to get the importance and urgency from the
                     # parent rnodes
-                    parent = qnode
+                    parent = qnode_measure.qnode
                     while parent and (importance is None or urgency is None):
                         rnode = parent.get_rnode(submission)
                         if rnode is not None:
@@ -617,8 +610,8 @@ class Exporter():
 
                 else:
                     response = None
-                    url = base_url + '/#/1/measure/{}?program={}&parent={}'.format(
-                        measure.id, program_id, qnode.id)
+                    url = base_url + '/#/2/measure/{}?program={}&survey={}'.format(
+                        measure.id, program_id, qnode_measure.survey_id)
 
                 worksheet.write(
                 line, level_length + max_parts + 1, importance, format_int)

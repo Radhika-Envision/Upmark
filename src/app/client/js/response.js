@@ -4,15 +4,52 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
 
 
 .factory('responseTypes', function() {
-    // These classes are used to calculate scores and validate entered data.
-    // They should be kept in sync with the classes on the server; see
+
+    // These functions are used to calculate scores and validate entered data.
+    // NOTE: keep changes made to these classes in sync with those in
     // response_type.py.
 
-    function ResponseType(rtDef) {
-        this.id = rtDef.id;
-        this.name = rtDef.name;
-        this.parts = rtDef.parts && rtDef.parts.map(responsePart) || [];
-        this.formula = rtDef.formula ? Parser.parse(rtDef.formula) : null;
+    var uniqueStrings = function(ss) {
+        var set = {},
+            res = [];
+        ss.forEach(function(s) {
+            if (set.hasOwnProperty(s))
+                return;
+            set[s] = true;
+            res.push(s);
+        });
+        return res.sort();
+    };
+    var parse = function(exp) {
+        try {
+            return exp ? Parser.parse(exp) : null;
+        } catch (e) {
+            if (/parse error/.exec(e))
+                console.log("Failed to parse expression '" + exp + "': " + e)
+            return null;
+        }
+    };
+    var refs = function(cExp) {
+        return cExp ? cExp.variables() : [];
+    };
+
+
+    function ResponseType(name, partsDef, formula) {
+        this.name = name;
+        this.parts = partsDef && partsDef.map(responsePart) || [];
+        this.formula = parse(formula);
+        this.declaredVars = uniqueStrings(
+            this.parts.reduce(function(prev, part) {
+                return prev.concat(part.declaredVars);
+            }, []));
+        this.freeVars = uniqueStrings(
+            this.parts.reduce(function(prev, part) {
+                return prev.concat(part.freeVars);
+            }, refs(this.formula)));
+        this.unboundVars = uniqueStrings(
+            this.freeVars.filter(function(fv) {
+                return this.declaredVars.indexOf(fv) < 0;
+            }, this));
     };
     ResponseType.prototype.zip = function(responseParts) {
         var partPairs = [];
@@ -49,6 +86,23 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
         });
         return scope;
     };
+    ResponseType.prototype.humanize_variable = function(field_name) {
+        if (field_name == '_raw')
+            return 'Raw score';
+        if (field_name == '_score')
+            return 'Weighted score';
+        if (field_name == '_weight')
+            return 'Measure weight';
+        for (var i = 0; i < this.parts.length; i++) {
+            var part = this.parts[i];
+            if (field_name != part.name)
+                continue;
+            if (part.name)
+                return 'Part ' + part.name;
+            return 'Part ' + i;
+        }
+        return 'Unknown field ' + field_name;
+    };
     ResponseType.prototype.validate = function(responseParts, scope) {
         this.zip(responseParts).forEach(function(part, index) {
             try {
@@ -56,16 +110,14 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             } catch (e) {
                 var name;
                 if (part.schema.name) {
-                    name = '"' + part.schema.name + '"';
-                    if (this.parts.length > 1)
-                        name += " (part " + (index + 1) + ")";
+                    name = '' + part.schema.name;
                 } else {
                     if (this.parts.length > 1)
-                        name = "Response part " + (index + 1);
+                        name = "Part " + (index + 1);
                     else
                         name = "Response";
                 }
-                throw name + " is incomplete: " + e;
+                throw name + ": " + e;
             }
         }, this);
     };
@@ -100,6 +152,11 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
         this.options = pDef.options.map(function(oDef) {
             return new ResponseOption(oDef);
         });
+        this.declaredVars = this.id ? [this.id, this.id + '__i'] : [];
+        this.freeVars = uniqueStrings(
+            this.options.reduce(function(prev, option) {
+                return prev.concat(option.freeVars);
+            }, []));
     };
     MultipleChoice.prototype = Object.create(ResponsePart.prototype);
     MultipleChoice.prototype.score = function(part) {
@@ -116,10 +173,10 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
     };
     MultipleChoice.prototype.validate = function(part, scope) {
         if (part.index == null)
-            throw "Please choose an option";
+            throw "Choose an option";
         var option = this.options[part.index];
         if (!option.available(scope))
-            throw "Conditions for option " + option.name + " are not met";
+            throw "Can't select \"" + option.name + "\"";
     };
 
 
@@ -127,7 +184,8 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
         this.score = oDef.score;
         this.name = oDef.name;
         this.description = oDef.description;
-        this.predicate = oDef['if'] ? Parser.parse(oDef['if']) : null;
+        this.predicate = parse(oDef['if']);
+        this.freeVars = refs(this.predicate);
     };
     ResponseOption.prototype.available = function(scope) {
         if (!this.predicate)
@@ -142,8 +200,11 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
 
     function Numerical(pDef) {
         ResponsePart.call(this, pDef);
-        this.lowerExp = pDef.lower ? Parser.parse(pDef.lower) : null;
-        this.upperExp = pDef.upper ? Parser.parse(pDef.upper) : null;
+        this.lowerExp = parse(pDef.lower);
+        this.upperExp = parse(pDef.upper);
+        this.declaredVars = this.id ? [this.id] : [];
+        this.freeVars = uniqueStrings(
+            refs(this.lowerExp).concat(refs(this.upperExp)));
     };
     Numerical.prototype = Object.create(ResponsePart.prototype);
     Numerical.prototype.score = function(part) {
@@ -187,15 +248,16 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
 })
 
 
-.directive('response', function(responseTypes) {
+.directive('response', function() {
     return {
         restrict: 'E',
         scope: {
-            responseType: '=type',
+            rt: '=type',
             response: '=model',
             weight_: '=weight',
             readonly: '=',
-            hasQuality: '='
+            hasQuality: '=',
+            externs: '=',
         },
         replace: true,
         templateUrl: 'response.html',
@@ -207,14 +269,6 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             $scope.$watch('weight_', function(weight) {
                 $scope.weight = weight == null ? 100 : weight;
             });
-
-            $scope.$watch('responseType', function(rtDef) {
-                if (!rtDef) {
-                    $scope.rt = null;
-                    return;
-                }
-                $scope.rt = new responseTypes.ResponseType(rtDef);
-            }, true);
 
             $scope.state = {
                 variables: null,
@@ -238,10 +292,11 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
                 });
 
                 if ($scope.response.notRelevant) {
-                    $scope.state.variables = {};
+                    $scope.state.variables = angular.merge({}, $scope.externs);
                     $scope.state.score = 0;
                 } else {
-                    $scope.state.variables = rt.variables(partsR, true);
+                    $scope.state.variables = angular.merge(
+                        {}, $scope.externs, rt.variables(partsR, true));
                     try {
                         rt.validate(partsR, $scope.state.variables);
                         $scope.state.score = rt.score(
@@ -255,6 +310,7 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             });
             $scope.$watch('rt', recalculate);
             $scope.$watch('response.responseParts', recalculate, true);
+            $scope.$watch('externs', recalculate, true);
 
             $scope.getPartData = function(partSchema) {
                 var i = $scope.rt.parts.indexOf(partSchema);
@@ -334,115 +390,135 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
 })
 
 
-.controller('ResponseTypeEditorCtrl', function($scope, Numbers) {
-    $scope.rtEdit = {};
-    $scope.editRt = function(model, index) {
-        var rt = angular.copy(model.responseTypes[index]);
-        $scope.rtEdit = {
-            model: model,
-            rt: rt,
-            i: index,
-            response: {
-                responseParts: [],
-                comment: ''
-            }
-        };
-    };
-    $scope.saveRt = function() {
-        var rts = $scope.rtEdit.model.responseTypes;
-        var rt = angular.copy($scope.rtEdit.rt);
-        rt.parts.forEach(function (part) {
-            // Clean up unused fields
-            if (part.type != 'multiple_choice')
-                delete part.options;
-            if (part.type != 'numerical') {
-                delete part.lower;
-                delete part.upper;
-            }
-        });
-        rts[$scope.rtEdit.i] = angular.copy(rt);
-        $scope.rtEdit = {};
-    };
-    $scope.cancelRt = function() {
-        $scope.rtEdit = {};
-    };
-    $scope.addRt = function(model) {
-        var i = model.responseTypes.length + 1;
-        model.responseTypes.push({
-            id: 'response_' + i,
-            name: 'Response Type ' + i,
-            parts: []
-        })
-    };
-    $scope.addPart = function(rt) {
-        var ids = {};
-        for (var i = 0; i < rt.parts.length; i++) {
-            ids[rt.parts[i].id] = true;
-        }
-        var id;
-        for (var i = 0; i <= rt.parts.length; i++) {
-            id = Numbers.idOf(i);
-            if (!ids[id])
-                break;
-        }
-        var part = {
-            id: id,
-            name: 'Response part ' + id.toUpperCase(),
-        };
-        $scope.setType(part, 'multiple_choice');
-        rt.parts.push(part);
-        $scope.updateFormula(rt);
-    };
-    $scope.setType = function(part, type) {
-        part.type = type;
-        if (type == 'multiple_choice' && !part.options) {
-            part.options = [
-                {score: 0, name: 'No', 'if': null},
-                {score: 1, name: 'Yes', 'if': null}
-            ];
-        }
-    };
-    $scope.addOption = function(part) {
-        part.options.push({
-            score: 0,
-            name: 'Option ' + (part.options.length + 1)
-        })
-    };
-    $scope.updateFormula = function(rt) {
-        if (rt.parts.length <= 1) {
-            rt.formula = null;
-            return;
-        }
-        var formula = "";
-        for (var i = 0; i < rt.parts.length; i++) {
-            var part = rt.parts[i];
-            if (i > 0)
-                formula += " + ";
-            if (part.id)
-                formula += part.id;
-            else
-                formula += "?";
-        }
-        rt.formula = formula;
-    };
-    $scope.remove = function(rt, list, item) {
-        var i = list.indexOf(item);
-        if (i < 0)
-            return;
-        list.splice(i, 1);
-        if (item.options)
-            $scope.updateFormula(rt);
-    };
+.directive('responseTypeEditor', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            rt: '=responseTypeEditor',
+            weight: '=',
+            isBound: '=',
+        },
+        templateUrl: 'response_type_editor.html',
+        controller: function($scope, Numbers, responseTypes, $timeout, Enqueue) {
+            $scope.$watch('rt', function(rt) {
+                $scope.rtEdit = {
+                    rt: rt,
+                    responseType: null,
+                    externs: {},
+                    response: {
+                        responseParts: [],
+                        comment: ''
+                    },
+                    activeTab: 'details',
+                };
+            });
+            $scope.addPart = function(rt, $event) {
+                var ids = {};
+                for (var i = 0; i < rt.parts.length; i++) {
+                    ids[rt.parts[i].id] = true;
+                }
+                var id;
+                for (var i = 0; i <= rt.parts.length; i++) {
+                    id = Numbers.idOf(i);
+                    if (!ids[id])
+                        break;
+                }
+                var part = {
+                    id: id,
+                    name: 'Response part ' + id.toUpperCase(),
+                };
+                $scope.setType(part, 'multiple_choice');
+                rt.parts.push(part);
+                $scope.updateFormula(rt);
 
-    $scope.partTypes = [
-        {name: 'multiple_choice', desc: 'Multiple choice'},
-        {name: 'numerical', desc: 'Numerical'},
-    ];
-    $scope.partTypeMap = $scope.partTypes.reduce(function(ts, t){
-        ts[t.name] = t.desc;
-        return ts;
-    }, {});
+                $timeout(function() {
+                    $scope.rtEdit.activeTab = rt.parts.indexOf(part);
+                });
+            };
+            $scope.setType = function(part, type) {
+                part.type = type;
+                if (type == 'multiple_choice' && !part.options) {
+                    part.options = [
+                        {score: 0, name: 'No', 'if': null},
+                        {score: 1, name: 'Yes', 'if': null}
+                    ];
+                }
+            };
+            $scope.addOption = function(part) {
+                part.options.push({
+                    score: 0,
+                    name: 'Option ' + (part.options.length + 1)
+                })
+            };
+            $scope.updateFormula = function(rt) {
+                if (rt.parts.length <= 1) {
+                    rt.formula = null;
+                    return;
+                }
+                var formula = "";
+                for (var i = 0; i < rt.parts.length; i++) {
+                    var part = rt.parts[i];
+                    if (i > 0)
+                        formula += " + ";
+                    if (part.id)
+                        formula += part.id;
+                    else
+                        formula += "?";
+                }
+                rt.formula = formula;
+            };
+            $scope.remove = function(rt, list, item) {
+                var i = list.indexOf(item);
+                if (i < 0)
+                    return;
+                list.splice(i, 1);
+                if (item.options)
+                    $scope.updateFormula(rt);
+            };
+
+            var rtDefChanged = Enqueue(function() {
+                var rtDef = $scope.rtEdit.rt;
+                if (!rtDef) {
+                    $scope.rtEdit.responseType = null;
+                    return;
+                }
+                $scope.rtEdit.responseType = new responseTypes.ResponseType(
+                    rtDef.name, rtDef.parts, rtDef.formula);
+            });
+            $scope.$watch('rtEdit.rt', rtDefChanged);
+            $scope.$watch('rtEdit.rt', rtDefChanged, true);
+
+            $scope.partTypes = [
+                {name: 'multiple_choice', desc: 'Multiple choice'},
+                {name: 'numerical', desc: 'Numerical'},
+            ];
+            $scope.partTypeMap = $scope.partTypes.reduce(function(ts, t){
+                ts[t.name] = t.desc;
+                return ts;
+            }, {});
+
+            $scope.$watchGroup(['rt.nMeasures', 'isBound'], function(vars) {
+                var nMeasures = vars[0];
+                if ($scope.isBound)
+                    $scope.nMeasures = nMeasures - 1;
+                else
+                    $scope.nMeasures = nMeasures;
+            });
+        },
+        link: function(scope, elem, attrs) {
+        },
+    };
 })
 
+
+.controller('ResponseTypeCtrl',
+        function($scope, questionAuthz, Measure, Current, layout, routeData,
+            ResponseType) {
+
+    $scope.layout = layout;
+    $scope.checkRole = questionAuthz(Current, null);
+    $scope.responseType = routeData.responseType;
+    $scope.ResponseType = ResponseType;
+})
 
 ;

@@ -1,5 +1,5 @@
 <div class="section">
-    <div class="toolbar">
+    <div class="toolbar" highlight="edit.model" highlight-half>
         <button class="btn btn-default btn-round" title="Reset order"
                 ng-click="edit.cancel()"
                 ng-if="edit.model">
@@ -14,11 +14,11 @@
                        !edit.model && search.deleted === false">
             <i class="fa fa-fw fa-unsorted"></i></button>
         <a class="btn btn-default btn-round" title="Add new"
-                ng-href="#/1/qnode/new?{{query}}&parent={{qnode.id}}"
+                ng-href="#/2/qnode/new?{{query}}&parent={{qnode.id}}"
                 ng-if="editable && !edit.model">
             <i class="fa fa-fw fa-plus"></i></a>
         <a class="btn btn-default btn-round" title="Link to existing"
-                ng-href="#/1/qnode-link?{{query}}&parent={{qnode.id}}"
+                ng-href="#/2/qnode-link?{{query}}&parent={{qnode.id}}"
                 ng-if="editable && !edit.model">
             <i class="fa fa-fw fa-link"></i></a>
         <delete-cycle class="btn-round" model="search.deleted"
@@ -30,12 +30,21 @@
 <table class="table table-hover">
     <tbody ui-sortable="dragOpts" ng-model="edit.model">
         <tr ng-repeat="item in edit.model || model"
-                any-href="/1/qnode/{{item.id}}?{{query}}"
+                any-href="/2/qnode/{{item.id}}?{{query}}"
                 ng-disabled="edit.model"
-                ng-class="{strike: item.deleted,
-                           'strike-black': getStats(item.id).notRelevant}">
+                ng-class="{
+                    'strike': item.deleted,
+                    'strike-black': getStats(item.id).notRelevant,
+                    'warning': item.error || getStats(item.id).error,
+                }">
             <td class="shrink">{{item.seq + 1}}</td>
-            <td>{{item.title}}</td>
+            <td>
+                {{item.title}}
+                <span ng-if="item.error || getStats(item.id).error"
+                        class="text-muted">
+                    <i class="fa fa-exclamation-triangle"></i>
+                </span>
+            </td>
             <td class="shrink text-muted numeric" title="Importance and Urgency"
                     ng-if="submission"
                ><span ng-if="getStats(item.id).importance"
@@ -78,7 +87,10 @@
                 {{item.nMeasures}}
             </td>
             <td class="shrink grab-handle" ng-if="edit.model"
-               ><i class="fa fa-fw fa-unsorted"></i></td>
+               ><span class="btn btn-default btn-round"
+                   title="Drag to reorder"
+                   highlight highlight-half>
+               <i class="fa fa-fw fa-unsorted"></i></span></td>
         </tr>
     </tbody>
 </table>

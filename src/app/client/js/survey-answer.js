@@ -43,7 +43,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
 .controller('SubmissionCtrl',
         function($scope, Submission, Survey, routeData, Editor, questionAuthz,
              layout, $location, Current, format, $filter, Notifications,
-             Structure, $http, LocationSearch) {
+             Structure, $http, LocationSearch, releaseMode) {
 
     $scope.layout = layout;
     $scope.program = routeData.program;
@@ -129,11 +129,11 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
-            '/1/submission/{}', model.id, $scope.program.id));
+            '/2/submission/{}', model.id, $scope.program.id));
     });
     $scope.$on('EditDeleted', function(event, model) {
         $location.url(format(
-            '/1/program/{}', $scope.program.id));
+            '/2/program/{}', $scope.program.id));
     });
 
     $scope.checkRole = questionAuthz(Current, $scope.program, $scope.submission);
@@ -155,6 +155,8 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
             }
         );
     };
+
+	$scope.releaseMode = releaseMode;
 
     $scope.calender = {
       opened: false
@@ -391,7 +393,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
                 reportTypes: ['Detailed', 'Summary'],
                 intervalUnits: ['Months', 'Years'],
                 intervalNum: 1.0,
-                responseQualities: ['None', 1, 2, 3, 4, 5],
+                responseQualities: [0, 1, 2, 3, 4, 5],
                 allowedStates: ['reviewed', 'approved'],
                 locations: [],
                 min_date: dt,
@@ -417,7 +419,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
                 maxEmployees: null,
                 minPopulation: null,
                 maxPopulation: null,
-                quality: 'None',
+                quality: 0,
                 approval: 'reviewed',
                 locations: null,
                 organisationId: null
@@ -566,7 +568,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
             $scope.progress.isFinished = true;
         }, 1000);
         $timeout(function() {
-            $location.url('/1/program/' + response);
+            $location.url('/2/program/' + response);
         }, 5000);
     });
 

@@ -6,7 +6,8 @@
     <input type="text" class="form-control search-box"
             id="searchBox"
             ng-model="model.term"
-            ng-model-options="{ debounce: { 'default': 300, 'blur': 0 }}">
+            ng-model-options="{ debounce: { 'default': 300, 'blur': 0 }}"
+            autocomplete="off">
     <span class="input-group-btn" ng-transclude if-not-empty></span>
     <span class="input-group-addon text-muted">
         {{result.$pageIndex + 1}}

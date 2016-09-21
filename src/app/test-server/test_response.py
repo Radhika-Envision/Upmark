@@ -7,7 +7,7 @@ import unittest
 from unittest import mock
 
 from sqlalchemy.sql import func
-from sqlalchemy.orm.session import make_transient
+from sqlalchemy.orm.session import make_transient, object_session
 from tornado.escape import json_encode
 from tornado.testing import AsyncHTTPTestCase
 from tornado.web import Application
@@ -15,11 +15,12 @@ from tornado.web import Application
 import app
 import base
 import model
-from response_type import ExpressionError, ResponseTypeCache, ResponseError
+from response_type import ExpressionError, ResponseType, ResponseError
+from score import Calculator
 from utils import ToSon
 
 
-log = logging.getLogger('app.test_response')
+log = logging.getLogger('app.test.test_response')
 
 
 TEST_RESPONSE_TYPES = [
@@ -99,6 +100,17 @@ TEST_RESPONSE_TYPES = [
         ]
     },
     {
+        "id": "external-var",
+        "name": "External Variable",
+        "parts": [
+            {
+                "id": "a",
+                "type": "numerical"
+            }
+        ],
+        "formula": "a / ext"
+    },
+    {
         "id": "comment",
         "name": "Comment Only (no score)",
         "parts": []
@@ -109,7 +121,10 @@ TEST_RESPONSE_TYPES = [
 class ResponseTypeTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.rts = ResponseTypeCache(TEST_RESPONSE_TYPES)
+        cls.rts = {
+            t['id']: ResponseType(t.get('name'), t['parts'], t.get('formula'))
+            for t in TEST_RESPONSE_TYPES
+        }
 
     def test_deserialise(self):
         proj_dir = os.path.join(
@@ -117,11 +132,17 @@ class ResponseTypeTest(unittest.TestCase):
 
         with open(os.path.join(
                 proj_dir, 'client', 'default_response_types.json')) as file:
-            ResponseTypeCache(json.load(file))
+            [
+                ResponseType(t.get('name'), t['parts'], t.get('formula'))
+                for t in json.load(file)
+            ]
 
         with open(os.path.join(
                 proj_dir, 'server', 'aquamark_response_types.json')) as file:
-            ResponseTypeCache(json.load(file))
+            [
+                ResponseType(t.get('name'), t['parts'], t.get('formula'))
+                for t in json.load(file)
+            ]
 
     def test_comment_only(self):
         rt = self.rts['comment']
@@ -205,6 +226,22 @@ class ResponseTypeTest(unittest.TestCase):
                 {'value': 0.7},
             ])
 
+    def test_free_vars(self):
+        rt = self.rts['multi-part']
+        self.assertCountEqual(rt.declared_vars, ['a', 'a__i', 'b', 'b__i'])
+        self.assertCountEqual(rt.free_vars, ['a', 'a__i', 'b'])
+        self.assertCountEqual(rt.unbound_vars, [])
+
+        rt = self.rts['numerical-multi']
+        self.assertCountEqual(rt.declared_vars, ['a', 'b', 'c'])
+        self.assertCountEqual(rt.free_vars, ['a', 'b'])
+        self.assertCountEqual(rt.unbound_vars, [])
+
+        rt = self.rts['external-var']
+        self.assertCountEqual(rt.declared_vars, ['a'])
+        self.assertCountEqual(rt.free_vars, ['a', 'ext'])
+        self.assertCountEqual(rt.unbound_vars, ['ext'])
+
 
 class SubmissionTest(base.AqHttpTestBase):
     def test_create(self):
@@ -216,14 +253,10 @@ class SubmissionTest(base.AqHttpTestBase):
             survey_1 = (session.query(model.Survey)
                     .filter_by(title='Survey 1')
                     .one())
-            survey_2 = (session.query(model.Survey)
-                    .filter_by(title='Survey 2')
-                    .one())
 
             program_id = str(program.id)
             organisation_id = str(organisation.id)
             survey_1_id = str(survey_1.id)
-            survey_2_id = str(survey_2.id)
 
         with base.mock_user('org_admin'):
             submission_son = {'title': "Submission"}
@@ -247,6 +280,182 @@ class SubmissionTest(base.AqHttpTestBase):
                 method='POST', body=json_encode(submission_son),
                 expected=200, decode=True)
 
+    def test_extern(self):
+        '''Check that variables can depend on each other'''
+        with model.session_scope() as session:
+            user = (session.query(model.AppUser)
+                    .filter_by(email='clerk')
+                    .one())
+            survey = (session.query(model.Survey)
+                    .filter_by(title='Survey 1')
+                    .one())
+            program = survey.program
+
+            # Add a response type that has an extenal variable
+            rt = next(
+                rt for rt in TEST_RESPONSE_TYPES
+                if rt['id'] == 'external-var')
+            ext_response_type = model.ResponseType(
+                program=program,
+                name=rt['name'], parts=rt['parts'], formula=rt['formula'])
+            session.add(ext_response_type)
+
+            # Attach response type to a measure
+            target_qm = survey.qnodes[0].children[0].qnode_measures[1]
+            target_qm.measure.response_type = ext_response_type
+            self.assertEqual(1, len(ext_response_type.measures))
+
+            # Bind variable to link measures
+            source_qm = survey.qnodes[0].children[0].qnode_measures[0]
+            session.add(model.MeasureVariable(
+                program=program, survey=survey,
+                source_qnode_measure=source_qm, source_field='_score',
+                target_qnode_measure=target_qm, target_field='ext'))
+
+            session.add(model.PurchasedSurvey(
+                organisation=user.organisation,
+                survey=survey))
+            submission = model.Submission(
+                program=program,
+                organisation=user.organisation,
+                survey=survey,
+                title="Intermeasure Variables Test",
+                approval='draft')
+            session.add(submission)
+            session.flush()
+
+            submission_id = str(submission.id)
+            user_id = str(user.id)
+            organisation_id = str(user.organisation_id)
+            mid_111 = str(survey.qnodes[0].children[0].qnode_measures[0].measure_id)
+            mid_112 = str(survey.qnodes[0].children[0].qnode_measures[1].measure_id)
+            mid_121 = str(survey.qnodes[0].children[1].qnode_measures[0].measure_id)
+
+        # Put dependant response with errors. Check that the error refers to
+        # missing dependency.
+        with base.mock_user('clerk'):
+            response_son = {
+                'notRelevant': False,
+                'responseParts': [],
+                'comment': "Incomplete dependant response"
+            }
+            response_son = self.fetch(
+                "/submission/%s/response/%s.json" % (submission_id, mid_112),
+                method='PUT', body=response_son,
+                expected=200, decode=True)
+
+        with model.session_scope() as session:
+            response = (session.query(model.Response)
+                .get((submission_id, mid_112)))
+            self.assertIn('depends on', response.error)
+            self.assertIn('measure has an error', response.parent.error)
+            self.assertIn('sub-category has an error', response.parent.parent.error)
+            self.assertIn('category has an error', response.submission.error)
+
+        # Put dependency, and check that error of dependant has changed.
+        with base.mock_user('clerk'):
+            response_son = {
+                'notRelevant': False,
+                'responseParts': [{'note': 'Yes', 'index': 1}],
+                'comment': "Dependency"
+            }
+            response_son = self.fetch(
+                "/submission/%s/response/%s.json" % (submission_id, mid_111),
+                method='PUT', body=response_son,
+                expected=200, decode=True)
+
+        with model.session_scope() as session:
+            response = (session.query(model.Response)
+                .get((submission_id, mid_111)))
+            self.assertIs(response.error, None)
+            # Parent still has an error due to sibling
+            self.assertIn('measure has an error', response.parent.error)
+
+            response = (session.query(model.Response)
+                .get((submission_id, mid_112)))
+            # Error has changed: dependency has been provided, but response
+            # is still incomplete
+            self.assertIn('undefined variable', response.error)
+
+        # Fix dependant response and check that errors are resolved.
+        with base.mock_user('clerk'):
+            response_son = self.fetch(
+                "/submission/%s/response/%s.json" % (submission_id, mid_112),
+                method='GET', expected=200, decode=True)
+            response_son['response_parts'] = [{'value': 1}]
+            response_son['comment']= "Complete dependant response"
+            response_son = self.fetch(
+                "/submission/%s/response/%s.json" % (submission_id, mid_112),
+                method='PUT', body=response_son,
+                expected=200, decode=True)
+
+        with model.session_scope() as session:
+            response = (session.query(model.Response)
+                .get((submission_id, mid_112)))
+            # Error has been resolved.
+            self.assertIs(response.error, None)
+            self.assertIs(response.error, response.parent.error)
+            self.assertIs(response.error, response.parent.parent.error)
+            self.assertIs(response.error, response.submission.error)
+
+
+    def create_submission(self, survey, user):
+        session = object_session(survey)
+        program = survey.program
+        submission = model.Submission(
+            program=program,
+            organisation=user.organisation,
+            survey=survey,
+            title="First submission",
+            approval='draft')
+        session.add(submission)
+
+        for m in program.measures:
+            qnode_measure = m.get_qnode_measure(survey)
+            if not qnode_measure:
+                continue
+            response = model.Response(
+                qnode_measure=qnode_measure,
+                submission=submission,
+                user=user)
+            response.attachments = []
+            response.not_relevant = False
+            response.modified = datetime.datetime.utcnow()
+            response.approval = 'final'
+            response.comment = "Response for %s" % m.title
+            session.add(response)
+            if m.response_type.name == 'Yes / No':
+                response.response_parts = [{'index': 1, 'note': "Yes"}]
+            elif m.response_type.name in {'Numerical', 'External Numerical'}:
+                response.response_parts = [{'value': 1}]
+            else:
+                raise ValueError("Unknown response type")
+
+            response.attachments.append(model.Attachment(
+                file_name="File %s 1" % m.title,
+                url="Bar",
+                storage='external',
+                organisation=user.organisation))
+            response.attachments.append(model.Attachment(
+                file_name="File %s 2" % m.title,
+                url="Baz",
+                storage='external',
+                organisation=user.organisation))
+            response.attachments.append(model.Attachment(
+                file_name="File %s 3" % m.title,
+                blob=b'A blob',
+                storage='external',
+                organisation=user.organisation))
+
+        session.flush()
+
+        calculator = Calculator.scoring(submission)
+        calculator.mark_entire_survey_dirty(submission.survey)
+        calculator.execute()
+        submission.approval = 'final'
+        session.flush()
+        return submission
+
     def test_duplicate(self):
         # Respond to a survey
         with model.session_scope() as session:
@@ -254,66 +463,15 @@ class SubmissionTest(base.AqHttpTestBase):
             user = (session.query(model.AppUser)
                     .filter_by(email='clerk')
                     .one())
-            organisation = (session.query(model.Organisation)
-                    .filter_by(name='Utility')
-                    .one())
             survey_1 = (session.query(model.Survey)
                     .filter_by(title='Survey 1')
                     .one())
             survey_2 = (session.query(model.Survey)
                     .filter_by(title='Survey 2')
                     .one())
-            submission = model.Submission(
-                program_id=program.id,
-                organisation_id=organisation.id,
-                survey_id=survey_1.id,
-                title="First submission",
-                approval='draft')
-            session.add(submission)
-            session.flush()
 
-            for m in program.measures:
-                if not any(p.survey_id == survey_1.id for p in m.parents):
-                    continue
-                response = model.Response(
-                    program_id=program.id,
-                    measure_id=m.id,
-                    submission_id=submission.id,
-                    user_id=user.id)
-                response.attachments = []
-                response.not_relevant = False
-                response.modified = datetime.datetime.utcnow()
-                response.approval = 'final'
-                response.comment = "Response for %s" % m.title
-                session.add(response)
-                if m.response_type == 'yes-no':
-                    response.response_parts = [{'index': 1, 'note': "Yes"}]
-                else:
-                    response.response_parts = [{'value': 1}]
-
-                response.attachments.append(model.Attachment(
-                    file_name="File %s 1" % m.title,
-                    url="Bar",
-                    storage='external',
-                    organisation_id=organisation.id))
-                response.attachments.append(model.Attachment(
-                    file_name="File %s 2" % m.title,
-                    url="Baz",
-                    storage='external',
-                    organisation_id=organisation.id))
-                response.attachments.append(model.Attachment(
-                    file_name="File %s 3" % m.title,
-                    blob=b'A blob',
-                    storage='external',
-                    organisation_id=organisation.id))
-
-            session.flush()
-
-            submission.update_stats_descendants()
-            submission.approval = 'final'
-            session.flush()
-
-            organisation_id = str(organisation.id)
+            submission = self.create_submission(survey_1, user)
+            organisation_id = str(user.organisation.id)
             first_submission_id = str(submission.id)
             survey_1_id = str(survey_1.id)
             survey_2_id = str(survey_2.id)
@@ -431,7 +589,7 @@ class SubmissionTest(base.AqHttpTestBase):
             self.assertEqual(list(submission_3.rnodes)[0].score, 17)
             self.assertEqual(list(submission_3.rnodes)[1].score, 0)
 
-            # When an submission is duplicated, all of its responses are set to
+            # When a submission is duplicated, all of its responses are set to
             # 'draft'.
             self.assertEqual(submission_1.approval, 'final')
             self.assertTrue(all(r.approval == 'final'
@@ -458,12 +616,19 @@ class SubmissionTest(base.AqHttpTestBase):
             self.assertEqual(list(submission_3.rnodes)[1].n_final, 0)
 
             # Check attachment duplication
+            self.assertNotEqual(str(submission_1.id), str(submission_2.id))
             for r1, r2 in zip(submission_1.ordered_responses,
                               submission_2.ordered_responses):
-                self.assertNotEqual(str(r1.id), str(r2.id))
+                self.assertEqual(str(r1.submission_id), str(submission_1.id))
+                self.assertEqual(str(r2.submission_id), str(submission_2.id))
+                self.assertEqual(str(r1.program_id), str(r2.program_id))
+                self.assertEqual(str(r1.survey_id), str(r2.survey_id))
+                self.assertEqual(str(r1.measure_id), str(r2.measure_id))
                 self.assertEqual(len(r1.attachments), 3)
                 self.assertEqual(len(r2.attachments), 3)
-                for a1, a2 in zip(r1.attachments, r2.attachments):
+                attachments_1 = sorted(r1.attachments, key=lambda a: a.file_name)
+                attachments_2 = sorted(r2.attachments, key=lambda a: a.file_name)
+                for a1, a2 in zip(attachments_1, attachments_2):
                     self.assertNotEqual(str(a1.id), str(a2.id))
                     self.assertEqual(a1.file_name, a2.file_name)
                     self.assertEqual(a1.url, a2.url)

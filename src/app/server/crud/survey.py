@@ -44,6 +44,7 @@ class SurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
 
             to_son = ToSon(
                 # Any
+                r'/ob_type$',
                 r'/id$',
                 r'/title$',
                 r'/seq$',
@@ -51,6 +52,7 @@ class SurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
                 r'/deleted$',
                 r'/is_editable$',
                 r'/n_measures$',
+                r'^/error$',
                 r'/program/tracking_id$',
                 # Root-only
                 r'<^/description$',
@@ -81,6 +83,7 @@ class SurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
                 r'/title$',
                 r'/deleted$',
                 r'/n_measures$',
+                r'^/[0-9]+/error$',
                 # Descend
                 r'/[0-9]+$'
             )
