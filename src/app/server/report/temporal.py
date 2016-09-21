@@ -191,6 +191,10 @@ class TemporalReportHandler(handlers.BaseHandler):
 
             if organisation_id:
                 rows = self.convert_to_stats(rows, organisation_id)
+                urls = self.get_measure_urls(measures, responses[0])
+            else:
+                urls = self.get_submission_urls(measures, organisations,
+                    buckets, bucketed_responses)
 
             columns = self.get_titles(buckets, organisation_id)
 
@@ -203,7 +207,8 @@ class TemporalReportHandler(handlers.BaseHandler):
             with tempfile.TemporaryDirectory() as tmpdir:
                output_path = os.path.join(tmpdir, outfile)
 
-               yield self.export_data(columns, rows, tmpdir, outfile, extension, survey_id)
+               yield (self.export_data(
+                columns, rows, tmpdir, outfile, extension, survey_id, urls))
 
                self.set_header('Content-Type', 'application/octet-stream')
                self.set_header('Content-Disposition', 'attachment; filename='
@@ -219,7 +224,8 @@ class TemporalReportHandler(handlers.BaseHandler):
         self.finish()
 
     @run_on_executor
-    def export_data(self, headings, data, outdir, outfile, filetype, survey_id):
+    def export_data(
+        self, headings, data, outdir, outfile, filetype, survey_id, urls):
             if filetype == "xlsx":
                 filename = outfile + "." + filetype
                 outpath = os.path.join(outdir, filename)
@@ -228,6 +234,8 @@ class TemporalReportHandler(handlers.BaseHandler):
 
                 # Format definitions
                 bold = workbook.add_format({'bold': 1})
+                url_format = workbook.add_format(
+                    {'font_color': 'blue', 'underline':  1})
 
                 # Write column headings
                 for i, heading in enumerate(headings):
@@ -245,6 +253,17 @@ class TemporalReportHandler(handlers.BaseHandler):
                         else:
                             worksheet.write(row_index + 1, col_index,
                                 row_data[col_index])
+
+                # Write links
+                col_index = len(row_data)
+                for i, url in enumerate(urls):
+                    if outfile == "detailed_report":
+                        worksheet.write_url(i + 1, col_index,
+                            urls[i], url_format, "Link")
+                    else:
+                        worksheet.write_url(i * 6 + 1, col_index,
+                            urls[i], url_format, "Link")
+
                 workbook.close()
             else:
                 raise handlers.MissingDocError(
@@ -259,7 +278,58 @@ class TemporalReportHandler(handlers.BaseHandler):
         for b in buckets:
             headers.append(b.strftime('%m/%d/%y'))
 
+        headers.append("Link")
+
         return headers
+
+    def get_measure_urls(self, measures, response):
+        base_url = ("%s://%s" % (self.request.protocol, self.request.host))
+
+        # Get url for each measure for link column
+        urls = []
+        survey = response.submission.survey
+        for m in measures:
+            program_id = m.program_id
+            qnode = m.get_parent(survey)
+            urls.append(base_url
+                + '/#/1/measure/{}?program={}&parent={}'.format(
+                    m.id, program_id, qnode.id))
+
+        return urls
+
+    def get_submission_urls(self, measures, organisations, buckets, responses):
+        base_url = ("%s://%s" % (self.request.protocol, self.request.host))
+
+        # Get url for link column if we don't already have one
+        # Use most recent submission we can find for each
+        # measure/organisation pair
+        current_measure = None
+        current_organisation = None
+        urls = []
+        initial = True
+        for k in itertools.product(measures, organisations, buckets):
+            r = responses.get(k)
+            measure, organisation, bucket = k
+            if measure != current_measure or organisation != current_organisation:
+                # New row, write previous url to list and reset
+                if not initial:
+                    urls.append(current_url)
+
+                current_measure = measure
+                current_organisation = organisation
+                current_url = None
+                initial = False
+
+            if r and not current_url:
+                # Found first available submission, get url.
+                current_url = (base_url
+                    + "/#/1/measure/{}?submission={}".format(measure.id,
+                    r.submission.id))
+
+        # url for last row
+        urls.append(current_url)
+
+        return urls
 
     def convert_to_stats(self, in_table, organisation_id):
         out_table = []
