@@ -369,34 +369,54 @@ class TemporalReportHandler(handlers.BaseHandler):
         return results
 
     def lower_bound(self, date, interval):
-        value = interval[0]
+        width = interval[0] - 1
         unit = interval[1]
         today = date.today()
 
         if unit == 'Years':
             this_year = today.year
-
-            delta = (this_year - date.year) % value
+            delta = (this_year - date.year) % (width + 1)
             if (delta == 0):
-                bucket_year = date.year
+                bucket_year = date.year - width
             else:
-                bucket_year = date.year + delta
+                bucket_year = date.year - (width - delta)
 
             return date.replace(year=bucket_year, month=1, day=1,
                 hour=0, minute=0, second=0, microsecond=0)
 
         if unit == 'Months':
-            this_month = today.month
+            month_diff, year_diff = self.date_diff(date, today)
+            delta = month_diff % (width + 1)
 
-            delta = (this_month - date.month) % value
             bucket_year = date.year
             if (delta == 0):
-                bucket_month = date.month
+                bucket_month = date.month - width
             else:
-                bucket_month = date.month + delta
-                if bucket_month > 12:
-                    bucket_month = bucket_month % 12
-                    bucket_year += 1
+                bucket_month = date.month - (width - delta)
+
+            if bucket_month <= 0:
+                # Crossed year boundary, adjust month/year
+                bucket_month += 12
+                bucket_year -= 1
 
             return date.replace(year=bucket_year, month=bucket_month, day=1,
                 hour=0, minute=0, second=0, microsecond=0)
+
+    def date_diff(self, date, today):
+        this_year = today.year
+        this_month = today.month
+        month = date.month
+        year = date.year
+
+        delta_months = 0
+        delta_years = 0
+        while ((month != this_month) or (year != this_year)):
+            month += 1
+            if month == 13:
+                month = 1
+                year += 1
+                delta_years += 1
+
+            delta_months += 1
+
+        return (delta_months, delta_years)
