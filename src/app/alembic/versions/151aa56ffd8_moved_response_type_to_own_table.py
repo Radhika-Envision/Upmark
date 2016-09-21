@@ -222,6 +222,7 @@ def upgrade_response_type():
             session.add(response_type)
             measures = (session.query(Measure)
                 .filter(Measure.response_type_ == old_rt['id'])
+                .filter(Measure.program_id == program.id)
                 .all())
             for measure in measures:
                 measure.response_type = response_type
