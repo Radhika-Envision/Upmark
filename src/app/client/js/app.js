@@ -880,7 +880,18 @@ angular.module('wsaa.aquamark',
         var CURRENT_VERSION = 2;
         // Initialise from $location because it is aware of the hash. This
         // should probably work with HTML5 mode URLs too.
-        var originalUrl = new Url($location.url() || '/', true);
+        var createUrl = function(urlOrStr) {
+            var url = new Url(urlOrStr.toString());
+            // Hacks for IE 11 because realitve URL construction doesn't work
+            // https://github.com/Mikhus/domurl/issues/6
+            url.host = url.port = url.protocol = '';
+            if (!url.path) {
+                url.path = '/';
+            }
+            return url;
+        };
+        var originalUrl = createUrl($location.url() || '/');
+
         var vmatch = /^\/([0-9a-z])\//.exec(originalUrl.path);
         var version = Number(vmatch && vmatch[1] || '0');
 
@@ -905,9 +916,7 @@ angular.module('wsaa.aquamark',
                 //  - survey -> program
                 //  - hierarchy -> survey
                 //  - assessment -> submission
-                var url = new Url(oldUrl.toString(), true);
-                if (url.path == "")
-                    url.path = "/";
+                var url = createUrl(oldUrl);
                 var pElems = url.path.split('/').map(function(elem) {
                     if (elem == 'survey')
                         return 'program';
@@ -923,24 +932,23 @@ angular.module('wsaa.aquamark',
                 pElems.splice(1, 0, '1');
                 url.path = pElems.join('/');
 
-                var search = $location.search();
-                if (search.survey) {
+                if (url.query.survey) {
                     url.query.program = url.query.survey;
                     delete url.query.survey;
                 }
-                if (search.hierarchy) {
+                if (url.query.hierarchy) {
                     url.query.survey = url.query.hierarchy;
                     delete url.query.hierarchy;
                 }
-                if (search.assessment) {
+                if (url.query.assessment) {
                     url.query.submission = url.query.assessment;
                     delete url.query.assessment;
                 }
-                if (search.assessment1) {
+                if (url.query.assessment1) {
                     url.query.submission1 = url.query.assessment1;
                     delete url.query.assessment1;
                 }
-                if (search.assessment2) {
+                if (url.query.assessment2) {
                     url.query.submission2 = url.query.assessment2;
                     delete url.query.assessment2;
                 }
@@ -952,7 +960,7 @@ angular.module('wsaa.aquamark',
             promise = promise.then(function(oldUrl) {
                 // Version 2: When accessing a measure, replace parent ID with
                 // survey ID - except for new measures.
-                var url = new Url(oldUrl.toString(), true);
+                var url = createUrl(oldUrl);
                 var measureMatch = /^\/1\/measure\/([\w-]+)/.exec(oldUrl);
                 var subPromise = null;
                 if (measureMatch && measureMatch[1] != 'new') {
