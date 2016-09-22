@@ -311,7 +311,18 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
                 if not program.is_editable:
                     raise handlers.MethodError(
                         "This program is closed for editing")
+
+                calculator = Calculator.structural()
+                if self.request_son['has_quality'] != program.has_quality:
+                    # Recalculate stats for surveys. This will trigger the
+                    # recalculation of the submissions in the recalculation
+                    # daemon.
+                    for survey in program.surveys:
+                        calculator.mark_survey_dirty(survey)
+
                 self._update(program, self.request_son)
+
+                calculator.execute()
 
                 verbs = []
                 if session.is_modified(program):
