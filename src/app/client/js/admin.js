@@ -485,16 +485,26 @@ angular.module('wsaa.admin', [
 }])
 
 
-.controller('PurchasedSurveyCtrl', [
-        '$scope', 'PurchasedSurvey',
-        function($scope, PurchasedSurvey) {
+.controller('PurchasedSurveyCtrl',
+        function($scope, PurchasedSurvey, Enqueue) {
 
+    $scope.search = {
+        id: null,
+        deleted: false,
+    };
     $scope.$watch('org', function(org) {
-        $scope.surveys = PurchasedSurvey.query({
-            id: org.id
-        });
+        $scope.search.id = org.id;
     });
-}])
+    var update = Enqueue(function() {
+        if (!$scope.search.id)
+            return;
+        $scope.surveys = PurchasedSurvey.query($scope.search);
+    });
+    $scope.$watch('search', update, true);
+    $scope.$on('$destroy', function() {
+        $scope = null;
+    });
+})
 
 
 .controller('OrganisationListCtrl', [

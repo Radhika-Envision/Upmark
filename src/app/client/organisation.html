@@ -439,6 +439,7 @@ suburb: {{loc.suburb}}">
         ng-if="!edit.model && checkRole('submission_browse')">
     <div class="section">
         <div class="toolbar">
+            <delete-cycle model="search.deleted" class="btn-round"></delete-cycle>
             <a class="btn btn-default btn-round" title="Add new"
                     ng-href="#/2/org/{{org.id}}/survey/add"
                     ng-if="checkRole('survey_purchase')">

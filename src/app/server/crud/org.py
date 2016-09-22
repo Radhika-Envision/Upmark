@@ -262,10 +262,17 @@ class PurchasedSurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
     def query(self, org_id):
         self._check_user(org_id)
 
+        deleted = self.get_argument('deleted', '')
         with model.session_scope() as session:
             org = session.query(model.Organisation).get(org_id)
             if not org:
                 raise handlers.MissingDocError('No such organisation')
+
+            surveys = org.surveys
+
+            if deleted:
+                deleted = truthy(deleted)
+                surveys = [s for s in surveys if s.deleted == deleted]
 
             to_son = ToSon(
                 r'/id$',
@@ -277,7 +284,8 @@ class PurchasedSurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
                 r'/[0-9]+$',
                 r'/program$'
             )
-            sons = to_son(org.surveys)
+
+            sons = to_son(surveys)
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
