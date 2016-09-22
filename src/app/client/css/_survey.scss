@@ -360,6 +360,7 @@ ul.fa-ul-big.list-results {
     border-color: #f5f5f5;
 }
 ul.docs {
+    margin-top: 32px;
     > li:not(.printable) {
         @media print {
             display: none;
@@ -368,6 +369,12 @@ ul.docs {
     > li > i.fa-li.fa-border {
         background: white;
         border-color: white;
+    }
+    > li.undim > i.fa-li.fa-border {
+        box-shadow: 0px 0 0 12px white;
+        width: 2em;
+        padding-right: 0.46em;
+        z-index: -1;
     }
     .fa.docs-button {
         background: white;
