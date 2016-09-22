@@ -386,6 +386,11 @@ class ResponseOps(MeasureOps):
                     "Response depends on another response (%s) which has not"
                     " been filled in yet" %
                     var.source_qnode_measure.get_path())
+            if source_response.error:
+                raise ResponseError(
+                    "Response depends on another response (%s) which has an"
+                    " error" %
+                    var.source_qnode_measure.get_path())
             try:
                 value = source_response.variables[var.source_field]
             except KeyError:
