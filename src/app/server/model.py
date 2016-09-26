@@ -713,7 +713,7 @@ class ResponseType(Observable, Base):
         return parts
 
     @validates('formula')
-    def validate_parts(self, k, formula):
+    def validate_formula(self, k, formula):
         response_type.validate_formula(formula)
         return formula
 

@@ -1,7 +1,8 @@
 import logging
+import re
 
 from py_expression_eval import Parser
-from voluptuous import All, Any, Coerce, Length, Optional, Required, Schema
+from voluptuous import All, Any, Coerce, Length, Match, Optional, Required, Schema
 
 
 log = logging.getLogger('app.response_type')
@@ -10,7 +11,7 @@ response_parts_schema = Schema([
     {
         # Common fields
         Required('id', default=None): Any(
-            All(str, Length(min=1)), None),
+            All(Match(r'^\w+$', msg="ID must be a single word")), None),
         'type': Any('multiple_choice', 'numerical'),
         Required('name', default=None): Any(
             All(str, Length(min=1)), None),

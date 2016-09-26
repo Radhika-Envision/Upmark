@@ -7,12 +7,14 @@ import tornado.web
 import sqlalchemy
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
+import voluptuous.error
 
 from activity import Activities
 import crud
 import handlers
 import logging
 import model
+from response_type import ResponseTypeError
 from score import Calculator
 from utils import falsy, reorder, ToSon, truthy, updater
 
@@ -110,7 +112,12 @@ class ResponseTypeHandler(
                 raise handlers.MissingDocError("No such program")
             response_type = model.ResponseType(program=program)
             session.add(response_type)
-            self._update(response_type, self.request_son)
+            try:
+                self._update(response_type, self.request_son)
+            except ResponseTypeError as e:
+                raise handlers.ModelError(str(e))
+            except voluptuous.error.Error as e:
+                raise handlers.ModelError(str(e))
 
             try:
                 session.flush()
@@ -156,7 +163,12 @@ class ResponseTypeHandler(
             if not response_type:
                 raise handlers.MissingDocError("No such response type")
 
-            self._update(response_type, self.request_son)
+            try:
+                self._update(response_type, self.request_son)
+            except ResponseTypeError as e:
+                raise handlers.ModelError(str(e))
+            except voluptuous.error.Error as e:
+                raise handlers.ModelError(str(e))
 
             verbs = []
             # Check if modified now to avoid problems with autoflush later
