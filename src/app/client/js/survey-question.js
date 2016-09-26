@@ -1066,7 +1066,7 @@ angular.module('wsaa.surveyQuestions', [
                 }
             );
         };
-        $scope.setState = function(approval) {
+        $scope.setState = function(approval, $event) {
             var promote;
             if ($scope.stats.promote == 'BOTH')
                 promote = ['PROMOTE', 'DEMOTE'];
@@ -1080,6 +1080,9 @@ angular.module('wsaa.surveyQuestions', [
                 promote: promote,
                 missing: $scope.stats.missing,
             });
+            // Stop the approval being set on the rnode; that will happen
+            // asynchronously.
+            $event.preventDefault();
         };
         $scope.setNotRelevant = function(relevance) {
             bulkAction({
@@ -1492,10 +1495,9 @@ angular.module('wsaa.surveyQuestions', [
             $scope.chooser = num;
     };
 
-
-    $scope.setState = function(approval) {
+    $scope.$watch('approval', function(approval) {
         $location.search('approval', approval);
-    };
+    });
 
     var margin = {top: 10, right: 50, bottom: 20, left: 50},
         width = 120 - margin.left - margin.right,

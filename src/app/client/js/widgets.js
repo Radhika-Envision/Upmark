@@ -266,46 +266,40 @@ angular.module('vpac.widgets', [])
 }])
 
 
-.directive('approvalButtons', [function() {
-    var order = ['draft', 'final', 'reviewed', 'approved'];
+.directive('approvalButtons', function(bind) {
     return {
         restrict: 'E',
         templateUrl: 'approval_buttons.html',
-        replace: true,
         scope: {
             model: '=',
-            setState: '&',
             allowed: '=',
+            mode: '=',
+            setState: '&',
         },
-        link: function(scope, elem, attrs) {
-            scope.updateView = function() {
-                var index = order.indexOf(scope.model);
-                var active = {};
-                if (index < 0) {
-                    // pass
-                } else if (attrs.mode == 'greater-or-equal') {
-                    for (var i = index; i < order.length; i++)
-                        active[order[i]] = true;
-                } else if (attrs.mode == 'less-than-or-equal') {
-                    for (var i = index; i >= 0; i--)
-                        active[order[i]] = true;
-                } else {
-                    active[order[index]] = true;
-                }
-                scope.active = active;
+        controller: function($scope) {
+            $scope.m = {};
+            bind($scope, 'm.model', $scope, 'model', true);
+            $scope.isAllowed = function(value) {
+                if (!$scope.allowed)
+                    return true;
+                return $scope.allowed.indexOf(value) >= 0;
             };
-            scope.$watch('model', scope.updateView);
-            attrs.$observe('mode', scope.updateView);
-        }
+            $scope.setValue = function(value, $event) {
+                $scope.setState({state: value, $event: $event});
+            };
+        },
     };
-}])
+})
 
 
 .directive('orderedButtons', function(Enqueue) {
     return {
         restrict: 'E',
         require: 'ngModel',
-        scope: true,
+        scope: {
+            mode: '=',
+            setValue: '&',
+        },
         controller: function($scope) {
             this.scope = $scope;
             $scope.items = [];
@@ -326,6 +320,10 @@ angular.module('vpac.widgets', [])
             elem.toggleClass("btn-group btn-group-justified", true);
 
             scope.setActive = function(item, $event) {
+                if (scope.setValue)
+                    scope.setValue({value: item.value, $event: $event});
+                if ($event.isDefaultPrevented())
+                    return;
                 ngModel.$setViewValue(item.getIndex(), $event);
             };
 
@@ -346,7 +344,7 @@ angular.module('vpac.widgets', [])
                 return undefined;
             };
             var updateView = function() {
-                if (attrs.mode == 'gte') {
+                if (scope.mode == 'gte') {
                     scope.items.forEach(function(item) {
                         item.active = item.getIndex() >= ngModel.$viewValue;
                     });

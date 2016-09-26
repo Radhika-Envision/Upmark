@@ -264,8 +264,6 @@ class ResponseHandler(handlers.BaseHandler):
     def put(self, submission_id, measure_id):
         '''Save (create or update).'''
 
-        approval = self.get_argument('approval', '')
-
         try:
             with model.session_scope(version=True) as session:
                 submission = (session.query(model.Submission)
@@ -311,14 +309,13 @@ class ResponseHandler(handlers.BaseHandler):
                             " refresh the page.")
                     verbs.append('update')
 
-                if approval != '':
+                if self.request_son['approval'] != response.approval:
                     check_approval_change(
-                        self.current_user.role, submission, approval)
+                        self.current_user.role, submission,
+                        self.request_son['approval'])
+                    verbs.append('state')
 
-                    if approval != response.approval:
-                        verbs.append('state')
-
-                self._update(response, self.request_son, approval)
+                self._update(response, self.request_son)
                 if not session.is_modified(response) and 'update' in verbs:
                     verbs.remove('update')
                 check_modify(self.current_user.role, response)
@@ -350,7 +347,7 @@ class ResponseHandler(handlers.BaseHandler):
                 raise handlers.AuthzError(
                     "You can't modify another organisation's response")
 
-    def _update(self, response, son, approval):
+    def _update(self, response, son):
         '''
         Apply user-provided data to the saved model.
         '''
@@ -364,10 +361,8 @@ class ResponseHandler(handlers.BaseHandler):
             'modified': datetime.datetime.utcnow(),
             'user_id': str(self.current_user.id),
         }
-        if approval != '':
-            extras['approval'] = approval
 
-        update('approval', extras)
+        update('approval', son)
         update('audit_reason', son)
 
         if object_session(response).is_modified(response):

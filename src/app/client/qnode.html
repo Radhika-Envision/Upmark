@@ -72,20 +72,40 @@
 
 <div ng-if="!edit.model && qnode.description || rnode" class="container">
     <div ng-if="rnode" class="stats">
-        <button class="btn btn-on-danger btn-round pull-right hidden-print"
-                title="Toggle not relevant"
-                ng-click="toggleBulkNa()"
-                ng-class="{active: rnode.nNotRelevant >= qnode.nMeasures}"
-                highlight="showBulkNa"
-                highlight-dismiss="toggleBulkNa()">
-            <i class="fa fa-fw fa-ban"></i></button>
-        <button class="btn btn-default btn-round pull-right hidden-print"
-                title="Bulk approval"
-                ng-click="toggleBulk()"
+        <div class="toolbar" ng-if="!showBulkApproval && !showBulkNa">
+            <button class="btn btn-default btn-round hidden-print"
+                    title="Bulk approval"
+                    ng-click="toggleBulk()">
+                <i class="fa fa-fw"
+                    ng-class="showBulkApproval ? 'fa-times' : 'fa-angle-right'"></i>
+            </button>
+            <button class="btn btn-on-danger btn-round hidden-print"
+                    title="Toggle not relevant"
+                    ng-click="toggleBulkNa()"
+                    ng-class="{active: rnode.nNotRelevant >= qnode.nMeasures}"
+                    highlight="showBulkNa"
+                    highlight-dismiss="toggleBulkNa()">
+                <i class="fa fa-fw fa-ban"></i>
+            </button>
+        </div>
+        <div class="toolbar" ng-if="showBulkApproval"
                 highlight="showBulkApproval"
                 highlight-dismiss="toggleBulk()">
-            <i class="fa fa-fw fa-rotate fa-angle-right"
-                ng-class="showBulkApproval ? 'fa-rotate-90' : null"></i></button>
+            <button class="btn btn-default btn-round hidden-print"
+                    title="Cancel"
+                    ng-click="toggleBulk()">
+                <i class="fa fa-fw fa-times"></i>
+            </button>
+        </div>
+        <div class="toolbar" ng-if="showBulkNa"
+                highlight="showBulkNa"
+                highlight-dismiss="toggleBulkNa()">
+            <button class="btn btn-default btn-round hidden-print"
+                    title="Cancel"
+                    ng-click="toggleBulkNa()">
+                <i class="fa fa-fw fa-times"></i>
+            </button>
+        </div>
 
         <docs ng-if="rnode.notRelevant">
             <i class="fa-li fa fa-ban fa-border"></i>
@@ -187,9 +207,9 @@
     <div class="popover-container" ng-if="showBulkApproval">
       <form novalidate class="dialog spaced" highlight>
         <h3>Bulk Approval</h3>
-        <approval-buttons model="stats.approval"
-                class="spaced-below"
-                set-state="setState(state)"></approval-buttons>
+        <div class="form-group">
+            <approval-buttons model="stats.approval" set-state="setState(state, $event)"></approval-buttons>
+        </div>
         <div class="form-group" show-errors>
             <select class="form-control"
                 id="promote" name="promote"
@@ -259,7 +279,7 @@
       <form novalidate class="dialog spaced" highlight>
         <h3>Change Relevance in Bulk</h3>
 
-        <div class="form-group" show-errors>
+        <div class="form-group">
             <button class="btn btn-block"
                     ng-class="stats.relevance == 'NOT_RELEVANT' ?
                         'btn-danger' : 'btn-success'"
@@ -275,14 +295,14 @@
             </button>
         </div>
 
-        <div class="form-group" show-errors>
+        <div class="form-group">
             <select class="form-control"
                 id="relevance"
                 ng-model="stats.relevance"
                 ng-options="o.name as o.desc for o in relevanceOptions">
             </select>
         </div>
-        <div class="form-group" show-errors
+        <div class="form-group"
                 ng-if="stats.relevance == 'NOT_RELEVANT'">
             <select class="form-control"
                 id="missing"

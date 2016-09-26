@@ -1,43 +1,20 @@
-<div class="btn-group btn-group-justified hidden-print
-            btn-group-arrow-right">
-    <div class="btn-group" ng-if="!allowed || allowed.indexOf('draft') >= 0">
-        <button class="btn btn-default"
-                ng-class="{active: active.draft}"
-                ng-click="setState({state: 'draft'})"
-                title="Set as 'draft'">
-            <approval model="model"
-                ng-if="model == 'draft'"></approval>
-            Draft
-        </button>
-    </div>
-    <div class="btn-group" ng-if="!allowed || allowed.indexOf('final') >= 0">
-        <button class="btn btn-default"
-                ng-class="{active: active.final}"
-                ng-click="setState({state: 'final'})"
-                title="Set as 'final'">
-            <approval model="model"
-                ng-if="model == 'final'"></approval>
-            Final
-        </button>
-    </div>
-    <div class="btn-group" ng-if="!allowed || allowed.indexOf('reviewed') >= 0">
-        <button class="btn btn-default"
-                ng-class="{active: active.reviewed}"
-                ng-click="setState({state: 'reviewed'})"
-                title="Set as 'reviewed'">
-            <approval model="model"
-                ng-if="model == 'reviewed'"></approval>
-            Reviewed
-        </button>
-    </div>
-    <div class="btn-group" ng-if="!allowed || allowed.indexOf('approved') >= 0">
-        <button class="btn btn-default"
-                ng-class="{active: active.approved}"
-                ng-click="setState({state: 'approved'})"
-                title="Set as 'approved'">
-            <approval model="model"
-                ng-if="model == 'approved'"></approval>
-            Approved
-        </button>
-    </div>
-</div>
+<ordered-buttons class="btn-group-arrow-right" ng-model="m.model" mode="mode"
+        set-value="setValue(value, $event)"
+        title="Choose level of approval">
+    <ordered-button index="0" value="'draft'" ng-if="isAllowed('draft')">
+        <approval model="'draft'"></approval>
+        Draft
+    </ordered-button>
+    <ordered-button index="1" value="'final'" ng-if="isAllowed('final')">
+        <approval model="'final'"></approval>
+        Final
+    </ordered-button>
+    <ordered-button index="2" value="'reviewed'" ng-if="isAllowed('reviewed')">
+        <approval model="'reviewed'"></approval>
+        Reviewed
+    </ordered-button>
+    <ordered-button index="3" value="'approved'" ng-if="isAllowed('approved')">
+        <approval model="'approved'"></approval>
+        Approved
+    </ordered-button>
+</ordered-buttons>

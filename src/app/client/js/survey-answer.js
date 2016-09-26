@@ -93,7 +93,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
         $scope.edit.params.surveyId = survey.id;
     });
 
-    $scope.setState = function(state) {
+    $scope.setState = function(state, $event) {
         $scope.submission.$save({approval: state},
             function success() {
                 Notifications.set('edit', 'success', "Saved", 5000);
@@ -103,6 +103,10 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin'])
                     "Could not save object: " + details.statusText);
             }
         );
+        // Stop the approval buttons from updating: that will happen
+        // asynchronously, when the submission has finished saving. The result
+        // might be different than what is requested.
+        $event.preventDefault();
     };
 
     $scope.$on('EditSaved', function(event, model) {

@@ -96,8 +96,7 @@
 <div class="part">
     <label>Approval</label>
     <approval-buttons model="response.approval"
-            ng-if="!structure.deletedItem"
-            set-state="setState(state)"></approval-buttons>
+            ng-if="!structure.deletedItem"></approval-buttons>
 </div>
 
 <div ng-class="structure.deletedItem ? null : 'visible-print-block'">

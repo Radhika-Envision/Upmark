@@ -133,7 +133,7 @@
 
     <approval-buttons class="spaced" model="submission.approval"
             ng-if="!structure.deletedItem"
-            set-state="setState(state)"></approval-buttons>
+            set-state="setState(state, $event)"></approval-buttons>
     <p ng-class="structure.deletedItem ? null : 'visible-print'">
         Status: {{submission.approval}}.
     </p>
