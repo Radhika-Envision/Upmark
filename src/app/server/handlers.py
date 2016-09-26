@@ -263,13 +263,19 @@ class BaseHandler(tornado.web.RequestHandler):
                     (str(e), self.request.body[0:30]))
             return self._request_son
 
+    # Expression to remove invalid characters from headers
+    _INVALID_HEADER_CHAR_RE = re.compile(r"[\x00-\x1f\n]")
+
     def set_status(self, *args, **kwargs):
         reason = kwargs.get('reason')
         if reason:
+            reason = BaseHandler._INVALID_HEADER_CHAR_RE.sub('; ', reason)
+            kwargs['reason'] = reason
             self.reason(reason)
         return super().set_status(*args, **kwargs)
 
     def reason(self, message):
+        message = BaseHandler._INVALID_HEADER_CHAR_RE.sub('; ', message)
         self.add_header("Operation-Details", message)
 
     def log_exception(self, typ, value, tb):
