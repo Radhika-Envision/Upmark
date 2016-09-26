@@ -2,11 +2,40 @@
     ng-class="{'deleted': structure.deletedItem}">
 <div class="container">
     <div class="toolbar">
-        <button class="btn btn-default btn-round" title="Report"
-            ng-click="reports.formOpen = !reports.formOpen"
-            ng-if="!structure.deletedItem && !edit.model">
-            <i class="fa fa-cloud-download"> </i>
-        </button>
+        <span  uib-dropdown dropdown-append-to-body
+                ng-if="!structure.deletedItem && !edit.model">
+            <button class="btn btn-default btn-round"
+                    title="Export" uib-dropdown-toggle>
+                <i class="fa fa-cloud-download"></i></button>
+
+            <ul uib-dropdown-menu class="dropdown-menu-right">
+                <li class="dropdown-header">Export report</li>
+                <li>
+                    <a title="Download Excel file"
+                            ng-click="downloadSubmissionReport('nested', submission.id)"
+                            download>
+                        <i class="fa fa-th-list"></i>
+                        Colourful spreadsheet
+                    </a>
+                </li>
+                <li>
+                    <a title="Download Excel file"
+                            ng-click="downloadSubmissionReport('tabular', submission.id)"
+                            download>
+                        <i class="fa fa-list-ol"></i>
+                        One measure per row
+                    </a>
+                </li>
+                <li>
+                    <a title="Download Excel file"
+                            ng-click="reports.formOpen = !reports.formOpen">
+                        <i class="fa fa-clock-o"></i>
+                        Temporal report
+                    </a>
+                </li>
+
+            </ul>
+         </span>
         <a class="btn btn-default btn-round" title="Statistics"
                 ng-href="#/2/statistics?submission1={{submission.id}}"
                 ng-if="!structure.deletedItem && !edit.model &&
@@ -127,7 +156,7 @@
                         ng-click="closeReportForm()">
                     <i class="fa fa-fw fa-times"></i></button>
                 <button class="btn btn-default btn-round" title="Download report"
-                        ng-click="downloadReportDebounced(reportSpec, 'xlsx', submission.survey.id)">
+                        ng-click="downloadTemporalReportDebounced(reportSpec, 'xlsx', submission.survey.id)">
                     <i class="fa fa-fw fa-check"></i></button>
             </div>
             <h2>
@@ -354,12 +383,12 @@
   </form>
 </div>
 
-<div ng-if="!edit.model && !reportForm" class="container">
+<div ng-if="!edit.model && !reports.formOpen" class="container">
     <!-- Don't wrap the contents of this tag! -->
     <p ng-if="submission.survey.description"
             class="formatted">Submission against {{submission.survey.description}}</p>
 
-    <label> Submission Date: </label><span> {{date.toDateString()}} </span>
+    <span> {{date.toDateString()}} </span>
 
     <approval-buttons class="spaced" model="submission.approval"
             ng-if="!structure.deletedItem"
@@ -387,4 +416,4 @@
 
 <div class="container"
     ng-controller="QnodeChildren" ng-include="'qnode_children.html'"
-    ng-if="!edit.model && !reportSpec.open"></div>
+    ng-if="!edit.model && !reports.formOpen"></div>

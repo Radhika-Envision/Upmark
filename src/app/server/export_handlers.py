@@ -638,7 +638,9 @@ class Exporter():
 
                     for approval_status in export_approval_status:
                         res = (session.query(model.ResponseHistory)
-                            .filter_by(id=response.id, approval=approval_status)
+                            .filter_by(submission_id=response.submission_id,
+                                measure_id=response.measure_id,
+                                approval=approval_status)
                             .order_by(model.ResponseHistory.modified.desc())
                             .first())
                         if res:

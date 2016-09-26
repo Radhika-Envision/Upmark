@@ -139,21 +139,46 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
     $scope.checkRole = questionAuthz(Current, $scope.program, $scope.submission);
 
     $scope.download = function(url, data) {
-        $http.post(url, data, { responseType: "arraybuffer", cache: false }).then(
-            function success(response) {
-                var message = "Export finished";
-                Notifications.set('export', 'info', message, 5000);
-                var blob = new Blob(
-                    [response.data], {type: response.headers('Content-Type')});
-                var name = /filename=(.*)/.exec(
-                    response.headers('Content-Disposition'))[1];
-                saveAs(blob, name);
-            },
-            function failure(response) {
-                Notifications.set('export', 'error',
-                    "Error: " + response.statusText);
-            }
-        );
+        if (data) {
+            $http.post(url, data, { responseType: "arraybuffer", cache: false }).then(
+                function success(response) {
+                    var message = "Export finished";
+                    Notifications.set('export', 'info', message, 5000);
+                    var blob = new Blob(
+                        [response.data], {type: response.headers('Content-Type')});
+                    var name = /filename=(.*)/.exec(
+                        response.headers('Content-Disposition'))[1];
+                    saveAs(blob, name);
+                },
+                function failure(response) {
+                    Notifications.set('export', 'error',
+                        "Error: " + response.statusText);
+                }
+            );
+        } else {
+            $http.get(url, { responseType: "arraybuffer", cache: false }).then(
+                function success(response) {
+                    var message = "Export finished";
+                    Notifications.set('export', 'info', message, 5000);
+                    var blob = new Blob(
+                        [response.data], {type: response.headers('Content-Type')});
+                    var name = /filename=(.*)/.exec(
+                        response.headers('Content-Disposition'))[1];
+                    saveAs(blob, name);
+                },
+                function failure(response) {
+                    Notifications.set('export', 'error',
+                        "Error: " + response.statusText);
+                }
+            );
+        };
+    };
+
+    $scope.downloadSubmissionReport = function(report_type, submission_id) {
+        var url = '/export/submission/' + submission_id;
+        url += '/' + report_type + '.xlsx';
+
+        $scope.download(url, null)
     };
 
 	$scope.releaseMode = releaseMode;
@@ -447,14 +472,14 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
         return true;
     };
 
-    $scope.downloadReport = function(query, file_type, survey_id) {
+    $scope.downloadTemporalReport = function(query, file_type, survey_id) {
         if (!$scope.specTest(query)) {
             return;
         }
         $scope.download('/export/temporal/' + survey_id + '.' + file_type, query);
     };
 
-    $scope.downloadReportDebounced = debounce($scope.downloadReport, 500, false);
+    $scope.downloadTemporalReportDebounced = debounce($scope.downloadTemporalReport, 500, false);
 
     $scope.openReportForm();
 })
