@@ -74,11 +74,19 @@
         </div>
         <div ng-class="readonly ? null : 'visible-print-block'">
             <span ng-if="partSchema.name">{{partSchema.name}}:</span>
-            <span ng-if="partData.index != null">
-                {{partData.index + 1}}
-                {{partData.note}}
+            <span ng-if="partSchema.type == 'multiple_choice'">
+                <span ng-if="partData.index != null">
+                    {{partData.index + 1}}
+                    {{partData.note}}
+                </span>
+                <span ng-if="partData.index == null">-</span>
             </span>
-            <span ng-if="partData.index == null">-</span>
+            <span ng-if="partSchema.type == 'numerical'">
+                <span ng-if="partData.value != null">
+                    {{partData.value}}
+                </span>
+                <span ng-if="partData.value == null">-</span>
+            </span>
         </div>
     </li>
 </ol>
@@ -105,7 +113,7 @@
     </div>
 </docs>
 
-<div class="part">
+<div class="part hidden-print" ng-hide="readonly">
     <label for="comments">Comments</label>
     <div ng-if="!readonly">
         <markdown-editor id="comments"
@@ -115,7 +123,7 @@
     </div>
 </div>
 
-<p ng-if="readonly">{{response.comment || 'None'}}</p>
+<p ng-class="readonly ? null : 'visible-print-block'">Comments: {{response.comment || 'None'}}</p>
 
 <quality-buttons class="part" ng-if="hasQuality">
 </quality-buttons>

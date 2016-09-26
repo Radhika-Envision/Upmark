@@ -78,7 +78,7 @@
         <i class="fa fa-check fa-fw"></i></button>
 </response-form>
 
-<div class="part">
+<div class="part" ng-class="structure.deletedItem ? 'ng-hide' : 'hidden-print'">
     <label>Quality</label>
     <ordered-buttons ng-model="response.quality">
         <ordered-button value="1">
@@ -93,7 +93,7 @@
     </ordered-buttons>
 </div>
 
-<div class="part">
+<div class="part" ng-class="structure.deletedItem ? 'ng-hide' : 'hidden-print'">
     <label>Approval</label>
     <approval-buttons model="response.approval"
             ng-if="!structure.deletedItem"></approval-buttons>

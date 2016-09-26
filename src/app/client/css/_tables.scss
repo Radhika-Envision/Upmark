@@ -190,20 +190,30 @@ tr.strike-black td:before {
     background: #f5f5f5;
 }
 .boxed.aq-1 {
-    color: mix($aq-bar1, black, 75%);
-    background: mix($aq-bar1, white, 25%);
+    color: white;
+    background: $aq-bar1;
+    border-color: $aq-bar1;
 }
 .boxed.aq-2 {
-    color: mix($aq-bar2, black, 75%);
-    background: mix($aq-bar2, white, 25%);
+    color: white;
+    background: $aq-bar2;
+    border-color: $aq-bar2;
 }
 .boxed.aq-3 {
-    color: mix($aq-bar3, black, 75%);
-    background: mix($aq-bar3, white, 25%);
+    color: white;
+    background: $aq-bar3;
+    border-color: $aq-bar3;
 }
 .boxed.aq-4 {
-    color: mix($aq-bar4, black, 75%);
-    background: mix($aq-bar4, white, 25%);
+    color: white;
+    background: $aq-bar4;
+    border-color: $aq-bar4;
+}
+.btn-group > .btn-group > .btn > .boxed {
+    margin-left: -0.65em;
+}
+.btn-group > .btn-group > .btn:not(.active) > .boxed {
+    visibility: hidden;
 }
 
 [any-href]:not([disabled]) {
