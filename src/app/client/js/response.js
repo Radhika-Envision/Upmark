@@ -248,7 +248,7 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
 })
 
 
-.directive('response', function() {
+.directive('responseForm', function() {
     return {
         restrict: 'E',
         scope: {
@@ -260,7 +260,7 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             externs: '=',
         },
         replace: true,
-        templateUrl: 'response.html',
+        templateUrl: 'response_form.html',
         transclude: true,
         controller: ['$scope', 'hotkeys', 'Current', 'questionAuthz',
                 'Notifications', 'Enqueue',

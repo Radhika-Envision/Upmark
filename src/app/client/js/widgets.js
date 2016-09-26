@@ -301,6 +301,114 @@ angular.module('vpac.widgets', [])
 }])
 
 
+.directive('orderedButtons', function(Enqueue) {
+    return {
+        restrict: 'E',
+        require: 'ngModel',
+        scope: true,
+        controller: function($scope) {
+            this.scope = $scope;
+            $scope.items = [];
+            $scope.add = function(item) {
+                $scope.items.unshift(item);
+                $scope.orderChanged();
+            };
+            $scope.remove = function(item) {
+                var i = $scope.items.indexOf(item);
+                $scope.items.splice(i, 1);
+                $scope.orderChanged();
+            };
+            $scope.orderChanged = Enqueue(function() {
+                $scope._orderChanged();
+            });
+        },
+        link: function(scope, elem, attrs, ngModel) {
+            elem.toggleClass("btn-group btn-group-justified", true);
+
+            scope.setActive = function(item, $event) {
+                ngModel.$setViewValue(item.getIndex(), $event);
+            };
+
+            var toModelValue = function(viewValue) {
+                for (var i = 0; i < scope.items.length; i++) {
+                    var item = scope.items[i];
+                    if (item.getIndex() == viewValue)
+                        return item.value;
+                }
+                return undefined;
+            };
+            var toViewValue = function(modelValue) {
+                for (var i = 0; i < scope.items.length; i++) {
+                    var item = scope.items[i];
+                    if (item.value == modelValue)
+                        return item.getIndex();
+                }
+                return undefined;
+            };
+            var updateView = function() {
+                if (attrs.mode == 'gte') {
+                    scope.items.forEach(function(item) {
+                        item.active = item.getIndex() >= ngModel.$viewValue;
+                    });
+                } else {
+                    scope.items.forEach(function(item) {
+                        item.active = item.getIndex() == ngModel.$viewValue;
+                    });
+                }
+            };
+
+            scope._orderChanged = function() {
+                elem.children().sort(function(a, b) {
+                    var itemA = angular.element(a.children[0]).scope();
+                    var itemB = angular.element(b.children[0]).scope();
+                    if (!itemA || !itemB)
+                        return false;
+                    return itemA.getIndex() > itemB.getIndex();
+                }).appendTo(elem);
+                ngModel.$setViewValue(toViewValue(ngModel.$modelValue));
+                updateView();
+            };
+
+            ngModel.$parsers.unshift(toModelValue);
+            ngModel.$formatters.unshift(toViewValue);
+            ngModel.$render = updateView;
+            ngModel.$viewChangeListeners.push(updateView);
+        }
+    };
+})
+
+
+.directive('orderedButton', [function() {
+    return {
+        restrict: 'E',
+        require: '^orderedButtons',
+        transclude: true,
+        templateUrl: 'ordered_button.html',
+        replace: true,
+        scope: {
+            index: '=',
+            value: '=',
+        },
+        link: function(scope, elem, attrs, orderedButtons) {
+            scope.active = false;
+            scope.getIndex = function() {
+                return scope.index != null ? scope.index : scope.value;
+            };
+            orderedButtons.scope.add(scope);
+            scope.$on('$destroy', function() {
+                orderedButtons.scope.remove(scope);
+            });
+            scope.$watch('index', function() {
+                orderedButtons.scope.orderChanged();
+            });
+            scope.setActive = function($event) {
+                orderedButtons.scope.setActive(scope, $event);
+            };
+        }
+    };
+}])
+
+
 .service('dimmer', [function() {
     this.dimmers = [];
     this.add = function(key) {

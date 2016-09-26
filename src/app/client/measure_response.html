@@ -1,0 +1,304 @@
+<response-form type="rt.responseType" model="response"
+        weight="measure.weight"
+        readonly="!!structure.deletedItem"
+        has-quality="structure.program.hasQuality"
+        externs="response.sourceVars">
+    <span ng-controller="ResponseHistory" uib-dropdown
+            on-toggle="toggled(open)" dropdown-append-to-body>
+        <button class="btn btn-default btn-round" title="History"
+                uib-dropdown-toggle>
+            <i class="fa fa-history"></i></button>
+
+        <ul uib-dropdown-menu class="dropdown-menu-right">
+            <li class="dropdown-header">
+                <div>
+                <div class="toolbar">
+                    <span class="btn-group">
+                        <button class="btn btn-default" title="Newer"
+                                ng-click="nextPage($event)">
+                            <i class="fa fa-caret-left"></i></button>
+                        <button class="btn btn-default" title="Older"
+                                ng-click="prevPage($event)">
+                            <i class="fa fa-caret-right"></i></button>
+                    </span>
+                </div>
+                Versions
+                </div>
+            </li>
+            <li ng-repeat="version in versions"
+                    ng-class="{active: isActive(version)}">
+                <a href ng-click="navigate(version)">
+                    <span class="field field-2">
+                        {{version.version}}
+                    </span>
+                    <span class="field field-4">
+                        {{version.approval}}
+                    </span>
+                    <span class="field field-8">
+                        {{version.user.name}}
+                    </span>
+                    <span>
+                        {{version.modified * 1000 | timeAgo:'medium'}}
+                    </span>
+                </a>
+            </li>
+            <li ng-if="!versions.length && !loading" class="dropdown-header">
+                No versions.</li>
+            <li ng-if="loading" class="dropdown-header">
+                Loading...</li>
+        </ul>
+    </span>
+
+    <button class="btn btn-round btn-on-danger"
+            title="Not relevant"
+            ng-click="toggleNotRelvant()"
+            ng-class="{active: response.notRelevant}">
+        <i class="fa fa-ban fa-fw"></i></button>
+    <docs ng-if="response.notRelevant" class="printable">
+        <i class="fa-li fa fa-ban fa-border"></i>
+        <p>
+            This response is marked as not relevant. It does not
+            contribute to the submission's score.
+        </p>
+    </docs>
+
+    <button class="btn btn-default btn-round"
+            title="Reset"
+            ng-click="resetResponse()"
+            ng-if="!structure.deletedItem">
+        <i class="fa fa-times fa-fw"></i></button>
+
+    <button class="btn btn-round"
+            title="Save response"
+            ng-click="saveResponse()"
+            ng-class="response.$dirty ?
+                      'btn-primary btn-alert' :
+                      'btn-default'"
+            ng-if="!structure.deletedItem">
+        <i class="fa fa-check fa-fw"></i></button>
+</response-form>
+
+<div class="part">
+    <label>Quality</label>
+    <ordered-buttons ng-model="response.quality">
+        <ordered-button value="1">
+            1 <span class="text-muted">Low</span>
+        </ordered-button>
+        <ordered-button value="2">2</ordered-button>
+        <ordered-button value="3">3</ordered-button>
+        <ordered-button value="4">4</ordered-button>
+        <ordered-button value="5">
+            5 <span class="text-muted">High</span>
+        </ordered-button>
+    </ordered-buttons>
+</div>
+
+<div class="part">
+    <label>Approval</label>
+    <approval-buttons model="response.approval"
+            ng-if="!structure.deletedItem"
+            set-state="setState(state)"></approval-buttons>
+</div>
+
+<div ng-class="structure.deletedItem ? null : 'visible-print-block'">
+    Quality: {{response.quality}}
+    Status: {{response.approval}}
+</div>
+
+<div>
+    <p ng-if="response.user.name" class="spaced text-center text-muted">
+        <i class="fa fa-history"></i>
+        Version {{response.version}} submitted by
+        <a ng-href="#/2/user/{{response.user.id}}">
+            {{response.user.name}}</a>,
+        <span class="hidden-print">
+            {{response.modified * 1000 | timeAgo:'medium'}}.
+        </span>
+        <span class="visible-print-inline">
+            {{response.modified * 1000 | date:'medium'}}.
+        </span>
+        <span ng-if="response.$dirty" class="visible-print-inline">
+            Some modifications have not been saved.
+        </span>
+    </p>
+    <p ng-if="!response.user.name" class="spaced text-center">
+        <i class="fa fa-history"></i>
+        Response not submitted yet.
+    </p>
+</div>
+
+<docs>
+    <i class="fa-li fa fa-chevron-right fa-border"></i>
+    <h3>Approval</h3>
+    <p>
+        Responses progress through approval
+        states
+        <em class="text-bar1">draft</em> &raquo;
+        <em class="text-bar2">final</em> &raquo;
+        <em class="text-bar3">reviewed</em> &raquo;
+        <em class="text-bar4">approved</em>.
+        Approval states are resticted to roles as follows:
+    </p>
+    <ul>
+        <li>
+            Clerk: Draft, Final (responses only)
+        </li>
+        <li>
+            Organisation Admin: Draft, Final
+        </li>
+        <li>
+            Consultant: Reviewed
+        </li>
+        <li>
+            Authority: Approved
+        </li>
+    </ul>
+    <p>
+        Increasing the appoval state indicates that the response is
+        ready for the next level of review. It is OK to reduce the
+        approval state if you wish to make a change after it as been
+        reviewed; this will indicate that it needs to be reviewed
+        again.
+    </p>
+    <p>
+        Submissions progress through the same states. When all the
+        responses in a survey are <i>Final</i>, the submission
+        can be marked as <i>Final</i>, and so on.
+    </p>
+    <p>
+        You can't give a response a lesser approval than the submission they
+        belong to. However you can demote the submission, and <em>then</em>
+        demote the response.
+    </p>
+</docs>
+
+<div ng-controller="ResponseAttachmentCtrl">
+<div class="section">
+    <div class="toolbar" ng-if="!structure.deletedItem">
+        <button class="btn btn-default btn-round"
+                title="Upload"
+                ng-if="!showFileDrop && !externals.length"
+                ng-click="toggleFileDrop()">
+            <i class="fa fa-fw fa-cloud-upload"></i>
+        </button>
+        <button class="btn btn-default btn-round"
+                title="Add external link"
+                ng-if="!showFileDrop && !externals.length"
+                ng-click="addExternal()">
+            <i class="fa fa-fw fa-link">
+                <i class="fa fa-badge fa-plus"></i></i>
+        </button>
+        <button class="btn btn-default btn-round"
+            title="Cancel"
+            ng-if="showFileDrop || externals.length"
+            ng-click="cancelNewAttachments()">
+            <i class="fa fa-times fa-fw"></i></button>
+        <button class="btn btn-default btn-round"
+            title="Save response"
+            ng-if="showFileDrop || externals.length"
+            ng-click="saveResponse()">
+            <i class="fa fa-check fa-fw"></i></button>
+
+    </div>
+    <h3>Attachments</h3>
+</div>
+<ul class="list-results fa-ul">
+    <li ng-repeat="attachment in attachments">
+        <a ng-href="/attachment/{{attachment.id}}.json" download
+                ng-if="!attachment.url || attachment.storage=='aws'">
+            <button class="btn btn-default btn-round pull-right"
+                    title="Remove"
+                    ng-click="deleteAttachment(attachment);
+                              $event.preventDefault()"
+                    ng-if="!structure.deletedItem">
+                <i class="fa fa-fw fa-trash-o"></i></button>
+            <h4>
+                <i class="fa fa-li fa-cloud-download text-muted"></i>
+                {{attachment.fileName}}
+            </h4>
+            <p>Uploaded file</p>
+        </a>
+        <a ng-href="{{attachment.url}}"
+                ng-if="attachment.url && safeUrl(attachment.url)">
+            <button class="btn btn-default btn-round pull-right"
+                    title="Remove"
+                    ng-click="deleteAttachment(attachment);
+                              $event.preventDefault()"
+                    ng-if="!structure.deletedItem">
+                <i class="fa fa-fw fa-trash-o"></i></button>
+            <h4>
+                <i class="fa fa-li fa-link text-muted"></i>
+                {{attachment.fileName || attachment.url}}
+            </h4>
+            <p>Web link: {{attachment.url}}</p>
+        </a>
+        <a ng-if="attachment.url && !safeUrl(attachment.url)"
+                select-text>
+            <button class="btn btn-default btn-round pull-right"
+                    title="Remove"
+                    ng-click="deleteAttachment(attachment);
+                              $event.preventDefault()"
+                    ng-if="!structure.deletedItem">
+                <i class="fa fa-fw fa-trash-o"></i></button>
+            <h4>
+                <i class="fa fa-li fa-paperclip text-muted"></i>
+                {{attachment.fileName}}
+            </h4>
+            <p>
+                External link:
+                <span select-text-target>{{attachment.url}}</span>
+            </p>
+        </a>
+    </li>
+    <li ng-if="!attachments.length" class="text-muted">
+        No attachments.
+    </li>
+</ul>
+<div class="dropzone dz-nopreview" id="dropzone" ng-show="showFileDrop">
+    <div class="dz-message ">
+        <p><i class="fa fa-cloud-upload fa-5x"></i></p>
+        <p>Drop files here, or click to select one</p>
+    </div>
+    <p class="text-warning">
+        <i class="fa fa-warning"></i>
+        Files that are uploaded <b>cannot</b> be deleted. For highly
+        confidential data, create an external link
+        <i class="fa fa-link"></i> instead.
+    </p>
+</div>
+<ul class="list-unstyled">
+    <li class="input-group" ng-repeat="external in externals">
+        <label class="input-group-addon" for="extname{{$index}}" title="Title">
+            <i class="fa fa-at"></i>
+            <span class="sr-only">Title</span>
+        </label>
+        <input type="text" id="extname{{$index}}"
+                class="form-control btn-default"
+                ng-model="external.fileName"
+                placeholder="Link title">
+        <label class="input-group-addon" for="exturl{{$index}}"
+                title="External link URL">
+            <i class="fa fa-link"></i>
+            <span class="sr-only">External link URL</span>
+        </label>
+        <input type="text" id="exturl{{$index}}"
+                class="form-control btn-default"
+                ng-model="external.url"
+                placeholder="Link URL">
+        <span class="input-group-btn">
+            <button class="btn btn-default" type="button"
+                    title="Delete this link"
+                    ng-click="deleteExternal($index)">
+                <i class="fa fa-trash-o"></i></button>
+        </span>
+    </li>
+</ul>
+<p class="text-warning text-center hidden-print">
+  <small>
+    <i class="fa fa-bug"></i>
+    Attachments are not scanned for viruses.
+  </small>
+</p>
+</div>
+
+<div ng-include src="'/inline/measure_variable_list.html'"></div>
