@@ -699,6 +699,8 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
                 'valign': 'top', 'num_format': '#,##0.00'})
             format_int = workbook.add_format({
                 'valign': 'top', 'num_format': '#,##0'})
+            format_date = workbook.add_format({
+                'valign': 'top', 'num_format': 'DD MMM YYYY'})
 
             format_bold = workbook.add_format({'bold': True})
 
@@ -717,6 +719,8 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
                     worksheet_r.set_column(c, c, 10, format_str)
                 elif col['rich_type'] == 'text':
                     worksheet_r.set_column(c, c, 40, format_str_wrap)
+                elif col['rich_type'] == 'datetime':
+                    worksheet_r.set_column(c, c, 40, format_date)
                 else:
                     worksheet_r.set_column(c, c, 20)
             worksheet_r.set_row(0, None, format_bold)
@@ -731,9 +735,10 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
                     break
                 for r, row in enumerate(rows):
                     for c, (cell, col) in enumerate(zip(row, cols)):
-                        data = cell
                         if col['type'] == 'string':
                             data = str(cell)
+                        else:
+                            data = cell
                         worksheet_r.write(r + n_read + 1, c, data)
                 n_read += len(rows)
             self.reason('Read %d rows' % n_read)

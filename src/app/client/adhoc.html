@@ -339,7 +339,7 @@
                         ng-switch="colRichType($index)">
                     <span ng-switch-when="float">{{cell | number:2}}</span>
                     <span ng-switch-when="int">{{cell | number:0}}</span>
-                    <span ng-switch-when="datetime">{{cell | date}}</span>
+                    <span ng-switch-when="datetime">{{cell * 1000 | date}}</span>
                     <span ng-switch-when="json">{{cell}}</span>
                     <span ng-switch-default>{{cell}}</span>
                 </td>
