@@ -32,6 +32,33 @@ class TemporalReportHandler(handlers.BaseHandler):
         parameters = self.request_son
         organisation_id = parameters.get('organisation_id')
 
+        if organisation_id:
+            outfile = "summary_report"
+        else:
+            outfile = "detailed_report"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = os.path.join(tmpdir, outfile)
+
+            yield (self.process_temporal(parameters,
+                organisation_id, survey_id, tmpdir, outfile, extension))
+
+            self.set_header('Content-Type', 'application/octet-stream')
+            self.set_header('Content-Disposition', 'attachment; filename='
+                + outfile + "." + extension)
+
+            with open(output_path + "." + extension, 'rb') as f:
+                while True:
+                    data = f.read(BUF_SIZE)
+                    if not data:
+                        break
+                    self.write(data)
+
+        self.finish()
+
+    @run_on_executor
+    def process_temporal(self,
+        parameters, organisation_id, survey_id, tmpdir, outfile, extension):
         with model.session_scope() as session:
             if organisation_id:
                 pass
@@ -204,26 +231,9 @@ class TemporalReportHandler(handlers.BaseHandler):
             else:
                 outfile = "detailed_report"
 
-            with tempfile.TemporaryDirectory() as tmpdir:
-               output_path = os.path.join(tmpdir, outfile)
+            self.export_data(columns, rows,
+                tmpdir, outfile, extension, survey_id, urls)
 
-               yield (self.export_data(
-                columns, rows, tmpdir, outfile, extension, survey_id, urls))
-
-               self.set_header('Content-Type', 'application/octet-stream')
-               self.set_header('Content-Disposition', 'attachment; filename='
-                   + outfile + "." + extension)
-
-               with open(output_path + "." + extension, 'rb') as f:
-                   while True:
-                       data = f.read(BUF_SIZE)
-                       if not data:
-                           break
-                       self.write(data)
-
-        self.finish()
-
-    @run_on_executor
     def export_data(
         self, headings, data, outdir, outfile, filetype, survey_id, urls):
             if filetype == "xlsx":
