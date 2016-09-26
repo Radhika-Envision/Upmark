@@ -357,6 +357,13 @@ class ResponseOps(MeasureOps):
             # This is a dependant response that hasn't been filled in yet.
             # Just ignore it.
             return
+
+        if response.not_relevant:
+            response.score = 0.0
+            response.variables = {}
+            response.error = None
+            return
+
         response_type = self.get_response_type(measure.response_type)
 
         stats = ResponseStats(response_type)
@@ -460,11 +467,6 @@ class ResponseStats:
         self.response_type = response_type
 
     def update(self, response, scope):
-        if response.not_relevant:
-            self.score = 0.0
-            self.variables = {}
-            return
-
         try:
             self.variables = self.response_type.variables(
                 response.response_parts)
