@@ -183,7 +183,7 @@ class TemporalReportHandler(handlers.BaseHandler):
             organisations = set()
             for response in responses:
                 bucket = self.lower_bound(response.submission.created, interval)
-                k = (response.qnode_measure, response.submission.organisation,
+                k = (response.measure_id, response.submission.organisation,
                     bucket)
 
                 if k in bucketed_responses:
@@ -203,15 +203,16 @@ class TemporalReportHandler(handlers.BaseHandler):
 
             rows = []
             current_row = None
-            current_qnode_measure = None
+            current_measure_id = None
             current_organisation = None
-            for k in itertools.product(qnode_measures, organisations, buckets):
+            for c in itertools.product(qnode_measures, organisations, buckets):
+                k = (c[0].measure_id, c[1], c[2])
                 r = bucketed_responses.get(k)
-                qnode_measure, organisation, bucket = k
-                if qnode_measure != current_qnode_measure or organisation != current_organisation:
-                    current_qnode_measure = qnode_measure
+                measure_id, organisation, bucket = k
+                if measure_id != current_measure_id or organisation != current_organisation:
+                    current_measure_id = measure_id
                     current_organisation = organisation
-                    current_row = [qnode_measure, organisation]
+                    current_row = [c[0], organisation]
                     rows.append(current_row)
 
                 current_row.append(None or r and r.score)
@@ -321,7 +322,8 @@ class TemporalReportHandler(handlers.BaseHandler):
         current_organisation = None
         urls = []
         initial = True
-        for k in itertools.product(qnode_measures, organisations, buckets):
+        for c in itertools.product(qnode_measures, organisations, buckets):
+            k = (c[0].measure_id, c[1], c[2])
             r = responses.get(k)
             qnode_measure, organisation, bucket = k
             if qnode_measure != current_qnode_measure or organisation != current_organisation:
