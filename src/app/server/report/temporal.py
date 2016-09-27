@@ -205,24 +205,33 @@ class TemporalReportHandler(handlers.BaseHandler):
             current_row = None
             current_measure_id = None
             current_organisation = None
+            latest_response = None
+            initial = True
             for c in itertools.product(qnode_measures, organisations, buckets):
                 k = (c[0].measure_id, c[1], c[2])
                 r = bucketed_responses.get(k)
                 measure_id, organisation, bucket = k
                 if measure_id != current_measure_id or organisation != current_organisation:
+                    # New row, write url metadata for previous row before reset
+                    if not initial:
+                        current_row.append(latest_response)
+                        latest_response = None
+
                     current_measure_id = measure_id
                     current_organisation = organisation
                     current_row = [c[0], organisation]
                     rows.append(current_row)
+                    initial = False
 
                 current_row.append(None or r and r.score)
+                if r:
+                    latest_response = r
+
+            # write url metadata for last row
+            current_row.append(latest_response)
 
             if organisation_id:
                 rows = self.convert_to_stats(rows, organisation_id)
-                urls = self.get_measure_urls(qnode_measures)
-            else:
-                urls = self.get_submission_urls(qnode_measures, organisations,
-                    buckets, bucketed_responses)
 
             columns = self.get_titles(buckets, organisation_id)
 
@@ -233,10 +242,10 @@ class TemporalReportHandler(handlers.BaseHandler):
                 outfile = "detailed_report"
 
             self.export_data(columns, rows,
-                tmpdir, outfile, extension, survey_id, urls)
+                tmpdir, outfile, extension, survey_id)
 
     def export_data(
-        self, headings, data, outdir, outfile, filetype, survey_id, urls):
+        self, headings, data, outdir, outfile, filetype, survey_id):
             if filetype == "xlsx":
                 filename = outfile + "." + filetype
                 outpath = os.path.join(outdir, filename)
@@ -268,19 +277,19 @@ class TemporalReportHandler(handlers.BaseHandler):
                         elif col_index == 1 and outfile == "detailed_report":
                             worksheet.write(row_index + 1, col_index,
                                 row_data[col_index].name)
+                        elif col_index == (len(row_data) - 1):
+                            if outfile == "detailed_report":
+                                worksheet.write(row_index + 1, col_index,
+                                    self.get_submission_url(row_data[col_index]),
+                                    url_format, "Link")
+                            else:
+                                if ((row_index - 1) % 6 == 0):
+                                    worksheet.write(row_index, col_index,
+                                    self.get_measure_url(row_data[0]),
+                                    url_format, "Link")
                         else:
                             worksheet.write(row_index + 1, col_index,
                                 row_data[col_index])
-
-                # Write links
-                col_index = len(row_data)
-                for i, url in enumerate(urls):
-                    if outfile == "detailed_report":
-                        worksheet.write_url(i + 1, col_index,
-                            urls[i], url_format, "Link")
-                    else:
-                        worksheet.write_url(i * 6 + 1, col_index,
-                            urls[i], url_format, "Link")
 
                 workbook.close()
             else:
@@ -300,52 +309,28 @@ class TemporalReportHandler(handlers.BaseHandler):
 
         return headers
 
-    def get_measure_urls(self, qnode_measures):
+    def get_submission_url(self, response):
+        if not response:
+            return None
+
         base_url = ("%s://%s" % (self.request.protocol, self.request.host))
 
-        # Get url for each measure for link column
-        urls = []
-        for qm in qnode_measures:
-            urls.append(base_url
-                + '/#/2/measure/{}?program={}&survey={}'.format(
-                    qm.measure_id, qm.program_id, qm.survey_id))
+        url = (base_url +
+            "/#/2/measure/{}?submission={}".format(response.measure_id,
+                response.submission.id))
 
-        return urls
+        return url
 
-    def get_submission_urls(self, qnode_measures, organisations, buckets, responses):
+    def get_measure_url(self, qm):
+        if not qm:
+            return None
+
         base_url = ("%s://%s" % (self.request.protocol, self.request.host))
 
-        # Get url for link column if we don't already have one
-        # Use most recent submission we can find for each
-        # measure/organisation pair
-        current_qnode_measure = None
-        current_organisation = None
-        urls = []
-        initial = True
-        for c in itertools.product(qnode_measures, organisations, buckets):
-            k = (c[0].measure_id, c[1], c[2])
-            r = responses.get(k)
-            qnode_measure, organisation, bucket = k
-            if qnode_measure != current_qnode_measure or organisation != current_organisation:
-                # New row, write previous url to list and reset
-                if not initial:
-                    urls.append(current_url)
+        url = (base_url + '/#/2/measure/{}?program={}&survey={}'.format(
+            qm.measure_id, qm.program_id, qm.survey_id))
 
-                current_qnode_measure = qnode_measure
-                current_organisation = organisation
-                current_url = None
-                initial = False
-
-            if r and not current_url:
-                # Found first available submission, get url.
-                current_url = (base_url
-                    + "/#/2/measure/{}?submission={}".format(r.measure_id,
-                    r.submission.id))
-
-        # url for last row
-        urls.append(current_url)
-
-        return urls
+        return url
 
     def convert_to_stats(self, in_table, organisation_id):
         out_table = []
