@@ -368,9 +368,9 @@ class ResponseOps(MeasureOps):
 
         stats = ResponseStats(response_type)
         try:
-            if (self.submission.program.has_quality and
+            if (self.submission.program.has_quality and (
                     response.quality is None or
-                    response.quality <= 0):
+                    response.quality <= 0)):
                 raise ResponseError("Response quality rating required")
             scope = self.external_variables(response, qnode_measure)
             stats.update(response, scope)

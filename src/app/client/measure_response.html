@@ -78,7 +78,8 @@
         <i class="fa fa-check fa-fw"></i></button>
 </response-form>
 
-<div class="part" ng-class="structure.deletedItem ? 'ng-hide' : 'hidden-print'">
+<div class="part" ng-class="structure.deletedItem ? 'ng-hide' : 'hidden-print'"
+        ng-if="structure.program.hasQuality">
     <label>Quality</label>
     <ordered-buttons ng-model="response.quality">
         <ordered-button value="1">
