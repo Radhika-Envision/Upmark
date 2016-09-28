@@ -383,8 +383,6 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
                     act.subscribe(self.current_user, submission.organisation)
                     self.reason("Subscribed to organisation")
 
-        except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such submission")
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
         self.get(submission_id)
@@ -470,3 +468,9 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
     def _update(self, submission, son):
         update = updater(submission)
         update('title', son)
+
+        extras = {
+            "created": datetime.datetime.fromtimestamp(son["created"])
+        }
+
+        update('created', extras)

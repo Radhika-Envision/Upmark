@@ -2,18 +2,17 @@
     ng-class="{'deleted': structure.deletedItem}">
 <div class="container">
     <div class="toolbar">
-
-        <span uib-dropdown dropdown-append-to-body
+        <span  uib-dropdown dropdown-append-to-body
                 ng-if="!structure.deletedItem && !edit.model">
             <button class="btn btn-default btn-round"
                     title="Export" uib-dropdown-toggle>
                 <i class="fa fa-cloud-download"></i></button>
 
             <ul uib-dropdown-menu class="dropdown-menu-right">
-                <li class="dropdown-header">Export submission</li>
+                <li class="dropdown-header">Export report</li>
                 <li>
                     <a title="Download Excel file"
-                            ng-click="download('nested')"
+                            ng-click="downloadSubmissionReport('nested', submission.id)"
                             download>
                         <i class="fa fa-th-list"></i>
                         Colourful spreadsheet
@@ -21,15 +20,22 @@
                 </li>
                 <li>
                     <a title="Download Excel file"
-                            ng-click="download('tabular')"
+                            ng-click="downloadSubmissionReport('tabular', submission.id)"
                             download>
                         <i class="fa fa-list-ol"></i>
                         One measure per row
                     </a>
                 </li>
-            </ul>
-        </span>
+                <li>
+                    <a title="Download Excel file"
+                            ng-click="reports.formOpen = !reports.formOpen">
+                        <i class="fa fa-clock-o"></i>
+                        Temporal report
+                    </a>
+                </li>
 
+            </ul>
+         </span>
         <a class="btn btn-default btn-round" title="Statistics"
                 ng-href="#/2/statistics?submission1={{submission.id}}"
                 ng-if="!structure.deletedItem && !edit.model &&
@@ -106,6 +112,20 @@
             <input type="text" class="form-control" id="title" name="title"
                 ng-model="edit.model.title" required />
         </div>
+        <div class="form-group" show-errors>
+            <label> Start date of reporting period</label>
+            <div class="input-group">
+                <input type="text" uib-datepicker-popup="{{format}}"
+                        class="form-control" ng-model="edit.model.$created"
+                        is-open="calender.opened" datepicker-options="dateOptions"
+                        ng-required="true" close-text="Close">
+                </input>
+                <span class="input-group-btn">
+                    <button type="button" class="btn btn-default" ng-click="openCalender()">
+                        <i class="glyphicon glyphicon-calendar"></i></button>
+                </span>
+            </div>
+        </div>
         <div class="checkbox"
                 ng-if="!edit.model.id && !duplicate && checkRole('program_edit') && releaseMode.dev">
             <label>
@@ -126,10 +146,252 @@
 
 </div>
 
-<div ng-if="!edit.model" class="container">
+<div ng-if="!edit.model && reports.formOpen" class="container"
+        ng-controller="SubmissionExportCtrl">
+  <form highlight highlight-dismiss="closeReportForm()" ng-if="reportForm"
+        class="report-form">
+        <div class="section" style="height: 20px">
+            <div class="toolbar">
+                <button class="btn btn-default btn-round" title="Cancel"
+                        ng-click="closeReportForm()">
+                    <i class="fa fa-fw fa-times"></i></button>
+                <button class="btn btn-primary btn-alert btn-round" title="Download report"
+                        ng-click="downloadTemporalReportDebounced(reportSpec, 'xlsx', submission.survey.id)">
+                    <i class="fa fa-fw fa-check"></i></button>
+            </div>
+            <h2 ng-if="headerMessage" class="text-muted header-message">
+                {{headerMessage}}
+            </h2>
+        </div>
+        <h2>
+            Report settings
+        </h2>
+        <div class="form-group" ng-if="checkRole('submission_review')">
+            <h3>
+                Report type
+            </h3>
+            <ui-select ng-model="reportForm.type" search-enabled="false"
+                ng-if="checkRole('submission_review')">
+                <ui-select-match placeholder="Select report type">
+                    <span>{{reportForm.type}}</span>
+                </ui-select-match>
+                <ui-select-choices
+                    repeat="type in reportForm.reportTypes | filter: $select.search">
+                        <div ng-bind-html="type"></div>
+                </ui-select-choices>
+            </ui-select>
+        </div>
+        <div class="form-group">
+            <h3>
+                Date range and interval
+            </h3>
+            <div class="input-group">
+                <label class="input-group-addon">
+                    Start Date:
+                </label>
+                <input type="text" uib-datepicker-popup="{{format}}"
+                        class="form-control" ng-model="reportForm.min_date"
+                        is-open="startCalender.opened" datepicker-options="dateOptions"
+                        ng-required="true" close-text="Close">
+                </input>
+                <span class="input-group-btn">
+                    <button type="button" class="btn btn-default" ng-click="openStartCalender()">
+                        <i class="glyphicon glyphicon-calendar"></i></button>
+                </span>
+                <label class="input-group-addon">
+                    End Date:
+                </label>
+                <input type="text" uib-datepicker-popup="{{format}}"
+                        class="form-control" ng-model="reportForm.max_date"
+                        is-open="endCalender.opened" datepicker-options="dateOptions"
+                        ng-required="true" close-text="Close">
+                </input>
+                <span class="input-group-btn">
+                    <button type="button" class="btn btn-default" ng-click="openEndCalender()">
+                        <i class="glyphicon glyphicon-calendar"></i></button>
+                </span>
+                <label class="input-group-addon">
+                    Interval:
+                </label>
+                <input type="number" class="form-control"
+                        ng-model="reportForm.intervalNum"
+                        placeholder="Select time interval"/>
+                <label class="input-group-addon"></label>
+                <ui-select ng-model="reportSpec.intervalUnit" search-enabled="false">
+                    <ui-select-match placeholder="Select time inteval">
+                        <span>{{reportSpec.intervalUnit}}</span>
+                    </ui-select-match>
+                    <ui-select-choices
+                        repeat="unit in reportForm.intervalUnits | filter: $select.search">
+                            <div ng-bind-html="unit"></div>
+                    </ui-select-choices>
+                </ui-select>
+            </div>
+            <p class="text-muted commasep">
+                Report will use data from the most recent submission within each date interval for each organisation
+            </p>
+            <p class="text-muted commasep">
+                Intervals will go from the start of a {{roundInterval()}} to the end of a {{roundInterval()}} {{reportSpec.intervalNum}} {{roundInterval()}}s later
+            </p>
+        </div>
+
+        <div class="form-group report-filters">
+            <h2>
+                Filters (optional)
+            </h2>
+
+            <div class="section">
+                <div class="toolbar">
+                    <a class="btn btn-default btn-round" title="Add location"
+                            ng-click="reportForm.locations.push(null)">
+                        <i class="fa fa-fw fa-plus"></i>
+                    </a>
+                </div>
+                <h3>
+                    Location of organisation
+                </h3>
+            </div>
+            <table class="table" ng-if="reportForm.locations.length">
+                <tr class="form-row" ng-repeat="(i, loc) in reportForm.locations track by $index">
+                    <td>
+                        <input type="text" class="form-control" id="loc-search-{{$index}}"
+                            ng-model="reportForm.locations[$index]"
+                            uib-typeahead="l as l.description for l in searchLoc($viewValue)"
+                            typeahead-wait-ms="700" typeahead-min-length="2"
+                            autocomplete="off">
+                        <p class="text-muted commasep">
+                            <span class="" ng-if="loc.country">
+                                country:
+                                {{loc.country}}</span><!--
+                         --><span class="" ng-if="loc.state">
+                                state:
+                                {{loc.state}}</span><!--
+                         --><span class="" ng-if="loc.region">
+                                region/state district:
+                                {{loc.region}}</span><!--
+                         --><span class="" ng-if="loc.county">
+                                county:
+                                {{loc.county}}</span><!--
+                         --><span class="" ng-if="loc.postcode">
+                                postcode:
+                                {{loc.postcode}}</span><!--
+                         --><span class="" ng-if="loc.city">
+                                city/town:
+                                {{loc.city}}</span><!--
+                         --><span class="" ng-if="loc.suburb">
+                                suburb:
+                                {{loc.suburb}}</span>
+                        </p>
+                    </td>
+                    <td class="shrink">
+                        <button class="btn btn-default btn-round"
+                                title="Remove"
+                                ng-click="deleteLocation($index)">
+                                <i class="fa fa-fw fa-trash-o"></i></button>
+                    </td>
+                </tr>
+            </table>
+            <p ng-if="!reportForm.locations.length" class="text-muted">
+                No locations have been selected. Press the
+                <i class="fa fa-plus"></i> button to add one.
+            </p>
+            <h3>
+                Organisation size
+            </h3>
+            <div class="input-group">
+                <label class="input-group-addon">
+                    Min FTEs (internal):
+                </label>
+                <input type="number" class="form-control"
+                        ng-model="reportSpec.minInternalFtes" empty-as-null
+                        title="Only include responses from organisations with more than this many internal FTEs"/>
+                <label class="input-group-addon">
+                    Max FTEs (internal):
+                </label>
+                <input type="number" class="form-control"
+                        ng-model="reportSpec.maxInternalFtes" empty-as-null
+                        title="Only include responses from organisations with less than this many internal FTEs"/>
+            </div>
+            <div class="input-group">
+                <label class="input-group-addon">
+                    Min FTEs (external):
+                </label>
+                <input type="number" class="form-control"
+                        ng-model="reportSpec.minExternalFtes" empty-as-null
+                        title="Only include responses from organisations with more than this many external FTEs"/>
+                <label class="input-group-addon">
+                    Max FTEs (external):
+                </label>
+                <input type="number" class="form-control"
+                        ng-model="reportSpec.maxExternalFtes" empty-as-null
+                        title="Only include responses from organisations with less than this many external FTEs"/>
+            </div>
+            <div class="input-group">
+                <label class="input-group-addon">
+                    Min Total FTEs:
+                </label>
+                <input type="number" class="form-control"
+                        ng-model="reportSpec.minEmployees" empty-as-null
+                        title="Only include responses from organisations with more than this many total FTEs"/>
+                <label class="input-group-addon">
+                    Max Total FTEs:
+                </label>
+                <input type="number" class="form-control"
+                        ng-model="reportSpec.maxEmployees" empty-as-null
+                        title="Only include responses from organisations with less than this many total FTEs"/>
+            </div>
+            <div class="input-group">
+                <label class="input-group-addon">
+                    Min Population Served:
+                </label>
+                <input type="number" class="form-control"
+                        ng-model="reportSpec.minPopulation" empty-as-null
+                        title="Only include responses from organisations who serve populations of at least this many people"/>
+                <label class="input-group-addon">
+                    Max Population Served:
+                </label>
+                <input type="number" class="form-control"
+                        ng-model="reportSpec.maxPopulation" empty-as-null
+                        title="Only include responses from organisations who serve populations of at most this many people"/>
+            </div>
+            <h3>
+                Response quality
+            </h3>
+            <div class="input-group">
+                <label class="input-group-addon">
+                    Quality:
+                </label>
+                <ui-select ng-model="reportSpec.quality" search-enabled="false"
+                            title="Only include responses with quality rating above this">
+                    <ui-select-match>
+                        <span>{{reportSpec.quality}}</span>
+                    </ui-select-match>
+                    <ui-select-choices
+                        repeat="quality in reportForm.responseQualities | filter: $select.search">
+                            <div ng-bind-html="quality"></div>
+                    </ui-select-choices>
+                </ui-select>
+            </div>
+            <h3>
+                Approval status
+            </h3>
+            <div class="input-group">
+                <approval-buttons class="spaced" model="reportSpec.approval"
+                      allowed='reportForm.allowedStates'
+                      mode="greater-or-equal"
+                      set-state='setReportApproval(state)'>
+                </approval-buttons>
+            </div>
+        </div>
+  </form>
+</div>
+
+<div ng-if="!edit.model && !reports.formOpen" class="container">
     <!-- Don't wrap the contents of this tag! -->
     <p ng-if="submission.survey.description"
             class="formatted">Submission against {{submission.survey.description}}</p>
+
+    <span> {{date.toDateString()}} </span>
 
     <approval-buttons class="spaced" model="submission.approval"
             ng-if="!structure.deletedItem"
@@ -157,4 +419,4 @@
 
 <div class="container"
     ng-controller="QnodeChildren" ng-include="'qnode_children.html'"
-    ng-if="!edit.model"></div>
+    ng-if="!edit.model && !reports.formOpen"></div>
