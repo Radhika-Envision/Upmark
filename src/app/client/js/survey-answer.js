@@ -140,6 +140,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
 
     $scope.download = function(url, data) {
         if (data) {
+            $scope.headerMessage = "Generating report"
             $http.post(url, data, { responseType: "arraybuffer", cache: false }).then(
                 function success(response) {
                     var message = "Export finished";
@@ -149,8 +150,11 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
                     var name = /filename=(.*)/.exec(
                         response.headers('Content-Disposition'))[1];
                     saveAs(blob, name);
+
+                    $scope.headerMessage = null;
                 },
                 function failure(response) {
+                    $scope.headerMessage = null;
                     Notifications.set('export', 'error',
                         "Error: " + response.statusText);
                 }

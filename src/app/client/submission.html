@@ -150,19 +150,22 @@
         ng-controller="SubmissionExportCtrl">
   <form highlight highlight-dismiss="closeReportForm()" ng-if="reportForm"
         class="report-form">
-        <div class="section">
+        <div class="section" style="height: 20px">
             <div class="toolbar">
                 <button class="btn btn-default btn-round" title="Cancel"
                         ng-click="closeReportForm()">
                     <i class="fa fa-fw fa-times"></i></button>
-                <button class="btn btn-default btn-round" title="Download report"
+                <button class="btn btn-primary btn-alert btn-round" title="Download report"
                         ng-click="downloadTemporalReportDebounced(reportSpec, 'xlsx', submission.survey.id)">
                     <i class="fa fa-fw fa-check"></i></button>
             </div>
-            <h2>
-                Report settings
+            <h2 ng-if="headerMessage" class="text-muted header-message">
+                {{headerMessage}}
             </h2>
         </div>
+        <h2>
+            Report settings
+        </h2>
         <div class="form-group" ng-if="checkRole('submission_review')">
             <h3>
                 Report type
