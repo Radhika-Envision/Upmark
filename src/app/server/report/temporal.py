@@ -281,14 +281,16 @@ class TemporalReportHandler(handlers.BaseHandler):
                                 row_data[col_index].name)
                         elif col_index == (len(row_data) - 1):
                             if outfile == "detailed_report":
-                                worksheet.write(row_index + 1, col_index + 1,
-                                    self.get_submission_url(row_data[col_index]),
-                                    url_format, "Link")
+                                url = self.get_submission_url(row_data[col_index])
+                                url_row_index = row_index + 1
+                            elif (row_index - 1) % 6 == 0:
+                                url = self.get_measure_url(row_data[0])
+                                url_row_index = row_index
                             else:
-                                if ((row_index - 1) % 6 == 0):
-                                    worksheet.write(row_index, col_index + 1,
-                                    self.get_measure_url(row_data[0]),
-                                    url_format, "Link")
+                                url = None
+                            if url:
+                                worksheet.write(url_row_index, col_index + 1,
+                                    url, url_format, "Link")
                         else:
                             worksheet.write(row_index + 1, col_index + 1,
                                 row_data[col_index])
