@@ -207,19 +207,18 @@ class TemporalReportHandler(handlers.BaseHandler):
             current_organisation = None
             latest_response = None
             initial = True
-            for c in itertools.product(qnode_measures, organisations, buckets):
-                k = (c[0].measure_id, c[1], c[2])
+            for qm, organisation, bucket in itertools.product(qnode_measures, organisations, buckets):
+                k = (qm.measure_id, organisation, bucket)
                 r = bucketed_responses.get(k)
-                measure_id, organisation, bucket = k
-                if measure_id != current_measure_id or organisation != current_organisation:
+                if qm.measure_id != current_measure_id or organisation != current_organisation:
                     # New row, write url metadata for previous row before reset
                     if not initial:
                         current_row.append(latest_response)
                         latest_response = None
 
-                    current_measure_id = measure_id
+                    current_measure_id = qm.measure_id
                     current_organisation = organisation
-                    current_row = [c[0], organisation]
+                    current_row = [qm, organisation]
                     rows.append(current_row)
                     initial = False
 
@@ -228,7 +227,8 @@ class TemporalReportHandler(handlers.BaseHandler):
                     latest_response = r
 
             # write url metadata for last row
-            current_row.append(latest_response)
+            if current_row:
+                current_row.append(latest_response)
 
             if organisation_id:
                 rows = self.convert_to_stats(rows, organisation_id)
@@ -261,7 +261,7 @@ class TemporalReportHandler(handlers.BaseHandler):
 
                 # Write column headings
                 for i, heading in enumerate(headings):
-                    if i < 2:
+                    if i < 3:
                         worksheet.set_column(i, i, 20)
                         worksheet.write(0, i, heading, bold)
                     else:
@@ -273,22 +273,24 @@ class TemporalReportHandler(handlers.BaseHandler):
                     for col_index in range(len(row_data)):
                         if col_index == 0:
                             worksheet.write(row_index + 1, col_index,
+                                row_data[col_index].get_path())
+                            worksheet.write(row_index + 1, col_index + 1,
                                 row_data[col_index].measure.title)
                         elif col_index == 1 and outfile == "detailed_report":
-                            worksheet.write(row_index + 1, col_index,
+                            worksheet.write(row_index + 1, col_index + 1,
                                 row_data[col_index].name)
                         elif col_index == (len(row_data) - 1):
                             if outfile == "detailed_report":
-                                worksheet.write(row_index + 1, col_index,
+                                worksheet.write(row_index + 1, col_index + 1,
                                     self.get_submission_url(row_data[col_index]),
                                     url_format, "Link")
                             else:
                                 if ((row_index - 1) % 6 == 0):
-                                    worksheet.write(row_index, col_index,
+                                    worksheet.write(row_index, col_index + 1,
                                     self.get_measure_url(row_data[0]),
                                     url_format, "Link")
                         else:
-                            worksheet.write(row_index + 1, col_index,
+                            worksheet.write(row_index + 1, col_index + 1,
                                 row_data[col_index])
 
                 workbook.close()
@@ -298,9 +300,9 @@ class TemporalReportHandler(handlers.BaseHandler):
 
     def get_titles(self, buckets, org_id):
         if org_id:
-            headers = ["Measure", "Statistic"]
+            headers = ["Path", "Measure", "Statistic"]
         else:
-            headers = ["Measure", "Organisation"]
+            headers = ["Path", "Measure", "Organisation"]
 
         for b in buckets:
             headers.append(b)
