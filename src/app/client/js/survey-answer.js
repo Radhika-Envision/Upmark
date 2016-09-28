@@ -87,11 +87,6 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
             $scope.date = created;
         };
     });
-    $scope.$watch('edit.model.created', function (created) {
-        if (!$scope.edit.model)
-            return;
-        $scope.edit.model.$created = new Date(1000 * created);
-    });
     $scope.date = new Date(1000 * $scope.submission.created);
     $scope.reports = {
         formOpen: false,

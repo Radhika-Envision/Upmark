@@ -118,7 +118,8 @@
                 <input type="text" uib-datepicker-popup="{{format}}"
                         class="form-control" ng-model="edit.model.$created"
                         is-open="calender.opened" datepicker-options="dateOptions"
-                        ng-required="true" close-text="Close">
+                        ng-required="true" close-text="Close"
+                        placeholder="Default: now">
                 </input>
                 <span class="input-group-btn">
                     <button type="button" class="btn btn-default" ng-click="openCalender()">
@@ -388,10 +389,12 @@
 
 <div ng-if="!edit.model && !reports.formOpen" class="container">
     <!-- Don't wrap the contents of this tag! -->
-    <p ng-if="submission.survey.description"
-            class="formatted">Submission against {{submission.survey.description}}</p>
-
-    <span> {{date.toDateString()}} </span>
+    <p>
+        Submission against
+        <a ng-href="#/2/survey/{{structure.survey.id}}?program={{structure.program.id}}"
+            >{{structure.survey.title}}</a>,
+        {{submission.created * 1000 | date:'mediumDate'}}.
+    </p>
 
     <approval-buttons class="spaced" model="submission.approval"
             ng-if="!structure.deletedItem"

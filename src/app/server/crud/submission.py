@@ -469,8 +469,9 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
         update = updater(submission)
         update('title', son)
 
-        extras = {
-            "created": datetime.datetime.fromtimestamp(son["created"])
-        }
-
-        update('created', extras)
+        if son["created"]:
+            try:
+                created = datetime.datetime.fromtimestamp(son['created'])
+            except TypeError as e:
+                raise handlers.ModelError("Invalid date")
+            update('created', {"created": created})
