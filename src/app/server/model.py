@@ -512,8 +512,11 @@ class QuestionNode(Observable, Base):
         else:
             return [self]
 
+    def get_path_tuple(self):
+        return tuple(q.seq + 1 for q in self.lineage())
+
     def get_path(self):
-        return " ".join(["%d." % (q.seq + 1) for q in self.lineage()])
+        return " ".join("%d." % i for i in self.get_path_tuple())
 
     def any_deleted(self):
         return self.deleted or self.parent_id and self.parent.any_deleted()
@@ -580,6 +583,10 @@ class Measure(Observable, Base):
         sid = to_id(survey)
         return (object_session(self).query(QnodeMeasure)
             .get((self.program_id, sid, self.id)))
+
+    def get_path_tuple(self, survey):
+        qm = self.get_qnode_measure(survey)
+        return qm and qm.get_path_tuple() or None
 
     def get_path(self, survey):
         qm = self.get_qnode_measure(survey)
@@ -667,8 +674,11 @@ class QnodeMeasure(Base):
             program=program, survey=survey, qnode=qnode, measure=measure,
             **kwargs)
 
+    def get_path_tuple(self):
+        return self.qnode.get_path_tuple() + (self.seq + 1,)
+
     def get_path(self):
-        return "%s %d." % (self.qnode.get_path(), self.seq + 1)
+        return " ".join("%d." % i for i in self.get_path_tuple())
 
     def get_response(self, submission):
         submission_id = to_id(submission)

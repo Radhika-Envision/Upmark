@@ -196,7 +196,7 @@ class TemporalReportHandler(handlers.BaseHandler):
                 organisations.add(response.submission.organisation)
 
             buckets = sorted(buckets)
-            qnode_measures = sorted(qnode_measures, key=lambda m: m.get_path())
+            qnode_measures = sorted(qnode_measures, key=lambda m: m.get_path_tuple())
             organisations = sorted(organisations, key=lambda o: o.name)
 
             rows = []
