@@ -273,7 +273,10 @@ class SubmissionTest(base.AqHttpTestBase):
                 method='PUT', body='', expected=200)
 
         with base.mock_user('org_admin'):
-            submission_son = {'title': "Submission"}
+            submission_son = {
+                'title': "Submission",
+                'created': datetime.datetime(2012, 1, 1).timestamp(),
+            }
             submission_son = self.fetch(
                 "/submission.json?organisationId=%s&programId=%s&surveyId=%s" %
                 (organisation_id, program_id, survey_1_id),
@@ -337,7 +340,8 @@ class SubmissionTest(base.AqHttpTestBase):
             response_son = {
                 'notRelevant': False,
                 'responseParts': [],
-                'comment': "Incomplete dependant response"
+                'comment': "Incomplete dependant response",
+                'approval': 'draft',
             }
             response_son = self.fetch(
                 "/submission/%s/response/%s.json" % (submission_id, mid_112),
@@ -357,7 +361,8 @@ class SubmissionTest(base.AqHttpTestBase):
             response_son = {
                 'notRelevant': False,
                 'responseParts': [{'note': 'Yes', 'index': 1}],
-                'comment': "Dependency"
+                'comment': "Dependency",
+                'approval': 'draft',
             }
             response_son = self.fetch(
                 "/submission/%s/response/%s.json" % (submission_id, mid_111),
@@ -509,7 +514,10 @@ class SubmissionTest(base.AqHttpTestBase):
 
         # Duplicate submission, once for each survey, in the new program
         with base.mock_user('org_admin'):
-            submission_son = {'title': "Second submission"}
+            submission_son = {
+                'title': "Second submission",
+                'created': datetime.datetime(2013, 1, 1).timestamp(),
+            }
             submission_son = self.fetch(
                 "/submission.json?organisationId=%s&programId=%s&"
                 "surveyId=%s&duplicateId=%s" %
@@ -519,7 +527,10 @@ class SubmissionTest(base.AqHttpTestBase):
                 expected=200, decode=True)
             second_submission_id = submission_son['id']
 
-            submission_son = {'title': "Third submission"}
+            submission_son = {
+                'title': "Third submission",
+                'created': datetime.datetime(2013, 1, 1).timestamp(),
+            }
             submission_son = self.fetch(
                 "/submission.json?organisationId=%s&programId=%s&"
                 "surveyId=%s&duplicateId=%s" %
@@ -617,11 +628,13 @@ class SubmissionTest(base.AqHttpTestBase):
 
             # Check attachment duplication
             self.assertNotEqual(str(submission_1.id), str(submission_2.id))
+            self.assertNotEqual(str(original_program_id), str(new_program_id))
             for r1, r2 in zip(submission_1.ordered_responses,
                               submission_2.ordered_responses):
                 self.assertEqual(str(r1.submission_id), str(submission_1.id))
                 self.assertEqual(str(r2.submission_id), str(submission_2.id))
-                self.assertEqual(str(r1.program_id), str(r2.program_id))
+                self.assertEqual(str(r1.program_id), str(original_program_id))
+                self.assertEqual(str(r2.program_id), str(new_program_id))
                 self.assertEqual(str(r1.survey_id), str(r2.survey_id))
                 self.assertEqual(str(r1.measure_id), str(r2.measure_id))
                 self.assertEqual(len(r1.attachments), 3)

@@ -332,6 +332,7 @@ class RnodeOps(QnodeOps):
         self.submission = submission
 
     def evaluate(self, qnode, dependencies, dependants):
+        assert(self.submission.survey == qnode.survey)
         rnode = qnode.get_rnode(self.submission, create=True)
         stats = ResponseNodeStats()
         for child in rnode.children:
@@ -351,6 +352,7 @@ class ResponseOps(MeasureOps):
         self.submission = submission
 
     def evaluate(self, qnode_measure, dependencies, dependants):
+        assert(self.submission.survey == qnode_measure.survey)
         measure = qnode_measure.measure
         response = self.get_response(qnode_measure)
         if not response:

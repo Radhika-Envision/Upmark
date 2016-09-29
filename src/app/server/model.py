@@ -423,6 +423,13 @@ class Survey(Observable, Base):
             yield from qnode.ordered_qnode_measures
 
     @property
+    def ordered_qnodes(self):
+        '''Returns all categories in depth-first order'''
+        for qnode in self.qnodes:
+            yield from qnode.ordered_children
+            yield qnode
+
+    @property
     def min_stats_approval(self):
         '''
         @returns The minimum approval state for which it's OK to display
@@ -527,6 +534,13 @@ class QuestionNode(Observable, Base):
         for child in self.children:
             yield from child.ordered_qnode_measures
         yield from self.qnode_measures
+
+    @property
+    def ordered_children(self):
+        '''Returns all categories in depth-first order'''
+        for child in self.children:
+            yield from child.ordered_children
+            yield child
 
     @property
     def ob_type(self):

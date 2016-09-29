@@ -790,7 +790,9 @@ class ResponseTypeTest(base.AqHttpTestBase):
 
     def test_authz(self):
         with model.session_scope() as session:
-            survey = session.query(model.Survey).first()
+            survey = (session.query(model.Survey)
+                .filter(model.Survey.title == 'Survey 1')
+                .first())
             pid = str(survey.program_id)
 
         # Create a new RT and check that it can only be modified by an author
@@ -825,7 +827,7 @@ class ResponseTypeTest(base.AqHttpTestBase):
             rts1 = self.fetch(
                 "/response_type.json?programId=%s" % pid,
                 method='GET', expected=200, decode=True)
-            self.assertIn('Test RT', (rt['name'] for rt in rts1))
+            self.assertIn('Test RT', [rt['name'] for rt in rts1])
             self.fetch(
                 "/response_type/%s.json?programId=%s" % (rt_id, pid),
                 method='DELETE', expected=200)

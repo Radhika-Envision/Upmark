@@ -169,6 +169,7 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
         if organisation_id == '':
             raise handlers.ModelError("Organisation ID is required")
 
+        # Source submission ID
         duplicate_id = self.get_argument('duplicateId', '')
 
         fill_random = truthy(self.get_argument('fillRandom', ''))
@@ -227,12 +228,10 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
                 "Survey is not open: it needs to be purchased")
 
     def duplicate(self, submission, duplicate_id, session):
-        s_submission = (session.query(model.Submission)
-                .filter_by(id=duplicate_id)
-                .first())
+        s_submission = session.query(model.Submission).get(duplicate_id)
         if s_submission is None:
             raise handlers.MissingDocError(
-                "Source submission (for duplication) no found")
+                "Source submission (for duplication) not found")
 
         if str(s_submission.organisation_id) != str(submission.organisation_id):
             raise handlers.ModelError(
@@ -242,15 +241,11 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
                     submission.organisation.name))
 
         survey_id = str(submission.survey.id)
-        measure_ids = {str(m.id) for m in submission.program.measures
-                       if any(str(qm.survey_id) == survey_id
-                              for qm in m.qnode_measures)}
+        measure_ids = {
+            str(qm.measure_id)
+            for qm in submission.survey.ordered_qnode_measures}
 
-        qnode_ids = {str(r[0]) for r in
-                session.query(model.QuestionNode.id)
-                    .filter_by(program_id=submission.program_id,
-                               survey_id=submission.survey_id)
-                    .all()}
+        qnode_ids = {str(q.id) for q in  submission.survey.ordered_qnodes}
 
         s_rnodes = (session.query(model.ResponseNode)
                 .filter_by(submission_id=s_submission.id)
@@ -286,8 +281,8 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
             make_transient(response)
 
             # Customise
-            response.program = submission.program
-            response.submission = submission
+            response.submission_id = submission.id
+            response.program_id = submission.program_id
             response.approval = 'draft'
 
             session.add(response)

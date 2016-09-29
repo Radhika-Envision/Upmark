@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 import pprint
@@ -155,7 +156,10 @@ class ExporterAuthzTest(base.AqHttpTestBase):
             method='PUT', body='', expected=200)
 
     def add_submission(self):
-        submission_son = {'title': "Submission"}
+        submission_son = {
+            'title': "Submission",
+            'created': datetime.datetime(2012, 1, 1).timestamp(),
+        }
         submission_son = self.fetch(
             "/submission.json?organisationId=%s&programId=%s&surveyId=%s" %
             (self.organisation_id, self.program_id, self.survey_id),

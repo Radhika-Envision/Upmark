@@ -53,7 +53,7 @@ class ResponseTypeHandler(
                 r'/formula$',
                 r'/n_measures$',
                 r'/program$',
-            )
+                omit=True)
             son = to_son(response_type)
             son['nMeasures'] = count
         self.set_header("Content-Type", "application/json")
@@ -67,7 +67,7 @@ class ResponseTypeHandler(
         with model.session_scope() as session:
             query = (
                 session.query(model.ResponseType, func.count(model.Measure.id))
-                .join(model.Measure)
+                .outerjoin(model.Measure)
                 .filter(model.ResponseType.program_id == self.program_id)
                 .group_by(model.ResponseType.id, model.ResponseType.program_id)
                 .order_by(model.ResponseType.name))
