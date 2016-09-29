@@ -264,15 +264,21 @@ class PurchasedSurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
 
         deleted = self.get_argument('deleted', '')
         with model.session_scope() as session:
-            org = session.query(model.Organisation).get(organisation_id)
-            if not org:
-                raise handlers.MissingDocError('No such organisation')
-
-            surveys = org.surveys
+            query = (session.query(model.Survey)
+                .join(model.PurchasedSurvey)
+                .filter(model.PurchasedSurvey.organisation_id == organisation_id))
 
             if deleted:
                 deleted = truthy(deleted)
-                surveys = [s for s in surveys if s.deleted == deleted]
+                if deleted:
+                    del_filter = ((model.Survey.deleted == True) |
+                                  (model.Program.deleted == True))
+                else:
+                    del_filter = ((model.Survey.deleted == False) &
+                                  (model.Program.deleted == False))
+                query = query.join(model.Program).filter(del_filter)
+
+            surveys = query.all()
 
             to_son = ToSon(
                 r'/id$',

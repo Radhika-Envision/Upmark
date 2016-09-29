@@ -314,7 +314,7 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.search = {
         term: "",
-        editable: $scope.checkRole('program_edit'),
+        editable: null,
         deleted: false,
         page: 0,
         pageSize: 10
