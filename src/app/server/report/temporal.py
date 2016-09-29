@@ -342,7 +342,10 @@ class TemporalReportHandler(handlers.BaseHandler):
             cells = list(zip(*rs))
             stats = [self.compute_stats(c) for c in cells[3:]]
             stats = list(zip(*stats))
-            org_row = [r for r in rs if str(r[1].id) == organisation_id][0]
+            try:
+                org_row = next(r for r in rs if str(r[1].id) == organisation_id)
+            except StopIteration:
+                org_row = [] * (len(cells[0]) - 3)
             out_table.append([m, "Self score"] + org_row[2:])
             out_table.append([m, "Min", None] + list(stats[0]))
             out_table.append([m, "1st Quartile", None] + list(stats[1]))
