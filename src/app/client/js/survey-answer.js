@@ -59,7 +59,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
             organisation: routeData.organisation
         });
         $scope.edit.params.programId = $scope.program.id;
-        $scope.edit.params.orgId = routeData.organisation.id;
+        $scope.edit.params.organisationId = routeData.organisation.id;
         $scope.surveys = routeData.surveys;
         if ($scope.surveys.length == 1) {
             $scope.submission.survey = $scope.surveys[0];

@@ -542,8 +542,8 @@ class CardHandler(handlers.BaseHandler):
             r'.*'
         )
         with model.session_scope() as session:
-            org_id = self.current_user.organisation_id
-            org = (session.query(model.Organisation).get(org_id))
+            organisation_id = self.current_user.organisation_id
+            org = (session.query(model.Organisation).get(organisation_id))
             sons.append(to_son({
                 'title': org.name,
                 'created': org.created,
@@ -566,7 +566,7 @@ class CardHandler(handlers.BaseHandler):
 
             if self.has_privillege('clerk'):
                 submissions = (session.query(model.Submission)
-                    .filter(model.Submission.organisation_id == org_id)
+                    .filter(model.Submission.organisation_id == organisation_id)
                     .order_by(model.Submission.created.desc())
                     .limit(2)
                     .all())

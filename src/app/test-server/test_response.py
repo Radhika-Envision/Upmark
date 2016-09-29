@@ -261,7 +261,7 @@ class SubmissionTest(base.AqHttpTestBase):
         with base.mock_user('org_admin'):
             submission_son = {'title': "Submission"}
             submission_son = self.fetch(
-                "/submission.json?orgId=%s&programId=%s&surveyId=%s" %
+                "/submission.json?organisationId=%s&programId=%s&surveyId=%s" %
                 (organisation_id, program_id, survey_1_id),
                 method='POST', body=json_encode(submission_son),
                 expected=403, decode=False)
@@ -275,7 +275,7 @@ class SubmissionTest(base.AqHttpTestBase):
         with base.mock_user('org_admin'):
             submission_son = {'title': "Submission"}
             submission_son = self.fetch(
-                "/submission.json?orgId=%s&programId=%s&surveyId=%s" %
+                "/submission.json?organisationId=%s&programId=%s&surveyId=%s" %
                 (organisation_id, program_id, survey_1_id),
                 method='POST', body=json_encode(submission_son),
                 expected=200, decode=True)
@@ -511,7 +511,7 @@ class SubmissionTest(base.AqHttpTestBase):
         with base.mock_user('org_admin'):
             submission_son = {'title': "Second submission"}
             submission_son = self.fetch(
-                "/submission.json?orgId=%s&programId=%s&"
+                "/submission.json?organisationId=%s&programId=%s&"
                 "surveyId=%s&duplicateId=%s" %
                 (organisation_id, new_program_id,
                  survey_1_id, first_submission_id),
@@ -521,7 +521,7 @@ class SubmissionTest(base.AqHttpTestBase):
 
             submission_son = {'title': "Third submission"}
             submission_son = self.fetch(
-                "/submission.json?orgId=%s&programId=%s&"
+                "/submission.json?organisationId=%s&programId=%s&"
                 "surveyId=%s&duplicateId=%s" %
                 (organisation_id, new_program_id,
                  survey_2_id, first_submission_id),

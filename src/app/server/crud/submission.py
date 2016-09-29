@@ -88,11 +88,11 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
         tracking_id = self.get_argument('trackingId', '')
         deleted = self.get_argument('deleted', '')
 
-        org_id = self.get_argument('orgId', '')
+        organisation_id = self.get_argument('organisationId', '')
         if self.current_user.role in {'clerk', 'org_admin'}:
-            if org_id == '':
-                org_id = str(self.organisation.id)
-            elif org_id != str(self.organisation.id):
+            if organisation_id == '':
+                organisation_id = str(self.organisation.id)
+            elif organisation_id != str(self.organisation.id):
                 raise handlers.AuthzError(
                     "You can't view another organisation's submissions")
 
@@ -115,8 +115,8 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
                 query = query.filter(
                     model.Submission.approval.in_(approval_set))
 
-            if org_id != '':
-                query = query.filter_by(organisation_id=org_id)
+            if organisation_id != '':
+                query = query.filter_by(organisation_id=organisation_id)
 
             if tracking_id != '':
                 query = query.join(model.Program)
@@ -165,24 +165,24 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
         if survey_id == '':
             raise handlers.ModelError("Survey ID is required")
 
-        org_id = self.get_argument('orgId', '')
-        if org_id == '':
+        organisation_id = self.get_argument('organisationId', '')
+        if organisation_id == '':
             raise handlers.ModelError("Organisation ID is required")
 
         duplicate_id = self.get_argument('duplicateId', '')
 
         fill_random = truthy(self.get_argument('fillRandom', ''))
 
-        if org_id != str(self.organisation.id):
+        if organisation_id != str(self.organisation.id):
             self.check_privillege('consultant')
 
         try:
             with model.session_scope() as session:
-                self._check_open(program_id, survey_id, org_id, session)
+                self._check_open(program_id, survey_id, organisation_id, session)
 
                 submission = model.Submission(
                     program_id=program_id, survey_id=survey_id,
-                    organisation_id=org_id, approval='draft')
+                    organisation_id=organisation_id, approval='draft')
                 self._update(submission, self.request_son)
                 session.add(submission)
                 session.flush()
@@ -207,7 +207,7 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         self.get(submission_id)
 
-    def _check_open(self, program_id, survey_id, org_id, session):
+    def _check_open(self, program_id, survey_id, organisation_id, session):
         survey = (session.query(model.Survey)
             .get((survey_id, program_id)))
         if not survey:
@@ -220,7 +220,7 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
         purchased_survey = (session.query(model.PurchasedSurvey)
             .filter_by(program_id=program_id,
                        survey_id=survey_id,
-                       organisation_id=org_id)
+                       organisation_id=organisation_id)
             .first())
         if not purchased_survey:
             raise handlers.ModelError(
@@ -234,10 +234,10 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.MissingDocError(
                 "Source submission (for duplication) no found")
 
-        if str(s_submission.organisation_id) != (submission.organisation_id):
+        if str(s_submission.organisation_id) != str(submission.organisation_id):
             raise handlers.ModelError(
                 "Can't duplicate a submission across two organisations: "
-                "'%s/%s' and '%s/%s'" % (
+                "'%s' and '%s'" % (
                     s_submission.organisation.name,
                     submission.organisation.name))
 

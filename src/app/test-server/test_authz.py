@@ -157,7 +157,7 @@ class ExporterAuthzTest(base.AqHttpTestBase):
     def add_submission(self):
         submission_son = {'title': "Submission"}
         submission_son = self.fetch(
-            "/submission.json?orgId=%s&programId=%s&surveyId=%s" %
+            "/submission.json?organisationId=%s&programId=%s&surveyId=%s" %
             (self.organisation_id, self.program_id, self.survey_id),
             method='POST', body=json_encode(submission_son),
         expected=200, decode=False)

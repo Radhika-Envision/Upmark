@@ -21,14 +21,14 @@ from utils import ToSon, truthy, updater
 
 class OrgHandler(handlers.Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
-    def get(self, org_id):
-        if org_id == "":
+    def get(self, organisation_id):
+        if organisation_id == "":
             self.query()
             return
 
         with model.session_scope() as session:
             try:
-                org = session.query(model.Organisation).get(org_id)
+                org = session.query(model.Organisation).get(organisation_id)
                 if org is None:
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError, ValueError):
@@ -87,11 +87,11 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
         self.finish()
 
     @handlers.authz('admin')
-    def post(self, org_id):
+    def post(self, organisation_id):
         '''
         Create a new organisation.
         '''
-        if org_id != '':
+        if organisation_id != '':
             raise handlers.MethodError(
                 "Can't use POST for existing organisation.")
 
@@ -110,28 +110,28 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                     act.subscribe(self.current_user, org)
                     self.reason("Subscribed to organisation")
 
-                org_id = str(org.id)
+                organisation_id = str(org.id)
         except sqlalchemy.exc.IntegrityError as e:
             raise handlers.ModelError.from_sa(e)
-        self.get(org_id)
+        self.get(organisation_id)
 
     @handlers.authz('admin', 'org_admin')
-    def put(self, org_id):
+    def put(self, organisation_id):
         '''
         Update an existing organisation.
         '''
-        if org_id == '':
+        if organisation_id == '':
             raise handlers.MethodError(
                 "Can't use PUT for new organisations (no ID).")
 
         if self.current_user.role == 'org_admin' \
-                and str(self.organisation.id) != org_id:
+                and str(self.organisation.id) != organisation_id:
             raise handlers.AuthzError(
                 "You can't modify another organisation's information.")
 
         try:
             with model.session_scope() as session:
-                org = session.query(model.Organisation).get(org_id)
+                org = session.query(model.Organisation).get(organisation_id)
                 if org is None:
                     raise ValueError("No such object")
                 old_locations = list(org.locations)
@@ -157,15 +157,15 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError.from_sa(e)
         except (sqlalchemy.exc.StatementError, ValueError):
             raise handlers.MissingDocError("No such organisation")
-        self.get(org_id)
+        self.get(organisation_id)
 
     @handlers.authz('admin')
-    def delete(self, org_id):
-        if org_id == '':
+    def delete(self, organisation_id):
+        if organisation_id == '':
             raise handlers.MethodError("Organisation ID required")
         try:
             with model.session_scope() as session:
-                org = session.query(model.Organisation).get(org_id)
+                org = session.query(model.Organisation).get(organisation_id)
                 if org is None:
                     raise handlers.MissingDocError("No such organisation")
 
@@ -237,14 +237,14 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
 
 class PurchasedSurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
     @tornado.web.authenticated
-    def head(self, org_id, survey_id):
-        self._check_user(org_id)
+    def head(self, organisation_id, survey_id):
+        self._check_user(organisation_id)
 
         with model.session_scope() as session:
             purchased_survey = (session.query(model.PurchasedSurvey)
                 .filter_by(program_id=self.program_id,
                            survey_id=survey_id,
-                           organisation_id=org_id)
+                           organisation_id=organisation_id)
                 .first())
             if not purchased_survey:
                 raise handlers.MissingDocError(
@@ -253,18 +253,18 @@ class PurchasedSurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
         self.finish()
 
     @tornado.web.authenticated
-    def get(self, org_id, survey_id):
+    def get(self, organisation_id, survey_id):
         if not survey_id:
-            self.query(org_id)
+            self.query(organisation_id)
 
         raise handlers.ModelError("Not implemented")
 
-    def query(self, org_id):
-        self._check_user(org_id)
+    def query(self, organisation_id):
+        self._check_user(organisation_id)
 
         deleted = self.get_argument('deleted', '')
         with model.session_scope() as session:
-            org = session.query(model.Organisation).get(org_id)
+            org = session.query(model.Organisation).get(organisation_id)
             if not org:
                 raise handlers.MissingDocError('No such organisation')
 
@@ -292,9 +292,9 @@ class PurchasedSurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
         self.finish()
 
     @handlers.authz('admin')
-    def put(self, org_id, survey_id):
+    def put(self, organisation_id, survey_id):
         with model.session_scope() as session:
-            org = session.query(model.Organisation).get(org_id)
+            org = session.query(model.Organisation).get(organisation_id)
             if not org:
                 raise handlers.MissingDocError('No such organisation')
             survey = (session.query(model.Survey)
@@ -309,9 +309,9 @@ class PurchasedSurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
                 org.surveys.append(survey)
 
     @handlers.authz('admin')
-    def delete(self, org_id, program_id):
+    def delete(self, organisation_id, program_id):
         with model.session_scope() as session:
-            org = session.query(model.Organisation).get(org_id)
+            org = session.query(model.Organisation).get(organisation_id)
             if not org:
                 raise handlers.MissingDocError('No such organisation')
             survey = (session.query(model.Survey)
@@ -321,8 +321,8 @@ class PurchasedSurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
 
             org.programs.remove(survey)
 
-    def _check_user(self, org_id):
-        if org_id != str(self.current_user.organisation_id):
+    def _check_user(self, organisation_id):
+        if organisation_id != str(self.current_user.organisation_id):
             if not self.has_privillege('consultant'):
                 raise handlers.AuthzError(
                     "You can't access another organisation's surveys")

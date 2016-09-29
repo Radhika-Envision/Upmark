@@ -205,9 +205,9 @@ angular.module('wsaa.surveyQuestions', [
             };
             $scope.$watch('aSearch.organisation', function(organisation) {
                 if (organisation)
-                    $scope.search.orgId = organisation.id;
+                    $scope.search.organisationId = organisation.id;
                 else
-                    $scope.search.orgId = null;
+                    $scope.search.organisationId = null;
             });
 
             $scope.$watch('survey', function(survey) {
@@ -234,7 +234,7 @@ angular.module('wsaa.surveyQuestions', [
             $scope.historical = false;
             $scope.search = {
                 term: "",
-                orgId: null,
+                organisationId: null,
                 surveyId: null,
                 programId: null,
                 trackingId: null,
@@ -255,22 +255,22 @@ angular.module('wsaa.surveyQuestions', [
             }, 100);
             $scope.$watch('search', $scope.applySearch, true);
 
-            $scope.$watchGroup(['program', 'search.orgId', 'survey', 'track'],
+            $scope.$watchGroup(['program', 'search.organisationId', 'survey', 'track'],
                     function(vars) {
 
                 var program = vars[0];
-                var orgId = vars[1];
+                var organisationId = vars[1];
                 var survey = vars[2];
                 var track = vars[3];
 
-                if (!program || !orgId || !survey || track != null) {
+                if (!program || !organisationId || !survey || track != null) {
                     $scope.purchasedSurvey = null;
                     return;
                 }
 
                 PurchasedSurvey.head({
                     programId: program.id,
-                    id: orgId,
+                    id: organisationId,
                     hid: survey.id
                 }, null, function success(purchasedSurvey) {
                     $scope.purchasedSurvey = purchasedSurvey;

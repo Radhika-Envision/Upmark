@@ -289,7 +289,7 @@ class TemporalReportHandler(handlers.BaseHandler):
                 raise handlers.MissingDocError(
                     "File type not supported: %s" % extension)
 
-    def get_titles(self, buckets, org_id, workbook):
+    def get_titles(self, buckets, organisation_id, workbook):
         # Define heading formats
         bold = workbook.add_format({'bold': 1})
         date_format = (workbook.add_format(
@@ -300,7 +300,7 @@ class TemporalReportHandler(handlers.BaseHandler):
             ("Path", 10, bold),
             ("Measure", 20, bold)
         ]
-        if org_id:
+        if organisation_id:
             headers.append(("Statistic", 12, bold))
         else:
             headers.append(("Organisation", 20, bold))

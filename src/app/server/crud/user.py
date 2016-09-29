@@ -82,9 +82,9 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                     model.Organisation,
                     model.Organisation.id == model.AppUser.organisation_id))
 
-            org_id = self.get_argument("org_id", None)
-            if org_id is not None:
-                query = query.filter(model.Organisation.id == org_id)
+            organisation_id = self.get_argument("organisation_id", None)
+            if organisation_id is not None:
+                query = query.filter(model.Organisation.id == organisation_id)
 
             term = self.get_argument('term', None)
             if term is not None:
@@ -95,13 +95,13 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
             if deleted is not None:
                 deleted = truthy(deleted)
 
-            # Filter deleted users. If org_id is not specified, users inherit
+            # Filter deleted users. If organisation_id is not specified, users inherit
             # their organisation's deleted flag too.
-            if deleted == True and not org_id:
+            if deleted == True and not organisation_id:
                 query = query.filter(
                     (model.AppUser.deleted == True) |
                     (model.Organisation.deleted == True))
-            elif deleted == False and not org_id:
+            elif deleted == False and not organisation_id:
                 query = query.filter(
                     (model.AppUser.deleted == False) &
                     (model.Organisation.deleted == False))

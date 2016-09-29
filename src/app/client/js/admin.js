@@ -92,7 +92,7 @@ angular.module('wsaa.admin', [
 
 .factory('PurchasedSurvey', ['$resource', 'paged', function($resource, paged) {
     return $resource('/organisation/:id/survey/:hid.json', {
-        id: '@orgId',
+        id: '@organisationId',
         hid: '@surveyId'
     }, {
         head: { method: 'HEAD', cache: false },
@@ -179,9 +179,9 @@ angular.module('wsaa.admin', [
     } else {
         // Creating new
         var org;
-        if ($location.search().orgId) {
+        if ($location.search().organisationId) {
             org = {
-                id: $location.search().orgId,
+                id: $location.search().organisationId,
                 name: $location.search().orgName
             };
         } else {
@@ -257,7 +257,7 @@ angular.module('wsaa.admin', [
 
     $scope.search = {
         term: "",
-        org_id: $scope.org && $scope.org.id,
+        organisationId: $scope.org && $scope.org.id,
         deleted: $scope.org && $scope.org.deleted ? null : false,
         page: 0,
         pageSize: 10
@@ -470,7 +470,7 @@ angular.module('wsaa.admin', [
         PurchasedSurvey.save({
             programId: $scope.program.id
         }, {
-            orgId: $scope.org.id,
+            organisationId: $scope.org.id,
             surveyId: survey.id
         }).$promise.then(
             function success() {
