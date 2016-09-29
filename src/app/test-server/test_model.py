@@ -1,3 +1,4 @@
+import itertools
 import logging
 import os
 import pprint
@@ -28,11 +29,11 @@ class ProgramStructureTest(base.AqModelTestBase):
         with model.session_scope() as session:
             program = session.query(model.Program).first()
             self.assertEqual(len(program.surveys), 2)
-            self.assertEqual(len(program.measures), 5)
+            self.assertEqual(len(program.measures), 6)
             h = program.surveys[0]
             self.assertEqual(h.title, "Survey 1")
             self.assertEqual(len(h.qnodes), 2)
-            self.assertEqual(h.n_measures, 3)
+            self.assertEqual(h.n_measures, 4)
 
             self.assertEqual(h.qnodes[1].seq, 1)
             q = h.qnodes[0]
@@ -40,7 +41,7 @@ class ProgramStructureTest(base.AqModelTestBase):
             self.assertEqual(q.seq, 0)
             self.assertEqual(len(q.children), 2)
             self.assertEqual(len(q.qnode_measures), 0)
-            self.assertEqual(q.n_measures, 3)
+            self.assertEqual(q.n_measures, 4)
 
             q = q.children[0]
             self.assertEqual(q.title, "Process 1.1")
@@ -63,7 +64,7 @@ class ProgramStructureTest(base.AqModelTestBase):
             measures = session.query(model.Measure)\
                 .filter(model.Measure.program_id == program.id)\
                 .all()
-            self.assertEqual(len(measures), 5)
+            self.assertEqual(len(measures), 6)
 
     def test_unlink_measure(self):
         with model.session_scope() as session:
@@ -71,7 +72,7 @@ class ProgramStructureTest(base.AqModelTestBase):
             h = program.surveys[0]
             q = h.qnodes[0].children[0]
             self.assertEqual(len(q.qnode_measures), 2)
-            self.assertEqual(q.parent.n_measures, 3)
+            self.assertEqual(q.parent.n_measures, 4)
             self.assertEqual(q.qnode_measures[0].measure.title, "Foo Measure")
             self.assertEqual(q.qnode_measures[0].seq, 0)
             self.assertEqual(q.qnode_measures[1].measure.title, "Bar Measure")
@@ -87,8 +88,8 @@ class ProgramStructureTest(base.AqModelTestBase):
             self.assertEqual(q.qnode_measures[0].measure.title, "Bar Measure")
             self.assertEqual(q.qnode_measures[0].seq, 0)
             self.assertEqual(q.n_measures, 1)
-            self.assertEqual(q.parent.n_measures, 2)
-            self.assertEqual(h.n_measures, 2)
+            self.assertEqual(q.parent.n_measures, 3)
+            self.assertEqual(h.n_measures, 3)
 
     def test_orphan_measure(self):
         with model.session_scope() as session:
@@ -116,7 +117,7 @@ class ProgramStructureTest(base.AqModelTestBase):
                 .filter(model.Measure.program_id == program.id)
                 .order_by(model.Measure.title)
                 .all())
-            self.assertEqual(len(measures), 4)
+            self.assertEqual(len(measures), 5)
             m = measures[0]
             self.assertEqual(m.title, "Bar Measure")
             m = measures[1]
@@ -144,13 +145,16 @@ class ProgramStructureTest(base.AqModelTestBase):
             qnode_measure_111 = survey.qnodes[0].children[0].qnode_measures[0]
             qnode_measure_112 = survey.qnodes[0].children[0].qnode_measures[1]
             qnode_measure_121 = survey.qnodes[0].children[1].qnode_measures[0]
+            qnode_measure_122 = survey.qnodes[0].children[1].qnode_measures[1]
 
             self.assertEqual(0, len(qnode_measure_111.target_vars))
             self.assertEqual(0, len(qnode_measure_111.source_vars))
             self.assertEqual(0, len(qnode_measure_112.target_vars))
             self.assertEqual(0, len(qnode_measure_112.source_vars))
-            self.assertEqual(0, len(qnode_measure_121.target_vars))
+            self.assertEqual(1, len(qnode_measure_121.target_vars))
             self.assertEqual(0, len(qnode_measure_121.source_vars))
+            self.assertEqual(0, len(qnode_measure_122.target_vars))
+            self.assertEqual(1, len(qnode_measure_122.source_vars))
 
             # Make measure 1 a dependency (source) of measure 2 (target)
             mv = model.MeasureVariable(
@@ -165,8 +169,10 @@ class ProgramStructureTest(base.AqModelTestBase):
             self.assertEqual(0, len(qnode_measure_111.source_vars))
             self.assertEqual(0, len(qnode_measure_112.target_vars))
             self.assertEqual(1, len(qnode_measure_112.source_vars))
-            self.assertEqual(0, len(qnode_measure_121.target_vars))
+            self.assertEqual(1, len(qnode_measure_121.target_vars))
             self.assertEqual(0, len(qnode_measure_121.source_vars))
+            self.assertEqual(0, len(qnode_measure_122.target_vars))
+            self.assertEqual(1, len(qnode_measure_122.source_vars))
 
             # Check that dependency is marked as superfluous (because it's not
             # required by the response type)
@@ -217,8 +223,10 @@ class ProgramStructureTest(base.AqModelTestBase):
             self.assertEqual(1, len(qnode_measure_111.source_vars))
             self.assertEqual(1, len(qnode_measure_112.target_vars))
             self.assertEqual(1, len(qnode_measure_112.source_vars))
-            self.assertEqual(0, len(qnode_measure_121.target_vars))
+            self.assertEqual(1, len(qnode_measure_121.target_vars))
             self.assertEqual(0, len(qnode_measure_121.source_vars))
+            self.assertEqual(0, len(qnode_measure_122.target_vars))
+            self.assertEqual(1, len(qnode_measure_122.source_vars))
 
             # Check that survey graph is constructed correctly
             calculator = Calculator.structural()
@@ -413,7 +421,7 @@ class ModifyProgramTest(base.AqHttpTestBase):
             q2_son = self.fetch(
                 "/qnode/{}.json?programId={}".format(self.qidAB, self.sid),
                 method='GET', expected=200, decode=True)
-            self.assertAlmostEqual(q2_son['total_weight'], 11)
+            self.assertAlmostEqual(q2_son['total_weight'], 11 + 13)
             m_son = self.fetch(
                 "/measure/{}.json?programId={}".format(self.midABA, self.sid),
                 method='GET', expected=200, decode=True)
@@ -458,7 +466,7 @@ class ModifyProgramTest(base.AqHttpTestBase):
             q2_son = self.fetch(
                 "/qnode/{}.json?programId={}".format(self.qidAB, self.sid),
                 method='GET', expected=200, decode=True)
-            self.assertAlmostEqual(q2_son['total_weight'], 0)
+            self.assertAlmostEqual(q2_son['total_weight'], 13)
         self.verify_stats()
 
     def test_delete_qnode(self):
@@ -470,7 +478,7 @@ class ModifyProgramTest(base.AqHttpTestBase):
             q_son = self.fetch(
                 "/qnode/{}.json?programId={}".format(self.qidA, self.sid),
                 method='GET', expected=200, decode=True)
-            self.assertAlmostEqual(q_son['total_weight'], 11)
+            self.assertAlmostEqual(q_son['total_weight'], 11 + 13)
 
             # Move a measure out of the deleted qnode...
             m_son = self.fetch(
@@ -481,7 +489,7 @@ class ModifyProgramTest(base.AqHttpTestBase):
             q_son = self.fetch(
                 "/qnode/{}.json?programId={}".format(self.qidA, self.sid),
                 method='GET', expected=200, decode=True)
-            self.assertAlmostEqual(q_son['total_weight'], 11)
+            self.assertAlmostEqual(q_son['total_weight'], 11 + 13)
             q_son = self.fetch(
                 "/qnode/{}.json?programId={}".format(self.qidB, self.sid),
                 method='GET', expected=200, decode=True)
@@ -496,7 +504,7 @@ class ModifyProgramTest(base.AqHttpTestBase):
             q_son = self.fetch(
                 "/qnode/{}.json?programId={}".format(self.qidA, self.sid),
                 method='GET', expected=200, decode=True)
-            self.assertAlmostEqual(q_son['total_weight'], 17)
+            self.assertAlmostEqual(q_son['total_weight'], 6 + 11 + 13)
 
             self.verify_stats()
 
@@ -517,7 +525,7 @@ class ModifyProgramTest(base.AqHttpTestBase):
     def test_duplicate_program(self):
         with base.mock_user('author'):
             program_sons = self.fetch(
-                "/program.json", method='GET',
+                "/program.json?term=Test%%20Program%%201", method='GET',
                 expected=200, decode=True)
             self.assertEqual(len(program_sons), 1)
             original_program_id = program_sons[0]['id']
@@ -665,7 +673,24 @@ class ModifyProgramTest(base.AqHttpTestBase):
                 self.assertEqual(a.qnode, qa)
                 self.assertEqual(b.qnode, qb)
 
+                for mva, mvb in itertools.zip_longest(a.source_vars, b.source_vars):
+                    visit_var(mva, mvb)
+
+                for mva, mvb in itertools.zip_longest(a.target_vars, b.target_vars):
+                    visit_var(mva, mvb)
+
                 visit_measure(a.measure, b.measure, a, b)
+
+            def visit_var(mva, mvb):
+                self.assertNotEqual(mva, None)
+                self.assertNotEqual(mvb, None)
+                self.assertEqual(str(mva.program_id), original_program_id)
+                self.assertEqual(str(mvb.program_id), new_program_id)
+                self.assertEqual(mva.survey_id, mvb.survey_id)
+                self.assertEqual(mva.source_measure_id, mvb.source_measure_id)
+                self.assertEqual(mva.source_field, mvb.source_field)
+                self.assertEqual(mva.target_measure_id, mvb.target_measure_id)
+                self.assertEqual(mva.target_field, mvb.target_field)
 
             def visit_measure(a, b, qma, qmb):
                 log.info("Visiting measure pair %s and %s", a, b)
@@ -684,8 +709,8 @@ class ModifyProgramTest(base.AqHttpTestBase):
                     self.assertNotIn(qmb, a.qnode_measures)
 
             # A has five measures, but two are only referenced by deleted nodes.
-            self.assertEqual(len(sa.measures), 5)
-            self.assertEqual(len(sb.measures), 3)
+            self.assertEqual(len(sa.measures), 6)
+            self.assertEqual(len(sb.measures), 4)
             measures_in_a = {m.id: m for m in sa.measures}
             for b in sb.measures:
                 a = measures_in_a[b.id]
@@ -730,7 +755,7 @@ class ResponseTypeTest(base.AqHttpTestBase):
                 method='GET', expected=200, decode=True)
             self.assertEqual(len(rts), 1)
             self.assertEqual('Yes / No', rts[0]['name'])
-            self.assertEqual(4, rts[0]['n_measures'])
+            self.assertEqual(3, rts[0]['n_measures'])
 
             rt_id = rts[0]['id']
             rt = self.fetch(

@@ -41,13 +41,14 @@ class DaemonTest(base.AqHttpTestBase):
             sid = program_sons[0]['id']
 
             survey_sons = self.fetch(
-                "/survey.json?programId=%s" % sid,
+                "/survey.json?programId=%s&term=Survey%%201" % sid,
                 method='GET', expected=200, decode=True)
             hid = survey_sons[0]['id']
 
-            url = "/qnode.json?programId=%s&surveyId=%s&root=" % (sid, hid)
+            url = "/qnode.json?programId=%s&surveyId=%s&root=&deleted=false" % (sid, hid)
             qnode_sons = self.fetch(
                 url, method='GET', expected=200, decode=True)
+            self.assertTrue(all(q['deleted'] == False for q in qnode_sons))
             qid1 = qnode_sons[0]['id']
             qid2 = qnode_sons[1]['id']
 
@@ -211,9 +212,9 @@ class DaemonTest(base.AqHttpTestBase):
             calculator.execute()
 
             functions = list(submission.rnodes)
-            self.assertAlmostEqual(functions[0].score, 20)
+            self.assertAlmostEqual(functions[0].score, 33)
             self.assertAlmostEqual(functions[1].score, 0)
-            self.assertAlmostEqual(functions[0].qnode.total_weight, 20)
+            self.assertAlmostEqual(functions[0].qnode.total_weight, 33)
             self.assertAlmostEqual(functions[1].qnode.total_weight, 0)
 
             return submission.id
@@ -240,10 +241,10 @@ class DaemonTest(base.AqHttpTestBase):
         with model.session_scope() as session:
             submission = session.query(model.Submission).get(aid)
             functions = list(submission.rnodes)
-            self.assertAlmostEqual(functions[0].score, 20)
+            self.assertAlmostEqual(functions[0].score, 3 + 6 + 11 + 13)
             self.assertAlmostEqual(functions[1].score, 0)
-            self.assertAlmostEqual(functions[0].qnode.total_weight, 11)
-            self.assertAlmostEqual(functions[1].qnode.total_weight, 9)
+            self.assertAlmostEqual(functions[0].qnode.total_weight, 11 + 13)
+            self.assertAlmostEqual(functions[1].qnode.total_weight, 3 + 6)
 
         # Run recalculation script
         config = utils.get_config("recalculate.yaml")
@@ -260,10 +261,10 @@ class DaemonTest(base.AqHttpTestBase):
         with model.session_scope() as session:
             submission = session.query(model.Submission).get(aid)
             functions = list(submission.rnodes)
-            self.assertAlmostEqual(functions[0].score, 11)
-            self.assertAlmostEqual(functions[1].score, 9)
-            self.assertAlmostEqual(functions[0].qnode.total_weight, 11)
-            self.assertAlmostEqual(functions[1].qnode.total_weight, 9)
+            self.assertAlmostEqual(functions[0].score, 11 + 13)
+            self.assertAlmostEqual(functions[1].score, 3 + 6)
+            self.assertAlmostEqual(functions[0].qnode.total_weight, 11 + 13)
+            self.assertAlmostEqual(functions[1].qnode.total_weight, 3 + 6)
 
     def test_recalculate_failure(self):
         aid = self.create_submission()

@@ -41,7 +41,9 @@ class Activities:
         then the last action will be reused and its timestamp will be updated.
         '''
         if len(verbs) == 0:
+            log.debug("Not recording %s: no verbs", ob)
             return None;
+        log.debug("Record %s %s", ob, verbs)
         desc = ob.action_descriptor
         from_time = datetime.datetime.utcnow() - Activities.UPDATE_WINDOW
         action = (self.session.query(model.Activity)

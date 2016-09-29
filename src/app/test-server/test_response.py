@@ -131,7 +131,7 @@ class ResponseTypeTest(unittest.TestCase):
             os.path.dirname(os.path.abspath(__file__)), '..')
 
         with open(os.path.join(
-                proj_dir, 'client', 'default_response_types.json')) as file:
+                proj_dir, 'test-server', 'default_response_types.json')) as file:
             [
                 ResponseType(t.get('name'), t['parts'], t.get('formula'))
                 for t in json.load(file)
@@ -431,7 +431,7 @@ class SubmissionTest(base.AqHttpTestBase):
             session.add(response)
             if m.response_type.name == 'Yes / No':
                 response.response_parts = [{'index': 1, 'note': "Yes"}]
-            elif m.response_type.name in {'Numerical', 'External Numerical'}:
+            elif m.response_type.name in {'Numerical', 'External Numerical', 'Planned', 'Actual'}:
                 response.response_parts = [{'value': 1}]
             else:
                 raise ValueError("Unknown response type")
@@ -558,17 +558,17 @@ class SubmissionTest(base.AqHttpTestBase):
             self.assertNotEqual(submission_1.survey_id,
                 submission_3.survey_id)
 
-            # Submission 1 has responses against five measures. Two are
+            # Submission 1 has responses against six measures. Two are
             # descendants of deleted qnodes.
             # Submission 2 uses the same survey as the source submission,
-            # so it should have the same number of responses (three, because
+            # so it should have the same number of responses (four, because
             # the deleted ones are not copied).
             # Submission 3 uses a different survey with only one common
             # measure, so it should have a different number of responses (two).
-            self.assertEqual(len(submission_1.responses), 5)
-            self.assertEqual(len(submission_2.responses), 3)
+            self.assertEqual(len(submission_1.responses), 6)
+            self.assertEqual(len(submission_2.responses), 4)
             self.assertEqual(len(submission_3.responses), 2)
-            self.assertEqual(session.query(model.Response).count(), 10)
+            self.assertEqual(session.query(model.Response).count(), 12)
 
             # Make sure the number of rnodes matches the number of qnodes in the
             # survey (no leftovers).
@@ -586,13 +586,13 @@ class SubmissionTest(base.AqHttpTestBase):
             # 100 + 200 = 300 (due to weighting of the measures). Submission 3
             # should have just 200.
             self.assertEqual([r.score for r in submission_1.ordered_responses],
-                             [3, 6, 11])
-            self.assertEqual(list(submission_1.rnodes)[0].score, 20)
+                             [3, 6, 11, 13])
+            self.assertEqual(list(submission_1.rnodes)[0].score, 33)
             self.assertEqual(list(submission_1.rnodes)[1].score, 0)
 
             self.assertEqual([r.score for r in submission_2.ordered_responses],
-                             [3, 6, 11])
-            self.assertEqual(list(submission_2.rnodes)[0].score, 20)
+                             [3, 6, 11, 13])
+            self.assertEqual(list(submission_2.rnodes)[0].score, 33)
             self.assertEqual(list(submission_2.rnodes)[1].score, 0)
 
             self.assertEqual([r.score for r in submission_3.ordered_responses],
@@ -605,15 +605,15 @@ class SubmissionTest(base.AqHttpTestBase):
             self.assertEqual(submission_1.approval, 'final')
             self.assertTrue(all(r.approval == 'final'
                                 for r in submission_1.responses))
-            self.assertEqual(list(submission_1.rnodes)[0].n_draft, 3)
+            self.assertEqual(list(submission_1.rnodes)[0].n_draft, 4)
             self.assertEqual(list(submission_1.rnodes)[1].n_draft, 0)
-            self.assertEqual(list(submission_1.rnodes)[0].n_final, 3)
+            self.assertEqual(list(submission_1.rnodes)[0].n_final, 4)
             self.assertEqual(list(submission_1.rnodes)[1].n_final, 0)
 
             self.assertEqual(submission_2.approval, 'draft')
             self.assertTrue(all(r.approval == 'draft'
                                 for r in submission_2.responses))
-            self.assertEqual(list(submission_2.rnodes)[0].n_draft, 3)
+            self.assertEqual(list(submission_2.rnodes)[0].n_draft, 4)
             self.assertEqual(list(submission_2.rnodes)[1].n_draft, 0)
             self.assertEqual(list(submission_2.rnodes)[0].n_final, 0)
             self.assertEqual(list(submission_2.rnodes)[1].n_final, 0)

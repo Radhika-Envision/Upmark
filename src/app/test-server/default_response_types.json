@@ -24,6 +24,29 @@
         ]
     },
     {
+        "name": "Planned",
+        "parts": [
+            {
+                "id": "planned",
+                "type": "numerical",
+                "lower": "0",
+                "upper": "1"
+            }
+        ]
+    },
+    {
+        "name": "Actual",
+        "parts": [
+            {
+                "id": "actual",
+                "type": "numerical",
+                "lower": "0",
+                "upper": "1"
+            }
+        ],
+        "formula": "actual / planned"
+    },
+    {
         "name": "Comment Only (no score)",
         "parts": []
     }

@@ -153,36 +153,33 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
 
         duplicate_id = self.get_argument('duplicateId', '')
 
-        try:
-            with model.session_scope() as session:
-                program = model.Program()
-                self._update(program, self.request_son)
-                session.add(program)
+        with model.session_scope() as session:
+            program = model.Program()
+            self._update(program, self.request_son)
+            session.add(program)
 
-                # Need to flush so object has an ID to record action against.
-                session.flush()
-                program_id = str(program.id)
+            # Need to flush so object has an ID to record action against.
+            session.flush()
+            program_id = str(program.id)
 
-                act = Activities(session)
+            act = Activities(session)
 
-                if duplicate_id != '':
-                    source_program = (session.query(model.Program)
-                        .get(duplicate_id))
-                    if source_program is None:
-                        raise handlers.MissingDocError(
-                            "Source program does not exist")
-                    yield self.duplicate_structure(
-                        source_program, program, session)
-                    source_program.finalised_date = datetime.datetime.utcnow()
-                    act.record(self.current_user, source_program, ['state'])
+            if duplicate_id != '':
+                source_program = (session.query(model.Program)
+                    .get(duplicate_id))
+                if source_program is None:
+                    raise handlers.MissingDocError(
+                        "Source program does not exist")
+                yield self.duplicate_structure(
+                    source_program, program, session)
+                source_program.finalised_date = datetime.datetime.utcnow()
+                act.record(self.current_user, source_program, ['state'])
 
-                act.record(self.current_user, program, ['create'])
-                if not act.has_subscription(self.current_user, program):
-                    act.subscribe(self.current_user, program)
-                    self.reason("Subscribed to program")
+            act.record(self.current_user, program, ['create'])
+            if not act.has_subscription(self.current_user, program):
+                act.subscribe(self.current_user, program)
+                self.reason("Subscribed to program")
 
-        except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
         self.get(program_id)
 
     @run_on_executor
@@ -202,12 +199,6 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
             make_transient(entity)
             session.add(entity)
             return entity
-
-        def dup_repsonse_types(response_types):
-            for response_type in response_types:
-                log.debug('Duplicating %s', response_type)
-                dissociate(response_type)
-                response_type.program_id = target_program.id
 
         def dup_surveys(surveys):
             for survey in surveys:
@@ -234,25 +225,41 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
         # Measures are shared, so we keep track of which ones have already been
         # duplicated.
         processed_measure_ids = set()
+        processed_response_type_ids = set()
 
         def dup_qnode_measures(qnode_measures):
             for qnode_measure in qnode_measures:
                 log.debug('Duplicating %s', qnode_measure)
                 if qnode_measure.measure_id not in processed_measure_ids:
                     dup_measure(qnode_measure.measure)
+                for measure_variable in qnode_measure.source_vars:
+                    dup_variable(measure_variable)
                 dissociate(qnode_measure)
                 qnode_measure.program_id = target_program.id
 
+        def dup_variable(measure_variable):
+            log.debug('Duplicating %s', measure_variable)
+            if measure_variable.source_measure_id not in processed_measure_ids:
+                dup_measure(measure_variable.source_qnode_measure.measure)
+            if measure_variable.target_measure_id not in processed_measure_ids:
+                dup_measure(measure_variable.target_qnode_measure.measure)
+            dissociate(measure_variable)
+            measure_variable.program_id = target_program.id
+            session.add(measure_variable)
+
         def dup_measure(measure):
             log.debug('Duplicating %s', measure)
+            if measure.response_type_id not in processed_response_type_ids:
+                dup_response_type(measure.response_type)
             dissociate(measure)
             measure.program_id = target_program.id
             processed_measure_ids.add(measure.id)
 
-        source_response_types = (session.query(model.ResponseType)
-            .filter(model.ResponseType.program_id == source_program.id)
-            .all())
-        dup_repsonse_types(source_response_types)
+        def dup_response_type(response_type):
+            log.debug('Duplicating %s', response_type)
+            dissociate(response_type)
+            response_type.program_id = target_program.id
+
         dup_surveys(source_program.surveys)
 
     @handlers.authz('author')

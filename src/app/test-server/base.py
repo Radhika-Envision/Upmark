@@ -155,7 +155,7 @@ class AqModelTestBase(unittest.TestCase):
             os.path.dirname(os.path.abspath(__file__)), '..')
 
         with open(os.path.join(
-                proj_dir, 'client', 'default_response_types.json')) as file:
+                proj_dir, 'test-server', 'default_response_types.json')) as file:
             response_types = json.load(file)
 
         # Measure declaration, separate from survey to allow cross-linking.
@@ -163,32 +163,38 @@ class AqModelTestBase(unittest.TestCase):
         msons = [
             {
                 'title': "Foo Measure",
-                'description': "Foo",
+                'description': "Yes / No",
                 'weight': 3,
                 'response_type': 'Yes / No'
             },
             {
                 'title': "Bar Measure",
-                'description': "Bar",
+                'description': "Numerical",
                 'weight': 6,
-                'response_type': 'Yes / No'
+                'response_type': 'Numerical'
             },
             {
                 'title': "Baz Measure",
-                'description': "Baz",
+                'description': "Planned (might have dependants)",
                 'weight': 11,
-                'response_type': 'Numerical'
+                'response_type': 'Planned'
+            },
+            {
+                'title': "Qux Measure",
+                'description': "Actual (should have a dependency)",
+                'weight': 13,
+                'response_type': 'Actual'
             },
             {
                 'title': "Unreferenced Measure 1",
                 'description': "Deleted",
-                'weight': 12,
+                'weight': 17,
                 'response_type': 'Yes / No'
             },
             {
                 'title': "Unreferenced Measure 2",
                 'description': "Deleted",
-                'weight': 13,
+                'weight': 19,
                 'response_type': 'Yes / No'
             },
         ]
@@ -240,12 +246,12 @@ class AqModelTestBase(unittest.TestCase):
                             {
                                 'title': "Process 1.2",
                                 'description': "Test 2",
-                                'measures': [2],
+                                'measures': [2, 3],
                             },
                             {
                                 'title': "Process 1.3",
                                 'description': "deleted",
-                                'measures': [3],
+                                'measures': [4],
                                 'deleted': True,
                             },
                         ],
@@ -262,7 +268,7 @@ class AqModelTestBase(unittest.TestCase):
                             {
                                 'title': "Process 3.1",
                                 'description': "deleted parent",
-                                'measures': [4],
+                                'measures': [5],
                             },
                             {
                                 'title': "Process 3.2",
@@ -272,6 +278,7 @@ class AqModelTestBase(unittest.TestCase):
                         ],
                     },
                 ],
+                'dependencies': [(2, 'planned', 3, 'planned')],
             },
             {
                 'title': "Survey 2",
@@ -380,6 +387,8 @@ class AqModelTestBase(unittest.TestCase):
             # Note that program.measures is unordered so can't be accessed by
             # index
             program.measures = ordered_measures
+            # Ensure measures have IDs
+            session.flush()
 
             # Create qnodes
             def create_qnodes(qsons, survey, parent=None):
@@ -390,6 +399,7 @@ class AqModelTestBase(unittest.TestCase):
                         parent=parent,
                         program=program,
                         title=qson['title'],
+                        seq=-1,
                         description=qson['description'],
                         deleted=qson.get('deleted', False))
                     session.add(qnode)
@@ -407,9 +417,24 @@ class AqModelTestBase(unittest.TestCase):
                     for measure in (ordered_measures[i] for i in msons):
                         qm = model.QnodeMeasure(
                             program=program, survey=survey,
-                            qnode=qnode, measure=measure)
+                            qnode=qnode, measure=measure,
+                            seq=-1)
                     qnode.qnode_measures.reorder()
                 return qnodes
+
+            def link_measures(survey, deps):
+                for source_i, source_field, target_i, target_field in deps:
+                    source_measure = ordered_measures[source_i]
+                    target_measure = ordered_measures[target_i]
+
+                    mv = model.MeasureVariable(
+                        program=program,
+                        survey=survey,
+                        source_measure_id=source_measure.id,
+                        source_field=source_field,
+                        target_measure_id=target_measure.id,
+                        target_field=target_field)
+                    session.add(mv)
 
             # Create survey
             def create_surveys(hsons):
@@ -430,6 +455,10 @@ class AqModelTestBase(unittest.TestCase):
                     survey.qnodes = create_qnodes(
                         hson['qnodes'], survey)
                     survey.qnodes.reorder()
+
+                    if 'dependencies' in hson:
+                        link_measures(survey, hson['dependencies'])
+
                     calculator = Calculator.structural()
                     calculator.mark_entire_survey_dirty(survey)
                     calculator.execute()
