@@ -60,8 +60,6 @@ class TemporalReportHandler(handlers.BaseHandler):
     def process_temporal(self,
         parameters, organisation_id, survey_id, tmpdir, outfile, extension):
         with model.session_scope() as session:
-            if organisation_id:
-                pass
 
             # All responses to current survey
             query = (session.query(model.Response)
@@ -213,12 +211,12 @@ class TemporalReportHandler(handlers.BaseHandler):
                 if qm.measure_id != current_measure_id or organisation != current_organisation:
                     # New row, write url metadata for previous row before reset
                     if not initial:
-                        current_row.append(latest_response)
+                        current_row[2] = latest_response
                         latest_response = None
 
                     current_measure_id = qm.measure_id
                     current_organisation = organisation
-                    current_row = [qm, organisation]
+                    current_row = [qm, organisation, None]
                     rows.append(current_row)
                     initial = False
 
@@ -228,45 +226,35 @@ class TemporalReportHandler(handlers.BaseHandler):
 
             # write url metadata for last row
             if current_row:
-                current_row.append(latest_response)
+                current_row[2] = latest_response
 
-            if organisation_id:
-                rows = self.convert_to_stats(rows, organisation_id)
-
-            columns = self.get_titles(buckets, organisation_id)
-
-            # Export to csv/xls
+            # Set report type
             if organisation_id:
                 outfile = "summary_report"
+                rows = self.convert_to_stats(rows, organisation_id)
             else:
                 outfile = "detailed_report"
 
-            self.export_data(columns, rows,
-                tmpdir, outfile, extension, survey_id)
+            self.export_data(buckets, rows,
+                tmpdir, outfile, extension, survey_id, organisation_id)
 
-    def export_data(
-        self, headings, data, outdir, outfile, filetype, survey_id):
+    def export_data(self,
+        buckets, data, outdir, outfile, filetype, survey_id, organisation_id):
             if filetype == "xlsx":
                 filename = outfile + "." + filetype
                 outpath = os.path.join(outdir, filename)
                 workbook = xlsxwriter.Workbook(outpath)
                 worksheet = workbook.add_worksheet("Data")
 
-                # Format definitions
-                bold = workbook.add_format({'bold': 1})
-                date_format = (workbook.add_format(
-                    {'num_format': 'dd/mm/yyyy','bold': 1}))
                 url_format = workbook.add_format(
                     {'font_color': 'blue', 'underline':  1})
 
                 # Write column headings
-                for i, heading in enumerate(headings):
-                    if i < 3:
-                        worksheet.set_column(i, i, 20)
-                        worksheet.write(0, i, heading, bold)
-                    else:
-                        worksheet.set_column(i, i, 12)
-                        worksheet.write(0, i, heading, date_format)
+                headings = self.get_titles(buckets, organisation_id, workbook)
+                for i, h in enumerate(headings):
+                    heading, cell_width, cell_format = h
+                    worksheet.set_column(i, i, cell_width)
+                    worksheet.write(0, i, heading, cell_format)
 
                 # Write data, this depends on requested report type.
                 for row_index, row_data in enumerate(data):
@@ -277,9 +265,10 @@ class TemporalReportHandler(handlers.BaseHandler):
                             worksheet.write(row_index + 1, col_index + 1,
                                 row_data[col_index].measure.title)
                         elif col_index == 1 and outfile == "detailed_report":
-                            worksheet.write(row_index + 1, col_index + 1,
-                                row_data[col_index].name)
-                        elif col_index == (len(row_data) - 1):
+                                worksheet.write(row_index + 1, col_index + 1,
+                                    row_data[col_index].name)
+                        elif col_index == 2:
+                            #elif col_index == (len(row_data) - 1):
                             if outfile == "detailed_report":
                                 url = self.get_submission_url(row_data[col_index])
                                 url_row_index = row_index + 1
@@ -300,16 +289,26 @@ class TemporalReportHandler(handlers.BaseHandler):
                 raise handlers.MissingDocError(
                     "File type not supported: %s" % extension)
 
-    def get_titles(self, buckets, org_id):
+    def get_titles(self, buckets, org_id, workbook):
+        # Define heading formats
+        bold = workbook.add_format({'bold': 1})
+        date_format = (workbook.add_format(
+        {'num_format': 'dd/mm/yyyy','bold': 1}))
+
+        # Write heading data
+        headers = [
+            ("Path", 10, bold),
+            ("Measure", 20, bold)
+        ]
         if org_id:
-            headers = ["Path", "Measure", "Statistic"]
+            headers.append(("Statistic", 12, bold))
         else:
-            headers = ["Path", "Measure", "Organisation"]
+            headers.append(("Organisation", 20, bold))
+
+        headers.append(("Link", 5, bold))
 
         for b in buckets:
-            headers.append(b)
-
-        headers.append("Link")
+            headers.append((b, 12, date_format))
 
         return headers
 
@@ -341,15 +340,15 @@ class TemporalReportHandler(handlers.BaseHandler):
         for m, rs in itertools.groupby(in_table, key=lambda r: r[0]):
             rs = list(rs)
             cells = list(zip(*rs))
-            stats = [self.compute_stats(c) for c in cells[2:]]
+            stats = [self.compute_stats(c) for c in cells[3:]]
             stats = list(zip(*stats))
             org_row = [r for r in rs if str(r[1].id) == organisation_id][0]
             out_table.append([m, "Self score"] + org_row[2:])
-            out_table.append([m, "Min"] + list(stats[0]))
-            out_table.append([m, "1st Quartile"] + list(stats[1]))
-            out_table.append([m, "Median"] + list(stats[2]))
-            out_table.append([m, "3rd Quartile"] + list(stats[3]))
-            out_table.append([m, "Max"] + list(stats[4]))
+            out_table.append([m, "Min", None] + list(stats[0]))
+            out_table.append([m, "1st Quartile", None] + list(stats[1]))
+            out_table.append([m, "Median", None] + list(stats[2]))
+            out_table.append([m, "3rd Quartile", None] + list(stats[3]))
+            out_table.append([m, "Max", None] + list(stats[4]))
 
         return out_table
 
