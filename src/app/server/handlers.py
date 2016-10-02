@@ -263,7 +263,8 @@ class BaseHandler(tornado.web.RequestHandler):
                     (str(e), self.request.body[0:30]))
             return self._request_son
 
-    # Expression to remove invalid characters from headers
+    # Expression to remove invalid characters from headers. Without this,
+    # requests may silently fail to be serviced.
     _INVALID_HEADER_CHAR_RE = re.compile(r"[\x00-\x1f\n]")
 
     def set_status(self, *args, **kwargs):

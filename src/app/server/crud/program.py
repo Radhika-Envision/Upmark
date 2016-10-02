@@ -259,6 +259,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
             log.debug('Duplicating %s', response_type)
             dissociate(response_type)
             response_type.program_id = target_program.id
+            processed_response_type_ids.add(response_type.id)
 
         dup_surveys(source_program.surveys)
 
