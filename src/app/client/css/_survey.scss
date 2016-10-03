@@ -849,28 +849,32 @@ column-progress {
 
 @include keyframes(sine-height) {
     0% {
-        height: 60%;
+        height: 40%;
     }
     50% {
         height: 100%;
     }
     100% {
-        height: 60%;
+        height: 40%;
     }
 }
 
-$spinner-height: 16px;
+$spinner-height: 24px;
 .spinner {
-    $column-width: (7 / 28) * $spinner-height;
-    $column-spacing: (2 / 28) * $spinner-height;
+    $padding: round((6 / 28) * $spinner-height);
+    $column-width: round((6 / 28) * $spinner-height);
+    $column-spacing: round((3 / 28) * $spinner-height);
 
     position: fixed;
-    top: 32px;
+    top: 30px;
     left: 50%;
     z-index: 5000;
-    height: $spinner-height;
-    margin-left: 0 - $spinner-height / 2;
-    margin-top: 0 - $spinner-height / 2;
+    height: $spinner-height + ($padding * 2);
+    width: $column-spacing * 2 + $column-width * 3 + $padding * 2;
+    padding: $padding;
+    border-radius: $column-spacing;
+    margin-left: 0 - $spinner-height / 2 - $padding;
+    margin-top: 0 - $spinner-height / 2 - $padding;
     @include transform(skewX(-10deg));
     /*
      * Fix for jagged edges
@@ -878,37 +882,42 @@ $spinner-height: 16px;
      */
     -webkit-backface-visibility: hidden;
 
+    background: white;
+    box-shadow: 0 0 7px rgba(0, 0, 0, 0.15);
+
     pointer-events: none;
 
     > span {
-        width: 0;
-        height: 100%;
         position: absolute;
-        bottom: 0;
-        left: 0;
-        display: inline-block;
-        border-left: $column-width solid;
-        border-color: $aq-bar1;
-        overflow: hidden;
-        @include animation(1s sine-height ease-in-out infinite);
-    }
+        left: $padding;
+        top: $padding;
+        bottom: $padding;
+        right: $padding;
 
-    > span + span {
-        left: ($column-spacing + $column-width) * 1;
-        border-color: $aq-bar2;
-        @include animation-delay(0.15s);
-    }
+        > span {
+            width: 0;
+            height: 100%;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            display: inline-block;
+            border-left: $column-width solid;
+            border-color: $aq-bar1;
+            overflow: hidden;
+            @include animation(1s sine-height ease-in-out infinite);
+        }
 
-    > span + span + span {
-        left: ($column-spacing + $column-width) * 2;
-        border-color: $aq-bar3;
-        @include animation-delay(0.3s);
-    }
+        > span + span {
+            left: ($column-spacing + $column-width) * 1;
+            border-color: $aq-bar2;
+            @include animation-delay(0.15s);
+        }
 
-    > span + span + span + span {
-        left: ($column-spacing + $column-width) * 3;
-        border-color: $aq-bar4;
-        @include animation-delay(0.45s);
+        > span + span + span {
+            left: ($column-spacing + $column-width) * 2;
+            border-color: $aq-bar3;
+            @include animation-delay(0.3s);
+        }
     }
 }
 
