@@ -91,15 +91,15 @@ class TemporalReportHandler(handlers.BaseHandler):
                         model.Submission.created))
 
             # Date filter
-            min_date = (datetime.datetime
-                .fromtimestamp(parameters.get('min_date')))
-            max_date = (datetime.datetime
-                .fromtimestamp(parameters.get('max_date')))
-            query = query.filter(model.Submission.created > min_date)
+            interval = self.get_interval(parameters)
+            min_date = self.lower_bound(
+                datetime.datetime.utcfromtimestamp(parameters.get('min_date')),
+                interval)
+            max_date = self.upper_bound(
+                datetime.datetime.utcfromtimestamp(parameters.get('max_date')),
+                interval)
+            query = query.filter(model.Submission.created >= min_date)
             query = query.filter(model.Submission.created < max_date)
-
-            interval = [parameters.get('interval_num'),
-                parameters.get('interval_unit')]
 
             # Response quality filter
             if parameters.get('quality'):
@@ -258,6 +258,9 @@ class TemporalReportHandler(handlers.BaseHandler):
             else:
                 outfile = "detailed_report"
 
+            self.reason("Date range: %s - %s" % (
+                min_date.strftime('%d %b %Y'),
+                max_date.strftime('%d %b %Y')))
             self.export_data(buckets, rows,
                 tmpdir, outfile, extension, survey_id, organisation_id)
 
@@ -391,39 +394,49 @@ class TemporalReportHandler(handlers.BaseHandler):
 
         return results
 
+    def get_interval(self, parameters):
+        try:
+            width = int(parameters.get('interval_num', 1))
+        except ValueError:
+            raise handlers.ModelError("Invalid interval")
+        units = parameters.get('interval_unit', 'months')
+
+        if units == 'years':
+            if width < 1:
+                raise handlers.ModelError("Interval must be at least one year")
+        elif units == 'months':
+            if width not in {1, 2, 3, 6}:
+                raise handlers.ModelError("Interval must be 1, 2, 3 or 6 months")
+        else:
+            raise handlers.ModelError("Unrecognised interval %s" % unit)
+        return width, units
+
+    def temporal_bucket(self, date, interval):
+        width, unit = interval
+        # Align buckets to Gregorian epoch
+        if unit == 'years':
+            return date.year // width
+        else:
+            return (date.year * 12 + (date.month - 1)) // width
+
+    def lower_bound_of_bucket(self, bucket_i, interval):
+        width, unit = interval
+        if unit == 'years':
+            year = bucket_i * width
+            return datetime.datetime(year, 1, 1)
+        else:
+            year = (bucket_i * width) // 12
+            month = ((bucket_i * width) % 12) + 1
+            return datetime.datetime(year, month, 1)
+
     def lower_bound(self, date, interval):
-        width = interval[0] - 1
-        unit = interval[1]
-        today = date.today()
+        bucket_i = self.temporal_bucket(date, interval)
+        return self.lower_bound_of_bucket(bucket_i, interval)
 
-        if unit == 'Years':
-            this_year = today.year
-            delta = (this_year - date.year) % (width + 1)
-            if (delta == 0):
-                bucket_year = date.year - width
-            else:
-                bucket_year = date.year - (width - delta)
-
-            return date.replace(year=bucket_year, month=1, day=1,
-                hour=0, minute=0, second=0, microsecond=0)
-
-        if unit == 'Months':
-            month_diff, year_diff = self.date_diff(date, today)
-            delta = month_diff % (width + 1)
-
-            bucket_year = date.year
-            if (delta == 0):
-                bucket_month = date.month - width
-            else:
-                bucket_month = date.month - (width - delta)
-
-            if bucket_month <= 0:
-                # Crossed year boundary, adjust month/year
-                bucket_month += 12
-                bucket_year -= 1
-
-            return date.replace(year=bucket_year, month=bucket_month, day=1,
-                hour=0, minute=0, second=0, microsecond=0)
+    def upper_bound(self, date, interval):
+        bucket_i = self.temporal_bucket(date, interval)
+        bucket_i += 1
+        return self.lower_bound_of_bucket(bucket_i, interval)
 
     def date_diff(self, date, today):
         this_year = today.year

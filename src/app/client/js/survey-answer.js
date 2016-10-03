@@ -138,42 +138,31 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
     $scope.checkRole = questionAuthz(Current, $scope.program, $scope.submission);
 
     $scope.download = function(url, data) {
-        if (data) {
-            $scope.headerMessage = "Generating report"
-            $http.post(url, data, { responseType: "arraybuffer", cache: false }).then(
-                function success(response) {
-                    var message = "Export finished";
-                    Notifications.set('export', 'info', message, 5000);
-                    var blob = new Blob(
-                        [response.data], {type: response.headers('Content-Type')});
-                    var name = /filename=(.*)/.exec(
-                        response.headers('Content-Disposition'))[1];
-                    saveAs(blob, name);
+        $scope.headerMessage = "Generating report"
+        var success = function success(response) {
+            var message = "Export finished.";
+            if (response.headers('Operation-Details'))
+                message += ' ' + response.headers('Operation-Details');
+            Notifications.set('export', 'info', message, 5000);
+            var blob = new Blob(
+                [response.data], {type: response.headers('Content-Type')});
+            var name = /filename=(.*)/.exec(
+                response.headers('Content-Disposition'))[1];
+            saveAs(blob, name);
 
-                    $scope.headerMessage = null;
-                },
-                function failure(response) {
-                    $scope.headerMessage = null;
-                    Notifications.set('export', 'error',
-                        "Error: " + response.statusText);
-                }
-            );
+            $scope.headerMessage = null;
+        };
+        var failure = function failure(response) {
+            Notifications.set('export', 'error',
+                "Error: " + response.statusText);
+            $scope.headerMessage = null;
+        };
+        if (data) {
+            $http.post(url, data, {responseType: "arraybuffer", cache: false})
+                .then(success, failure);
         } else {
-            $http.get(url, { responseType: "arraybuffer", cache: false }).then(
-                function success(response) {
-                    var message = "Export finished";
-                    Notifications.set('export', 'info', message, 5000);
-                    var blob = new Blob(
-                        [response.data], {type: response.headers('Content-Type')});
-                    var name = /filename=(.*)/.exec(
-                        response.headers('Content-Disposition'))[1];
-                    saveAs(blob, name);
-                },
-                function failure(response) {
-                    Notifications.set('export', 'error',
-                        "Error: " + response.statusText);
-                }
-            );
+            $http.get(url, {responseType: "arraybuffer", cache: false})
+                .then(success, failure);
         };
     };
 
@@ -191,16 +180,9 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
     };
 
     $scope.dateOptions = {
-      dateDisabled: disabled,
-      formatYear: 'yy',
+      format: 'mediumDate',
+      formatYear: 'yyyy',
       startingDay: 1,
-      maxDate: new Date()
-    };
-    // Disable weekend selection
-    function disabled(data) {
-      var date = data.date,
-      mode = data.mode;
-    return mode === 'day' && (date.getDay() === 0 || date.getDay() === 6);
     };
 
     $scope.openCalender = function() {
@@ -210,7 +192,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
 
 
 .controller('SubmissionExportCtrl', function(
-        $scope, $location, Notifications, $http, LocationSearch, debounce) {
+        $scope, $location, Notifications, $http, LocationSearch, Enqueue) {
 
     $scope.startCalender = {
       opened: false
@@ -219,16 +201,10 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
       opened: false
     };
     $scope.dateOptions = {
-      dateDisabled: disabled,
-      formatYear: 'yy',
+      format: 'MMM yyyy',
+      altInputFormats: ['mediumDate', 'dd MMM yyyy', 'MMM yyyy', 'yyyy', 'yyyy-MM-dd'],
+      formatYear: 'yyyy',
       startingDay: 1,
-      maxDate: new Date()
-    };
-    // Disable weekend selection
-    function disabled(data) {
-      var date = data.date,
-      mode = data.mode;
-    return mode === 'day' && (date.getDay() === 0 || date.getDay() === 6);
     };
 
     $scope.openStartCalender = function() {
@@ -244,7 +220,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
             return;
         }
 
-        if (type == 'Summary') {
+        if (type == 'summary') {
             $scope.reportSpec.organisationId = $scope.submission.organisation.id;
         } else {
             $scope.reportSpec.organisationId = null;
@@ -286,15 +262,12 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
             $scope.reportSpec.intervalNum = 1.0;
         };
     });
-
-    $scope.roundInterval = function () {
-        if ($scope.reportSpec.intervalUnit == 'Months') {
-            return 'month'
-        };
-        if ($scope.reportSpec.intervalUnit == 'Years') {
-            return 'year'
-        };
-    };
+    $scope.$watch('reportSpec.intervalUnit', function(unit) {
+        if (unit.id == 'months')
+            $scope.dateOptions.format = 'MMM yyyy';
+        else
+            $scope.dateOptions.format = 'yyyy';
+    });
 
     // Location filter settings
     $scope.searchLoc = function(term) {
@@ -416,9 +389,10 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
             var dt = new Date();
             dt.setFullYear(dt.getFullYear() - 1);
             $scope.reportForm = {
-                type: 'Summary',
-                reportTypes: ['Detailed', 'Summary'],
-                intervalUnits: ['Months', 'Years'],
+                type: 'summary',
+                intervalUnits: [
+                    {name: 'Months', id: 'months'},
+                    {name: 'Years', id: 'years'}],
                 intervalNum: 1.0,
                 allowedStates: ['reviewed', 'approved'],
                 minConstituents: 5,
@@ -440,7 +414,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
                 minDate: null,
                 maxDate: null,
                 intervalNum: null,
-                intervalUnit: 'Months',
+                intervalUnit: $scope.reportForm.intervalUnits[0],
                 filterSize: false,
                 minInternalFtes: null,
                 maxInternalFtes: null,
@@ -478,14 +452,13 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
         return true;
     };
 
-    $scope.downloadTemporalReport = function(query, file_type, survey_id) {
-        if (!$scope.specTest(query)) {
+    $scope.downloadTemporalReport = Enqueue(function(query, file_type, survey_id) {
+        if (!$scope.specTest(query))
             return;
-        }
+        query = angular.copy(query);
+        query.intervalUnit = query.intervalUnit.id;
         $scope.download('/export/temporal/' + survey_id + '.' + file_type, query);
-    };
-
-    $scope.downloadTemporalReportDebounced = debounce($scope.downloadTemporalReport, 500, false);
+    }, 500);
 
     $scope.openReportForm();
 })

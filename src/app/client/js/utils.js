@@ -243,33 +243,33 @@ angular.module('vpac.utils', [])
  */
 .factory('Enqueue', ['$timeout', function($timeout) {
     var Enqueue = function(callback, delay) {
-        var enqueue = function(arg) {
-            enqueue.arg = arg;
+        var enqueue = function() {
+            enqueue.args = arguments;
             enqueue.that = this;
             if (enqueue.promise)
                 $timeout.cancel(enqueue.promise);
             else if (enqueue.start)
-                enqueue.start.call(enqueue.that, enqueue.data, enqueue.arg);
+                enqueue.start.apply(enqueue.that, enqueue.args);
             if (enqueue.always)
-                enqueue.always.call(enqueue.that, enqueue.data, enqueue.arg);
+                enqueue.always.apply(enqueue.that, enqueue.args);
             enqueue.promise = $timeout(function enqueueCb() {
                 try {
-                    callback.call(enqueue.that, enqueue.data, enqueue.arg);
+                    callback.apply(enqueue.that, enqueue.args);
                 } finally {
                     try {
                         if (enqueue.end)
-                            enqueue.end(enqueue.that, enqueue.data, enqueue.arg);
+                            enqueue.end(enqueue.that, enqueue.args);
                     } finally {
                         enqueue.that = undefined;
                         enqueue.promise = null;
-                        enqueue.arg = undefined;
+                        enqueue.args = undefined;
                     }
                 }
             }, enqueue.delay);
         };
         enqueue.promise = null;
         enqueue.that = undefined;
-        enqueue.arg = undefined;
+        enqueue.args = undefined;
         enqueue.end = null;
         enqueue.start = null;
         enqueue.always = null;
@@ -280,7 +280,7 @@ angular.module('vpac.utils', [])
         $timeout.cancel(enqueue.promise);
         enqueue.promise = null;
         enqueue.that = undefined;
-        enqueue.arg = undefined;
+        enqueue.args = undefined;
     };
     return Enqueue;
 }])
@@ -681,33 +681,5 @@ angular.module('vpac.utils', [])
     };
 }])
 
-// Pete BD's angularJS debounce service
-// http://www.stackoverflow.com/questions/13320015/
-.factory('debounce', ['$timeout', '$q', function($timeout, $q) {
-    return function debounce(func, wait, immediate) {
-        var timeout;
-        var deferred = $q.defer();
-        return function() {
-            var context = this, args = arguments;
-            var later = function() {
-                timeout = null;
-                if (!immediate) {
-                    deferred.resolve(func.apply(context, args));
-                    deferred = $q.defer();
-                };
-            };
-            var callNow = immediate && !timeout;
-            if (timeout) {
-                $timeout.cancel(timeout);
-            }
-            timeout = $timeout(later, wait);
-            if (callNow) {
-                deferred.resolve(func.apply(context, args));
-                deferred = $q.defer();
-            };
-            return deferred.promise
-        };
-    };
-  }]);
 
 ;

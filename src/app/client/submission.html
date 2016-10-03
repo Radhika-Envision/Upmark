@@ -113,11 +113,13 @@
                 ng-model="edit.model.title" required />
         </div>
         <div class="form-group" show-errors>
-            <label> Start date of reporting period</label>
+            <label>Start date of reporting period</label>
             <div class="input-group">
-                <input type="text" uib-datepicker-popup="{{format}}"
+                <input type="text" uib-datepicker-popup="{{dateOptions.format}}"
                         class="form-control" ng-model="edit.model.$created"
-                        is-open="calender.opened" datepicker-options="dateOptions"
+                        is-open="calender.opened"
+                        datepicker-options="dateOptions"
+                        ng-model-options="{timezone: 'utc'}"
                         ng-required="true" close-text="Close"
                         placeholder="Default: now">
                 </input>
@@ -157,7 +159,7 @@
                     ng-click="closeReportForm()">
                 <i class="fa fa-fw fa-times"></i></button>
             <button class="btn btn-primary btn-alert btn-round" title="Download report"
-                    ng-click="downloadTemporalReportDebounced(reportSpec, 'xlsx', submission.survey.id)">
+                    ng-click="downloadTemporalReport(reportSpec, 'xlsx', submission.survey.id)">
                 <i class="fa fa-fw fa-check"></i></button>
         </div>
         <h2 ng-if="headerMessage" class="text-muted header-message">
@@ -173,22 +175,22 @@
             <div class="btn-group btn-group-justified">
                 <div class="btn-group">
                     <button class="btn btn-default"
-                            ng-class="{active: reportForm.type == 'Detailed'}"
-                            ng-click="reportForm.type = 'Detailed'">
+                            ng-class="{active: reportForm.type == 'detailed'}"
+                            ng-click="reportForm.type = 'detailed'">
                         Detailed
                     </button>
                 </div>
                 <div class="btn-group">
                     <button class="btn btn-default"
-                            ng-class="{active: reportForm.type == 'Summary'}"
-                            ng-click="reportForm.type = 'Summary'">
+                            ng-class="{active: reportForm.type == 'summary'}"
+                            ng-click="reportForm.type = 'summary'">
                         Summary
                     </button>
                 </div>
             </div>
         </div>
         <div class="input-group report-filters"
-                ng-if="checkRole('submission_full_review') && reportForm.type == 'Summary'">
+                ng-if="checkRole('submission_full_review') && reportForm.type == 'summary'">
             <label class="input-group-addon">
                 Consituents:
             </label>
@@ -202,11 +204,13 @@
             </h3>
             <div class="input-group report-filters">
                 <label class="input-group-addon">
-                    Start Date:
+                    Start:
                 </label>
-                <input type="text" uib-datepicker-popup="{{format}}"
+                <input type="text" uib-datepicker-popup="{{dateOptions.format}}"
                         class="form-control" ng-model="reportForm.min_date"
-                        is-open="startCalender.opened" datepicker-options="dateOptions"
+                        is-open="startCalender.opened"
+                        datepicker-options="dateOptions"
+                        ng-model-options="{timezone: 'utc'}"
                         ng-required="true" close-text="Close">
                 </input>
                 <span class="input-group-btn">
@@ -214,11 +218,13 @@
                         <i class="glyphicon glyphicon-calendar"></i></button>
                 </span>
                 <label class="input-group-addon">
-                    End Date:
+                    End:
                 </label>
-                <input type="text" uib-datepicker-popup="{{format}}"
+                <input type="text" uib-datepicker-popup="{{dateOptions.format}}"
                         class="form-control" ng-model="reportForm.max_date"
-                        is-open="endCalender.opened" datepicker-options="dateOptions"
+                        is-open="endCalender.opened"
+                        datepicker-options="dateOptions"
+                        ng-model-options="{timezone: 'utc'}"
                         ng-required="true" close-text="Close">
                 </input>
                 <span class="input-group-btn">
@@ -233,14 +239,13 @@
                 <input type="number" class="form-control"
                         ng-model="reportForm.intervalNum"
                         placeholder="Select time interval"/>
-                <label class="input-group-addon"></label>
+                <span class="input-group-addon"></span>
                 <ui-select ng-model="reportSpec.intervalUnit" search-enabled="false">
                     <ui-select-match placeholder="Select time inteval">
-                        <span>{{reportSpec.intervalUnit}}</span>
+                        <span>{{reportSpec.intervalUnit.name}}</span>
                     </ui-select-match>
-                    <ui-select-choices
-                        repeat="unit in reportForm.intervalUnits | filter: $select.search">
-                            <div ng-bind-html="unit"></div>
+                    <ui-select-choices repeat="unit in reportForm.intervalUnits">
+                            {{unit.name}}
                     </ui-select-choices>
                 </ui-select>
             </div>
@@ -420,8 +425,20 @@
       <p>
           Report will use data from the most recent submission within each date
           interval for each organisation.
-          Intervals will go from the start of a {{roundInterval()}} to the end
-          of a {{roundInterval()}} {{reportSpec.intervalNum}} {{roundInterval()}}s later.
+          <span ng-if="reportSpec.intervalUnit == 'years'">
+              Intervals will go from 1 Jan in each year to 31 Dec
+              <ng-pluralize count="reportSpec.intervalNum" when="{
+                    '1': 'in the same year',
+                    'other': '{} years later',
+                }"></ng-pluralize>.
+          </span>
+          <span ng-if="reportSpec.intervalUnit == 'months'">
+              Intervals will go from the first of the month to the end of
+              <ng-pluralize count="reportSpec.intervalNum" when="{
+                    '1': 'the same month',
+                    'other': 'the month {} months later',
+                }"></ng-pluralize>.
+          </span>
       </p>
 
       <h4>Location</h4>
@@ -457,7 +474,7 @@
         Submission against
         <a ng-href="#/2/survey/{{structure.survey.id}}?program={{structure.program.id}}"
             >{{structure.survey.title}}</a>,
-        {{submission.created * 1000 | date:'mediumDate'}}.
+        {{submission.created * 1000 | date:'mediumDate':'UTC'}}.
     </p>
 
     <approval-buttons class="spaced" model="submission.approval"
