@@ -82,7 +82,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                     model.Organisation,
                     model.Organisation.id == model.AppUser.organisation_id))
 
-            organisation_id = self.get_argument("organisation_id", None)
+            organisation_id = self.get_argument("organisationId", None)
             if organisation_id is not None:
                 query = query.filter(model.Organisation.id == organisation_id)
 
