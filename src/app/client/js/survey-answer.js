@@ -415,20 +415,24 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
         if (!$scope.reportForm) {
             var dt = new Date();
             dt.setFullYear(dt.getFullYear() - 1);
-
             $scope.reportForm = {
                 type: 'Summary',
                 reportTypes: ['Detailed', 'Summary'],
                 intervalUnits: ['Months', 'Years'],
                 intervalNum: 1.0,
                 allowedStates: ['reviewed', 'approved'],
+                minConstituents: 5,
                 locations: [],
                 min_date: dt,
                 max_date: new Date()
             }
-          } else {
+
+            if ($scope.checkRole('submission_full_review'))
+                $scope.reportForm.allowedStates = null;
+
+        } else {
                 $scope.reportForm.open = true;
-          };
+        };
 
         if (!$scope.reportSpec) {
             // Initial report spec

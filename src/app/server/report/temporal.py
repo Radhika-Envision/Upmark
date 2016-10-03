@@ -18,6 +18,7 @@ import model
 
 BUF_SIZE = 4096
 MAX_WORKERS = 4
+MIN_CONSITUENTS = 5
 
 log = logging.getLogger('app.report.temporal')
 
@@ -31,6 +32,17 @@ class TemporalReportHandler(handlers.BaseHandler):
 
         parameters = self.request_son
         organisation_id = parameters.get('organisation_id')
+
+        try:
+            parameters['min_constituents'] = int(
+                parameters.get('min_constituents', MIN_CONSITUENTS))
+        except ValueError:
+            raise handlers.ModelError("Invalid minimum number of constituents")
+
+        if parameters['min_constituents'] < MIN_CONSITUENTS:
+            if not self.has_privillege('admin'):
+                raise handlers.ModelError(
+                    "You can't generate a report with so few consituents")
 
         if organisation_id:
             outfile = "summary_report"
@@ -93,17 +105,25 @@ class TemporalReportHandler(handlers.BaseHandler):
                 query = query.filter(model.Response.quality >= quality)
 
             # Submission approval state filter
-            if parameters.get('approval'):
-                approval = parameters.get('approval')
+            def approval_filter(query):
+                approval = parameters.get('approval', 'reviewed')
                 approval_states = ['draft', 'final', 'reviewed', 'approved']
                 approval_index = approval_states.index(approval)
-                if approval_index < 2:
+
+                if self.has_privillege('admin'):
+                    min_approval = approval_states.index('draft')
+                else:
+                    min_approval = approval_states.index('reviewed')
+
+                if approval_index < min_approval:
                     raise handlers.ModelError(
-                        "Can't generate a report for that approval state")
+                        "You can't generate a report for that approval state")
                 included_approval_states=approval_states[approval_index:]
 
-                query = query.filter(
+                return query.filter(
                     model.Submission.approval.in_(included_approval_states))
+
+            query = approval_filter(query)
 
             # Location filter
             if parameters.get('locations'):
@@ -231,7 +251,8 @@ class TemporalReportHandler(handlers.BaseHandler):
             # Set report type
             if organisation_id:
                 outfile = "summary_report"
-                rows = self.convert_to_stats(rows, organisation_id)
+                rows = self.convert_to_stats(
+                    rows, organisation_id, parameters['min_constituents'])
             else:
                 outfile = "detailed_report"
 
@@ -335,12 +356,12 @@ class TemporalReportHandler(handlers.BaseHandler):
 
         return url
 
-    def convert_to_stats(self, in_table, organisation_id):
+    def convert_to_stats(self, in_table, organisation_id, min_constituents):
         out_table = []
         for m, rs in itertools.groupby(in_table, key=lambda r: r[0]):
             rs = list(rs)
             cells = list(zip(*rs))
-            stats = [self.compute_stats(c) for c in cells[3:]]
+            stats = [self.compute_stats(c, min_constituents) for c in cells[3:]]
             stats = list(zip(*stats))
             try:
                 org_row = next(r for r in rs if str(r[1].id) == organisation_id)
@@ -355,9 +376,9 @@ class TemporalReportHandler(handlers.BaseHandler):
 
         return out_table
 
-    def compute_stats(self, cells):
+    def compute_stats(self, cells, min_constituents):
         constituents = [c for c in cells if c is not None]
-        if len(constituents) < 5:
+        if len(constituents) < min_constituents:
             return (None,) * 5
         np_columns = numpy.array(constituents)
         results = (min(np_columns),

@@ -171,16 +171,31 @@
             <h3>
                 Report type
             </h3>
-            <ui-select ng-model="reportForm.type" search-enabled="false"
-                ng-if="checkRole('submission_review')">
-                <ui-select-match placeholder="Select report type">
-                    <span>{{reportForm.type}}</span>
-                </ui-select-match>
-                <ui-select-choices
-                    repeat="type in reportForm.reportTypes | filter: $select.search">
-                        <div ng-bind-html="type"></div>
-                </ui-select-choices>
-            </ui-select>
+            <div class="btn-group btn-group-justified">
+                <div class="btn-group">
+                    <button class="btn btn-default"
+                            ng-class="{active: reportForm.type == 'Detailed'}"
+                            ng-click="reportForm.type = 'Detailed'">
+                        Detailed
+                    </button>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-default"
+                            ng-class="{active: reportForm.type == 'Summary'}"
+                            ng-click="reportForm.type = 'Summary'">
+                        Summary
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="input-group report-filters"
+                ng-if="checkRole('submission_full_review') && reportForm.type == 'Summary'">
+            <label class="input-group-addon">
+                Consituents:
+            </label>
+            <input type="number" class="form-control"
+                    ng-model="reportForm.minConstituents" empty-as-null
+                    title="The minimum number of responses required to generate summary statistics (otherwise the statistics cells will be left blank)"/>
         </div>
         <div class="form-group">
             <h3>
