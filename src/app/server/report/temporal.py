@@ -47,6 +47,8 @@ class TemporalReportHandler(handlers.BaseHandler):
         if organisation_id:
             outfile = "summary_report"
         else:
+            if not self.has_privillege('consultant'):
+                raise handlers.ModelError("You can't generate a detailed report")
             outfile = "detailed_report"
 
         with tempfile.TemporaryDirectory() as tmpdir:
