@@ -341,11 +341,10 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
                     callback: function(event, hotkey) {
                         var i = Number(String.fromCharCode(event.which)) - 1;
                         i = Math.max(0, i);
-                        i = Math.min($scope.state.rt.parts.length, i);
-                        var partSchema = $scope.state.rt.parts[$scope.state.active];
-                        var partData = $scope.getPartData(partSchema);
+                        i = Math.min($scope.rt.parts.length, i);
+                        var partSchema = $scope.rt.parts[$scope.state.active];
                         var option = partSchema.options[i];
-                        $scope.choose(part, option);
+                        $scope.choose(partSchema, option);
                     }
                 })
                 .add({
@@ -361,7 +360,7 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
                     description: "Next response part",
                     callback: function(event, hotkey) {
                         $scope.state.active = Math.min(
-                            $scope.responseType.parts.length - 1,
+                            $scope.rt.parts.length - 1,
                             $scope.state.active + 1);
                     }
                 })
@@ -376,9 +375,11 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
                 })
                 .add({
                     combo: ['esc'],
-                    description: "Stop editing comment",
+                    description: "Stop editing comment (only in plain text mode)",
                     allowIn: ['TEXTAREA'],
                     callback: function(event, hotkey) {
+                        event.stopPropagation();
+                        event.preventDefault();
                         $scope.$broadcast('blur-comment');
                     }
                 });

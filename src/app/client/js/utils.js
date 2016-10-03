@@ -598,11 +598,11 @@ angular.module('vpac.utils', [])
         restrict: 'A',
         link: function(scope, element, attrs) {
             var remove = null;
-            attrs.$observe('focusOn', function(focusOn) {
+            scope.$watch(attrs.focusOn, function(focusOn) {
                 if (remove)
                     remove();
                 remove = scope.$on(focusOn, function(event) {
-                    console.log('event')
+                    console.log('focusOn', event)
                     element.focus();
                 });
             });
@@ -636,10 +636,11 @@ angular.module('vpac.utils', [])
             angular.element($window).on('focusin', globalFocusHandler);
 
             var remove = null;
-            attrs.$observe('blurOn', function(blurOn) {
+            scope.$watch(attrs.blurOn, function(blurOn) {
                 if (remove)
                     remove();
-                remove = scope.$on(attrs.blurOn, function(event) {
+                remove = scope.$on(blurOn, function(event) {
+                    console.log('blurOn', event)
                     if (!element.is(':focus'))
                         return;
 

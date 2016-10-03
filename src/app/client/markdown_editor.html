@@ -11,8 +11,10 @@
 
 <div textarea-label="{{!model.viewValue ? placeholder : ''}}">
     <div class="form-control" ng-if="model.mode == 'rendered'" medium-editor
-        ng-model="model.viewValue" bind-options="options"></div>
+        ng-model="model.viewValue" bind-options="options"
+        focus-on="meFocusOn" blur-on="meBlurOn"></div>
 
     <textarea ng-if="model.mode != 'rendered'" class="form-control autoresize"
-        ng-model="model.viewValue"></textarea>
+        ng-model="model.viewValue"
+        focus-on="meFocusOn" blur-on="meBlurOn"></textarea>
 </div>

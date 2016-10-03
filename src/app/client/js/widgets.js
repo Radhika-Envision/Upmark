@@ -1101,32 +1101,18 @@ angular.module('vpac.widgets', [])
             else
                 ngModel.$modelValue = 'bar';
         });
-
-        attrs.$observe('markdownEditorFocusOn', function(focusOn) {
-            elem.find('> [medium-editor], > textarea')
-                .attr('focus-on', focusOn);
-        });
-        attrs.$observe('markdownEditorBlurOn', function(blurOn) {
-            elem.find('> [medium-editor], > textarea')
-                .attr('blur-on', blurOn);
-        });
     };
 
     return {
         restrict: 'E',
         scope: {
-            placeholder: '@'
+            placeholder: '@',
+            meFocusOn: '=',
+            meBlurOn: '=',
         },
         templateUrl: 'markdown_editor.html',
         require: 'ngModel',
-        compile: function compile(tElem, tAttrs) {
-            tElem.find('> [medium-editor], > textarea')
-                .attr('focus-on', tAttrs.markdownEditorFocusOn);
-            tElem.find('> [medium-editor], > textarea')
-                .attr('blur-on', tAttrs.markdownEditorBlurOn);
-
-            return postLink;
-        }
+        link: postLink,
     };
 })
 
