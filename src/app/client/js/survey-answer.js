@@ -209,8 +209,8 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
 })
 
 
-.controller('SubmissionExportCtrl',
-        function($scope, $location, Notifications, $http, LocationSearch, debounce) {
+.controller('SubmissionExportCtrl', function(
+        $scope, $location, Notifications, $http, LocationSearch, debounce) {
 
     $scope.startCalender = {
       opened: false
@@ -421,7 +421,6 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
                 reportTypes: ['Detailed', 'Summary'],
                 intervalUnits: ['Months', 'Years'],
                 intervalNum: 1.0,
-                responseQualities: [0, 1, 2, 3, 4, 5],
                 allowedStates: ['reviewed', 'approved'],
                 locations: [],
                 min_date: dt,
