@@ -151,22 +151,21 @@
         ng-controller="SubmissionExportCtrl">
   <form highlight highlight-dismiss="closeReportForm()" ng-if="reportForm"
         class="report-form">
-        <div class="section" style="height: 20px">
-            <div class="toolbar">
-                <button class="btn btn-default btn-round" title="Cancel"
-                        ng-click="closeReportForm()">
-                    <i class="fa fa-fw fa-times"></i></button>
-                <button class="btn btn-primary btn-alert btn-round" title="Download report"
-                        ng-click="downloadTemporalReportDebounced(reportSpec, 'xlsx', submission.survey.id)">
-                    <i class="fa fa-fw fa-check"></i></button>
-            </div>
-            <h2 ng-if="headerMessage" class="text-muted header-message">
-                {{headerMessage}}
-            </h2>
+    <div class="section" style="height: 20px">
+        <div class="toolbar">
+            <button class="btn btn-default btn-round" title="Cancel"
+                    ng-click="closeReportForm()">
+                <i class="fa fa-fw fa-times"></i></button>
+            <button class="btn btn-primary btn-alert btn-round" title="Download report"
+                    ng-click="downloadTemporalReportDebounced(reportSpec, 'xlsx', submission.survey.id)">
+                <i class="fa fa-fw fa-check"></i></button>
         </div>
-        <h2>
-            Report settings
+        <h2 ng-if="headerMessage" class="text-muted header-message">
+            {{headerMessage}}
         </h2>
+    </div>
+    <uib-tabset>
+      <uib-tab heading="Report Settings">
         <div class="form-group" ng-if="checkRole('submission_review')">
             <h3>
                 Report type
@@ -201,7 +200,7 @@
             <h3>
                 Date range and interval
             </h3>
-            <div class="input-group">
+            <div class="input-group report-filters">
                 <label class="input-group-addon">
                     Start Date:
                 </label>
@@ -226,6 +225,8 @@
                     <button type="button" class="btn btn-default" ng-click="openEndCalender()">
                         <i class="glyphicon glyphicon-calendar"></i></button>
                 </span>
+            </div>
+            <div class="input-group report-filters">
                 <label class="input-group-addon">
                     Interval:
                 </label>
@@ -243,19 +244,10 @@
                     </ui-select-choices>
                 </ui-select>
             </div>
-            <p class="text-muted commasep">
-                Report will use data from the most recent submission within each date interval for each organisation
-            </p>
-            <p class="text-muted commasep">
-                Intervals will go from the start of a {{roundInterval()}} to the end of a {{roundInterval()}} {{reportSpec.intervalNum}} {{roundInterval()}}s later
-            </p>
         </div>
+      </uib-tab> <!-- [heading=Report Settings] -->
 
-        <div class="report-filters">
-            <h2>
-                Filters (optional)
-            </h2>
-
+      <uib-tab heading="Organisation Filters">
             <div class="section">
                 <div class="toolbar">
                     <a class="btn btn-default btn-round" title="Add location"
@@ -264,7 +256,7 @@
                     </a>
                 </div>
                 <h3>
-                    Location of organisation
+                    Location
                 </h3>
             </div>
             <table class="table" ng-if="reportForm.locations.length">
@@ -311,10 +303,11 @@
                 No locations have been selected. Press the
                 <i class="fa fa-plus"></i> button to add one.
             </p>
+
             <h3>
-                Organisation size
+                Size
             </h3>
-            <div class="input-group">
+            <div class="input-group report-filters">
                 <label class="input-group-addon">
                     Min FTEs (internal):
                 </label>
@@ -328,7 +321,7 @@
                         ng-model="reportSpec.maxInternalFtes" empty-as-null
                         title="Only include responses from organisations with less than this many internal FTEs"/>
             </div>
-            <div class="input-group">
+            <div class="input-group report-filters">
                 <label class="input-group-addon">
                     Min FTEs (external):
                 </label>
@@ -342,7 +335,7 @@
                         ng-model="reportSpec.maxExternalFtes" empty-as-null
                         title="Only include responses from organisations with less than this many external FTEs"/>
             </div>
-            <div class="input-group">
+            <div class="input-group report-filters">
                 <label class="input-group-addon">
                     Min Total FTEs:
                 </label>
@@ -356,7 +349,7 @@
                         ng-model="reportSpec.maxEmployees" empty-as-null
                         title="Only include responses from organisations with less than this many total FTEs"/>
             </div>
-            <div class="input-group">
+            <div class="input-group report-filters">
                 <label class="input-group-addon">
                     Min Population Served:
                 </label>
@@ -370,6 +363,9 @@
                         ng-model="reportSpec.maxPopulation" empty-as-null
                         title="Only include responses from organisations who serve populations of at most this many people"/>
             </div>
+          </uib-tab> <!-- [heading=Report Settings] -->
+
+          <uib-tab heading="Quality and Status">
             <h3>
                 Response quality
             </h3>
@@ -396,8 +392,63 @@
                       set-state='setReportApproval(state)'>
                 </approval-buttons>
             </div>
-        </div>
+          </uib-tab> <!-- [heading=Report Settings] -->
+        </uib-tabset>
   </form>
+    <docs highlight>
+      <i class="fa-li fa fa-clock-o fa-border"></i>
+      <h3>Temporal Report</h3>
+      <h4>Report type</h4>
+      <ul>
+          <li>
+              <em>Detailed:</em>
+              Show detailed data for all submissions across all matching
+              organisations.
+          </li>
+          <li>
+              <em>Summary:</em>
+              Show detailed data for {{submission.organisation.name}}, and
+              summary data (such as min, max, mean) for other organisations.
+              <p ng-if="checkRole('submission_full_review')">
+                  <em>Constituents</em> sets the minimum number of responses
+                  required to generate summary statistics (otherwise the
+                  statistics cells will be left blank).
+              </p>
+          </li>
+      </ul>
+      <h4>Date range and interval</h4>
+      <p>
+          Report will use data from the most recent submission within each date
+          interval for each organisation.
+          Intervals will go from the start of a {{roundInterval()}} to the end
+          of a {{roundInterval()}} {{reportSpec.intervalNum}} {{roundInterval()}}s later.
+      </p>
+
+      <h4>Location</h4>
+      <p>
+          The locations to include when selecting organisations.
+          For example, if you choose "Sydney, Australia" and "Canada", only
+          organisations that operate in at least one of those regions will be
+          included.
+      </p>
+      <h4>Size</h4>
+      <p>
+          These controls allow you to restrict submissions to a peer group of
+          organisations.
+      </p>
+
+      <h4>Response quality</h4>
+      <p>
+          The minimum quality that a response must have to be included in
+          the report. If your surveys have no quality, leave this unset
+          <i class="fa fa-question-circle"></i>.
+      </p>
+      <h4>Approval status</h4>
+      <p>
+          The minimum level of approval a submission must have to be
+          included in the report.
+      </p>
+    </docs>
 </div>
 
 <div ng-if="!edit.model && !reports.formOpen" class="container">
