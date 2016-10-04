@@ -229,7 +229,7 @@ class TemporalReportHandler(handlers.BaseHandler):
         tm = TableMeta()
         tm.bucketed_responses = {}
         buckets = set()
-        qnode_measures = set()
+        qnode_measure_map = {}
         organisations = set()
 
         for response in responses:
@@ -245,11 +245,12 @@ class TemporalReportHandler(handlers.BaseHandler):
             tm.bucketed_responses[k] = response
 
             buckets.add(bucket)
-            qnode_measures.add(response.qnode_measure)
+            qnode_measure_map[response.measure_id] = response.qnode_measure
             organisations.add(response.submission.organisation)
 
         tm.buckets = sorted(buckets)
-        tm.qnode_measures = sorted(qnode_measures, key=lambda m: m.get_path_tuple())
+        tm.qnode_measures = sorted(
+            qnode_measure_map.values(), key=lambda qm: qm.get_path_tuple())
         tm.organisations = sorted(organisations, key=lambda o: o.name)
         return tm
 
@@ -313,6 +314,7 @@ class TemporalReportHandler(handlers.BaseHandler):
         out_rows = []
         for row in rows:
             out_rows.append([
+                row.qm.program.title,
                 row.qm.get_path(),
                 row.qm.measure.title,
                 row.name,
@@ -324,6 +326,7 @@ class TemporalReportHandler(handlers.BaseHandler):
         else:
             statistic_name = "Statistic"
         cols = [
+            ("Latest program", 15, 'text'),
             ("Path", 10, 'text'),
             ("Measure", 40, 'text'),
             (statistic_name, 30, 'text'),
@@ -335,6 +338,7 @@ class TemporalReportHandler(handlers.BaseHandler):
     def write_xlsx(self, cols, rows, outpath):
         with xlsxwriter.Workbook(outpath) as workbook:
             worksheet = workbook.add_worksheet("Data")
+            worksheet.freeze_panes(1, 0)
 
             cell_formats = {
                 'text_header': workbook.add_format({'bold': 1}),
