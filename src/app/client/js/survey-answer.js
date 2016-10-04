@@ -215,7 +215,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
     };
 
     // Report type
-    $scope.$watch('reportForm.type', function(type) {
+    $scope.$watch('reportSpec.type', function(type) {
         if (!$scope.reportForm || !$scope.reportSpec) {
             return;
         }
@@ -389,7 +389,6 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
             var dt = new Date();
             dt.setFullYear(dt.getFullYear() - 1);
             $scope.reportForm = {
-                type: 'summary',
                 intervalUnits: [
                     {name: 'Months', id: 'months'},
                     {name: 'Years', id: 'years'}],
@@ -411,6 +410,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
         if (!$scope.reportSpec) {
             // Initial report spec
             $scope.reportSpec = {
+                type: 'summary',
                 minDate: null,
                 maxDate: null,
                 intervalNum: null,
