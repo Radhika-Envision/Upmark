@@ -71,17 +71,19 @@ class TemporalReportHandler(handlers.BaseHandler):
             query = self.build_query(session, parameters, survey_id)
             responses = query.all()
             table_meta = self.bucket_responses(responses, self.get_interval(parameters))
-            cols, rows = self.create_detail_table(table_meta)
+            rows = self.create_detail_rows(table_meta)
 
             if parameters.get('type') == 'summary':
                 report_type = 'summary'
-                cols, rows = self.convert_to_stats(
-                    cols, rows, parameters['organisation_id'],
-                    parameters['min_constituents'])
+                organisation = (session
+                    .query(model.Organisation)
+                    .get(parameters['organisation_id']))
+                rows = self.convert_to_stats(
+                    rows, organisation, parameters['min_constituents'])
             else:
                 report_type = 'detail'
 
-            cols, rows = self.convert_to_primitives(cols, rows)
+            cols, rows = self.create_table(rows, table_meta, report_type)
 
         if extension == 'xlsx':
             outfile = "%s.xlsx" % report_type
@@ -224,11 +226,6 @@ class TemporalReportHandler(handlers.BaseHandler):
         return query
 
     def bucket_responses(self, responses, interval):
-        class TableMeta:
-            def keys(self):
-                return itertools.product(
-                    self.qnode_measures, self.organisations, self.buckets)
-
         tm = TableMeta()
         tm.bucketed_responses = {}
         buckets = set()
@@ -256,68 +253,47 @@ class TemporalReportHandler(handlers.BaseHandler):
         tm.organisations = sorted(organisations, key=lambda o: o.name)
         return tm
 
-    def create_detail_table(self, table_meta):
+    def create_detail_rows(self, table_meta):
         rows = []
         current_row = None
-        current_measure_id = None
-        current_organisation = None
-        latest_response = None
-        initial = True
         for qm, organisation, bucket in table_meta.keys():
             k = (qm.measure_id, organisation, bucket)
             r = table_meta.bucketed_responses.get(k)
-            if qm.measure_id != current_measure_id or organisation != current_organisation:
-                # New row, write url metadata for previous row before reset
-                if not initial:
-                    current_row[2] = latest_response
-                    latest_response = None
-
-                current_measure_id = qm.measure_id
-                current_organisation = organisation
-                current_row = [qm, organisation, None]
+            if (not current_row
+                    or qm.measure_id != current_row.qm.measure_id
+                    or organisation != current_row.organisation):
+                # New row
+                current_row = OrganisationRow(qm, organisation)
                 rows.append(current_row)
-                initial = False
 
-            current_row.append(None or r and r.score)
+            current_row.scores.append(None or r and r.score)
             if r:
-                latest_response = r
+                current_row.response = r
 
-        # write url metadata for last row
-        if current_row:
-            current_row[2] = latest_response
+        return rows
 
-        cols = [
-            ("Path", 10, 'text'),
-            ("Measure", 20, 'text'),
-            ("Organisation", 20, 'text'),
-            ("Link", 5, 'link'),
-        ] + [(b, 12, 'score') for b in table_meta.buckets]
-
-        return cols, rows
-
-    def convert_to_stats(self, cols, rows, organisation_id, min_constituents):
+    def convert_to_stats(self, rows, organisation, min_constituents):
         out_rows = []
-        for m, rs in itertools.groupby(rows, key=lambda r: r[0]):
+        for qm, rs in itertools.groupby(rows, key=lambda r: r.qm):
             rs = list(rs)
-            cells = list(zip(*rs))
-            stats = [self.compute_stats(c, min_constituents) for c in cells[3:]]
+            row_scores = [row.scores for row in rs]
+            cells = list(zip(*row_scores))
+            stats = [self.compute_stats(c, min_constituents) for c in cells]
             stats = list(zip(*stats))
             try:
-                org_row = next(r for r in rs if str(r[1].id) == organisation_id)
+                out_rows.append(next(
+                    r for r in rs
+                    if r.organisation == organisation))
             except StopIteration:
-                org_row = [None] * 3
-            out_rows.append([m, "Self score", org_row[2]] + org_row[3:])
-            out_rows.append([m, "Min", None] + list(stats[0]))
-            out_rows.append([m, "1st Quartile", None] + list(stats[1]))
-            out_rows.append([m, "Median", None] + list(stats[2]))
-            out_rows.append([m, "3rd Quartile", None] + list(stats[3]))
-            out_rows.append([m, "Max", None] + list(stats[4]))
+                log.error("%s", rs)
+                out_rows.append(OrganisationRow(qm, organisation))
+            out_rows.append(StatisticRow(qm, "Min", list(stats[0])))
+            out_rows.append(StatisticRow(qm, "1st Quartile", list(stats[1])))
+            out_rows.append(StatisticRow(qm, "Median", list(stats[2])))
+            out_rows.append(StatisticRow(qm, "3rd Quartile", list(stats[3])))
+            out_rows.append(StatisticRow(qm, "Max", list(stats[4])))
 
-            # Report on statistics instead of organisations
-        out_cols = cols[:]
-        out_cols[2] = ("Statistic", 12, 'text')
-
-        return out_cols, out_rows
+        return out_rows
 
     def compute_stats(self, cells, min_constituents):
         constituents = [c for c in cells if c is not None]
@@ -332,19 +308,29 @@ class TemporalReportHandler(handlers.BaseHandler):
 
         return results
 
-    def convert_to_primitives(self, cols, rows):
+    def create_table(self, rows, table_meta, report_type):
+        base_url = "%s://%s" % (self.request.protocol, self.request.host)
         out_rows = []
         for row in rows:
-            qm, stat, latest_response = row[0:3]
-            scores = row[3:]
             out_rows.append([
-                qm.get_path(),
-                qm.measure.title,
-                isinstance(stat, model.Organisation) and stat.name or stat,
-                self.get_url(qm, stat, latest_response),
-            ] + scores)
-        out_cols = cols[:]
-        return out_cols, out_rows
+                row.qm.get_path(),
+                row.qm.measure.title,
+                row.name,
+                row.link(base_url),
+            ] + row.scores)
+
+        if report_type == 'detail':
+            statistic_name = "Organisation"
+        else:
+            statistic_name = "Statistic"
+        cols = [
+            ("Path", 10, 'text'),
+            ("Measure", 40, 'text'),
+            (statistic_name, 30, 'text'),
+            ("Link", 8, 'link'),
+        ] + [(b, 12, 'score') for b in table_meta.buckets]
+
+        return cols, out_rows
 
     def write_xlsx(self, cols, rows, outpath):
         with xlsxwriter.Workbook(outpath) as workbook:
@@ -357,7 +343,8 @@ class TemporalReportHandler(handlers.BaseHandler):
                 'text': workbook.add_format({}),
                 'link': workbook.add_format(
                     {'font_color': 'blue', 'underline':  1}),
-                'score': workbook.add_format({}),
+                'score': workbook.add_format(
+                    {'num_format': '0.00'}),
             }
 
             # Write column headings
@@ -374,22 +361,11 @@ class TemporalReportHandler(handlers.BaseHandler):
             for row_index, row in enumerate(rows):
                 row_index += 1
                 for col_index, (col, cell) in enumerate(zip(cols, row)):
-                    if col[2] == 'link':
-                        worksheet.write(
-                            row_index, col_index, cell, None, "Link")
+                    if isinstance(cell, Link):
+                        worksheet.write_url(
+                            row_index, col_index, cell.url, None, cell.title)
                     else:
                         worksheet.write(row_index, col_index, cell)
-
-    def get_url(self, qm, statistic, response):
-        base_url = "%s://%s" % (self.request.protocol, self.request.host)
-        if response:
-            return "{}/#/2/measure/{}?submission={}".format(
-                base_url, response.measure_id, response.submission.id)
-        elif qm:
-            return "{}/#/2/measure/{}?program={}&survey={}".format(
-                base_url, qm.measure_id, qm.program_id, qm.survey_id)
-        else:
-            return None
 
     def get_interval(self, parameters):
         try:
@@ -453,3 +429,66 @@ class TemporalReportHandler(handlers.BaseHandler):
             delta_months += 1
 
         return (delta_months, delta_years)
+
+
+class TableMeta:
+    def keys(self):
+        return itertools.product(
+            self.qnode_measures, self.organisations, self.buckets)
+
+
+class OrganisationRow:
+    __slots__ = ('qm', 'organisation', 'response', 'scores')
+
+    def __init__(self, qm, organisation, scores=None):
+        self.qm = qm
+        self.organisation = organisation
+        self.response = None
+        self.scores = scores or []
+
+    @property
+    def name(self):
+        return self.organisation.name
+
+    def link(self, base_url):
+        if self.response:
+            return Link(
+                'Response',
+                "{}/#/2/measure/{}?submission={}".format(
+                    base_url, self.response.measure_id,
+                    self.response.submission.id))
+        elif self.qm:
+            return Link(
+                'Measure',
+                "{}/#/2/measure/{}?program={}&survey={}".format(
+                    base_url, self.qm.measure_id, self.qm.program_id,
+                    self.qm.survey_id))
+        else:
+            return None
+
+
+class StatisticRow:
+    __slots__ = ('qm', 'name', 'scores')
+
+    def __init__(self, qm, name, scores=None):
+        self.qm = qm
+        self.name = name
+        self.scores = scores or []
+
+    def link(self, base_url):
+        if self.qm:
+            return Link(
+                'Measure',
+                "{}/#/2/measure/{}?program={}&survey={}".format(
+                    base_url, self.qm.measure_id, self.qm.program_id,
+                    self.qm.survey_id))
+        else:
+            return None
+
+
+class Link:
+    __slots__ = ('title', 'url')
+
+    def __init__(self, title, url):
+        self.title = title
+        self.url = url
