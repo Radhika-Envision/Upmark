@@ -286,26 +286,29 @@ class TemporalReportHandler(handlers.BaseHandler):
                     r for r in rs
                     if r.organisation == organisation))
             except StopIteration:
-                log.error("%s", rs)
                 out_rows.append(OrganisationRow(qm, organisation))
             out_rows.append(StatisticRow(qm, "Min", list(stats[0])))
             out_rows.append(StatisticRow(qm, "1st Quartile", list(stats[1])))
             out_rows.append(StatisticRow(qm, "Median", list(stats[2])))
             out_rows.append(StatisticRow(qm, "3rd Quartile", list(stats[3])))
             out_rows.append(StatisticRow(qm, "Max", list(stats[4])))
+            out_rows.append(StatisticRow(qm, "Consituents", list(stats[5])))
 
         return out_rows
 
     def compute_stats(self, cells, min_constituents):
         constituents = [c for c in cells if c is not None]
         if len(constituents) < min_constituents:
-            return (None,) * 5
+            return (None,) * 5 + (0,)
         np_columns = numpy.array(constituents)
-        results = (min(np_columns),
-                    numpy.percentile(np_columns, 25),
-                    numpy.percentile(np_columns, 50),
-                    numpy.percentile(np_columns, 75),
-                    max(np_columns))
+        results = (
+            min(np_columns),
+            numpy.percentile(np_columns, 25),
+            numpy.percentile(np_columns, 50),
+            numpy.percentile(np_columns, 75),
+            max(np_columns),
+            len(constituents),
+        )
 
         return results
 
@@ -331,7 +334,7 @@ class TemporalReportHandler(handlers.BaseHandler):
             ("Measure", 40, 'text'),
             (statistic_name, 30, 'text'),
             ("Link", 8, 'link'),
-        ] + [(b, 12, 'score') for b in table_meta.buckets]
+        ] + [(b, 12, 'real') for b in table_meta.buckets]
 
         return cols, out_rows
 
@@ -347,8 +350,10 @@ class TemporalReportHandler(handlers.BaseHandler):
                 'text': workbook.add_format({}),
                 'link': workbook.add_format(
                     {'font_color': 'blue', 'underline':  1}),
-                'score': workbook.add_format(
+                'real': workbook.add_format(
                     {'num_format': '0.00'}),
+                'int': workbook.add_format(
+                    {'num_format': '0'}),
             }
 
             # Write column headings
@@ -368,6 +373,9 @@ class TemporalReportHandler(handlers.BaseHandler):
                     if isinstance(cell, Link):
                         worksheet.write_url(
                             row_index, col_index, cell.url, None, cell.title)
+                    elif isinstance(cell, int) and col[2] != 'int':
+                        worksheet.write(
+                            row_index, col_index, cell, cell_formats['int'])
                     else:
                         worksheet.write(row_index, col_index, cell)
 
