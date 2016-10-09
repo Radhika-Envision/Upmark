@@ -268,3 +268,13 @@ def reorder(collection, son, id_attr='id'):
     order = {m['id']: i for i, m in enumerate(son)}
     collection.sort(key=lambda m: order[str(getattr(m, id_attr))])
     collection.reorder()
+
+
+class keydefaultdict(defaultdict):
+    # http://stackoverflow.com/a/2912455/320036
+    def __missing__(self, key):
+        if self.default_factory is None:
+            raise KeyError(key)
+        else:
+            ret = self[key] = self.default_factory(key)
+            return ret

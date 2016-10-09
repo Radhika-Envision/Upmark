@@ -699,6 +699,9 @@ class QnodeMeasure(Base):
         return (object_session(self).query(Response)
             .get((submission_id, self.measure_id)))
 
+    def any_deleted(self):
+        return self.qnode.any_deleted()
+
     def __repr__(self):
         return "QnodeMeasure(path={}, program={}, survey={}, measure={})".format(
             self.get_path(),

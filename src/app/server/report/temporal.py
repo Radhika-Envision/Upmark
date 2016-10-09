@@ -15,6 +15,7 @@ import xlsxwriter
 
 import handlers
 import model
+from utils import keydefaultdict
 
 BUF_SIZE = 4096
 MAX_WORKERS = 4
@@ -70,6 +71,7 @@ class TemporalReportHandler(handlers.BaseHandler):
         with model.session_scope() as session:
             query = self.build_query(session, parameters, survey_id)
             responses = query.all()
+            responses = self.filter_deleted_structure(responses)
             table_meta = self.bucket_responses(responses, self.get_interval(parameters))
             rows = self.create_detail_rows(table_meta)
 
@@ -224,6 +226,10 @@ class TemporalReportHandler(handlers.BaseHandler):
         if parameters.get('filter_size'):
             query = size_filter(query)
         return query
+
+    def filter_deleted_structure(self, responses):
+        deleted_things = keydefaultdict(lambda t: t.any_deleted())
+        return [r for r in responses if not deleted_things[r.qnode_measure]]
 
     def bucket_responses(self, responses, interval):
         tm = TableMeta()
