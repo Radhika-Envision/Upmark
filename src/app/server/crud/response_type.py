@@ -110,6 +110,15 @@ class ResponseTypeHandler(
             program = session.query(model.Program).get(self.program_id)
             if not program:
                 raise handlers.MissingDocError("No such program")
+
+            rt_by_name = (session.query(model.ResponseType)
+                .filter(model.ResponseType.program_id == self.program_id)
+                .filter(model.ResponseType.name == self.request_son['name'])
+                .first())
+            if rt_by_name is not None:
+                raise handlers.ModelError(
+                    "A response type of that name already exists")
+
             response_type = model.ResponseType(program=program)
             session.add(response_type)
             try:
@@ -162,6 +171,14 @@ class ResponseTypeHandler(
                 .get((response_type_id, self.program_id)))
             if not response_type:
                 raise handlers.MissingDocError("No such response type")
+
+            rt_by_name = (session.query(model.ResponseType)
+                .filter(model.ResponseType.program_id == self.program_id)
+                .filter(model.ResponseType.name == self.request_son['name'])
+                .first())
+            if rt_by_name != response_type:
+                raise handlers.ModelError(
+                    "A response type of that name already exists")
 
             try:
                 self._update(response_type, self.request_son)

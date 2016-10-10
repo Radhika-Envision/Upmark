@@ -8,6 +8,8 @@ from tornado.escape import json_decode, json_encode
 import tornado.web
 import sqlalchemy
 from sqlalchemy.orm import joinedload
+import voluptuous
+from voluptuous import Extra, All, Required, Schema
 
 from activity import Activities
 import config
@@ -26,6 +28,15 @@ def test_password(text):
             'factor.casemix.weight': 0.3})
     strength, improvements = password_tester.test(text)
     return strength, threshold, improvements
+
+
+user_input_schema = Schema({
+    Required('organisation'): All({
+        Required('id'): str,
+        Extra: object,
+    }, msg="Organisation is invalid"),
+    Extra: object,
+})
 
 
 class UserHandler(handlers.Paginate, handlers.BaseHandler):
@@ -140,6 +151,11 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
         if user_id != '':
             raise handlers.MethodError("Can't use POST for existing users.")
 
+        try:
+            user_input_schema(self.request_son)
+        except voluptuous.error.Invalid as e:
+            raise handlers.ModelError.from_voluptuous(e)
+
         self._check_create(self.request_son)
 
         try:
@@ -176,6 +192,11 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         if user_id == '':
             raise handlers.MethodError("Can't use PUT for new users (no ID).")
+
+        try:
+            user_input_schema(self.request_son)
+        except voluptuous.error.Invalid as e:
+            raise handlers.ModelError.from_voluptuous(e)
 
         try:
             with model.session_scope() as session:

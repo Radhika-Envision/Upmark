@@ -60,6 +60,14 @@ class ModelError(tornado.web.HTTPError):
         else:
             return cls(reason=reason)
 
+    @classmethod
+    def from_voluptuous(cls, v_error, reason="Arguments are invalid: "):
+        log.error('%s', str(v_error))
+        if v_error.error_message:
+            return cls(reason=v_error.error_message)
+        else:
+            return cls(reason=str(v_error))
+
 
 class MissingDocError(tornado.web.HTTPError):
     def __init__(self, reason="Document not found", log_message=None, *args, **kwargs):
