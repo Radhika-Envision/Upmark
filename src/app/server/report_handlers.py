@@ -293,7 +293,7 @@ class DiffEngine:
             # Filter for modified objects
             .filter((MA.title != MB.title) |
                     (MA.description != MB.description) |
-                    (MA.response_type != MB.response_type) |
+                    (MA.response_type_id != MB.response_type_id) |
                     (MA.weight != MB.weight) |
                     (QMA.qnode_id != QMB.qnode_id) |
                     (QMA.seq != QMB.seq))
@@ -360,8 +360,10 @@ class DiffEngine:
                 # qnode
                 q = x
 
-            if q.any_deleted():
-                return None
+            deleted_ancestor = q.closest_deleted_ancestor()
+            if deleted_ancestor is not None:
+                if deleted_ancestor.ob_type not in {'program', 'survey'}:
+                    return None
 
             return x
 
@@ -415,13 +417,15 @@ class DiffEngine:
         for (a, b), diff_item in zip(measure_pairs, measure_diff):
             a_son, b_son = diff_item['pair']
             if a:
-                a_son['path'] = a.get_path(self.survey_id)
-                a_son['parentId'] = str(a.get_qnode_measure(self.survey_id).qnode_id)
-                a_son['seq'] = a.get_qnode_measure(self.survey_id).seq
+                qm_a = a.get_qnode_measure(self.survey_id)
+                a_son['path'] = qm_a.get_path()
+                a_son['parentId'] = str(qm_a.qnode_id)
+                a_son['seq'] = qm_a.seq
             if b:
-                b_son['path'] = b.get_path(self.survey_id)
-                b_son['parentId'] = str(b.get_qnode_measure(self.survey_id).qnode_id)
-                b_son['seq'] = b.get_qnode_measure(self.survey_id).seq
+                qm_b = b.get_qnode_measure(self.survey_id)
+                b_son['path'] = qm_b.get_path()
+                b_son['parentId'] = str(qm_b.qnode_id)
+                b_son['seq'] = qm_b.seq
             if a and b and a_son['parentId'] == b_son['parentId']:
                 start = perf()
                 if self.measure_was_reordered(a, b, reorder_ignore):

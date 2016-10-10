@@ -228,7 +228,8 @@ class TemporalReportHandler(handlers.BaseHandler):
         return query
 
     def filter_deleted_structure(self, responses):
-        deleted_things = keydefaultdict(lambda t: t.any_deleted())
+        deleted_things = keydefaultdict(
+            lambda t: t.closest_deleted_ancestor() is not None)
         return [r for r in responses if not deleted_things[r.qnode_measure]]
 
     def bucket_responses(self, responses, interval):

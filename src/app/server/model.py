@@ -334,6 +334,12 @@ class Program(Observable, Base):
     def action_lineage(self):
         return [self]
 
+    def closest_deleted_ancestor(self):
+        if self.deleted:
+            return self
+        else:
+            return None
+
     __table_args__ = (
         Index('program_tracking_id_index', tracking_id),
         Index('program_created_index', created),
@@ -449,6 +455,12 @@ class Survey(Observable, Base):
     def action_lineage(self):
         return [self.program, self]
 
+    def closest_deleted_ancestor(self):
+        if self.deleted:
+            return self
+        else:
+            return self.program.closest_deleted_ancestor()
+
     def __repr__(self):
         return "Survey(title={}, program={})".format(
             self.title, getattr(self.program, 'title', None))
@@ -525,8 +537,13 @@ class QuestionNode(Observable, Base):
     def get_path(self):
         return " ".join("%d." % i for i in self.get_path_tuple())
 
-    def any_deleted(self):
-        return self.deleted or self.parent_id and self.parent.any_deleted()
+    def closest_deleted_ancestor(self):
+        if self.deleted:
+            return self
+        elif self.parent_id:
+            return self.parent.closest_deleted_ancestor()
+        else:
+            return self.survey.closest_deleted_ancestor()
 
     @property
     def ordered_qnode_measures(self):
@@ -597,14 +614,6 @@ class Measure(Observable, Base):
         sid = to_id(survey)
         return (object_session(self).query(QnodeMeasure)
             .get((self.program_id, sid, self.id)))
-
-    def get_path_tuple(self, survey):
-        qm = self.get_qnode_measure(survey)
-        return qm and qm.get_path_tuple() or None
-
-    def get_path(self, survey):
-        qm = self.get_qnode_measure(survey)
-        return qm and qm.get_path() or None
 
     def lineage(self, survey=None):
         survey_id = to_id(survey)
@@ -699,8 +708,8 @@ class QnodeMeasure(Base):
         return (object_session(self).query(Response)
             .get((submission_id, self.measure_id)))
 
-    def any_deleted(self):
-        return self.qnode.any_deleted()
+    def closest_deleted_ancestor(self):
+        return self.qnode.closest_deleted_ancestor()
 
     def __repr__(self):
         return "QnodeMeasure(path={}, program={}, survey={}, measure={})".format(
