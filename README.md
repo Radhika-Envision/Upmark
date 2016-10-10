@@ -38,59 +38,20 @@ When you run in `DEV_MODE`:
    volumes).
  - Exception tracebacks will be sent to the client in the HTTP response body.
 
-
 [disable caching]: http://stackoverflow.com/a/7000899/320036
 
 
-## Single-machine Deployment
+## Deployment
 
-For basic single-machine deployments, use Docker Compose. First copy
-the config files to be out of the source tree:
-
-```
-cp -r src/app/config ../aq_conf
-```
-
-Edit `../aq_conf/aq.conf` to contain your [Google Analytics][ga] ID, if you
-have one.
-
-Provide an SSL certificate. Put the private key and certificate
-*chain* in the config directory:
-
-```
-~/aq_conf/privkey.pem
-~/aq_conf/fullchain.pem
-```
-
-Then start the container:
-
-```
-make version
-sudo docker-compose run --rm web alembic upgrade head
-sudo docker-compose up -d webssl
-```
-
-Finally, check that the web services are running:
-
-```
-curl -w "\n" -k https://localhost/ping
-```
-
-> `Web services are UP`
-
-The default username and password are `admin`/`admin`.
+ - [Deploy to a single self-contained machine](doc/aws_small.md). Includes
+   instructions for setting up Let's Encrypt.
+ - [Deploy to a group of machines with a shared database](doc/aws.md).
 
 See also:
 
-- [Database Administration][backup]
-- [Deployment on AWS][aws]
-- [Using Let's Encrypt][le]
+ - [Database Administration][backup]
 
-[ga]: http://www.google.com.au/analytics/
-[aws]: doc/aws.md
-[le]: doc/lets_encrypt.md
 [backup]: doc/backup.md
-[`docker-compose`]: https://github.com/docker/compose/releases
 
 
 ## Dependencies

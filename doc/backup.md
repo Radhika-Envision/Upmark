@@ -23,7 +23,7 @@ sudo docker-compose run --rm dbadmin \
     pg_dump --format custom --blobs --file "local_dump-${TODAY}.psql"
 ```
 
-To restore a backup from today (be very careful not when running these commands
+To restore a backup from today (be very careful when running these commands
 on the production database):
 
 ```

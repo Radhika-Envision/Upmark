@@ -37,22 +37,28 @@ self-hosted database (no RDS or S3).
         git clone git@github.com:vpac-innovations/aquamark.git
         ```
 
+ 1. Configure the app.
+
+    ```
+    cp -a src/app/config ../aq_conf
+    nano ../aq_conf/aq.conf
+    nano ../aq_conf/recalculate.yaml
+    nano ../aq_conf/notification.yaml
+    ```
+
  1. Build and run the app.
 
     ```
     make version
-    sudo docker-compose build web
-    cp -a src/app/config ../aq_conf
-    nano ../aq_conf/aq.conf
     sudo docker-compose run -d web alembic upgrade head
-    sudo docker-compose run -d web
+    sudo docker-compose up -d web recalc notify
     ```
 
  1. Configure haproxy. Get the IP address of the `web` container and put it in
     the haproxy config file.
 
     ```
-    sudo docker-compose logs web
+    sudo docker-compose logs web | grep 'Bound to:'
     sudo cp src/haproxy/haproxy.cfg /etc/haproxy
     sudo nano /etc/haproxy/haproxy.cfg
     ```

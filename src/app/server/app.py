@@ -328,6 +328,7 @@ def start_web_server():
         log.info("Try opening %s://%s:%s", protocol, hostname, port)
         if ip:
             log.info("         or %s://%s:%s", protocol, ip, port)
+            log.info("Bound to: %s:%s", ip, port)
     tornado.ioloop.IOLoop.instance().start()
 
 

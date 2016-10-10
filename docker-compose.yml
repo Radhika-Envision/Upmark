@@ -28,20 +28,25 @@ webssl:
    - redirect
   restart: always
 
-webletsencrypt:
+recalc:
   build: ./src/app/
-  ports:
-   - "443:8000"
   env_file:
-   - ../aq_conf/aq.conf
+    - ../aq_conf/aq.conf
   volumes:
-   - ./src/app:/usr/share/aquamark/app
-   - /etc/letsencrypt/live/aquamark.vpac-innovations.com.au:/etc/letsencrypt/live/aquamark
-   - /etc/letsencrypt/archive/aquamark.vpac-innovations.com.au:/etc/letsencrypt/archive/aquamark.vpac-innovations.com.au
+    - ../aq_conf:/usr/share/aquamark/app/config
   links:
-   - postgres
-   - redirect
-  restart: always
+    - postgres:postgres
+  command: ['python3', './server/recalculate.py']
+
+notify:
+  build: ./src/app/
+  env_file:
+    - ../aq_conf/aq.conf
+  volumes:
+    - ../aq_conf:/usr/share/aquamark/app/config
+  links:
+    - postgres:postgres
+  command: ['python3', './server/notifications.py']
 
 redirect:
   image: geldim/https-redirect
