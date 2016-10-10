@@ -9,13 +9,19 @@ DOCKER_TAG := vpac/aquamark
 all: build
 
 .PHONY: build
-build: src/app/version.txt
+build: version
 	$(DOCKER_BIN) build -t $(DOCKER_TAG) src/app
 	$(DOCKER_BIN) tag $(DOCKER_TAG) $(DOCKER_TAG):latest
 	$(DOCKER_BIN) tag $(DOCKER_TAG) $(DOCKER_TAG):$(VERSION)
 
 .PHONY: version
-version: src/app/version.txt
+version: src/app/version.txt.md5
 
 src/app/version.txt:
 	echo $(VERSION) > src/app/version.txt
+
+
+# Only build when file contents change
+
+%.md5: %
+	@$(if $(filter-out $(shell cat $@ 2>/dev/null), $(shell md5sum $*)),md5sum $* > $@)
