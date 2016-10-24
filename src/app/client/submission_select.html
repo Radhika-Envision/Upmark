@@ -28,12 +28,11 @@
         </h2>
     </div>
 
-    <div class="input-group">
+    <div class="input-group" ng-if="checkRole('submission_review')">
         <label for="org-search" class="input-group-addon">
             <i class="fa fa-university"></i>
         </label>
         <input type="text" class="form-control" id="org-search"
-                ng-if="checkRole('submission_review')"
                 ng-model="aSearch.organisation"
                 uib-typeahead="org as org.name for org in searchOrg($viewValue)"
                 typeahead-append-to-body="true"
