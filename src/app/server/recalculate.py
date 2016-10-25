@@ -32,7 +32,7 @@ def mail_content(errors):
 def send_email(config, errors):
 
     template = config['ERROR_CONTENT']
-    msg = MIMEText(template.format(message=errors), 'text/plain')
+    msg = MIMEText(template.format(message=errors), 'plain')
     msg['Subject'] = config['ERROR_SUBJECT']
 
     send(config, msg, config['ERROR_SEND_TO'])
@@ -103,6 +103,11 @@ if __name__ == "__main__":
     try:
         log.info("Starting service")
         connect_db()
+        if '--test' in sys.argv:
+            log.info("Sending test email")
+            config = utils.get_config("recalculate.yaml")
+            send_email(config, "Test")
+            sys.exit(0)
         if not '--no-delay' in sys.argv:
             log.info("Sleeping for %ds", STARTUP_DELAY)
             time.sleep(STARTUP_DELAY)
