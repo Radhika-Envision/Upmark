@@ -176,7 +176,7 @@ class ResponseTypeHandler(
                 .filter(model.ResponseType.program_id == self.program_id)
                 .filter(model.ResponseType.name == self.request_son['name'])
                 .first())
-            if rt_by_name != response_type:
+            if rt_by_name and rt_by_name != response_type:
                 raise handlers.ModelError(
                     "A response type of that name already exists")
 
