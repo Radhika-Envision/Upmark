@@ -40,7 +40,7 @@ def send_email(config, errors):
 
 def process_once(config):
     count = 0
-    errors = []
+    n_errors = 0
     while True:
         with model.session_scope() as session:
             record = (session.query(model.Submission,
@@ -56,29 +56,22 @@ def process_once(config):
             log.info(
                 "Processing %s, %s < %s", sub,
                 sub and sub.modified, htime)
-            if count == 0 and len(errors) == 0:
+            if count == 0:
                 log.info("Starting new job")
 
             calculator = Calculator.scoring(sub)
             calculator.mark_entire_survey_dirty(sub.survey)
             calculator.execute()
             if sub.error:
-                errors.append({"submission_id": sub.id,
-                               "submission_title": sub.title,
-                               "error": sub.error})
-            else:
-                count += 1
+                n_errors += 1
+            count += 1
 
             sub.modified = sub.survey.modified
             session.commit()
 
-    if len(errors) != 0:
-        send_email(config, mail_content(errors))
-
-    log.info("Successfully recalculated scores for %d submissions.",
-             count)
-    log.info("Failed to recalculate scores for %d submissions.",
-             len(errors))
+    log.info("Successfully recalculated scores for %d submissions.", count)
+    log.info("Of those, %d contain user errors.", n_errors)
+    return count, n_errors
 
 
 def process_loop():

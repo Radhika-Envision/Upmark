@@ -294,8 +294,8 @@ class DaemonTest(base.AqHttpTestBase):
         with mock.patch('recalculate.send', send), \
                 mock.patch('response_type.ResponseType.validate',
                            side_effect=ResponseTypeError):
-            recalculate.process_once(config)
-            self.assertEqual(len(messages), 1)
+            count, n_errors = recalculate.process_once(config)
+            self.assertEqual(n_errors, 1)
 
         messages = []
         with mock.patch('recalculate.send', send), \
