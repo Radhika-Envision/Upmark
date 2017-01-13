@@ -41,6 +41,10 @@ SCHEMA = {
         'type': 'string',
         'default_value': "Upmark Survey Platform",
     },
+    'app_base_url': {
+        'type': 'string',
+        'default_value': "upmark.vpac-innovations.com",
+    },
 
     'theme_logo': {
         'type': 'image',
