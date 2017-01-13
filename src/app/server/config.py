@@ -43,7 +43,7 @@ SCHEMA = {
     },
     'app_base_url': {
         'type': 'string',
-        'default_value': "upmark.vpac-innovations.com",
+        'default_value': "https://upmark.example",
     },
 
     'theme_logo': {
