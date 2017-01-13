@@ -75,11 +75,13 @@ def verbs(action):
     return expr;
 
 
-def send_email(config, user, activities, messages, app_name_short):
+def send_email(config, user, activities, messages, app_name_short,
+        app_base_url):
     template = config['MESSAGE_CONTENT']
     params = {
         'user_id': user.id,
-        'app_name_short': app_name_short}
+        'app_name_short': app_name_short,
+        'app_base_url': app_base_url}
     subject = config['MESSAGE_SUBJECT'].format(**params)
     params['activities'] = mail_content(config, activities)
     params['messages'] = "\n".join(messages)
@@ -147,6 +149,7 @@ def process_once(config):
             .all())
 
         app_name_short = app_config.get_setting(session, 'app_name_short')
+        app_base_url = app_config.get_setting(session, 'app_base_url')
 
         for user, now in user_list:
             messages = []
@@ -155,7 +158,8 @@ def process_once(config):
                 config['DATE_FORMAT'])
             if len(activities) > 0:
                 send_email(
-                    config, user, activities, messages, app_name_short)
+                    config, user, activities, messages, app_name_short,
+                    app_base_url)
                 n_sent += 1
             user.email_time = now
             # Commit after each email to avoid multiple emails in case a

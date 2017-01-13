@@ -12,6 +12,7 @@ from tornado.testing import AsyncHTTPTestCase
 from tornado.web import Application
 
 import base
+import config as app_config
 import model
 import notifications
 import recalculate
@@ -100,9 +101,17 @@ class DaemonTest(base.AqHttpTestBase):
             self.assertEqual(n_sent, 6)
             self.assertEqual(len(messages), 6)
 
+        with model.session_scope() as session:
+            app_base_url = app_config.get_setting(session, 'app_base_url')
+
         author_checked = False
         for to, m in messages.items():
             self.assertIn("\nAdmin said:\nFoo\n", str(m))
+
+            # Assumes base URL is used in the notification email, this could
+            # be optional
+            self.assertIn(app_base_url, str(m))
+
             if to == 'author':
                 self.assertIn(
                     '\nFunction 1\nAuthor deleted this survey category\n',

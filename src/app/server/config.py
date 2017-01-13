@@ -41,6 +41,10 @@ SCHEMA = {
         'type': 'string',
         'default_value': "Upmark Survey Platform",
     },
+    'app_base_url': {
+        'type': 'string',
+        'default_value': "https://upmark.example",
+    },
 
     'theme_logo': {
         'type': 'image',
