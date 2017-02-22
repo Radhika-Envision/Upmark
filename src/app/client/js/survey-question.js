@@ -32,7 +32,7 @@ angular.module('wsaa.surveyQuestions', [
                     break;
                 case 'submission_full_review':
                     // E.g. view reports for submissions that are still draft
-                    if (Roles.hasPermission(current.user.role, 'admin'))
+                    if (Roles.hasPermission(current.user.role, 'consultant'))
                         return true;
                     break;
                 case 'view_aggregate_score':

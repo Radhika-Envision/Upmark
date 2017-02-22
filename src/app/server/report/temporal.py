@@ -41,7 +41,7 @@ class TemporalReportHandler(handlers.BaseHandler):
             raise handlers.ModelError("Invalid minimum number of constituents")
 
         if parameters['min_constituents'] < MIN_CONSITUENTS:
-            if not self.has_privillege('admin'):
+            if not self.has_privillege('consultant'):
                 raise handlers.ModelError(
                     "You can't generate a report with so few consituents")
 
@@ -138,7 +138,7 @@ class TemporalReportHandler(handlers.BaseHandler):
             approval = parameters.get('approval', 'reviewed')
             approval_states = ['draft', 'final', 'reviewed', 'approved']
             approval_index = approval_states.index(approval)
-            if self.has_privillege('admin'):
+            if self.has_privillege('consultant'):
                 min_approval = approval_states.index('draft')
             else:
                 min_approval = approval_states.index('reviewed')
