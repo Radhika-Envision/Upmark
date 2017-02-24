@@ -72,7 +72,11 @@ class TemporalReportHandler(handlers.BaseHandler):
             query = self.build_query(session, parameters, survey_id)
             responses = query.all()
             responses = self.filter_deleted_structure(responses)
-            table_meta = self.bucket_responses(responses, self.get_interval(parameters))
+            interval = Interval.from_parameters(parameters)
+            bucketer = TemporalResponseBucketer(interval)
+            for response in responses:
+                bucketer.add(response)
+            table_meta = bucketer.to_table_meta()
             rows = self.create_detail_rows(table_meta)
 
             if parameters.get('type') == 'summary':
@@ -90,10 +94,11 @@ class TemporalReportHandler(handlers.BaseHandler):
         if extension == 'xlsx':
             outfile = "%s.xlsx" % report_type
             outpath = os.path.join(tmpdir, outfile)
-            self.write_xlsx(cols, rows, outpath)
+            writer = XlWriter(outpath)
         else:
             raise handlers.MissingDocError(
                 "File type not supported: %s" % extension)
+        writer.write(cols, rows)
 
         return outpath, outfile
 
@@ -114,13 +119,11 @@ class TemporalReportHandler(handlers.BaseHandler):
                     model.Submission.created))
 
         def date_filter(query):
-            interval = self.get_interval(parameters)
-            min_date = self.lower_bound(
-                datetime.datetime.utcfromtimestamp(parameters.get('min_date')),
-                interval)
-            max_date = self.upper_bound(
-                datetime.datetime.utcfromtimestamp(parameters.get('max_date')),
-                interval)
+            interval = Interval.from_parameters(parameters)
+            min_date = interval.lower_bound(
+                datetime.datetime.utcfromtimestamp(parameters.get('min_date')))
+            max_date = interval.upper_bound(
+                datetime.datetime.utcfromtimestamp(parameters.get('max_date')))
 
             self.reason("Date range: %s - %s" % (
                 min_date.strftime('%d %b %Y'),
@@ -232,41 +235,17 @@ class TemporalReportHandler(handlers.BaseHandler):
             lambda t: t.closest_deleted_ancestor() is not None)
         return [r for r in responses if not deleted_things[r.qnode_measure]]
 
-    def bucket_responses(self, responses, interval):
-        tm = TableMeta()
-        tm.bucketed_responses = {}
-        buckets = set()
-        qnode_measure_map = {}
-        organisations = set()
-
-        for response in responses:
-            bucket = self.lower_bound(response.submission.created, interval)
-            k = (response.measure_id, response.submission.organisation,
-                bucket)
-
-            if k in tm.bucketed_responses:
-                if (tm.bucketed_responses[k].submission.created
-                        > response.submission.created):
-                    continue
-
-            tm.bucketed_responses[k] = response
-
-            buckets.add(bucket)
-            qnode_measure_map[response.measure_id] = response.qnode_measure
-            organisations.add(response.submission.organisation)
-
-        tm.buckets = sorted(buckets)
-        tm.qnode_measures = sorted(
-            qnode_measure_map.values(), key=lambda qm: qm.get_path_tuple())
-        tm.organisations = sorted(organisations, key=lambda o: o.name)
-        return tm
-
     def create_detail_rows(self, table_meta):
+        '''
+        @return a list of OrganisationRows. These need further transformation
+            before they can be rendered; see OrganisationRow for details. The
+            rows are sorted in the same way as the keys in `table_meta`.
+        '''
         rows = []
         current_row = None
         for qm, organisation, bucket in table_meta.keys():
             k = (qm.measure_id, organisation, bucket)
-            r = table_meta.bucketed_responses.get(k)
+            r = table_meta.get(k)
             if (not current_row
                     or qm.measure_id != current_row.qm.measure_id
                     or organisation != current_row.organisation):
@@ -345,48 +324,63 @@ class TemporalReportHandler(handlers.BaseHandler):
 
         return cols, out_rows
 
-    def write_xlsx(self, cols, rows, outpath):
-        with xlsxwriter.Workbook(outpath) as workbook:
-            worksheet = workbook.add_worksheet("Data")
-            worksheet.freeze_panes(1, 0)
 
-            cell_formats = {
-                'text_header': workbook.add_format({'bold': 1}),
-                'date_header': workbook.add_format(
-                    {'num_format': 'dd/mm/yyyy', 'bold': 1}),
-                'text': workbook.add_format({}),
-                'link': workbook.add_format(
-                    {'font_color': 'blue', 'underline':  1}),
-                'real': workbook.add_format(
-                    {'num_format': '0.00'}),
-                'int': workbook.add_format(
-                    {'num_format': '0'}),
-            }
+class XlWriter:
+    def __init__(self, outpath):
+        self.outpath = outpath
 
-            # Write column headings
-            for i, col in enumerate(cols):
-                heading, cell_width, data_type = col
-                if isinstance(heading, datetime.datetime):
-                    header_format = cell_formats['date_header']
+    def write(self, cols, rows):
+        with xlsxwriter.Workbook(self.outpath) as workbook:
+            self.write_(cols, rows, workbook)
+
+    def write_(self, cols, rows, workbook):
+        worksheet = workbook.add_worksheet("Data")
+        worksheet.freeze_panes(1, 0)
+
+        cell_formats = {
+            'text_header': workbook.add_format({'bold': 1}),
+            'date_header': workbook.add_format(
+                {'num_format': 'dd/mm/yyyy', 'bold': 1}),
+            'text': workbook.add_format({}),
+            'link': workbook.add_format(
+                {'font_color': 'blue', 'underline':  1}),
+            'real': workbook.add_format(
+                {'num_format': '0.00'}),
+            'int': workbook.add_format(
+                {'num_format': '0'}),
+        }
+
+        # Write column headings
+        for i, col in enumerate(cols):
+            heading, cell_width, data_type = col
+            if isinstance(heading, datetime.datetime):
+                header_format = cell_formats['date_header']
+            else:
+                header_format = cell_formats['text_header']
+            worksheet.set_column(i, i, cell_width, cell_formats[data_type])
+            worksheet.write(0, i, heading, header_format)
+
+        # Write data, this depends on requested report type.
+        for row_index, row in enumerate(rows):
+            row_index += 1
+            for col_index, (col, cell) in enumerate(zip(cols, row)):
+                if isinstance(cell, Link):
+                    worksheet.write_url(
+                        row_index, col_index, cell.url, None, cell.title)
+                elif isinstance(cell, int) and col[2] != 'int':
+                    worksheet.write(
+                        row_index, col_index, cell, cell_formats['int'])
                 else:
-                    header_format = cell_formats['text_header']
-                worksheet.set_column(i, i, cell_width, cell_formats[data_type])
-                worksheet.write(0, i, heading, header_format)
+                    worksheet.write(row_index, col_index, cell)
 
-            # Write data, this depends on requested report type.
-            for row_index, row in enumerate(rows):
-                row_index += 1
-                for col_index, (col, cell) in enumerate(zip(cols, row)):
-                    if isinstance(cell, Link):
-                        worksheet.write_url(
-                            row_index, col_index, cell.url, None, cell.title)
-                    elif isinstance(cell, int) and col[2] != 'int':
-                        worksheet.write(
-                            row_index, col_index, cell, cell_formats['int'])
-                    else:
-                        worksheet.write(row_index, col_index, cell)
 
-    def get_interval(self, parameters):
+class Interval:
+    def __init__(self, width, units):
+        self.width = width
+        self.units = units
+
+    @classmethod
+    def from_parameters(cls, parameters):
         try:
             width = int(parameters.get('interval_num', 1))
         except ValueError:
@@ -400,60 +394,99 @@ class TemporalReportHandler(handlers.BaseHandler):
             if width not in {1, 2, 3, 6}:
                 raise handlers.ModelError("Interval must be 1, 2, 3 or 6 months")
         else:
-            raise handlers.ModelError("Unrecognised interval %s" % unit)
-        return width, units
+            raise handlers.ModelError("Unrecognised interval %s" % units)
+        return cls(width, units)
 
-    def temporal_bucket(self, date, interval):
-        width, unit = interval
+    def temporal_bucket(self, date):
         # Align buckets to Gregorian epoch
-        if unit == 'years':
-            return date.year // width
+        if self.units == 'years':
+            return date.year // self.width
         else:
-            return (date.year * 12 + (date.month - 1)) // width
+            return (date.year * 12 + (date.month - 1)) // self.width
 
-    def lower_bound_of_bucket(self, bucket_i, interval):
-        width, unit = interval
-        if unit == 'years':
-            year = bucket_i * width
+    def lower_bound_of_bucket(self, bucket_i):
+        if self.units == 'years':
+            year = bucket_i * self.width
             return datetime.datetime(year, 1, 1)
         else:
-            year = (bucket_i * width) // 12
-            month = ((bucket_i * width) % 12) + 1
+            year = (bucket_i * self.width) // 12
+            month = ((bucket_i * self.width) % 12) + 1
             return datetime.datetime(year, month, 1)
 
-    def lower_bound(self, date, interval):
-        bucket_i = self.temporal_bucket(date, interval)
-        return self.lower_bound_of_bucket(bucket_i, interval)
+    def lower_bound(self, date):
+        bucket_i = self.temporal_bucket(date)
+        return self.lower_bound_of_bucket(bucket_i)
 
-    def upper_bound(self, date, interval):
-        bucket_i = self.temporal_bucket(date, interval)
+    def upper_bound(self, date):
+        bucket_i = self.temporal_bucket(date)
         bucket_i += 1
-        return self.lower_bound_of_bucket(bucket_i, interval)
-
-    def date_diff(self, date, today):
-        this_year = today.year
-        this_month = today.month
-        month = date.month
-        year = date.year
-
-        delta_months = 0
-        delta_years = 0
-        while ((month != this_month) or (year != this_year)):
-            month += 1
-            if month == 13:
-                month = 1
-                year += 1
-                delta_years += 1
-
-            delta_months += 1
-
-        return (delta_months, delta_years)
+        return self.lower_bound_of_bucket(bucket_i)
 
 
 class TableMeta:
+    '''
+    Bucketed responses sorted by measure, organisation and time.
+    '''
+
+    def __init__(self, bucketed_responses, qnode_measures, organisations, buckets):
+        self.bucketed_responses = bucketed_responses
+        self.qnode_measures = qnode_measures
+        self.organisations = organisations
+        self.buckets = buckets
+
     def keys(self):
         return itertools.product(
             self.qnode_measures, self.organisations, self.buckets)
+
+    def __getitem__(self, k):
+        return self.bucketed_responses[k]
+
+    def get(self, k):
+        return self.bucketed_responses.get(k)
+
+    def __iter__(self):
+        return iter(keys(self))
+
+    def __len__(self):
+        return len(self.bucketed_responses)
+
+
+class TemporalResponseBucketer:
+    '''
+    Buckets responses by measure, organisation and time.
+    '''
+
+    def __init__(self, interval):
+        self.interval = interval
+        self.bucketed_responses = {}
+        self.buckets = set()
+        self.qnode_measure_map = {}
+        self.organisations = set()
+
+    def add(self, response):
+        bucket = self.interval.lower_bound(response.submission.created)
+        k = (response.measure_id, response.submission.organisation,
+            bucket)
+
+        if k in self.bucketed_responses:
+            if (self.bucketed_responses[k].submission.created
+                    > response.submission.created):
+                return
+
+        self.bucketed_responses[k] = response
+
+        self.buckets.add(bucket)
+        self.qnode_measure_map[response.measure_id] = response.qnode_measure
+        self.organisations.add(response.submission.organisation)
+
+    def to_table_meta(self):
+        buckets = sorted(self.buckets)
+        qnode_measures = sorted(
+            self.qnode_measure_map.values(), key=lambda qm: qm.get_path_tuple())
+        organisations = sorted(
+            self.organisations, key=lambda o: o.name)
+        return TableMeta(
+            self.bucketed_responses.copy(), qnode_measures, organisations, buckets)
 
 
 class OrganisationRow:
