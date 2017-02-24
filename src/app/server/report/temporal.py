@@ -5,7 +5,7 @@ import logging
 import os
 import tempfile
 
-import numpy
+import numpy as np
 from sqlalchemy import true, false
 from sqlalchemy.orm import joinedload
 from tornado import gen
@@ -243,9 +243,10 @@ class TemporalReportHandler(handlers.BaseHandler):
         '''
         rows = []
         current_row = None
+        n_buckets = len(table_meta.buckets)
         for qm, organisation, bucket in table_meta.keys():
             k = (qm.measure_id, organisation, bucket)
-            r = table_meta.get(k)
+            response = table_meta.get(k)
             if (not current_row
                     or qm.measure_id != current_row.qm.measure_id
                     or organisation != current_row.organisation):
@@ -253,24 +254,27 @@ class TemporalReportHandler(handlers.BaseHandler):
                 current_row = OrganisationRow(qm, organisation)
                 rows.append(current_row)
 
-            current_row.scores.append(None or r and r.score)
-            if r:
-                current_row.response = r
+            if response is not None:
+                current_row.append(response)
+                current_row.response = response
+            else:
+                current_row.append(None)
 
         return rows
 
     def convert_to_stats(self, rows, organisation, min_constituents):
         out_rows = []
-        for qm, rs in itertools.groupby(rows, key=lambda r: r.qm):
-            rs = list(rs)
-            row_scores = [row.scores for row in rs]
+        for qm, qm_rows in itertools.groupby(rows, key=lambda r: r.qm):
+            qm_rows = list(qm_rows)
+
+            row_scores = [row.scores for row in qm_rows]
             cells = list(zip(*row_scores))
             stats = [self.compute_stats(c, min_constituents) for c in cells]
             stats = list(zip(*stats))
             try:
                 out_rows.append(next(
-                    r for r in rs
-                    if r.organisation == organisation))
+                    row for row in qm_rows
+                    if row.organisation == organisation))
             except StopIteration:
                 out_rows.append(OrganisationRow(qm, organisation))
             out_rows.append(StatisticRow(qm, "Min", list(stats[0])))
@@ -286,12 +290,12 @@ class TemporalReportHandler(handlers.BaseHandler):
         constituents = [c for c in cells if c is not None]
         if len(constituents) < min_constituents:
             return (None,) * 5 + (0,)
-        np_columns = numpy.array(constituents)
+        np_columns = np.array(constituents)
         results = (
             min(np_columns),
-            numpy.percentile(np_columns, 25),
-            numpy.percentile(np_columns, 50),
-            numpy.percentile(np_columns, 75),
+            np.percentile(np_columns, 25),
+            np.percentile(np_columns, 50),
+            np.percentile(np_columns, 75),
             max(np_columns),
             len(constituents),
         )
@@ -302,13 +306,15 @@ class TemporalReportHandler(handlers.BaseHandler):
         base_url = "%s://%s" % (self.request.protocol, self.request.host)
         out_rows = []
         for row in rows:
-            out_rows.append([
+            header_cells = [
                 row.qm.program.title,
                 row.qm.get_path(),
                 row.qm.measure.title,
                 row.name,
                 row.link(base_url),
-            ] + row.scores)
+            ]
+            for title, cells in zip(row.sub_titles(), row.sub_rows()):
+                out_rows.append(header_cells + [title] + cells)
 
         if report_type == 'detail':
             statistic_name = "Organisation"
@@ -320,6 +326,7 @@ class TemporalReportHandler(handlers.BaseHandler):
             ("Measure", 40, 'text'),
             (statistic_name, 30, 'text'),
             ("Link", 8, 'link'),
+            ("Part", 20, 'text'),
         ] + [(b, 12, 'real') for b in table_meta.buckets]
 
         return cols, out_rows
@@ -490,13 +497,24 @@ class TemporalResponseBucketer:
 
 
 class OrganisationRow:
-    __slots__ = ('qm', 'organisation', 'response', 'scores')
+    __slots__ = 'qm organisation response responses'.split()
 
-    def __init__(self, qm, organisation, scores=None):
+    def __init__(self, qm, organisation):
         self.qm = qm
         self.organisation = organisation
         self.response = None
-        self.scores = scores or []
+        self.responses = []
+
+    def append(self, response):
+        self.responses.append(response)
+
+    def sub_titles(self):
+        yield "Score"
+
+    def sub_rows(self):
+        yield [
+            response.score if response is not None else None
+            for response in self.responses]
 
     @property
     def name(self):
@@ -520,12 +538,12 @@ class OrganisationRow:
 
 
 class StatisticRow:
-    __slots__ = ('qm', 'name', 'scores')
+    __slots__ = 'qm name scores'.split()
 
-    def __init__(self, qm, name, scores=None):
+    def __init__(self, qm, name, scores):
         self.qm = qm
         self.name = name
-        self.scores = scores or []
+        self.scores = scores
 
     def link(self, base_url):
         if self.qm:
