@@ -245,7 +245,7 @@ class TemporalReportHandler(handlers.BaseHandler):
         current_row = None
         n_buckets = len(table_meta.buckets)
         for qm, organisation, bucket in table_meta.keys():
-            k = (qm.measure_id, organisation, bucket)
+            k = (qm, organisation, bucket)
             response = table_meta.get(k)
             if (not current_row
                     or qm.measure_id != current_row.qm.measure_id
@@ -446,10 +446,15 @@ class TableMeta:
             self.qnode_measures, self.organisations, self.buckets)
 
     def __getitem__(self, k):
-        return self.bucketed_responses[k]
+        response = self.get(k)
+        if response is None:
+            raise KeyError("No such response %s", k)
+        return response
 
-    def get(self, k):
-        return self.bucketed_responses.get(k)
+    def get(self, k, default=None):
+        qm, organisation, bucket = k
+        k = (qm.measure_id, organisation.id, bucket)
+        return self.bucketed_responses.get(k, default)
 
     def __iter__(self):
         return iter(keys(self))
@@ -472,7 +477,7 @@ class TemporalResponseBucketer:
 
     def add(self, response):
         bucket = self.interval.lower_bound(response.submission.created)
-        k = (response.measure_id, response.submission.organisation,
+        k = (response.measure_id, response.submission.organisation.id,
             bucket)
 
         if k in self.bucketed_responses:
