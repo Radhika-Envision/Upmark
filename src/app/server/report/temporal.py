@@ -242,22 +242,23 @@ class TemporalReportHandler(handlers.BaseHandler):
             rows are sorted in the same way as the keys in `table_meta`.
         '''
         rows = []
-        current_row = None
-        n_buckets = len(table_meta.buckets)
+        # Measure varies the most slowly, then organisation, then temporal
+        # bucket.
+        qm_row = None
+        org_row = None
         for qm, organisation, bucket in table_meta.keys():
+            if not qm_row or qm_row.qm.measure_id != qm.measure_id:
+                qm_row = QnodeMeasureRow(qm)
+                org_row = None
+            qm_row.update(qm)
+
+            if not org_row or organisation != org_row.organisation:
+                org_row = OrganisationRow(qm_row, organisation)
+                rows.append(org_row)
+
             k = (qm, organisation, bucket)
             response = table_meta.get(k)
-            if (not current_row
-                    or qm.measure_id != current_row.qm.measure_id
-                    or organisation != current_row.organisation):
-                # New row
-                current_row = OrganisationRow(qm, organisation)
-                rows.append(current_row)
-
-            if response is not None:
-                current_row.append(response)
-            else:
-                current_row.append(None)
+            org_row.append(response)
 
         return rows
 
@@ -305,33 +306,22 @@ class TemporalReportHandler(handlers.BaseHandler):
         base_url = "%s://%s" % (self.request.protocol, self.request.host)
         out_rows = []
         for row in rows:
-            link = row.link(base_url)
-            base_path = row.qm.get_path()
-            for p, title, cells in zip(row.sub_paths(), row.sub_titles(), row.sub_rows()):
-                if p is None:
-                    path = base_path
-                else:
-                    path = base_path[:-1] + ":" + p
-                header_cells = [
-                    row.qm.program.title,
-                    path,
-                    row.qm.measure.title,
-                    row.name,
-                    link,
-                ]
-                out_rows.append(header_cells + [title] + cells)
+            out_rows.append(row.qm_row.measure_row(base_url) + row.measure_row(base_url))
+            for headers, data in zip(row.qm_row.part_rows(), row.part_rows()):
+                out_rows.append(headers + data)
 
         if report_type == 'detail':
             statistic_name = "Organisation"
         else:
             statistic_name = "Statistic"
         cols = [
+            ("Order", 5, 'text'),
             ("Latest program", 15, 'text'),
             ("Path", 10, 'text'),
             ("Measure", 40, 'text'),
-            (statistic_name, 30, 'text'),
-            ("Link", 8, 'link'),
             ("Part", 20, 'text'),
+            (statistic_name, 30, 'text'),
+            ("Link", 10, 'text'),
         ] + [(b, 12, 'real') for b in table_meta.buckets]
 
         return cols, out_rows
@@ -357,9 +347,9 @@ class XlWriter:
             'link': workbook.add_format(
                 {'font_color': 'blue', 'underline':  1}),
             'real': workbook.add_format(
-                {'num_format': '0.00'}),
+                {'num_format': '0.00', 'align': 'right'}),
             'int': workbook.add_format(
-                {'num_format': '0'}),
+                {'num_format': '0', 'align': 'right'}),
         }
 
         # Write column headings
@@ -373,8 +363,7 @@ class XlWriter:
             worksheet.write(0, i, heading, header_format)
 
         # Write data, this depends on requested report type.
-        for row_index, row in enumerate(rows):
-            row_index += 1
+        for row_index, row in enumerate(rows, 1):
             for col_index, (col, cell) in enumerate(zip(cols, row)):
                 if isinstance(cell, Link):
                     worksheet.write_url(
@@ -506,45 +495,81 @@ class TemporalResponseBucketer:
             self.bucketed_responses.copy(), qnode_measures, organisations, buckets)
 
 
-class OrganisationRow:
-    __slots__ = 'qm organisation latest_response responses response_type response_parts'.split()
-
-    def __init__(self, qm, organisation):
+class QnodeMeasureRow:
+    def __init__(self, qm):
         self.qm = qm
-        self.organisation = organisation
-        self.latest_response = None
-        self.responses = []
         self.response_type = None
         self.response_parts = []
+        self.update(qm)
 
-    def append(self, response):
-        self.responses.append(response)
-        if response is None:
-            return
-
-        rt = response.qnode_measure.measure.response_type
+    def update(self, qm):
+        assert(qm.measure_id == self.qm.measure_id)
+        rt = qm.measure.response_type
         if rt != self.response_type:
             # If the program changes, the response parts may change.
             self.response_parts = list(
                 b if b is not None else a
                 for a, b in itertools.zip_longest(self.response_parts, rt.parts))
-        self.latest_response = response
 
-    def sub_paths(self):
-        yield None
-        for i in range(len(self.response_parts)):
-            yield str(i + 1)
+    def measure_row(self, base_url):
+        path = self.path(None, False)
+        sort_path = self.path(None, True)
+        program_title = self.qm.program.title
+        measure_title = self.qm.measure.title
+        return [sort_path, program_title, path, measure_title, "Score"]
 
-    def sub_titles(self):
-        yield "Score"
+    def part_rows(self):
+        program_title = self.qm.program.title
+        measure_title = self.qm.measure.title
+        for i, part in enumerate(self.response_parts, 1):
+            path = self.path(i, False)
+            sort_path = self.path(i, True)
+            yield [sort_path, program_title, path, measure_title, part['name']]
 
-        for i, part in enumerate(self.response_parts, start=1):
-            yield part['name']
+    def path(self, part, for_sort=False):
+        if for_sort:
+            fmt = "%04d"
+        else:
+            fmt = "%d"
+        base_path = ".".join(fmt % seq for seq in self.qm.get_path_tuple())
+        if part is None:
+            if for_sort:
+                part = 0
+            else:
+                return base_path
+        return base_path + ":" + (fmt % part)
 
-    def sub_rows(self):
+    def link(self, base_url):
+        return Link(
+            "Measure",
+            "{}/#/2/measure/{}?program={}&survey={}".format(
+                base_url, self.qm.measure_id, self.qm.program_id,
+                self.qm.survey_id))
+
+
+class OrganisationRow:
+    # __slots__ = 'qm organisation latest_response responses response_type response_parts'.split()
+
+    def __init__(self, qm_row, organisation):
+        self.qm_row = qm_row
+        self.organisation = organisation
+        self.responses = []
+        self.latest_response = None
+
+    def append(self, response):
+        self.responses.append(response)
+        if response is not None:
+            self.latest_response = response
+
+    def measure_row(self, base_url):
         def get_score(response):
-            return response.score if response is not None else None
+            if response is None:
+                return None
+            return response.score
+        return [self.organisation.name, self.link(base_url)] + [
+            get_score(response) for response in self.responses]
 
+    def part_rows(self):
         def get_part(response, i):
             if response is None:
                 return None
@@ -559,29 +584,23 @@ class OrganisationRow:
             except KeyError:
                 return part.get('value', None)
 
-        yield [get_score(response) for response in self.responses]
-        for i in range(len(self.response_parts)):
-            yield [get_part(response, i) for response in self.responses]
+        for i, _ in enumerate(self.qm_row.response_parts):
+            yield [self.organisation.name, None] + [
+                get_part(response, i) for response in self.responses]
 
     @property
     def name(self):
         return self.organisation.name
 
     def link(self, base_url):
-        if self.latest_response:
+        if self.latest_response is not None:
             return Link(
-                'Response',
+                "Response",
                 "{}/#/2/measure/{}?submission={}".format(
                     base_url, self.latest_response.measure_id,
                     self.latest_response.submission.id))
-        elif self.qm:
-            return Link(
-                'Measure',
-                "{}/#/2/measure/{}?program={}&survey={}".format(
-                    base_url, self.qm.measure_id, self.qm.program_id,
-                    self.qm.survey_id))
         else:
-            return None
+            return self.qm_row.link(base_url)
 
 
 class StatisticRow:
@@ -591,16 +610,6 @@ class StatisticRow:
         self.qm = qm
         self.name = name
         self.scores = scores
-
-    def link(self, base_url):
-        if self.qm:
-            return Link(
-                'Measure',
-                "{}/#/2/measure/{}?program={}&survey={}".format(
-                    base_url, self.qm.measure_id, self.qm.program_id,
-                    self.qm.survey_id))
-        else:
-            return None
 
 
 class Link:
