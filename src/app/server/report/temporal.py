@@ -36,6 +36,11 @@ class TemporalReportHandler(handlers.BaseHandler):
         parameters = self.request_son
         organisation_id = parameters.get('organisation_id')
 
+        self.check_privillege('org_admin', 'consultant')
+
+        if organisation_id != str(self.organisation.id):
+            self.check_privillege('consultant')
+
         try:
             parameters['min_constituents'] = int(
                 parameters.get('min_constituents', MIN_CONSITUENTS))
