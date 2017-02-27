@@ -256,7 +256,6 @@ class TemporalReportHandler(handlers.BaseHandler):
 
             if response is not None:
                 current_row.append(response)
-                current_row.response = response
             else:
                 current_row.append(None)
 
@@ -306,14 +305,20 @@ class TemporalReportHandler(handlers.BaseHandler):
         base_url = "%s://%s" % (self.request.protocol, self.request.host)
         out_rows = []
         for row in rows:
-            header_cells = [
-                row.qm.program.title,
-                row.qm.get_path(),
-                row.qm.measure.title,
-                row.name,
-                row.link(base_url),
-            ]
-            for title, cells in zip(row.sub_titles(), row.sub_rows()):
+            link = row.link(base_url)
+            base_path = row.qm.get_path()
+            for p, title, cells in zip(row.sub_paths(), row.sub_titles(), row.sub_rows()):
+                if p is None:
+                    path = base_path
+                else:
+                    path = base_path[:-1] + ":" + p
+                header_cells = [
+                    row.qm.program.title,
+                    path,
+                    row.qm.measure.title,
+                    row.name,
+                    link,
+                ]
                 out_rows.append(header_cells + [title] + cells)
 
         if report_type == 'detail':
@@ -502,36 +507,73 @@ class TemporalResponseBucketer:
 
 
 class OrganisationRow:
-    __slots__ = 'qm organisation response responses'.split()
+    __slots__ = 'qm organisation latest_response responses response_type response_parts'.split()
 
     def __init__(self, qm, organisation):
         self.qm = qm
         self.organisation = organisation
-        self.response = None
+        self.latest_response = None
         self.responses = []
+        self.response_type = None
+        self.response_parts = []
 
     def append(self, response):
         self.responses.append(response)
+        if response is None:
+            return
+
+        rt = response.qnode_measure.measure.response_type
+        if rt != self.response_type:
+            # If the program changes, the response parts may change.
+            self.response_parts = list(
+                b if b is not None else a
+                for a, b in itertools.zip_longest(self.response_parts, rt.parts))
+        self.latest_response = response
+
+    def sub_paths(self):
+        yield None
+        for i in range(len(self.response_parts)):
+            yield str(i + 1)
 
     def sub_titles(self):
         yield "Score"
 
+        for i, part in enumerate(self.response_parts, start=1):
+            yield part['name']
+
     def sub_rows(self):
-        yield [
-            response.score if response is not None else None
-            for response in self.responses]
+        def get_score(response):
+            return response.score if response is not None else None
+
+        def get_part(response, i):
+            if response is None:
+                return None
+            if response.not_relevant:
+                return "NA"
+            try:
+                part = response.response_parts[i]
+            except (IndexError, TypeError):
+                return None
+            try:
+                return "%d. %s" % (part['index'] + 1, part['note'])
+            except KeyError:
+                return part.get('value', None)
+
+        yield [get_score(response) for response in self.responses]
+        for i in range(len(self.response_parts)):
+            yield [get_part(response, i) for response in self.responses]
 
     @property
     def name(self):
         return self.organisation.name
 
     def link(self, base_url):
-        if self.response:
+        if self.latest_response:
             return Link(
                 'Response',
                 "{}/#/2/measure/{}?submission={}".format(
-                    base_url, self.response.measure_id,
-                    self.response.submission.id))
+                    base_url, self.latest_response.measure_id,
+                    self.latest_response.submission.id))
         elif self.qm:
             return Link(
                 'Measure',
