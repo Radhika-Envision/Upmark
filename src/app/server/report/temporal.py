@@ -36,6 +36,10 @@ class TemporalReportHandler(handlers.BaseHandler):
         parameters = self.request_son
         organisation_id = parameters.get('organisation_id')
 
+        if not self.has_privillege('consultant'):
+            if organisation_id != str(self.current_user.organisation_id):
+                raise handlers.ModelError("You can't view another organisation's data")
+
         try:
             parameters['min_constituents'] = int(
                 parameters.get('min_constituents', MIN_CONSITUENTS))
@@ -46,10 +50,6 @@ class TemporalReportHandler(handlers.BaseHandler):
             if not self.has_privillege('consultant'):
                 raise handlers.ModelError(
                     "You can't generate a report with so few consituents")
-
-        if parameters.get('type') != 'summary':
-            if not self.has_privillege('consultant'):
-                raise handlers.ModelError("You can't generate a detailed report")
 
         with tempfile.TemporaryDirectory() as tmpdir:
             outpath, outfile = yield self.process_temporal(
@@ -70,8 +70,19 @@ class TemporalReportHandler(handlers.BaseHandler):
 
     @run_on_executor
     def process_temporal(self, parameters, survey_id, tmpdir, extension):
+        if self.has_privillege('consultant'):
+            include_parts = True
+            one_org = None
+        else:
+            if parameters['type'] == 'detailed':
+                include_parts = True
+                one_org = parameters['organisation_id']
+            else:
+                include_parts = False
+                one_org = None
+
         with model.session_scope() as session:
-            query = self.build_query(session, parameters, survey_id)
+            query = self.build_query(session, parameters, survey_id, one_org)
             responses = query.all()
             responses = self.filter_deleted_structure(responses)
             interval = Interval.from_parameters(parameters)
@@ -79,22 +90,19 @@ class TemporalReportHandler(handlers.BaseHandler):
             for response in responses:
                 bucketer.add(response)
             table_meta = bucketer.to_table_meta()
-            rows = self.create_detail_rows(table_meta)
+            rows = self.create_detail_rows(table_meta, include_parts)
 
-            if parameters.get('type') == 'summary':
-                report_type = 'summary'
+            if parameters['type'] == 'summary':
                 organisation = (session
                     .query(model.Organisation)
                     .get(parameters['organisation_id']))
                 rows = self.convert_to_stats(
                     rows, organisation, parameters['min_constituents'])
-            else:
-                report_type = 'detail'
 
-            cols, rows = self.create_table(rows, table_meta, report_type)
+            cols, rows = self.create_table(rows, table_meta, parameters['type'])
 
         if extension == 'xlsx':
-            outfile = "%s.xlsx" % report_type
+            outfile = "%s.xlsx" % parameters['type']
             outpath = os.path.join(tmpdir, outfile)
             writer = XlWriter(outpath)
         else:
@@ -104,7 +112,7 @@ class TemporalReportHandler(handlers.BaseHandler):
 
         return outpath, outfile
 
-    def build_query(self, session, parameters, survey_id):
+    def build_query(self, session, parameters, survey_id, one_org):
         # All responses to current survey
         query = (session.query(model.Response)
                 .options(joinedload('submission'))
@@ -119,6 +127,9 @@ class TemporalReportHandler(handlers.BaseHandler):
                 .order_by(model.Response.measure_id,
                     model.Submission.organisation_id,
                     model.Submission.created))
+
+        def org_filter(query):
+            return query.filter(model.Organisation.id == one_org)
 
         def date_filter(query):
             interval = Interval.from_parameters(parameters)
@@ -222,6 +233,8 @@ class TemporalReportHandler(handlers.BaseHandler):
 
             return query
 
+        if one_org is not None:
+            query = org_filter(query)
         query = date_filter(query)
         query = approval_filter(query)
         if parameters.get('quality'):
@@ -237,7 +250,7 @@ class TemporalReportHandler(handlers.BaseHandler):
             lambda t: t.closest_deleted_ancestor() is not None)
         return [r for r in responses if not deleted_things[r.qnode_measure]]
 
-    def create_detail_rows(self, table_meta):
+    def create_detail_rows(self, table_meta, include_parts):
         '''
         @return a list of OrganisationRows. These need further transformation
             before they can be rendered; see OrganisationRow for details. The
@@ -262,9 +275,10 @@ class TemporalReportHandler(handlers.BaseHandler):
             if measure_id != qm.measure_id:
                 commit_rowset()
                 measure_id = qm.measure_id
-                n_parts = table_meta.part_lengths[measure_id]
                 qm_rows = [QnodeMeasureRow(qm, -1)]
-                qm_rows.extend(QnodeMeasureRow(qm, i) for i in range(n_parts))
+                if include_parts:
+                    n_parts = table_meta.part_lengths[measure_id]
+                    qm_rows.extend(QnodeMeasureRow(qm, i) for i in range(n_parts))
                 org_id = None
 
             if org_id != organisation.id:
@@ -333,7 +347,7 @@ class TemporalReportHandler(handlers.BaseHandler):
         for row in rows:
             out_rows.append(row.headers(base_url) + row.data())
 
-        if report_type == 'detail':
+        if report_type == 'detailed':
             statistic_name = "Organisation"
         else:
             statistic_name = "Statistic"

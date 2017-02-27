@@ -220,11 +220,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
             return;
         }
 
-        if (type == 'summary') {
-            $scope.reportSpec.organisationId = $scope.submission.organisation.id;
-        } else {
-            $scope.reportSpec.organisationId = null;
-        };
+        $scope.reportSpec.organisationId = $scope.submission.organisation.id;
     });
 
     // Date range and interval settings
