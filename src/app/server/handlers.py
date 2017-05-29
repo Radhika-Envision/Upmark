@@ -175,7 +175,7 @@ SCRIPTS = [
             '/.bower_components/to-markdown/dist/to-markdown.js',
             '/.bower_components/angular-diff-match-patch/angular-diff-match-patch.js',
             '/.bower_components/google-diff-match-patch/diff_match_patch.js',
-            '/.bower_components/FileSaver.js/FileSaver.js',
+            '/.bower_components/file-saver/FileSaver.js',
             '/.bower_components/angular-checkboxes/angular-checkboxes.js',
             '/.bower_components/angular-input-stars/angular-input-stars.js',
         ]

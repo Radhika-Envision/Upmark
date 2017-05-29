@@ -10,7 +10,7 @@ import uuid
 import sqlalchemy
 from sqlalchemy import String
 from sqlalchemy.orm import aliased
-from sqlalchemy.sql.expression import cast, literal
+from sqlalchemy.sql.expression import literal
 import sqlparse
 from tornado import gen
 from tornado.escape import json_decode, json_encode, utf8, to_basestring

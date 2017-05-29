@@ -871,7 +871,7 @@ angular.module('wsaa.aquamark',
 }])
 
 
-.run(function($rootScope, $window, $location, Notifications, log, timeAgo,
+.run(function($rootScope, $window, $location, Notifications, log,
         $route, checkLogin, $q, QuestionNode) {
 
     // Upgrade route version
@@ -1015,10 +1015,13 @@ angular.module('wsaa.aquamark',
     $rootScope.$on('$routeChangeSuccess', function(event) {
         $window.ga('send', 'pageview', '/' + $route.current.loadedTemplateUrl);
     });
+})
 
+
+.config(function(timeAgoSettings) {
     var oneDay = 60 * 60 * 24;
-    timeAgo.settings.allowFuture = true;
-    timeAgo.settings.fullDateAfterSeconds = oneDay * 3;
+    timeAgoSettings.allowFuture = true;
+    timeAgoSettings.fullDateAfterSeconds = oneDay * 3;
 })
 
 

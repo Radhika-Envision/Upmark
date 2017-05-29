@@ -1,13 +1,13 @@
-import xlrd
-import string
-import os
-from parse import parse
+import datetime
+import json
 import logging
+import os
+import re
+import sqlalchemy
+import string
 import tempfile
 import threading
-import json
-import sqlalchemy
-import datetime
+import xlrd
 
 import bleach
 from sqlalchemy.orm import joinedload
@@ -363,20 +363,20 @@ class Importer():
                 # for row_num in range(0, 1):
                 order = title = ''
                 for row_num in range(0, len(all_rows)-1):
-                    order, title = self.parse_order_title(all_rows, row_num, "A", "{order} {title}")
+                    order, title = self.parse_order_title(all_rows, row_num, "A")
                     function = program_qnodes.filter_by(parent_id=None, title=title).one()
                     log.debug("function: %s", function)
                     function_order = order
 
-                    order, title = self.parse_order_title(all_rows, row_num, "B", "{order} {title}")
+                    order, title = self.parse_order_title(all_rows, row_num, "B")
                     process = program_qnodes.filter_by(parent_id=function.id, title=title).one()
                     log.debug("process: %s", process)
 
-                    order, title = self.parse_order_title(all_rows, row_num, "C", "{order} {title}")
+                    order, title = self.parse_order_title(all_rows, row_num, "C")
                     subprocess = program_qnodes.filter_by(parent_id=process.id, title=title).one()
                     log.debug("subprocess: %s", subprocess)
 
-                    order, title = self.parse_order_title(all_rows, row_num, "D", "{order} {title}")
+                    order, title = self.parse_order_title(all_rows, row_num, "D")
                     measure = [
                         qm.measure for qm in subprocess.qnode_measures
                         if qm.measure.title == title]
@@ -451,15 +451,16 @@ class Importer():
 
         return {"index": response_index, "note": response_text}
 
+    CHOICE_PATTERN = re.compile(r'(?P<order>[\s+]) (?P<title>.+)')
 
-    def parse_order_title(self, all_rows, row_num, col_chr, parse_expression):
+    def parse_order_title(self, all_rows, row_num, col_chr, pattern):
         col_num = self.col2num(col_chr)
-        column = all_rows[row_num][col_num]
-        column_object = parse(parse_expression, column)
-        if column_object is None:
-            raise ImportError("Could not parse column '%s'" % col_chr)
-        order = column_object["order"]
-        title = column_object["title"].replace("\n", chr(10))
+        cell = all_rows[row_num][col_num]
+        match = Importer.CHOICE_PATTERN.match(cell)
+        if not match:
+            raise ImportError("Could not parse cell %s%s" % (row_num, col_chr))
+        order = match.group('order')
+        title = match.group('title').replace("\n", chr(10))
         return order, title
 
 
