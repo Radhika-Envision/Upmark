@@ -29,7 +29,7 @@
     <tbody>
       <tr ng-repeat="user in users"
             ng-class="{strike: user.deleted || user.organisation.deleted}"
-            any-href='/user/{{user.id}}'">
+            any-href='/2/user/{{user.id}}'">
         <td>{{user.name}}</td>
         <td ng-if="!hideOrg">{{user.organisation.name}}</td>
       </tr>

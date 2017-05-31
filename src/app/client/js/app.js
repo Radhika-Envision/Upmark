@@ -96,9 +96,14 @@ angular.module('wsaa.aquamark',
 
 
 .config(['$routeProvider', '$httpProvider', '$parseProvider', '$animateProvider',
-         'logProvider', 'chainProvider',
+         'logProvider', 'chainProvider', '$locationProvider',
         function($routeProvider, $httpProvider, $parseProvider, $animateProvider,
-                logProvider, chain) {
+                logProvider, chain, $locationProvider) {
+
+        // Revert behaviour: URLs do not need to have a `!` prefix.
+        // https://github.com/angular/angular.js/commit/aa077e81129c740041438688dff2e8d20c3d7b52
+        // https://webmasters.googleblog.com/2015/10/deprecating-our-ajax-crawling-scheme.html
+        $locationProvider.hashPrefix('');
 
         $routeProvider
 
