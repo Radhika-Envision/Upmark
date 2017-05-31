@@ -420,11 +420,13 @@ class DiffEngine:
                 qm_a = a.get_qnode_measure(self.survey_id)
                 a_son['path'] = qm_a.get_path()
                 a_son['parentId'] = str(qm_a.qnode_id)
+                a_son['surveyId'] = str(qm_a.survey_id)
                 a_son['seq'] = qm_a.seq
             if b:
                 qm_b = b.get_qnode_measure(self.survey_id)
                 b_son['path'] = qm_b.get_path()
                 b_son['parentId'] = str(qm_b.qnode_id)
+                b_son['surveyId'] = str(qm_b.survey_id)
                 b_son['seq'] = qm_b.seq
             if a and b and a_son['parentId'] == b_son['parentId']:
                 start = perf()
@@ -509,9 +511,9 @@ class DiffEngine:
 
     def remove_unchanged_fields(self, diff, ignore=None, protect=None):
         if protect is None:
-            protect = {'id', 'parentId', 'title', 'path'}
+            protect = {'id', 'parentId', 'surveyId', 'title', 'path'}
         if ignore is None:
-            ignore = {'id', 'parentId', 'path', 'seq'}
+            ignore = {'id', 'parentId', 'surveyId', 'path', 'seq'}
         for diff_item in diff:
             a, b = diff_item['pair']
             keys = a is not None and a.keys() or b.keys()
