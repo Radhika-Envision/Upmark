@@ -258,6 +258,7 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             readonly: '=',
             hasQuality: '=',
             externs: '=',
+            isDummy: '@',
         },
         replace: true,
         templateUrl: 'response_form.html',
@@ -277,6 +278,8 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             };
 
             var recalculate = Enqueue(function() {
+                if ($scope.isDummy)
+                    return;
                 var rt = $scope.rt,
                     partsR = $scope.response.responseParts;
 
@@ -313,6 +316,8 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
             $scope.$watch('externs', recalculate, true);
 
             $scope.getPartData = function(partSchema) {
+                if ($scope.isDummy)
+                    return;
                 var i = $scope.rt.parts.indexOf(partSchema);
                 return $scope.response.responseParts[i];
             };

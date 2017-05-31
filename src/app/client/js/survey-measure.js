@@ -28,16 +28,23 @@ angular.module('wsaa.survey.measure', [
             sourceVars: [],
         });
     }
-    $scope.newResponseType = function() {
+    $scope.newResponseType = function(type) {
+        var parts;
+        if (type == 'multiple_choice') {
+            parts = [{type: 'multiple_choice', id: 'a', options: [
+                {name: 'No', score: 0},
+                {name: 'Yes', score: 1}]
+            }];
+        } else if (type == 'numerical') {
+            parts = [{type: 'numerical', id: 'a'}];
+        }
+
         return new ResponseType({
             obType: 'response_type',
             programId: $scope.measure.programId,
-            name: null,
-            parts: [{type: 'multiple_choice', id: 'a', options: [
-                {name: 'No', score: 0},
-                {name: 'Yes', score: 1}]
-            }],
-            formula: null,
+            name: $scope.measure.title,
+            parts: parts,
+            formula: 'a',
         });
     };
     $scope.cloneResponseType = function() {
@@ -48,14 +55,13 @@ angular.module('wsaa.survey.measure', [
         return rtDef;
     };
     $scope.rt = {
-        definition: routeData.responseType || $scope.newResponseType(),
+        definition: routeData.responseType || null,
         responseType: null,
         search: {
             programId: $scope.measure.programId,
             pageSize: 5,
         },
     };
-
 
     if ($scope.submission) {
         // Get the response that is associated with this measure and submission.
@@ -210,6 +216,10 @@ angular.module('wsaa.survey.measure', [
 
     var rtDefChanged = Enqueue(function() {
         var rtDef = $scope.rt.definition;
+        if (!rtDef) {
+            $scope.rt.responseType = null;
+            return;
+        }
         $scope.rt.responseType = new responseTypes.ResponseType(
             rtDef.name, rtDef.parts, rtDef.formula);
     }, 0, $scope);
@@ -288,6 +298,11 @@ angular.module('wsaa.survey.measure', [
     $scope.save = function() {
         if (!$scope.edit.model)
             return;
+        if (!$scope.rt.definition) {
+            Notifications.set('edit', 'error',
+                "Could not save response type: No repsonse type");
+            return;
+        }
         $scope.rt.definition.$createOrSave().then(
             function success(definition) {
                 var measure = $scope.edit.model;

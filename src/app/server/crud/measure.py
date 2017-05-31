@@ -543,6 +543,8 @@ class MeasureHandler(
         '''
         Apply user-provided data to the saved model.
         '''
+        if not son.get('title', None):
+            raise handlers.ModelError("Name is required")
         update = updater(measure)
         update('title', son)
         update('weight', son)

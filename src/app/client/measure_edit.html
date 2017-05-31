@@ -27,10 +27,10 @@
                   highlight="rt.showSearch"
                   highlight-dismiss="rt.showSearch = false">
               <button class="btn btn-default btn-round"
-                      ng-if="!rt.showSearch"
-                      title="Create and use a new response type"
-                      ng-click="rt.definition = newResponseType()">
-                  <i class="fa fa-plus"></i>
+                      ng-if="rt.definition && !rt.showSearch"
+                      title="Clear"
+                      ng-click="rt.definition = null">
+                  <i class="fa fa-trash-o"></i>
               </button>
               <button class="btn btn-default btn-round"
                       ng-if="!rt.showSearch && rt.definition.id"
@@ -83,7 +83,25 @@
           </div>
       </div>
 
-      <div response-type-editor="rt.definition" weight="edit.model.weight"
+      <div ng-if="!rt.definition">
+          <button class="btn btn-default btn-block"
+                  ng-click="rt.definition = newResponseType('numerical')">
+              <i class="fa fa-plus" ng-if="!rt.showSearch"></i>
+              New numerical response type
+          </button>
+          <button class="btn btn-default btn-block"
+                  ng-click="rt.definition = newResponseType('multiple_choice')">
+              <i class="fa fa-plus" ng-if="!rt.showSearch"></i>
+              New multiple-choice response type
+          </button>
+          <button class="btn btn-default btn-block"
+                  ng-click="rt.showSearch = true">
+              <i class="fa fa-link" ng-if="!rt.showSearch"></i>
+              Re-use response type from another measure
+          </button>
+      </div>
+      <div ng-if="rt.definition"
+              response-type-editor="rt.definition" weight="edit.model.weight"
               is-bound="rt.definition.id && rt.definition.id == measure.responseTypeId"></div>
 
       <h3 ng-if="rt.responseType">Variable Bindings</h3>

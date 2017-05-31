@@ -134,11 +134,10 @@
             </div>
 
             <div class="col-md-6" ng-if="!submission">
-                <h2>Response</h2>
-                <p class="text-muted">
-                    The response form will be displayed here when filling out a
-                    submission.
-                </p>
+                <response-form type="rt.responseType" is-dummy="true"
+                        has-quality="structure.program.hasQuality"
+                        class="sample-only" title="Sample only">
+                </response-form>
 
                 <div ng-include src="'/inline/measure_variable_list.html'"></div>
             </div>

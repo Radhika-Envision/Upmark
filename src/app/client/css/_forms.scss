@@ -61,7 +61,11 @@ $anim-time: 0.3s;
     }
 }
 
-.form-control {
+.btn-block + .btn-block {
+    margin-top: 10px;
+}
+
+.form-control, .input-group-addon {
     border-color: transparent;
     background: $button-bg;
     box-shadow: none;
@@ -324,6 +328,10 @@ ul.list-form {
             background: #FFf0f0;
             box-shadow: none;
         }
+    }
+    .input-group-addon {
+        background: #FFE3E3;
+        border-color: transparent;
     }
 }
 

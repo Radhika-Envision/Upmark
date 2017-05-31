@@ -7,7 +7,8 @@
     <h2>
         Response
 
-        <span class="text-muted">
+        <span class="text-muted" ng-if="isDummy">(sample)</span>
+        <span class="text-muted" ng-if="!isDummy">
             <small ng-if="state.message">
                 <i class="fa fa-exclamation fa-fw"></i> {{state.message}}
             </small>

@@ -207,6 +207,8 @@ class ResponseTypeHandler(
 
     def _update(self, measure, son):
         '''Apply user-provided data to the saved model.'''
+        if not son.get('name', None):
+            raise handlers.ModelError("Name is required")
         update = updater(measure)
         update('name', son)
         update('parts', son)

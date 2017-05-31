@@ -5,7 +5,7 @@
                 Name:</label>
             <input type="text" class="form-control"
                 id="rttitle" name="rttitle"
-                title="Response type name"
+                title="Response type name; usually, this should be more generic than the measure name"
                 ng-model="rt.name" required />
         </div>
 
@@ -218,9 +218,9 @@
         <li>
             <strong>Name:</strong>
             The name of your response type. This is for
-            your benefit only; respondents will not see it. Even so you should
-            use a good name to make it easier to link your response type to
-            multiple measures.
+            your benefit only; respondents will not see it. Usually this should
+            be more generic than the measure name, because a response type may
+            be used by multiple measures.
         </li>
         <li>
             <strong>Formula:</strong>
