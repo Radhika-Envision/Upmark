@@ -257,7 +257,7 @@ angular.module('wsaa.surveyQuestions', [
                             "Could not get submission list: " + details.statusText);
                     }
                 );
-            }, 100);
+            }, 100, $scope);
             $scope.$watch('search', $scope.applySearch, true);
 
             $scope.$watchGroup(['program', 'search.organisationId', 'survey', 'track'],
@@ -845,10 +845,10 @@ angular.module('wsaa.surveyQuestions', [
 .controller('QuestionNodeCtrl', [
         '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
         '$location', 'Notifications', 'Current', 'format', 'Structure',
-        'layout', 'Arrays', 'ResponseNode', 'Enqueue', '$timeout', '$route',
+        'layout', 'Arrays', 'ResponseNode', '$timeout', '$route',
         function($scope, QuestionNode, routeData, Editor, authz,
                  $location, Notifications, current, format, Structure,
-                 layout, Arrays, ResponseNode, Enqueue, $timeout, $route) {
+                 layout, Arrays, ResponseNode, $timeout, $route) {
 
     // routeData.parent and routeData.survey will only be defined when
     // creating a new qnode.
@@ -1933,7 +1933,7 @@ angular.module('wsaa.surveyQuestions', [
         $timeout(function() {
             $scope.longRunning = true;
         }, 5000);
-    }, 1000);
+    }, 1000, $scope);
     $scope.$on('$routeUpdate', function(scope, next, current) {
         $scope.updateTags();
         $scope.update();

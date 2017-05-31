@@ -212,7 +212,7 @@ angular.module('wsaa.survey.measure', [
         var rtDef = $scope.rt.definition;
         $scope.rt.responseType = new responseTypes.ResponseType(
             rtDef.name, rtDef.parts, rtDef.formula);
-    });
+    }, 0, $scope);
     $scope.$watch('rt.definition', rtDefChanged);
     $scope.$watch('rt.definition', rtDefChanged, true);
     $scope.$watchGroup(['rt.responseType', 'edit.model'], function(vars) {
@@ -273,7 +273,7 @@ angular.module('wsaa.survey.measure', [
                     "Could not get response type list: " + details.statusText);
             }
         );
-    }, 100);
+    }, 100, $scope);
     $scope.$watch('rt.search', applyRtSearch, true);
     $scope.$watch('rt.showSearch', applyRtSearch, true);
     $scope.chooseResponseType = function(rtDef) {

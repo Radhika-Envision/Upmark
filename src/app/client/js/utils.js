@@ -242,8 +242,10 @@ angular.module('vpac.utils', [])
  * available to the callbacks via the this keyword.
  */
 .factory('Enqueue', ['$timeout', function($timeout) {
-    var Enqueue = function(callback, delay) {
+    var Enqueue = function Enqueue(callback, delay, scope) {
         var enqueue = function() {
+            if (enqueue.destroyed)
+                return;
             enqueue.args = arguments;
             enqueue.that = this;
             if (enqueue.promise)
@@ -267,6 +269,7 @@ angular.module('vpac.utils', [])
                 }
             }, enqueue.delay);
         };
+        enqueue.destroyed = false;
         enqueue.promise = null;
         enqueue.that = undefined;
         enqueue.args = undefined;
@@ -274,6 +277,11 @@ angular.module('vpac.utils', [])
         enqueue.start = null;
         enqueue.always = null;
         enqueue.delay = delay;
+        if (scope) {
+            scope.$on('$destroy', function() {
+                Enqueue.destroy(enqueue);
+            });
+        }
         return enqueue;
     };
     Enqueue.cancel = function(enqueue) {
@@ -281,6 +289,10 @@ angular.module('vpac.utils', [])
         enqueue.promise = null;
         enqueue.that = undefined;
         enqueue.args = undefined;
+    };
+    Enqueue.destroy = function(enqueue) {
+        enqueue.destroyed = true;
+        Enqueue.cancel(enqueue);
     };
     return Enqueue;
 }])

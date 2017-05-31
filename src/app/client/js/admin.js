@@ -499,7 +499,7 @@ angular.module('wsaa.admin', [
         if (!$scope.search.id)
             return;
         $scope.surveys = PurchasedSurvey.query($scope.search);
-    });
+    }, 0, $scope);
     $scope.$watch('search', update, true);
     $scope.$on('$destroy', function() {
         $scope = null;

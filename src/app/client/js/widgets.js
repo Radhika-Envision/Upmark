@@ -314,7 +314,7 @@ angular.module('vpac.widgets', [])
             };
             $scope.orderChanged = Enqueue(function() {
                 $scope._orderChanged();
-            });
+            }, 0, $scope);
         },
         link: function(scope, elem, attrs, ngModel) {
             elem.toggleClass("btn-group btn-group-justified", true);
@@ -1242,7 +1242,7 @@ angular.module('vpac.widgets', [])
         link: function(scope, elem, attrs, form) {
             var show = Enqueue(function() {
                 elem.toggleClass('in', true);
-            }, 250);
+            }, 250, scope);
             var hide = function() {
                 Enqueue.cancel(show);
                 elem.toggleClass('in', false);
