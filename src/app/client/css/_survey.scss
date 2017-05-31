@@ -700,6 +700,22 @@ ul.list-results {
     }
 }
 
+@media print {
+    .print-field {
+        border: 1px solid black;
+        padding: 4px 8px;
+    }
+    span.print-field {
+        line-height: 2.5;
+        &:not(:last-child) {
+            margin-right: 1ex;
+        }
+    }
+    a[href].hide-print-url:after {
+        content: '';
+    }
+}
+
 .part {
     margin: 24px 0;
     label {

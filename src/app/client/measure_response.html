@@ -101,30 +101,8 @@
 </div>
 
 <div ng-class="structure.deletedItem ? null : 'visible-print-block'">
-    Quality: {{response.quality}}
-    Status: {{response.approval}}
-</div>
-
-<div>
-    <p ng-if="response.user.name" class="spaced text-center text-muted">
-        <i class="fa fa-history"></i>
-        Version {{response.version}} submitted by
-        <a ng-href="#/2/user/{{response.user.id}}">
-            {{response.user.name}}</a>,
-        <span class="hidden-print">
-            {{response.modified * 1000 | timeAgo:'medium'}}.
-        </span>
-        <span class="visible-print-inline">
-            {{response.modified * 1000 | date:'medium'}}.
-        </span>
-        <span ng-if="response.$dirty" class="visible-print-inline">
-            Some modifications have not been saved.
-        </span>
-    </p>
-    <p ng-if="!response.user.name" class="spaced text-center">
-        <i class="fa fa-history"></i>
-        Response not submitted yet.
-    </p>
+    Quality: <span class="print-field">{{response.quality}}</span>
+    Status: <span class="print-field">{{response.approval}}</span>
 </div>
 
 <docs>
@@ -202,11 +180,24 @@
     </div>
     <h3>Attachments</h3>
 </div>
+<div class="dropzone dz-nopreview" id="dropzone" ng-show="showFileDrop">
+    <div class="dz-message ">
+        <p><i class="fa fa-cloud-upload fa-5x"></i></p>
+        <p>Drop files here, or click to select one</p>
+    </div>
+    <p class="text-warning">
+        <i class="fa fa-warning"></i>
+        Files that are uploaded <b>cannot</b> be deleted. For highly
+        confidential data, create an external link
+        <i class="fa fa-link"></i> instead.
+    </p>
+</div>
 <ul class="list-results fa-ul">
     <li ng-repeat="attachment in attachments">
         <a ng-href="/attachment/{{attachment.id}}.json" download
-                ng-if="!attachment.url || attachment.storage=='aws'">
-            <button class="btn btn-default btn-round pull-right"
+                ng-if="!attachment.url || attachment.storage=='aws'"
+                class="hide-print-url">
+            <button class="btn btn-default btn-round pull-right hidden-print"
                     title="Remove"
                     ng-click="deleteAttachment(attachment);
                               $event.preventDefault()"
@@ -219,8 +210,9 @@
             <p>Uploaded file</p>
         </a>
         <a ng-href="{{attachment.url}}"
-                ng-if="attachment.url && safeUrl(attachment.url)">
-            <button class="btn btn-default btn-round pull-right"
+                ng-if="attachment.url && safeUrl(attachment.url)"
+                class="hide-print-url">
+            <button class="btn btn-default btn-round pull-right hidden-print"
                     title="Remove"
                     ng-click="deleteAttachment(attachment);
                               $event.preventDefault()"
@@ -234,7 +226,7 @@
         </a>
         <a ng-if="attachment.url && !safeUrl(attachment.url)"
                 select-text>
-            <button class="btn btn-default btn-round pull-right"
+            <button class="btn btn-default btn-round pull-right hidden-print"
                     title="Remove"
                     ng-click="deleteAttachment(attachment);
                               $event.preventDefault()"
@@ -254,18 +246,6 @@
         No attachments.
     </li>
 </ul>
-<div class="dropzone dz-nopreview" id="dropzone" ng-show="showFileDrop">
-    <div class="dz-message ">
-        <p><i class="fa fa-cloud-upload fa-5x"></i></p>
-        <p>Drop files here, or click to select one</p>
-    </div>
-    <p class="text-warning">
-        <i class="fa fa-warning"></i>
-        Files that are uploaded <b>cannot</b> be deleted. For highly
-        confidential data, create an external link
-        <i class="fa fa-link"></i> instead.
-    </p>
-</div>
 <ul class="list-unstyled">
     <li class="input-group" ng-repeat="external in externals">
         <label class="input-group-addon" for="extname{{$index}}" title="Title">
@@ -293,7 +273,8 @@
         </span>
     </li>
 </ul>
-<p class="text-warning text-center hidden-print">
+<p class="text-warning text-center hidden-print"
+    ng-if="attachments.length && !showFileDrop">
   <small>
     <i class="fa fa-bug"></i>
     Attachments are not scanned for viruses.
@@ -301,4 +282,30 @@
 </p>
 </div>
 
-<div ng-include src="'/inline/measure_variable_list.html'"></div>
+<div>
+    <p ng-if="response.user.name" class="spaced text-center text-muted">
+        <i class="fa fa-history"></i>
+        Version {{response.version}} submitted by
+        <a ng-href="#/2/user/{{response.user.id}}">
+            {{response.user.name}}</a>,
+        <span class="hidden-print">
+            {{response.modified * 1000 | timeAgo:'medium'}}.
+        </span>
+        <span class="visible-print-inline">
+            {{response.modified * 1000 | date:'medium'}}.
+        </span>
+        <span ng-if="response.$dirty" class="visible-print-inline">
+            Some modifications have not been saved.
+        </span>
+        <span>
+            Attachments are not versioned.
+        </span>
+    </p>
+    <p ng-if="!response.user.name" class="spaced text-center">
+        <i class="fa fa-history"></i>
+        Response not submitted yet.
+    </p>
+</div>
+
+<div ng-include src="'/inline/measure_variable_list.html'"
+    class="hidden-print"></div>

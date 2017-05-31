@@ -16,10 +16,13 @@
             </small>
         </span>
 
-        <span ng-if="checkRole('view_single_score') && rt.parts.length"
-                class="text-muted pull-right" title="Score (weighted)">
-            {{state.score * weight | number:0}}
-        </span>
+        <span class="text-muted pull-right" title="Score (weighted)"
+            ><span class="visible-print-inline">Score</span
+            >&nbsp;<span
+                  ng-if="checkRole('view_single_score') && rt.parts.length"
+                  class="print-field"
+            >{{state.score * weight | number:0}}</span
+        ></span>
     </h2>
 </div>
 
@@ -74,14 +77,16 @@
         </div>
         <div ng-class="readonly ? null : 'visible-print-block'">
             <span ng-if="partSchema.name">{{partSchema.name}}:</span>
-            <span ng-if="partSchema.type == 'multiple_choice'">
+            <span ng-if="partSchema.type == 'multiple_choice'"
+                    class="print-field">
                 <span ng-if="partData.index != null">
                     {{partData.index + 1}}
                     {{partData.note}}
                 </span>
                 <span ng-if="partData.index == null">-</span>
             </span>
-            <span ng-if="partSchema.type == 'numerical'">
+            <span ng-if="partSchema.type == 'numerical'"
+                    class="print-field">
                 <span ng-if="partData.value != null">
                     {{partData.value}}
                 </span>
@@ -123,7 +128,11 @@
     </div>
 </div>
 
-<p ng-class="readonly ? null : 'visible-print-block'">Comments: {{response.comment || 'None'}}</p>
+<div ng-class="readonly ? null : 'visible-print-block'">
+    <p>Comments: <em ng-if="!response.comment">None</em></p>
+    <div ng-if="response.comment" class="print-field"
+        ng-bind-html="response.comment | markdown"></div>
+</div>
 
 <quality-buttons class="part" ng-if="hasQuality">
 </quality-buttons>
