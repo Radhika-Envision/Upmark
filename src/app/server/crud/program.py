@@ -12,7 +12,6 @@ import sqlalchemy
 from sqlalchemy.sql import func
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import make_transient
-import voluptuous
 
 from activity import Activities
 import handlers

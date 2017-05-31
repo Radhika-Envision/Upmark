@@ -458,7 +458,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
         query = angular.copy(query);
         query.intervalUnit = query.intervalUnit.id;
         $scope.download('/export/temporal/' + survey_id + '.' + file_type, query);
-    }, 500);
+    }, 500, $scope);
 
     $scope.openReportForm();
 })

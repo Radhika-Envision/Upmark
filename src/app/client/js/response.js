@@ -307,7 +307,7 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
                         $scope.state.score = 0;
                     }
                 }
-            });
+            }, 0, $scope);
             $scope.$watch('rt', recalculate);
             $scope.$watch('response.responseParts', recalculate, true);
             $scope.$watch('externs', recalculate, true);
@@ -485,7 +485,7 @@ angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
                 }
                 $scope.rtEdit.responseType = new responseTypes.ResponseType(
                     rtDef.name, rtDef.parts, rtDef.formula);
-            });
+            }, 0, $scope);
             $scope.$watch('rtEdit.rt', rtDefChanged);
             $scope.$watch('rtEdit.rt', rtDefChanged, true);
 

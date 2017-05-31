@@ -8,7 +8,6 @@ import tempfile
 import threading
 
 import numpy
-from parse import parse
 import sqlalchemy
 from sqlalchemy.orm import joinedload, lazyload
 from tornado import gen

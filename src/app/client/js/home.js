@@ -260,7 +260,7 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
                 return $q.reject(details);
             }
         );
-    });
+    }, 0, $scope);
 
     $scope.remove = function(action) {
         Activity.remove({id: action.id}).$promise.then(

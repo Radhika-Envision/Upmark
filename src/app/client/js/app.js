@@ -96,9 +96,14 @@ angular.module('wsaa.aquamark',
 
 
 .config(['$routeProvider', '$httpProvider', '$parseProvider', '$animateProvider',
-         'logProvider', 'chainProvider',
+         'logProvider', 'chainProvider', '$locationProvider',
         function($routeProvider, $httpProvider, $parseProvider, $animateProvider,
-                logProvider, chain) {
+                logProvider, chain, $locationProvider) {
+
+        // Revert behaviour: URLs do not need to have a `!` prefix.
+        // https://github.com/angular/angular.js/commit/aa077e81129c740041438688dff2e8d20c3d7b52
+        // https://webmasters.googleblog.com/2015/10/deprecating-our-ajax-crawling-scheme.html
+        $locationProvider.hashPrefix('');
 
         $routeProvider
 
@@ -871,7 +876,7 @@ angular.module('wsaa.aquamark',
 }])
 
 
-.run(function($rootScope, $window, $location, Notifications, log, timeAgo,
+.run(function($rootScope, $window, $location, Notifications, log,
         $route, checkLogin, $q, QuestionNode) {
 
     // Upgrade route version
@@ -1015,10 +1020,13 @@ angular.module('wsaa.aquamark',
     $rootScope.$on('$routeChangeSuccess', function(event) {
         $window.ga('send', 'pageview', '/' + $route.current.loadedTemplateUrl);
     });
+})
 
+
+.config(function(timeAgoSettings) {
     var oneDay = 60 * 60 * 24;
-    timeAgo.settings.allowFuture = true;
-    timeAgo.settings.fullDateAfterSeconds = oneDay * 3;
+    timeAgoSettings.allowFuture = true;
+    timeAgoSettings.fullDateAfterSeconds = oneDay * 3;
 })
 
 

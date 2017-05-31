@@ -244,7 +244,7 @@ class AppUser(Observable, Base):
     email_interval = Column(Integer, default=ONE_DAY_S, nullable=False)
 
     def set_password(self, plaintext):
-        self.password = sha256_crypt.encrypt(plaintext)
+        self.password = sha256_crypt.hash(plaintext)
 
     def check_password(self, plaintext):
         return sha256_crypt.verify(plaintext, self.password)

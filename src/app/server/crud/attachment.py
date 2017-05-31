@@ -17,7 +17,6 @@ from concurrent.futures import ThreadPoolExecutor
 import sqlalchemy
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
-from parse import parse
 
 import aws
 import handlers
@@ -47,12 +46,11 @@ class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
                 file_name = attachment.file_name
                 if attachment.storage == "aws":
                     s3 = aws.session.client('s3', verify=False)
-                    attachment_object = parse(aws.s3_url, attachment.url)
+                    object_loc = aws.S3_PATTERN.match(attachment.url)
                     with tempfile.NamedTemporaryFile() as temp:
-
-                        s3.download_file(attachment_object["bucket"],
-                                               attachment_object["s3_path"],
-                                               temp.name)
+                        s3.download_file(
+                            object_loc.group('bucket'),
+                            object_loc.group('path'), temp.name)
 
                         with open(temp.name, "rb") as file:
                             blob = file.read()
