@@ -2107,13 +2107,13 @@ angular.module('wsaa.surveyQuestions', [
     $scope.m = {
         attachments: null,
         activeAttachment: null,
+        deletingAttachment: null,
         externals: [],
     };
 
     var headers = {};
     var xsrfName = $http.defaults.xsrfHeaderName;
     headers[xsrfName] = $cookies.get($http.defaults.xsrfCookieName);
-    $scope.m.externals = [];
     $scope.addExternal = function() {
         $scope.m.externals.push({"url": ""});
     }
@@ -2196,6 +2196,9 @@ angular.module('wsaa.surveyQuestions', [
     $scope.refreshAttachments();
     $scope.safeUrl = function(url) {
         return !! /^(https?|ftp):\/\//.exec(url);
+    };
+    $scope.isUpload = function(attachment) {
+        return !attachment.url || attachment.storage == 'aws';
     };
 
     $scope.getUrl = function(attachment) {

@@ -69,20 +69,15 @@ class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
     @tornado.web.authenticated
     def delete(self, attachment_id):
         with model.session_scope() as session:
-            try:
-                attachment = session.query(model.Attachment)\
-                    .get(attachment_id)
+            attachment = session.query(model.Attachment)\
+                .get(attachment_id)
 
-                if attachment is None:
-                    raise handlers.MissingDocError("No such attachment")
-
-                self._check_authz(attachment)
-
-                session.delete(attachment)
-            except (sqlalchemy.exc.StatementError,
-                    sqlalchemy.orm.exc.NoResultFound,
-                    ValueError):
+            if attachment is None:
                 raise handlers.MissingDocError("No such attachment")
+
+            self._check_authz(attachment)
+
+            session.delete(attachment)
 
         self.finish()
 
