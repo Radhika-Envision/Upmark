@@ -2101,18 +2101,21 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
-.controller('ResponseAttachmentCtrl', [
-        '$scope', 'Attachment', '$http', '$cookies', 'Notifications',
-        function($scope, Attachment, $http, $cookies, Notifications) {
+.controller('ResponseAttachmentCtrl',
+        function($scope, Attachment, $http, $cookies, Notifications, download) {
 
-    $scope.attachments = null;
+    $scope.m = {
+        attachments: null,
+        activeAttachment: null,
+        externals: [],
+    };
 
     var headers = {};
     var xsrfName = $http.defaults.xsrfHeaderName;
     headers[xsrfName] = $cookies.get($http.defaults.xsrfCookieName);
-    $scope.externals = [];
+    $scope.m.externals = [];
     $scope.addExternal = function() {
-        $scope.externals.push({"url": ""});
+        $scope.m.externals.push({"url": ""});
     }
     $scope.toggleFileDrop = function() {
         $scope.showFileDrop = !$scope.showFileDrop;
@@ -2120,7 +2123,7 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.deleteExternal = function(index) {
         if (index > -1) {
-            $scope.externals.splice(index, 1);
+            $scope.m.externals.splice(index, 1);
         }
     }
 
@@ -2137,18 +2140,18 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.save = function() {
         $scope.upload();
-        if ($scope.externals.length > 0) {
+        if ($scope.m.externals.length > 0) {
             Attachment.saveExternals({
                 submissionId: $scope.submission.id,
                 measureId: $scope.measure.id,
-                externals: $scope.externals
+                externals: $scope.m.externals
             }).$promise.then(
                 function success(attachments) {
-                    $scope.attachments = attachments;
-                    $scope.externals = [];
+                    $scope.m.attachments = attachments;
+                    $scope.m.externals = [];
                 },
                 function failure(details) {
-                    if ($scope.attachments) {
+                    if ($scope.m.attachments) {
                         Notifications.set('attach', 'error',
                             "Failed to add attachments: " +
                             details.statusText);
@@ -2168,7 +2171,7 @@ angular.module('wsaa.surveyQuestions', [
     $scope.cancelNewAttachments = function() {
         dropzone.removeAllFiles();
         $scope.showFileDrop = false;
-        $scope.externals = [];
+        $scope.m.externals = [];
     };
 
     $scope.$on('response-saved', $scope.save);
@@ -2179,10 +2182,10 @@ angular.module('wsaa.surveyQuestions', [
             measureId: $scope.measure.id
         }).$promise.then(
             function success(attachments) {
-                $scope.attachments = attachments;
+                $scope.m.attachments = attachments;
             },
             function failure(details) {
-                if ($scope.attachments) {
+                if ($scope.m.attachments) {
                     Notifications.set('attach', 'error',
                         "Failed to refresh attachment list: " +
                         details.statusText);
@@ -2193,6 +2196,14 @@ angular.module('wsaa.surveyQuestions', [
     $scope.refreshAttachments();
     $scope.safeUrl = function(url) {
         return !! /^(https?|ftp):\/\//.exec(url);
+    };
+
+    $scope.getUrl = function(attachment) {
+        return '/attachment/' + attachment.id;
+    };
+    $scope.download = function(attachment) {
+        var url = $scope.getUrl(attachment);
+        download(url);
     };
 
     dropzone.on("queuecomplete", function() {
@@ -2233,7 +2244,7 @@ angular.module('wsaa.surveyQuestions', [
             }
         );
     };
-}])
+})
 
 
 /**

@@ -193,10 +193,11 @@
     </p>
 </div>
 <ul class="list-results fa-ul">
-    <li ng-repeat="attachment in attachments">
-        <a ng-href="/attachment/{{attachment.id}}.json" download
-                ng-if="!attachment.url || attachment.storage=='aws'"
-                class="hide-print-url">
+    <li ng-repeat="attachment in m.attachments">
+        <a ng-href="{{getUrl(attachment)}}" download
+                ng-if="!attachment.url || attachment.storage == 'aws'"
+                class="hide-print-url"
+                ng-click="m.activeAttachment = attachment; $event.preventDefault()">
             <button class="btn btn-default btn-round pull-right hidden-print"
                     title="Remove"
                     ng-click="deleteAttachment(attachment);
@@ -209,6 +210,25 @@
             </h4>
             <p>Uploaded file</p>
         </a>
+        <div ng-if="attachment == m.activeAttachment" highlight class="text-center">
+          <p>
+            <i class="fa fa-bug"></i>
+            Attachments are not scanned for viruses.
+          </p>
+          <p>
+            <a ng-href="{{getUrl(attachment)}}" download
+                    ng-click="download(attachment); m.activeAttachment = null; $event.preventDefault()"
+                    class="btn btn-default active">
+                <i class="fa fa-cloud-download"></i>
+                Download
+            </a>
+            <button ng-click="m.activeAttachment = null"
+                    class="btn btn-default">
+                <i class="fa fa-times"></i>
+                Cancel
+            </button>
+          </p>
+        </div>
         <a ng-href="{{attachment.url}}"
                 ng-if="attachment.url && safeUrl(attachment.url)"
                 class="hide-print-url">
@@ -242,7 +262,7 @@
             </p>
         </a>
     </li>
-    <li ng-if="!attachments.length" class="text-muted">
+    <li ng-if="!m.attachments.length" class="text-muted">
         No attachments.
     </li>
 </ul>
@@ -273,13 +293,6 @@
         </span>
     </li>
 </ul>
-<p class="text-warning text-center hidden-print"
-    ng-if="attachments.length && !showFileDrop">
-  <small>
-    <i class="fa fa-bug"></i>
-    Attachments are not scanned for viruses.
-  </small>
-</p>
 </div>
 
 <div>

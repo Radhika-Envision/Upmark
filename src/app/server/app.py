@@ -232,7 +232,7 @@ def get_mappings():
             crud.response.ResponseHistoryHandler, {}),
         (r"/submission/([^/]*)/measure/([^/]*)/attachment.json",
             crud.attachment.ResponseAttachmentsHandler, {}),
-        (r"/attachment/([^/]*).json",
+        (r"/attachment/([^/]*)",
             crud.attachment.AttachmentHandler, {}),
 
         (r"/statistics/program/([^/]*)/survey/([^/]*).json",

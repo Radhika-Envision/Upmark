@@ -1231,6 +1231,10 @@ ul.fa-ul.timeline {
     }
 }
 
+p:last-child {
+    margin-bottom: 0;
+}
+
 .capitalize {
     text-transform: capitalize;
 }
