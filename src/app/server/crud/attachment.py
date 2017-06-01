@@ -32,7 +32,7 @@ MAX_WORKERS = 4
 class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
 
     @tornado.web.authenticated
-    def get(self, attachment_id):
+    def get(self, attachment_id, file_name):
         with model.session_scope() as session:
             try:
                 attachment = session.query(model.Attachment)\
@@ -43,7 +43,6 @@ class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
 
                 self._check_authz(attachment)
 
-                file_name = attachment.file_name
                 if attachment.storage == "aws":
                     s3 = aws.session.client('s3', verify=False)
                     object_loc = aws.S3_PATTERN.match(attachment.url)
@@ -62,7 +61,7 @@ class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
                 raise handlers.MissingDocError("No such attachment")
 
         self.set_header('Content-Type', 'application/octet-stream')
-        self.set_header('Content-Disposition', 'attachment; filename=' + file_name)
+        self.set_header('Content-Disposition', 'attachment')
         self.write(bytes(blob))
         self.finish()
 

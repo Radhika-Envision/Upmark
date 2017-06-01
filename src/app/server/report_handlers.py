@@ -772,7 +772,7 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
 
             self.set_header("Content-Type", "application/json")
             self.set_header(
-                'Content-Disposition', 'attachment; filename=query_result.json')
+                'Content-Disposition', 'attachment')
             self.transfer_file(path)
         self.finish()
 
@@ -784,7 +784,7 @@ class AdHocHandler(handlers.Paginate, handlers.BaseHandler):
 
             self.set_header("Content-Type", "text/csv")
             self.set_header(
-                'Content-Disposition', 'attachment; filename=query_result.csv')
+                'Content-Disposition', 'attachment')
             self.transfer_file(path)
         self.finish()
 

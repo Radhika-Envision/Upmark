@@ -68,7 +68,7 @@ angular.module('wsaa.surveyQuestions', [
 .controller('ProgramCtrl',
         function($scope, Program, routeData, Editor, questionAuthz, hotkeys,
                  $location, Notifications, Current, Survey, layout, format,
-                 $http, Organisation, Submission) {
+                 Organisation, Submission) {
 
     $scope.layout = layout;
     if (routeData.program) {
@@ -744,11 +744,11 @@ angular.module('wsaa.surveyQuestions', [
 
 .controller('SurveyCtrl', [
         '$scope', 'Survey', 'routeData', 'Editor', 'questionAuthz', 'layout',
-        '$location', 'Current', 'format', 'QuestionNode', 'Structure', '$http',
-        'Notifications',
+        '$location', 'Current', 'format', 'QuestionNode', 'Structure',
+        'Notifications', 'download',
         function($scope, Survey, routeData, Editor, authz, layout,
-                 $location, current, format, QuestionNode, Structure, $http,
-                 Notifications) {
+                 $location, current, format, QuestionNode, Structure,
+                 Notifications, download) {
 
     $scope.layout = layout;
     $scope.program = routeData.program;
@@ -815,19 +815,15 @@ angular.module('wsaa.surveyQuestions', [
     };
 
     $scope.download = function(export_type) {
+        var fileName = 'survey-' + export_type + '.xlsx'
         var url = '/export/program/' + $scope.program.id;
         url += '/survey/' + $scope.survey.id;
         url += '/' + export_type + '.xlsx';
 
-        $http.get(url, { responseType: "arraybuffer", cache: false }).then(
+        download(fileName, url).then(
             function success(response) {
                 var message = "Export finished";
                 Notifications.set('export', 'info', message, 5000);
-                var blob = new Blob(
-                    [response.data], {type: response.headers('Content-Type')});
-                var name = /filename=(.*)/.exec(
-                    response.headers('Content-Disposition'))[1];
-                saveAs(blob, name);
             },
             function failure(response) {
                 Notifications.set('export', 'error',
@@ -2202,11 +2198,12 @@ angular.module('wsaa.surveyQuestions', [
     };
 
     $scope.getUrl = function(attachment) {
-        return '/attachment/' + attachment.id;
+        return '/attachment/' + attachment.id + '/' + attachment.fileName;
     };
     $scope.download = function(attachment) {
+        var namePattern = /\/attachment\/[^/]+\/(.*)/;
         var url = $scope.getUrl(attachment);
-        download(url);
+        download(namePattern, url);
     };
 
     dropzone.on("queuecomplete", function() {
@@ -2336,8 +2333,9 @@ angular.module('wsaa.surveyQuestions', [
 
 
 .controller('AdHocCtrl', ['$scope', '$http', 'Notifications', 'samples',
-            'hotkeys', 'config',
-            function($scope, $http, Notifications, samples, hotkeys, config) {
+            'hotkeys', 'config', 'download',
+            function($scope, $http, Notifications, samples, hotkeys, config,
+                download) {
     $scope.config = config;
     $scope.query = samples[0].query;
     $scope.result = {};
@@ -2365,19 +2363,14 @@ angular.module('wsaa.surveyQuestions', [
     };
 
     $scope.download = function(query, file_type) {
-        $http.post('/adhoc_query.' + file_type, query,
-                   {responseType: 'blob'}).then(
+        var fileName = 'adhoc_query.' + file_type;
+        var url = '/' + fileName;
+        return download(fileName, url, query).then(
             function success(response) {
                 var message = "Query finished";
                 if (response.headers('Operation-Details'))
                     message += ': ' + response.headers('Operation-Details');
                 Notifications.set('query', 'info', message, 5000);
-
-                var blob = new Blob(
-                    [response.data], {type: response.headers('Content-Type')});
-                var name = /filename=(.*)/.exec(
-                    response.headers('Content-Disposition'))[1];
-                saveAs(blob, name);
             },
             function failure(response) {
                 Notifications.set('query', 'error',
