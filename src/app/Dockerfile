@@ -1,8 +1,15 @@
-FROM ubuntu:14.04
+FROM ubuntu:16.04
 
 MAINTAINER Alex Fraser <alex@vpac-innovations.com.au>
 
-RUN locale-gen en_AU.UTF-8
+RUN DEBIAN_FRONTEND=noninteractive \
+    apt-get update && \
+    apt-get install -y \
+        locales \
+        --no-install-recommends && \
+    locale-gen en_AU.UTF-8 && \
+    rm -rf /var/lib/apt/lists/*
+
 ENV LANG en_AU.UTF-8
 ENV LANGUAGE en_AU.en
 ENV LC_ALL en_AU.UTF-8
@@ -21,14 +28,14 @@ RUN DEBIAN_FRONTEND=noninteractive \
         nodejs \
         npm \
         python3 \
-        python3.4-dev \
+        python3-dev \
         python3-lxml \
         python3-pip \
         python3-psycopg2 \
         --no-install-recommends && \
-    which node || sudo apt-get install -y nodejs-legacy && \
+    which node || apt-get install -y nodejs-legacy && \
     npm install -g bower && \
-    pip3 install -vU 'setuptools' && \
+    pip3 install -vU setuptools pip && \
     rm -rf /var/lib/apt/lists/*
 
 # Install dependencies before copying full source directory. This speeds up
@@ -52,7 +59,7 @@ COPY ./ /usr/share/aquamark/app/
 WORKDIR /usr/share/aquamark/app/
 RUN mv /tmp/bower_components /usr/share/aquamark/.bower_components
 
-ENV PORT=8000 \
+ENV PORT=80 \
     DEV_MODE=False \
     DATABASE_URL=postgresql://postgres:postgres@postgres/postgres \
     ANALYTICS_ID= \
@@ -62,6 +69,6 @@ ENV PORT=8000 \
     AWS_SECRET_ACCESS_KEY= \
     PYTHONPATH=.:/usr/share/aquamark/app/server/
 
-EXPOSE 8000
+EXPOSE 80
 
 CMD ["python3", "./server/app.py"]
