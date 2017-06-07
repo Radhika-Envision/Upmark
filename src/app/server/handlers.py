@@ -122,7 +122,7 @@ STYLESHEETS = [
             '/.bower_components/angular-ui-select/dist/select.css',
             '/.bower_components/medium-editor/dist/css/medium-editor.min.css',
             '/.bower_components/medium-editor/dist/css/themes/default.min.css',
-            '/.bower_components/angular-color-picker/dist/angularjs-color-picker.min.css',
+            '/.bower_components/angularjs-color-picker/dist/angularjs-color-picker.min.css',
         ]
     },
     {
@@ -164,7 +164,7 @@ SCRIPTS = [
             '/.bower_components/angular-ui-sortable/sortable.js',
             '/.bower_components/domurl/url.min.js',
             '/.bower_components/tinycolor/dist/tinycolor-min.js',
-            '/.bower_components/angular-color-picker/dist/angularjs-color-picker.js',
+            '/.bower_components/angularjs-color-picker/dist/angularjs-color-picker.js',
             '/.bower_components/dropzone/dist/dropzone.js',
             '/.bower_components/jqueryui-touch-punch/jquery.ui.touch-punch.js',
             '/.bower_components/js-expression-eval/parser.js',
