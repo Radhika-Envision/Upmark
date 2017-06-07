@@ -65,8 +65,7 @@ class ExportProgramHandler(handlers.BaseHandler):
                     output_path, program_id, survey_id,
                     self.current_user.role, base_url)
             self.set_header('Content-Type', 'application/octet-stream')
-            self.set_header('Content-Disposition', 'attachment; filename='
-                            + output_file)
+            self.set_header('Content-Disposition', 'attachment')
 
             with open(output_path, 'rb') as f:
                 while True:
@@ -135,8 +134,7 @@ class ExportSubmissionHandler(handlers.BaseHandler):
                     output_path, program_id, survey_id, submission_id,
                     self.current_user.role, base_url)
             self.set_header('Content-Type', 'application/octet-stream')
-            self.set_header('Content-Disposition', 'attachment; filename='
-                            + output_file)
+            self.set_header('Content-Disposition', 'attachment')
 
             with open(output_path, 'rb') as f:
                 while True:

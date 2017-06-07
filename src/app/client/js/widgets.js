@@ -407,7 +407,7 @@ angular.module('vpac.widgets', [])
 }])
 
 
-.service('dimmer', [function() {
+.service('dimmer', function() {
     this.dimmers = [];
     this.add = function(key) {
         var i = this.dimmers.indexOf(key);
@@ -428,7 +428,7 @@ angular.module('vpac.widgets', [])
             dimmer.dismiss();
         });
     };
-}])
+})
 
 
 .directive('highlight', function(dimmer, $parse) {

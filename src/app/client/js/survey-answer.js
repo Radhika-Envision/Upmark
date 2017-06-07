@@ -43,7 +43,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
 .controller('SubmissionCtrl',
         function($scope, Submission, Survey, routeData, Editor, questionAuthz,
              layout, $location, Current, format, $filter, Notifications,
-             Structure, $http, LocationSearch, releaseMode) {
+             Structure, LocationSearch, releaseMode, download) {
 
     $scope.layout = layout;
     $scope.program = routeData.program;
@@ -137,19 +137,13 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
 
     $scope.checkRole = questionAuthz(Current, $scope.program, $scope.submission);
 
-    $scope.download = function(url, data) {
+    $scope.download = function(namePattern, url, data) {
         $scope.headerMessage = "Generating report"
         var success = function success(response) {
             var message = "Export finished.";
             if (response.headers('Operation-Details'))
                 message += ' ' + response.headers('Operation-Details');
             Notifications.set('export', 'info', message, 5000);
-            var blob = new Blob(
-                [response.data], {type: response.headers('Content-Type')});
-            var name = /filename=(.*)/.exec(
-                response.headers('Content-Disposition'))[1];
-            saveAs(blob, name);
-
             $scope.headerMessage = null;
         };
         var failure = function failure(response) {
@@ -157,20 +151,14 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
                 "Error: " + response.statusText);
             $scope.headerMessage = null;
         };
-        if (data) {
-            $http.post(url, data, {responseType: "arraybuffer", cache: false})
-                .then(success, failure);
-        } else {
-            $http.get(url, {responseType: "arraybuffer", cache: false})
-                .then(success, failure);
-        };
+        return download(namePattern, url, data).then(success, failure);
     };
 
     $scope.downloadSubmissionReport = function(report_type, submission_id) {
+        var fileName = 'submission-' + report_type + '.xlsx';
         var url = '/export/submission/' + submission_id;
         url += '/' + report_type + '.xlsx';
-
-        $scope.download(url, null)
+        $scope.download(fileName, url, null);
     };
 
 	$scope.releaseMode = releaseMode;
@@ -192,7 +180,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
 
 
 .controller('SubmissionExportCtrl', function(
-        $scope, $location, Notifications, $http, LocationSearch, Enqueue) {
+        $scope, $location, Notifications, LocationSearch, Enqueue) {
 
     $scope.startCalender = {
       opened: false
@@ -455,9 +443,11 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
     $scope.downloadTemporalReport = Enqueue(function(query, file_type, survey_id) {
         if (!$scope.specTest(query))
             return;
+        var fileName = 'submission-temporal.' + file_type;
+        var url = '/export/temporal/' + survey_id + '.' + file_type;
         query = angular.copy(query);
         query.intervalUnit = query.intervalUnit.id;
-        $scope.download('/export/temporal/' + survey_id + '.' + file_type, query);
+        $scope.download(fileName, url, query);
     }, 500, $scope);
 
     $scope.openReportForm();

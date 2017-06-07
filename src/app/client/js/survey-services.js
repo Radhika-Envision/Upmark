@@ -98,7 +98,7 @@ angular.module('wsaa.survey.services', [
             {submissionId: '@submissionId', measureId: '@measureId'}, {
         saveExternals: { method: 'PUT', isArray: true },
         query: { method: 'GET', isArray: true, cache: false },
-        remove: { method: 'DELETE', url: '/attachment/:id.json', cache: false }
+        remove: { method: 'DELETE', url: '/attachment/:id', cache: false }
     });
 }])
 

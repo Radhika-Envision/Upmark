@@ -62,7 +62,7 @@ class TemporalReportHandler(handlers.BaseHandler):
 
             self.set_header('Content-Type', 'application/octet-stream')
             self.set_header(
-                'Content-Disposition', 'attachment; filename=%s' % outfile)
+                'Content-Disposition', 'attachment')
 
             with open(outpath, 'rb') as f:
                 while True:
