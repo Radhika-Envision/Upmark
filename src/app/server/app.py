@@ -183,7 +183,7 @@ def get_mappings():
 
         (r"/bower_components/(.*)", tornado.web.StaticFileHandler, {
             'path': os.path.join(
-                package_dir, "..", "client", ".bower_components")}),
+                package_dir, "..", "client", "bower_components")}),
         (r"/minify/(.*)", handlers.MinifyHandler, {
             'path': '/minify/',
             'root': os.path.join(package_dir, "..", "client")}),

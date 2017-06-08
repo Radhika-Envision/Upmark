@@ -3,7 +3,6 @@ import os
 from pathlib import Path
 import re
 
-from bunch import Bunch
 from expiringdict import ExpiringDict
 import yaml
 
@@ -198,6 +197,7 @@ def get_resource(name, context=None):
         cache[name] = config
 
     if context is not None:
+
         config = [
             d for d in config
             if d.get('context', context) == context]
@@ -206,12 +206,58 @@ def get_resource(name, context=None):
     return config
 
 
+def deep_interpolate(config, params):
+    if isinstance(config, str):
+        return config.format(**params)
+
+    elif hasattr(config, 'items'):
+        out_config = {}
+        for k, v in config.items():
+            try:
+                out_config[k] = deep_interpolate(v, params)
+            except KeyError as e:
+                raise InterpolationError(k, e)
+            except InterpolationError as e:
+                raise e.prefix(k)
+        return out_config
+
+    elif hasattr(config, '__getitem__'):
+        out_config = []
+        for i, v in enumerate(config):
+            try:
+                out_config.append(deep_interpolate(v, params))
+            except KeyError as e:
+                raise InterpolationError(i, e)
+            except InterpolationError as e:
+                raise e.prefix(i)
+        return out_config
+
+    else:
+        return config
+
+
+class InterpolationError(Exception):
+    def __init__(self, k, e):
+        self.path = [k]
+        self.cause = e
+
+    def prefix(self, k):
+        e = InterpolationError(k, self.cause)
+        e.path.extend(self.path)
+        return e
+
+    def __str__(self):
+        return "[%s]: %s" % (
+            ']['.join(str(k) for k in self.path), self.cause)
+
+
 def bower_versions():
     if '_bower_versions' in cache:
         return cache['_bower_versions']
 
-    directory = os.path.join(get_package_dir(), '..', '..', '.bower_components')
-    versions = Bunch()
+    directory = os.path.join(
+        get_package_dir(), '..', 'client', 'bower_components')
+    versions = {}
     for path in Path(directory).glob('*/.bower.json'):
         with path.open() as f:
             component_meta = yaml.load(f)

@@ -292,15 +292,17 @@ class TemplateParams:
     def scripts(self):
         bower_versions = config.bower_versions()
         decls = config.get_resource('js_manifest')
-        return self.prepare_resources(decls, bower_versions)
+        decls = config.deep_interpolate(decls, bower_versions)
+        return self.prepare_resources(decls)
 
     @property
     def stylesheets(self):
         bower_versions = config.bower_versions()
         decls = config.get_resource('css_manifest')
-        return self.prepare_resources(decls, bower_versions)
+        decls = config.deep_interpolate(decls, bower_versions)
+        return self.prepare_resources(decls)
 
-    def prepare_resources(self, declarations, bower_versions):
+    def prepare_resources(self, declarations):
         '''
         Resolve a list of resources. Different URLs will be used for the
         resources depending on whether the application is running in
@@ -337,9 +339,6 @@ class TemplateParams:
             elif not dev_mode and k in {'href', 'hrefs'}:
                 print('Warning: using dev resource in release')
 
-            hrefs = [
-                href.format(bower_versions=bower_versions)
-                for href in hrefs]
             resources.extend(hrefs)
 
         return resources
@@ -549,26 +548,23 @@ class MinifyHandler(RamCacheHandler):
 
     def initialize(self, path, root):
         self.path = path
-        self.root = root
+        self.root = os.path.abspath(root)
 
     def generate(self, path):
         path = self.path + path
+        bower_versions = config.bower_versions()
 
-        decl = None
-        for s in config.get_resource('js_manifest'):
-            if 'min-href' in s and s['min-href'] == path:
-                decl = s
-                break
-        if decl is not None:
-            return 'text/javascript', self.minify_js(decl)
+        decls = config.get_resource('js_manifest')
+        decls = config.deep_interpolate(decls, bower_versions)
+        for decl in decls:
+            if 'min-href' in decl and decl['min-href'] == path:
+                return 'text/javascript', self.minify_js(decl)
 
-        decl = None
-        for s in config.get_resource('css_manifest'):
-            if 'min-href' in s and s['min-href'] == path:
-                decl = s
-                break
-        if decl is not None:
-            return 'text/css', self.minify_css(decl)
+        decls = config.get_resource('css_manifest')
+        decls = config.deep_interpolate(decls, bower_versions)
+        for decl in decls:
+            if 'min-href' in decl and decl['min-href'] == path:
+                return 'text/css', self.minify_css(decl)
 
         raise tornado.web.HTTPError(
             400, "No matching minification declaration.")
@@ -592,29 +588,30 @@ class MinifyHandler(RamCacheHandler):
             sources = decl['hrefs']
 
         text = ""
-        for s in sources:
-            if s.startswith('/'):
-                s = os.path.join(self.root, s[1:])
+        for source in sources:
+            if source.startswith('/'):
+                source = os.path.join(self.root, source[1:])
             else:
-                s = os.path.join(self.root, s)
-            s = resolve_file(s, extension_map={'.css': ['.scss']})
-            text += sass.compile(filename=s, output_style='compressed')
+                source = os.path.join(self.root, source)
+            source = resolve_file(source, extension_map={'.css': ['.scss']})
+            text += sass.compile(filename=source, output_style='compressed')
             text += "\n"
         return text
 
     def read_all(self, sources, extension_map=None):
         text = ""
-        for s in sources:
-            if s.startswith('/'):
-                s = os.path.join(self.root, s[1:])
+        for source in sources:
+            if source.startswith('/'):
+                source = os.path.join(self.root, source[1:])
             else:
-                s = os.path.join(self.root, s)
-            s = resolve_file(s, extension_map)
-            s = os.path.abspath(s)
-            if not s.startswith(self.root):
-                raise tornado.web.HTTPError(
-                    404, "No such file %s." % s)
-            with open(s, 'r', encoding='utf8') as f:
+                source = os.path.join(self.root, source)
+            source = resolve_file(source, extension_map)
+            source = os.path.abspath(source)
+            if not source.startswith(self.root):
+                raise InternalModelError(
+                    "Resource configuration is invalid",
+                    log_message="%s is not in %s" % (source, self.root))
+            with open(source, 'r', encoding='utf8') as f:
                 text += f.read()
             text += "\n"
         return text
