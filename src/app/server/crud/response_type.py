@@ -172,13 +172,14 @@ class ResponseTypeHandler(
             if not response_type:
                 raise handlers.MissingDocError("No such response type")
 
-            rt_by_name = (session.query(model.ResponseType)
-                .filter(model.ResponseType.program_id == self.program_id)
-                .filter(model.ResponseType.name == self.request_son['name'])
-                .first())
-            if rt_by_name and rt_by_name != response_type:
-                raise handlers.ModelError(
-                    "A response type of that name already exists")
+            if 'name' in self.request_son:
+                rt_by_name = (session.query(model.ResponseType)
+                    .filter(model.ResponseType.program_id == self.program_id)
+                    .filter(model.ResponseType.name == self.request_son['name'])
+                    .first())
+                if rt_by_name and rt_by_name != response_type:
+                    raise handlers.ModelError(
+                        "A response type of that name already exists")
 
             try:
                 self._update(response_type, self.request_son)
@@ -205,11 +206,11 @@ class ResponseTypeHandler(
 
         self.get(response_type_id)
 
-    def _update(self, measure, son):
+    def _update(self, response_type, son):
         '''Apply user-provided data to the saved model.'''
         if not son.get('name', None):
             raise handlers.ModelError("Name is required")
-        update = updater(measure)
+        update = updater(response_type)
         update('name', son)
         update('parts', son)
         update('formula', son)
