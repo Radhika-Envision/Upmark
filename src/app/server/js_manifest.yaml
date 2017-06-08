@@ -1,0 +1,76 @@
+# Resources that have a CDN mirror have a local href and a remote cdn.
+# Resources that have no CDN (or no CDN supporting both HTTP and HTTPS)
+# have a local min-href and a list of local hrefs. min-href is used
+# in production mode; in that case the minify handler may compress the
+# sources (if min-href points to an endpoint handled by the
+# MinifyHandler).
+#
+# CARE must be taken when grouping scripts: make sure they will be concatenated
+# in the right order, and make sure they all use strict mode or not (not a
+# mixture).
+
+ -  href: /bower_components/jquery/dist/jquery.js
+    cdn: //code.jquery.com/jquery-{bower_versions.jquery}.min.js
+ -  href: /bower_components/jquery-ui/jquery-ui.js
+    cdn: //code.jquery.com/ui/{bower_versions.jquery_ui}/jquery-ui.min.js
+
+ -  href: /bower_components/angular/angular.js
+    cdn: //ajax.googleapis.com/ajax/libs/angularjs/{bower_versions.angular}/angular.min.js
+ -  href: /bower_components/angular-animate/angular-animate.js
+    cdn: //ajax.googleapis.com/ajax/libs/angularjs/{bower_versions.angular_animate}/angular-animate.min.js
+ -  href: /bower_components/angular-cookies/angular-cookies.js
+    cdn: //ajax.googleapis.com/ajax/libs/angularjs/{bower_versions.angular_cookies}/angular-cookies.js
+ -  href: /bower_components/angular-resource/angular-resource.js
+    cdn: //ajax.googleapis.com/ajax/libs/angularjs/{bower_versions.angular_resource}/angular-resource.min.js
+ -  href: /bower_components/angular-route/angular-route.js
+    cdn: //ajax.googleapis.com/ajax/libs/angularjs/{bower_versions.angular_route}/angular-route.min.js
+ -  href: /bower_components/angular-sanitize/angular-sanitize.js
+    cdn: //ajax.googleapis.com/ajax/libs/angularjs/{bower_versions.angular_sanitize}/angular-sanitize.min.js
+
+ -  href: /bower_components/bootstrap/dist/js/bootstrap.js
+    cdn: //maxcdn.bootstrapcdn.com/bootstrap/{bower_versions.bootstrap}/js/bootstrap.min.js
+
+ -  href: /bower_components/medium-editor/dist/js/medium-editor.js
+    cdn: //cdnjs.cloudflare.com/ajax/libs/medium-editor/{bower_versions.medium_editor}/js/medium-editor.min.js
+
+ -  href: /bower_components/d3/d3.min.js
+    cdn: //cdnjs.cloudflare.com/ajax/libs/d3/{bower_versions.d3}/d3.min.js
+
+ -  min-href: /minify/3rd-party-min.js
+    hrefs:
+        - /bower_components/angular-bootstrap/ui-bootstrap-tpls.js
+        - /bower_components/angular-hotkeys/build/hotkeys.js
+        - /bower_components/angular-bootstrap-show-errors/src/showErrors.js
+        - /bower_components/angular-validation-match/dist/angular-validation-match.js
+        - /bower_components/angular-select-text/src/angular-select-text.js
+        - /bower_components/angular-timeago/dist/angular-timeago.js
+        - /bower_components/angular-ui-select/dist/select.js
+        - /bower_components/angular-ui-sortable/sortable.js
+        - /bower_components/domurl/url.min.js
+        - /bower_components/tinycolor/dist/tinycolor-min.js
+        - /bower_components/angularjs-color-picker/dist/angularjs-color-picker.js
+        - /bower_components/dropzone/dist/dropzone.js
+        - /bower_components/jqueryui-touch-punch/jquery.ui.touch-punch.js
+        - /bower_components/js-expression-eval/parser.js
+        - /bower_components/angular-medium-editor/dist/angular-medium-editor.js
+        - /bower_components/showdown/dist/showdown.js
+        - /bower_components/to-markdown/dist/to-markdown.js
+        - /bower_components/angular-diff-match-patch/angular-diff-match-patch.js
+        - /bower_components/google-diff-match-patch/diff_match_patch.js
+        - /bower_components/file-saver/FileSaver.js
+        - /bower_components/angular-checkboxes/angular-checkboxes.js
+        - /bower_components/angular-input-stars/angular-input-stars.js
+
+ -  min-href: /minify/app-min.js
+    hrefs:
+        - /js/app.js
+        - /js/admin.js
+        - /js/home.js
+        - /js/response.js
+        - /js/subscription.js
+        - /js/survey-answer.js
+        - /js/survey-measure.js
+        - /js/survey-question.js
+        - /js/survey-services.js
+        - /js/utils.js
+        - /js/widgets.js

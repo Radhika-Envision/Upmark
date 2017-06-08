@@ -43,7 +43,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
 .controller('SubmissionCtrl',
         function($scope, Submission, Survey, routeData, Editor, questionAuthz,
              layout, $location, Current, format, $filter, Notifications,
-             Structure, LocationSearch, releaseMode, download) {
+             Structure, LocationSearch, download) {
 
     $scope.layout = layout;
     $scope.program = routeData.program;
@@ -160,8 +160,6 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
         url += '/' + report_type + '.xlsx';
         $scope.download(fileName, url, null);
     };
-
-	$scope.releaseMode = releaseMode;
 
     $scope.calender = {
       opened: false

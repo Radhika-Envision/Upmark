@@ -5,6 +5,7 @@ import os
 import re
 import time
 
+from expiringdict import ExpiringDict
 import sass
 import sqlalchemy
 from sqlalchemy import func
@@ -12,6 +13,7 @@ from tornado.escape import json_decode
 import tornado.options
 import tornado.web
 
+import cache_bust
 import config
 import image
 import model
@@ -102,101 +104,6 @@ class InternalModelError(tornado.web.HTTPError):
 # CARE must be taken when grouping scripts: make sure they will be concatenated
 # in the right order, and make sure they all use strict mode or not (not a
 # mixture).
-
-STYLESHEETS = [
-    # Some stylesheets can't be minified, because they refer to assets in
-    # relative directories.
-    {
-        'href': '/.bower_components/bootstrap/dist/css/bootstrap.css'
-    },
-    {
-        'href': '/.bower_components/font-awesome/css/font-awesome.css'
-    },
-    {
-        'href': '/fonts/Ubuntu.css'
-    },
-    {
-        'min-href': '/minify/3rd-party-min.css',
-        'hrefs': [
-            '/.bower_components/angular-hotkeys/build/hotkeys.css',
-            '/.bower_components/angular-ui-select/dist/select.css',
-            '/.bower_components/medium-editor/dist/css/medium-editor.min.css',
-            '/.bower_components/medium-editor/dist/css/themes/default.min.css',
-            '/.bower_components/angularjs-color-picker/dist/angularjs-color-picker.min.css',
-        ]
-    },
-    {
-        'min-href': '/minify/app-min.css',
-        'hrefs': [
-            '/css/app.css',
-            '/css/dropzone.css',
-            '/css/clock.css',
-            '/css/statistics.css'
-        ]
-    },
-]
-
-SCRIPTS = [
-    {
-        'min-href': '/minify/3rd-party-min-1.js',
-        'hrefs': [
-            '/.bower_components/jquery/dist/jquery.js',
-            '/.bower_components/angular/angular.js',
-            '/.bower_components/angular-cookies/angular-cookies.js',
-            '/.bower_components/angular-route/angular-route.js',
-            '/.bower_components/angular-resource/angular-resource.js',
-            '/.bower_components/angular-animate/angular-animate.js',
-            '/.bower_components/angular-sanitize/angular-sanitize.js',
-            '/.bower_components/jquery-ui/jquery-ui.js',
-        ]
-    },
-    {
-        'min-href': '/minify/3rd-party-min-2.js',
-        'hrefs': [
-            '/.bower_components/bootstrap/dist/js/bootstrap.js',
-            '/.bower_components/angular-bootstrap/ui-bootstrap-tpls.js',
-            '/.bower_components/angular-hotkeys/build/hotkeys.js',
-            '/.bower_components/angular-bootstrap-show-errors/src/showErrors.js',
-            '/.bower_components/angular-validation-match/dist/angular-validation-match.js',
-            '/.bower_components/angular-select-text/src/angular-select-text.js',
-            '/.bower_components/angular-timeago/dist/angular-timeago.js',
-            '/.bower_components/angular-ui-select/dist/select.js',
-            '/.bower_components/angular-ui-sortable/sortable.js',
-            '/.bower_components/domurl/url.min.js',
-            '/.bower_components/tinycolor/dist/tinycolor-min.js',
-            '/.bower_components/angularjs-color-picker/dist/angularjs-color-picker.js',
-            '/.bower_components/dropzone/dist/dropzone.js',
-            '/.bower_components/jqueryui-touch-punch/jquery.ui.touch-punch.js',
-            '/.bower_components/js-expression-eval/parser.js',
-            '/.bower_components/d3/d3.min.js',
-            '/.bower_components/medium-editor/dist/js/medium-editor.js',
-            '/.bower_components/angular-medium-editor/dist/angular-medium-editor.js',
-            '/.bower_components/showdown/dist/showdown.js',
-            '/.bower_components/to-markdown/dist/to-markdown.js',
-            '/.bower_components/angular-diff-match-patch/angular-diff-match-patch.js',
-            '/.bower_components/google-diff-match-patch/diff_match_patch.js',
-            '/.bower_components/file-saver/FileSaver.js',
-            '/.bower_components/angular-checkboxes/angular-checkboxes.js',
-            '/.bower_components/angular-input-stars/angular-input-stars.js',
-        ]
-    },
-    {
-        'min-href': '/minify/app-min.js',
-        'hrefs': [
-            '/js/app.js',
-            '/js/admin.js',
-            '/js/home.js',
-            '/js/response.js',
-            '/js/subscription.js',
-            '/js/survey-answer.js',
-            '/js/survey-measure.js',
-            '/js/survey-question.js',
-            '/js/survey-services.js',
-            '/js/utils.js',
-            '/js/widgets.js',
-        ]
-    }
-]
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -337,6 +244,7 @@ def authz(*roles):
 class TemplateParams:
     def __init__(self, session):
         self.session = session
+        self.version = cache_bust.factory()
 
     @property
     def dev_mode(self):
@@ -382,13 +290,17 @@ class TemplateParams:
 
     @property
     def scripts(self):
-        return self.prepare_resources(SCRIPTS)
+        bower_versions = config.bower_versions()
+        decls = config.get_resource('js_manifest')
+        return self.prepare_resources(decls, bower_versions)
 
     @property
     def stylesheets(self):
-        return self.prepare_resources(STYLESHEETS)
+        bower_versions = config.bower_versions()
+        decls = config.get_resource('css_manifest')
+        return self.prepare_resources(decls, bower_versions)
 
-    def prepare_resources(self, declarations):
+    def prepare_resources(self, declarations, bower_versions):
         '''
         Resolve a list of resources. Different URLs will be used for the
         resources depending on whether the application is running in
@@ -414,15 +326,20 @@ class TemplateParams:
 
             # Add a resource deployment version number to bust the cache, except
             # for CDN links.
-            if self.deploy_id and k != 'cdn':
-                hrefs = ['%s?v=static-%s' % (href, self.deploy_id)
-                         for href in hrefs]
+            if k != 'cdn':
+                hrefs = [
+                    '%s?v=%s' % (href, self.version(
+                        rel='semi-volatile', dev='non-volatile'))
+                    for href in hrefs]
 
             if dev_mode and k in {'cdn', 'min-href'}:
                 print('Warning: using release resource in dev mode')
             elif not dev_mode and k in {'href', 'hrefs'}:
                 print('Warning: using dev resource in release')
 
+            hrefs = [
+                href.format(bower_versions=bower_versions)
+                for href in hrefs]
             resources.extend(hrefs)
 
         return resources
@@ -568,33 +485,29 @@ class RedirectHandler(BaseHandler):
 
 class RamCacheHandler(tornado.web.RequestHandler):
 
-    CACHE = {}
+    cache = ExpiringDict(max_len=100, max_age_seconds=10)
 
     def get(self, path):
-        qpath = self.resolve_path(path)
-        if qpath in RamCacheHandler.CACHE and falsy(tornado.options.options.dev):
-            self.write_from_cache(qpath)
+        if path in RamCacheHandler.cache and falsy(tornado.options.options.dev):
+            self.write_from_cache(path)
         else:
             log.debug('Generating %s', path)
             mimetype, text = self.generate(path)
-            self.add_to_cache(qpath, mimetype, text)
-            self.write_from_cache(qpath)
-
-    def resolve_path(self, path):
-        return path
+            self.add_to_cache(path, mimetype, text)
+            self.write_from_cache(path)
 
     def generate(self, path):
         raise tornado.web.HTTPError(
             404, "Path %s not found in cache.", path)
 
     def add_to_cache(self, path, mimetype, text):
-        RamCacheHandler.CACHE[path] = {
+        RamCacheHandler.cache[path] = {
             'mimetype': mimetype,
             'text': text
         }
 
     def write_from_cache(self, path):
-        entry = RamCacheHandler.CACHE[path]
+        entry = RamCacheHandler.cache[path]
         self.set_header("Content-Type", entry['mimetype'])
         self.write(entry['text'])
         self.finish()
@@ -636,16 +549,13 @@ class MinifyHandler(RamCacheHandler):
 
     def initialize(self, path, root):
         self.path = path
-        self.root = os.path.abspath(root)
-
-    def resolve_path(self, path):
-        return self.path + path
+        self.root = root
 
     def generate(self, path):
-        path = self.resolve_path(path)
+        path = self.path + path
 
         decl = None
-        for s in SCRIPTS:
+        for s in config.get_resource('js_manifest'):
             if 'min-href' in s and s['min-href'] == path:
                 decl = s
                 break
@@ -653,7 +563,7 @@ class MinifyHandler(RamCacheHandler):
             return 'text/javascript', self.minify_js(decl)
 
         decl = None
-        for s in STYLESHEETS:
+        for s in config.get_resource('css_manifest'):
             if 'min-href' in s and s['min-href'] == path:
                 decl = s
                 break
@@ -717,10 +627,9 @@ class CssHandler(RamCacheHandler):
     '''
 
     def initialize(self, root):
-        self.root = os.path.abspath(root)
+        self.root = root
 
     def generate(self, path):
-        path = self.resolve_path(path)
         log.debug("Compiling CSS for %s", path)
         if path.startswith('/'):
             path = os.path.join(self.root, path[1:])

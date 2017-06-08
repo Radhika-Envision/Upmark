@@ -1,12 +1,50 @@
 <script type="text/javascript">
 'use strict';
 angular.module('settings', [])
-
-{% if params.deploy_id is not None %}
-.constant('deployId', '{{params.deploy_id}}')
-{% else %}
-.constant('deployId', null)
-{% end %}
+.constant('version', {
+    v_v: '{{params.version(rel="vv", dev="vv")}}',
+    v_nv: '{{params.version(rel="vv", dev="nv")}}',
+    v_sv: '{{params.version(rel="vv", dev="sv")}}',
+    nv_v: '{{params.version(rel="nv", dev="vv")}}',
+    nv_nv: '{{params.version(rel="nv", dev="nv")}}',
+    nv_sv: '{{params.version(rel="nv", dev="sv")}}',
+    sv_v: '{{params.version(rel="sv", dev="vv")}}',
+    sv_nv: '{{params.version(rel="sv", dev="nv")}}',
+    sv_sv: '{{params.version(rel="sv", dev="sv")}}',
+})
+.constant('versionedResources', [
+    {
+        // These resources can't have their URLs modified at all.
+        when: 'never',
+        patterns: [
+            '^/?uib/template',
+            '^/?template/color-picker',
+            '^/?inline/',
+            '^/?bootstrap',
+            '^/?nodes_renderer'
+        ],
+    },
+    {
+        when: 'sv_nv',
+        patterns: [
+            '^/?.*\\.html$',
+            '^/?images/',
+            '^/?css/',
+            '^/?\\.bower_components/',
+        ],
+    },
+    {
+        // Cache-bust
+        when: 'v_v',
+        patterns: [
+            // Fix for aggressive IE caching
+            '\\.json',
+            '^/export/',
+            '^/adhoc_query',
+            '\\.sql',
+        ],
+    },
+])
 
 {% if params.aq_version is not None %}
 .constant('aqVersion', '{{params.aq_version}}')
@@ -14,34 +52,7 @@ angular.module('settings', [])
 .constant('aqVersion', null)
 {% end %}
 
-.constant('versionedResources', {
-    exclude: [
-        '^/?uib/template',
-        '^/?template/color-picker',
-        '^/?inline/',
-        '^/?bootstrap',
-        '^/?nodes_renderer'
-    ],
-    include: [
-        '^/?.*\.html$',
-        '^/?images/',
-        '^/?css/',
-        '^/?\.bower_components/',
-    ],
-    volatile: [
-        // Fix for aggressive IE caching
-        '\.json',
-        '^/export/',
-        '^/adhoc_query',
-        '\.sql',
-    ]
-})
-
 .constant('pageTitleSuffix', ' - {{theme.app_name_short}}')
-
-.constant('releaseMode', {
-    dev: {{params.dev_mode}},
-})
 
 ;
 </script>

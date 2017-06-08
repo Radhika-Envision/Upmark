@@ -1,9 +1,13 @@
 import logging
 import os
+from pathlib import Path
 import re
 
-import model
+from bunch import Bunch
+from expiringdict import ExpiringDict
+import yaml
 
+import model
 from utils import get_package_dir
 
 
@@ -161,3 +165,60 @@ def reset_setting(session, name):
     setting = session.query(model.SystemConfig).get(name)
     if setting:
         session.delete(setting)
+
+
+cache = ExpiringDict(max_len=100, max_age_seconds=10)
+
+
+def get_resource(name, context=None):
+    '''
+    @param name - the name of the resource to load, without the file extension.
+    '''
+    if (name, context) in cache:
+        return cache[(name, context)]
+
+    if name in cache:
+        config = cache[name]
+    else:
+        directory = get_package_dir()
+        conf_path_stem = '%s/%s' % (directory, name)
+        extensions = ('yml', 'yaml', 'json')
+        for ext in extensions:
+            conf_path = '%s.%s' % (conf_path_stem, ext)
+            try:
+                with open(conf_path) as f:
+                    config = yaml.load(f)
+                    break
+            except FileNotFoundError:
+                continue
+        else:
+            raise FileNotFoundError(
+                "No resource like %s.{%s}" %
+                (conf_path_stem, ','.join(extensions)))
+        cache[name] = config
+
+    if context is not None:
+        config = [
+            d for d in config
+            if d.get('context', context) == context]
+
+    cache[(name, context)] = config
+    return config
+
+
+def bower_versions():
+    if '_bower_versions' in cache:
+        return cache['_bower_versions']
+
+    directory = os.path.join(get_package_dir(), '..', '..', '.bower_components')
+    versions = Bunch()
+    for path in Path(directory).glob('*/.bower.json'):
+        with path.open() as f:
+            component_meta = yaml.load(f)
+        if 'version' in component_meta:
+            name = component_meta['name']
+            name = name.replace('-', '_')
+            versions[name] = component_meta['version']
+
+    cache['_bower_versions'] = versions
+    return versions

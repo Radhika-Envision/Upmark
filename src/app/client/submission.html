@@ -129,14 +129,6 @@
                 </span>
             </div>
         </div>
-        <div class="checkbox"
-                ng-if="!edit.model.id && !duplicate && checkRole('program_edit') && releaseMode.dev">
-            <label>
-                <input type="checkbox" id="fillRandom" name="fillRandom"
-                    ng-model="edit.params.fillRandom" />
-                Fill with random scores
-            </label>
-        </div>
     </form>
 
     <p class="text-muted" ng-if="duplicate">

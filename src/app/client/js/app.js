@@ -786,53 +786,64 @@ angular.module('wsaa.aquamark',
  * resources. This is to improve the effectiveness of the browser cache, and to
  * give control over when the cache should be invalidated.
  */
-.config(['$httpProvider', 'versionedResources', 'deployId',
-    function($httpProvider, versionedResources, deployId) {
-        if (!deployId)
-            return;
+ .config(['$httpProvider', 'versionedResources', 'version',
+     function($httpProvider, versionedResources, version) {
+         var rs = versionedResources.map(function(r) {
+             r._patterns = r.patterns.map(function(p) {
+                 return new RegExp(p);
+             });
+             r.matches = function(path) {
+                 var test = function(pattern) {
+                     return pattern.test(path);
+                 };
+                 return r._patterns.some(test);
+             };
+             return r;
+         });
+         var getVersionRule = function(path) {
+             for (var i = 0; i < rs.length; i++) {
+                 var r = rs[i];
+                 if (r.matches(path))
+                     return r.when;
+             }
+             return 'never';
+         };
+         var seq = 0;
+         var lastTimestamp = null;
+         var getTimestamp = function() {
+             var ts = Date.now() / 1000;
+             if (ts == lastTimestamp)
+                 seq += 1;
+             else
+                 seq = 0;
+             lastTimestamp = ts;
+             return '' + ts + '-' + seq;
+         };
 
-        var includes = versionedResources.include.map(function(r) {
-            return new RegExp(r);
-        });
-        var volatile = versionedResources.volatile.map(function(r) {
-            return new RegExp(r);
-        });
-        var excludes = versionedResources.exclude.map(function(r) {
-            return new RegExp(r);
-        });
 
-        var vseq = 0;
+         $httpProvider.interceptors.push([function() {
+             return {
+                 request: function(config) {
+                     var vrule = getVersionRule(config.url);
+                     if (vrule == 'never')
+                         return config;
 
-        $httpProvider.interceptors.push([function() {
-            return {
-                request: function(config) {
-                    var test = function(r) {
-                        return r.test(config.url);
-                    };
+                     var versionString = version[vrule];
+                     if (!versionString)
+                         return config;
+                     if (versionString == 'vv')
+                         versionString = 'vv_' + getTimestamp();
 
-                    var cacheBustId = null;
-                    if (volatile.some(test) && !excludes.some(test)) {
-                        cacheBustId = 'volatile-' + (Date.now() / 1000)
-                        cacheBustId += '-' + vseq;
-                        vseq = (vseq + 1) % 100;
-                    } else if (includes.some(test) && !excludes.some(test)) {
-                        cacheBustId = 'static-' + deployId;
-                    }
-
-                    if (cacheBustId) {
-                        var query;
-                        if (config.url.indexOf('?') == -1)
-                            query = '?v=' + cacheBustId;
-                        else
-                            query = '&v=' + cacheBustId;
-                        config.url += query;
-                    }
-                    return config;
-                }
-            };
-        }]);
-    }
-])
+                     if (config.url.indexOf('?') == -1)
+                         config.url += '?v=' + versionString;
+                     else
+                         config.url += '&v=' + versionString;
+                     return config;
+                 }
+             }
+         }]);
+     }
+ ])
 
 
 /*

@@ -1,0 +1,40 @@
+# Resources that have a CDN mirror have a local href and a remote cdn.
+# Resources that have no CDN (or no CDN supporting both HTTP and HTTPS)
+# have a local min-href and a list of local hrefs. min-href is used
+# in production mode; in that case the minify handler may compress the
+# sources (if min-href points to an endpoint handled by the
+# MinifyHandler).
+#
+# CARE must be taken when grouping resources: make sure they will be concatenated
+# in the right order.
+
+
+ -  href: /bower_components/bootstrap/dist/css/bootstrap.css
+    cdn: //maxcdn.bootstrapcdn.com/bootstrap/{bower_versions.bootstrap}/css/bootstrap.min.css
+
+ -  href: /bower_components/font-awesome/css/font-awesome.css
+    cdn: //maxcdn.bootstrapcdn.com/font-awesome/{bower_versions.font_awesome}/css/font-awesome.min.css
+
+ -  cdn: //fonts.googleapis.com/css?family=Ubuntu
+    href: /fonts/Ubuntu.css
+
+ -  cdn: //cdnjs.cloudflare.com/ajax/libs/angular-hotkeys/{bower_versions.angular_hotkeys}/hotkeys.min.css
+    href: /bower_components/angular-hotkeys/build/hotkeys.css
+
+ -  cdn: //cdnjs.cloudflare.com/ajax/libs/angular-ui-select/{bower_versions.angular_ui_select}/select.min.css
+    href: /bower_components/angular-ui-select/dist/select.css
+
+ -  cdn: //cdnjs.cloudflare.com/ajax/libs/medium-editor/{bower_versions.medium_editor}/css/medium-editor.min.css
+    href: /bower_components/medium-editor/dist/css/medium-editor.min.css
+ -  cdn: //cdnjs.cloudflare.com/ajax/libs/medium-editor/{bower_versions.medium_editor}/css/themes/default.min.css
+    href: /bower_components/medium-editor/dist/css/themes/default.min.css
+
+ -  cdn: //cdnjs.cloudflare.com/ajax/libs/angularjs-color-picker/{bower_versions.angularjs_color_picker}/angularjs-color-picker.min.css
+    href: /bower_components/angularjs-color-picker/dist/angularjs-color-picker.min.css
+
+ -  min-href: /minify/app-min.css
+    hrefs:
+        - /css/app.css
+        - /css/dropzone.css
+        - /css/clock.css
+        - /css/statistics.css
