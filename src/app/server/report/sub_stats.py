@@ -20,7 +20,8 @@ from utils import reorder, ToSon, truthy, updater
 import numpy
 
 
-log = logging.getLogger('app.statistics_handler')
+log = logging.getLogger('app.report.sub_stats')
+
 
 class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
 

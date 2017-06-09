@@ -57,13 +57,15 @@ def ssl_log_filter(record):
 
 import auth
 import crud
-import export_handlers
 import handlers
 import import_handlers
 import model
-import report.temporal
-import report_handlers
-import statistics_handlers
+from report.custom import CustomQueryHandler, SqlFormatHandler
+from report.diff import DiffHandler
+from report.prog_export import ExportProgramHandler
+from report.sub_export import ExportSubmissionHandler
+from report.sub_stats import StatisticsHandler
+from report.temporal import TemporalReportHandler
 from utils import truthy
 
 
@@ -236,19 +238,18 @@ def get_mappings():
             crud.attachment.AttachmentHandler, {}),
 
         (r"/statistics/program/([^/]*)/survey/([^/]*).json",
-            statistics_handlers.StatisticsHandler, {}),
-        (r"/diff.json",
-            report_handlers.DiffHandler, {}),
+            StatisticsHandler, {}),
+        (r"/diff.json", DiffHandler, {}),
         (r"/export/program/([^/]*)/survey/([^/]*)/([^.]+)\.(.+)",
-            export_handlers.ExportProgramHandler, {}),
+            ExportProgramHandler, {}),
         (r"/export/temporal/([^/]*)\.(.+)",
-            report.temporal.TemporalReportHandler, {}),
+            TemporalReportHandler, {}),
         (r"/export/submission/([^/]*)/([^.]+)\.(.+)",
-            export_handlers.ExportSubmissionHandler, {}),
+            ExportSubmissionHandler, {}),
         (r"/adhoc_query\.(.+)",
-            report_handlers.AdHocHandler, {}),
+            CustomQueryHandler, {}),
         (r"/reformat.sql",
-            report_handlers.SqlFormatHandler, {}),
+            SqlFormatHandler, {}),
 
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response.json", import_handlers.ImportResponseHandler, {}),
