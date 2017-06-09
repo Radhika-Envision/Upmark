@@ -416,6 +416,8 @@ class SubmissionTest(base.AqHttpTestBase):
         session.add(submission)
 
         for m in program.measures:
+            # Preload response type to avoid autoflush
+            response_type = m.response_type
             qnode_measure = m.get_qnode_measure(survey)
             if not qnode_measure:
                 continue
@@ -429,9 +431,9 @@ class SubmissionTest(base.AqHttpTestBase):
             response.approval = 'final'
             response.comment = "Response for %s" % m.title
             session.add(response)
-            if m.response_type.name == 'Yes / No':
+            if response_type.name == 'Yes / No':
                 response.response_parts = [{'index': 1, 'note': "Yes"}]
-            elif m.response_type.name in {'Numerical', 'External Numerical', 'Planned', 'Actual'}:
+            elif response_type.name in {'Numerical', 'External Numerical', 'Planned', 'Actual'}:
                 response.response_parts = [{'value': 1}]
             else:
                 raise ValueError("Unknown response type")

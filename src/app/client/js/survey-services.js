@@ -104,7 +104,7 @@ angular.module('wsaa.survey.services', [
 
 
 .factory('Statistics', ['$resource', function($resource) {
-    return $resource('/report/sub_stats/program/:programId/survey/:surveyId.json', {
+    return $resource('/report/sub/stats/program/:programId/survey/:surveyId.json', {
         programId: '@programId',
         surveyId: '@surveyId',
     }, {

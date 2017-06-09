@@ -27,8 +27,8 @@ class AuthNTest(base.AqHttpTestBase):
             "/login", follow_redirects=False, method='POST',
             body=urllib.parse.urlencode(post_data))
         self.assertEqual(302, response.code)
-        self.assertIn('user=;', response.headers['set-cookie'])
-        self.assertIn('superuser=;', response.headers['set-cookie'])
+        self.assertIn('user="";', response.headers['set-cookie'])
+        self.assertIn('superuser="";', response.headers['set-cookie'])
 
         post_data['password'] = 'foo'
         response = self.fetch(
