@@ -163,7 +163,7 @@ class OrgMeta(Base):
     asset_types = Column(ARRAY(Enum(
         'water wholesale', 'water local',
         'wastewater wholesale', 'wastewater local',
-        native_enum=False)))
+        native_enum=False, create_constraint=False)))
     regulation_level = Column(Enum(
         'extensive', 'partial', 'none', native_enum=False))
 
@@ -185,6 +185,15 @@ class OrgMeta(Base):
     organisation = relationship(
         Organisation,
         backref=backref('meta', uselist=False, cascade="all, delete-orphan"))
+
+    __table_args__ = (
+        CheckConstraint(
+            """asset_types <@ ARRAY[
+                'water wholesale', 'water local',
+                'wastewater wholesale', 'wastewater local'
+            ]::varchar[]""",
+            name='org_meta_asset_types_check'),
+    )
 
 
 class OrgLocation(Base):
@@ -926,7 +935,6 @@ class ResponseNode(Observable, Base):
             ['submission_id'],
             ['submission.id']
         ),
-        UniqueConstraint('qnode_id', 'submission_id'),
         Index('rnode_qnode_id_submission_id_index', qnode_id, submission_id),
     )
 
@@ -1040,8 +1048,6 @@ class Response(Observable, Versioned, Base):
             ['submission.id'],
             info={'version': True}
         ),
-        Index('response_submission_id_measure_id_index',
-              submission_id, measure_id),
     )
 
     user = relationship(AppUser)
@@ -1100,6 +1106,8 @@ class Response(Observable, Versioned, Base):
 ResponseHistory = Response.__history_mapper__.class_
 ResponseHistory.response_parts = Response.response_parts
 ResponseHistory.ob_type = property(lambda self: 'response')
+ResponseHistory.user = relationship(
+    AppUser, backref='user', passive_deletes=True)
 
 
 class Attachment(Base):
@@ -1145,7 +1153,7 @@ class Activity(Base):
             'broadcast',
             'create', 'update', 'state', 'delete', 'undelete',
             'relation', 'reorder_children',
-            native_enum=False)),
+            native_enum=False, create_constraint=False)),
         nullable=False)
     # A snapshot of some defining feature of the object at the time the event
     # happened (e.g. title of a measure before it was deleted).
@@ -1180,6 +1188,13 @@ class Activity(Base):
         CheckConstraint(
             "(verbs @> ARRAY['broadcast']::varchar[] or ob_type != null)",
             name='activity_broadcast_constraint'),
+        CheckConstraint(
+            """verbs <@ ARRAY[
+                'broadcast',
+                'create', 'update', 'state', 'delete', 'undelete',
+                'relation', 'reorder_children',
+            ]::varchar[]""",
+            name='activity_verbs_check'),
         CheckConstraint(
             'ob_type = null or array_length(verbs, 1) > 0',
             name='activity_verbs_length_constraint'),
@@ -1415,10 +1430,6 @@ Response.qnode_measure = relationship(
     #             (Response.program_id == Measure.program_id))
 
 Response.measure = association_proxy('qnode_measure', 'measure')
-
-
-ResponseHistory.user = relationship(
-    AppUser, backref='user', passive_deletes=True)
 
 
 Session = None
