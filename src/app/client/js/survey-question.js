@@ -816,7 +816,7 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.download = function(export_type) {
         var fileName = 'survey-' + export_type + '.xlsx'
-        var url = '/export/program/' + $scope.program.id;
+        var url = '/report/prog/export/' + $scope.program.id;
         url += '/survey/' + $scope.survey.id;
         url += '/' + export_type + '.xlsx';
 
@@ -2319,7 +2319,7 @@ angular.module('wsaa.surveyQuestions', [
 
 
 .factory('CustomQueryConfig', ['$resource', function($resource) {
-    return $resource('/adhoc_query.json', {}, {
+    return $resource('/report/custom_query.json', {}, {
         get: { method: 'GET', cache: false }
     });
 }])
@@ -2332,7 +2332,7 @@ angular.module('wsaa.surveyQuestions', [
 }])
 
 
-.controller('AdHocCtrl', ['$scope', '$http', 'Notifications', 'samples',
+.controller('CustomCtrl', ['$scope', '$http', 'Notifications', 'samples',
             'hotkeys', 'config', 'download',
             function($scope, $http, Notifications, samples, hotkeys, config,
                 download) {
@@ -2346,7 +2346,7 @@ angular.module('wsaa.surveyQuestions', [
         var config = {
             params: {limit: $scope.execLimit}
         };
-        $http.post('/adhoc_query.json', query, config).then(
+        $http.post('/report/custom_query.json', query, config).then(
             function success(response) {
                 var message = "Query finished";
                 if (response.headers('Operation-Details'))
@@ -2363,8 +2363,8 @@ angular.module('wsaa.surveyQuestions', [
     };
 
     $scope.download = function(query, file_type) {
-        var fileName = 'adhoc_query.' + file_type;
-        var url = '/' + fileName;
+        var fileName = 'custom_query.' + file_type;
+        var url = '/report/' + fileName;
         return download(fileName, url, query).then(
             function success(response) {
                 var message = "Query finished";
@@ -2380,7 +2380,7 @@ angular.module('wsaa.surveyQuestions', [
     };
 
     $scope.format = function(query) {
-        $http.post('/reformat.sql', $scope.query).then(
+        $http.post('/report/custom_query/reformat.sql', $scope.query).then(
             function success(response) {
                 $scope.query = response.data;
                 Notifications.set('query', 'info', "Formatted", 5000);

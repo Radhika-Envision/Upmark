@@ -651,9 +651,9 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/:uv/adhoc', {
-                templateUrl : 'adhoc.html',
-                controller : 'AdHocCtrl',
+            .when('/:uv/custom', {
+                templateUrl : 'custom.html',
+                controller : 'CustomCtrl',
                 resolve: {
                     config: ['CustomQueryConfig', function(CustomQueryConfig) {
                         return CustomQueryConfig.get({}).$promise;

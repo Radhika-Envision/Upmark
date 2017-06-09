@@ -156,7 +156,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
 
     $scope.downloadSubmissionReport = function(report_type, submission_id) {
         var fileName = 'submission-' + report_type + '.xlsx';
-        var url = '/export/submission/' + submission_id;
+        var url = '/report/sub/export/' + submission_id;
         url += '/' + report_type + '.xlsx';
         $scope.download(fileName, url, null);
     };
@@ -442,7 +442,7 @@ angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
         if (!$scope.specTest(query))
             return;
         var fileName = 'submission-temporal.' + file_type;
-        var url = '/export/temporal/' + survey_id + '.' + file_type;
+        var url = '/report/sub/temporal/' + survey_id + '.' + file_type;
         query = angular.copy(query);
         query.intervalUnit = query.intervalUnit.id;
         $scope.download(fileName, url, query);

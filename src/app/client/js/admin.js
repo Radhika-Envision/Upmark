@@ -540,7 +540,7 @@ angular.module('wsaa.admin', [
     return function(current) {
         return function(functionName) {
             switch (functionName) {
-                case 'adhoc_analytics':
+                case 'custom_query':
                     return Roles.hasPermission(current.user.role, 'consultant');
                 default:
                     return Roles.hasPermission(current.user.role, 'admin');

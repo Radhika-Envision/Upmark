@@ -104,7 +104,7 @@ angular.module('wsaa.survey.services', [
 
 
 .factory('Statistics', ['$resource', function($resource) {
-    return $resource('/statistics/program/:programId/survey/:surveyId.json', {
+    return $resource('/report/sub_stats/program/:programId/survey/:surveyId.json', {
         programId: '@programId',
         surveyId: '@surveyId',
     }, {
@@ -114,7 +114,7 @@ angular.module('wsaa.survey.services', [
 
 
 .factory('Diff', ['$resource', function($resource) {
-    return $resource('/diff.json', {}, {
+    return $resource('/report/diff.json', {}, {
         get: { method: 'GET', isArray: false, cache: false }
     });
 }])

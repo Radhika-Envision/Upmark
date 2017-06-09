@@ -40,7 +40,7 @@ MAX_LIMIT = 2500
 BUF_SIZE = 4096
 
 
-class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
+class CustomQueryReportHandler(handlers.Paginate, handlers.BaseHandler):
     '''
     Allows ad-hoc queries using SQL.
     '''
@@ -53,8 +53,8 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
         self.set_header("Content-Type", "application/json")
         with model.session_scope() as session:
             conf = {
-                'wall_time': config.get_setting(session, 'adhoc_timeout') * 1000,
-                'max_limit': config.get_setting(session, 'adhoc_max_limit'),
+                'wall_time': config.get_setting(session, 'custom_timeout') * 1000,
+                'max_limit': config.get_setting(session, 'custom_max_limit'),
             }
         self.write(json_encode(to_son(conf)))
         self.finish()
@@ -69,7 +69,7 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
             raise handlers.ModelError(str(e))
 
         with model.session_scope() as session:
-            max_limit = config.get_setting(session, 'adhoc_timeout') * 1000
+            max_limit = config.get_setting(session, 'custom_timeout') * 1000
             if limit == 0:
                 limit = max_limit
             elif limit < 0:
@@ -77,7 +77,7 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
             elif limit > max_limit:
                 raise handlers.ModelError('Limit is too high')
             conf = {
-                'wall_time': int(config.get_setting(session, 'adhoc_timeout') * 1000),
+                'wall_time': int(config.get_setting(session, 'custom_timeout') * 1000),
                 'limit': int(limit),
             }
 

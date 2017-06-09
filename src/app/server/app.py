@@ -60,12 +60,12 @@ import crud
 import handlers
 import import_handlers
 import model
-from report.custom import CustomQueryHandler, SqlFormatHandler
+from report.custom import CustomQueryReportHandler, SqlFormatHandler
 from report.diff import DiffHandler
 from report.prog_export import ExportProgramHandler
 from report.sub_export import ExportSubmissionHandler
 from report.sub_stats import StatisticsHandler
-from report.temporal import TemporalReportHandler
+from report.sub_temporal import TemporalReportHandler
 from utils import truthy
 
 
@@ -237,19 +237,17 @@ def get_mappings():
         (r"/attachment/([^/]*)/(.*)",
             crud.attachment.AttachmentHandler, {}),
 
-        (r"/statistics/program/([^/]*)/survey/([^/]*).json",
+        (r"/report/sub_stats/program/([^/]*)/survey/([^/]*).json",
             StatisticsHandler, {}),
-        (r"/diff.json", DiffHandler, {}),
-        (r"/export/program/([^/]*)/survey/([^/]*)/([^.]+)\.(.+)",
+        (r"/report/diff.json", DiffHandler, {}),
+        (r"/report/prog/export/([^/]*)/survey/([^/]*)/([^.]+)\.(.+)",
             ExportProgramHandler, {}),
-        (r"/export/temporal/([^/]*)\.(.+)",
+        (r"/report/sub/temporal/([^/]*)\.(.+)",
             TemporalReportHandler, {}),
-        (r"/export/submission/([^/]*)/([^.]+)\.(.+)",
+        (r"/report/sub/export/([^/]*)/([^.]+)\.(.+)",
             ExportSubmissionHandler, {}),
-        (r"/adhoc_query\.(.+)",
-            CustomQueryHandler, {}),
-        (r"/reformat.sql",
-            SqlFormatHandler, {}),
+        (r"/report/custom_query/reformat.sql", SqlFormatHandler, {}),
+        (r"/report/custom_query\.(.+)", CustomQueryReportHandler, {}),
 
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response.json", import_handlers.ImportResponseHandler, {}),
