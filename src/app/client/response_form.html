@@ -1,22 +1,10 @@
 <div class="response">
 
-<div>
+<!-- <div>
     <div class="toolbar compact">
         <span ng-if="!edit.model" ng-transclude></span>
     </div>
     <h2>
-        Response
-
-        <span class="text-muted" ng-if="isDummy">(sample)</span>
-        <span class="text-muted" ng-if="!isDummy">
-            <small ng-if="state.message">
-                <i class="fa fa-exclamation fa-fw"></i> {{state.message}}
-            </small>
-            <small ng-if="!state.message">
-                <i class="fa fa-check fa-fw"></i> OK
-            </small>
-        </span>
-
         <span class="text-muted pull-right" title="Score (weighted)"
             ><span class="visible-print-inline">Score</span
             >&nbsp;<span
@@ -25,7 +13,7 @@
             >{{state.score * weight | number:0}}</span
         ></span>
     </h2>
-</div>
+</div> -->
 
 <ol class="responses list-unstyled" ng-if="!response.notRelevant">
     <li ng-repeat="partSchema in rt.parts"
@@ -96,6 +84,15 @@
         </div>
     </li>
 </ol>
+
+<p class="text-muted" ng-if="!isDummy">
+    <small ng-if="state.message">
+        <i class="fa fa-exclamation fa-fw"></i> {{state.message}}
+    </small>
+    <small ng-if="!state.message">
+        <i class="fa fa-check fa-fw"></i> OK
+    </small>
+</p>
 
 <docs>
     <i class="fa-li fa fa-check-square-o fa-border"></i>

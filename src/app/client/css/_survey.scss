@@ -735,6 +735,9 @@ ul.list-results {
 
 .part {
     margin: 24px 0;
+    &:first-child {
+        margin-top: 0;
+    }
     label {
         border: solid transparent;
         margin: 0;
