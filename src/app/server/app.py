@@ -195,6 +195,7 @@ def get_mappings():
 
         (r"/systemconfig.json", crud.config.SystemConfigHandler, {}),
         (r"/systemconfig/(.*)", crud.config.SystemConfigItemHandler, {}),
+        (r"/custom_query/?([^/]*).json", crud.custom.CustomQueryHandler, {}),
         (r"/organisation/?([^/]*).json", crud.org.OrgHandler, {}),
         (r"/organisation/?([^/]*)/survey/?([^/]*).json",
             crud.org.PurchasedSurveyHandler, {}),

@@ -1137,6 +1137,48 @@ class Attachment(Base):
     organisation = relationship(Organisation)
 
 
+class CustomQuery(Observable, Versioned, Base):
+    '''
+    Stored database queries
+    '''
+    __tablename__ = 'custom_query'
+    id = Column(GUID, default=uuid.uuid4, nullable=False, primary_key=True)
+    modified = Column(DateTime, default=datetime.utcnow, nullable=False)
+    user_id = Column(GUID, ForeignKey("appuser.id"), nullable=False)
+    title = Column(Text, nullable=False)
+    text = Column(Text, nullable=False)
+    description = Column(Text)
+    deleted = Column(Boolean, default=False, nullable=False)
+
+    user = relationship(AppUser)
+
+    @property
+    def ob_type(self):
+        return 'custom_query'
+
+    @property
+    def ob_ids(self):
+        return [self.id]
+
+    @property
+    def action_lineage(self):
+        return [self]
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['user_id'],
+            ['appuser.id'],
+            info={'version': True}
+        ),
+    )
+
+
+CustomQueryHistory = CustomQuery.__history_mapper__.class_
+CustomQueryHistory.ob_type = property(lambda self: 'custom_query')
+CustomQueryHistory.user = relationship(
+    AppUser, backref='user', passive_deletes=True)
+
+
 class Activity(Base):
     '''
     An event in the activity stream (timeline). This forms a kind of logging
@@ -1153,6 +1195,7 @@ class Activity(Base):
             'broadcast',
             'create', 'update', 'state', 'delete', 'undelete',
             'relation', 'reorder_children',
+            'report',
             native_enum=False, create_constraint=False)),
         nullable=False)
     # A snapshot of some defining feature of the object at the time the event
@@ -1166,6 +1209,7 @@ class Activity(Base):
         'organisation', 'user',
         'program', 'survey', 'qnode', 'measure', 'response_type',
         'submission', 'rnode', 'response',
+        'custom_query',
         native_enum=False))
     ob_ids = Column(ARRAY(GUID), nullable=False)
     # The ob_refs column contains all relevant IDs including e.g. parent
@@ -1193,6 +1237,7 @@ class Activity(Base):
                 'broadcast',
                 'create', 'update', 'state', 'delete', 'undelete',
                 'relation', 'reorder_children',
+                'report'
             ]::varchar[]""",
             name='activity_verbs_check'),
         CheckConstraint(
@@ -1225,6 +1270,7 @@ class Subscription(Base):
         'organisation', 'user',
         'program', 'survey', 'qnode', 'measure', 'response_type',
         'submission', 'rnode', 'response',
+        'custom_query',
         native_enum=False))
     ob_refs = Column(ARRAY(GUID), nullable=False)
 
