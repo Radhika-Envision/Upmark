@@ -9,7 +9,11 @@ angular.module('upmark.custom', [
             function($scope, $http, Notifications, samples, hotkeys, config,
                 download) {
     $scope.config = config;
-    $scope.query = samples[0].query;
+    $scope.query = {
+        id: null,
+        title: samples[0].name,
+        text: samples[0].query,
+    };
     $scope.result = {};
     $scope.samples = samples;
     $scope.execLimit = 20;
@@ -52,10 +56,23 @@ angular.module('upmark.custom', [
     };
 
     $scope.format = function(query) {
-        $http.post('/report/custom_query/reformat.sql', $scope.query).then(
+        $http.post('/report/custom_query/reformat.sql', $scope.query.text).then(
             function success(response) {
-                $scope.query = response.data;
+                $scope.query.text = response.data;
                 Notifications.set('query', 'info', "Formatted", 5000);
+            },
+            function failure(response) {
+                Notifications.set('query', 'error',
+                    "Error: " + response.statusText);
+            }
+        );
+    };
+
+    $scope.autoName = function(query) {
+        $http.post('/report/custom_query/identifiers.json', $scope.query.text).then(
+            function success(response) {
+                $scope.query.title = response.data.autoName;
+                Notifications.set('query', 'info', "Generated name", 5000);
             },
             function failure(response) {
                 Notifications.set('query', 'error',

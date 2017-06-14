@@ -60,7 +60,8 @@ import crud
 import handlers
 import import_handlers
 import model
-from report.custom import CustomQueryReportHandler, SqlFormatHandler
+from report.custom import CustomQueryReportHandler, SqlFormatHandler, \
+    SqlIdentifierHandler
 from report.diff import DiffHandler
 from report.prog_export import ExportProgramHandler
 from report.sub_export import ExportSubmissionHandler
@@ -248,6 +249,7 @@ def get_mappings():
         (r"/report/sub/export/([^/]*)/([^.]+)\.(.+)",
             ExportSubmissionHandler, {}),
         (r"/report/custom_query/reformat.sql", SqlFormatHandler, {}),
+        (r"/report/custom_query/identifiers.json", SqlIdentifierHandler, {}),
         (r"/report/custom_query\.(.+)", CustomQueryReportHandler, {}),
 
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),

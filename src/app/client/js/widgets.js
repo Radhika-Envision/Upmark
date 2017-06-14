@@ -1000,6 +1000,8 @@ angular.module('vpac.widgets', [])
         ],
     }
     function postLink(scope, elem, attrs, ngModel) {
+        elem.toggleClass('embedded-toolbar', true);
+
         scope.model = {
             mode: 'rendered',
             viewValue: null

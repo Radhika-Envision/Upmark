@@ -15,51 +15,93 @@
 <div class="container">
 <form>
     <div class="form-group text-center hidden-print">
-        <button ng-click="format(query)"
-                class="btn btn-default"
-                title="Format">
-            <i class="fa fa-paragraph"></i>
-            <span class="sr-only">Format</span>
-        </button>
         <span class="btn-group">
-            <span class="btn-group-addon">
-                <i class="fa fa-cloud-download"></i>
-            </span>
+            <button ng-click="new()"
+                    class="btn btn-default"
+                    title="New">
+                <i class="fa fa-file-o"></i>
+                <span class="sr-only">New</span>
+            </button>
+            <button ng-click="load()"
+                    class="btn btn-default"
+                    title="Open a saved query">
+                <i class="fa fa-folder-open-o"></i>
+                <span class="sr-only">Browse</span>
+            </button>
+            <button ng-click="save(query)"
+                    class="btn btn-default"
+                    title="Save">
+                <i class="fa fa-save"></i>
+                <span class="sr-only">Save</span>
+            </button>
+            <button ng-click="duplicate(query)"
+                    class="btn btn-default"
+                    title="Duplicate as a new query (and detach from current history)">
+                <i class="fa fa-files-o"></i>
+                <span class="sr-only">Duplicate</span>
+            </button>
+            <button ng-click="history(query)"
+                    class="btn btn-default"
+                    title="Switch to an old version">
+                <i class="fa fa-history"></i>
+                <span class="sr-only">History</span>
+            </button>
+        </span>
+        <span class="btn-group">
+            <button ng-click="execute(query)"
+                    class="btn btn-default"
+                        title="Execute and display on this page">
+                <i class="fa fa-play"></i>
+                Execute
+            </button>
             <button ng-click="download(query, 'csv')"
                     class="btn btn-default"
-                    title="Execute and download as comma-separated values (text)">
+                    title="Download as comma-separated values (text)">
                 CSV
             </button>
             <button ng-click="download(query, 'xlsx')"
                     class="btn btn-default"
-                    title="Execute and download as an Excel spreadsheet">
+                    title="Download as an Excel spreadsheet">
                 Excel
             </button>
         </span>
-        <button ng-click="execute(query)"
-                class="btn btn-default"
-                    title="Execute and display on this page">
-            <i class="fa fa-play"></i>
-            Execute
-        </button>
-        <span uib-dropdown dropdown-append-to-body>
-            <button class="btn btn-default" title="Presets" uib-dropdown-toggle>
-                <i class="fa fa-bookmark"></i></button>
+    </div>
 
-            <ul uib-dropdown-menu class="dropdown-menu-right">
-                <li class="dropdown-header">Sample queries</li>
-                <li ng-repeat="sample in samples">
-                    <a href ng-click="setQuery(sample.query)">
-                        {{sample.name}}
-                    </a>
-                </li>
-            </ul>
-        </span>
+    <div class="form-group embedded-toolbar"
+          ng-class="{'hidden-print': !query.title}">
+        <div class="toolbar">
+            <button class="btn btn-default btn-round"
+                    ng-click="autoName(query)"
+                    title="Generate name">
+                <i class="fa fa-magic"></i>
+                <span class="sr-only">Generate name</span>
+            </button>
+        </div>
+        <input type="text" ng-model="query.title"
+            class="form-control"
+            placeholder="Name (for saving)"
+            title="Name">
+        </input>
     </div>
     <div class="form-group"
-            textarea-label="{{!query ? 'Enter SQL query' : ''}}">
-        <textarea autoresize ng-model="query"
-            class="autoresize form-control">
+          textarea-label="Description"
+          ng-class="{'hidden-print': !query.description}">
+        <markdown-editor id="description"
+            ng-model="query.description" title="Description"></markdown-editor>
+    </div>
+    <div class="form-group embedded-toolbar"
+            textarea-label="{{!query.text ? 'Enter SQL query' : ''}}">
+        <div class="toolbar">
+            <button class="btn btn-default btn-round"
+                    ng-click="format(query)"
+                    title="Format">
+                <i class="fa fa-magic"></i>
+                <span class="sr-only">Format</span>
+            </button>
+        </div>
+        <textarea autoresize ng-model="query.text"
+            class="autoresize form-control"
+            title="Query text as SQL">
         </textarea>
     </div>
 

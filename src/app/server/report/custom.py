@@ -1,3 +1,4 @@
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 import csv
@@ -318,3 +319,56 @@ class SqlFormatHandler(handlers.BaseHandler):
         self.set_header("Content-Type", "text/plain")
         self.write(utf8(query))
         self.finish()
+
+
+class SqlIdentifierHandler(handlers.BaseHandler):
+    @handlers.authz('consultant')
+    def post(self):
+        query = to_basestring(self.request.body)
+
+        extractor = NameExtractor()
+        extractor.handle_query(query)
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode({
+            'autoName': extractor.auto_name,
+            'namesByKw': {
+                k: sorted(vs)
+                for k, vs in extractor.names_by_kw.items()},
+        }))
+        self.finish()
+
+
+class NameExtractor:
+    def __init__(self):
+        self.names_by_kw = defaultdict(set)
+        self.auto_name = ""
+        self.keyword = None
+
+    def handle_query(self, query):
+        for statement in sqlparse.parse(query):
+            self.handle_statement(statement)
+
+        self.auto_name = ' '.join(self.names_by_kw['from'])
+        if self.names_by_kw['join']:
+            self.auto_name += ' by ' + ' '.join(self.names_by_kw['join'])
+
+    def handle_statement(self, statement):
+        for token in statement.tokens:
+            if token.is_keyword:
+                self.handle_keyword(token)
+            elif isinstance(token, sqlparse.sql.IdentifierList):
+                self.handle_identifier_list(token)
+            elif isinstance(token, sqlparse.sql.Identifier):
+                self.handle_identifier(token)
+
+    def handle_keyword(self, keyword):
+        self.keyword = keyword.value.lower()
+
+    def handle_identifier_list(self, identifier_list):
+        for token in identifier_list.tokens:
+            if isinstance(token, sqlparse.sql.Identifier):
+                self.handle_identifier(token)
+
+    def handle_identifier(self, identifier):
+        self.names_by_kw[self.keyword].add(identifier.get_real_name())
