@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('wsaa.surveyAnswers', ['ngResource', 'wsaa.admin',
+angular.module('upmark.surveyAnswers', ['ngResource', 'upmark.admin',
                                       'ui.select', 'vpac.utils'])
 
 

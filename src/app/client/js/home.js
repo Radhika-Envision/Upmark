@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
+angular.module('upmark.home', ['ngResource', 'upmark.admin'])
 
 
 .factory('Activity', ['$resource', function($resource) {

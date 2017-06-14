@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('wsaa.response', ['ngResource', 'wsaa.admin'])
+angular.module('upmark.response', ['ngResource', 'upmark.admin'])
 
 
 .factory('responseTypes', function() {

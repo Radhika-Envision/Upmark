@@ -1,7 +1,7 @@
 'use strict';
 
-angular.module('wsaa.survey.measure', [
-    'wsaa.surveyQuestions', 'wsaa.survey.services', 'wsaa.response'])
+angular.module('upmark.survey.measure', [
+    'upmark.surveyQuestions', 'upmark.survey.services', 'upmark.response'])
 
 
 .controller('MeasureCtrl',
