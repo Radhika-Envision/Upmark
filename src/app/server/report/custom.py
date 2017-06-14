@@ -41,7 +41,7 @@ MAX_LIMIT = 2500
 BUF_SIZE = 4096
 
 
-class CustomQueryReportHandler(handlers.Paginate, handlers.BaseHandler):
+class CustomQueryReportHandler(handlers.BaseHandler):
     '''
     Allows ad-hoc queries using SQL.
     '''
@@ -49,27 +49,18 @@ class CustomQueryReportHandler(handlers.Paginate, handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=4)
 
     @handlers.authz('consultant')
-    def get(self, file_type):
-        to_son = ToSon(r'.*')
-        self.set_header("Content-Type", "application/json")
-        with model.session_scope() as session:
-            conf = {
-                'wall_time': config.get_setting(session, 'custom_timeout') * 1000,
-                'max_limit': config.get_setting(session, 'custom_max_limit'),
-            }
-        self.write(json_encode(to_son(conf)))
-        self.finish()
-
-    @handlers.authz('consultant')
     @gen.coroutine
-    def post(self, file_type):
-        query = to_basestring(self.request.body)
+    def post(self, query_id, file_type):
         try:
             limit = float(self.get_argument('limit', '0'))
         except ValueError:
             raise handlers.ModelError(str(e))
 
         with model.session_scope() as session:
+            custom_query = session.query(model.CustomQuery).get(query_id)
+            if not custom_query:
+                raise handlers.MissingDocError("No such query")
+
             max_limit = config.get_setting(session, 'custom_timeout') * 1000
             if limit == 0:
                 limit = max_limit
@@ -81,13 +72,14 @@ class CustomQueryReportHandler(handlers.Paginate, handlers.BaseHandler):
                 'wall_time': int(config.get_setting(session, 'custom_timeout') * 1000),
                 'limit': int(limit),
             }
+            text = custom_query.text
 
         if file_type == 'json':
-            yield self.as_json(query, conf)
+            yield self.as_json(text, conf)
         elif file_type == 'csv':
-            yield self.as_csv(query, conf)
+            yield self.as_csv(text, conf)
         elif file_type == 'xlsx':
-            yield self.as_xlsx(query, conf)
+            yield self.as_xlsx(text, conf)
         else:
             raise handlers.MissingDocError('%s not supported' % file_type)
 
@@ -306,6 +298,21 @@ class CustomQueryReportHandler(handlers.Paginate, handlers.BaseHandler):
                 if not data:
                     break
                 self.write(data)
+
+
+class CustomQueryConfigHandler(handlers.BaseHandler):
+
+    @handlers.authz('consultant')
+    def get(self):
+        to_son = ToSon(r'.*')
+        self.set_header("Content-Type", "application/json")
+        with model.session_scope() as session:
+            conf = {
+                'wall_time': config.get_setting(session, 'custom_timeout') * 1000,
+                'max_limit': config.get_setting(session, 'custom_max_limit'),
+            }
+        self.write(json_encode(to_son(conf)))
+        self.finish()
 
 
 class SqlFormatHandler(handlers.BaseHandler):

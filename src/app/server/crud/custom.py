@@ -46,6 +46,7 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/id$',
                 r'/deleted$',
                 r'/modified$',
+                r'/latest_modified$',
                 r'/user$',
                 r'/title$',
                 r'/description$',
@@ -54,6 +55,13 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
             )
 
             son = to_son(custom_query)
+
+            # Always include the mtime of the most recent version. This is used
+            # to avoid edit conflicts.
+            dummy_relations = {
+                'latest_modified': custom_query.modified,
+            }
+            son.update(to_son(dummy_relations))
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -68,7 +76,7 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
             term = self.get_argument('term', None)
             if term is not None:
                 query = query.filter(
-                    model.CustomQuery.name.ilike(r'%{}%'.format(term)))
+                    model.CustomQuery.title.ilike(r'%{}%'.format(term)))
 
             deleted = self.get_argument('deleted', '')
             if deleted != '':
@@ -94,6 +102,7 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
                 r'^/[0-9]+/id$',
                 r'/deleted$',
                 r'/title$',
+                r'/description$',
                 r'/modified$',
                 # Descend into list
                 r'/[0-9]+$',
@@ -138,7 +147,7 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
                 raise handlers.MissingDocError("No such query")
 
             self.check_concurrent_write(custom_query)
-            if not self.should_save_new_version:
+            if not self.should_save_new_version(custom_query):
                 custom_query.version_on_update = False
 
             self.update(custom_query, self.request_son)
@@ -207,7 +216,7 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
         update = updater(custom_query)
         update('title', son)
         update('text', son)
-        update('description', son)
+        update('description', son, sanitise=True)
 
     def update_auto(self, custom_query):
         extras = {

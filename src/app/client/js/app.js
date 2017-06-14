@@ -665,16 +665,24 @@ angular.module('upmark', [
                     }]
                 })}
             })
+
             .when('/:uv/custom', {
+                templateUrl : 'custom_list.html',
+                controller : 'CustomListCtrl',
+            })
+            .when('/:uv/custom/:id', {
                 templateUrl : 'custom.html',
                 controller : 'CustomCtrl',
                 resolve: {
                     config: ['CustomQueryConfig', function(CustomQueryConfig) {
                         return CustomQueryConfig.get({}).$promise;
                     }],
-                    samples: ['SampleQueries', function(SampleQueries) {
-                        return SampleQueries.get({}).$promise;
-                    }]
+                    query: ['CustomQuery', '$route', function(CustomQuery, $route) {
+                        var id = $route.current.params.id;
+                        if (id == 'new')
+                            return null;
+                        return CustomQuery.get({id: id}).$promise;
+                    }],
                 }
             })
 

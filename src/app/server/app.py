@@ -60,8 +60,7 @@ import crud
 import handlers
 import import_handlers
 import model
-from report.custom import CustomQueryReportHandler, SqlFormatHandler, \
-    SqlIdentifierHandler
+import report.custom
 from report.diff import DiffHandler
 from report.prog_export import ExportProgramHandler
 from report.sub_export import ExportSubmissionHandler
@@ -248,9 +247,14 @@ def get_mappings():
             TemporalReportHandler, {}),
         (r"/report/sub/export/([^/]*)/([^.]+)\.(.+)",
             ExportSubmissionHandler, {}),
-        (r"/report/custom_query/reformat.sql", SqlFormatHandler, {}),
-        (r"/report/custom_query/identifiers.json", SqlIdentifierHandler, {}),
-        (r"/report/custom_query\.(.+)", CustomQueryReportHandler, {}),
+        (r"/report/custom_query/reformat.sql",
+            report.custom.SqlFormatHandler, {}),
+        (r"/report/custom_query/identifiers.json",
+            report.custom.SqlIdentifierHandler, {}),
+        (r"/report/custom_query/config.json",
+            report.custom.CustomQueryConfigHandler, {}),
+        (r"/report/custom_query/([^.]+)\.(.+)",
+            report.custom.CustomQueryReportHandler, {}),
 
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response.json", import_handlers.ImportResponseHandler, {}),

@@ -2318,20 +2318,6 @@ angular.module('upmark.surveyQuestions', [
 }])
 
 
-.factory('CustomQueryConfig', ['$resource', function($resource) {
-    return $resource('/report/custom_query.json', {}, {
-        get: { method: 'GET', cache: false }
-    });
-}])
-
-
-.factory('SampleQueries', ['$resource', function($resource) {
-    return $resource('/sample_queries.json', {}, {
-        get: { method: 'GET', isArray: true, cache: false }
-    });
-}])
-
-
 .directive('errorHeader', function() {
     return {
         restrict: 'A',

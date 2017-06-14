@@ -4,25 +4,75 @@ angular.module('upmark.custom', [
     'ui.select', 'ui.sortable', 'vpac.utils'])
 
 
-.controller('CustomCtrl', ['$scope', '$http', 'Notifications', 'samples',
-            'hotkeys', 'config', 'download',
-            function($scope, $http, Notifications, samples, hotkeys, config,
-                download) {
+.factory('CustomQuery', ['$resource', function($resource) {
+    return $resource('/custom_query/:id.json', {id: '@id'}, {
+        get: { method: 'GET', cache: false },
+        create: { method: 'POST' },
+        save: { method: 'PUT' },
+        query: { method: 'GET', isArray: true, cache: false },
+        history: { method: 'GET', url: '/custom_query/:id/version.json',
+            isArray: true, cache: false }
+    });
+}])
+
+
+.factory('CustomQueryConfig', ['$resource', function($resource) {
+    return $resource('/report/custom_query/config.json', {}, {
+        get: { method: 'GET', cache: false }
+    });
+}])
+
+
+.controller('CustomCtrl',
+            function($scope, $http, Notifications, query, hotkeys, config,
+                download, CustomQuery, $q) {
     $scope.config = config;
-    $scope.query = {
-        id: null,
-        title: samples[0].name,
-        text: samples[0].query,
-    };
+    $scope.query = query || new CustomQuery({
+        description: null,
+        text:   "SELECT u.name AS name, o.name AS organisation\n" +
+                "FROM appuser AS u\n" +
+                "JOIN organisation AS o ON u.organisation_id = o.id\n" +
+                "WHERE u.deleted = FALSE AND o.deleted = FALSE\n" +
+                "ORDER BY u.name"
+    });
     $scope.result = {};
-    $scope.samples = samples;
     $scope.execLimit = 20;
 
+    $scope.save = function(query) {
+        var promise;
+        if (query.id)
+            promise = query.$save();
+        else
+            promise = query.$create();
+        return promise.then(
+            function success(query) {
+                Notifications.set('query', 'info', "Saved", 5000);
+                return query;
+            },
+            function failure(response) {
+                Notifications.set('query', 'error',
+                    "Error: " + response.statusText);
+            }
+        );
+    };
+    $scope.ensureTitle = function(query) {
+        if (query.title)
+            return $q.when(query.title);
+        else
+            return $scope.autoName(query);
+    };
     $scope.execute = function(query) {
         var config = {
             params: {limit: $scope.execLimit}
         };
-        $http.post('/report/custom_query.json', query, config).then(
+        $scope.ensureTitle(query).then(function success(title) {
+            return $scope.save(query);
+        }).then(
+            function success(query) {
+                var url = '/report/custom_query/' + query.id + '.json'
+                return $http.post(url, null, config);
+            }
+        ).then(
             function success(response) {
                 var message = "Query finished";
                 if (response.headers('Operation-Details'))
@@ -39,9 +89,13 @@ angular.module('upmark.custom', [
     };
 
     $scope.download = function(query, file_type) {
-        var fileName = 'custom_query.' + file_type;
-        var url = '/report/' + fileName;
-        return download(fileName, url, query).then(
+        $scope.ensureTitle(query).then(function success(title) {
+            return $scope.save(query);
+        }).then(function success(query) {
+            var fileName = 'custom_query.' + file_type;
+            var url = '/report/custom_query/' + query.id + '.' + file_type;
+            return download(fileName, url, {});
+        }).then(
             function success(response) {
                 var message = "Query finished";
                 if (response.headers('Operation-Details'))
@@ -56,10 +110,11 @@ angular.module('upmark.custom', [
     };
 
     $scope.format = function(query) {
-        $http.post('/report/custom_query/reformat.sql', $scope.query.text).then(
+        return $http.post('/report/custom_query/reformat.sql', $scope.query.text).then(
             function success(response) {
                 $scope.query.text = response.data;
                 Notifications.set('query', 'info', "Formatted", 5000);
+                return $scope.query.text;
             },
             function failure(response) {
                 Notifications.set('query', 'error',
@@ -69,10 +124,11 @@ angular.module('upmark.custom', [
     };
 
     $scope.autoName = function(query) {
-        $http.post('/report/custom_query/identifiers.json', $scope.query.text).then(
+        return $http.post('/report/custom_query/identifiers.json', $scope.query.text).then(
             function success(response) {
                 $scope.query.title = response.data.autoName;
                 Notifications.set('query', 'info', "Generated name", 5000);
+                return $scope.query.title;
             },
             function failure(response) {
                 Notifications.set('query', 'error',
@@ -114,6 +170,26 @@ angular.module('upmark.custom', [
                 $scope.execute($scope.query);
             }
         });
-}])
+})
+
+
+.controller('CustomListCtrl',
+        function($scope, CustomQuery, $routeParams, Current, confAuthz) {
+
+    $scope.checkRole = confAuthz(Current, null);
+
+    $scope.search = {
+        term: $routeParams.initialTerm || "",
+        deleted: false,
+        page: 0,
+        pageSize: 10
+    };
+    $scope.$watch('search', function(search) {
+        CustomQuery.query(search).$promise.then(function(customQueries) {
+            $scope.customQueries = customQueries;
+        });
+    }, true);
+
+})
 
 ;

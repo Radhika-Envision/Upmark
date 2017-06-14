@@ -7,7 +7,10 @@
         </button>
     </div>
     <h2 page-title>
-        Custom Query
+        <a href="#/2/custom">Custom Queries</a> &raquo;
+        <span ng-class="{strike: org.deleted}">
+            {{query.title || 'New'}}
+        </span>
     </h2>
 </div>
 </div>
@@ -79,12 +82,12 @@
         </div>
         <input type="text" ng-model="query.title"
             class="form-control"
-            placeholder="Name (for saving)"
+            placeholder="Name"
             title="Name">
         </input>
     </div>
     <div class="form-group"
-          textarea-label="Description"
+          textarea-label="{{!query.description ? 'Description' : ''}}"
           ng-class="{'hidden-print': !query.description}">
         <markdown-editor id="description"
             ng-model="query.description" title="Description"></markdown-editor>
