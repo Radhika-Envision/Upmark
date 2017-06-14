@@ -26,7 +26,7 @@ angular.module('upmark.custom', [
 
 .controller('CustomCtrl',
             function($scope, $http, Notifications, query, hotkeys, config,
-                download, CustomQuery, $q) {
+                download, CustomQuery, $q, Editor, Current, confAuthz) {
     $scope.config = config;
     $scope.query = query || new CustomQuery({
         description: null,
@@ -38,23 +38,12 @@ angular.module('upmark.custom', [
     });
     $scope.result = {};
     $scope.execLimit = 20;
+    $scope.edit = Editor('query', $scope, {});
+    if (!$scope.query.id)
+        $scope.edit.edit();
 
     $scope.save = function(query) {
-        var promise;
-        if (query.id)
-            promise = query.$save();
-        else
-            promise = query.$create();
-        return promise.then(
-            function success(query) {
-                Notifications.set('query', 'info', "Saved", 5000);
-                return query;
-            },
-            function failure(response) {
-                Notifications.set('query', 'error',
-                    "Error: " + response.statusText);
-            }
-        );
+        return $scope.edit.save();
     };
     $scope.ensureTitle = function(query) {
         if (query.title)
@@ -161,6 +150,8 @@ angular.module('upmark.custom', [
         var col = $scope.result.cols[$index];
         return col.richType;
     };
+
+    $scope.checkRole = confAuthz(Current, null);
 
     hotkeys.bindTo($scope)
         .add({

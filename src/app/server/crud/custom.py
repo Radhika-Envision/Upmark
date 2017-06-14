@@ -210,7 +210,7 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
 
             custom_query.deleted = True
 
-        self.finish()
+        self.get(query_id)
 
     def update(self, custom_query, son):
         update = updater(custom_query)
