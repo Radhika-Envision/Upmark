@@ -11,14 +11,15 @@ angular.module('upmark.custom', [
         save: { method: 'PUT' },
         query: { method: 'GET', isArray: true, cache: false },
         history: { method: 'GET', url: '/custom_query/:id/version.json',
-            isArray: true, cache: false }
+            isArray: true, cache: false },
+        remove: { method: 'DELETE', cache: false },
     });
 }])
 
 
 .factory('CustomQueryConfig', ['$resource', function($resource) {
     return $resource('/report/custom_query/config.json', {}, {
-        get: { method: 'GET', cache: false }
+        get: { method: 'GET', cache: false },
     });
 }])
 
