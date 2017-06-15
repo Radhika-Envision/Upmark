@@ -74,6 +74,17 @@ def upgrade():
 
 
 def downgrade():
+    op.execute('''
+        DELETE FROM activity AS a
+        WHERE ARRAY['report']::varchar[] <@ a.verbs''')
+
+    op.execute('''
+        DELETE FROM activity AS a
+        WHERE 'custom_query' = a.ob_type''')
+    op.execute('''
+        DELETE FROM subscription AS s
+        WHERE 'custom_query' = s.ob_type''')
+
     op.drop_constraint('activity_verbs_check', 'activity', type_='check')
     op.create_check_constraint(
         'activity_verbs_check', 'activity',
