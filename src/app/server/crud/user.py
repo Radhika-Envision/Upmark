@@ -320,7 +320,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         Apply user-provided data to the saved model.
         '''
-        update = updater(user)
+        update = updater(user, error_factory=handlers.ModelError)
         update('email', son)
         update('email_interval', son)
         update('name', son)

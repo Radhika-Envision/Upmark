@@ -351,7 +351,7 @@ class ResponseHandler(handlers.BaseHandler):
         '''
         Apply user-provided data to the saved model.
         '''
-        update = updater(response)
+        update = updater(response, error_factory=handlers.ModelError)
         update('comment', son, sanitise=True)
         update('not_relevant', son)
         update('response_parts', son)

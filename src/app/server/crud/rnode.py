@@ -381,6 +381,6 @@ class ResponseNodeHandler(handlers.BaseHandler):
         '''
         Apply user-provided data to the saved model.
         '''
-        update = updater(rnode)
+        update = updater(rnode, error_factory=handlers.ModelError)
         update('importance', son)
         update('urgency', son)

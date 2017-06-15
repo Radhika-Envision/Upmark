@@ -214,7 +214,7 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
         self.get(query_id)
 
     def update(self, custom_query, son):
-        update = updater(custom_query)
+        update = updater(custom_query, error_factory=handlers.ModelError)
         update('title', son)
         update('text', son)
         update('description', son, sanitise=True)

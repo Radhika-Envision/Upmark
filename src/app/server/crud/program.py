@@ -382,7 +382,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         Apply program-provided data to the saved model.
         '''
-        update = updater(program)
+        update = updater(program, error_factory=handlers.ModelError)
         update('title', son)
         update('description', son, sanitise=True)
         update('has_quality', son)

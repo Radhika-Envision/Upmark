@@ -222,14 +222,16 @@ class updater:
     DEFAULT = 1
     SKIP = 2
 
-    def __init__(self, model, on_absent=SKIP):
+    def __init__(self, model, on_absent=SKIP, error_factory=ValueError):
         self.model = model
         self.on_absent = on_absent
+        self.error_factory = error_factory
 
     def __call__(self, name, son, on_absent=None, sanitise=False):
         if on_absent is None:
             on_absent = self.on_absent
 
+        current_value = getattr(self.model, name)
         if name in son:
             value = son[name]
             if sanitise:
@@ -240,17 +242,23 @@ class updater:
             column = getattr(self.model.__class__, name)
             value = column.default
         else:
-            return
+            value = current_value
 
-        current_value = getattr(self.model, name)
+        if value is None:
+            column = getattr(self.model.__class__, name)
+            if not column.nullable:
+                raise self.error_factory("Missing value for %s" % name)
+
         if isinstance(current_value, uuid.UUID):
             equal = str(current_value) == str(value)
         else:
             equal = current_value == value
 
-        if not equal:
-            log.debug('Setting %s: %s -> %s', name, current_value, value)
-            setattr(self.model, name, value)
+        if equal:
+            return
+
+        log.debug('Setting %s: %s -> %s', name, current_value, value)
+        setattr(self.model, name, value)
 
 
 def reorder(collection, son, id_attr='id'):

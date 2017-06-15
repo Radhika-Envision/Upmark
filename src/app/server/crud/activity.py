@@ -534,7 +534,7 @@ class SubscriptionHandler(handlers.BaseHandler):
         '''
         Apply user-provided data to the saved model.
         '''
-        update = updater(subscription)
+        update = updater(subscription, error_factory=handlers.ModelError)
         update('subscribed', son)
 
 
