@@ -670,10 +670,25 @@ angular.module('upmark', [
                 templateUrl : 'custom_list.html',
                 controller : 'CustomListCtrl',
             })
+            .when('/:uv/custom/new', {
+                templateUrl : 'custom.html',
+                controller : 'CustomCtrl',
+                resolve: {routeData: chain({
+                    config: ['CustomQueryConfig', function(CustomQueryConfig) {
+                        return CustomQueryConfig.get({}).$promise;
+                    }],
+                    duplicate: ['CustomQuery', '$route', function(CustomQuery, $route) {
+                        var id = $route.current.params.duplicate;
+                        if (!id)
+                            return null;
+                        return CustomQuery.get({id: id}).$promise;
+                    }],
+                })}
+            })
             .when('/:uv/custom/:id', {
                 templateUrl : 'custom.html',
                 controller : 'CustomCtrl',
-                resolve: {
+                resolve: {routeData: chain({
                     config: ['CustomQueryConfig', function(CustomQueryConfig) {
                         return CustomQueryConfig.get({}).$promise;
                     }],
@@ -683,7 +698,7 @@ angular.module('upmark', [
                             return null;
                         return CustomQuery.get({id: id}).$promise;
                     }],
-                }
+                })}
             })
 
             .when('/:uv/measures', {

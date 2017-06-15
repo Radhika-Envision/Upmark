@@ -393,6 +393,12 @@
     </docs>
 </form>
 
+<div ng-if="!edit.model">
+    <div class="container" ng-if="query.description">
+        <div ng-bind-html="query.description | markdown"></div>
+    </div>
+</div>
+
 <div ng-if="result.cols">
     <div class="scroll-x">
     <table class="table">

@@ -25,17 +25,24 @@ angular.module('upmark.custom', [
 
 
 .controller('CustomCtrl',
-            function($scope, $http, Notifications, query, hotkeys, config,
+            function($scope, $http, Notifications, hotkeys, routeData,
                 download, CustomQuery, $q, Editor, Current, confAuthz) {
-    $scope.config = config;
-    $scope.query = query || new CustomQuery({
-        description: null,
-        text:   "SELECT u.name AS name, o.name AS organisation\n" +
-                "FROM appuser AS u\n" +
-                "JOIN organisation AS o ON u.organisation_id = o.id\n" +
-                "WHERE u.deleted = FALSE AND o.deleted = FALSE\n" +
-                "ORDER BY u.name"
-    });
+    $scope.config = routeData.config;
+    if (routeData.query) {
+        $scope.query = routeData.query;
+    } else if (routeData.duplicate) {
+        $scope.query = new CustomQuery(routeData.duplicate);
+        $scope.query.id = null;
+    } else {
+        $scope.query = new CustomQuery({
+            description: null,
+            text:   "SELECT u.name AS name, o.name AS organisation\n" +
+                    "FROM appuser AS u\n" +
+                    "JOIN organisation AS o ON u.organisation_id = o.id\n" +
+                    "WHERE u.deleted = FALSE AND o.deleted = FALSE\n" +
+                    "ORDER BY u.name"
+        });
+    }
     $scope.result = {};
     $scope.execLimit = 20;
     $scope.edit = Editor('query', $scope, {});
