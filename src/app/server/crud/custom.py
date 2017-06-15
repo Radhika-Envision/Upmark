@@ -52,6 +52,7 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/description$',
                 r'/name$',
                 r'/text$',
+                r'/version$',
             )
 
             son = to_son(custom_query)

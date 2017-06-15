@@ -36,7 +36,9 @@ angular.module('upmark.custom', [
     } else {
         $scope.query = new CustomQuery({
             description: null,
-            text:   "SELECT u.name AS name, o.name AS organisation\n" +
+            text:   "-- This example query lists all users.\n" +
+                    "-- Replace with your own code.\n" +
+                    "SELECT u.name AS name, o.name AS organisation\n" +
                     "FROM appuser AS u\n" +
                     "JOIN organisation AS o ON u.organisation_id = o.id\n" +
                     "WHERE u.deleted = FALSE AND o.deleted = FALSE\n" +
@@ -49,50 +51,38 @@ angular.module('upmark.custom', [
     if (!$scope.query.id)
         $scope.edit.edit();
 
-    $scope.save = function(query) {
-        return $scope.edit.save();
-    };
-    $scope.ensureTitle = function(query) {
-        if (query.title)
-            return $q.when(query.title);
-        else
-            return $scope.autoName(query);
-    };
     $scope.execute = function(query) {
+        var url;
+        var text;
+        if (query.id) {
+            url = '/report/custom_query/' + query.id + '/custom_query.json'
+            text = null;
+        } else {
+            url = '/report/custom_query/preview.json'
+            text = query;
+        }
         var config = {
             params: {limit: $scope.execLimit}
         };
-        $scope.ensureTitle(query).then(function success(title) {
-            return $scope.save(query);
-        }).then(
-            function success(query) {
-                var url = '/report/custom_query/' + query.id + '.json'
-                return $http.post(url, null, config);
-            }
-        ).then(
+        return $http.post(url, text, config).then(
             function success(response) {
+                $scope.result = angular.fromJson(response.data);
                 var message = "Query finished";
                 if (response.headers('Operation-Details'))
                     message += ': ' + response.headers('Operation-Details');
                 Notifications.set('query', 'info', message, 5000);
-
-                $scope.result = angular.fromJson(response.data);
             },
             function failure(response) {
                 Notifications.set('query', 'error',
-                    "Error: " + response.statusText);
+                    "Error: " + (response.statusText || response));
             }
         );
     };
 
     $scope.download = function(query, file_type) {
-        $scope.ensureTitle(query).then(function success(title) {
-            return $scope.save(query);
-        }).then(function success(query) {
-            var fileName = 'custom_query.' + file_type;
-            var url = '/report/custom_query/' + query.id + '.' + file_type;
-            return download(fileName, url, {});
-        }).then(
+        var fileName = 'custom_query.' + file_type;
+        var url = '/report/custom_query/' + query.id + '/' + fileName;
+        return download(fileName, url, {}).then(
             function success(response) {
                 var message = "Query finished";
                 if (response.headers('Operation-Details'))
@@ -107,11 +97,11 @@ angular.module('upmark.custom', [
     };
 
     $scope.format = function(query) {
-        return $http.post('/report/custom_query/reformat.sql', $scope.query.text).then(
+        return $http.post('/report/custom_query/reformat.sql', query.text).then(
             function success(response) {
-                $scope.query.text = response.data;
+                query.text = response.data;
                 Notifications.set('query', 'info', "Formatted", 5000);
-                return $scope.query.text;
+                return query.text;
             },
             function failure(response) {
                 Notifications.set('query', 'error',
@@ -121,21 +111,17 @@ angular.module('upmark.custom', [
     };
 
     $scope.autoName = function(query) {
-        return $http.post('/report/custom_query/identifiers.json', $scope.query.text).then(
+        return $http.post('/report/custom_query/identifiers.json', query.text).then(
             function success(response) {
-                $scope.query.title = response.data.autoName;
+                query.title = response.data.autoName;
                 Notifications.set('query', 'info', "Generated name", 5000);
-                return $scope.query.title;
+                return query.title;
             },
             function failure(response) {
                 Notifications.set('query', 'error',
                     "Error: " + response.statusText);
             }
         );
-    };
-
-    $scope.setQuery = function(query) {
-        $scope.query = query;
     };
 
     $scope.colClass = function($index) {

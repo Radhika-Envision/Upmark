@@ -2,12 +2,14 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 import csv
+from datetime import datetime
 import json
 import os
 import tempfile
 import time
 import uuid
 
+from bunch import Bunch
 import sqlalchemy
 import sqlparse
 from tornado import gen
@@ -43,147 +45,214 @@ BUF_SIZE = 4096
 
 class CustomQueryReportHandler(handlers.BaseHandler):
     '''
-    Allows ad-hoc queries using SQL.
+    Runs custom stored SQL queries.
     '''
 
-    executor = ThreadPoolExecutor(max_workers=4)
-
-    @handlers.authz('consultant')
+    @handlers.authz('admin')
     @gen.coroutine
     def post(self, query_id, file_type):
+        with model.session_scope() as session:
+            custom_query = session.query(model.CustomQuery).get(query_id)
+            if not custom_query:
+                raise handlers.MissingDocError("No such query")
+            if not custom_query.text:
+                raise handlers.ModelError("Query is empty")
+
+            conf = self.get_config(session)
+            session.expunge(custom_query)
+
+        yield self.export(custom_query, conf, file_type)
+        self.finish()
+
+    def get_config(self, session):
         try:
             limit = float(self.get_argument('limit', '0'))
         except ValueError:
             raise handlers.ModelError(str(e))
 
-        with model.session_scope() as session:
-            custom_query = session.query(model.CustomQuery).get(query_id)
-            if not custom_query:
-                raise handlers.MissingDocError("No such query")
+        max_limit = config.get_setting(session, 'custom_timeout') * 1000
+        if limit == 0:
+            limit = max_limit
+        elif limit < 0:
+            raise handlers.ModelError('Limit is too low')
+        elif limit > max_limit:
+            raise handlers.ModelError('Limit is too high')
+        return Bunch({
+            'wall_time': int(config.get_setting(session, 'custom_timeout') * 1000),
+            'limit': int(limit),
+            'base_url': config.get_setting(session, 'app_base_url'),
+        })
 
-            max_limit = config.get_setting(session, 'custom_timeout') * 1000
-            if limit == 0:
-                limit = max_limit
-            elif limit < 0:
-                raise handlers.ModelError('Limit is too low')
-            elif limit > max_limit:
-                raise handlers.ModelError('Limit is too high')
-            conf = {
-                'wall_time': int(config.get_setting(session, 'custom_timeout') * 1000),
-                'limit': int(limit),
-            }
-            text = custom_query.text
-
+    @gen.coroutine
+    def export(self, custom_query, conf, file_type):
         if file_type == 'json':
-            yield self.as_json(text, conf)
+            writer = JsonWriter()
         elif file_type == 'csv':
-            yield self.as_csv(text, conf)
+            writer = CsvWriter()
         elif file_type == 'xlsx':
-            yield self.as_xlsx(text, conf)
+            writer = ExcelWriter(conf.base_url)
         else:
             raise handlers.MissingDocError('%s not supported' % file_type)
 
-    def parse_cols(self, cursor):
+        runner = QueryRunner(writer)
+        with tempfile.TemporaryDirectory() as tempdir:
+            path = os.path.join(tempdir, 'query_result')
+            messages = yield runner.export(path, custom_query, conf)
+            for message in messages:
+                self.reason(message)
+            self.set_header("Content-Type", writer.content_type)
+            self.set_header('Content-Disposition', 'attachment')
+            self.transfer_file(path)
+
+    def transfer_file(self, path):
+        with open(path, 'rb') as f:
+            while True:
+                data = f.read(BUF_SIZE)
+                if not data:
+                    break
+                self.write(data)
+
+
+class CustomQueryPreviewHandler(CustomQueryReportHandler):
+    '''
+    Allows ad-hoc queries using SQL.
+    '''
+
+    @handlers.authz('admin')
+    @gen.coroutine
+    def post(self, file_type):
+        text = to_basestring(self.request.body)
+        if not text:
+            raise handlers.ModelError("Query is empty")
+        custom_query = model.CustomQuery(description="Preview", text=text)
+
+        with model.session_scope() as session:
+            conf = self.get_config(session)
+
+        yield self.export(custom_query, conf, file_type)
+        self.finish()
+
+
+class QueryRunner:
+
+    executor = ThreadPoolExecutor(max_workers=4)
+
+    def __init__(self, writer):
+        self.writer = writer
+
+    @run_on_executor
+    def export(self, path, query, conf):
+        with model.session_scope(readonly=True) as session:
+            self.apply_config(session, conf)
+            result = self.execute(session, query.text)
+            resultset = ResultSet(result, conf.limit)
+            self.writer.write(session, resultset, path, query)
+
+            return [m for m in resultset.messages]
+
+    def apply_config(self, session, conf):
+        log.debug("Setting wall time to %d" % conf.wall_time)
+        try:
+            session.execute("SET statement_timeout TO :wall_time",
+                            {'wall_time': conf.wall_time})
+        except sqlalchemy.exc.SQLAlchemyError as e:
+            raise handlers.ModelError(
+                "Failed to prepare database session: %s" % e)
+
+    def execute(self, session, text):
+        try:
+            return session.execute(text)
+        except sqlalchemy.exc.ProgrammingError as e:
+            raise handlers.ModelError.from_sa(e, reason="")
+        except sqlalchemy.exc.OperationalError as e:
+            raise handlers.ModelError.from_sa(e, reason="")
+
+
+class ResultSet:
+    def __init__(self, result, limit):
+        self.result = result
+        self.limit = limit
+        self.n_read = 0
+        self.is_exhausted = False
+
+    @property
+    def cols(self):
         return [{
                 'name': c.name,
                 'type': TYPES.get(c.type_code, (None, None))[0],
                 'rich_type': TYPES.get(c.type_code, (None, None))[1],
                 'type_code': c.type_code
-            } for c in cursor.description]
+            } for c in self.result.context.cursor.description]
 
-    def apply_config(self, session, conf):
-        log.debug("Setting wall time to %d" % conf['wall_time'])
-        try:
-            session.execute("SET statement_timeout TO :wall_time",
-                            {'wall_time': conf['wall_time']})
-        except sqlalchemy.exc.SQLAlchemyError as e:
-            raise handlers.ModelError(
-                "Failed to prepare database session: %s" % e)
+    @property
+    def rows(self):
+        chunksize = min(self.limit, CHUNKSIZE)
+        while self.n_read < self.limit:
+            rows = self.result.fetchmany(chunksize)
+            if len(rows) == 0:
+                break
+            for row in rows:
+                yield row
+                self.n_read += 1
+        if self.result.fetchone():
+            self.is_exhausted = True
 
-    @run_on_executor
-    def export_json(self, path, query, conf):
-        with model.session_scope(readonly=True) as session, \
-                open(path, 'w', encoding='utf-8') as f:
-            self.apply_config(session, conf)
-            log.debug("Executing query for JSON export")
+    @property
+    def messages(self):
+        yield 'Read %d rows' % self.n_read
+        if self.is_exhausted:
+            yield 'Row limit reached; data truncated.'
 
-            try:
-                result = session.execute(query)
-            except sqlalchemy.exc.ProgrammingError as e:
-                raise handlers.ModelError.from_sa(e, reason="")
-            except sqlalchemy.exc.OperationalError as e:
-                raise handlers.ModelError.from_sa(e, reason="")
-            cols = self.parse_cols(result.context.cursor)
+
+class JsonWriter:
+    content_type = 'application/json'
+
+    def write(self, session, resultset, path, query):
+        with open(path, 'w', encoding='utf-8') as f:
+            log.debug("Writing result as JSON")
 
             to_son = ToSon(
                 r'/[0-9]+$',
                 r'/[0-9]+/[^/]+$',
             )
-            f.write('{"cols": %s, "rows": [' % json_encode(to_son(cols)))
+            f.write('{"cols": %s, "rows": [' % json_encode(
+                to_son(resultset.cols)))
 
             first = True
             to_son = ToSon(
                 r'/[0-9]+$',
             )
-            chunksize = min(conf['limit'], CHUNKSIZE)
-            n_read = 0
-            while n_read < conf['limit']:
-                rows = result.fetchmany(chunksize)
-                if len(rows) == 0:
-                    break
-                for row in rows:
-                    if not first:
-                        f.write(', ')
-                    f.write(json_encode(to_son(row)))
-                    first = False
-                n_read += len(rows)
+            for i, row in enumerate(resultset.rows):
+                if i > 0:
+                    f.write(', ')
+                f.write(json_encode(to_son(row)))
             f.write(']}')
-            self.reason('Read %d rows' % n_read)
-            if result.fetchone():
-                self.reason('Row limit reached; data truncated.')
 
-    @run_on_executor
-    def export_csv(self, path, query, conf):
-        with model.session_scope(readonly=True) as session, \
-                open(path, 'w', encoding='utf-8') as f:
-            self.apply_config(session, conf)
-            log.debug("Executing query for CSV export")
+
+class CsvWriter:
+    content_type = 'text/csv'
+
+    def write(self, session, resultset, path, query):
+        with open(path, 'w', encoding='utf-8') as f:
+            log.debug("Writing result as CSV")
 
             writer = csv.writer(f)
-            try:
-                result = session.execute(query)
-            except sqlalchemy.exc.ProgrammingError as e:
-                raise handlers.ModelError.from_sa(e, reason="")
-            except sqlalchemy.exc.OperationalError as e:
-                raise handlers.ModelError.from_sa(e, reason="")
-            cols = self.parse_cols(result.context.cursor)
-            writer.writerow([c['name'] for c in cols])
+            writer.writerow([c['name'] for c in resultset.cols])
 
-            chunksize = min(conf['limit'], CHUNKSIZE)
-            n_read = 0
-            while n_read < conf['limit']:
-                rows = result.fetchmany(chunksize)
-                if len(rows) == 0:
-                    break
-                writer.writerows(rows)
-                n_read += len(rows)
-            self.reason('Read %d rows' % n_read)
-            if result.fetchone():
-                self.reason('Row limit reached; data truncated.')
+            for row in resultset.rows:
+                writer.writerow(row)
 
-    @run_on_executor
-    def export_excel(self, path, query, conf):
-        with model.session_scope(readonly=True) as session, \
-                closing(xlsxwriter.Workbook(path)) as workbook:
-            self.apply_config(session, conf)
-            log.debug("Executing query for Excel export")
 
-            try:
-                result = session.execute(query)
-            except sqlalchemy.exc.ProgrammingError as e:
-                raise handlers.ModelError.from_sa(e, reason="")
-            except sqlalchemy.exc.OperationalError as e:
-                raise handlers.ModelError.from_sa(e, reason="")
+class ExcelWriter:
+    content_type = 'application/' \
+                   'vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+    def __init__(self, base_url):
+        self.base_url = base_url
+
+    def write(self, session, resultset, path, query):
+        with closing(xlsxwriter.Workbook(path)) as workbook:
+            log.debug("Writing result as Excel")
 
             format_str = workbook.add_format({
                 'valign': 'top'})
@@ -199,11 +268,19 @@ class CustomQueryReportHandler(handlers.BaseHandler):
             format_bold = workbook.add_format({'bold': True})
 
             worksheet_q = workbook.add_worksheet('query')
-            worksheet_q.set_column(0, 0, 80, format_str_wrap)
-            worksheet_q.write(0, 0, query)
+            worksheet_q.set_column(0, 1, 80, format_str_wrap)
+            worksheet_q.write(0, 0, "Title")
+            worksheet_q.write(0, 1, query.title)
+            worksheet_q.write(1, 0, "Description")
+            worksheet_q.write(1, 1, query.description)
+            worksheet_q.write(2, 0, "Date")
+            worksheet_q.write(2, 1, datetime.now(), format_date)
+            worksheet_q.write(3, 0, "URL")
+            worksheet_q.write_url(3, 1, "%s/#/2/custom/%s" % (
+                self.base_url, query.id))
 
             worksheet_r = workbook.add_worksheet('result')
-            cols = self.parse_cols(result.context.cursor)
+            cols = resultset.cols
             for c, col in enumerate(cols):
                 if col['type'] == 'int':
                     worksheet_r.set_column(c, c, 10, format_int)
@@ -221,23 +298,15 @@ class CustomQueryReportHandler(handlers.BaseHandler):
             for c, col in enumerate(cols):
                 worksheet_r.write(0, c, col['name'])
 
-            chunksize = min(conf['limit'], CHUNKSIZE)
-            n_read = 0
-            while n_read < conf['limit']:
-                rows = result.fetchmany(chunksize)
-                if len(rows) == 0:
-                    break
-                for r, row in enumerate(rows):
-                    for c, (cell, col) in enumerate(zip(row, cols)):
-                        if col['type'] == 'string':
-                            data = str(cell)
-                        else:
-                            data = cell
-                        worksheet_r.write(r + n_read + 1, c, data)
-                n_read += len(rows)
-            self.reason('Read %d rows' % n_read)
-            if result.fetchone():
-                self.reason('Row limit reached; data truncated.')
+            for r, row in enumerate(resultset.rows, start=1):
+                for c, (cell, col) in enumerate(zip(row, cols)):
+                    if col['type'] == 'string':
+                        data = str(cell)
+                    else:
+                        data = cell
+                    worksheet_r.write(r, c, data)
+
+            if resultset.is_exhausted:
                 worksheet_r.insert_textbox(
                     1, 1, 'Row limit reached; data truncated.',
                     {'width': 400, 'height': 200,
@@ -252,57 +321,10 @@ class CustomQueryReportHandler(handlers.BaseHandler):
 
             worksheet_r.activate()
 
-    @gen.coroutine
-    def as_json(self, query, conf):
-        with tempfile.TemporaryDirectory() as tempdir:
-            path = os.path.join(tempdir, 'query_result.json')
-            yield self.export_json(path, query, conf)
-
-            self.set_header("Content-Type", "application/json")
-            self.set_header(
-                'Content-Disposition', 'attachment')
-            self.transfer_file(path)
-        self.finish()
-
-    @gen.coroutine
-    def as_csv(self, query, conf):
-        with tempfile.TemporaryDirectory() as tempdir:
-            path = os.path.join(tempdir, 'query_result.csv')
-            yield self.export_csv(path, query, conf)
-
-            self.set_header("Content-Type", "text/csv")
-            self.set_header(
-                'Content-Disposition', 'attachment')
-            self.transfer_file(path)
-        self.finish()
-
-    @gen.coroutine
-    def as_xlsx(self, query, conf):
-        with tempfile.TemporaryDirectory() as tempdir:
-            path = os.path.join(tempdir, 'query_result.xlsx')
-            yield self.export_excel(path, query, conf)
-
-            self.set_header("Content-Type",
-                            "application/vnd.openxmlformats-officedocument"
-                            ".spreadsheetml.sheet")
-            self.set_header(
-                'Content-Disposition',
-                'attachment; filename=query_result.xlsx')
-            self.transfer_file(path)
-        self.finish()
-
-    def transfer_file(self, path):
-        with open(path, 'rb') as f:
-            while True:
-                data = f.read(BUF_SIZE)
-                if not data:
-                    break
-                self.write(data)
-
 
 class CustomQueryConfigHandler(handlers.BaseHandler):
 
-    @handlers.authz('consultant')
+    @handlers.authz('admin')
     def get(self):
         to_son = ToSon(r'.*')
         self.set_header("Content-Type", "application/json")
@@ -316,7 +338,7 @@ class CustomQueryConfigHandler(handlers.BaseHandler):
 
 
 class SqlFormatHandler(handlers.BaseHandler):
-    @handlers.authz('consultant')
+    @handlers.authz('admin')
     def post(self):
         query = to_basestring(self.request.body)
         query = sqlparse.format(
@@ -329,7 +351,7 @@ class SqlFormatHandler(handlers.BaseHandler):
 
 
 class SqlIdentifierHandler(handlers.BaseHandler):
-    @handlers.authz('consultant')
+    @handlers.authz('admin')
     def post(self):
         query = to_basestring(self.request.body)
 

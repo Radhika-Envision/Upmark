@@ -25,14 +25,20 @@
             <i class="fa fa-history"></i>
             <span class="sr-only">History</span>
         </button>
-        <button ng-click="execute(query)"
-                ng-if="!query.deleted"
+        <button ng-click="execute(edit.model.text)"
+                ng-if="!query.deleted && edit.model"
                 class="btn btn-default btn-round"
-                    title="Execute and display on this page">
+                    title="Preview">
+            <i class="fa fa-bolt"></i>
+        </button>
+        <button ng-click="execute(query)"
+                ng-if="!query.deleted && !edit.model"
+                class="btn btn-default btn-round"
+                    title="Preview">
             <i class="fa fa-bolt"></i>
         </button>
         <span  uib-dropdown dropdown-append-to-body
-                ng-if="!query.deleted">
+                ng-if="!query.deleted && !edit.model">
             <button class="btn btn-default btn-round"
                     title="Export" uib-dropdown-toggle>
                 <i class="fa fa-cloud-download"></i></button>
@@ -399,7 +405,7 @@
     </div>
 </div>
 
-<div ng-if="result.cols">
+<div ng-if="result.cols" class="spaced">
     <div class="scroll-x">
     <table class="table">
         <thead>
