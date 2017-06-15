@@ -51,6 +51,9 @@ angular.module('upmark.custom', [
     if (!$scope.query.id)
         $scope.edit.edit();
 
+    $scope.$on('EditSaved', function(event, model) {
+        $location.url('/2/custom/' + model.id);
+    });
     $scope.execute = function(query) {
         var url;
         var text;
