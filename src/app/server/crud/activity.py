@@ -428,7 +428,12 @@ class SubscriptionHandler(handlers.BaseHandler):
                 raise handlers.ModelError(
                     "Wrong number of IDs for %s" % ob_type)
 
-        if ob_type == 'organisation':
+        if ob_type == 'custom_query':
+            arglen(len(ob_refs), 1)
+            query = (session.query(model.CustomQuery)
+                .filter(model.CustomQuery.id == ob_refs[0]))
+
+        elif ob_type == 'organisation':
             arglen(len(ob_refs), 1)
             query = (session.query(model.Organisation)
                 .filter(model.Organisation.id == ob_refs[0]))

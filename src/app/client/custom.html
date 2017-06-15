@@ -2,22 +2,26 @@
     ng-class="{'deleted': query.deleted}">
 <div class="container">
     <div class="toolbar">
-        <a ng-click="edit.save()"
+        <button ng-click="edit.save()"
                 ng-if="edit.model"
                 class="btn btn-default btn-round"
-                title="Save">
+                title="Save"
+                form="editor"
+                form-save-button="editor">
             <i class="fa fa-check"></i>
             <span class="sr-only">Save</span>
-        </a>
+        </button>
         <a ng-href="#/2/custom/new?duplicate={{query.id}}"
                 class="btn btn-default btn-round"
-                title="Duplicate as a new query (and detach from current history)">
+                title="Duplicate as a new query (and detach from current history)"
+                ng-if="!edit.model">
             <i class="fa fa-files-o"></i>
             <span class="sr-only">Duplicate</span>
         </a>
         <button ng-click="history(query)"
                 class="btn btn-default btn-round"
-                title="Switch to an old version">
+                title="Switch to an old version"
+                ng-if="edit.model">
             <i class="fa fa-history"></i>
             <span class="sr-only">History</span>
         </button>
@@ -74,7 +78,11 @@
                        checkRole('custom_query')">
             <i class="fa fa-pencil"></i>
         </button>
-    </div>
+        <a class="btn btn-default btn-round" title="Subscriptions"
+                ng-href="#/2/subscription/custom_query?id={{query.id}}"
+                ng-if="!edit.model">
+            <i class="fa fa-envelope"></i></a>
+        </div>
     <h2 page-title>
         <a href="#/2/custom">Custom Queries</a> &raquo;
         <span ng-class="{strike: query.deleted}" ng-if="query.id">
@@ -88,7 +96,7 @@
 </div>
 
 <div class="container">
-<form ng-if="edit.model">
+<form ng-if="edit.model" name="form" id="editor">
     <div class="form-group embedded-toolbar"
           ng-class="{'hidden-print': !edit.model.title}">
         <div class="toolbar">

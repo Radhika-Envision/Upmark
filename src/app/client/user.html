@@ -23,7 +23,8 @@
                 ng-if="!edit.model && checkRole('user_edit')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/2/subscription/user?id={{user.id}}">
+                ng-href="#/2/subscription/user?id={{user.id}}"
+                ng-if="!edit.model">
             <i class="fa fa-envelope"></i></a>
     </div>
     <h2 page-title>

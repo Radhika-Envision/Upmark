@@ -59,7 +59,8 @@
                     checkRole('survey_edit')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/2/subscription/program?id={{survey.id}}&id={{program.id}}">
+                ng-href="#/2/subscription/program?id={{survey.id}}&id={{program.id}}"
+                ng-if="!edit.model">
             <i class="fa fa-envelope"></i></a>
         <program-history entity="survey" service="Survey"
                 ng-if="!edit.model"></program-history>
