@@ -400,8 +400,15 @@
 </form>
 
 <div ng-if="!edit.model">
-    <div class="container" ng-if="query.description">
+    <div ng-if="query.description">
         <div ng-bind-html="query.description | markdown"></div>
+    </div>
+    <div>
+        <p class="small text-muted">
+            Version {{query.version}} saved by
+            <a ng-href="#/2/user/{{query.user.id}}">{{query.user.name}}</a>,
+            <span print-friendly-timeago="query.modified"></span>
+        </p>
     </div>
 </div>
 
@@ -439,12 +446,15 @@
                 <i class="fa fa-bug"></i>
                 Results in web view are limited to {{execLimit}} items.
                 <span class="hidden-print">
-                    If you want the next page, add an
-                    <a title="PostgreSQL docs on LIMIT and OFFSET"
-                        href="http://www.postgresql.org/docs/9.4/static/queries-limit.html"
-                        ><code>OFFSET</code></a>
-                    to your query or <i class="fa fa-cloud-download"></i> download
-                    the results.
+                    If you want the next page,
+                    <span ng-if="edit.model">
+                      add an
+                      <a title="PostgreSQL docs on LIMIT and OFFSET"
+                          href="http://www.postgresql.org/docs/9.4/static/queries-limit.html"
+                          ><code>OFFSET</code></a>
+                      to your query or
+                    </span>
+                    <i class="fa fa-cloud-download"></i> download the results.
                 </span>
             </small>
         </p>

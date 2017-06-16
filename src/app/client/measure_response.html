@@ -37,9 +37,7 @@
                     <span class="field field-8">
                         {{version.user.name}}
                     </span>
-                    <span>
-                        {{version.modified * 1000 | timeAgo:'medium'}}
-                    </span>
+                    <span print-friendly-timeago="version.modified"></span>
                 </a>
             </li>
             <li ng-if="!versions.length && !loading" class="dropdown-header">
@@ -330,17 +328,12 @@
 </div>
 
 <div>
-    <p ng-if="response.user.name" class="spaced text-center text-muted">
+    <p ng-if="response.user.name" class="small spaced text-center text-muted">
         <i class="fa fa-history"></i>
         Version {{response.version}} submitted by
         <a ng-href="#/2/user/{{response.user.id}}">
             {{response.user.name}}</a>,
-        <span class="hidden-print">
-            {{response.modified * 1000 | timeAgo:'medium'}}.
-        </span>
-        <span class="visible-print-inline">
-            {{response.modified * 1000 | date:'medium'}}.
-        </span>
+        <span print-friendly-timeago="response.modified"></span>.
         <span ng-if="response.$dirty" class="visible-print-inline">
             Some modifications have not been saved.
         </span>

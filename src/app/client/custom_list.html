@@ -28,12 +28,7 @@
                     {{customQuery.title}}
                 </h4>
                 <p class="truncate">
-                    <span class="hidden-print">
-                        {{customQuery.modified * 1000 | timeAgo:'medium'}}
-                    </span>
-                    <span class="visible-print-inline">
-                        {{customQuery.modified * 1000 | date:'medium'}}
-                    </span>
+                    <span print-friendly-timeago="customQuery.modified"></span>
                     <span ng-if="customQuery.description">
                         - {{customQuery.description}}
                     </span>
