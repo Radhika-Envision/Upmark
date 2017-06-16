@@ -1106,8 +1106,7 @@ class Response(Observable, Versioned, Base):
 ResponseHistory = Response.__history_mapper__.class_
 ResponseHistory.response_parts = Response.response_parts
 ResponseHistory.ob_type = property(lambda self: 'response')
-ResponseHistory.user = relationship(
-    AppUser, backref='user', passive_deletes=True)
+# ResponseHistory.user = relationship(AppUser, passive_deletes=True)
 
 
 class Attachment(Base):
@@ -1175,8 +1174,8 @@ class CustomQuery(Observable, Versioned, Base):
 
 CustomQueryHistory = CustomQuery.__history_mapper__.class_
 CustomQueryHistory.ob_type = property(lambda self: 'custom_query')
-CustomQueryHistory.user = relationship(
-    AppUser, backref='user', passive_deletes=True)
+# CustomQueryHistory.user = relationship(AppUser, passive_deletes=True)
+# CustomQueryHistory.user.set_parent(CustomQueryHistory, True)
 
 
 class Activity(Base):

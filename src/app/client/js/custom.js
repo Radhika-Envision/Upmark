@@ -10,7 +10,7 @@ angular.module('upmark.custom', [
         create: { method: 'POST' },
         save: { method: 'PUT' },
         query: { method: 'GET', isArray: true, cache: false },
-        history: { method: 'GET', url: '/custom_query/:id/version.json',
+        history: { method: 'GET', url: '/custom_query/:id/history.json',
             isArray: true, cache: false },
         remove: { method: 'DELETE', cache: false },
     });
@@ -26,7 +26,8 @@ angular.module('upmark.custom', [
 
 .controller('CustomCtrl',
             function($scope, $http, Notifications, hotkeys, routeData,
-                download, CustomQuery, $q, Editor, Current, confAuthz) {
+                download, CustomQuery, $q, Editor, Current, confAuthz,
+                $location) {
     $scope.config = routeData.config;
     if (routeData.query) {
         $scope.query = routeData.query;
@@ -47,6 +48,7 @@ angular.module('upmark.custom', [
     }
     $scope.result = {};
     $scope.execLimit = 20;
+    $scope.CustomQuery = CustomQuery;
     $scope.edit = Editor('query', $scope, {});
     if (!$scope.query.id)
         $scope.edit.edit();
@@ -54,6 +56,7 @@ angular.module('upmark.custom', [
     $scope.$on('EditSaved', function(event, model) {
         $location.url('/2/custom/' + model.id);
     });
+
     $scope.execute = function(query) {
         var url;
         var text;

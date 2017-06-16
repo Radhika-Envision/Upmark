@@ -114,7 +114,7 @@ class ToSon:
         if isinstance(value, model.Base):
             names = dir(value)
 
-            son = {}
+            son = Bunch()
             for name in names:
                 if not self.can_emit(name, path):
                     continue

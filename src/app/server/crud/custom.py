@@ -37,10 +37,14 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
 
         self._check_authz()
 
+        version = self.get_argument('version', '')
+
         with model.session_scope() as session:
             custom_query = session.query(model.CustomQuery).get(query_id)
             if custom_query is None:
                 raise handlers.MissingDocError("No such query")
+
+            old_version = self.get_version(session, custom_query, version)
 
             to_son = ToSon(
                 r'/id$',
@@ -55,7 +59,13 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
                 r'/version$',
             )
 
-            son = to_son(custom_query)
+            if not old_version:
+                son = to_son(custom_query)
+            else:
+                son = to_son(old_version)
+                user = session.query(model.AppUser).get(old_version.user_id)
+                if user:
+                    son.user = to_son(user)
 
             # Always include the mtime of the most recent version. This is used
             # to avoid edit conflicts.
@@ -67,6 +77,24 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
+
+    def get_version(self, session, custom_query, version):
+        if not version:
+            return None
+
+        try:
+            version = int(version)
+        except ValueError:
+            raise handlers.ModelError("Invalid version number")
+        if version == custom_query.version:
+            return None
+
+        history = (session.query(model.CustomQueryHistory)
+            .get((custom_query.id, version)))
+
+        if history is None:
+            raise handlers.MissingDocError("No such version")
+        return history
 
     def query(self):
         self._check_authz()
@@ -142,7 +170,7 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
         if not query_id:
             raise handlers.MethodError("Can't use PUT for new query.")
 
-        with model.session_scope() as session:
+        with model.session_scope(version=True) as session:
             custom_query = session.query(model.CustomQuery).get(query_id)
             if custom_query is None:
                 raise handlers.MissingDocError("No such query")
@@ -231,3 +259,45 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
     def _check_authz(self):
         if not self.has_privillege('admin'):
             raise handlers.AuthzError("You can't use custom queries")
+
+
+class CustomQueryHistoryHandler(handlers.Paginate, handlers.BaseHandler):
+    @tornado.web.authenticated
+    def get(self, custom_query_id):
+        '''Get a list of versions of a response.'''
+        with model.session_scope() as session:
+            # Current version
+            versions = (session.query(model.CustomQuery)
+                .filter_by(id=custom_query_id)
+                .all())
+
+            # Other versions
+            query = (session.query(model.CustomQueryHistory)
+                .filter_by(id=custom_query_id)
+                .order_by(model.CustomQueryHistory.version.desc()))
+            query = self.paginate(query)
+
+            versions += query.all()
+
+            # Important! If you're going to include the comment field here, make
+            # sure it is cleaned first to prevent XSS attacks.
+            to_son = ToSon(
+                r'/id$',
+                r'/name$',
+                r'/version$',
+                r'/modified$',
+                # Descend
+                r'/[0-9]+$',
+                r'/user$',
+            )
+
+            sons = to_son(versions)
+
+            for son, version in zip(sons, versions):
+                user = session.query(model.AppUser).get(version.user_id)
+                if user is not None:
+                    son['user'] = to_son(user)
+
+        self.set_header("Content-Type", "application/json")
+        self.write(json_encode(sons))
+        self.finish()

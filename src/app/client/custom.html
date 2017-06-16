@@ -18,13 +18,20 @@
             <i class="fa fa-files-o"></i>
             <span class="sr-only">Duplicate</span>
         </a>
-        <button ng-click="history(query)"
-                class="btn btn-default btn-round"
-                title="Switch to an old version"
-                ng-if="edit.model">
-            <i class="fa fa-history"></i>
-            <span class="sr-only">History</span>
-        </button>
+
+        <script type="text/ng-template" id="/inline/custom_history_item.html">
+            <span class="field field-2">
+                {{version.version}}
+            </span>
+            <span class="field field-8">
+                {{version.user.name}}
+            </span>
+            <span print-friendly-timeago="version.modified"></span>
+        </script>
+        <history model="edit.model" service="CustomQuery"
+            query-params="{id: edit.model.id}"
+            item-template-url="/inline/custom_history_item.html"></history>
+
         <button ng-click="execute(edit.model.text)"
                 ng-if="!query.deleted && edit.model"
                 class="btn btn-default btn-round"
@@ -37,7 +44,7 @@
                     title="Preview">
             <i class="fa fa-bolt"></i>
         </button>
-        <span  uib-dropdown dropdown-append-to-body
+        <span uib-dropdown dropdown-append-to-body
                 ng-if="!query.deleted && !edit.model">
             <button class="btn btn-default btn-round"
                     title="Export" uib-dropdown-toggle>
@@ -59,7 +66,6 @@
                         Excel (.xlsx)
                     </a>
                 </li>
-
             </ul>
         </span>
         <button class="btn btn-default btn-round" title="Print"
