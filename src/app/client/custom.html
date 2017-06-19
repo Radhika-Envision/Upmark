@@ -2,6 +2,17 @@
     ng-class="{'deleted': query.deleted}">
 <div class="container">
     <div class="toolbar">
+        <button ng-click="settings.autorun = !settings.autorun"
+                class="btn btn-round"
+                ng-class="{
+                    'btn-info': settings.autorun,
+                    'btn-default': !settings.autorun}"
+                title="{{settings.autorun ?
+                    'Previews are enabled' :
+                    'Previews are disabled'}}">
+            <i class="fa fa-bolt"></i>
+            <span class="sr-only">Autorun</span>
+        </button>
         <button ng-click="edit.save()"
                 ng-if="edit.model"
                 class="btn btn-default btn-round"
@@ -32,18 +43,6 @@
             query-params="{id: edit.model.id}"
             item-template-url="/inline/custom_history_item.html"></history>
 
-        <button ng-click="execute(edit.model.text)"
-                ng-if="!query.deleted && edit.model"
-                class="btn btn-default btn-round"
-                    title="Preview">
-            <i class="fa fa-bolt"></i>
-        </button>
-        <button ng-click="execute(query)"
-                ng-if="!query.deleted && !edit.model"
-                class="btn btn-default btn-round"
-                    title="Preview">
-            <i class="fa fa-bolt"></i>
-        </button>
         <span uib-dropdown dropdown-append-to-body
                 ng-if="!query.deleted && !edit.model">
             <button class="btn btn-default btn-round"
@@ -156,10 +155,19 @@
             Only <code>SELECT</code> statements are allowed.
         </p>
         <p>
-            Up to {{execLimit}} result rows can be displayed in browser window
-            by pressing <i class="fa fa-play"></i> Execute. Up to
-            {{config.maxLimit}} rows can be returned by downloading the data as
-            CSV or as an Excel spreadsheet.
+            Up to {{settings.limit}} result rows can be previewed in browser
+            window.
+            <span ng-if="settings.autorun">
+              Previews will be generated automatically. To disable, press the
+              <i class="fa fa-bolt"></i> button.
+            </span>
+            <span ng-if="!settings.autorun">
+              Previews are disabled. To enable, press the
+              <i class="fa fa-bolt"></i> button.
+            </span>
+        <p>
+            Up to {{config.maxLimit}} rows can be returned by downloading the
+            data as CSV or as an Excel spreadsheet.
             <span ng-if="config.wallTime">
                 All queries are limited to {{config.wallTime / 1000}}s of
                 runtime.
@@ -435,6 +443,13 @@
     </div>
 </div>
 
+<p ng-if="error" class="text-warning text-center">
+    <small>
+        <i class="fa fa-bug"></i>
+        Error: {{error}}
+    </small>
+</p>
+
 <div ng-if="result.cols" class="spaced">
     <div class="scroll-x">
     <table class="table">
@@ -464,10 +479,10 @@
     <div class="spaced">
         <p ng-if="result.cols && !result.rows">Empty result set.</p>
         <p class="text-warning text-center"
-                ng-if="result.rows.length >= execLimit">
+                ng-if="result.rows.length >= settings.limit">
             <small>
                 <i class="fa fa-bug"></i>
-                Results in web view are limited to {{execLimit}} items.
+                Results in web view are limited to {{settings.limit}} items.
                 <span class="hidden-print">
                     If you want the next page,
                     <span ng-if="edit.model">

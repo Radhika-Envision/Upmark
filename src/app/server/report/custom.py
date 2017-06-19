@@ -67,18 +67,24 @@ class CustomQueryReportHandler(handlers.BaseHandler):
     def get_config(self, session):
         try:
             limit = float(self.get_argument('limit', '0'))
+            wall_time = float(self.get_argument('wall_time', '0'))
         except ValueError:
             raise handlers.ModelError(str(e))
 
-        max_limit = config.get_setting(session, 'custom_timeout') * 1000
+        max_wall_time = config.get_setting(session, 'custom_timeout') * 1000
+        if wall_time == 0:
+            wall_time = max_wall_time
+        elif not 0 <= wall_time <= max_wall_time:
+            raise handlers.ModelError('Query wall time is out of bounds')
+
+        max_limit = config.get_setting(session, 'custom_max_limit')
         if limit == 0:
             limit = max_limit
-        elif limit < 0:
-            raise handlers.ModelError('Limit is too low')
-        elif limit > max_limit:
-            raise handlers.ModelError('Limit is too high')
+        elif not 0 <= limit <= max_limit:
+            raise handlers.ModelError('Query row limit is out of bounds')
+
         return Bunch({
-            'wall_time': int(config.get_setting(session, 'custom_timeout') * 1000),
+            'wall_time': int(wall_time * 1000),
             'limit': int(limit),
             'base_url': config.get_setting(session, 'app_base_url'),
         })

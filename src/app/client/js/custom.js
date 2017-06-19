@@ -24,10 +24,19 @@ angular.module('upmark.custom', [
 }])
 
 
+.factory('CustomQuerySettings', function() {
+    return {
+        autorun: true,
+        limit: 20,
+        wall_time: 0.5,
+    };
+})
+
+
 .controller('CustomCtrl',
             function($scope, $http, Notifications, hotkeys, routeData,
                 download, CustomQuery, $q, Editor, Current, confAuthz,
-                $location) {
+                $location, CustomQuerySettings, Enqueue) {
     $scope.config = routeData.config;
     if (routeData.query) {
         $scope.query = routeData.query;
@@ -48,7 +57,8 @@ angular.module('upmark.custom', [
         });
     }
     $scope.result = {};
-    $scope.execLimit = 20;
+    $scope.error = null;
+    $scope.settings = CustomQuerySettings;
     $scope.CustomQuery = CustomQuery;
     $scope.edit = Editor('query', $scope, {});
     if (!$scope.query.id)
@@ -58,18 +68,28 @@ angular.module('upmark.custom', [
         $location.url('/2/custom/' + model.id);
     });
 
-    $scope.execute = function(query) {
-        var url;
-        var text;
-        if (query.id) {
-            url = '/report/custom_query/' + query.id + '/custom_query.json'
-            text = null;
-        } else {
-            url = '/report/custom_query/preview.json'
-            text = query;
-        }
+    $scope.activeModel = null;
+    $scope.$watch('edit.model', function(model) {
+        $scope.activeModel = model || $scope.query;
+    });
+    $scope.$watchGroup(['activeModel.text', 'settings.autorun'], function() {
+        if (!$scope.settings.autorun)
+            return;
+        $scope.autorun();
+    });
+    $scope.autorun = Enqueue(function() {
+        if (!$scope.activeModel || !$scope.settings.autorun)
+            return;
+        $scope.execute($scope.activeModel.text);
+    }, 1000);
+
+    $scope.execute = function(text) {
+        var url = '/report/custom_query/preview.json'
         var config = {
-            params: {limit: $scope.execLimit}
+            params: {
+                limit: $scope.settings.limit,
+                wall_time: $scope.settings.wall_time,
+            },
         };
         return $http.post(url, text, config).then(
             function success(response) {
@@ -78,10 +98,20 @@ angular.module('upmark.custom', [
                 if (response.headers('Operation-Details'))
                     message += ': ' + response.headers('Operation-Details');
                 Notifications.set('query', 'info', message, 5000);
+                $scope.error = null;
             },
             function failure(response) {
-                Notifications.set('query', 'error',
-                    "Error: " + (response.statusText || response));
+                $scope.result = null;
+                if (response.headers) {
+                    var details = response.headers('Operation-Details');
+                    if (/statement timeout/.exec(details)) {
+                        $scope.error = "Query took too long to run.";
+                    } else {
+                        $scope.error = details;
+                    }
+                    return;
+                }
+                $scope.error = response.statusText;
             }
         );
     };
