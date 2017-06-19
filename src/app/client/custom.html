@@ -403,6 +403,23 @@
             </dd>
         </dl>
     </docs>
+    <docs>
+        <i class="fa-li fa fa-bolt fa-border"></i>
+        <h3>Reporting tables</h3>
+        <p>
+            Custom queries are stored in the <code>custom_query</code> table.
+        </p>
+        <img src="images/design-tables-custom.svg" class="img-responsive">
+        <dl>
+            <dt>custom_query</dt>
+            <dd>
+                <p>PK: <code>id</code>.</p>
+                <p>
+                Stores custom SQL queries for generation of custom reports.
+                </p>
+            </dd>
+        </dl>
+    </docs>
 </form>
 
 <div ng-if="!edit.model">

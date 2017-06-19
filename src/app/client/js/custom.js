@@ -37,8 +37,9 @@ angular.module('upmark.custom', [
     } else {
         $scope.query = new CustomQuery({
             description: null,
-            text:   "-- This example query lists all users.\n" +
-                    "-- Replace with your own code.\n" +
+            text:   "-- This example query lists all users. " +
+                        "Replace with your own code.\n" +
+                    "-- Expand Documentation panel for details.\n" +
                     "SELECT u.name AS name, o.name AS organisation\n" +
                     "FROM appuser AS u\n" +
                     "JOIN organisation AS o ON u.organisation_id = o.id\n" +
