@@ -1330,10 +1330,8 @@ angular.module('vpac.widgets', [])
 }])
 
 
-.directive('history', function($compile) {
+.directive('history', function() {
     return {
-        priority: 100,
-        terminal: true,
         restrict: 'E',
         scope: {
             model: '=model',
@@ -1344,18 +1342,24 @@ angular.module('vpac.widgets', [])
         templateUrl: '/history.html',
         controller: function($scope, Notifications) {
 
-            $scope.toggled = function(open) {
-                if (open) {
+            $scope.state = {
+                isOpen: false,
+            };
+            $scope.$watch('state.isOpen', function(isOpen) {
+                if (isOpen) {
                     $scope.search = angular.merge(
                         angular.copy($scope.queryParams),
                         {page: 0, pageSize: 10}
                     );
                 } else {
                     $scope.search = null;
+                    $scope.versions = null;
                 }
-            };
-
-            $scope.search = null;
+            });
+            $scope.$watch('model', function(model) {
+                if (!model)
+                    $scope.state.isOpen = false;
+            });
 
             $scope.$watch('search', function(search) {
                 if (!search)
@@ -1407,18 +1411,17 @@ angular.module('vpac.widgets', [])
                 );
             };
             $scope.isActive = function(version) {
+                if (!$scope.model)
+                    return false;
                 return version.version == $scope.model.version;
             };
         },
-        compile: function(tElem, tAttrs) {
-            tAttrs.$set('uib-dropdown', '');
-            tAttrs.$set('dropdown-append-to-body', '');
-            tAttrs.$set('on-toggle', "toggled(open)");
-            var compiled = $compile(tElem, null, 100);
-            return function link(scope, elem, attrs) {
-                compiled(scope);
-            };
-        }
+        link(scope, elem, attrs) {
+            scope.$watch('model', function(model) {
+                elem.css('display', model ? '' : 'none');
+            });
+            elem.css('display', scope.model ? '' : 'none');
+        },
     };
 });
 

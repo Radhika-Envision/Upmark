@@ -1,0 +1,31 @@
+<span uib-dropdown dropdown-append-to-body is-open="state.isOpen">
+  <button class="btn btn-default btn-round" title="History"
+          uib-dropdown-toggle>
+      <i class="fa fa-history"></i></button>
+
+  <ul uib-dropdown-menu class="dropdown-menu-right">
+      <li class="dropdown-header">
+          <div>
+          <div class="toolbar">
+              <span class="btn-group">
+                  <button class="btn btn-default" title="Newer"
+                          ng-click="nextPage($event)">
+                      <i class="fa fa-caret-left"></i></button>
+                  <button class="btn btn-default" title="Older"
+                          ng-click="prevPage($event)">
+                      <i class="fa fa-caret-right"></i></button>
+              </span>
+          </div>
+          Versions
+          </div>
+      </li>
+      <li ng-repeat="version in versions"
+              ng-class="{active: isActive(version)}">
+          <a href ng-click="navigate(version)" ng-include="itemTemplateUrl"></a>
+      </li>
+      <li ng-if="!versions.length && !loading" class="dropdown-header">
+          No versions.</li>
+      <li ng-if="loading" class="dropdown-header">
+          Loading...</li>
+  </ul>
+</span>

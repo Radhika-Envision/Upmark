@@ -13,6 +13,7 @@ angular.module('upmark.survey.measure', [
     $scope.layout = layout;
     $scope.parent = routeData.parent;
     $scope.submission = routeData.submission;
+    $scope.Response = Response;
 
     if (routeData.measure) {
         // Editing old
