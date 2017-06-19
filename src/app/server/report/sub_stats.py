@@ -4,23 +4,22 @@ import time
 import uuid
 import json
 
-from tornado import gen
-from tornado.escape import json_decode, json_encode
-import tornado.web
+import numpy
 import sqlalchemy
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import make_transient
+from tornado import gen
+from tornado.escape import json_decode, json_encode
+import tornado.web
 
 import handlers
 import model
 import logging
 
-from utils import reorder, ToSon, truthy, updater
-import numpy
 
+log = logging.getLogger('app.report.sub_stats')
 
-log = logging.getLogger('app.statistics_handler')
 
 class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
 

@@ -467,7 +467,7 @@ class QuestionNodeHandler(
 
     def _update(self, session, qnode, son):
         '''Apply user-provided data to the saved model.'''
-        update = updater(qnode)
+        update = updater(qnode, error_factory=handlers.ModelError)
         update('title', son)
         update('description', son, sanitise=True)
 

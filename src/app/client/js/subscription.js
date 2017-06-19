@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('wsaa.subscription', ['ngResource', 'wsaa.admin'])
+angular.module('upmark.subscription', ['ngResource', 'upmark.admin'])
 
 
 .factory('Subscription', ['$resource', function($resource) {

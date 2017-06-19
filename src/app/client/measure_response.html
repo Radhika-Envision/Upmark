@@ -3,51 +3,22 @@
         readonly="!!structure.deletedItem"
         has-quality="structure.program.hasQuality"
         externs="response.sourceVars">
-    <span ng-controller="ResponseHistory" uib-dropdown
-            on-toggle="toggled(open)" dropdown-append-to-body>
-        <button class="btn btn-default btn-round" title="History"
-                uib-dropdown-toggle>
-            <i class="fa fa-history"></i></button>
 
-        <ul uib-dropdown-menu class="dropdown-menu-right">
-            <li class="dropdown-header">
-                <div>
-                <div class="toolbar">
-                    <span class="btn-group">
-                        <button class="btn btn-default" title="Newer"
-                                ng-click="nextPage($event)">
-                            <i class="fa fa-caret-left"></i></button>
-                        <button class="btn btn-default" title="Older"
-                                ng-click="prevPage($event)">
-                            <i class="fa fa-caret-right"></i></button>
-                    </span>
-                </div>
-                Versions
-                </div>
-            </li>
-            <li ng-repeat="version in versions"
-                    ng-class="{active: isActive(version)}">
-                <a href ng-click="navigate(version)">
-                    <span class="field field-2">
-                        {{version.version}}
-                    </span>
-                    <span class="field field-4">
-                        {{version.approval}}
-                    </span>
-                    <span class="field field-8">
-                        {{version.user.name}}
-                    </span>
-                    <span>
-                        {{version.modified * 1000 | timeAgo:'medium'}}
-                    </span>
-                </a>
-            </li>
-            <li ng-if="!versions.length && !loading" class="dropdown-header">
-                No versions.</li>
-            <li ng-if="loading" class="dropdown-header">
-                Loading...</li>
-        </ul>
-    </span>
+    <script type="text/ng-template" id="/inline/response_history_item.html">
+        <span class="field field-2">
+            {{version.version}}
+        </span>
+        <span class="field field-4">
+            {{version.approval}}
+        </span>
+        <span class="field field-8">
+            {{version.user.name}}
+        </span>
+        <span print-friendly-timeago="version.modified"></span>
+    </script>
+    <history model="response" service="Response"
+        query-params="{measureId: measure.id, submissionId: submission.id}"
+        item-template-url="/inline/response_history_item.html"></history>
 
     <button class="btn btn-round btn-on-danger"
             title="Not relevant"
@@ -330,17 +301,12 @@
 </div>
 
 <div>
-    <p ng-if="response.user.name" class="spaced text-center text-muted">
+    <p ng-if="response.user.name" class="small spaced text-center text-muted">
         <i class="fa fa-history"></i>
         Version {{response.version}} submitted by
         <a ng-href="#/2/user/{{response.user.id}}">
             {{response.user.name}}</a>,
-        <span class="hidden-print">
-            {{response.modified * 1000 | timeAgo:'medium'}}.
-        </span>
-        <span class="visible-print-inline">
-            {{response.modified * 1000 | date:'medium'}}.
-        </span>
+        <span print-friendly-timeago="response.modified"></span>.
         <span ng-if="response.$dirty" class="visible-print-inline">
             Some modifications have not been saved.
         </span>

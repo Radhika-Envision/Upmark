@@ -57,12 +57,7 @@
                 <h4>{{submission.title}}</h4>
                 <p>
                     Created
-                    <span class="hidden-print">
-                        {{submission.created * 1000 | timeAgo:'medium'}}
-                    </span>
-                    <span class="visible-print-inline">
-                        {{submission.created * 1000 | date:'medium'}}.
-                    </span>
+                    <span print-friendly-timeago="submission.created"></span>
                     <span class="text-muted">in program</span>
                     <i>{{submission.program.title}}</i>
                 </p>

@@ -21,7 +21,7 @@ from sqlalchemy.orm import joinedload
 import aws
 import handlers
 import model
-from utils import reorder, ToSon, truthy, updater
+from utils import ToSon
 
 
 log = logging.getLogger('app.crud.attachment')

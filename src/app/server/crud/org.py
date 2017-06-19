@@ -191,7 +191,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         Apply user-provided data to the saved model.
         '''
-        update = updater(org)
+        update = updater(org, error_factory=handlers.ModelError)
         update('name', son)
         update('url', son)
         self._save_locations(org, son.get('locations', []))

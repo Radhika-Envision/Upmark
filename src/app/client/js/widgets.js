@@ -961,6 +961,41 @@ angular.module('vpac.widgets', [])
 })
 
 
+.directive('printFriendlyTimeago', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            date: '=printFriendlyTimeago',
+            format: '@?pfFormat',
+            titleFormat: '@?pfTitleFormat',
+            units: '@?pfUnits',
+        },
+        template: '<span class="hidden-print" '+
+                        'title="{{date * multiplier | date:titleFormat}}">' +
+                    '{{date * multiplier | timeAgo:format}}</span>' +
+                  '<span class="visible-print-inline">' +
+                    '{{date * multiplier | date:format}}</span>',
+        link: function (scope, elem, attrs) {
+            if (!scope.format)
+                scope.format = 'mediumDate';
+            if (!scope.titleFormat)
+                scope.titleFormat = 'medium';
+            if (!scope.units)
+                scope.units = 'ms';
+            scope.multiplier = 1.0;
+            scope.$watch('units', function(units) {
+                scope.multiplier = {
+                    s: 1,
+                    ms: 1000,
+                    us: 1000000,
+                    μs: 1000000,
+                }[units];
+            });
+        }
+    };
+})
+
+
 .filter('markdown', function() {
     var converter = new showdown.Converter({
         strikethrough: true,
@@ -1000,6 +1035,8 @@ angular.module('vpac.widgets', [])
         ],
     }
     function postLink(scope, elem, attrs, ngModel) {
+        elem.toggleClass('embedded-toolbar', true);
+
         scope.model = {
             mode: 'rendered',
             viewValue: null
@@ -1291,5 +1328,101 @@ angular.module('vpac.widgets', [])
         }
     };
 }])
+
+
+.directive('history', function() {
+    return {
+        restrict: 'E',
+        scope: {
+            model: '=model',
+            service: '=service',
+            queryParams: '=queryParams',
+            itemTemplateUrl: '@itemTemplateUrl',
+        },
+        templateUrl: '/history.html',
+        controller: function($scope, Notifications) {
+
+            $scope.state = {
+                isOpen: false,
+            };
+            $scope.$watch('state.isOpen', function(isOpen) {
+                if (isOpen) {
+                    $scope.search = angular.merge(
+                        angular.copy($scope.queryParams),
+                        {page: 0, pageSize: 10}
+                    );
+                } else {
+                    $scope.search = null;
+                    $scope.versions = null;
+                }
+            });
+            $scope.$watch('model', function(model) {
+                if (!model)
+                    $scope.state.isOpen = false;
+            });
+
+            $scope.$watch('search', function(search) {
+                if (!search)
+                    return;
+                $scope.loading = true;
+                $scope.error = null;
+                $scope.service.history(search).$promise.then(
+                    function success(versions) {
+                        $scope.versions = versions;
+                        $scope.loading = false;
+                        $scope.error = null;
+                    },
+                    function failure(details) {
+                        $scope.loading = false;
+                        $scope.error = "Could not get history: " +
+                            details.statusText;
+                    }
+                );
+            }, true);
+
+            $scope.nextPage = function($event) {
+                if ($scope.search.page > 0)
+                    $scope.search.page--;
+                $event.preventDefault();
+                $event.stopPropagation();
+            };
+            $scope.prevPage = function($event) {
+                if ($scope.versions.length >= $scope.search.pageSize)
+                    $scope.search.page++;
+                $event.preventDefault();
+                $event.stopPropagation();
+            };
+
+            $scope.navigate = function(version) {
+                var params = angular.merge(
+                    angular.copy($scope.queryParams),
+                    {version: version.version}
+                );
+                $scope.service.get(params).$promise.then(
+                    function success(model) {
+                        $scope.model = model;
+                        $scope.error = null;
+                        $scope.versions = null;
+                    },
+                    function failure(details) {
+                        $scope.error = "Could not get history: " +
+                            details.statusText;
+                    }
+                );
+            };
+            $scope.isActive = function(version) {
+                if (!$scope.model)
+                    return false;
+                return version.version == $scope.model.version;
+            };
+        },
+        link(scope, elem, attrs) {
+            scope.$watch('model', function(model) {
+                elem.css('display', model ? '' : 'none');
+            });
+            elem.css('display', scope.model ? '' : 'none');
+        },
+    };
+});
 
 ;

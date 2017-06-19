@@ -461,7 +461,7 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
         submission.approval = approval
 
     def _update(self, submission, son):
-        update = updater(submission)
+        update = updater(submission, error_factory=handlers.ModelError)
         update('title', son)
 
         if son["created"]:

@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
+angular.module('upmark.home', ['ngResource', 'upmark.admin'])
 
 
 .factory('Activity', ['$resource', function($resource) {
@@ -77,6 +77,9 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
             case 'reorder_children':
                 verb = 'reordered the children of';
                 break;
+            case 'report':
+                verb = 'generated a report for';
+                break;
             default:
                 verb = verb;
             }
@@ -90,6 +93,8 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
             return null;
 
         switch (action.obType || action) {
+        case 'custom_query':
+            return 'custom query';
         case 'qnode':
             return 'survey category';
         case 'response_type':
@@ -106,6 +111,8 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
             return null;
 
         switch (action.obType) {
+        case 'custom_query':
+            return format("/2/custom/{}", action.obIds[0]);
         case 'organisation':
             return format("/2/org/{}", action.obIds[0]);
         case 'user':
@@ -159,6 +166,7 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
         case 'response':
         case 'attachment':
             return 'answer';
+        case 'custom_query':
         default:
             return '';
         }
@@ -193,6 +201,9 @@ angular.module('wsaa.home', ['ngResource', 'wsaa.admin'])
                 break;
             case 'reorder_children':
                 icons.push('fa-arrows-v');
+                break;
+            case 'report':
+                icons.push('fa-file-text-o');
                 break;
             default:
             }

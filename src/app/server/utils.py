@@ -9,11 +9,12 @@ import time
 import uuid
 import yaml
 
-import model
-
+from bunch import Bunch
 import sqlalchemy
 from sqlalchemy.orm import joinedload
 from sqlalchemy.engine.result import RowProxy
+
+import model
 
 
 log = logging.getLogger('app.utils')
@@ -113,7 +114,7 @@ class ToSon:
         if isinstance(value, model.Base):
             names = dir(value)
 
-            son = {}
+            son = Bunch()
             for name in names:
                 if not self.can_emit(name, path):
                     continue
@@ -136,7 +137,7 @@ class ToSon:
         elif (hasattr(value, '__getitem__') and hasattr(value, 'keys') and
               hasattr(value, 'values') and not isinstance(value, RowProxy)):
             # Dictionaries
-            son = {}
+            son = Bunch()
             for name in value.keys():
                 if not self.can_emit(name, path):
                     continue
@@ -203,8 +204,8 @@ def denormalise(value):
     if isinstance(value, str):
         return value
     elif hasattr(value, '__getitem__') and hasattr(value, 'items'):
-        return {pattern.sub(r'\1_\2', k).lower(): denormalise(v)
-                for k, v in value.items()}
+        return Bunch((pattern.sub(r'\1_\2', k).lower(), denormalise(v))
+                for k, v in value.items())
     elif hasattr(value, '__getitem__') and hasattr(value, '__iter__'):
         return [denormalise(v) for v in value]
     else:
@@ -221,14 +222,16 @@ class updater:
     DEFAULT = 1
     SKIP = 2
 
-    def __init__(self, model, on_absent=SKIP):
+    def __init__(self, model, on_absent=SKIP, error_factory=ValueError):
         self.model = model
         self.on_absent = on_absent
+        self.error_factory = error_factory
 
     def __call__(self, name, son, on_absent=None, sanitise=False):
         if on_absent is None:
             on_absent = self.on_absent
 
+        current_value = getattr(self.model, name)
         if name in son:
             value = son[name]
             if sanitise:
@@ -239,17 +242,23 @@ class updater:
             column = getattr(self.model.__class__, name)
             value = column.default
         else:
-            return
+            value = current_value
 
-        current_value = getattr(self.model, name)
+        if value is None:
+            column = getattr(self.model.__class__, name)
+            if not column.nullable:
+                raise self.error_factory("Missing value for %s" % name)
+
         if isinstance(current_value, uuid.UUID):
             equal = str(current_value) == str(value)
         else:
             equal = current_value == value
 
-        if not equal:
-            log.debug('Setting %s: %s -> %s', name, current_value, value)
-            setattr(self.model, name, value)
+        if equal:
+            return
+
+        log.debug('Setting %s: %s -> %s', name, current_value, value)
+        setattr(self.model, name, value)
 
 
 def reorder(collection, son, id_attr='id'):

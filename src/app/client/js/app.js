@@ -1,16 +1,30 @@
 'use strict';
 
-angular.module('wsaa.aquamark',
-               ['ngRoute', 'ngAnimate', 'ui.bootstrap', 'cfp.hotkeys',
-                'ui.bootstrap.showErrors', 'validation.match', 'settings',
-                'yaru22.angular-timeago', 'angular-select-text',
-                'angular-medium-editor', 'msieurtoph.ngCheckboxes',
-                'angular-input-stars',
-                'wsaa.admin', 'wsaa.home', 'wsaa.subscription',
-                'wsaa.response',
-                'wsaa.surveyQuestions', 'wsaa.surveyAnswers',
-                'wsaa.survey.measure',
-                'vpac.utils', 'vpac.widgets', 'diff-match-patch'])
+angular.module('upmark', [
+    'angular-input-stars',
+    'angular-medium-editor',
+    'angular-select-text',
+    'cfp.hotkeys',
+    'diff-match-patch',
+    'msieurtoph.ngCheckboxes',
+    'ngAnimate',
+    'ngRoute',
+    'ui.bootstrap',
+    'ui.bootstrap.showErrors',
+    'upmark.admin',
+    'upmark.custom',
+    'upmark.home',
+    'upmark.response',
+    'upmark.settings',
+    'upmark.subscription',
+    'upmark.surveyAnswers',
+    'upmark.surveyQuestions',
+    'upmark.survey.measure',
+    'validation.match',
+    'vpac.utils',
+    'vpac.widgets',
+    'yaru22.angular-timeago',
+])
 
 
 /**
@@ -651,17 +665,40 @@ angular.module('wsaa.aquamark',
                     }]
                 })}
             })
-            .when('/:uv/adhoc', {
-                templateUrl : 'adhoc.html',
-                controller : 'AdHocCtrl',
-                resolve: {
+
+            .when('/:uv/custom', {
+                templateUrl : 'custom_list.html',
+                controller : 'CustomListCtrl',
+            })
+            .when('/:uv/custom/new', {
+                templateUrl : 'custom.html',
+                controller : 'CustomCtrl',
+                resolve: {routeData: chain({
                     config: ['CustomQueryConfig', function(CustomQueryConfig) {
                         return CustomQueryConfig.get({}).$promise;
                     }],
-                    samples: ['SampleQueries', function(SampleQueries) {
-                        return SampleQueries.get({}).$promise;
-                    }]
-                }
+                    duplicate: ['CustomQuery', '$route', function(CustomQuery, $route) {
+                        var id = $route.current.params.duplicate;
+                        if (!id)
+                            return null;
+                        return CustomQuery.get({id: id}).$promise;
+                    }],
+                })}
+            })
+            .when('/:uv/custom/:id', {
+                templateUrl : 'custom.html',
+                controller : 'CustomCtrl',
+                resolve: {routeData: chain({
+                    config: ['CustomQueryConfig', function(CustomQueryConfig) {
+                        return CustomQueryConfig.get({}).$promise;
+                    }],
+                    query: ['CustomQuery', '$route', function(CustomQuery, $route) {
+                        var id = $route.current.params.id;
+                        if (id == 'new')
+                            return null;
+                        return CustomQuery.get({id: id}).$promise;
+                    }],
+                })}
             })
 
             .when('/:uv/measures', {

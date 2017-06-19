@@ -57,13 +57,15 @@ def ssl_log_filter(record):
 
 import auth
 import crud
-import export_handlers
 import handlers
 import import_handlers
 import model
-import report.temporal
-import report_handlers
-import statistics_handlers
+import report.custom
+from report.diff import DiffHandler
+from report.prog_export import ExportProgramHandler
+from report.sub_export import ExportSubmissionHandler
+from report.sub_stats import StatisticsHandler
+from report.sub_temporal import TemporalReportHandler
 from utils import truthy
 
 
@@ -193,6 +195,9 @@ def get_mappings():
 
         (r"/systemconfig.json", crud.config.SystemConfigHandler, {}),
         (r"/systemconfig/(.*)", crud.config.SystemConfigItemHandler, {}),
+        (r"/custom_query/?([^/]*).json", crud.custom.CustomQueryHandler, {}),
+        (r"/custom_query/?([^/]*)/history.json",
+            crud.custom.CustomQueryHistoryHandler, {}),
         (r"/organisation/?([^/]*).json", crud.org.OrgHandler, {}),
         (r"/organisation/?([^/]*)/survey/?([^/]*).json",
             crud.org.PurchasedSurveyHandler, {}),
@@ -235,20 +240,25 @@ def get_mappings():
         (r"/attachment/([^/]*)/(.*)",
             crud.attachment.AttachmentHandler, {}),
 
-        (r"/statistics/program/([^/]*)/survey/([^/]*).json",
-            statistics_handlers.StatisticsHandler, {}),
-        (r"/diff.json",
-            report_handlers.DiffHandler, {}),
-        (r"/export/program/([^/]*)/survey/([^/]*)/([^.]+)\.(.+)",
-            export_handlers.ExportProgramHandler, {}),
-        (r"/export/temporal/([^/]*)\.(.+)",
-            report.temporal.TemporalReportHandler, {}),
-        (r"/export/submission/([^/]*)/([^.]+)\.(.+)",
-            export_handlers.ExportSubmissionHandler, {}),
-        (r"/adhoc_query\.(.+)",
-            report_handlers.AdHocHandler, {}),
-        (r"/reformat.sql",
-            report_handlers.SqlFormatHandler, {}),
+        (r"/report/sub/stats/program/([^/]*)/survey/([^/]*).json",
+            StatisticsHandler, {}),
+        (r"/report/diff.json", DiffHandler, {}),
+        (r"/report/prog/export/([^/]*)/survey/([^/]*)/([^.]+)\.(.+)",
+            ExportProgramHandler, {}),
+        (r"/report/sub/temporal/([^/]*)\.(.+)",
+            TemporalReportHandler, {}),
+        (r"/report/sub/export/([^/]*)/([^.]+)\.(.+)",
+            ExportSubmissionHandler, {}),
+        (r"/report/custom_query/reformat\.sql",
+            report.custom.SqlFormatHandler, {}),
+        (r"/report/custom_query/identifiers\.json",
+            report.custom.SqlIdentifierHandler, {}),
+        (r"/report/custom_query/preview\.(.+)",
+            report.custom.CustomQueryPreviewHandler, {}),
+        (r"/report/custom_query/config\.json",
+            report.custom.CustomQueryConfigHandler, {}),
+        (r"/report/custom_query/([^.]+)/\w+\.(.+)",
+            report.custom.CustomQueryReportHandler, {}),
 
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response.json", import_handlers.ImportResponseHandler, {}),

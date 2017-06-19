@@ -163,7 +163,7 @@ class OrgMeta(Base):
     asset_types = Column(ARRAY(Enum(
         'water wholesale', 'water local',
         'wastewater wholesale', 'wastewater local',
-        native_enum=False)))
+        native_enum=False, create_constraint=False)))
     regulation_level = Column(Enum(
         'extensive', 'partial', 'none', native_enum=False))
 
@@ -185,6 +185,15 @@ class OrgMeta(Base):
     organisation = relationship(
         Organisation,
         backref=backref('meta', uselist=False, cascade="all, delete-orphan"))
+
+    __table_args__ = (
+        CheckConstraint(
+            """asset_types <@ ARRAY[
+                'water wholesale', 'water local',
+                'wastewater wholesale', 'wastewater local'
+            ]::varchar[]""",
+            name='org_meta_asset_types_check'),
+    )
 
 
 class OrgLocation(Base):
@@ -926,7 +935,6 @@ class ResponseNode(Observable, Base):
             ['submission_id'],
             ['submission.id']
         ),
-        UniqueConstraint('qnode_id', 'submission_id'),
         Index('rnode_qnode_id_submission_id_index', qnode_id, submission_id),
     )
 
@@ -1040,8 +1048,6 @@ class Response(Observable, Versioned, Base):
             ['submission.id'],
             info={'version': True}
         ),
-        Index('response_submission_id_measure_id_index',
-              submission_id, measure_id),
     )
 
     user = relationship(AppUser)
@@ -1100,6 +1106,7 @@ class Response(Observable, Versioned, Base):
 ResponseHistory = Response.__history_mapper__.class_
 ResponseHistory.response_parts = Response.response_parts
 ResponseHistory.ob_type = property(lambda self: 'response')
+# ResponseHistory.user = relationship(AppUser, passive_deletes=True)
 
 
 class Attachment(Base):
@@ -1129,6 +1136,48 @@ class Attachment(Base):
     organisation = relationship(Organisation)
 
 
+class CustomQuery(Observable, Versioned, Base):
+    '''
+    Stored database queries
+    '''
+    __tablename__ = 'custom_query'
+    id = Column(GUID, default=uuid.uuid4, nullable=False, primary_key=True)
+    modified = Column(DateTime, default=datetime.utcnow, nullable=False)
+    user_id = Column(GUID, ForeignKey("appuser.id"), nullable=False)
+    title = Column(Text, nullable=False)
+    text = Column(Text, nullable=False)
+    description = Column(Text)
+    deleted = Column(Boolean, default=False, nullable=False)
+
+    user = relationship(AppUser)
+
+    @property
+    def ob_type(self):
+        return 'custom_query'
+
+    @property
+    def ob_ids(self):
+        return [self.id]
+
+    @property
+    def action_lineage(self):
+        return [self]
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['user_id'],
+            ['appuser.id'],
+            info={'version': True}
+        ),
+    )
+
+
+CustomQueryHistory = CustomQuery.__history_mapper__.class_
+CustomQueryHistory.ob_type = property(lambda self: 'custom_query')
+# CustomQueryHistory.user = relationship(AppUser, passive_deletes=True)
+# CustomQueryHistory.user.set_parent(CustomQueryHistory, True)
+
+
 class Activity(Base):
     '''
     An event in the activity stream (timeline). This forms a kind of logging
@@ -1145,7 +1194,8 @@ class Activity(Base):
             'broadcast',
             'create', 'update', 'state', 'delete', 'undelete',
             'relation', 'reorder_children',
-            native_enum=False)),
+            'report',
+            native_enum=False, create_constraint=False)),
         nullable=False)
     # A snapshot of some defining feature of the object at the time the event
     # happened (e.g. title of a measure before it was deleted).
@@ -1158,6 +1208,7 @@ class Activity(Base):
         'organisation', 'user',
         'program', 'survey', 'qnode', 'measure', 'response_type',
         'submission', 'rnode', 'response',
+        'custom_query',
         native_enum=False))
     ob_ids = Column(ARRAY(GUID), nullable=False)
     # The ob_refs column contains all relevant IDs including e.g. parent
@@ -1180,6 +1231,14 @@ class Activity(Base):
         CheckConstraint(
             "(verbs @> ARRAY['broadcast']::varchar[] or ob_type != null)",
             name='activity_broadcast_constraint'),
+        CheckConstraint(
+            """verbs <@ ARRAY[
+                'broadcast',
+                'create', 'update', 'state', 'delete', 'undelete',
+                'relation', 'reorder_children',
+                'report'
+            ]::varchar[]""",
+            name='activity_verbs_check'),
         CheckConstraint(
             'ob_type = null or array_length(verbs, 1) > 0',
             name='activity_verbs_length_constraint'),
@@ -1210,6 +1269,7 @@ class Subscription(Base):
         'organisation', 'user',
         'program', 'survey', 'qnode', 'measure', 'response_type',
         'submission', 'rnode', 'response',
+        'custom_query',
         native_enum=False))
     ob_refs = Column(ARRAY(GUID), nullable=False)
 
@@ -1415,10 +1475,6 @@ Response.qnode_measure = relationship(
     #             (Response.program_id == Measure.program_id))
 
 Response.measure = association_proxy('qnode_measure', 'measure')
-
-
-ResponseHistory.user = relationship(
-    AppUser, backref='user', passive_deletes=True)
 
 
 Session = None

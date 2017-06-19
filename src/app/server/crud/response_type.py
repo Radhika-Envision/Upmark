@@ -113,7 +113,7 @@ class ResponseTypeHandler(
 
             rt_by_name = (session.query(model.ResponseType)
                 .filter(model.ResponseType.program_id == self.program_id)
-                .filter(model.ResponseType.name == self.request_son['name'])
+                .filter(model.ResponseType.name == self.request_son.get('name'))
                 .first())
             if rt_by_name is not None:
                 raise handlers.ModelError(
@@ -208,9 +208,7 @@ class ResponseTypeHandler(
 
     def _update(self, response_type, son):
         '''Apply user-provided data to the saved model.'''
-        if not son.get('name', None):
-            raise handlers.ModelError("Name is required")
-        update = updater(response_type)
+        update = updater(response_type, error_factory=handlers.ModelError)
         update('name', son)
         update('parts', son)
         update('formula', son)

@@ -108,18 +108,7 @@ class ResponseHandler(handlers.BaseHandler):
                 )
                 dummy = True
 
-            if version != '' and version != response.version:
-                try:
-                    version = int(version)
-                except ValueError:
-                    raise handlers.ModelError("Invalid version number")
-                response_history = (session.query(model.ResponseHistory)
-                    .get((submission_id, measure_id, version)))
-
-                if response is None:
-                    raise handlers.MissingDocError("No such response version")
-            else:
-                response_history = None
+            response_history = self.get_version(session, response, version)
 
             self._check_authz(response.submission)
 
@@ -211,6 +200,24 @@ class ResponseHandler(handlers.BaseHandler):
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
+
+    def get_version(self, session, response, version):
+        if not version:
+            return None
+
+        try:
+            version = int(version)
+        except ValueError:
+            raise handlers.ModelError("Invalid version number")
+        if version == response.version:
+            return None
+
+        history = (session.query(model.ResponseHistory)
+            .get((response.submission_id, response.measure_id, version)))
+
+        if history is None:
+            raise handlers.MissingDocError("No such version")
+        return history
 
     def query(self, submission_id):
         '''Get a list.'''
@@ -351,7 +358,7 @@ class ResponseHandler(handlers.BaseHandler):
         '''
         Apply user-provided data to the saved model.
         '''
-        update = updater(response)
+        update = updater(response, error_factory=handlers.ModelError)
         update('comment', son, sanitise=True)
         update('not_relevant', son)
         update('response_parts', son)

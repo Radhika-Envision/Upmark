@@ -188,7 +188,7 @@ class SurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
         self.finish()
 
     def _update(self, survey, son):
-        update = updater(survey)
+        update = updater(survey, error_factory=handlers.ModelError)
         update('title', son)
         update('description', son, sanitise=True)
         try:

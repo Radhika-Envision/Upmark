@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('wsaa.admin', [
+angular.module('upmark.admin', [
     'ngResource', 'ngSanitize', 'ui.select', 'ngCookies', 'color.picker'])
 
 .factory('User', ['$resource', 'paged', function($resource, paged) {
@@ -540,7 +540,7 @@ angular.module('wsaa.admin', [
     return function(current) {
         return function(functionName) {
             switch (functionName) {
-                case 'adhoc_analytics':
+                case 'custom_query':
                     return Roles.hasPermission(current.user.role, 'consultant');
                 default:
                     return Roles.hasPermission(current.user.role, 'admin');

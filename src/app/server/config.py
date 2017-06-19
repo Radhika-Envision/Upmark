@@ -25,15 +25,15 @@ SCHEMA = {
         'default_value': 0.85,
     },
 
-    'adhoc_timeout': {
+    'custom_timeout': {
         'type': 'numerical',
         'min': 0.0,
         'default_value': 1.5,
     },
-    'adhoc_max_limit': {
+    'custom_max_limit': {
         'type': 'numerical',
         'min': 0.0,
-        'default_value': 2500,
+        'default_value': 50000,
     },
 
     'app_name_short': {

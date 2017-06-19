@@ -30,7 +30,8 @@
                     checkRole('program_edit')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/2/subscription/program?id={{program.id}}">
+                ng-href="#/2/subscription/program?id={{program.id}}"
+                ng-if="!edit.model">
             <i class="fa fa-envelope"></i></a>
         <program-history entity="program" service="Program"
                 ng-if="!edit.model"></program-history>

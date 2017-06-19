@@ -1,9 +1,9 @@
 'use strict';
 
-angular.module('wsaa.surveyQuestions', [
+angular.module('upmark.surveyQuestions', [
     'ngResource', 'ngSanitize',
     'ui.select', 'ui.sortable',
-    'wsaa.admin', 'wsaa.survey.services'])
+    'upmark.admin', 'upmark.survey.services'])
 
 
 .factory('questionAuthz', ['Roles', function(Roles) {
@@ -816,7 +816,7 @@ angular.module('wsaa.surveyQuestions', [
 
     $scope.download = function(export_type) {
         var fileName = 'survey-' + export_type + '.xlsx'
-        var url = '/export/program/' + $scope.program.id;
+        var url = '/report/prog/export/' + $scope.program.id;
         url += '/survey/' + $scope.survey.id;
         url += '/' + export_type + '.xlsx';
 
@@ -2245,187 +2245,6 @@ angular.module('wsaa.surveyQuestions', [
         );
     };
 })
-
-
-/**
- * Drop-down menu to navigate to old versions of an entity.
- */
-.controller('ResponseHistory', ['$scope', '$location', 'Response',
-        'Notifications',
-        function($scope, $location, Response, Notifications) {
-    $scope.toggled = function(open) {
-        if (open) {
-            $scope.search = {
-                submissionId: $scope.submission.id,
-                measureId: $scope.measure.id,
-                page: 0,
-                pageSize: 10
-            };
-        } else {
-            $scope.search = null;
-        }
-    };
-
-    $scope.search = null;
-
-    $scope.$watch('search', function(search) {
-        if (!search)
-            return;
-        $scope.loading = true;
-        Response.history(search).$promise.then(
-            function success(versions) {
-                $scope.versions = versions;
-                $scope.loading = false;
-            },
-            function failure(details) {
-                $scope.loading = false;
-            }
-        );
-    }, true);
-
-    $scope.nextPage = function($event) {
-        if ($scope.search.page > 0)
-            $scope.search.page--;
-        $event.preventDefault();
-        $event.stopPropagation();
-    };
-    $scope.prevPage = function($event) {
-        if ($scope.versions.length >= $scope.search.pageSize)
-            $scope.search.page++;
-        $event.preventDefault();
-        $event.stopPropagation();
-    };
-
-    $scope.navigate = function(version) {
-        var query = {
-            measureId: $scope.measure.id,
-            submissionId: $scope.submission.id,
-            version: version.version
-        };
-        Response.get(query).$promise.then(
-            function success(response) {
-                $scope.setResponse(response);
-            },
-            function failure(details) {
-                Notifications.set('edit', 'error',
-                    "Could not get response: " + details.statusText);
-            }
-        );
-    };
-    $scope.isActive = function(version) {
-        return version.version == $scope.response.version;
-    };
-}])
-
-
-.factory('CustomQueryConfig', ['$resource', function($resource) {
-    return $resource('/adhoc_query.json', {}, {
-        get: { method: 'GET', cache: false }
-    });
-}])
-
-
-.factory('SampleQueries', ['$resource', function($resource) {
-    return $resource('/sample_queries.json', {}, {
-        get: { method: 'GET', isArray: true, cache: false }
-    });
-}])
-
-
-.controller('AdHocCtrl', ['$scope', '$http', 'Notifications', 'samples',
-            'hotkeys', 'config', 'download',
-            function($scope, $http, Notifications, samples, hotkeys, config,
-                download) {
-    $scope.config = config;
-    $scope.query = samples[0].query;
-    $scope.result = {};
-    $scope.samples = samples;
-    $scope.execLimit = 20;
-
-    $scope.execute = function(query) {
-        var config = {
-            params: {limit: $scope.execLimit}
-        };
-        $http.post('/adhoc_query.json', query, config).then(
-            function success(response) {
-                var message = "Query finished";
-                if (response.headers('Operation-Details'))
-                    message += ': ' + response.headers('Operation-Details');
-                Notifications.set('query', 'info', message, 5000);
-
-                $scope.result = angular.fromJson(response.data);
-            },
-            function failure(response) {
-                Notifications.set('query', 'error',
-                    "Error: " + response.statusText);
-            }
-        );
-    };
-
-    $scope.download = function(query, file_type) {
-        var fileName = 'adhoc_query.' + file_type;
-        var url = '/' + fileName;
-        return download(fileName, url, query).then(
-            function success(response) {
-                var message = "Query finished";
-                if (response.headers('Operation-Details'))
-                    message += ': ' + response.headers('Operation-Details');
-                Notifications.set('query', 'info', message, 5000);
-            },
-            function failure(response) {
-                Notifications.set('query', 'error',
-                    "Error: " + response.statusText);
-            }
-        );
-    };
-
-    $scope.format = function(query) {
-        $http.post('/reformat.sql', $scope.query).then(
-            function success(response) {
-                $scope.query = response.data;
-                Notifications.set('query', 'info', "Formatted", 5000);
-            },
-            function failure(response) {
-                Notifications.set('query', 'error',
-                    "Error: " + response.statusText);
-            }
-        );
-    };
-
-    $scope.setQuery = function(query) {
-        $scope.query = query;
-    };
-
-    $scope.colClass = function($index) {
-        var col = $scope.result.cols[$index];
-        if (col.richType == 'int' || col.richType == 'float')
-            return 'numeric';
-        else if (col.richType == 'uuid')
-            return 'med-truncated';
-        else if (col.richType == 'text')
-            return 'str-wrap';
-        else if (col.richType == 'json')
-            return 'pre-wrap';
-        else if (col.type == 'date')
-            return 'date';
-        else
-            return null;
-    };
-    $scope.colRichType = function($index) {
-        var col = $scope.result.cols[$index];
-        return col.richType;
-    };
-
-    hotkeys.bindTo($scope)
-        .add({
-            combo: ['ctrl+enter'],
-            description: "Execute query",
-            allowIn: ['TEXTAREA'],
-            callback: function(event, hotkey) {
-                $scope.execute($scope.query);
-            }
-        });
-}])
 
 
 .directive('errorHeader', function() {

@@ -75,12 +75,7 @@
                 </h4>
                 <p class="truncate">
                     {{a.survey.title}} in {{a.program.title}}
-                    <span class="hidden-print">
-                        - {{a.created * 1000 | timeAgo:'medium'}}
-                    </span>
-                    <span class="visible-print-inline">
-                        - {{a.created * 1000 | date:'medium'}}
-                    </span>
+                    <span print-friendly-timeago="a.created"></span>
                     - {{a.organisation.name}}
                 </p>
             </a>
