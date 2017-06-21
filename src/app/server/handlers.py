@@ -1,4 +1,3 @@
-import functools
 import logging
 from math import ceil
 import os
@@ -160,26 +159,6 @@ class PingHandler(BaseHandler):
         self.set_header("Content-Type", "text/plain")
         self.write("Web services are UP")
         self.finish()
-
-
-def authz(*roles):
-    '''
-    Decorator to check whether a user is authorised. This only checks whether
-    the user has the privilleges of a certain role. If not, a 403 error will be
-    generated. Attach to a request handler method like this:
-
-    @authz('org_admin', 'consultant')
-    def get(self, path):
-        ...
-    '''
-    def decorator(fn):
-        @functools.wraps(fn)
-        def wrapper(self, *args, **kwargs):
-            if not model.has_privillege(self.current_user.role, *roles):
-                raise errors.AuthzError()
-            return fn(self, *args, **kwargs)
-        return wrapper
-    return decorator
 
 
 class TemplateParams:

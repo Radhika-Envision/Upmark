@@ -10,6 +10,7 @@ from sqlalchemy.orm import joinedload
 import voluptuous.error
 
 from activity import Activities
+import auth
 import crud
 import errors
 import handlers
@@ -102,7 +103,7 @@ class ResponseTypeHandler(
         self.write(json_encode(sons))
         self.finish()
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def post(self, response_type_id):
         '''Create new'''
         if response_type_id:
@@ -144,7 +145,7 @@ class ResponseTypeHandler(
                 self.reason("Subscribed to program")
         self.get(response_type_id)
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def delete(self, response_type_id):
         '''Delete'''
         with model.session_scope() as session:
@@ -164,7 +165,7 @@ class ResponseTypeHandler(
         self.set_header("Content-Type", "text/plain")
         self.finish()
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def put(self, response_type_id):
         '''Update existing'''
         with model.session_scope() as session:

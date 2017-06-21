@@ -17,6 +17,7 @@ from tornado.concurrent import run_on_executor
 from concurrent.futures import ThreadPoolExecutor
 
 import app
+import auth
 import errors
 import handlers
 import model
@@ -36,7 +37,7 @@ class ImportError(Exception):
 class ImportStructureHandler(handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-    @handlers.authz('author')
+    @auth.authz('author')
     @gen.coroutine
     def post(self):
         fileinfo = self.request.files['file'][0]
@@ -62,7 +63,7 @@ class ImportStructureHandler(handlers.BaseHandler):
 class ImportResponseHandler(handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-    @handlers.authz('author')
+    @auth.authz('author')
     @gen.coroutine
     def post(self, program_id):
         fileinfo = self.request.files['file'][0]
@@ -87,7 +88,7 @@ class ImportResponseHandler(handlers.BaseHandler):
 class ImportSubmissionHandler(handlers.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-    @handlers.authz('author')
+    @auth.authz('author')
     @gen.coroutine
     def post(self):
         fileinfo = self.request.files['file'][0]

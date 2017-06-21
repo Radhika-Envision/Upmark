@@ -19,6 +19,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 from activity import Activities
+import auth
 import aws
 import errors
 import handlers
@@ -220,7 +221,7 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
         hours_since_update = td.total_seconds() / 60 / 60
         return not same_user or hours_since_update >= 8
 
-    @handlers.authz('admin')
+    @auth.authz('admin')
     def delete(self, query_id):
         self._check_authz()
         if not query_id:

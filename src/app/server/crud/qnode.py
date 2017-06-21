@@ -11,6 +11,7 @@ from sqlalchemy.orm import aliased, joinedload
 from sqlalchemy.sql.expression import literal
 
 from activity import Activities
+import auth
 import crud
 import errors
 import handlers
@@ -272,7 +273,7 @@ class QuestionNodeHandler(
         self.write(json_encode(sons))
         self.finish()
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def post(self, qnode_id):
         '''Create new.'''
         self.check_editable()
@@ -347,7 +348,7 @@ class QuestionNodeHandler(
             raise errors.ModelError.from_sa(e)
         self.get(qnode_id)
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def delete(self, qnode_id):
         '''Delete existing.'''
         self.check_editable()
@@ -394,7 +395,7 @@ class QuestionNodeHandler(
 
         self.finish()
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def put(self, qnode_id):
         '''Update existing.'''
         self.check_editable()

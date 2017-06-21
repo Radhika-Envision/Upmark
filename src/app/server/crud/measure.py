@@ -11,6 +11,7 @@ from sqlalchemy import cast, String
 from sqlalchemy.orm import joinedload
 
 from activity import Activities
+import auth
 from cache import instance_method_lru_cache
 import crud
 import errors
@@ -305,7 +306,7 @@ class MeasureHandler(
         self.write(json_encode(sons))
         self.finish()
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def post(self, measure_id):
         '''Create new.'''
         if measure_id != '':
@@ -359,7 +360,7 @@ class MeasureHandler(
             raise errors.ModelError.from_sa(e)
         self.get(measure_id)
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def delete(self, measure_id):
         '''Delete an existing measure.'''
         if measure_id == '':
@@ -415,7 +416,7 @@ class MeasureHandler(
 
         self.finish()
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def put(self, measure_id):
         '''Update existing.'''
 

@@ -11,6 +11,7 @@ import sqlalchemy
 from sqlalchemy.orm import joinedload
 
 from activity import Activities
+import auth
 import crud.program
 import errors
 import handlers
@@ -87,7 +88,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
-    @handlers.authz('admin')
+    @auth.authz('admin')
     def post(self, organisation_id):
         '''
         Create a new organisation.
@@ -116,7 +117,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
             raise errors.ModelError.from_sa(e)
         self.get(organisation_id)
 
-    @handlers.authz('admin', 'org_admin')
+    @auth.authz('admin', 'org_admin')
     def put(self, organisation_id):
         '''
         Update an existing organisation.
@@ -160,7 +161,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
             raise errors.MissingDocError("No such organisation")
         self.get(organisation_id)
 
-    @handlers.authz('admin')
+    @auth.authz('admin')
     def delete(self, organisation_id):
         if organisation_id == '':
             raise errors.MethodError("Organisation ID required")
@@ -298,7 +299,7 @@ class PurchasedSurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
-    @handlers.authz('admin')
+    @auth.authz('admin')
     def put(self, organisation_id, survey_id):
         with model.session_scope() as session:
             org = session.query(model.Organisation).get(organisation_id)
@@ -315,7 +316,7 @@ class PurchasedSurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
             if not purchased_survey:
                 org.surveys.append(survey)
 
-    @handlers.authz('admin')
+    @auth.authz('admin')
     def delete(self, organisation_id, program_id):
         with model.session_scope() as session:
             org = session.query(model.Organisation).get(organisation_id)

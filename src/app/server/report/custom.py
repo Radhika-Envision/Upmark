@@ -17,6 +17,7 @@ from tornado.escape import json_encode, utf8, to_basestring
 from tornado.concurrent import run_on_executor
 import xlsxwriter
 
+import auth
 import config
 import errors
 import handlers
@@ -49,7 +50,7 @@ class CustomQueryReportHandler(handlers.BaseHandler):
     Runs custom stored SQL queries.
     '''
 
-    @handlers.authz('admin')
+    @auth.authz('admin')
     @gen.coroutine
     def post(self, query_id, file_type):
         with model.session_scope() as session:
@@ -125,7 +126,7 @@ class CustomQueryPreviewHandler(CustomQueryReportHandler):
     Allows ad-hoc queries using SQL.
     '''
 
-    @handlers.authz('admin')
+    @auth.authz('admin')
     @gen.coroutine
     def post(self, file_type):
         text = to_basestring(self.request.body)
@@ -331,7 +332,7 @@ class ExcelWriter:
 
 class CustomQueryConfigHandler(handlers.BaseHandler):
 
-    @handlers.authz('admin')
+    @auth.authz('admin')
     def get(self):
         to_son = ToSon(r'.*')
         self.set_header("Content-Type", "application/json")
@@ -345,7 +346,7 @@ class CustomQueryConfigHandler(handlers.BaseHandler):
 
 
 class SqlFormatHandler(handlers.BaseHandler):
-    @handlers.authz('admin')
+    @auth.authz('admin')
     def post(self):
         query = to_basestring(self.request.body)
         query = sqlparse.format(
@@ -358,7 +359,7 @@ class SqlFormatHandler(handlers.BaseHandler):
 
 
 class SqlIdentifierHandler(handlers.BaseHandler):
-    @handlers.authz('admin')
+    @auth.authz('admin')
     def post(self):
         query = to_basestring(self.request.body)
 

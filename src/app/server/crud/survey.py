@@ -8,6 +8,7 @@ import sqlalchemy
 from sqlalchemy.orm import joinedload
 
 from activity import Activities
+import auth
 import crud.program
 import errors
 import handlers
@@ -94,7 +95,7 @@ class SurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def post(self, survey_id):
         '''Create new.'''
         if survey_id != '':
@@ -122,7 +123,7 @@ class SurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
             raise errors.ModelError.from_sa(e)
         self.get(survey_id)
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def put(self, survey_id):
         '''Update existing.'''
         if survey_id == '':
@@ -158,7 +159,7 @@ class SurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
             raise errors.ModelError.from_sa(e)
         self.get(survey_id)
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def delete(self, survey_id):
         if survey_id == '':
             raise errors.MethodError("Survey ID required")

@@ -14,6 +14,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import make_transient
 
 from activity import Activities
+import auth
 import errors
 import handlers
 import model
@@ -142,7 +143,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
-    @handlers.authz('author')
+    @auth.authz('author')
     @gen.coroutine
     def post(self, program_id):
         '''
@@ -263,7 +264,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
 
         dup_surveys(source_program.surveys)
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def delete(self, program_id):
         '''
         Delete an existing program.
@@ -296,7 +297,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
 
         self.finish()
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def put(self, program_id):
         '''
         Update an existing program.

@@ -1,4 +1,5 @@
 import datetime
+import functools
 import logging
 
 import sqlalchemy
@@ -170,3 +171,23 @@ class AuthLogoutHandler(handlers.BaseHandler):
         self.clear_cookie("user")
         self.clear_cookie("superuser")
         self.redirect(self.get_argument("next", "/"))
+
+
+def authz(*roles):
+    '''
+    Decorator to check whether a user is authorised. This only checks whether
+    the user has the privilleges of a certain role. If not, a 403 error will be
+    generated. Attach to a request handler method like this:
+
+    @authz('org_admin', 'consultant')
+    def get(self, path):
+        ...
+    '''
+    def decorator(fn):
+        @functools.wraps(fn)
+        def wrapper(self, *args, **kwargs):
+            if not model.has_privillege(self.current_user.role, *roles):
+                raise errors.AuthzError()
+            return fn(self, *args, **kwargs)
+        return wrapper
+    return decorator

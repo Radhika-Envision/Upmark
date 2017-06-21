@@ -9,6 +9,7 @@ import tornado.web
 from scour import scour
 import sqlalchemy
 
+import auth
 import config
 import errors
 import handlers
@@ -23,7 +24,7 @@ MAX_WORKERS = 4
 
 
 class SystemConfigHandler(handlers.BaseHandler):
-    @handlers.authz('admin')
+    @auth.authz('admin')
     def get(self):
         with model.session_scope() as session:
             settings = {}
@@ -42,7 +43,7 @@ class SystemConfigHandler(handlers.BaseHandler):
         self.write(json_encode(ToSon()(settings)))
         self.finish()
 
-    @handlers.authz('admin')
+    @auth.authz('admin')
     def put(self):
         with model.session_scope() as session:
             settings = {}
