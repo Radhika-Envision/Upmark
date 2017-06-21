@@ -160,7 +160,8 @@ class ResponseHandler(handlers.BaseHandler):
                                    program_id=submission.program_id)
                         .first())
                 qnode_measure = measure.get_qnode_measure(submission.survey_id)
-                parent = qnode_measure.qnode.get_rnode(submission)
+                parent = model.ResponseNode.from_qnode(
+                    qnode_measure.qnode, submission)
                 user = (session.query(model.AppUser)
                         .filter_by(id=response_history.user_id)
                         .first())
@@ -181,8 +182,8 @@ class ResponseHandler(handlers.BaseHandler):
 
             def gather_variables(response):
                 source_responses = {
-                    mv.source_qnode_measure: mv.source_qnode_measure.get_response(
-                        response.submission)
+                    mv.source_qnode_measure: model.Response.from_measure(
+                        mv.source_qnode_measure, response.submission)
                     for mv in response.qnode_measure.source_vars}
                 source_variables = {
                     source_qnode_measure: response and response.variables or {}

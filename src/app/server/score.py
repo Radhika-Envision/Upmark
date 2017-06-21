@@ -17,6 +17,7 @@ from datetime import datetime
 
 from cache import instance_method_lru_cache
 from dag import Graph, GraphBuilder, NodeBuilder, Ops, OpsProxy
+import model
 from response_type import ResponseError, ResponseType
 
 
@@ -333,7 +334,7 @@ class RnodeOps(QnodeOps):
 
     def evaluate(self, qnode, dependencies, dependants):
         assert(self.submission.survey == qnode.survey)
-        rnode = qnode.get_rnode(self.submission, create=True)
+        rnode = model.ResponseNode.from_qnode(qnode, self.submission, create=True)
         stats = ResponseNodeStats()
         for child in rnode.children:
             stats.add_rnode(child)
@@ -384,7 +385,7 @@ class ResponseOps(MeasureOps):
 
     @instance_method_lru_cache()
     def get_response(self, qnode_measure):
-        return qnode_measure.get_response(self.submission)
+        return model.Response.from_measure(qnode_measure, self.submission)
 
     def external_variables(self, response, qnode_measure):
         scope = {}

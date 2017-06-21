@@ -198,7 +198,8 @@ class ResponseNodeHandler(handlers.BaseHandler):
                         .get((qnode_id, submission.program.id)))
                     if qnode is None:
                         raise errors.MissingDocError("No such question node")
-                    rnode = qnode.get_rnode(submission, create=True)
+                    rnode = model.ResponseNode.from_qnode(
+                        qnode, submission, create=True)
 
                 importance = self.request_son.get('importance')
                 if importance is not None:
@@ -357,7 +358,8 @@ class ResponseNodeHandler(handlers.BaseHandler):
 
     def walk_responses(self, session, rnode, missing):
         for qnode_measure in rnode.qnode.ordered_qnode_measures:
-            response = qnode_measure.get_response(rnode.submission)
+            response = model.Response.from_measure(
+                qnode_measure, rnode.submission)
             if not response:
                 if missing != 'CREATE':
                     continue

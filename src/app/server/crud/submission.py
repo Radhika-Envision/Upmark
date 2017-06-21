@@ -319,7 +319,7 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
             return math_utils.lerp(random.random(), bias, hold)
 
         def visit_qnode(qnode, bias):
-            rnode = qnode.get_rnode(submission)
+            rnode = model.ResponseNode.from_qnode(qnode, submission)
             if not rnode:
                 rnode = model.ResponseNode(
                     program=submission.program, submission=submission,
