@@ -39,7 +39,8 @@ class AuthLoginHandler(handlers.TemplateHandler):
             params = handlers.TemplateParams(session)
             theme_params = theme.ThemeParams(session)
             self.render(
-                "../client/login.html", params=params, theme=theme, next=next,
+                "../client/templates/login.html",
+                params=params, theme=theme_params, next=next,
                 error=errormessage)
 
     def post(self, user_id):
