@@ -177,7 +177,9 @@ def get_mappings():
             'path': os.path.join(package_dir, "..", "client")}),
         (r"/logout/?", auth.AuthLogoutHandler),
         (r"/()", handlers.TemplateHandler, {
-            'path': '../client/'}),
+            'path': '../client/templates/'}),
+        (r"/(.*\.html)", tornado.web.StaticFileHandler, {
+            'path': os.path.join(package_dir, "../client/templates/")}),
         (r"/(manifest.json|css/user_style.css)",
             handlers.UnauthenticatedTemplateHandler, {
                 'path': '../client/'}),
