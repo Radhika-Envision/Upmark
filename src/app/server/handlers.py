@@ -16,6 +16,7 @@ import cache_bust
 import config
 import errors
 import image
+import math_utils
 import model
 from utils import denormalise, falsy, truthy
 
@@ -264,10 +265,6 @@ class TemplateParams:
         return resources
 
 
-def lerp(a, b, fac):
-    return ((b - a) * fac) + a
-
-
 class Color:
     def __init__(self, r, g, b, a=1):
         self.r = r
@@ -306,10 +303,10 @@ class Color:
 
     def mix(self, other, fraction):
         return Color(
-            lerp(self.r, other.r, fraction),
-            lerp(self.g, other.g, fraction),
-            lerp(self.b, other.b, fraction),
-            lerp(self.a, other.a, fraction),
+            math_utils.lerp(self.r, other.r, fraction),
+            math_utils.lerp(self.g, other.g, fraction),
+            math_utils.lerp(self.b, other.b, fraction),
+            math_utils.lerp(self.a, other.a, fraction),
         )
 
     def twotone_complement(self, amount):

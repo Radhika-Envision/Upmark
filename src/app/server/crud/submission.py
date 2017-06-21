@@ -16,6 +16,7 @@ from activity import Activities
 import crud.program
 import errors
 import handlers
+import math_utils
 import model
 import logging
 
@@ -314,11 +315,8 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
         Fill the rnodes with random scores for testing purposes.
         '''
 
-        def lerp(a, b, fac):
-            return ((b - a) * fac) + a
-
         def new_bias(bias, hold=0.8):
-            return lerp(random.random(), bias, hold)
+            return math_utils.lerp(random.random(), bias, hold)
 
         def visit_qnode(qnode, bias):
             rnode = qnode.get_rnode(submission)
