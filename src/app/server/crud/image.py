@@ -4,6 +4,7 @@ from tornado import gen
 from tornado.concurrent import run_on_executor
 
 import config
+import errors
 import handlers
 import image
 import model
@@ -18,9 +19,9 @@ class IconHandler(handlers.BaseHandler):
         size = int(size)
 
         if size < 8:
-            raise handlers.MissingDocError("Size is too small")
+            raise errors.MissingDocError("Size is too small")
         if size > 256:
-            raise handlers.MissingDocError("Size is too big")
+            raise errors.MissingDocError("Size is too big")
 
         if size <= 64:
             name = 'theme_icon_sm'

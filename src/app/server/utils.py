@@ -14,6 +14,7 @@ import sqlalchemy
 from sqlalchemy.orm import joinedload
 from sqlalchemy.engine.result import RowProxy
 
+import errors
 import model
 
 
@@ -269,7 +270,7 @@ def reorder(collection, son, id_attr='id'):
     current = {str(getattr(m, id_attr)): m.seq for m in collection}
     proposed = {m['id']: m['seq'] for m in son}
     if current != proposed:
-        raise handlers.MethodError(
+        raise errors.MethodError(
             "The proposed changes are not compatible with the "
             "current sequence: items have been added or removed, or another "
             "user has changed the order too. Try reloading the list.")

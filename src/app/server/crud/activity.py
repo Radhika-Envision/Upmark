@@ -11,6 +11,7 @@ import sqlalchemy
 from sqlalchemy.orm import defer, noload, joinedload
 
 from activity import Activities
+import errors
 import handlers
 import model
 from utils import ToSon, truthy, updater
@@ -61,7 +62,7 @@ class ActivityHandler(handlers.BaseHandler):
         if activity_id == '':
             yield self.query()
 
-        raise handlers.MethodError("GET for single activity is not implemented")
+        raise errors.MethodError("GET for single activity is not implemented")
 
     @gen.coroutine
     def query(self):
@@ -78,7 +79,7 @@ class ActivityHandler(handlers.BaseHandler):
             period = datetime.timedelta(days=7)
 
         if period.days > 31:
-            raise handlers.ModelError("Time period is too large")
+            raise errors.ModelError("Time period is too large")
 
         from_date = until_date - period
 
@@ -162,10 +163,10 @@ class ActivityHandler(handlers.BaseHandler):
     @tornado.web.authenticated
     def post(self, activity_id):
         if activity_id != '':
-            raise handlers.ModelError("Can't specify ID for new activity")
+            raise errors.ModelError("Can't specify ID for new activity")
 
         if len(self.request_son['message']) < 3:
-            raise handlers.ModelError("Message is too short")
+            raise errors.ModelError("Message is too short")
 
         with model.session_scope() as session:
             if self.request_son['to'] == 'org':
@@ -173,12 +174,12 @@ class ActivityHandler(handlers.BaseHandler):
                 ob = (session.query(model.Organisation)
                     .get(self.current_user.organisation_id))
                 if ob is None:
-                    raise handlers.ModelError('No such organisation')
+                    raise errors.ModelError('No such organisation')
             elif self.request_son['to'] == 'all':
                 self.check_privillege('admin')
                 ob = None
             else:
-                raise handlers.ModelError('Unrecognised recipient')
+                raise errors.ModelError('Unrecognised recipient')
 
             activity = model.Activity(
                 subject_id=self.current_user.id,
@@ -217,7 +218,7 @@ class ActivityHandler(handlers.BaseHandler):
             activity = (session.query(model.Activity)
                 .get(activity_id))
             if not activity:
-                raise handlers.MissingDocError("No such activity")
+                raise errors.MissingDocError("No such activity")
 
             self.check_modify(activity)
 
@@ -237,7 +238,7 @@ class ActivityHandler(handlers.BaseHandler):
             activity = (session.query(model.Activity)
                 .get(activity_id))
             if not activity:
-                raise handlers.MissingDocError("No such activity")
+                raise errors.MissingDocError("No such activity")
             self.check_delete(activity)
             session.delete(activity)
 
@@ -247,7 +248,7 @@ class ActivityHandler(handlers.BaseHandler):
 
     def check_create(self, activity):
         if activity.verbs != ['broadcast']:
-            raise handlers.AuthzError(
+            raise errors.AuthzError(
                 "You can't create a non-broadcast activity")
         self.check_modify(activity)
 
@@ -257,15 +258,15 @@ class ActivityHandler(handlers.BaseHandler):
         elif self.has_privillege('org_admin'):
             org = activity.subject.organisation
             if str(org.id) != str(self.current_user.organisation_id):
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't modify another organisation's activity")
         else:
-            raise handlers.AuthzError(
+            raise errors.AuthzError(
                 "You can't modify activities")
 
     def check_delete(self, activity):
         if activity.verbs != ['broadcast']:
-            raise handlers.AuthzError(
+            raise errors.AuthzError(
                 "You can't delete a non-broadcast activity")
         self.check_modify(activity)
 
@@ -283,10 +284,10 @@ class SubscriptionHandler(handlers.BaseHandler):
             subscription = (session.query(model.Subscription)
                 .get(subscription_id))
             if not subscription:
-                raise handlers.MissingDocError("No such subscription")
+                raise errors.MissingDocError("No such subscription")
 
             if subscription.user_id != self.current_user.id:
-                raise handlers.ModelError(
+                raise errors.ModelError(
                     "Can't view another user's subscriptions")
 
             to_son = ToSon(
@@ -306,7 +307,7 @@ class SubscriptionHandler(handlers.BaseHandler):
         with model.session_scope() as session:
             ob = self.get_ob(session, ob_type, object_ids)
             if not ob:
-                raise handlers.MissingDocError("No such object")
+                raise errors.MissingDocError("No such object")
 
             act = Activities(session)
             subs = act.subscriptions(self.current_user, ob)
@@ -345,14 +346,14 @@ class SubscriptionHandler(handlers.BaseHandler):
         log.error("%s", object_ids)
 
         if ob_type == '':
-            raise handlers.ModelError(
+            raise errors.ModelError(
                 "Object type required when creating a subscription")
 
         try:
             with model.session_scope() as session:
                 ob = self.get_ob(session, ob_type, object_ids)
                 if not ob:
-                    raise handlers.MissingDocError("No such object")
+                    raise errors.MissingDocError("No such object")
 
                 act = Activities(session)
                 subscription = act.subscribe(self.current_user, ob)
@@ -367,14 +368,14 @@ class SubscriptionHandler(handlers.BaseHandler):
                 subscription_id = str(subscription.id)
 
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
+            raise errors.ModelError.from_sa(e)
 
         self.get('', subscription_id)
 
     @tornado.web.authenticated
     def put(self, ob_type, subscription_id):
         if ob_type != '':
-            raise handlers.ModelError(
+            raise errors.ModelError(
                 "Can't provide object type when updating a subscription")
 
         with model.session_scope() as session:
@@ -382,10 +383,10 @@ class SubscriptionHandler(handlers.BaseHandler):
                 .get(subscription_id))
 
             if not subscription:
-                raise handlers.MissingDocError("No such subscription")
+                raise errors.MissingDocError("No such subscription")
 
             if subscription.user_id != self.current_user.id:
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't modify another user's subscriptions")
 
             subscription.subscribed = self.request_son.get('subscribed', False)
@@ -402,7 +403,7 @@ class SubscriptionHandler(handlers.BaseHandler):
     @tornado.web.authenticated
     def delete(self, ob_type, subscription_id):
         if ob_type != '':
-            raise handlers.ModelError(
+            raise errors.ModelError(
                 "Can't provide object type when deleting a subscription")
 
         with model.session_scope() as session:
@@ -413,7 +414,7 @@ class SubscriptionHandler(handlers.BaseHandler):
                 raise model.MissingDocError("No subscription for that object")
 
             if subscription.user_id != self.current_user.id:
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't modify another user's subscriptions")
 
             session.delete(subscription)
@@ -425,7 +426,7 @@ class SubscriptionHandler(handlers.BaseHandler):
             if max_ is None:
                 max_ = min_
             if len(ob_refs) < min_ or len(ob_refs) > max_:
-                raise handlers.ModelError(
+                raise errors.ModelError(
                     "Wrong number of IDs for %s" % ob_type)
 
         if ob_type == 'custom_query':
@@ -490,7 +491,7 @@ class SubscriptionHandler(handlers.BaseHandler):
                         model.Response.submission_id == ob_refs[1]))
 
         else:
-            raise handlers.ModelError("Can't subscribe to '%s' type" % ob_type)
+            raise errors.ModelError("Can't subscribe to '%s' type" % ob_type)
 
         return query.first()
 
@@ -500,10 +501,10 @@ class SubscriptionHandler(handlers.BaseHandler):
         elif str(user.id) == str(self.current_user.id):
             return
         elif not self.has_privillege('org_admin'):
-            raise handlers.AuthzError(
+            raise errors.AuthzError(
                 "You can't access another user's subscriptions.")
         elif str(user.organisation_id) != str(self.current_user.organisation_id):
-            raise handlers.AuthzError(
+            raise errors.AuthzError(
                 "You can't access another organisation's user's subscriptions.")
 
     def check_subscribe_authz(self, user, ob):
@@ -518,7 +519,7 @@ class SubscriptionHandler(handlers.BaseHandler):
             else:
                 survey = ob
             if not survey in user.organisation.purchased_surveys:
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't subscribe to a survey that you haven't"
                     " purchased.")
         elif ob.ob_type in {'submission', 'rnode', 'response'}:
@@ -527,14 +528,14 @@ class SubscriptionHandler(handlers.BaseHandler):
             else:
                 organisation_id = ob.organisation_id
             if organisation_id != user.organisation_id:
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't subscribe to another organisation's submission.")
 
     def update(self, subscription, son):
         '''
         Apply user-provided data to the saved model.
         '''
-        update = updater(subscription, error_factory=handlers.ModelError)
+        update = updater(subscription, error_factory=errors.ModelError)
         update('subscribed', son)
 
 

@@ -3,6 +3,7 @@ import string
 
 import xlsxwriter
 
+import errors
 import handlers
 import model
 
@@ -37,16 +38,16 @@ class Exporter:
         with model.session_scope() as session:
             program = session.query(model.Program).get(program_id)
             if program is None:
-                raise handlers.MissingDocError("No such program")
+                raise errors.MissingDocError("No such program")
             elif program.deleted:
-                raise handlers.MissingDocError("That program has been deleted")
+                raise errors.MissingDocError("That program has been deleted")
 
             survey = session.query(model.Survey).get((
                 survey_id, program_id))
             if survey is None:
-                raise handlers.MissingDocError("No such survey")
+                raise errors.MissingDocError("No such survey")
             elif survey.deleted:
-                raise handlers.MissingDocError("That survey has been deleted")
+                raise errors.MissingDocError("That survey has been deleted")
 
             prefix = ""
 
@@ -380,16 +381,16 @@ class Exporter:
                 .get((survey_id, program_id)))
 
             if not survey:
-                raise handlers.MissingDocError("No such survey")
+                raise errors.MissingDocError("No such survey")
 
             if not 'levels' in survey.structure:
-                raise handlers.InternalModelError("Survey is misconfigured")
+                raise errors.InternalModelError("Survey is misconfigured")
 
             if submission_id:
                 submission = (session.query(model.Submission)
                     .get(submission_id))
                 if submission.survey_id != survey.id:
-                    raise handlers.MissingDocError(
+                    raise errors.MissingDocError(
                         "That submission does not belong to that survey")
                 self.write_metadata(workbook, worksheet_metadata, submission)
             else:

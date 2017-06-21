@@ -20,6 +20,7 @@ from sqlalchemy.orm import joinedload
 
 from activity import Activities
 import aws
+import errors
 import handlers
 import model
 from utils import reorder, ToSon, truthy, updater
@@ -42,7 +43,7 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
         with model.session_scope() as session:
             custom_query = session.query(model.CustomQuery).get(query_id)
             if custom_query is None:
-                raise handlers.MissingDocError("No such query")
+                raise errors.MissingDocError("No such query")
 
             old_version = self.get_version(session, custom_query, version)
 
@@ -85,7 +86,7 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
         try:
             version = int(version)
         except ValueError:
-            raise handlers.ModelError("Invalid version number")
+            raise errors.ModelError("Invalid version number")
         if version == custom_query.version:
             return None
 
@@ -93,7 +94,7 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
             .get((custom_query.id, version)))
 
         if history is None:
-            raise handlers.MissingDocError("No such version")
+            raise errors.MissingDocError("No such version")
         return history
 
     def query(self):
@@ -145,7 +146,7 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
     def post(self, query_id):
         self._check_authz()
         if query_id:
-            raise handlers.MethodError("Can't use POST for existing query.")
+            raise errors.MethodError("Can't use POST for existing query.")
 
         with model.session_scope() as session:
             custom_query = model.CustomQuery()
@@ -168,12 +169,12 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
     def put(self, query_id):
         self._check_authz()
         if not query_id:
-            raise handlers.MethodError("Can't use PUT for new query.")
+            raise errors.MethodError("Can't use PUT for new query.")
 
         with model.session_scope(version=True) as session:
             custom_query = session.query(model.CustomQuery).get(query_id)
             if custom_query is None:
-                raise handlers.MissingDocError("No such query")
+                raise errors.MissingDocError("No such query")
 
             self.check_concurrent_write(custom_query)
             if not self.should_save_new_version(custom_query):
@@ -208,7 +209,7 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
         # Convert to int to avoid string conversion errors during
         # JSON marshalling.
         if int(modified) < int(custom_query.modified.timestamp()):
-            raise handlers.ModelError(
+            raise errors.ModelError(
                 "This query has changed since you loaded the"
                 " page. Please copy or remember your changes and"
                 " refresh the page.")
@@ -223,12 +224,12 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
     def delete(self, query_id):
         self._check_authz()
         if not query_id:
-            raise handlers.MethodError("Query ID required")
+            raise errors.MethodError("Query ID required")
 
         with model.session_scope(version=False) as session:
             custom_query = session.query(model.CustomQuery).get(query_id)
             if custom_query is None:
-                raise handlers.MissingDocError("No such query")
+                raise errors.MissingDocError("No such query")
 
             act = Activities(session)
             if not custom_query.deleted:
@@ -242,7 +243,7 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
         self.get(query_id)
 
     def update(self, custom_query, son):
-        update = updater(custom_query, error_factory=handlers.ModelError)
+        update = updater(custom_query, error_factory=errors.ModelError)
         update('title', son)
         update('text', son)
         update('description', son, sanitise=True)
@@ -258,7 +259,7 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
 
     def _check_authz(self):
         if not self.has_privillege('admin'):
-            raise handlers.AuthzError("You can't use custom queries")
+            raise errors.AuthzError("You can't use custom queries")
 
 
 class CustomQueryHistoryHandler(handlers.Paginate, handlers.BaseHandler):

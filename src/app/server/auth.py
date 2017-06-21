@@ -7,6 +7,7 @@ from tornado.escape import json_decode, json_encode, url_escape, url_unescape
 import tornado.options
 import tornado.web
 
+import errors
 import handlers
 import model
 
@@ -104,18 +105,18 @@ class AuthLoginHandler(handlers.TemplateHandler):
         superuser_id = self.get_secure_cookie('superuser')
 
         if superuser_id is None:
-            raise handlers.AuthzError("Not authorised: you are not a superuser")
+            raise errors.AuthzError("Not authorised: you are not a superuser")
         superuser_id = superuser_id.decode('utf8')
         with model.session_scope() as session:
             superuser = session.query(model.AppUser).get(superuser_id)
             if superuser is None or not model.has_privillege(
                     superuser.role, 'admin'):
-                raise handlers.MissingDocError(
+                raise errors.MissingDocError(
                     "Not authorised: you are not a superuser")
 
             user = session.query(model.AppUser).get(user_id)
             if user is None:
-                raise handlers.MissingDocError("No such user")
+                raise errors.MissingDocError("No such user")
 
             self._store_last_user(session);
 

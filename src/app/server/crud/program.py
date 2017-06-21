@@ -14,6 +14,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import make_transient
 
 from activity import Activities
+import errors
 import handlers
 import model
 from score import Calculator
@@ -34,7 +35,7 @@ class ProgramCentric:
     def program_id(self):
         program_id = self.get_argument("programId", "")
         if program_id == '':
-            raise handlers.MethodError("Program ID is required")
+            raise errors.MethodError("Program ID is required")
 
         return program_id
 
@@ -44,14 +45,14 @@ class ProgramCentric:
             with model.session_scope() as session:
                 program = session.query(model.Program).get(self.program_id)
                 if program is None:
-                    raise handlers.MissingDocError("No such program")
+                    raise errors.MissingDocError("No such program")
                 session.expunge(program)
             self._program = program
         return self._program
 
     def check_editable(self):
         if not self.program.is_editable:
-            raise handlers.MethodError("This program is closed for editing")
+            raise errors.MethodError("This program is closed for editing")
 
 
 class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
@@ -75,7 +76,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
             except (sqlalchemy.exc.StatementError,
                     sqlalchemy.orm.exc.NoResultFound,
                     ValueError):
-                raise handlers.MissingDocError("No such program")
+                raise errors.MissingDocError("No such program")
 
             to_son = ToSon(
                 r'/ob_type$',
@@ -148,7 +149,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
         Create a new program.
         '''
         if program_id != '':
-            raise handlers.MethodError("Can't use POST for existing program.")
+            raise errors.MethodError("Can't use POST for existing program.")
 
         duplicate_id = self.get_argument('duplicateId', '')
 
@@ -167,7 +168,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
                 source_program = (session.query(model.Program)
                     .get(duplicate_id))
                 if source_program is None:
-                    raise handlers.MissingDocError(
+                    raise errors.MissingDocError(
                         "Source program does not exist")
                 yield self.duplicate_structure(
                     source_program, program, session)
@@ -268,7 +269,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
         Delete an existing program.
         '''
         if program_id == '':
-            raise handlers.MethodError("Program ID required")
+            raise errors.MethodError("Program ID required")
 
         try:
             with model.session_scope() as session:
@@ -277,7 +278,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
                 if program is None:
                     raise ValueError("No such object")
                 if not program.is_editable:
-                    raise handlers.MethodError(
+                    raise errors.MethodError(
                         "This program is closed for editing")
 
                 act = Activities(session)
@@ -289,9 +290,9 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
 
                 program.deleted = True
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError("Program is in use")
+            raise errors.ModelError("Program is in use")
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such program")
+            raise errors.MissingDocError("No such program")
 
         self.finish()
 
@@ -301,7 +302,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
         Update an existing program.
         '''
         if program_id == '':
-            raise handlers.MethodError(
+            raise errors.MethodError(
                 "Can't use PUT for new program (no ID).")
 
         editable = self.get_argument('editable', '')
@@ -316,7 +317,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
                     raise ValueError("No such object")
 
                 if not program.is_editable:
-                    raise handlers.MethodError(
+                    raise errors.MethodError(
                         "This program is closed for editing")
 
                 calculator = Calculator.structural()
@@ -345,9 +346,9 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
                     act.subscribe(self.current_user, program)
                     self.reason("Subscribed to program")
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such program")
+            raise errors.MissingDocError("No such program")
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
+            raise errors.ModelError.from_sa(e)
         self.get(program_id)
 
     def _update_state(self, program_id, editable):
@@ -373,16 +374,16 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
                     act.subscribe(self.current_user, program)
                     self.reason("Subscribed to program")
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such program")
+            raise errors.MissingDocError("No such program")
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
+            raise errors.ModelError.from_sa(e)
         self.get(program_id)
 
     def _update(self, program, son):
         '''
         Apply program-provided data to the saved model.
         '''
-        update = updater(program, error_factory=handlers.ModelError)
+        update = updater(program, error_factory=errors.ModelError)
         update('title', son)
         update('description', son, sanitise=True)
         update('has_quality', son)
@@ -397,12 +398,12 @@ class ProgramTrackingHandler(handlers.BaseHandler):
         Get a list of programs that share the same lineage.
         '''
         if program_id == '':
-            raise handlers.MethodError("Program ID is required")
+            raise errors.MethodError("Program ID is required")
 
         with model.session_scope() as session:
             program = session.query(model.Program).get(program_id)
             if program is None:
-                raise handlers.MissingDocError("No such program")
+                raise errors.MissingDocError("No such program")
 
             query = (session.query(model.Program)
                 .filter(model.Program.tracking_id == program.tracking_id)

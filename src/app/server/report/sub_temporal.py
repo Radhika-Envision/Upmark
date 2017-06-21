@@ -15,6 +15,7 @@ from tornado.concurrent import run_on_executor
 import tornado.web
 import xlsxwriter
 
+import errors
 import handlers
 import model
 from utils import keydefaultdict
@@ -45,16 +46,16 @@ class TemporalReportHandler(handlers.BaseHandler):
             parameters['min_constituents'] = int(
                 parameters.get('min_constituents', MIN_CONSITUENTS))
         except ValueError:
-            raise handlers.ModelError("Invalid minimum number of constituents")
+            raise errors.ModelError("Invalid minimum number of constituents")
 
         if parameters['min_constituents'] < MIN_CONSITUENTS:
             if not self.has_privillege('consultant'):
-                raise handlers.ModelError(
+                raise errors.ModelError(
                     "You can't generate a report with so few consituents")
 
         if parameters.get('type') != 'summary':
             if not self.has_privillege('consultant'):
-                raise handlers.ModelError("You can't generate a detailed report")
+                raise errors.ModelError("You can't generate a detailed report")
 
         with tempfile.TemporaryDirectory() as tmpdir:
             outpath, outfile = yield self.process_temporal(
@@ -103,7 +104,7 @@ class TemporalReportHandler(handlers.BaseHandler):
             outpath = os.path.join(tmpdir, outfile)
             writer = XlWriter(outpath)
         else:
-            raise handlers.MissingDocError(
+            raise errors.MissingDocError(
                 "File type not supported: %s" % extension)
         writer.write(cols, rows)
 
@@ -153,7 +154,7 @@ class TemporalReportHandler(handlers.BaseHandler):
             else:
                 min_approval = approval_states.index('reviewed')
             if approval_index < min_approval:
-                raise handlers.ModelError(
+                raise errors.ModelError(
                     "You can't generate a report for that approval state")
             included_approval_states=approval_states[approval_index:]
             return query.filter(
@@ -413,17 +414,17 @@ class Interval:
         try:
             width = int(parameters.get('interval_num', 1))
         except ValueError:
-            raise handlers.ModelError("Invalid interval")
+            raise errors.ModelError("Invalid interval")
         units = parameters.get('interval_unit', 'months')
 
         if units == 'years':
             if width < 1:
-                raise handlers.ModelError("Interval must be at least one year")
+                raise errors.ModelError("Interval must be at least one year")
         elif units == 'months':
             if width not in {1, 2, 3, 6}:
-                raise handlers.ModelError("Interval must be 1, 2, 3 or 6 months")
+                raise errors.ModelError("Interval must be 1, 2, 3 or 6 months")
         else:
-            raise handlers.ModelError("Unrecognised interval %s" % units)
+            raise errors.ModelError("Unrecognised interval %s" % units)
         return cls(width, units)
 
     def temporal_bucket(self, date):

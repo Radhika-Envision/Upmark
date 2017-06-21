@@ -14,6 +14,7 @@ from sqlalchemy.orm.session import make_transient
 
 from activity import Activities
 import crud.program
+import errors
 import handlers
 import model
 import logging
@@ -48,7 +49,7 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
             except (sqlalchemy.exc.StatementError,
                     sqlalchemy.orm.exc.NoResultFound,
                     ValueError):
-                raise handlers.MissingDocError("No such submission")
+                raise errors.MissingDocError("No such submission")
 
             to_son = ToSon(
                 # Any
@@ -93,7 +94,7 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
             if organisation_id == '':
                 organisation_id = str(self.organisation.id)
             elif organisation_id != str(self.organisation.id):
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't view another organisation's submissions")
 
         with model.session_scope() as session:
@@ -155,19 +156,19 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
     def post(self, submission_id):
         '''Create new.'''
         if submission_id != '':
-            raise handlers.MethodError("Can't use POST for existing object")
+            raise errors.MethodError("Can't use POST for existing object")
 
         program_id = self.get_argument('programId', '')
         if program_id == '':
-            raise handlers.ModelError("Program ID is required")
+            raise errors.ModelError("Program ID is required")
 
         survey_id = self.get_argument('surveyId', '')
         if survey_id == '':
-            raise handlers.ModelError("Survey ID is required")
+            raise errors.ModelError("Survey ID is required")
 
         organisation_id = self.get_argument('organisationId', '')
         if organisation_id == '':
-            raise handlers.ModelError("Organisation ID is required")
+            raise errors.ModelError("Organisation ID is required")
 
         # Source submission ID
         duplicate_id = self.get_argument('duplicateId', '')
@@ -205,18 +206,18 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
                     self.reason("Subscribed to organisation")
 
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
+            raise errors.ModelError.from_sa(e)
         self.get(submission_id)
 
     def _check_open(self, program_id, survey_id, organisation_id, session):
         survey = (session.query(model.Survey)
             .get((survey_id, program_id)))
         if not survey:
-            raise handlers.ModelError("No such survey")
+            raise errors.ModelError("No such survey")
         if survey.deleted:
-            raise handlers.ModelError("That survey has been deleted")
+            raise errors.ModelError("That survey has been deleted")
         if survey.program.deleted:
-            raise handlers.ModelError("That program has been deleted")
+            raise errors.ModelError("That program has been deleted")
 
         purchased_survey = (session.query(model.PurchasedSurvey)
             .filter_by(program_id=program_id,
@@ -224,17 +225,17 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
                        organisation_id=organisation_id)
             .first())
         if not purchased_survey:
-            raise handlers.ModelError(
+            raise errors.ModelError(
                 "Survey is not open: it needs to be purchased")
 
     def duplicate(self, submission, duplicate_id, session):
         s_submission = session.query(model.Submission).get(duplicate_id)
         if s_submission is None:
-            raise handlers.MissingDocError(
+            raise errors.MissingDocError(
                 "Source submission (for duplication) not found")
 
         if str(s_submission.organisation_id) != str(submission.organisation_id):
-            raise handlers.ModelError(
+            raise errors.ModelError(
                 "Can't duplicate a submission across two organisations: "
                 "'%s' and '%s'" % (
                     s_submission.organisation.name,
@@ -346,7 +347,7 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
     def put(self, submission_id):
         '''Update existing.'''
         if submission_id == '':
-            raise handlers.MethodError("Submission ID required")
+            raise errors.MethodError("Submission ID required")
 
         approval = self.get_argument('approval', '')
 
@@ -355,7 +356,7 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
                 submission = session.query(model.Submission)\
                     .get(submission_id)
                 if submission is None:
-                    raise handlers.ModelError("No such submission")
+                    raise errors.ModelError("No such submission")
                 self._check_modify(submission)
 
                 verbs = []
@@ -379,20 +380,20 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
                     self.reason("Subscribed to organisation")
 
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
+            raise errors.ModelError.from_sa(e)
         self.get(submission_id)
 
     @tornado.web.authenticated
     def delete(self, submission_id):
         if submission_id == '':
-            raise handlers.MethodError("Submission ID required")
+            raise errors.MethodError("Submission ID required")
 
         try:
             with model.session_scope() as session:
                 submission = session.query(model.Submission)\
                     .get(submission_id)
                 if submission is None:
-                    raise handlers.ModelError("No such submission")
+                    raise errors.ModelError("No such submission")
                 self._check_delete(submission)
 
                 act = Activities(session)
@@ -404,9 +405,9 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
 
                 submission.deleted = True
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError("This submission is in use")
+            raise errors.ModelError("This submission is in use")
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such submission")
+            raise errors.MissingDocError("No such submission")
 
         self.finish()
 
@@ -436,7 +437,7 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
                 .count())
 
         if n_relevant_responses < n_measures:
-            raise handlers.ModelError(
+            raise errors.ModelError(
                 "%d of %d responses are incomplete" %
                 (n_measures - n_relevant_responses, n_measures))
 
@@ -447,26 +448,26 @@ class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
     def _set_approval(self, submission, approval):
         if self.current_user.role == 'org_admin':
             if approval not in {'draft', 'final'}:
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't mark this submission as %s." % approval)
         elif self.current_user.role == 'consultant':
             if approval not in {'draft', 'final', 'reviewed'}:
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't mark this submission as %s." % approval)
         elif self.has_privillege('authority'):
             pass
         else:
-            raise handlers.AuthzError(
+            raise errors.AuthzError(
                 "You can't mark this submission as %s." % approval)
         submission.approval = approval
 
     def _update(self, submission, son):
-        update = updater(submission, error_factory=handlers.ModelError)
+        update = updater(submission, error_factory=errors.ModelError)
         update('title', son)
 
         if son["created"]:
             try:
                 created = datetime.datetime.fromtimestamp(son['created'])
             except TypeError as e:
-                raise handlers.ModelError("Invalid date")
+                raise errors.ModelError("Invalid date")
             update('created', {"created": created})

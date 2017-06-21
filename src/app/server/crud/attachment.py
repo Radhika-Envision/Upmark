@@ -19,6 +19,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 import aws
+import errors
 import handlers
 import model
 from utils import ToSon
@@ -39,7 +40,7 @@ class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
                     .get(attachment_id)
 
                 if attachment is None:
-                    raise handlers.MissingDocError("No such attachment")
+                    raise errors.MissingDocError("No such attachment")
 
                 self._check_authz(attachment)
 
@@ -58,7 +59,7 @@ class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
             except (sqlalchemy.exc.StatementError,
                     sqlalchemy.orm.exc.NoResultFound,
                     ValueError):
-                raise handlers.MissingDocError("No such attachment")
+                raise errors.MissingDocError("No such attachment")
 
         self.set_header('Content-Type', 'application/octet-stream')
         self.set_header('Content-Disposition', 'attachment')
@@ -72,7 +73,7 @@ class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
                 .get(attachment_id)
 
             if attachment is None:
-                raise handlers.MissingDocError("No such attachment")
+                raise errors.MissingDocError("No such attachment")
 
             self._check_authz(attachment)
 
@@ -83,7 +84,7 @@ class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
     def _check_authz(self, attachment):
         if not self.has_privillege('consultant'):
             if attachment.organisation.id != self.organisation.id:
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't modify another organisation's response")
 
 
@@ -99,7 +100,7 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
                 .get((submission_id, measure_id)))
 
             if response is None:
-                raise handlers.MissingDocError("No such response")
+                raise errors.MissingDocError("No such response")
 
             self._check_authz(response.submission)
 
@@ -109,7 +110,7 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
                 if url == '' and file_name == '':
                     continue
                 if url == '':
-                    raise handlers.ModelError(
+                    raise errors.ModelError(
                         "URL required for link '%s'" % file_name)
                 attachment = model.Attachment(
                     organisation=response.submission.organisation,
@@ -132,7 +133,7 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
                 .get((submission_id, measure_id)))
 
             if response is None:
-                raise handlers.MissingDocError("No such response")
+                raise errors.MissingDocError("No such response")
 
             self._check_authz(response.submission)
 
@@ -157,7 +158,7 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
                         Metadata={'filename': file_name_enc},
                         Body=bytes(fileinfo['body']))
                 except botocore.exceptions.ClientError as e:
-                    raise handlers.InternalModelError(
+                    raise errors.InternalModelError(
                         "Failed to write to data store", log_message=str(e))
 
             attachment = model.Attachment(
@@ -193,7 +194,7 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
                 .get((submission_id, measure_id)))
 
             if response is None:
-                raise handlers.MissingDocError("No such response")
+                raise errors.MissingDocError("No such response")
 
             self._check_authz(response.submission)
 
@@ -225,5 +226,5 @@ class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
     def _check_authz(self, submission):
         if not self.has_privillege('consultant'):
             if submission.organisation.id != self.organisation.id:
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't modify another organisation's response")

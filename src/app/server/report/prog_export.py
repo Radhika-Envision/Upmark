@@ -6,6 +6,7 @@ from tornado import gen
 import tornado.web
 from tornado.concurrent import run_on_executor
 
+import errors
 from .export import Exporter
 import handlers
 import model
@@ -22,10 +23,10 @@ class ExportProgramHandler(handlers.BaseHandler):
     @gen.coroutine
     def get(self, program_id, survey_id, fmt, extension):
         if extension != 'xlsx':
-            raise handlers.MissingDocError(
+            raise errors.MissingDocError(
                 "File type not supported: %s" % extension)
         if fmt not in {'tabular', 'nested'}:
-            raise handlers.MissingDocError(
+            raise errors.MissingDocError(
                 "Unrecognised format: %s" % fmt)
 
         with model.session_scope() as session:
@@ -34,7 +35,7 @@ class ExportProgramHandler(handlers.BaseHandler):
             survey = (session.query(model.Survey)
                          .get((survey_id, program_id)))
             if program_id != str(survey.program_id):
-                raise handlers.ModelError(
+                raise errors.ModelError(
                     "Survey does not belong to specified program.")
 
         output_file = 'program_{0}_survey_{1}_{2}.xlsx'.format(

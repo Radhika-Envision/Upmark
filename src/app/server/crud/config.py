@@ -10,6 +10,7 @@ from scour import scour
 import sqlalchemy
 
 import config
+import errors
 import handlers
 import model
 import image
@@ -69,9 +70,9 @@ class SystemConfigItemHandler(handlers.BaseHandler):
         name = to_snake_case(name)
         schema = config.SCHEMA.get(name)
         if not schema or config.is_private(name, schema):
-            raise handlers.MissingDocError("No such setting")
+            raise errors.MissingDocError("No such setting")
         if config.is_primitive(schema):
-            raise handlers.MissingDocError(
+            raise errors.MissingDocError(
                 "This service can only be used to get blob data, not text or "
                 "numerical values.")
 
@@ -95,9 +96,9 @@ class SystemConfigItemHandler(handlers.BaseHandler):
         name = to_snake_case(name)
         schema = config.SCHEMA.get(name)
         if not schema or config.is_private(name, schema):
-            raise handlers.MissingDocError("No such setting")
+            raise errors.MissingDocError("No such setting")
         if config.is_primitive(schema):
-            raise handlers.MissingDocError(
+            raise errors.MissingDocError(
                 "This service can only be used to set blob data, not text or "
                 "numerical values.")
 
@@ -117,7 +118,7 @@ class SystemConfigItemHandler(handlers.BaseHandler):
         name = to_snake_case(name)
         schema = config.SCHEMA.get(name)
         if not schema or config.is_private(name, schema):
-            raise handlers.MissingDocError("No such setting")
+            raise errors.MissingDocError("No such setting")
         with model.session_scope() as session:
             config.reset_setting(session, name)
 

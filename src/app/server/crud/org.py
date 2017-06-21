@@ -12,6 +12,7 @@ from sqlalchemy.orm import joinedload
 
 from activity import Activities
 import crud.program
+import errors
 import handlers
 import model
 import logging
@@ -32,7 +33,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                 if org is None:
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError, ValueError):
-                raise handlers.MissingDocError("No such organisation")
+                raise errors.MissingDocError("No such organisation")
 
             to_son = ToSon(
                 r'/id$',
@@ -92,7 +93,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
         Create a new organisation.
         '''
         if organisation_id != '':
-            raise handlers.MethodError(
+            raise errors.MethodError(
                 "Can't use POST for existing organisation.")
 
         try:
@@ -112,7 +113,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
 
                 organisation_id = str(org.id)
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
+            raise errors.ModelError.from_sa(e)
         self.get(organisation_id)
 
     @handlers.authz('admin', 'org_admin')
@@ -121,12 +122,12 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
         Update an existing organisation.
         '''
         if organisation_id == '':
-            raise handlers.MethodError(
+            raise errors.MethodError(
                 "Can't use PUT for new organisations (no ID).")
 
         if self.current_user.role == 'org_admin' \
                 and str(self.organisation.id) != organisation_id:
-            raise handlers.AuthzError(
+            raise errors.AuthzError(
                 "You can't modify another organisation's information.")
 
         try:
@@ -154,23 +155,23 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                     self.reason("Subscribed to organisation")
 
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
+            raise errors.ModelError.from_sa(e)
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such organisation")
+            raise errors.MissingDocError("No such organisation")
         self.get(organisation_id)
 
     @handlers.authz('admin')
     def delete(self, organisation_id):
         if organisation_id == '':
-            raise handlers.MethodError("Organisation ID required")
+            raise errors.MethodError("Organisation ID required")
         try:
             with model.session_scope() as session:
                 org = session.query(model.Organisation).get(organisation_id)
                 if org is None:
-                    raise handlers.MissingDocError("No such organisation")
+                    raise errors.MissingDocError("No such organisation")
 
                 if org.id == self.organisation.id:
-                    raise handlers.ModelError(
+                    raise errors.ModelError(
                         "You can't delete your own organisation")
 
                 act = Activities(session)
@@ -183,7 +184,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
                 org.deleted = True
 
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such organisation")
+            raise errors.MissingDocError("No such organisation")
 
         self.finish()
 
@@ -191,7 +192,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
         '''
         Apply user-provided data to the saved model.
         '''
-        update = updater(org, error_factory=handlers.ModelError)
+        update = updater(org, error_factory=errors.ModelError)
         update('name', son)
         update('url', son)
         self._save_locations(org, son.get('locations', []))
@@ -247,7 +248,7 @@ class PurchasedSurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
                            organisation_id=organisation_id)
                 .first())
             if not purchased_survey:
-                raise handlers.MissingDocError(
+                raise errors.MissingDocError(
                     "This survey has not been purchased yet")
 
         self.finish()
@@ -257,7 +258,7 @@ class PurchasedSurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
         if not survey_id:
             self.query(organisation_id)
 
-        raise handlers.ModelError("Not implemented")
+        raise errors.ModelError("Not implemented")
 
     def query(self, organisation_id):
         self._check_user(organisation_id)
@@ -302,11 +303,11 @@ class PurchasedSurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
         with model.session_scope() as session:
             org = session.query(model.Organisation).get(organisation_id)
             if not org:
-                raise handlers.MissingDocError('No such organisation')
+                raise errors.MissingDocError('No such organisation')
             survey = (session.query(model.Survey)
                 .get((survey_id, self.program_id)))
             if not survey:
-                raise handlers.MissingDocError('No such survey')
+                raise errors.MissingDocError('No such survey')
 
             purchased_survey = (session.query(model.PurchasedSurvey)
                 .get((self.program_id, survey_id, org.id)))
@@ -319,18 +320,18 @@ class PurchasedSurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
         with model.session_scope() as session:
             org = session.query(model.Organisation).get(organisation_id)
             if not org:
-                raise handlers.MissingDocError('No such organisation')
+                raise errors.MissingDocError('No such organisation')
             survey = (session.query(model.Survey)
                 .get((survey_id, self.program_id)))
             if not survey:
-                raise handlers.MissingDocError('No such survey')
+                raise errors.MissingDocError('No such survey')
 
             org.programs.remove(survey)
 
     def _check_user(self, organisation_id):
         if organisation_id != str(self.current_user.organisation_id):
             if not self.has_privillege('consultant'):
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't access another organisation's surveys")
 
 

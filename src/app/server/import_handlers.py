@@ -17,6 +17,7 @@ from tornado.concurrent import run_on_executor
 from concurrent.futures import ThreadPoolExecutor
 
 import app
+import errors
 import handlers
 import model
 import response_type
@@ -411,15 +412,15 @@ class Importer():
                     response.audit_reason = "Import"
                     session.add(response)
             except sqlalchemy.orm.exc.NoResultFound:
-                raise handlers.ModelError(
+                raise errors.ModelError(
                     "Survey structure does not match: Row %d: %s %s" %
                     (row_num + 2, order, title))
             except ImportError as e:
-                raise handlers.ModelError(
+                raise errors.ModelError(
                     "Row %d: %s %s: %s" %
                     (row_num + 2, order, title, str(e)))
             except Exception as e:
-                raise handlers.InternalModelError(
+                raise errors.InternalModelError(
                     "Row %d: %s %s: %s" %
                     (row_num + 2, order, title, str(e)))
 
