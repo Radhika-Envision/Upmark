@@ -5,7 +5,7 @@ from pathlib import Path
 from expiringdict import ExpiringDict
 import yaml
 
-import color
+import theme
 import model
 from utils import get_package_dir
 
@@ -143,7 +143,7 @@ def set_setting(session, name, value):
                 "Setting %s must be at most %s" % (name, maximum))
 
     elif schema['type'] == 'color':
-        if not color.Color.COLOR_PATTERN.match(value):
+        if not theme.Color.COLOR_PATTERN.match(value):
             raise ValueError("Setting %s must be a color hex triplet")
 
     if is_primitive(schema):

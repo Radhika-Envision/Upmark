@@ -11,6 +11,7 @@ import tornado.web
 import errors
 import handlers
 import model
+import theme
 
 
 log = logging.getLogger('app.auth')
@@ -36,7 +37,7 @@ class AuthLoginHandler(handlers.TemplateHandler):
 
         with model.session_scope() as session:
             params = handlers.TemplateParams(session)
-            theme = handlers.ThemeParams(session)
+            theme_params = theme.ThemeParams(session)
             self.render(
                 "../client/login.html", params=params, theme=theme, next=next,
                 error=errormessage)

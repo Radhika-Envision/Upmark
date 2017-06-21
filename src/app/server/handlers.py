@@ -13,7 +13,7 @@ import tornado.options
 import tornado.web
 
 import cache_bust
-import color
+import theme
 import config
 import errors
 import image
@@ -265,36 +265,6 @@ class TemplateParams:
         return resources
 
 
-class ThemeParams:
-    def __init__(self, session):
-        self.session = session
-
-    @property
-    def nav_bg(self):
-        return color.Color.parse(config.get_setting(self.session, 'theme_nav_bg'))
-
-    @property
-    def header_bg(self):
-        return color.Color.parse(config.get_setting(self.session, 'theme_header_bg'))
-
-    @property
-    def sub_header_bg(self):
-        return color.Color.parse(config.get_setting(self.session, 'theme_sub_header_bg'))
-
-    @property
-    def app_name_long(self):
-        return config.get_setting(self.session, 'app_name_long')
-
-    @property
-    def app_name_short(self):
-        return config.get_setting(self.session, 'app_name_short')
-
-    def clean_svg(self, name):
-        image.check_display(name)
-        data = config.get_setting(self.session, name)
-        return image.clean_svg(data).encode('utf-8')
-
-
 class TemplateHandler(BaseHandler):
     '''
     Renders content from templates (e.g. index.html).
@@ -311,9 +281,9 @@ class TemplateHandler(BaseHandler):
 
         with model.session_scope() as session:
             params = TemplateParams(session)
-            theme = ThemeParams(session)
+            theme_params = theme.ThemeParams(session)
             self.render(
-                template, params=params, theme=theme,
+                template, params=params, theme=theme_params,
                 user=self.current_user, organisation=self.organisation)
 
 
@@ -329,8 +299,8 @@ class UnauthenticatedTemplateHandler(BaseHandler):
 
         with model.session_scope() as session:
             params = TemplateParams(session)
-            theme = ThemeParams(session)
-            self.render(template, params=params, theme=theme)
+            theme_params = theme.ThemeParams(session)
+            self.render(template, params=params, theme=theme_params)
 
 
 class RedirectHandler(BaseHandler):

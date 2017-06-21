@@ -1,6 +1,38 @@
 import re
 
+import config
+import image
 import math_utils
+
+
+class ThemeParams:
+    def __init__(self, session):
+        self.session = session
+
+    @property
+    def nav_bg(self):
+        return Color.parse(config.get_setting(self.session, 'theme_nav_bg'))
+
+    @property
+    def header_bg(self):
+        return Color.parse(config.get_setting(self.session, 'theme_header_bg'))
+
+    @property
+    def sub_header_bg(self):
+        return Color.parse(config.get_setting(self.session, 'theme_sub_header_bg'))
+
+    @property
+    def app_name_long(self):
+        return config.get_setting(self.session, 'app_name_long')
+
+    @property
+    def app_name_short(self):
+        return config.get_setting(self.session, 'app_name_short')
+
+    def clean_svg(self, name):
+        image.check_display(name)
+        data = config.get_setting(self.session, name)
+        return image.clean_svg(data).encode('utf-8')
 
 
 class Color:
