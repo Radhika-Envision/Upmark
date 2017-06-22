@@ -446,7 +446,7 @@ class Exporter:
                     # parent rnodes
                     parent = qnode_measure.qnode
                     while parent and (importance is None or urgency is None):
-                        rnode = ResponseNode.from_qnode(parent, submission)
+                        rnode = model.ResponseNode.from_qnode(parent, submission)
                         if rnode is not None:
                             if importance is None:
                                 importance = rnode.importance
