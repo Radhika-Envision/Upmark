@@ -14,6 +14,10 @@ angular.module('upmark.survey.measure', [
     $scope.parent = routeData.parent;
     $scope.submission = routeData.submission;
     $scope.Response = Response;
+    $scope.model = {
+        response: null,
+        lastSavedResponse: null,
+    };
 
     if (routeData.measure) {
         // Editing old
@@ -71,7 +75,7 @@ angular.module('upmark.survey.measure', [
         $scope.setResponse = function(response) {
             if (!response.responseParts)
                 response.responseParts = [];
-            $scope.response = response;
+            $scope.model.response = response;
             $scope.lastSavedResponse = angular.copy(response);
         };
 
@@ -106,7 +110,7 @@ angular.module('upmark.survey.measure', [
 
         var interceptingLocation = false;
         $scope.$on('$locationChangeStart', function(event, next, current) {
-            if (!$scope.response.$dirty || interceptingLocation)
+            if (!$scope.model.response.$dirty || interceptingLocation)
                 return;
             event.preventDefault();
             interceptingLocation = true;
@@ -132,7 +136,7 @@ angular.module('upmark.survey.measure', [
         });
 
         $scope.saveResponse = function() {
-            return $scope.response.$save().then(
+            return $scope.model.response.$save().then(
                 function success(response) {
                     $scope.$broadcast('response-saved');
                     Notifications.set('edit', 'success', "Saved", 5000);
@@ -146,12 +150,12 @@ angular.module('upmark.survey.measure', [
                 });
         };
         $scope.resetResponse = function() {
-            $scope.response = angular.copy($scope.lastSavedResponse);
+            $scope.model.response = angular.copy($scope.lastSavedResponse);
         };
         $scope.toggleNotRelvant = function() {
-            var oldValue = $scope.response.notRelevant;
-            $scope.response.notRelevant = !oldValue;
-            $scope.response.$save().then(
+            var oldValue = $scope.model.response.notRelevant;
+            $scope.model.response.notRelevant = !oldValue;
+            $scope.model.response.$save().then(
                 function success(response) {
                     Notifications.set('edit', 'success', "Saved", 5000);
                     $scope.setResponse(response);
@@ -160,19 +164,19 @@ angular.module('upmark.survey.measure', [
                     if (details.status == 403) {
                         Notifications.set('edit', 'info',
                             "Not saved yet: " + details.statusText);
-                        if (!$scope.response) {
+                        if (!$scope.model.response) {
                             $scope.setResponse(nullResponse(
                                 $scope.measure, $scope.submission));
                         }
                     } else {
-                        $scope.response.notRelevant = oldValue;
+                        $scope.model.response.notRelevant = oldValue;
                         Notifications.set('edit', 'error',
                             "Could not save: " + details.statusText);
                     }
                 });
         };
         $scope.setState = function(state) {
-            $scope.response.$save({approval: state},
+            $scope.model.response.$save({approval: state},
                 function success(response) {
                     Notifications.set('edit', 'success', "Saved", 5000);
                     $scope.setResponse(response);
@@ -184,8 +188,8 @@ angular.module('upmark.survey.measure', [
             );
         };
         $scope.$watch('response', function() {
-            $scope.response.$dirty = !angular.equals(
-                $scope.response, $scope.lastSavedResponse);
+            $scope.model.response.$dirty = !angular.equals(
+                $scope.model.response, $scope.lastSavedResponse);
         }, true);
     }
 
