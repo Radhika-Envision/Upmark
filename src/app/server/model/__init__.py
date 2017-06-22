@@ -7,6 +7,7 @@ from .analysis import *
 from .base import *
 from .config import *
 from .connection import *
+from .project import *
 from .submission import *
 from .survey import *
 from .user import *
