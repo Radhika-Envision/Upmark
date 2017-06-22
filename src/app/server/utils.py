@@ -267,11 +267,11 @@ class updater:
             insp = sqlalchemy.inspect(self.model)
             if insp.persistent:
                 # For persistent objects, column.default is not used.
-                raise self.error_factory("Missing value for %s" % name)
+                raise self.error_factory("'%s' is empty" % name)
             elif column.default is None:
                 # Non-persistent objects are new; column.default will be used
                 # when the session is flushed.
-                raise self.error_factory("Missing value for %s" % name)
+                raise self.error_factory("'%s' is empty" % name)
 
 
 def reorder(collection, son, id_attr='id'):

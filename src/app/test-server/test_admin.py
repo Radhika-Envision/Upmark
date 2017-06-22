@@ -215,10 +215,10 @@ class UserAuthzTest(base.AqHttpTestBase):
     def test_missing_field(self):
         self.create_user(
             '', 'fail', 'admin', 'utility', 'clerk', 403,
-            "Missing value for email", {'email': None})
+            "'email' is empty", {'email': None})
         self.create_user(
             '', 'fail', 'admin', 'utility', 'clerk', 403,
-            "Missing value for name", {'name': None})
+            "'name' is empty", {'name': None})
 
     def test_create_user(self):
         users_own = [
