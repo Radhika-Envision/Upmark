@@ -115,7 +115,7 @@ angular.module('upmark.surveyQuestions', [
             },
             function failure(details) {
                 Notifications.set('edit', 'error',
-                    "Could not save object: " + details.statusText);
+                    "Could not save: " + details.statusText);
             }
         );
     };
@@ -990,7 +990,7 @@ angular.module('upmark.surveyQuestions', [
                 function failure(details) {
                     angular.copy($scope.rnodeDup, $scope.rnode)
                     Notifications.set('edit', 'error',
-                        "Could not save submission category: " + details.statusText);
+                        "Could not save: " + details.statusText);
                 });
         };
         $scope.$watch('stats.importance', function(v, vOld) {
@@ -1063,7 +1063,7 @@ angular.module('upmark.surveyQuestions', [
                 function failure(details) {
                     angular.copy($scope.rnodeDup, $scope.rnode)
                     Notifications.set('edit', 'error',
-                        "Could not save submission category: " + details.statusText);
+                        "Could not save: " + details.statusText);
                 }
             );
         };
@@ -2011,7 +2011,7 @@ angular.module('upmark.surveyQuestions', [
             },
             function failure(details) {
                 Notifications.set('edit', 'error',
-                    "Could not save object: " + details.statusText);
+                    "Could not save: " + details.statusText);
             }
         );
     };
@@ -2074,7 +2074,7 @@ angular.module('upmark.surveyQuestions', [
             },
             function failure(details) {
                 Notifications.set('edit', 'error',
-                    "Could not save object: " + details.statusText);
+                    "Could not save: " + details.statusText);
             }
         );
     };

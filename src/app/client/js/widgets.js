@@ -554,11 +554,11 @@ angular.module('vpac.widgets', [])
         var failure = function(details) {
             var normalError = function() {
                 Notifications.set('edit', 'error',
-                    "Could not save object: " + details.statusText);
+                    "Could not save: " + details.statusText);
             };
             var loginError = function() {
                 Notifications.set('edit', 'error',
-                    "Could not save object: your session has expired.");
+                    "Could not save: your session has expired.");
             };
             try {
                 that.scope.$emit('EditError');

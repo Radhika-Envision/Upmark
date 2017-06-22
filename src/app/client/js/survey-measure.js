@@ -141,7 +141,7 @@ angular.module('upmark.survey.measure', [
                 },
                 function failure(details) {
                     Notifications.set('edit', 'error',
-                        "Could not save response: " + details.statusText);
+                        "Could not save: " + details.statusText);
                     return $q.reject(details);
                 });
         };
@@ -167,7 +167,7 @@ angular.module('upmark.survey.measure', [
                     } else {
                         $scope.response.notRelevant = oldValue;
                         Notifications.set('edit', 'error',
-                            "Could not save response: " + details.statusText);
+                            "Could not save: " + details.statusText);
                     }
                 });
         };
@@ -179,7 +179,7 @@ angular.module('upmark.survey.measure', [
                 },
                 function failure(details) {
                     Notifications.set('edit', 'error',
-                        "Could not save response: " + details.statusText);
+                        "Could not save: " + details.statusText);
                 }
             );
         };
@@ -301,7 +301,7 @@ angular.module('upmark.survey.measure', [
             return;
         if (!$scope.rt.definition) {
             Notifications.set('edit', 'error',
-                "Could not save response type: No repsonse type");
+                "Could not save: No repsonse type");
             return;
         }
         $scope.rt.definition.$createOrSave().then(
@@ -317,7 +317,7 @@ angular.module('upmark.survey.measure', [
             },
             function failure(details) {
                 Notifications.set('edit', 'error',
-                    "Could not save response type: " + details.statusText);
+                    "Could not save: " + details.statusText);
             }
         );
     };

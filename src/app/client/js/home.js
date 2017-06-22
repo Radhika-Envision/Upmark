@@ -298,7 +298,7 @@ angular.module('upmark.home', ['ngResource', 'upmark.admin'])
             },
             function failure(details) {
                 Notifications.set('activity', 'error',
-                    "Could not save activity: " + details.statusText);
+                    "Could not save: " + details.statusText);
                 return $q.reject(details);
             }
         );
