@@ -16,7 +16,7 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-import guid
+import old_deps.guid as guid
 
 
 def upgrade():

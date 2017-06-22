@@ -3,16 +3,14 @@ __all__ = ['Activity', 'Subscription']
 from datetime import datetime
 import logging
 import time
-import uuid
 
 from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Index, Text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import CheckConstraint, Index, UniqueConstraint
 
-from guid import GUID
-
 from .base import Base
+from .guid import GUID
 from .user import AppUser
 
 
@@ -22,7 +20,7 @@ class Activity(Base):
     that can be filtered based on users' subscriptions.
     '''
     __tablename__ = 'activity'
-    id = Column(GUID, default=uuid.uuid4, nullable=False, primary_key=True)
+    id = Column(GUID, default=GUID.gen, nullable=False, primary_key=True)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
     # Subject is the user performing the action. The object may also be a user.
     subject_id = Column(GUID, ForeignKey("appuser.id"), nullable=False)
@@ -94,7 +92,7 @@ class Activity(Base):
 class Subscription(Base):
     '''Subscribes a user to events related to some object'''
     __tablename__ = 'subscription'
-    id = Column(GUID, default=uuid.uuid4, nullable=False, primary_key=True)
+    id = Column(GUID, default=GUID.gen, nullable=False, primary_key=True)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
     user_id = Column(GUID, ForeignKey("appuser.id"), nullable=False)
     subscribed = Column(Boolean, nullable=False)
