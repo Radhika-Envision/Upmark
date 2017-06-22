@@ -12,10 +12,10 @@ from sqlalchemy.orm import joinedload
 
 from activity import Activities
 import auth
+import base_handler
 from cache import instance_method_lru_cache
 import crud
 import errors
-import handlers
 import logging
 import model
 from response_type import ResponseType
@@ -27,8 +27,8 @@ log = logging.getLogger('app.crud.measure')
 
 
 class MeasureHandler(
-        handlers.Paginate,
-        crud.program.ProgramCentric, handlers.BaseHandler):
+        base_handler.Paginate,
+        crud.program.ProgramCentric, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, measure_id):

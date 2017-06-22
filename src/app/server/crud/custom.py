@@ -21,8 +21,8 @@ from sqlalchemy.orm import joinedload
 from activity import Activities
 import auth
 import aws
+import base_handler
 import errors
-import handlers
 import model
 from utils import reorder, ToSon, truthy, updater
 
@@ -30,7 +30,7 @@ from utils import reorder, ToSon, truthy, updater
 log = logging.getLogger('app.crud.custom')
 
 
-class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
+class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
     @tornado.web.authenticated
     def get(self, query_id):
         if not query_id:
@@ -263,7 +263,7 @@ class CustomQueryHandler(handlers.Paginate, handlers.BaseHandler):
             raise errors.AuthzError("You can't use custom queries")
 
 
-class CustomQueryHistoryHandler(handlers.Paginate, handlers.BaseHandler):
+class CustomQueryHistoryHandler(base_handler.Paginate, base_handler.BaseHandler):
     @tornado.web.authenticated
     def get(self, custom_query_id):
         '''Get a list of versions of a response.'''

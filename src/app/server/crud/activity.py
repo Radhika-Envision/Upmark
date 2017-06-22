@@ -11,8 +11,8 @@ import sqlalchemy
 from sqlalchemy.orm import defer, noload, joinedload
 
 from activity import Activities
+import base_handler
 import errors
-import handlers
 import model
 from utils import ToSon, truthy, updater
 
@@ -36,7 +36,7 @@ def perf():
     return perf_time
 
 
-class ActivityHandler(handlers.BaseHandler):
+class ActivityHandler(base_handler.BaseHandler):
 
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
@@ -271,7 +271,7 @@ class ActivityHandler(handlers.BaseHandler):
         self.check_modify(activity)
 
 
-class SubscriptionHandler(handlers.BaseHandler):
+class SubscriptionHandler(base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, ob_type, ids):
@@ -539,7 +539,7 @@ class SubscriptionHandler(handlers.BaseHandler):
         update('subscribed', son)
 
 
-class CardHandler(handlers.BaseHandler):
+class CardHandler(base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self):

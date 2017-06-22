@@ -12,9 +12,9 @@ from sqlalchemy.sql.expression import literal
 
 from activity import Activities
 import auth
+import base_handler
 import crud
 import errors
-import handlers
 import model
 from score import Calculator
 from utils import reorder, ToSon, truthy, updater
@@ -24,7 +24,7 @@ log = logging.getLogger('app.crud.qnode')
 
 
 class QuestionNodeHandler(
-        handlers.Paginate, crud.program.ProgramCentric, handlers.BaseHandler):
+        base_handler.Paginate, crud.program.ProgramCentric, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, qnode_id):

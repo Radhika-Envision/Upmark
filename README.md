@@ -74,7 +74,7 @@ edit the file you want to debug and import the `pudb` module. Then add a call to
 `set_trace` to add a breakpoint. For example:
 
 ```diff
-class ResponseHistoryHandler(handlers.Paginate, handlers.BaseHandler):
+class ResponseHistoryHandler(base_handler.Paginate, base_handler.BaseHandler):
     @tornado.web.authenticated
     def get(self, assessment_id, measure_id):
 +       import pudb

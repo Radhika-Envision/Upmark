@@ -10,9 +10,9 @@ from scour import scour
 import sqlalchemy
 
 import auth
+import base_handler
 import config
 import errors
-import handlers
 import model
 import image
 
@@ -23,7 +23,7 @@ log = logging.getLogger('app.crud.config')
 MAX_WORKERS = 4
 
 
-class SystemConfigHandler(handlers.BaseHandler):
+class SystemConfigHandler(base_handler.BaseHandler):
     @auth.authz('admin')
     def get(self):
         with model.session_scope() as session:
@@ -61,7 +61,7 @@ class SystemConfigHandler(handlers.BaseHandler):
         self.get()
 
 
-class SystemConfigItemHandler(handlers.BaseHandler):
+class SystemConfigItemHandler(base_handler.BaseHandler):
 
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 

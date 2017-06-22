@@ -15,8 +15,8 @@ from tornado.concurrent import run_on_executor
 import tornado.web
 import xlsxwriter
 
+import base_handler
 import errors
-import handlers
 import model
 from utils import keydefaultdict
 
@@ -27,7 +27,7 @@ MIN_CONSITUENTS = 5
 log = logging.getLogger('app.report.temporal')
 
 
-class TemporalReportHandler(handlers.BaseHandler):
+class TemporalReportHandler(base_handler.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated

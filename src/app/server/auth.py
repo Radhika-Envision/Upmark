@@ -8,16 +8,17 @@ from tornado.escape import json_decode, json_encode, url_escape, url_unescape
 import tornado.options
 import tornado.web
 
+import base_handler
 import errors
-import handlers
 import model
+import template
 import theme
 
 
 log = logging.getLogger('app.auth')
 
 
-class AuthLoginHandler(handlers.TemplateHandler):
+class AuthLoginHandler(template.TemplateHandler):
     SESSION_LENGTH = datetime.timedelta(days=30)
 
     def prepare(self):
@@ -36,7 +37,7 @@ class AuthLoginHandler(handlers.TemplateHandler):
         next = self.get_argument("next", "/")
 
         with model.session_scope() as session:
-            params = handlers.TemplateParams(session)
+            params = template.TemplateParams(session)
             theme_params = theme.ThemeParams(session)
             self.render(
                 "../client/templates/login.html",
@@ -168,7 +169,7 @@ class AuthLoginHandler(handlers.TemplateHandler):
             json_encode(past_users), plus=False))
 
 
-class AuthLogoutHandler(handlers.BaseHandler):
+class AuthLogoutHandler(base_handler.BaseHandler):
     def get(self):
         self.clear_cookie("user")
         self.clear_cookie("superuser")

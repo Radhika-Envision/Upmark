@@ -18,8 +18,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 import app
 import auth
+import base_handler
 import errors
-import handlers
 import model
 import response_type
 from score import Calculator
@@ -34,7 +34,7 @@ class ImportError(Exception):
     pass
 
 
-class ImportStructureHandler(handlers.BaseHandler):
+class ImportStructureHandler(base_handler.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @auth.authz('author')
@@ -60,7 +60,7 @@ class ImportStructureHandler(handlers.BaseHandler):
         return program_id
 
 
-class ImportResponseHandler(handlers.BaseHandler):
+class ImportResponseHandler(base_handler.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @auth.authz('author')
@@ -85,7 +85,7 @@ class ImportResponseHandler(handlers.BaseHandler):
         i.process_structure_file(file_path, title, description)
 
 
-class ImportSubmissionHandler(handlers.BaseHandler):
+class ImportSubmissionHandler(base_handler.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @auth.authz('author')

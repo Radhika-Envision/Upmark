@@ -13,8 +13,8 @@ from tornado import gen
 from tornado.escape import json_decode, json_encode
 import tornado.web
 
+import base_handler
 import errors
-import handlers
 import model
 import logging
 
@@ -22,7 +22,7 @@ import logging
 log = logging.getLogger('app.report.sub_stats')
 
 
-class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
+class StatisticsHandler(base_handler.Paginate, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, program_id, survey_id):

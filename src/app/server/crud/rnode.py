@@ -13,10 +13,10 @@ from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 from activity import Activities
+import base_handler
 import crud.response
 import crud.program
 import errors
-import handlers
 import model
 from response_type import ResponseTypeError
 from score import Calculator
@@ -28,7 +28,7 @@ log = logging.getLogger('app.crud.rnode')
 MAX_WORKERS = 4
 
 
-class ResponseNodeHandler(handlers.BaseHandler):
+class ResponseNodeHandler(base_handler.BaseHandler):
 
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 

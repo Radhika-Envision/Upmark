@@ -13,9 +13,9 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import make_transient
 
 from activity import Activities
+import base_handler
 import crud.program
 import errors
-import handlers
 import math_utils
 import model
 import logging
@@ -29,7 +29,7 @@ log = logging.getLogger('app.crud.submission')
 MAX_WORKERS = 4
 
 
-class SubmissionHandler(handlers.Paginate, handlers.BaseHandler):
+class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated

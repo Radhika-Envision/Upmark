@@ -3,14 +3,14 @@ from concurrent.futures import ThreadPoolExecutor
 from tornado import gen
 from tornado.concurrent import run_on_executor
 
+import base_handler
 import config
 import errors
-import handlers
 import image
 import model
 
 
-class IconHandler(handlers.BaseHandler):
+class IconHandler(base_handler.BaseHandler):
 
     executor = ThreadPoolExecutor(max_workers=1)
 

@@ -12,9 +12,9 @@ import voluptuous
 from voluptuous import Extra, All, Required, Schema
 
 from activity import Activities
+import base_handler
 import config
 import errors
-import handlers
 import model
 from utils import ToSon, truthy, updater
 
@@ -40,7 +40,7 @@ user_input_schema = Schema({
 })
 
 
-class UserHandler(handlers.Paginate, handlers.BaseHandler):
+class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, user_id):
@@ -338,7 +338,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
             user.organisation = org
 
 
-class PasswordHandler(handlers.BaseHandler):
+class PasswordHandler(base_handler.BaseHandler):
 
     def post(self):
         '''

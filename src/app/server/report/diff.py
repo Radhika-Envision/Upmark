@@ -10,8 +10,8 @@ from tornado.escape import json_encode
 import tornado.web
 from tornado.concurrent import run_on_executor
 
+import base_handler
 import errors
-import handlers
 import model
 import logging
 
@@ -37,7 +37,7 @@ def perf():
     return perf_time
 
 
-class DiffHandler(handlers.BaseHandler):
+class DiffHandler(base_handler.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated

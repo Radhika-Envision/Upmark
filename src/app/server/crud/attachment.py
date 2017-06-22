@@ -19,8 +19,8 @@ from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 import aws
+import base_handler
 import errors
-import handlers
 import model
 from utils import ToSon
 
@@ -30,7 +30,7 @@ log = logging.getLogger('app.crud.attachment')
 MAX_WORKERS = 4
 
 
-class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
+class AttachmentHandler(base_handler.Paginate, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, attachment_id, file_name):
@@ -88,7 +88,7 @@ class AttachmentHandler(handlers.Paginate, handlers.BaseHandler):
                     "You can't modify another organisation's response")
 
 
-class ResponseAttachmentsHandler(handlers.Paginate, handlers.BaseHandler):
+class ResponseAttachmentsHandler(base_handler.Paginate, base_handler.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated

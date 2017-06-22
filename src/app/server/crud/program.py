@@ -15,8 +15,8 @@ from sqlalchemy.orm.session import make_transient
 
 from activity import Activities
 import auth
+import base_handler
 import errors
-import handlers
 import model
 from score import Calculator
 from utils import ToSon, truthy, updater
@@ -56,7 +56,7 @@ class ProgramCentric:
             raise errors.MethodError("This program is closed for editing")
 
 
-class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
+class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated
@@ -391,7 +391,7 @@ class ProgramHandler(handlers.Paginate, handlers.BaseHandler):
         update('hide_aggregate', son)
 
 
-class ProgramTrackingHandler(handlers.BaseHandler):
+class ProgramTrackingHandler(base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, program_id):
@@ -430,7 +430,7 @@ class ProgramTrackingHandler(handlers.BaseHandler):
         self.finish()
 
 
-class ProgramHistoryHandler(handlers.BaseHandler):
+class ProgramHistoryHandler(base_handler.BaseHandler):
     def initialize(self, mapper):
         self.mapper = mapper
 

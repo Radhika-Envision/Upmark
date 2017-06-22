@@ -10,8 +10,8 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import object_session
 
 from activity import Activities
+import base_handler
 import errors
-import handlers
 import model
 from response_type import ResponseTypeError
 from score import Calculator
@@ -65,7 +65,7 @@ def check_modify(role, response):
                 "This response has already been approved")
 
 
-class ResponseHandler(handlers.BaseHandler):
+class ResponseHandler(base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, submission_id, measure_id):
@@ -381,7 +381,7 @@ class ResponseHandler(handlers.BaseHandler):
         # Attachments are stored elsewhere.
 
 
-class ResponseHistoryHandler(handlers.Paginate, handlers.BaseHandler):
+class ResponseHistoryHandler(base_handler.Paginate, base_handler.BaseHandler):
     @tornado.web.authenticated
     def get(self, submission_id, measure_id):
         '''Get a list of versions of a response.'''

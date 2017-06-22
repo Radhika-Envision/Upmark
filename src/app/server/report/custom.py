@@ -18,9 +18,9 @@ from tornado.concurrent import run_on_executor
 import xlsxwriter
 
 import auth
+import base_handler
 import config
 import errors
-import handlers
 import model
 import logging
 
@@ -45,7 +45,7 @@ MAX_LIMIT = 2500
 BUF_SIZE = 4096
 
 
-class CustomQueryReportHandler(handlers.BaseHandler):
+class CustomQueryReportHandler(base_handler.BaseHandler):
     '''
     Runs custom stored SQL queries.
     '''
@@ -330,7 +330,7 @@ class ExcelWriter:
             worksheet_r.activate()
 
 
-class CustomQueryConfigHandler(handlers.BaseHandler):
+class CustomQueryConfigHandler(base_handler.BaseHandler):
 
     @auth.authz('admin')
     def get(self):
@@ -345,7 +345,7 @@ class CustomQueryConfigHandler(handlers.BaseHandler):
         self.finish()
 
 
-class SqlFormatHandler(handlers.BaseHandler):
+class SqlFormatHandler(base_handler.BaseHandler):
     @auth.authz('admin')
     def post(self):
         query = to_basestring(self.request.body)
@@ -358,7 +358,7 @@ class SqlFormatHandler(handlers.BaseHandler):
         self.finish()
 
 
-class SqlIdentifierHandler(handlers.BaseHandler):
+class SqlIdentifierHandler(base_handler.BaseHandler):
     @auth.authz('admin')
     def post(self):
         query = to_basestring(self.request.body)

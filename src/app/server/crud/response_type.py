@@ -11,9 +11,9 @@ import voluptuous.error
 
 from activity import Activities
 import auth
+import base_handler
 import crud
 import errors
-import handlers
 import logging
 import model
 from response_type import ResponseTypeError
@@ -25,7 +25,7 @@ log = logging.getLogger('app.crud.response_type')
 
 
 class ResponseTypeHandler(
-        handlers.Paginate, crud.program.ProgramCentric, handlers.BaseHandler):
+        base_handler.Paginate, crud.program.ProgramCentric, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, response_type_id):

@@ -6,9 +6,9 @@ from tornado import gen
 import tornado.web
 from tornado.concurrent import run_on_executor
 
+import base_handler
 import errors
 from .export import Exporter
-import handlers
 import model
 
 
@@ -16,7 +16,7 @@ BUF_SIZE = 4096
 MAX_WORKERS = 4
 
 
-class ExportProgramHandler(handlers.BaseHandler):
+class ExportProgramHandler(base_handler.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated

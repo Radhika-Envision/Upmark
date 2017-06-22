@@ -9,9 +9,9 @@ from sqlalchemy.orm import joinedload
 
 from activity import Activities
 import auth
+import base_handler
 import crud.program
 import errors
-import handlers
 import model
 import logging
 import voluptuous
@@ -21,7 +21,7 @@ from utils import reorder, ToSon, truthy, updater
 log = logging.getLogger('app.crud.survey')
 
 
-class SurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
+class SurveyHandler(crud.program.ProgramCentric, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, survey_id):

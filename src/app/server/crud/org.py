@@ -12,16 +12,16 @@ from sqlalchemy.orm import joinedload
 
 from activity import Activities
 import auth
+import base_handler
 import crud.program
 import errors
-import handlers
 import model
 import logging
 
 from cache import LruCache
 from utils import ToSon, truthy, updater
 
-class OrgHandler(handlers.Paginate, handlers.BaseHandler):
+class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
     @tornado.web.authenticated
     def get(self, organisation_id):
         if organisation_id == "":
@@ -237,7 +237,7 @@ class OrgHandler(handlers.Paginate, handlers.BaseHandler):
             setattr(org.meta, n, son.get(n))
 
 
-class PurchasedSurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
+class PurchasedSurveyHandler(crud.program.ProgramCentric, base_handler.BaseHandler):
     @tornado.web.authenticated
     def head(self, organisation_id, survey_id):
         self._check_user(organisation_id)
@@ -336,7 +336,7 @@ class PurchasedSurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
                     "You can't access another organisation's surveys")
 
 
-class LocationSearchHandler(handlers.BaseHandler):
+class LocationSearchHandler(base_handler.BaseHandler):
     cache = LruCache()
 
     @tornado.gen.coroutine
