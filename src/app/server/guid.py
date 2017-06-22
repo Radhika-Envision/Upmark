@@ -1,4 +1,3 @@
-# model/uuid.py
 from __future__ import absolute_import
 import uuid
 from sqlalchemy.types import TypeDecorator, CHAR

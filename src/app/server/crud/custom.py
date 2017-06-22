@@ -1,33 +1,14 @@
-import logging
 import datetime
-import os
-import time
-import uuid
-import hashlib
-import tempfile
 
-import boto3
-import botocore
-from tornado.escape import json_decode, json_encode
-from tornado import gen
+from tornado.escape import json_encode
 import tornado.web
-from tornado.web import asynchronous
-from tornado.concurrent import run_on_executor
-from concurrent.futures import ThreadPoolExecutor
-import sqlalchemy
-from sqlalchemy import func
-from sqlalchemy.orm import joinedload
 
 from activity import Activities
 import auth
-import aws
 import base_handler
 import errors
 import model
-from utils import reorder, ToSon, truthy, updater
-
-
-log = logging.getLogger('app.crud.custom')
+from utils import ToSon, truthy, updater
 
 
 class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):

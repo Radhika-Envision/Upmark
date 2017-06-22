@@ -1,16 +1,12 @@
 from concurrent.futures import ThreadPoolExecutor
-import datetime
 import logging
-import time
-import uuid
 
 from tornado import gen
 from tornado.concurrent import run_on_executor
-from tornado.escape import json_decode, json_encode
+from tornado.escape import json_encode
 import tornado.web
 import sqlalchemy
 from sqlalchemy import func
-from sqlalchemy.orm import joinedload
 
 from activity import Activities
 import base_handler
@@ -20,7 +16,7 @@ import errors
 import model
 from response_type import ResponseTypeError
 from score import Calculator
-from utils import reorder, ToSon, truthy, updater
+from utils import ToSon, updater
 
 
 log = logging.getLogger('app.crud.rnode')
