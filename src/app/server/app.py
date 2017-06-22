@@ -167,8 +167,7 @@ def default_settings():
             session.flush()
             user = model.AppUser(
                 email="admin", name="DEFAULT USER", role="admin",
-                organisation=org)
-            user.set_password("admin")
+                organisation=org, password=password)
             session.add(user)
 
 

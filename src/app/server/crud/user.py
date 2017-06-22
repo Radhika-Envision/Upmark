@@ -321,9 +321,7 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
         update('email_interval', son)
         update('name', son)
         update('role', son)
-
-        if son.get('password', '') != '':
-            user.set_password(son['password'])
+        update('password', son)
 
         if son.get('organisation', '') != '':
             org = (session.query(model.Organisation)

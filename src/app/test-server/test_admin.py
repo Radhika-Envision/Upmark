@@ -81,6 +81,18 @@ class OrgTest(base.AqHttpTestBase):
 
 class UserTest(base.AqHttpTestBase):
 
+    def password_field_test(self):
+        with model.session_scope() as session:
+            org = session.query(model.Organisation).first()
+            user = model.AppUser(
+                email='a', name='b', role='clerk', organisation=org)
+            user.password = 'foo'
+            session.add(user)
+            session.flush()
+            self.assertEqual(user.password, 'foo')
+            self.assertNotEqual(str(user.password), 'foo')
+            self.assertNotEqual(user.password, 'bar')
+
     def test_list_org(self):
         with base.mock_user('admin'):
             response = self.fetch(
