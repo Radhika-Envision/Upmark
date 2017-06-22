@@ -1,16 +1,12 @@
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 import logging
-import time
-import uuid
 
 from tornado import gen
 from tornado.concurrent import run_on_executor
-from tornado.escape import json_decode, json_encode
+from tornado.escape import json_encode
 import tornado.web
 import sqlalchemy
-from sqlalchemy.sql import func
-from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import make_transient
 
 from activity import Activities

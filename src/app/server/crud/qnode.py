@@ -1,13 +1,10 @@
-import datetime
 import logging
-import time
-import uuid
 
 from tornado.escape import json_decode, json_encode
 import tornado.web
 import sqlalchemy
 from sqlalchemy.dialects.postgresql import array
-from sqlalchemy.orm import aliased, joinedload
+from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import literal
 
 from activity import Activities

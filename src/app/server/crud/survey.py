@@ -1,11 +1,6 @@
-import datetime
-import time
-import uuid
-
-from tornado.escape import json_decode, json_encode
+from tornado.escape import json_encode
 import tornado.web
 import sqlalchemy
-from sqlalchemy.orm import joinedload
 
 from activity import Activities
 import crud.program
@@ -13,7 +8,7 @@ import handlers
 import model
 import logging
 import voluptuous
-from utils import reorder, ToSon, truthy, updater
+from utils import ToSon, truthy, updater
 
 
 log = logging.getLogger('app.crud.survey')

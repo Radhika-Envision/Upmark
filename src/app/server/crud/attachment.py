@@ -2,7 +2,6 @@ import logging
 import datetime
 import os
 import time
-import uuid
 import hashlib
 import tempfile
 

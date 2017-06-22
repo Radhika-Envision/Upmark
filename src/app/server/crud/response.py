@@ -1,12 +1,9 @@
 import datetime
 import logging
-import time
-import uuid
 
-from tornado.escape import json_decode, json_encode
+from tornado.escape import json_encode
 import tornado.web
 import sqlalchemy
-from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import object_session
 
 from activity import Activities
@@ -14,7 +11,7 @@ import handlers
 import model
 from response_type import ResponseTypeError
 from score import Calculator
-from utils import falsy, reorder, ToSon, truthy, updater
+from utils import ToSon, updater
 
 
 log = logging.getLogger('app.crud.response')
