@@ -7,8 +7,8 @@ import uuid
 
 from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
 
-from guid import GUID
 import model
+from model.guid import GUID
 from utils import denormalise, truthy, falsy, UtilException, ToSon
 
 

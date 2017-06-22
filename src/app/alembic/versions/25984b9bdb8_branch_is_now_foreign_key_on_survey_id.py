@@ -15,7 +15,7 @@ depends_on = None
 from alembic import op
 import sqlalchemy as sa
 
-import guid
+import old_deps.guid as guid
 
 def upgrade():
     op.add_column('function', sa.Column('survey_id', guid.GUID(), nullable=False))

@@ -8,18 +8,17 @@ __all__ = [
 import base64
 from datetime import datetime
 import os
-import uuid
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import ForeignKeyConstraint
 
-from guid import GUID
-from history_meta import Versioned
 
 from .base import Base
 from .config import SystemConfig
 from .connection import session_scope
+from .guid import GUID
+from .history_meta import Versioned
 from .observe import Observable
 from .user import AppUser
 
@@ -29,7 +28,7 @@ class CustomQuery(Observable, Versioned, Base):
     Stored database queries
     '''
     __tablename__ = 'custom_query'
-    id = Column(GUID, default=uuid.uuid4, nullable=False, primary_key=True)
+    id = Column(GUID, default=GUID.gen, nullable=False, primary_key=True)
     modified = Column(DateTime, default=datetime.utcnow, nullable=False)
     user_id = Column(GUID, ForeignKey("appuser.id"), nullable=False)
     title = Column(Text, nullable=False)

@@ -8,7 +8,6 @@ __all__ = [
 
 from datetime import datetime
 import time
-import uuid
 
 from sqlalchemy import Boolean, Column, DateTime, Enum, Float, \
     ForeignKey, Index, Integer, Text
@@ -18,14 +17,14 @@ from sqlalchemy.schema import CheckConstraint, Index
 from sqlalchemy.sql import func
 from passlib.hash import sha256_crypt
 
-from guid import GUID
 from .base import Base
+from .guid import GUID
 from .observe import Observable
 
 
 class Organisation(Observable, Base):
     __tablename__ = 'organisation'
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    id = Column(GUID, default=GUID.gen, primary_key=True)
 
     name = Column(Text, nullable=False)
     url = Column(Text, nullable=True)
@@ -58,7 +57,7 @@ class Organisation(Observable, Base):
 
 class OrgMeta(Base):
     __tablename__ = 'org_meta'
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    id = Column(GUID, default=GUID.gen, primary_key=True)
     organisation_id = Column(
         GUID, ForeignKey("organisation.id"), nullable=False)
 
@@ -104,7 +103,7 @@ class OrgMeta(Base):
 
 class OrgLocation(Base):
     __tablename__ = 'org_location'
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    id = Column(GUID, default=GUID.gen, primary_key=True)
     organisation_id = Column(
         GUID, ForeignKey("organisation.id"), nullable=False)
 
@@ -137,7 +136,7 @@ ONE_DAY_S = 60 * 60 * 24
 
 class AppUser(Observable, Base):
     __tablename__ = 'appuser'
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    id = Column(GUID, default=GUID.gen, primary_key=True)
     organisation_id = Column(
         GUID, ForeignKey("organisation.id"), nullable=False)
 

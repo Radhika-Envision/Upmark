@@ -27,8 +27,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.schema import MetaData
 from sqlalchemy.sql import func
 
-from guid import GUID
-from history_meta import Versioned
+from old_deps.guid import GUID
+from old_deps.history_meta import Versioned
 
 
 metadata = MetaData()

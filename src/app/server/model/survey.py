@@ -11,7 +11,6 @@ __all__ = [
 
 from datetime import datetime
 from itertools import chain, count, zip_longest
-import uuid
 
 from sqlalchemy import Boolean, Column, DateTime, Float, \
     ForeignKey, Index, Integer, Text
@@ -25,17 +24,17 @@ from sqlalchemy.schema import ForeignKeyConstraint, Index, UniqueConstraint
 from voluptuous import All, Length, Schema
 from voluptuous.humanize import validate_with_humanized_errors
 
-from guid import GUID
 import response_type
 from .observe import Observable
 from .base import Base, to_id
+from .guid import GUID
 from .user import Organisation
 
 
 class Program(Observable, Base):
     __tablename__ = 'program'
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
-    tracking_id = Column(GUID, default=uuid.uuid4, nullable=False)
+    id = Column(GUID, default=GUID.gen, primary_key=True)
+    tracking_id = Column(GUID, default=GUID.gen, nullable=False)
 
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
     deleted = Column(Boolean, default=False, nullable=False)
@@ -118,7 +117,7 @@ class Survey(Observable, Base):
     A collection of categories; root node in the program structure.
     '''
     __tablename__ = 'survey'
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    id = Column(GUID, default=GUID.gen, primary_key=True)
     program_id = Column(
         GUID, ForeignKey('program.id'), nullable=False, primary_key=True)
 
@@ -205,7 +204,7 @@ class QuestionNode(Observable, Base):
     structure. Both measures and sub-categories are ordered.
     '''
     __tablename__ = 'qnode'
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    id = Column(GUID, default=GUID.gen, primary_key=True)
     program_id = Column(GUID, nullable=False, primary_key=True)
     survey_id = Column(GUID, nullable=False)
     parent_id = Column(GUID)
@@ -292,7 +291,7 @@ class QuestionNode(Observable, Base):
 
 class Measure(Observable, Base):
     __tablename__ = 'measure'
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    id = Column(GUID, default=GUID.gen, primary_key=True)
     program_id = Column(GUID, nullable=False, primary_key=True)
     response_type_id = Column(GUID, nullable=False)
     deleted = Column(Boolean, default=False, nullable=False)
@@ -429,7 +428,7 @@ class QnodeMeasure(Base):
 
 class ResponseType(Observable, Base):
     __tablename__ = 'response_type'
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    id = Column(GUID, default=GUID.gen, primary_key=True)
     program_id = Column(
         GUID, ForeignKey("program.id"), nullable=False, primary_key=True)
 

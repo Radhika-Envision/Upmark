@@ -372,8 +372,8 @@ from voluptuous import All, Any, Coerce, Length, Optional, Range, Required, \
     Schema
 from voluptuous.humanize import validate_with_humanized_errors
 
-from guid import GUID
-from history_meta import Versioned, versioned_session
+from old_deps.guid import GUID
+from old_deps.history_meta import Versioned, versioned_session
 
 
 log = logging.getLogger('app.model')

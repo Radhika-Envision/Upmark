@@ -1,7 +1,6 @@
 __all__ = ['Attachment', 'Response', 'ResponseNode', 'Submission']
 
 from datetime import datetime
-import uuid
 
 from sqlalchemy import Boolean, Column, DateTime, Enum, Float, \
     ForeignKey, Index, Integer, Text, LargeBinary
@@ -12,18 +11,18 @@ from sqlalchemy.orm.session import object_session
 from sqlalchemy.schema import ForeignKeyConstraint, Index
 from voluptuous.humanize import validate_with_humanized_errors
 
-from guid import GUID
-from history_meta import Versioned
 import response_type
 from .observe import ActionDescriptor, Observable
 from .base import Base, to_id
+from .guid import GUID
+from .history_meta import Versioned
 from .survey import *
 from .user import AppUser, Organisation
 
 
 class Submission(Observable, Base):
     __tablename__ = 'submission'
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    id = Column(GUID, default=GUID.gen, primary_key=True)
     program_id = Column(GUID, nullable=False)
     organisation_id = Column(GUID, nullable=False)
     survey_id = Column(GUID, nullable=False)
@@ -328,7 +327,7 @@ ResponseHistory.ob_type = property(lambda self: 'response')
 
 class Attachment(Base):
     __tablename__ = 'attachment'
-    id = Column(GUID, default=uuid.uuid4, primary_key=True)
+    id = Column(GUID, default=GUID.gen, primary_key=True)
     organisation_id = Column(
         GUID, ForeignKey("organisation.id"), nullable=False)
     submission_id = Column(GUID, nullable=False)

@@ -27,7 +27,7 @@ from sqlalchemy.orm import backref, sessionmaker, relationship
 from sqlalchemy.schema import MetaData
 from sqlalchemy.sql import table, column
 
-from guid import GUID
+from old_deps.guid import GUID
 
 
 log_migration = logging.getLogger('app.migration')

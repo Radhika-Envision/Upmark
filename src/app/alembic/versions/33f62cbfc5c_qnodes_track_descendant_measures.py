@@ -26,7 +26,7 @@ from sqlalchemy.orm import backref, foreign, relationship, remote, sessionmaker
 from sqlalchemy.schema import ForeignKeyConstraint, MetaData
 from sqlalchemy.sql.expression import and_
 
-from guid import GUID
+from old_deps.guid import GUID
 
 
 metadata = MetaData()

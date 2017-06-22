@@ -16,9 +16,9 @@ from sqlalchemy import create_engine
 import sqlalchemy.exc
 from sqlalchemy.orm import sessionmaker
 
-from history_meta import versioned_session
 from .base import Base, ModelError
 from .config import SystemConfig
+from .history_meta import versioned_session
 
 
 log = logging.getLogger('app.model.connection')
