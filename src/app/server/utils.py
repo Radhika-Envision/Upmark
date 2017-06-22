@@ -244,10 +244,7 @@ class updater:
         else:
             value = current_value
 
-        if value is None:
-            column = getattr(self.model.__class__, name)
-            if not column.nullable:
-                raise self.error_factory("Missing value for %s" % name)
+        self.validate(name, value)
 
         if isinstance(current_value, uuid.UUID):
             equal = str(current_value) == str(value)
@@ -259,6 +256,21 @@ class updater:
 
         log.debug('Setting %s: %s -> %s', name, current_value, value)
         setattr(self.model, name, value)
+
+    def validate(self, name, value):
+        if value is not None:
+            return
+
+        column = getattr(self.model.__class__, name)
+        if not column.nullable:
+            insp = sqlalchemy.inspect(self.model)
+            if insp.persistent:
+                # For persistent objects, column.default is not used.
+                raise self.error_factory("Missing value for %s" % name)
+            elif column.default is None:
+                # Non-persistent objects are new; column.default will be used
+                # when the session is flushed.
+                raise self.error_factory("Missing value for %s" % name)
 
 
 def reorder(collection, son, id_attr='id'):
