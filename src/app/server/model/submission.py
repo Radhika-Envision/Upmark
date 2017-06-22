@@ -1,4 +1,10 @@
-__all__ = ['Attachment', 'Response', 'ResponseNode', 'Submission']
+__all__ = [
+    'Attachment',
+    'Response',
+    'ResponseHistory',
+    'ResponseNode',
+    'Submission',
+]
 
 from datetime import datetime
 

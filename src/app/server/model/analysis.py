@@ -1,5 +1,6 @@
 __all__ = [
     'CustomQuery',
+    'CustomQueryHistory',
     'create_analyst_user',
     'reset_analyst_password',
     'store_analyst_password',
