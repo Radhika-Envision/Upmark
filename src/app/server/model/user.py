@@ -15,11 +15,11 @@ from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import CheckConstraint, Index
 from sqlalchemy.sql import func
-from passlib.hash import sha256_crypt
 
 from .base import Base
 from .guid import GUID
 from .observe import Observable
+from .password import Password
 
 
 class Organisation(Observable, Base):
@@ -142,7 +142,7 @@ class AppUser(Observable, Base):
 
     email = Column(Text, nullable=False)
     name = Column(Text, nullable=False)
-    password = Column(Text, nullable=False)
+    password = Column(Password, nullable=False)
     role = Column(Enum(
             'admin', 'author', 'authority', 'consultant', 'org_admin', 'clerk',
             native_enum=False), nullable=False)
@@ -156,12 +156,6 @@ class AppUser(Observable, Base):
     # user is subscribed to. Units are seconds. 0 means notifications are
     # disabled.
     email_interval = Column(Integer, default=ONE_DAY_S, nullable=False)
-
-    def set_password(self, plaintext):
-        self.password = sha256_crypt.hash(plaintext)
-
-    def check_password(self, plaintext):
-        return sha256_crypt.verify(plaintext, self.password)
 
     @property
     def ob_title(self):
@@ -190,6 +184,9 @@ class AppUser(Observable, Base):
 
     def __repr__(self):
         return "AppUser(email={})".format(self.email)
+
+
+Password.instrument(AppUser.password)
 
 
 ROLE_HIERARCHY = {

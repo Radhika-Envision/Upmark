@@ -120,37 +120,32 @@ class AqModelTestBase(unittest.TestCase):
 
             user = model.AppUser(
                 name='Admin', email='admin', role='admin',
-                organisation=org1)
-            user.set_password('foo')
+                organisation=org1, password='foo')
             session.add(user)
 
             user = model.AppUser(
-                name='Author', email='author', role='author', organisation=org1)
-            user.set_password('bar')
+                name='Author', email='author', role='author',
+                organisation=org1, password='bar')
             session.add(user)
 
             user = model.AppUser(
                 name='Authority', email='authority', role='authority',
-                organisation=org1)
-            user.set_password('bar')
+                organisation=org1, password='bar')
             session.add(user)
 
             user = model.AppUser(
                 name='Consultant', email='consultant', role='consultant',
-                organisation=org1)
-            user.set_password('bar')
+                organisation=org1, password='bar')
             session.add(user)
 
             user = model.AppUser(
                 name='Org Admin', email='org_admin', role='org_admin',
-                organisation=org2)
-            user.set_password('bar')
+                organisation=org2, password='bar')
             session.add(user)
 
             user = model.AppUser(
                 name='Clerk', email='clerk', role='clerk',
-                organisation=org2)
-            user.set_password('bar')
+                organisation=org2, password='bar')
             session.add(user)
 
     def create_program_structure(self):

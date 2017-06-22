@@ -50,7 +50,7 @@ class AuthLoginHandler(handlers.TemplateHandler):
                 user = session.query(model.AppUser).\
                     filter(func.lower(model.AppUser.email) == func.lower(email)).\
                     one()
-                if not user.check_password(password):
+                if not user.password == password:
                     raise ValueError("Login incorrect")
                 deleted = user.deleted or user.organisation.deleted
                 session.expunge(user)
