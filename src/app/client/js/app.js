@@ -12,6 +12,7 @@ angular.module('upmark', [
     'ui.bootstrap',
     'ui.bootstrap.showErrors',
     'upmark.admin',
+    'upmark.authz',
     'upmark.custom',
     'upmark.home',
     'upmark.response',
@@ -1068,6 +1069,25 @@ angular.module('upmark', [
     $rootScope.$on('$routeChangeSuccess', function(event) {
         $window.ga('send', 'pageview', '/' + $route.current.loadedTemplateUrl);
     });
+})
+
+
+.run(function(Authz, Current, Roles) {
+    var session = {
+        user: null,
+        org: null,
+        superuser: false,
+        has_role: null,
+    };
+    Current.$promise.then(function(current) {
+        session.user = current.user;
+        session.org = current.user.organisation;
+        session.superuser = current.superuser;
+        session.has_role = function(role) {
+            return Roles.hasPermission(current.user.role, role);
+        };
+    });
+    Authz.baseContext.s = session;
 })
 
 
