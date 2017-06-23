@@ -26,7 +26,7 @@
                            'Cancel post' :
                            'Post a new message'}}"
                 ng-click="togglePost()"
-                ng-if="checkRole('post_message')">
+                ng-if="checkRole('post_new')">
             <i class="fa fa-envelope-o"
                 ng-if="!showPost"></i>
             <i class="fa fa-times"
@@ -62,14 +62,14 @@
                 <button class="btn btn-default btn-round"
                         title="Delete (usually you should just unpin)"
                         ng-click="remove(action)"
-                        ng-if="checkRole('modify_post') &&
+                        ng-if="checkRole('post_edit_try') &&
                                acts.verbs(action) == 'broadcast'">
                     <i class="fa fa-fw fa-trash-o"></i>
                 </button>
                 <button class="btn btn-default btn-round"
                         title="Pin / Unpin"
                         ng-click="toggleSticky(action)"
-                        ng-if="checkRole('modify_post')">
+                        ng-if="checkRole('post_edit_try')">
                     <i class="fa fa-fw fa-thumb-tack">
                         <i class="fa fa-badge fa-times"
                                 ng-if="action.sticky"></i>
@@ -133,7 +133,7 @@
             look for the <i class="fa docs-button fa-envelope"></i> button in
             the toolbar while browsing the site.
         </p>
-        <p ng-if="checkRole('post_message')">
+        <p ng-if="checkRole('post_new')">
             You can post to other people's timelines by pressing the
             <i class="fa docs-button fa-envelope-o"></i> button.
         </p>

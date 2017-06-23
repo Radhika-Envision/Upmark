@@ -1135,10 +1135,9 @@ angular.module('upmark', [
         + " main site to this one. When that happens, changes you have"
         + " made here will be overwritten.";
 }])
-.controller('HeaderCtrl', ['$scope', 'confAuthz', 'Current',
-        function($scope, confAuthz, Current) {
-        $scope.checkRole = confAuthz(Current);
-}])
+.controller('HeaderCtrl', function($scope, Authz) {
+    $scope.checkRole = Authz({});
+})
 .controller('EmptyCtrl', ['$scope',
         function($scope) {
 }])

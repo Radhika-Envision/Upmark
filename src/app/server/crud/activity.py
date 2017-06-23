@@ -48,6 +48,7 @@ class ActivityHandler(base_handler.BaseHandler):
         r'/subject$',
         r'/subject/name$',
         r'/verbs/?.*$',
+        r'/organisation$',
         r'/ob_type$',
         r'/ob_ids$',
         r'/object_ids/?.*$',
@@ -124,6 +125,7 @@ class ActivityHandler(base_handler.BaseHandler):
             # (5ms vs 300ms)
             start = perf()
             user_sons = {}
+            org_sons = {}
             activity_sons = []
             for a in activities:
                 a_son = {
@@ -144,6 +146,10 @@ class ActivityHandler(base_handler.BaseHandler):
                         'name': user.name,
                     }
                     user_sons[a.subject] = user_son
+
+                if a.ob_type == 'organisation':
+                    a_son['org_id'] = str(a.ob_ids[0])
+
                 a_son['subject'] = user_son
                 activity_sons.append(a_son)
 

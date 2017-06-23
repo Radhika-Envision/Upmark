@@ -263,10 +263,8 @@ angular.module('upmark.response', ['ngResource', 'upmark.admin'])
         replace: true,
         templateUrl: 'response_form.html',
         transclude: true,
-        controller: ['$scope', 'hotkeys', 'Current', 'questionAuthz',
-                'Notifications', 'Enqueue',
-                function($scope, hotkeys, current, authz, Notifications,
-                    Enqueue) {
+        controller: ['$scope', 'hotkeys', 'Authz', 'Enqueue',
+                function($scope, hotkeys, Authz, Enqueue) {
             $scope.$watch('weight_', function(weight) {
                 $scope.weight = weight == null ? 100 : weight;
             });
@@ -337,7 +335,7 @@ angular.module('upmark.response', ['ngResource', 'upmark.admin'])
             };
             $scope.isFinite = isFinite;
 
-            $scope.checkRole = authz(current, $scope.program);
+            $scope.checkRole = Authz({program: $scope.program});
 
             hotkeys.bindTo($scope)
                 .add({
@@ -518,11 +516,11 @@ angular.module('upmark.response', ['ngResource', 'upmark.admin'])
 
 
 .controller('ResponseTypeCtrl',
-        function($scope, questionAuthz, Measure, Current, layout, routeData,
+        function($scope, Authz, Measure, Current, layout, routeData,
             ResponseType) {
 
     $scope.layout = layout;
-    $scope.checkRole = questionAuthz(Current, null);
+    $scope.checkRole = Authz({});
     $scope.responseType = routeData.responseType;
     $scope.ResponseType = ResponseType;
 })

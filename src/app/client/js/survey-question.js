@@ -6,67 +6,38 @@ angular.module('upmark.surveyQuestions', [
     'upmark.admin', 'upmark.survey.services'])
 
 
-.factory('questionAuthz', ['Roles', function(Roles) {
-    return function(current, program, submission) {
-        var ownOrg = false;
-        var org = submission && submission.organisation || null;
-        if (org)
-            ownOrg = org.id == current.user.organisation.id;
-        else
-            ownOrg = true;
-        return function(functionName) {
-            switch(functionName) {
-                case 'program_dup':
-                case 'program_state':
-                    return Roles.hasPermission(current.user.role, 'admin');
-                    break;
-                case 'submission_add':
-                    return Roles.hasPermission(current.user.role, 'clerk');
-                    break;
-                case 'submission_browse':
-                    return Roles.hasPermission(current.user.role, 'clerk') ||
-                        Roles.hasPermission(current.user.role, 'consultant');
-                    break;
-                case 'submission_review':
-                    return Roles.hasPermission(current.user.role, 'consultant');
-                    break;
-                case 'submission_full_review':
-                    // E.g. view reports for submissions that are still draft
-                    if (Roles.hasPermission(current.user.role, 'consultant'))
-                        return true;
-                    break;
-                case 'view_aggregate_score':
-                case 'view_single_score':
-                    if (Roles.hasPermission(current.user.role, 'consultant'))
-                        return true;
-                    if (Roles.hasPermission(current.user.role, 'org_admin'))
-                        return ownOrg;
-                    return false;
-                    break;
-                case 'submission_admin':
-                    if (Roles.hasPermission(current.user.role, 'consultant'))
-                        return true;
-                    if (Roles.hasPermission(current.user.role, 'org_admin'))
-                        return ownOrg;
-                    break;
-                case 'submission_edit':
-                case 'view_response':
-                case 'alter_response':
-                    if (Roles.hasPermission(current.user.role, 'consultant'))
-                        return true;
-                    if (Roles.hasPermission(current.user.role, 'clerk'))
-                        return ownOrg;
-                    break;
-                default:
-                    return Roles.hasPermission(current.user.role, 'author');
-            }
-        };
-    };
-}])
+.config(function(AuthzProvider) {
+    AuthzProvider.addAll({
+        "program_add": "{author}",
+        "program_del": "{program_add}",
+        "program_dup": "{admin}",
+        "program_edit": "{program_add}",
+        "program_node_edit": "{program_edit}",
+        "program_state": "{admin}",
+    });
+})
+
+
+.config(function(AuthzProvider) {
+    AuthzProvider.addAll({
+        "report_chart": "{consultant}",
+        "report_temporal": "{report_temporal_full}",
+        "report_temporal_full": "{consultant}",
+        "response_edit": "{submission_edit}",
+        "response_view": "{response_edit}",
+        "submission_add": "{consultant} or ({clerk} and {_own_org})",
+        "submission_del": "{submission_edit}",
+        "submission_browse": "{submission_browse_any} or ({clerk} and {_own_org})",
+        "submission_browse_any": "{consultant}",
+        "submission_edit": "{consultant} or ({org_admin} and {_own_org})",
+        "submission_view_single_score": "{consultant} or ({org_admin} and {_own_org})",
+        "submission_view_aggregate_score": "{submission_view_single_score}",
+    });
+})
 
 
 .controller('ProgramCtrl',
-        function($scope, Program, routeData, Editor, questionAuthz, hotkeys,
+        function($scope, Program, routeData, Editor, Authz, hotkeys,
                  $location, Notifications, Current, Survey, layout, format,
                  Organisation, Submission) {
 
@@ -106,7 +77,7 @@ angular.module('upmark.surveyQuestions', [
         $location.url('/2/programs');
     });
 
-    $scope.checkRole = questionAuthz(Current, $scope.program);
+    $scope.checkRole = Authz({program: $scope.program});
 
     $scope.toggleEditable = function() {
         $scope.program.$save({editable: !$scope.program.isEditable},
@@ -189,10 +160,10 @@ angular.module('upmark.surveyQuestions', [
         },
         controller: ['$scope', 'Current', 'Submission', 'Organisation',
                 '$location', 'format', 'Notifications', 'PurchasedSurvey',
-                'Structure', 'questionAuthz', 'Enqueue',
+                'Structure', 'Authz', 'Enqueue',
                 function($scope, current, Submission, Organisation,
                          $location, format, Notifications, PurchasedSurvey,
-                         Structure, authz, Enqueue) {
+                         Structure, Authz, Enqueue) {
 
             $scope.aSearch = {
                 organisation: null,
@@ -304,18 +275,21 @@ angular.module('upmark.surveyQuestions', [
                 }
             };
 
-            $scope.checkRole = authz(current, $scope.program);
+            $scope.checkRole = Authz({
+                program: $scope.program,
+                org: $scope.org,
+            });
         }]
     }
 }])
 
 
-.controller('ProgramListCtrl', ['$scope', 'questionAuthz', 'Program', 'Current',
+.controller('ProgramListCtrl', ['$scope', 'Authz', 'Program', 'Current',
         'layout',
-        function($scope, authz, Program, current, layout) {
+        function($scope, Authz, Program, current, layout) {
 
     $scope.layout = layout;
-    $scope.checkRole = authz(current, null);
+    $scope.checkRole = Authz({});
 
     $scope.search = {
         term: "",
@@ -724,9 +698,9 @@ angular.module('upmark.surveyQuestions', [
 
 
 .controller('SurveyChoiceCtrl', [
-        '$scope', 'routeData', 'Structure', 'questionAuthz', 'Current',
+        '$scope', 'routeData', 'Structure', 'Authz', 'Current',
         'Survey', 'layout', '$location', 'Roles',
-        function($scope, routeData, Structure, questionAuthz, current,
+        function($scope, routeData, Structure, Authz, current,
                  Survey, layout, $location, Roles) {
     $scope.layout = layout;
     $scope.program = routeData.program;
@@ -738,15 +712,15 @@ angular.module('upmark.surveyQuestions', [
         $location.path('/2/survey/' + $scope.survey.id);
 
     $scope.Survey = Survey;
-    $scope.checkRole = questionAuthz(current, $scope.program);
+    $scope.checkRole = Authz({program: $scope.program});
 }])
 
 
 .controller('SurveyCtrl', [
-        '$scope', 'Survey', 'routeData', 'Editor', 'questionAuthz', 'layout',
+        '$scope', 'Survey', 'routeData', 'Editor', 'Authz', 'layout',
         '$location', 'Current', 'format', 'QuestionNode', 'Structure',
         'Notifications', 'download',
-        function($scope, Survey, routeData, Editor, authz, layout,
+        function($scope, Survey, routeData, Editor, Authz, layout,
                  $location, current, format, QuestionNode, Structure,
                  Notifications, download) {
 
@@ -832,17 +806,17 @@ angular.module('upmark.surveyQuestions', [
         );
     };
 
-    $scope.checkRole = authz(current, $scope.program);
+    $scope.checkRole = Authz({program: $scope.program});
     $scope.QuestionNode = QuestionNode;
     $scope.Survey = Survey;
 }])
 
 
 .controller('QuestionNodeCtrl', [
-        '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
+        '$scope', 'QuestionNode', 'routeData', 'Editor', 'Authz',
         '$location', 'Notifications', 'Current', 'format', 'Structure',
         'layout', 'Arrays', 'ResponseNode', '$timeout', '$route',
-        function($scope, QuestionNode, routeData, Editor, authz,
+        function($scope, QuestionNode, routeData, Editor, Authz,
                  $location, Notifications, current, format, Structure,
                  layout, Arrays, ResponseNode, $timeout, $route) {
 
@@ -882,7 +856,10 @@ angular.module('upmark.surveyQuestions', [
         $scope.currentLevel = levels[$scope.structure.qnodes.length - 1];
         $scope.nextLevel = levels[$scope.structure.qnodes.length];
 
-        $scope.checkRole = authz(current, $scope.program, $scope.submission);
+        $scope.checkRole = Authz({
+            program: $scope.program,
+            submission: $scope.submission,
+        });
         $scope.editable = ($scope.program.isEditable &&
             !$scope.structure.deletedItem &&
             !$scope.submission &&
@@ -1129,11 +1106,11 @@ angular.module('upmark.surveyQuestions', [
 
 
 .controller('StatisticsCtrl', [
-        '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
+        '$scope', 'QuestionNode', 'routeData', 'Editor', 'Authz',
         '$location', 'Notifications', 'Current', 'format', 'Structure',
         'layout', 'Arrays', 'ResponseNode', 'Statistics', 'Submission',
         '$timeout',
-        function($scope, QuestionNode, routeData, Editor, authz,
+        function($scope, QuestionNode, routeData, Editor, Authz,
                  $location, Notifications, current, format, Structure,
                  layout, Arrays, ResponseNode, Statistics, Submission,
                  $timeout) {
@@ -1892,10 +1869,10 @@ angular.module('upmark.surveyQuestions', [
 
 
 .controller('DiffCtrl', [
-        '$scope', 'QuestionNode', 'routeData', 'Editor', 'questionAuthz',
+        '$scope', 'QuestionNode', 'routeData', 'Editor',
         '$location', 'Notifications', 'Current', 'format', 'Structure',
         'Enqueue', 'Diff', '$timeout',
-        function($scope, QuestionNode, routeData, Editor, authz,
+        function($scope, QuestionNode, routeData, Editor,
                  $location, Notifications, current, format, Structure,
                  Enqueue, Diff, $timeout) {
 
@@ -1973,10 +1950,10 @@ angular.module('upmark.surveyQuestions', [
 
 
 .controller('QnodeLinkCtrl', [
-        '$scope', 'QuestionNode', 'routeData', 'questionAuthz',
+        '$scope', 'QuestionNode', 'routeData', 'Authz',
         '$location', 'Notifications', 'Current', 'format',
         'layout', 'Structure',
-        function($scope, QuestionNode, routeData, authz,
+        function($scope, QuestionNode, routeData, Authz,
                  $location, Notifications, current, format,
                  layout, Structure) {
 
@@ -2033,16 +2010,16 @@ angular.module('upmark.surveyQuestions', [
         });
     }, true);
 
-    $scope.checkRole = authz(current, $scope.program);
+    $scope.checkRole = Authz({program: $scope.program});
     $scope.QuestionNode = QuestionNode;
 }])
 
 
 .controller('MeasureLinkCtrl', [
-        '$scope', 'QuestionNode', 'routeData', 'questionAuthz',
+        '$scope', 'QuestionNode', 'routeData', 'Authz',
         '$location', 'Notifications', 'Current', 'format',
         'Measure', 'layout',
-        function($scope, QuestionNode, routeData, authz,
+        function($scope, QuestionNode, routeData, Authz,
                  $location, Notifications, current, format,
                  Measure, layout) {
 
@@ -2091,7 +2068,7 @@ angular.module('upmark.surveyQuestions', [
         });
     }, true);
 
-    $scope.checkRole = authz(current, $scope.program);
+    $scope.checkRole = Authz({program: $scope.program});
     $scope.QuestionNode = QuestionNode;
     $scope.Measure = Measure;
 }])
