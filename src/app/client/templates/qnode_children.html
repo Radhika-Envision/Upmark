@@ -57,7 +57,7 @@
             </td>
             <td class="shrink text-muted numeric" title="Score"
                     ng-if="submission &&
-                           checkRole('view_aggregate_score') &&
+                           checkRole('submission_view_aggregate_score') &&
                            !structure.program.hideAggregate">
                 <span>{{getStats(item.id).score | number:0}}</span
                 ><span ng-if="!structure.program.hideAggregate"
@@ -68,7 +68,7 @@
                 >
             </td>
             <td class="shrink text-muted numeric" title="Weight"
-                    ng-if="!submission && checkRole('view_aggregate_score')">
+                    ng-if="!submission && checkRole('submission_view_aggregate_score')">
                 {{item.totalWeight | number:0}}
             </td>
             <td class="shrink" ng-if="submission">

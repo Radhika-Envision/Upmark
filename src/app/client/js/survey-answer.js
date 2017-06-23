@@ -41,7 +41,7 @@ angular.module('upmark.surveyAnswers', ['ngResource', 'upmark.admin',
 
 
 .controller('SubmissionCtrl',
-        function($scope, Submission, Survey, routeData, Editor, questionAuthz,
+        function($scope, Submission, Survey, routeData, Editor, Authz,
              layout, $location, Current, format, $filter, Notifications,
              Structure, LocationSearch, download) {
 
@@ -135,7 +135,10 @@ angular.module('upmark.surveyAnswers', ['ngResource', 'upmark.admin',
             '/2/program/{}', $scope.program.id));
     });
 
-    $scope.checkRole = questionAuthz(Current, $scope.program, $scope.submission);
+    $scope.checkRole = Authz({
+        program: $scope.program,
+        submission: $scope.submission,
+    });
 
     $scope.download = function(namePattern, url, data) {
         $scope.headerMessage = "Generating report"
@@ -486,13 +489,10 @@ angular.module('upmark.surveyAnswers', ['ngResource', 'upmark.admin',
 }])
 
 
-.controller('SubmissionImportCtrl', [
-        '$scope', 'Submission', 'Survey', 'routeData', 'Editor',
-        'questionAuthz', 'layout', '$location', 'Current', 'format', '$filter',
-        'Notifications', '$http', '$cookies', '$timeout',
-        function($scope, Submission, Survey, routeData, Editor, authz,
-                 layout, $location, current, format, $filter, Notifications,
-                 $http, $cookies, $timeout) {
+.controller('SubmissionImportCtrl', function(
+        $scope, Submission, Survey, routeData, Editor, Authz,
+        layout, $location, format, $filter, Notifications,
+        $http, $cookies, $timeout) {
 
     $scope.program = routeData.program;
     $scope.surveys = routeData.surveys;
@@ -583,8 +583,8 @@ angular.module('upmark.surveyAnswers', ['ngResource', 'upmark.admin',
         $scope.$apply();
     });
 
-    $scope.checkRole = authz(current, $scope.submission);
-}])
+    $scope.checkRole = Authz({submission: $scope.submission});
+})
 
 
 ;

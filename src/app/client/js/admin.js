@@ -123,60 +123,28 @@ angular.module('upmark.admin', [
 
 .config(function(AuthzProvider) {
     AuthzProvider.addAll({
-        "_own_user": "user.id == s.user.id",
-        "_own_org": "org.id == s.org.id",
-        "user_add": "s.has_role('admin') or (s.has_role('org_admin') and {_own_org})",
-        "user_edit": "{user_add} or {_own_user}",
-        "user_del": "{user_add} and not {_own_user}",
-        "user_enable": "{user_add}",
-        "user_impersonate": "{user_add} and not {_own_user} and s.superuser",
-        "user_change_org": "s.has_role('admin')",
+        "admin": "s.has_role('admin')",
+        "author": "s.has_role('author')",
+        "authority": "s.has_role('authority')",
+        "consultant": "s.has_role('consultant')",
+        "org_admin": "s.has_role('org_admin')",
+        "clerk": "s.has_role('clerk')",
     });
 })
 
 
-.factory('userAuthz', ['Roles', function(Roles) {
-    return function(current, user, org) {
-        return function(functionName) {
-            if (!current.$resolved)
-                return false;
-            switch(functionName) {
-                case 'user_add':
-                    if (Roles.hasPermission(current.user.role, 'admin'))
-                        return true;
-                    if (!Roles.hasPermission(current.user.role, 'org_admin'))
-                        return false;
-                    return !org || org.id == current.user.organisation.id;
-                    break;
-                case 'user_enable':
-                case 'user_del':
-                    if (current.user.id == user.id)
-                        return false;
-                    // fall-through
-                case 'user_edit':
-                    if (Roles.hasPermission(current.user.role, 'admin'))
-                        return true;
-                    if (current.user.id == user.id)
-                        return true;
-                    if (current.user.organisation.id != user.organisation.id)
-                        return false;
-                    return Roles.hasPermission(current.user.role, 'org_admin');
-                    break;
-                case 'user_impersonate':
-                    if (!user.id)
-                        return false;
-                    if (current.user.id == user.id)
-                        return false;
-                    return current.superuser;
-                    break;
-                case 'user_change_org':
-                    return Roles.hasPermission(current.user.role, 'admin');
-                    break;
-            }
-            return false;
-        };
-    };
-}])
+.config(function(AuthzProvider) {
+    AuthzProvider.addAll({
+        "_own_user": "user.id == s.user.id",
+        "_own_org": "org.id == s.org.id",
+        "user_add": "{admin} or ({org_admin} and {_own_org})",
+        "user_edit": "{user_add} or {_own_user}",
+        "user_del": "{user_add} and not {_own_user}",
+        "user_enable": "{user_add}",
+        "user_impersonate": "{user_add} and not {_own_user} and s.superuser",
+        "user_change_org": "{admin}",
+    });
+})
 
 
 .controller('UserCtrl', [
@@ -263,12 +231,12 @@ angular.module('upmark.admin', [
 }])
 
 
-.controller('UserListCtrl', ['$scope', 'userAuthz', 'User', 'Current',
+.controller('UserListCtrl', ['$scope', 'Authz', 'User', 'Current',
             'Notifications', '$q',
-        function($scope, userAuthz, User, Current, Notifications, $q) {
+        function($scope, Authz, User, Current, Notifications, $q) {
 
     $scope.users = null;
-    $scope.checkRole = userAuthz(Current, null, $scope.org);
+    $scope.checkRole = Authz({org: $scope.org});
 
     $scope.search = {
         term: "",
@@ -307,46 +275,20 @@ angular.module('upmark.admin', [
 }])
 
 
-.factory('orgAuthz', ['Roles', function(Roles) {
-    return function(current, org) {
-        return function(functionName) {
-            if (!current.$resolved)
-                return false;
-            switch(functionName) {
-                case 'org_del':
-                    if (current.user.organisation.id == org.id)
-                        return false;
-                    return Roles.hasPermission(current.user.role, 'admin');
-                    break;
-                case 'org_add':
-                    return Roles.hasPermission(current.user.role, 'admin');
-                    break;
-                case 'org_modify':
-                    if (Roles.hasPermission(current.user.role, 'admin'))
-                        return true;
-                    if (current.user.organisation.id != org.id)
-                        return false;
-                    return Roles.hasPermission(current.user.role, 'org_admin');
-                    break;
-                case 'submission_browse':
-                    if (current.user.organisation.id == org.id)
-                        return true;
-                    return Roles.hasPermission(current.user.role, 'consultant');
-                    break;
-                case 'survey_purchase':
-                    return Roles.hasPermission(current.user.role, 'admin');
-                    break;
-            }
-            return false;
-        };
-    };
-}])
+.config(function(AuthzProvider) {
+    AuthzProvider.addAll({
+        "org_add": "{admin}",
+        "org_del": "{org_add} and not {_own_org}",
+        "org_edit": "{org_add} or ({org_admin} and {_own_org})",
+        "survey_purchase": "{admin}",
+    });
+})
 
 
 .controller('OrganisationCtrl', [
-        '$scope', 'Organisation', 'org', 'Editor', 'orgAuthz', 'User',
+        '$scope', 'Organisation', 'org', 'Editor', 'Authz', 'User',
         '$location', 'Current', 'LocationSearch',
-        function($scope, Organisation, org, Editor, orgAuthz, User,
+        function($scope, Organisation, org, Editor, Authz, User,
             $location, Current, LocationSearch) {
 
     $scope.edit = Editor('org', $scope);
@@ -438,7 +380,7 @@ angular.module('upmark.admin', [
         desc: "None",
     }];
 
-    $scope.checkRole = orgAuthz(Current, $scope.org);
+    $scope.checkRole = Authz({org: $scope.org});
 }])
 
 
@@ -523,12 +465,12 @@ angular.module('upmark.admin', [
 
 
 .controller('OrganisationListCtrl', [
-            '$scope', 'orgAuthz', 'Organisation', 'Notifications', 'Current',
+            '$scope', 'Authz', 'Organisation', 'Notifications', 'Current',
             '$q',
-        function($scope, orgAuthz, Organisation, Notifications, Current, $q) {
+        function($scope, Authz, Organisation, Notifications, Current, $q) {
 
     $scope.orgs = null;
-    $scope.checkRole = orgAuthz(Current, null);
+    $scope.checkRole = Authz({});
 
     $scope.search = {
         term: "",
@@ -551,22 +493,16 @@ angular.module('upmark.admin', [
 }])
 
 
-.factory('confAuthz', ['Roles', function(Roles) {
-    return function(current) {
-        return function(functionName) {
-            switch (functionName) {
-                case 'custom_query':
-                    return Roles.hasPermission(current.user.role, 'consultant');
-                default:
-                    return Roles.hasPermission(current.user.role, 'admin');
-            }
-        };
-    };
-}])
+.config(function(AuthzProvider) {
+    AuthzProvider.addAll({
+        "custom_query": "{admin}",
+        "conf_edit": "{admin}",
+    });
+})
 
 
 .controller('SystemConfigCtrl',
-        function($scope, SystemConfig, Editor, confAuthz, Current,
+        function($scope, SystemConfig, Editor, Authz, Current,
             systemConfig, $q, Notifications, $window) {
 
     $scope.edit = Editor('systemConfig', $scope);
@@ -600,7 +536,7 @@ angular.module('upmark.admin', [
         );
     };
 
-    $scope.checkRole = confAuthz(Current);
+    $scope.checkRole = Authz({});
 })
 
 
