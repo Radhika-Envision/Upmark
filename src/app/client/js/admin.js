@@ -1,7 +1,8 @@
 'use strict';
 
 angular.module('upmark.admin', [
-    'ngResource', 'ngSanitize', 'ui.select', 'ngCookies', 'color.picker'])
+    'ngResource', 'ngSanitize', 'ui.select', 'ngCookies', 'color.picker',
+    'upmark.authz'])
 
 .factory('User', ['$resource', 'paged', function($resource, paged) {
     return $resource('/user/:id.json', {id: '@id'}, {
@@ -120,6 +121,20 @@ angular.module('upmark.admin', [
 }])
 
 
+.config(function(AuthzProvider) {
+    AuthzProvider.addAll({
+        "_own_user": "user.id == s.user.id",
+        "_own_org": "org.id == s.org.id",
+        "user_add": "s.has_role('admin') or (s.has_role('org_admin') and {_own_org})",
+        "user_edit": "{user_add} or {_own_user}",
+        "user_del": "{user_add} and not {_own_user}",
+        "user_enable": "{user_add}",
+        "user_impersonate": "{user_add} and not {_own_user} and s.superuser",
+        "user_change_org": "s.has_role('admin')",
+    });
+})
+
+
 .factory('userAuthz', ['Roles', function(Roles) {
     return function(current, user, org) {
         return function(functionName) {
@@ -165,10 +180,10 @@ angular.module('upmark.admin', [
 
 
 .controller('UserCtrl', [
-        '$scope', 'User', 'routeData', 'Editor', 'Organisation', 'userAuthz',
+        '$scope', 'User', 'routeData', 'Editor', 'Organisation', 'Authz',
         '$window', '$location', 'log', 'Notifications', 'Current', '$q',
         'Password', 'format',
-        function($scope, User, routeData, Editor, Organisation, userAuthz,
+        function($scope, User, routeData, Editor, Organisation, Authz,
                  $window, $location, log, Notifications, Current, $q,
                  Password, format) {
 
@@ -214,7 +229,7 @@ angular.module('upmark.admin', [
         return Organisation.query({term: term}).$promise;
     };
 
-    $scope.checkRole = userAuthz(Current, $scope.user);
+    $scope.checkRole = Authz({user: $scope.user});
 
     $scope.impersonate = function() {
         User.impersonate({id: $scope.user.id}).$promise.then(
