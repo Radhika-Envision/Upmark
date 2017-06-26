@@ -15,7 +15,7 @@ angular.module('upmark', [
     'upmark.authz',
     'upmark.custom',
     'upmark.home',
-    'upmark.response',
+    'upmark.response.type',
     'upmark.settings',
     'upmark.subscription',
     'upmark.submission',

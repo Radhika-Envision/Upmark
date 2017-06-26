@@ -71,7 +71,7 @@
         - /js/authz.js
         - /js/custom.js
         - /js/home.js
-        - /js/response.js
+        - /js/response-type.js
         - /js/subscription.js
         - /js/submission.js
         - /js/survey-answer.js

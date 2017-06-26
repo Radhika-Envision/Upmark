@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('upmark.response', ['ngResource', 'upmark.admin'])
+angular.module('upmark.response.type', ['ngResource', 'upmark.admin'])
 
 
 .factory('responseTypes', function() {
