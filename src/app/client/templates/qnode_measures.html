@@ -10,15 +10,17 @@
             <i class="fa fa-fw fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Change order"
                 ng-click="edit.edit()"
-                ng-if="editable && model.length > 1 && !edit.model">
+                ng-if="editable && model.length > 1 && !edit.model &&
+                       checkRole('qnode_edit')">
             <i class="fa fa-fw fa-unsorted"></i></button>
         <a class="btn btn-default btn-round" title="Add new"
                 ng-href="#/2/measure/new?program={{program.id}}&parent={{qnode.id}}"
-                ng-if="editable && !edit.model">
+                ng-if="editable && !edit.model &&
+                       checkRole('measure_add') && checkRole('qnode_edit')">
             <i class="fa fa-fw fa-plus"></i></a>
         <a class="btn btn-default btn-round" title="Link to existing"
                 ng-href="#/2/measure-link?program={{program.id}}&parent={{qnode.id}}"
-                ng-if="editable && !edit.model">
+                ng-if="editable && !edit.model && checkRole('qnode_edit')">
             <i class="fa fa-fw fa-link"></i></a>
     </div>
     <h2 label="{{level.label}}" ng-class="'program-' + level.level">

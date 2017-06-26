@@ -30,7 +30,7 @@
             <i class="fa fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
-                ng-if="editable && !edit.model">
+                ng-if="editable && !edit.model && checkRole('measure_edit')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
                 ng-href="#/2/subscription/measure?id={{measure.id}}&id={{program.id}}"

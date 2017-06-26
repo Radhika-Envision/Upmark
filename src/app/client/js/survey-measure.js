@@ -219,7 +219,7 @@ angular.module('upmark.survey.measure', [
         });
         $scope.editable = ($scope.program.isEditable &&
             !$scope.structure.deletedItem &&
-            !$scope.submission && $scope.checkRole('measure_edit'));
+            !$scope.submission);
     });
 
     var rtDefChanged = Enqueue(function() {

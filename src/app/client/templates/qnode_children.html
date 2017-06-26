@@ -11,15 +11,16 @@
         <button class="btn btn-default btn-round" title="Change order"
                 ng-click="edit.edit()"
                 ng-if="editable && model.length > 1 &&
-                       !edit.model && search.deleted === false">
+                       !edit.model && search.deleted === false &&
+                       checkRole('qnode_edit')">
             <i class="fa fa-fw fa-unsorted"></i></button>
         <a class="btn btn-default btn-round" title="Add new"
                 ng-href="#/2/qnode/new?{{query}}&parent={{qnode.id}}"
-                ng-if="editable && !edit.model">
+                ng-if="editable && !edit.model && checkRole('qnode_add')">
             <i class="fa fa-fw fa-plus"></i></a>
         <a class="btn btn-default btn-round" title="Link to existing"
                 ng-href="#/2/qnode-link?{{query}}&parent={{qnode.id}}"
-                ng-if="editable && !edit.model">
+                ng-if="editable && !edit.model && checkRole('qnode_add')">
             <i class="fa fa-fw fa-link"></i></a>
         <delete-cycle class="btn-round" model="search.deleted"
             ng-if="!edit.model"></delete-cycle>

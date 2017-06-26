@@ -14,6 +14,18 @@ angular.module('upmark.surveyQuestions', [
         "program_edit": "{program_add}",
         "program_node_edit": "{program_edit}",
         "program_state": "{admin}",
+        "survey_add": "{program_edit}",
+        "survey_edit": "{program_edit}",
+        "survey_del": "{program_edit}",
+        "qnode_add": "{program_edit}",
+        "qnode_edit": "{program_edit}",
+        "qnode_del": "{program_edit}",
+        "measure_add": "{program_edit}",
+        "measure_edit": "{program_edit}",
+        "measure_del": "{program_edit}",
+        "response_type_add": "{program_edit}",
+        "response_type_edit": "{program_edit}",
+        "response_type_del": "{program_edit}",
     });
 })
 
@@ -862,8 +874,7 @@ angular.module('upmark.surveyQuestions', [
         });
         $scope.editable = ($scope.program.isEditable &&
             !$scope.structure.deletedItem &&
-            !$scope.submission &&
-            $scope.checkRole('program_node_edit'));
+            !$scope.submission);
     });
 
     $scope.$on('EditSaved', function(event, model) {
