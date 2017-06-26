@@ -4,6 +4,22 @@ angular.module('upmark.survey.measure', [
     'upmark.surveyQuestions', 'upmark.survey.services', 'upmark.response'])
 
 
+.factory('Measure', ['$resource', 'paged', function($resource, paged) {
+    return $resource('/measure/:id.json?surveyId=:surveyId', {id: '@id'}, {
+        get: { method: 'GET', cache: false },
+        create: { method: 'POST' },
+        save: { method: 'PUT' },
+        query: {
+            method: 'GET', isArray: true, cache: false,
+            interceptor: {response: paged}
+        },
+        reorder: { method: 'PUT', isArray: true },
+        history: { method: 'GET', url: '/measure/:id/program.json',
+            isArray: true, cache: false }
+    });
+}])
+
+
 .controller('MeasureCtrl',
         function($scope, Measure, routeData, Editor, Authz,
                  $location, Notifications, Current, Program, format, layout,

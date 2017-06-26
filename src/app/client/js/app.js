@@ -18,6 +18,8 @@ angular.module('upmark', [
     'upmark.response',
     'upmark.settings',
     'upmark.subscription',
+    'upmark.submission',
+    'upmark.survey.qnode',
     'upmark.surveyAnswers',
     'upmark.surveyQuestions',
     'upmark.survey.measure',
