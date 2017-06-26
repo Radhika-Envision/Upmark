@@ -1087,7 +1087,7 @@ angular.module('upmark', [
             return Roles.hasPermission(current.user.role, role);
         };
     });
-    Authz.baseContext.s = session;
+    Authz.rootPolicy.context.s = session;
 })
 
 

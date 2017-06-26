@@ -2,74 +2,246 @@
 # Top-level categories are not used: they are all merged into one flat
 # dictionary.
 
-roles:
-    admin: 's.has_role("admin")'
-    author: 's.has_role("author")'
-    authority: 's.has_role("authority")'
-    clerk: 's.has_role("clerk")'
-    consultant: 's.has_role("consultant")'
-    org_admin: 's.has_role("org_admin")'
 
-admin:
-    conf_edit: '{admin}'
+# Roles
 
-user:
-    _own_user: 'user.id == s.user.id'
-    user_add: '{admin} or ({org_admin} and {_own_org})'
-    user_change_org: '{admin}'
-    user_del: '{user_add} and not {_own_user}'
-    user_edit: '{user_add} or {_own_user}'
-    user_enable: '{user_add}'
-    user_impersonate: '{user_add} and not {_own_user} and s.superuser'
+ - name: admin
+   description: "the administrator role "
+   rule: 's.has_role("admin")'
 
-org:
-    _own_org: 'org.id == s.org.id'
-    org_add: '{admin}'
-    org_del: '{org_add} and not {_own_org}'
-    org_edit: '{org_add} or ({org_admin} and {_own_org})'
-    survey_purchase: '{admin}'
+ - name: author
+   description: "the author role"
+   rule: 's.has_role("author")'
 
-post:
-    _own_post: 'post.org_id == s.org.id'
-    post_new: '{org_admin}'
-    post_to_all: '{admin}'
-    post_edit: '{admin} or ({org_admin} and {_own_post})'
-    post_edit_try: '{org_admin}'
+ - name: authority
+   description: "authority role"
+   rule: 's.has_role("authority")'
 
-survey:
-    measure_add: '{program_edit}'
-    measure_del: '{program_edit}'
-    measure_edit: '{program_edit}'
-    program_add: '{author}'
-    program_del: '{program_add}'
-    program_dup: '{admin}'
-    program_edit: '{program_add}'
-    program_node_edit: '{program_edit}'
-    program_state: '{admin}'
-    qnode_add: '{program_edit}'
-    qnode_del: '{program_edit}'
-    qnode_edit: '{program_edit}'
-    response_type_add: '{program_edit}'
-    response_type_del: '{program_edit}'
-    response_type_edit: '{program_edit}'
-    survey_add: '{program_edit}'
-    survey_del: '{program_edit}'
-    survey_edit: '{program_edit}'
-    survey_purchase: '{admin}'
+ - name: clerk
+   description: "the clerk role"
+   rule: 's.has_role("clerk")'
 
-submission:
-    response_edit: '{submission_edit}'
-    response_view: '{response_edit}'
-    submission_add: '{consultant} or ({clerk} and {_own_org})'
-    submission_browse: '{submission_browse_any} or ({clerk} and {_own_org})'
-    submission_browse_any: '{consultant}'
-    submission_del: '{submission_edit}'
-    submission_edit: '{consultant} or ({org_admin} and {_own_org})'
-    submission_view_aggregate_score: '{submission_view_single_score}'
-    submission_view_single_score: '{consultant} or ({org_admin} and {_own_org})'
+ - name: consultant
+   description: "the consultant role"
+   rule: 's.has_role("consultant")'
 
-report:
-    custom_query: '{admin}'
-    report_chart: '{consultant}'
-    report_temporal: '{report_temporal_full}'
-    report_temporal_full: '{consultant}'
+ - name: org_admin
+   description: "the organisation admin role"
+   rule: 's.has_role("org_admin")'
+
+
+# Admin
+
+ - name: conf_edit
+   description: "permission to edit system config"
+   rule: '@admin'
+
+
+# User
+
+ - name: _own_user
+   description: "you are the owner"
+   rule: 'user.id == s.user.id'
+
+ - name: user_add
+   description: "permission to add a new user"
+   rule: '@admin or (@org_admin and @_own_org)'
+
+ - name: user_change_org
+   description: "permission to change a user's organisation"
+   rule: '@admin'
+
+ - name: user_del
+   description: "permission to delete a user"
+   rule: '@user_add and not @_own_user'
+
+ - name: user_edit
+   description: "permission to modify a user"
+   rule: '@user_add or @_own_user'
+
+ - name: user_enable
+   description: "permission to enable a user's account"
+   rule: '@user_add'
+
+ - name: user_impersonate
+   description: "permission to impersonate another user"
+   rule: '@user_add and not @_own_user and s.superuser'
+
+
+# Organisation
+
+ - name: _own_org
+   description: "you are a member of the organisation"
+   rule: 'org.id == s.org.id'
+
+ - name: org_add
+   description: "permission to add a new organisation"
+   rule: '@admin'
+
+ - name: org_del
+   description: "permission to delete an organisation"
+   rule: '@org_add and not @_own_org'
+
+ - name: org_edit
+   description: "permission to edit an organisation"
+   rule: '@org_add or (@org_admin and @_own_org)'
+
+
+# Post
+
+ - name: _own_post
+   description: "the post belongs to your organisation"
+   rule: 'post.org_id == s.org.id'
+
+ - name: post_new
+   description: "permission to broadcast a message"
+   rule: '@org_admin'
+
+ - name: post_to_all
+   description: "permission to broadcast a message to everyone"
+   rule: '@admin'
+
+ - name: post_edit
+   description: "permission to edit a post"
+   rule: '@admin or (@org_admin and @_own_post)'
+
+ - name: post_edit_try
+   description: "permission to attempt to edit a post"
+   rule: '@org_admin'
+
+
+# Survey
+
+ - name: measure_add
+   description: "permission to add a new measure"
+   rule: '@program_edit'
+
+ - name: measure_del
+   description: "permission to delete a measure"
+   rule: '@program_edit'
+
+ - name: measure_edit
+   description: "permission to edit a measure"
+   rule: '@program_edit'
+
+ - name: program_add
+   description: "permission to add a new program"
+   rule: '@author'
+
+ - name: program_del
+   description: "permission to delete a program"
+   rule: '@program_add'
+
+ - name: program_dup
+   description: "permission to duplicate a program"
+   rule: '@admin'
+
+ - name: program_edit
+   description: "permission to edit a program"
+   rule: '@program_add'
+
+ - name: program_node_edit
+   description: "permission to edit a program node"
+   rule: '@program_edit'
+
+ - name: program_state
+   description: "permission to change a program's state"
+   rule: '@admin'
+
+ - name: qnode_add
+   description: "permission to add a new category"
+   rule: '@program_edit'
+
+ - name: qnode_del
+   description: "permission to delete a category"
+   rule: '@program_edit'
+
+ - name: qnode_edit
+   description: "permission to edit a category"
+   rule: '@program_edit'
+
+ - name: response_type_add
+   description: "permission to add a new response type"
+   rule: '@program_edit'
+
+ - name: response_type_del
+   description: "permission to delete a response type"
+   rule: '@program_edit'
+
+ - name: response_type_edit
+   description: "permission to edit a response type"
+   rule: '@program_edit'
+
+ - name: survey_add
+   description: "permission to create a survey"
+   rule: '@program_edit'
+
+ - name: survey_del
+   description: "permission to deleta a survey"
+   rule: '@program_edit'
+
+ - name: survey_edit
+   description: "permission to edit a survey"
+   rule: '@program_edit'
+
+ - name: survey_purchase
+   description: "permission to give access to a survey"
+   rule: '@admin'
+
+
+# Submission
+
+ - name: response_edit
+   description: "permission to edit a response"
+   rule: '@submission_edit'
+
+ - name: response_view
+   description: "permission to view a response"
+   rule: '@response_edit'
+
+ - name: submission_add
+   description: "permission to create a submission"
+   rule: '@consultant or (@clerk and @_own_org)'
+
+ - name: submission_browse
+   description: "permission to browse submissions"
+   rule: '@submission_browse_any or (@clerk and @_own_org)'
+
+ - name: submission_browse_any
+   description: "permission to browse all submissions"
+   rule: '@consultant'
+
+ - name: submission_del
+   description: "permission to delete a submission"
+   rule: '@submission_edit'
+
+ - name: submission_edit
+   description: "permission to edit a submission"
+   rule: '@consultant or (@org_admin and @_own_org)'
+
+ - name: submission_view_aggregate_score
+   description: "permission to view aggregate scores"
+   rule: '@submission_view_single_score'
+
+ - name: submission_view_single_score
+   description: "permission to view a single score"
+   rule: '@consultant or (@org_admin and @_own_org)'
+
+
+# Report
+
+ - name: custom_query
+   description: "permission to run a custom report"
+   rule: '@admin'
+
+ - name: report_chart
+   description: "permission to view a chart"
+   rule: '@consultant'
+
+ - name: report_temporal
+   description: "permission to view a temporal report"
+   rule: '@report_temporal_full'
+
+ - name: report_temporal_full
+   description: "permission to view a temporal report"
+   rule: '@consultant'

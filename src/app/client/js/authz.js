@@ -3,65 +3,69 @@
 angular.module('upmark.authz', [])
 
 
-.provider('Authz', function AuthzProvider() {
-    this.policies = {};
+.factory('Authz', function($parse) {
 
-    this.addAll = function(policies) {
-        angular.extend(this.policies, policies);
-    };
-
-    this.$get = function($parse) {
-        var compiledPolicies = {};
-        angular.forEach(this.policies, function(definition, name) {
-            compiledPolicies[name] = new Policy($parse, name, definition);
-        });
-
-         var Authz = function(context) {
-            context = angular.extend({}, Authz.baseContext, context);
-            function _authz(policyName) {
-                var policy = compiledPolicies[policyName];
-                if (!policy) {
-                    throw new AuthzError("Unknown policy '" + policyName + "'");
-                }
-                return policy.check(authz.context);
-            };
-            function authz(policyName) {
-                try {
-                    return _authz(policyName);
-                } catch (e) {
-                    throw new AuthzError(
-                        "Error while evaluating " + policyName + ": " + e);
-                }
-            };
-            authz.context = context;
-            context.$authz = _authz;
-            return authz;
+    function Policy() {
+        this.rules = {};
+        this.context = {};
+        var that = this;
+        this.context['$authz'] = function(ruleName) {
+            return that._check(ruleName);
         };
-        Authz.baseContext = {};
-        return Authz;
+    };
+    Policy.prototype.declare = function(decl) {
+        var rule = new Rule(decl.name, decl.description, decl.rule);
+        this.rules[rule.name] = rule;
+    };
+    Policy.prototype.copy = function() {
+        var policy = new Policy();
+        angular.extend(policy.rules, this.rules);
+        angular.extend(policy.context, this.context);
+        return policy;
+    };
+    Policy.prototype.derive = function(context) {
+        var policy = this.copy();
+        angular.extend(policy.context, context);
+        return policy;
+    };
+    Policy.prototype._check = function(ruleName) {
+        var rule = this.rules[ruleName];
+        if (!rule)
+            throw new AuthzError("Unknown rule '" + ruleName + "'");
+        return rule.check(this.context);
+    };
+    Policy.prototype.check = function(ruleName) {
+        try {
+            return this._check(ruleName);
+        } catch (e) {
+            throw new AuthzError(
+                "Error while evaluating " + ruleName + ": " + e);
+        }
     };
 
-    function Policy($parse, name, expression) {
+
+    function Rule(name, description, expression) {
         this.name = name;
+        this.description = description;
         this.expression = expression;
-        expression = this.translatePyExp(expression);
+        expression = this.translateExp(expression);
         expression = this.interpolate(expression);
         this.getter = $parse(expression);
     };
-    Policy.prototype.check = function(context) {
+    Rule.prototype.check = function(context) {
         return this.getter(context);
     };
-    Policy.prototype.translatePyExp = function(expression) {
+    Rule.prototype.translateExp = function(expression) {
         expression = expression.replace(/(^|\W)not($|\W)/g, '$1!');
         expression = expression.replace(/(^|\W)and($|\W)/g, '$1&&$2');
         expression = expression.replace(/(^|\W)or($|\W)/g, '$1||$2');
         return expression;
     };
-    Policy.prototype.interpolate = function(expression) {
-        expression = expression.replace(/\{(\w+)\}/g, '\$authz("$1")');
+    Rule.prototype.interpolate = function(expression) {
+        expression = expression.replace(/@(\w+)/g, '\$authz("$1")');
         return expression;
     };
-    Policy.prototype.toString = function() {
+    Rule.prototype.toString = function() {
         return this.expression;
     };
 
@@ -82,6 +86,17 @@ angular.module('upmark.authz', [])
     AuthzError.prototype.toString = function() {
         return this.message;
     };
+
+    // TODO: change this to just return the root policy (waiting on refactor
+    // elsewhere).
+    var policyFactory = function(context) {
+        var localPolicy = policyFactory.rootPolicy.derive(context);
+        return function(ruleName) {
+            return localPolicy.check(ruleName);
+        };
+    };
+    policyFactory.rootPolicy = new Policy();
+    return policyFactory;
 })
 
 ;

@@ -89,11 +89,7 @@ class TemplateParams:
     @property
     def authz_declarations(self):
         decls = config.get_resource('authz')
-        authz_decls = {}
-        # Flatten nested dictionary.
-        for ds in decls.values():
-            authz_decls.update(ds)
-        return json_encode(authz_decls)
+        return json_encode(decls)
 
     def prepare_resources(self, declarations):
         '''
