@@ -121,32 +121,6 @@ angular.module('upmark.admin', [
 }])
 
 
-.config(function(AuthzProvider) {
-    AuthzProvider.addAll({
-        "admin": "s.has_role('admin')",
-        "author": "s.has_role('author')",
-        "authority": "s.has_role('authority')",
-        "consultant": "s.has_role('consultant')",
-        "org_admin": "s.has_role('org_admin')",
-        "clerk": "s.has_role('clerk')",
-    });
-})
-
-
-.config(function(AuthzProvider) {
-    AuthzProvider.addAll({
-        "_own_user": "user.id == s.user.id",
-        "_own_org": "org.id == s.org.id",
-        "user_add": "{admin} or ({org_admin} and {_own_org})",
-        "user_edit": "{user_add} or {_own_user}",
-        "user_del": "{user_add} and not {_own_user}",
-        "user_enable": "{user_add}",
-        "user_impersonate": "{user_add} and not {_own_user} and s.superuser",
-        "user_change_org": "{admin}",
-    });
-})
-
-
 .controller('UserCtrl', [
         '$scope', 'User', 'routeData', 'Editor', 'Organisation', 'Authz',
         '$window', '$location', 'log', 'Notifications', 'Current', '$q',
@@ -273,16 +247,6 @@ angular.module('upmark.admin', [
         }
     }
 }])
-
-
-.config(function(AuthzProvider) {
-    AuthzProvider.addAll({
-        "org_add": "{admin}",
-        "org_del": "{org_add} and not {_own_org}",
-        "org_edit": "{org_add} or ({org_admin} and {_own_org})",
-        "survey_purchase": "{admin}",
-    });
-})
 
 
 .controller('OrganisationCtrl', [
@@ -491,14 +455,6 @@ angular.module('upmark.admin', [
         );
     }, true);
 }])
-
-
-.config(function(AuthzProvider) {
-    AuthzProvider.addAll({
-        "custom_query": "{admin}",
-        "conf_edit": "{admin}",
-    });
-})
 
 
 .controller('SystemConfigCtrl',

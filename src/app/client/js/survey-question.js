@@ -6,48 +6,6 @@ angular.module('upmark.surveyQuestions', [
     'upmark.admin', 'upmark.survey.services'])
 
 
-.config(function(AuthzProvider) {
-    AuthzProvider.addAll({
-        "program_add": "{author}",
-        "program_del": "{program_add}",
-        "program_dup": "{admin}",
-        "program_edit": "{program_add}",
-        "program_node_edit": "{program_edit}",
-        "program_state": "{admin}",
-        "survey_add": "{program_edit}",
-        "survey_edit": "{program_edit}",
-        "survey_del": "{program_edit}",
-        "qnode_add": "{program_edit}",
-        "qnode_edit": "{program_edit}",
-        "qnode_del": "{program_edit}",
-        "measure_add": "{program_edit}",
-        "measure_edit": "{program_edit}",
-        "measure_del": "{program_edit}",
-        "response_type_add": "{program_edit}",
-        "response_type_edit": "{program_edit}",
-        "response_type_del": "{program_edit}",
-    });
-})
-
-
-.config(function(AuthzProvider) {
-    AuthzProvider.addAll({
-        "report_chart": "{consultant}",
-        "report_temporal": "{report_temporal_full}",
-        "report_temporal_full": "{consultant}",
-        "response_edit": "{submission_edit}",
-        "response_view": "{response_edit}",
-        "submission_add": "{consultant} or ({clerk} and {_own_org})",
-        "submission_del": "{submission_edit}",
-        "submission_browse": "{submission_browse_any} or ({clerk} and {_own_org})",
-        "submission_browse_any": "{consultant}",
-        "submission_edit": "{consultant} or ({org_admin} and {_own_org})",
-        "submission_view_single_score": "{consultant} or ({org_admin} and {_own_org})",
-        "submission_view_aggregate_score": "{submission_view_single_score}",
-    });
-})
-
-
 .controller('ProgramCtrl',
         function($scope, Program, routeData, Editor, Authz, hotkeys,
                  $location, Notifications, Current, Survey, layout, format,

@@ -20,17 +20,6 @@ angular.module('upmark.home', ['ngResource', 'upmark.admin'])
 }])
 
 
-.config(function(AuthzProvider) {
-    AuthzProvider.addAll({
-        "_own_post": "post.org_id == s.org.id",
-        "post_new": "{org_admin}",
-        "post_to_all": "{admin}",
-        "post_edit": "{admin} or ({org_admin} and {_own_post})",
-        "post_edit_try": "{org_admin}",
-    });
-})
-
-
 .service('ActivityTransform', ['format', function(format) {
     this.verbs = function(action) {
         if (!action)
