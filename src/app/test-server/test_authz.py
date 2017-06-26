@@ -5,6 +5,7 @@ import pprint
 import unittest
 from unittest import mock
 
+from bunch import Bunch
 import sqlalchemy
 from sqlalchemy.sql import func
 from sqlalchemy.orm.session import make_transient
@@ -13,12 +14,64 @@ from tornado.testing import AsyncHTTPTestCase
 from tornado.web import Application
 
 import app
+import authz
 import base
 import model
 from utils import ToSon
 
 
 log = logging.getLogger('app.test.test_authz')
+
+
+class AuthzMechanismTest(unittest.TestCase):
+    def test_policy(self):
+        policy = authz.Policy()
+
+        policy.declare({
+            'name': 'admin',
+            'description': "the administrator role",
+            'rule': 's.has_role("admin")',
+        })
+        policy.declare({
+            'name': '_own_user',
+            'description': "you are the owner",
+            'rule': 'user.id == s.user.id',
+        })
+        policy.declare({
+            'name': 'user_add',
+            'description': "permission to add a new user",
+            'rule': '@admin or (@org_admin and @_own_org)',
+        })
+
+        user_policy = policy.derive({
+            's': Bunch(
+                has_role=lambda name: True,
+                user=Bunch(id='foo')
+            ),
+            'user': Bunch(id='foo')
+        })
+        self.assertEqual(user_policy.check('user_add'), True)
+
+        user_policy = policy.derive({
+            's': Bunch(
+                has_role=lambda name: False,
+                user=Bunch(id='foo')
+            ),
+            'user': Bunch(id='foo')
+        })
+        self.assertEqual(user_policy.check('user_add'), False)
+
+        user_policy = policy.derive({
+            's': Bunch(
+                has_role=lambda name: True,
+                user=Bunch(id='foo')
+            ),
+            'user': Bunch(id='bar')
+        })
+        self.assertEqual(user_policy.check('user_add'), False)
+
+        with self.assertRaises(authz.AuthzError):
+            user_policy.check('missing_rule')
 
 
 class StatisticsAuthzTest(base.AqHttpTestBase):
