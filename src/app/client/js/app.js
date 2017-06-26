@@ -12,6 +12,7 @@ angular.module('upmark', [
     'ui.bootstrap',
     'ui.bootstrap.showErrors',
     'upmark.admin',
+    'upmark.authz',
     'upmark.custom',
     'upmark.home',
     'upmark.response',
@@ -1071,6 +1072,25 @@ angular.module('upmark', [
 })
 
 
+.run(function(Authz, Current, Roles) {
+    var session = {
+        user: null,
+        org: null,
+        superuser: false,
+        has_role: null,
+    };
+    Current.$promise.then(function(current) {
+        session.user = current.user;
+        session.org = current.user.organisation;
+        session.superuser = current.superuser;
+        session.has_role = function(role) {
+            return Roles.hasPermission(current.user.role, role);
+        };
+    });
+    Authz.baseContext.s = session;
+})
+
+
 .config(function(timeAgoSettings) {
     var oneDay = 60 * 60 * 24;
     timeAgoSettings.allowFuture = true;
@@ -1115,10 +1135,9 @@ angular.module('upmark', [
         + " main site to this one. When that happens, changes you have"
         + " made here will be overwritten.";
 }])
-.controller('HeaderCtrl', ['$scope', 'confAuthz', 'Current',
-        function($scope, confAuthz, Current) {
-        $scope.checkRole = confAuthz(Current);
-}])
+.controller('HeaderCtrl', function($scope, Authz) {
+    $scope.checkRole = Authz({});
+})
 .controller('EmptyCtrl', ['$scope',
         function($scope) {
 }])

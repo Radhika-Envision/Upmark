@@ -22,7 +22,7 @@
                     'Only show editable programs' :
                     'Show both editable and finalised programs'}}"
                 ng-click="search.editable = !search.editable"
-                ng-if="checkRole(program_edit)">
+                ng-if="checkRole('program_edit')">
             <i class="fa fa-pencil-square-o">
                 <i ng-if="!search.editable"
                     class="fa fa-question-circle fa-badge fa-badge-left"></i>

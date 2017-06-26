@@ -20,25 +20,6 @@ angular.module('upmark.home', ['ngResource', 'upmark.admin'])
 }])
 
 
-.factory('homeAuthz', ['Roles', function(Roles) {
-    return function(current) {
-        return function(functionName) {
-            if (!current.$resolved)
-                return false;
-            switch(functionName) {
-                case 'post_message':
-                    return Roles.hasPermission(current.user.role, 'org_admin');
-                case 'post_to_all':
-                    return Roles.hasPermission(current.user.role, 'admin');
-                case 'modify_post':
-                    return Roles.hasPermission(current.user.role, 'org_admin');
-            }
-            return false;
-        };
-    };
-}])
-
-
 .service('ActivityTransform', ['format', function(format) {
     this.verbs = function(action) {
         if (!action)
@@ -214,10 +195,10 @@ angular.module('upmark.home', ['ngResource', 'upmark.admin'])
 
 
 .controller('HomeCtrl', ['$scope', 'Activity', 'Notifications', '$q', 'format',
-            'Current', 'homeAuthz', 'Card', 'hotkeys', 'ActivityTransform',
+            'Current', 'Authz', 'Card', 'hotkeys', 'ActivityTransform',
             'Enqueue',
         function($scope, Activity, Notifications, $q, format, Current,
-            homeAuthz, Card, hotkeys, ActivityTransform, Enqueue) {
+            Authz, Card, hotkeys, ActivityTransform, Enqueue) {
 
     $scope.acts = ActivityTransform;
     $scope.activity = null;
@@ -316,7 +297,7 @@ angular.module('upmark.home', ['ngResource', 'upmark.admin'])
         return url;
     };
 
-    $scope.checkRole = homeAuthz(Current);
+    $scope.checkRole = Authz({});
 
     $scope.showPost = false;
     $scope.togglePost = function() {

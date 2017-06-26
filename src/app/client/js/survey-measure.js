@@ -5,7 +5,7 @@ angular.module('upmark.survey.measure', [
 
 
 .controller('MeasureCtrl',
-        function($scope, Measure, routeData, Editor, questionAuthz,
+        function($scope, Measure, routeData, Editor, Authz,
                  $location, Notifications, Current, Program, format, layout,
                  Structure, Arrays, Response, hotkeys, $q, $timeout, $window,
                  responseTypes, ResponseType, Enqueue) {
@@ -213,10 +213,13 @@ angular.module('upmark.survey.measure', [
         }
     });
     $scope.$watch('structure.program', function(program) {
-        $scope.checkRole = questionAuthz(Current, $scope.program, $scope.submission);
+        $scope.checkRole = Authz({
+            program: $scope.program,
+            submission: $scope.submission,
+        });
         $scope.editable = ($scope.program.isEditable &&
             !$scope.structure.deletedItem &&
-            !$scope.submission && $scope.checkRole('measure_edit'));
+            !$scope.submission);
     });
 
     var rtDefChanged = Enqueue(function() {
@@ -384,11 +387,11 @@ angular.module('upmark.survey.measure', [
 
 
 .controller('MeasureListCtrl',
-        function($scope, questionAuthz, Measure, Current, layout, routeData,
+        function($scope, Authz, Measure, Current, layout, routeData,
             $routeParams) {
 
     $scope.layout = layout;
-    $scope.checkRole = questionAuthz(Current, null);
+    $scope.checkRole = Authz({});
     $scope.program = routeData.program;
 
     $scope.search = {
