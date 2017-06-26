@@ -2,6 +2,7 @@ import os
 import time
 
 from sqlalchemy import func
+from tornado.escape import json_encode
 import tornado.options
 import tornado.web
 
@@ -84,6 +85,15 @@ class TemplateParams:
         decls = config.get_resource('css_manifest')
         decls = config.deep_interpolate(decls, bower_versions)
         return self.prepare_resources(decls)
+
+    @property
+    def authz_declarations(self):
+        decls = config.get_resource('authz')
+        authz_decls = {}
+        # Flatten nested dictionary.
+        for ds in decls.values():
+            authz_decls.update(ds)
+        return json_encode(authz_decls)
 
     def prepare_resources(self, declarations):
         '''
