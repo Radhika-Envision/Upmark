@@ -1,19 +1,11 @@
-from concurrent.futures import ThreadPoolExecutor
-import datetime
-import time
-import uuid
 import json
 
 import numpy
-import sqlalchemy
-from sqlalchemy import func
 from sqlalchemy.orm import joinedload
-from sqlalchemy.orm.session import make_transient
-from tornado import gen
-from tornado.escape import json_decode, json_encode
 import tornado.web
 
-import handlers
+import base_handler
+import errors
 import model
 import logging
 
@@ -21,7 +13,7 @@ import logging
 log = logging.getLogger('app.report.sub_stats')
 
 
-class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
+class StatisticsHandler(base_handler.Paginate, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, program_id, survey_id):
@@ -36,7 +28,7 @@ class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
                     .first())
                 log.info("purchased_survey: %s", purchased_survey)
                 if purchased_survey==None:
-                    raise handlers.AuthzError(
+                    raise errors.AuthzError(
                         "You should purchase this survey to see this chart")
 
         parent_id = self.get_argument("parentId", None)
@@ -50,10 +42,10 @@ class StatisticsHandler(handlers.Paginate, handlers.BaseHandler):
                         model.Survey.program_id == program_id)
                 .first())
             if not survey:
-                raise handlers.MissingDocError("No such survey")
+                raise errors.MissingDocError("No such survey")
             min_approval_index = approval_states.index(survey.min_stats_approval)
             if min_approval_index > approval_index:
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "Can't display data for that approval state")
 
             responseNodes = (session.query(model.ResponseNode)

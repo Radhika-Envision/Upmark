@@ -9,8 +9,10 @@ import tornado.web
 from scour import scour
 import sqlalchemy
 
+import auth
+import base_handler
 import config
-import handlers
+import errors
 import model
 import image
 
@@ -21,8 +23,8 @@ log = logging.getLogger('app.crud.config')
 MAX_WORKERS = 4
 
 
-class SystemConfigHandler(handlers.BaseHandler):
-    @handlers.authz('admin')
+class SystemConfigHandler(base_handler.BaseHandler):
+    @auth.authz('admin')
     def get(self):
         with model.session_scope() as session:
             settings = {}
@@ -41,7 +43,7 @@ class SystemConfigHandler(handlers.BaseHandler):
         self.write(json_encode(ToSon()(settings)))
         self.finish()
 
-    @handlers.authz('admin')
+    @auth.authz('admin')
     def put(self):
         with model.session_scope() as session:
             settings = {}
@@ -59,7 +61,7 @@ class SystemConfigHandler(handlers.BaseHandler):
         self.get()
 
 
-class SystemConfigItemHandler(handlers.BaseHandler):
+class SystemConfigItemHandler(base_handler.BaseHandler):
 
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
@@ -69,9 +71,9 @@ class SystemConfigItemHandler(handlers.BaseHandler):
         name = to_snake_case(name)
         schema = config.SCHEMA.get(name)
         if not schema or config.is_private(name, schema):
-            raise handlers.MissingDocError("No such setting")
+            raise errors.MissingDocError("No such setting")
         if config.is_primitive(schema):
-            raise handlers.MissingDocError(
+            raise errors.MissingDocError(
                 "This service can only be used to get blob data, not text or "
                 "numerical values.")
 
@@ -95,9 +97,9 @@ class SystemConfigItemHandler(handlers.BaseHandler):
         name = to_snake_case(name)
         schema = config.SCHEMA.get(name)
         if not schema or config.is_private(name, schema):
-            raise handlers.MissingDocError("No such setting")
+            raise errors.MissingDocError("No such setting")
         if config.is_primitive(schema):
-            raise handlers.MissingDocError(
+            raise errors.MissingDocError(
                 "This service can only be used to set blob data, not text or "
                 "numerical values.")
 
@@ -117,7 +119,7 @@ class SystemConfigItemHandler(handlers.BaseHandler):
         name = to_snake_case(name)
         schema = config.SCHEMA.get(name)
         if not schema or config.is_private(name, schema):
-            raise handlers.MissingDocError("No such setting")
+            raise errors.MissingDocError("No such setting")
         with model.session_scope() as session:
             config.reset_setting(session, name)
 

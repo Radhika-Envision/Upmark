@@ -17,7 +17,9 @@ from tornado.concurrent import run_on_executor
 from concurrent.futures import ThreadPoolExecutor
 
 import app
-import handlers
+import auth
+import base_handler
+import errors
 import model
 import response_type
 from score import Calculator
@@ -32,10 +34,10 @@ class ImportError(Exception):
     pass
 
 
-class ImportStructureHandler(handlers.BaseHandler):
+class ImportStructureHandler(base_handler.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-    @handlers.authz('author')
+    @auth.authz('author')
     @gen.coroutine
     def post(self):
         fileinfo = self.request.files['file'][0]
@@ -58,10 +60,10 @@ class ImportStructureHandler(handlers.BaseHandler):
         return program_id
 
 
-class ImportResponseHandler(handlers.BaseHandler):
+class ImportResponseHandler(base_handler.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-    @handlers.authz('author')
+    @auth.authz('author')
     @gen.coroutine
     def post(self, program_id):
         fileinfo = self.request.files['file'][0]
@@ -83,10 +85,10 @@ class ImportResponseHandler(handlers.BaseHandler):
         i.process_structure_file(file_path, title, description)
 
 
-class ImportSubmissionHandler(handlers.BaseHandler):
+class ImportSubmissionHandler(base_handler.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-    @handlers.authz('author')
+    @auth.authz('author')
     @gen.coroutine
     def post(self):
         fileinfo = self.request.files['file'][0]
@@ -411,15 +413,15 @@ class Importer():
                     response.audit_reason = "Import"
                     session.add(response)
             except sqlalchemy.orm.exc.NoResultFound:
-                raise handlers.ModelError(
+                raise errors.ModelError(
                     "Survey structure does not match: Row %d: %s %s" %
                     (row_num + 2, order, title))
             except ImportError as e:
-                raise handlers.ModelError(
+                raise errors.ModelError(
                     "Row %d: %s %s: %s" %
                     (row_num + 2, order, title, str(e)))
             except Exception as e:
-                raise handlers.InternalModelError(
+                raise errors.InternalModelError(
                     "Row %d: %s %s: %s" %
                     (row_num + 2, order, title, str(e)))
 

@@ -1,4 +1,5 @@
 import datetime
+import functools
 import logging
 
 import sqlalchemy
@@ -7,14 +8,17 @@ from tornado.escape import json_decode, json_encode, url_escape, url_unescape
 import tornado.options
 import tornado.web
 
-import handlers
+import base_handler
+import errors
 import model
+import template
+import theme
 
 
 log = logging.getLogger('app.auth')
 
 
-class AuthLoginHandler(handlers.TemplateHandler):
+class AuthLoginHandler(template.TemplateHandler):
     SESSION_LENGTH = datetime.timedelta(days=30)
 
     def prepare(self):
@@ -33,10 +37,11 @@ class AuthLoginHandler(handlers.TemplateHandler):
         next = self.get_argument("next", "/")
 
         with model.session_scope() as session:
-            params = handlers.TemplateParams(session)
-            theme = handlers.ThemeParams(session)
+            params = template.TemplateParams(session)
+            theme_params = theme.ThemeParams(session)
             self.render(
-                "../client/login.html", params=params, theme=theme, next=next,
+                "../client/templates/login.html",
+                params=params, theme=theme_params, next=next,
                 error=errormessage)
 
     def post(self, user_id):
@@ -50,7 +55,7 @@ class AuthLoginHandler(handlers.TemplateHandler):
                 user = session.query(model.AppUser).\
                     filter(func.lower(model.AppUser.email) == func.lower(email)).\
                     one()
-                if not user.check_password(password):
+                if not user.password == password:
                     raise ValueError("Login incorrect")
                 deleted = user.deleted or user.organisation.deleted
                 session.expunge(user)
@@ -104,18 +109,18 @@ class AuthLoginHandler(handlers.TemplateHandler):
         superuser_id = self.get_secure_cookie('superuser')
 
         if superuser_id is None:
-            raise handlers.AuthzError("Not authorised: you are not a superuser")
+            raise errors.AuthzError("Not authorised: you are not a superuser")
         superuser_id = superuser_id.decode('utf8')
         with model.session_scope() as session:
             superuser = session.query(model.AppUser).get(superuser_id)
             if superuser is None or not model.has_privillege(
                     superuser.role, 'admin'):
-                raise handlers.MissingDocError(
+                raise errors.MissingDocError(
                     "Not authorised: you are not a superuser")
 
             user = session.query(model.AppUser).get(user_id)
             if user is None:
-                raise handlers.MissingDocError("No such user")
+                raise errors.MissingDocError("No such user")
 
             self._store_last_user(session);
 
@@ -164,8 +169,28 @@ class AuthLoginHandler(handlers.TemplateHandler):
             json_encode(past_users), plus=False))
 
 
-class AuthLogoutHandler(handlers.BaseHandler):
+class AuthLogoutHandler(base_handler.BaseHandler):
     def get(self):
         self.clear_cookie("user")
         self.clear_cookie("superuser")
         self.redirect(self.get_argument("next", "/"))
+
+
+def authz(*roles):
+    '''
+    Decorator to check whether a user is authorised. This only checks whether
+    the user has the privilleges of a certain role. If not, a 403 error will be
+    generated. Attach to a request handler method like this:
+
+    @authz('org_admin', 'consultant')
+    def get(self, path):
+        ...
+    '''
+    def decorator(fn):
+        @functools.wraps(fn)
+        def wrapper(self, *args, **kwargs):
+            if not model.has_privillege(self.current_user.role, *roles):
+                raise errors.AuthzError()
+            return fn(self, *args, **kwargs)
+        return wrapper
+    return decorator

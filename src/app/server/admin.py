@@ -36,13 +36,13 @@ def modify_user(args):
                 user = session.query(AppUser).filter_by(email=args.email).one()
                 is_new = False
                 if password != "":
-                    user.set_password(password)
+                    user.password = password
             except sqlalchemy.orm.exc.NoResultFound:
                 is_new = True
                 user = AppUser(email=args.email)
                 session.add(user)
                 if password != "":
-                    user.set_password(password)
+                    user.password = password
                 else:
                     print("Not setting a password. User will not be able to log in.")
                     user.password = "!"

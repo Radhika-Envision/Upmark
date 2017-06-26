@@ -34,8 +34,8 @@ from passlib.hash import sha256_crypt
 from voluptuous import All, Any, Coerce, Length, Optional, Range, Required, \
     Schema
 
-from guid import GUID
-from history_meta import Versioned, versioned_session
+from old_deps.guid import GUID
+from old_deps.history_meta import Versioned, versioned_session
 
 
 Session = sessionmaker()

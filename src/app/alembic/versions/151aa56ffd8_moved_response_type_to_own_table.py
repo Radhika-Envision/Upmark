@@ -19,7 +19,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import sessionmaker
 
-from guid import GUID
+from old_deps.guid import GUID
 
 
 Session = sessionmaker()

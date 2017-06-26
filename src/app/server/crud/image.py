@@ -3,13 +3,14 @@ from concurrent.futures import ThreadPoolExecutor
 from tornado import gen
 from tornado.concurrent import run_on_executor
 
+import base_handler
 import config
-import handlers
+import errors
 import image
 import model
 
 
-class IconHandler(handlers.BaseHandler):
+class IconHandler(base_handler.BaseHandler):
 
     executor = ThreadPoolExecutor(max_workers=1)
 
@@ -18,9 +19,9 @@ class IconHandler(handlers.BaseHandler):
         size = int(size)
 
         if size < 8:
-            raise handlers.MissingDocError("Size is too small")
+            raise errors.MissingDocError("Size is too small")
         if size > 256:
-            raise handlers.MissingDocError("Size is too big")
+            raise errors.MissingDocError("Size is too big")
 
         if size <= 64:
             name = 'theme_icon_sm'

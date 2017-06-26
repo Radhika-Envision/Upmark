@@ -1,11 +1,11 @@
 import logging
 import os
 from pathlib import Path
-import re
 
 from expiringdict import ExpiringDict
 import yaml
 
+import theme
 import model
 from utils import get_package_dir
 
@@ -91,12 +91,6 @@ def is_primitive(schema):
 def is_private(name, schema):
     return name.startswith('_')
 
-
-COLOR_PATTERN = re.compile(
-    r'#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})?',
-    flags=re.IGNORECASE)
-
-
 def get_setting(session, name, force_default=False):
     schema = SCHEMA.get(name)
     if not schema:
@@ -149,7 +143,7 @@ def set_setting(session, name, value):
                 "Setting %s must be at most %s" % (name, maximum))
 
     elif schema['type'] == 'color':
-        if not COLOR_PATTERN.match(value):
+        if not theme.Color.COLOR_PATTERN.match(value):
             raise ValueError("Setting %s must be a color hex triplet")
 
     if is_primitive(schema):

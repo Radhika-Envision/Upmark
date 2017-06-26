@@ -10,7 +10,8 @@ from tornado.escape import json_encode
 import tornado.web
 from tornado.concurrent import run_on_executor
 
-import handlers
+import base_handler
+import errors
 import model
 import logging
 
@@ -36,7 +37,7 @@ def perf():
     return perf_time
 
 
-class DiffHandler(handlers.BaseHandler):
+class DiffHandler(base_handler.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated
@@ -49,11 +50,11 @@ class DiffHandler(handlers.BaseHandler):
         ignore_tags = set().union(self.get_arguments("ignoreTag"))
 
         if program_id_a == '':
-            raise handlers.ModelError("Program ID 1 required")
+            raise errors.ModelError("Program ID 1 required")
         if program_id_b == '':
-            raise handlers.ModelError("Program ID 2 required")
+            raise errors.ModelError("Program ID 2 required")
         if survey_id == '':
-            raise handlers.ModelError("Survey ID required")
+            raise errors.ModelError("Survey ID required")
 
         include_scores = self.current_user.role != 'clerk'
 

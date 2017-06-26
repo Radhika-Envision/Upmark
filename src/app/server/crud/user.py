@@ -1,10 +1,5 @@
-import datetime
-import logging
-import time
-import uuid
-
 import passwordmeter
-from tornado.escape import json_decode, json_encode
+from tornado.escape import json_encode
 import tornado.web
 import sqlalchemy
 from sqlalchemy.orm import joinedload
@@ -12,8 +7,9 @@ import voluptuous
 from voluptuous import Extra, All, Required, Schema
 
 from activity import Activities
+import base_handler
 import config
-import handlers
+import errors
 import model
 from utils import ToSon, truthy, updater
 
@@ -39,7 +35,7 @@ user_input_schema = Schema({
 })
 
 
-class UserHandler(handlers.Paginate, handlers.BaseHandler):
+class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, user_id):
@@ -60,7 +56,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 if user is None:
                     raise ValueError("No such object")
             except (sqlalchemy.exc.StatementError, ValueError):
-                raise handlers.MissingDocError("No such user")
+                raise errors.MissingDocError("No such user")
 
             to_son = ToSon(
                 r'/id$',
@@ -149,12 +145,12 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
         Create a new user.
         '''
         if user_id != '':
-            raise handlers.MethodError("Can't use POST for existing users.")
+            raise errors.MethodError("Can't use POST for existing users.")
 
         try:
             user_input_schema(self.request_son)
         except voluptuous.error.Invalid as e:
-            raise handlers.ModelError.from_voluptuous(e)
+            raise errors.ModelError.from_voluptuous(e)
 
         self._check_create(self.request_son)
 
@@ -163,7 +159,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 org = (session.query(model.Organisation)
                     .get(self.request_son['organisation']['id']))
                 if org is None:
-                    raise handlers.ModelError("No such organisation")
+                    raise errors.ModelError("No such organisation")
                 user = model.AppUser(organisation=org)
                 self._check_update(self.request_son, None)
                 self._update(user, self.request_son, session)
@@ -182,7 +178,7 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
 
                 user_id = user.id
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
+            raise errors.ModelError.from_sa(e)
         self.get(user_id)
 
     @tornado.web.authenticated
@@ -191,12 +187,12 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
         Update an existing user.
         '''
         if user_id == '':
-            raise handlers.MethodError("Can't use PUT for new users (no ID).")
+            raise errors.MethodError("Can't use PUT for new users (no ID).")
 
         try:
             user_input_schema(self.request_son)
         except voluptuous.error.Invalid as e:
-            raise handlers.ModelError.from_voluptuous(e)
+            raise errors.ModelError.from_voluptuous(e)
 
         try:
             with model.session_scope() as session:
@@ -230,15 +226,15 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                         self.reason("User subscribed to organisation")
 
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
+            raise errors.ModelError.from_sa(e)
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such user")
+            raise errors.MissingDocError("No such user")
         self.get(user_id)
 
     @tornado.web.authenticated
     def delete(self, user_id):
         if user_id == '':
-            raise handlers.MethodError("User ID required")
+            raise errors.MethodError("User ID required")
         try:
             with model.session_scope() as session:
                 user = session.query(model.AppUser).get(user_id)
@@ -256,88 +252,86 @@ class UserHandler(handlers.Paginate, handlers.BaseHandler):
                 user.deleted = True
 
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError(
+            raise errors.ModelError(
                 "User owns content and can not be deleted")
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such user")
+            raise errors.MissingDocError("No such user")
 
         self.finish()
 
     def _check_create(self, son):
         if not model.has_privillege(self.current_user.role, 'org_admin'):
-            raise handlers.AuthzError("You can't create a new user.")
+            raise errors.AuthzError("You can't create a new user.")
 
     def _check_update(self, son, user):
         if model.has_privillege(self.current_user.role, 'admin'):
             pass
         elif model.has_privillege(self.current_user.role, 'org_admin'):
             if str(self.organisation.id) != son['organisation']['id']:
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't create/modify another organisation's user.")
             if son['role'] not in {'org_admin', 'clerk'}:
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't set this role.")
             if user and user.role == 'admin':
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't modify a user with that role.")
         else:
             if str(self.current_user.id) != str(user.id):
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't modify another user.")
             if str(self.organisation.id) != son['organisation']['id']:
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't change your organisation.")
             if son['role'] != self.current_user.role:
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't change your role.")
 
         if 'deleted' in son and son['deleted'] != user.deleted:
             if str(self.current_user.id) == str(user.id):
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't enable or disable yourself.")
 
         if son.get('password', '') != '':
             strength, threshold, _ = test_password(son['password'])
             if strength < threshold:
-                raise handlers.ModelError("Password is not strong enough")
+                raise errors.ModelError("Password is not strong enough")
 
     def _check_delete(self, user):
         if str(self.current_user.id) == str(user.id):
-            raise handlers.AuthzError(
+            raise errors.AuthzError(
                 "You can't delete yourself.")
 
         if model.has_privillege(self.current_user.role, 'admin'):
             pass
         elif model.has_privillege(self.current_user.role, 'org_admin'):
             if str(self.organisation.id) != str(user.organisation_id):
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't delete another organisation's user.")
         elif str(self.current_user.id) != str(user.id):
-            raise handlers.AuthzError(
+            raise errors.AuthzError(
                 "You can't delete another user.")
 
     def _update(self, user, son, session):
         '''
         Apply user-provided data to the saved model.
         '''
-        update = updater(user, error_factory=handlers.ModelError)
+        update = updater(user, error_factory=errors.ModelError)
         update('email', son)
         update('email_interval', son)
         update('name', son)
         update('role', son)
-
-        if son.get('password', '') != '':
-            user.set_password(son['password'])
+        update('password', son)
 
         if son.get('organisation', '') != '':
             org = (session.query(model.Organisation)
                 .get(self.request_son['organisation']['id']))
             if org is None:
-                raise handlers.ModelError("No such organisation")
+                raise errors.ModelError("No such organisation")
             user.organisation = org
 
 
-class PasswordHandler(handlers.BaseHandler):
+class PasswordHandler(base_handler.BaseHandler):
 
     def post(self):
         '''
@@ -345,7 +339,7 @@ class PasswordHandler(handlers.BaseHandler):
         '''
 
         if 'password' not in self.request_son:
-            raise handlers.ModelError("Please specify a password")
+            raise errors.ModelError("Please specify a password")
 
         strength, threshold, improvements = test_password(
             self.request_son['password'])

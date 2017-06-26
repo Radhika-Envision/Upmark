@@ -1,19 +1,17 @@
-from collections import defaultdict
-import datetime
 import re
-import time
-import uuid
 
-from tornado.escape import json_decode, json_encode
+from tornado.escape import json_encode
 import tornado.web
 import sqlalchemy
 from sqlalchemy import cast, String
 from sqlalchemy.orm import joinedload
 
 from activity import Activities
+import auth
+import base_handler
 from cache import instance_method_lru_cache
 import crud
-import handlers
+import errors
 import logging
 import model
 from response_type import ResponseType
@@ -25,8 +23,8 @@ log = logging.getLogger('app.crud.measure')
 
 
 class MeasureHandler(
-        handlers.Paginate,
-        crud.program.ProgramCentric, handlers.BaseHandler):
+        base_handler.Paginate,
+        crud.program.ProgramCentric, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, measure_id):
@@ -43,7 +41,7 @@ class MeasureHandler(
             if submission_id:
                 submission = session.query(model.Submission).get(submission_id)
                 if not submission:
-                    raise handlers.MissingDocError("No such submission")
+                    raise errors.MissingDocError("No such submission")
                 program_id = submission.program_id
                 survey_id = submission.survey_id
 
@@ -59,7 +57,7 @@ class MeasureHandler(
 
             measure = query.first()
             if not measure:
-                raise handlers.MissingDocError("No such measure")
+                raise errors.MissingDocError("No such measure")
 
             to_son = ToSon(
                 # Fields to match from any visited object
@@ -304,11 +302,11 @@ class MeasureHandler(
         self.write(json_encode(sons))
         self.finish()
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def post(self, measure_id):
         '''Create new.'''
         if measure_id != '':
-            raise handlers.MethodError(
+            raise errors.MethodError(
                 "Can't specify ID when creating a new measure.")
 
         self.check_editable()
@@ -331,7 +329,7 @@ class MeasureHandler(
                     qnode = session.query(model.QuestionNode)\
                         .get((parent_id, program_id))
                     if qnode is None:
-                        raise handlers.ModelError("No such question node")
+                        raise errors.ModelError("No such question node")
                     qnode_measure = model.QnodeMeasure(
                         program=qnode.program, survey=qnode.survey,
                         qnode=qnode, measure=measure)
@@ -355,20 +353,20 @@ class MeasureHandler(
 
                 log.info("Created measure %s", measure_id)
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
+            raise errors.ModelError.from_sa(e)
         self.get(measure_id)
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def delete(self, measure_id):
         '''Delete an existing measure.'''
         if measure_id == '':
-            raise handlers.MethodError("Measure ID required")
+            raise errors.MethodError("Measure ID required")
 
         program_id = self.get_argument('programId', '')
         parent_id = self.get_argument('parentId', '')
 
         if not parent_id:
-            raise handlers.ModelError("Please specify a parent to unlink from")
+            raise errors.ModelError("Please specify a parent to unlink from")
 
         self.check_editable()
 
@@ -377,7 +375,7 @@ class MeasureHandler(
                 measure = session.query(model.Measure)\
                     .get((measure_id, program_id))
                 if measure is None:
-                    raise handlers.MissingDocError("No such measure")
+                    raise errors.MissingDocError("No such measure")
 
                 act = Activities(session)
 
@@ -388,12 +386,12 @@ class MeasureHandler(
                     qnode = (session.query(model.QuestionNode)
                         .get((parent_id, program_id)))
                     if qnode is None:
-                        raise handlers.MissingDocError(
+                        raise errors.MissingDocError(
                             "No such question node")
                     qnode_measure = (session.query(model.QnodeMeasure)
                         .get((program_id, qnode.survey_id, measure.id)))
                     if qnode_measure is None:
-                        raise handlers.ModelError(
+                        raise errors.ModelError(
                             "Measure does not belong to that question node")
                     calculator.mark_measure_dirty(
                         qnode_measure, force_dependants=True)
@@ -408,13 +406,13 @@ class MeasureHandler(
                     self.reason("Subscribed to program")
 
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError("Measure is in use")
+            raise errors.ModelError("Measure is in use")
         except sqlalchemy.exc.StatementError:
-            raise handlers.MissingDocError("No such measure")
+            raise errors.MissingDocError("No such measure")
 
         self.finish()
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def put(self, measure_id):
         '''Update existing.'''
 
@@ -433,7 +431,7 @@ class MeasureHandler(
                 measure = session.query(model.Measure)\
                     .get((measure_id, program_id))
                 if measure is None:
-                    raise handlers.MissingDocError("No such measure")
+                    raise errors.MissingDocError("No such measure")
 
                 verbs = set()
                 calculator = Calculator.structural()
@@ -448,7 +446,7 @@ class MeasureHandler(
                     qnode_measure = (session.query(model.QnodeMeasure)
                         .get((program_id, survey_id, measure_id)))
                     if not qnode_measure:
-                        raise handlers.MissingDocError("No such measure in that survey")
+                        raise errors.MissingDocError("No such measure in that survey")
                     self._update_qnode_measure(qnode_measure, self.request_son)
 
                     # If relations have changed, mark this measure dirty.
@@ -468,7 +466,7 @@ class MeasureHandler(
                     new_parent = session.query(model.QuestionNode)\
                         .get((parent_id, program_id))
                     if new_parent is None:
-                        raise handlers.ModelError("No such question node")
+                        raise errors.ModelError("No such question node")
                     qnode_measure = measure.get_qnode_measure(new_parent.survey_id)
                     if qnode_measure:
                         old_parent = qnode_measure.qnode
@@ -506,7 +504,7 @@ class MeasureHandler(
                     self.reason("Subscribed to program")
 
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
+            raise errors.ModelError.from_sa(e)
         self.get(measure_id)
 
     def ordering(self):
@@ -517,7 +515,7 @@ class MeasureHandler(
         program_id = self.get_argument('programId', '')
         qnode_id = self.get_argument('qnodeId', '')
         if qnode_id == None:
-            raise handlers.MethodError("Question node ID is required.")
+            raise errors.MethodError("Question node ID is required.")
 
         list
         try:
@@ -535,7 +533,7 @@ class MeasureHandler(
                     self.reason("Subscribed to program")
 
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
+            raise errors.ModelError.from_sa(e)
 
         self.query()
 
@@ -543,7 +541,7 @@ class MeasureHandler(
         '''
         Apply user-provided data to the saved model.
         '''
-        update = updater(measure, error_factory=handlers.ModelError)
+        update = updater(measure, error_factory=errors.ModelError)
         update('title', son)
         update('weight', son)
         update('response_type_id', son)

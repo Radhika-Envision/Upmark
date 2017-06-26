@@ -56,16 +56,18 @@ def ssl_log_filter(record):
 
 
 import auth
+import compile_handlers
 import crud
-import handlers
 import import_handlers
 import model
+import protocol
 import report.custom
 from report.diff import DiffHandler
 from report.prog_export import ExportProgramHandler
 from report.sub_export import ExportSubmissionHandler
 from report.sub_stats import StatisticsHandler
 from report.sub_temporal import TemporalReportHandler
+import template
 from utils import truthy
 
 
@@ -165,8 +167,7 @@ def default_settings():
             session.flush()
             user = model.AppUser(
                 email="admin", name="DEFAULT USER", role="admin",
-                organisation=org)
-            user.set_password("admin")
+                organisation=org, password=password)
             session.add(user)
 
 
@@ -176,22 +177,22 @@ def get_mappings():
         (r"/login/?(.*)", auth.AuthLoginHandler, {
             'path': os.path.join(package_dir, "..", "client")}),
         (r"/logout/?", auth.AuthLogoutHandler),
-        (r"/()", handlers.TemplateHandler, {
+        (r"/()", template.TemplateHandler, {
             'path': '../client/templates/'}),
         (r"/(.*\.html)", tornado.web.StaticFileHandler, {
             'path': os.path.join(package_dir, "../client/templates/")}),
         (r"/(manifest.json|css/user_style.css)",
-            handlers.UnauthenticatedTemplateHandler, {
+            template.UnauthenticatedTemplateHandler, {
                 'path': '../client/'}),
-        (r"/ping.*", handlers.PingHandler, {}),
+        (r"/ping.*", protocol.PingHandler, {}),
 
         (r"/bower_components/(.*)", tornado.web.StaticFileHandler, {
             'path': os.path.join(
                 package_dir, "..", "client", "bower_components")}),
-        (r"/minify/(.*)", handlers.MinifyHandler, {
+        (r"/minify/(.*)", compile_handlers.MinifyHandler, {
             'path': '/minify/',
             'root': os.path.join(package_dir, "..", "client")}),
-        (r"/(.*\.css)", handlers.CssHandler, {
+        (r"/(.*\.css)", compile_handlers.CssHandler, {
             'root': os.path.join(package_dir, "..", "client")}),
         (r"/images/icon-(.*)\.png", crud.image.IconHandler, {}),
 
@@ -265,7 +266,7 @@ def get_mappings():
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
         (r"/import/response.json", import_handlers.ImportResponseHandler, {}),
         (r"/import/submission.json", import_handlers.ImportSubmissionHandler, {}),
-        (r"/redirect", handlers.RedirectHandler),
+        (r"/redirect", protocol.RedirectHandler),
 
         (r"/(.*)", tornado.web.StaticFileHandler, {
             'path': os.path.join(package_dir, "..", "client")}),
@@ -360,12 +361,12 @@ def read_app_version():
             version = f.readline().strip()
     except FileNotFoundError:
         version = None
-    handlers.aq_version = version
+    template.aq_version = version
 
 
 def configure_http_client():
-    if handlers.aq_version:
-        user_agent = "Aquamark %s" % handlers.aq_version
+    if template.aq_version:
+        user_agent = "Aquamark %s" % template.aq_version
     else:
         user_agent = "Aquamark"
 

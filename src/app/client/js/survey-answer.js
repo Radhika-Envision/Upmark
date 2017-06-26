@@ -117,7 +117,7 @@ angular.module('upmark.surveyAnswers', ['ngResource', 'upmark.admin',
             },
             function failure(details) {
                 Notifications.set('edit', 'error',
-                    "Could not save object: " + details.statusText);
+                    "Could not save: " + details.statusText);
             }
         );
         // Stop the approval buttons from updating: that will happen

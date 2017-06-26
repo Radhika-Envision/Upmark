@@ -1,11 +1,30 @@
 from __future__ import with_statement
 
-import guid
+import inspect
 from logging.config import fileConfig
 import os
+import sys
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
+
+# Current model for 'autogenerate' support
+from model.base import metadata as target_metadata
+
+
+def extend_path():
+    '''
+    Add versions directory to Python's module resolution path so frozen models
+    can be loaded.
+    '''
+    frameinfo = inspect.getframeinfo(inspect.currentframe())
+    package_dir = os.path.dirname(frameinfo.filename)
+    package_dir = os.path.join(package_dir, 'versions')
+    if package_dir not in sys.path:
+        sys.path.append(package_dir)
+
+
+extend_path()
 
 
 # this is the Alembic Config object, which provides
@@ -15,12 +34,6 @@ config = context.config
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 fileConfig(config.config_file_name)
-
-# add your model's MetaData object here
-# for 'autogenerate' support
-import model
-target_metadata = model.Base.metadata
-#target_metadata = None
 
 config.set_main_option("sqlalchemy.url", os.environ['DATABASE_URL'])
 
@@ -65,6 +78,7 @@ def run_migrations_online():
 
         with context.begin_transaction():
             context.run_migrations()
+
 
 if context.is_offline_mode():
     run_migrations_offline()

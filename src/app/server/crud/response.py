@@ -1,20 +1,18 @@
 import datetime
 import logging
-import time
-import uuid
 
-from tornado.escape import json_decode, json_encode
+from tornado.escape import json_encode
 import tornado.web
 import sqlalchemy
-from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import object_session
 
 from activity import Activities
-import handlers
+import base_handler
+import errors
 import model
 from response_type import ResponseTypeError
 from score import Calculator
-from utils import falsy, reorder, ToSon, truthy, updater
+from utils import ToSon, updater
 
 
 log = logging.getLogger('app.crud.response')
@@ -29,22 +27,22 @@ def check_approval_change(role, submission, approval):
     state of the submission.
     '''
     if STATES.index(submission.approval) > STATES.index(approval):
-        raise handlers.ModelError(
+        raise errors.ModelError(
             "The submission has a state of '%s'."
             % submission.approval)
 
     if role in {'org_admin', 'clerk'}:
         if approval not in {'draft', 'final'}:
-            raise handlers.AuthzError(
+            raise errors.AuthzError(
                 "You can't mark this as %s." % approval)
     elif role == 'consultant':
         if approval not in {'draft', 'final', 'reviewed'}:
-            raise handlers.AuthzError(
+            raise errors.AuthzError(
                 "You can't mark this as %s." % approval)
     elif model.has_privillege(role, 'authority'):
         pass
     else:
-        raise handlers.AuthzError(
+        raise errors.AuthzError(
             "You can't mark this as %s." % approval)
 
 
@@ -56,15 +54,15 @@ def check_modify(role, response):
         pass
     elif response.approval == 'reviewed':
         if not model.has_privillege(role, 'consultant'):
-            raise handlers.AuthzError(
+            raise errors.AuthzError(
                 "This response has already been reviewed")
     else:
         if not model.has_privillege(role, 'authority'):
-            raise handlers.AuthzError(
+            raise errors.AuthzError(
                 "This response has already been approved")
 
 
-class ResponseHandler(handlers.BaseHandler):
+class ResponseHandler(base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, submission_id, measure_id):
@@ -87,12 +85,12 @@ class ResponseHandler(handlers.BaseHandler):
                 submission = (session.query(model.Submission)
                     .get(submission_id))
                 if not submission:
-                    raise handlers.MissingDocError("No such submission")
+                    raise errors.MissingDocError("No such submission")
 
                 qnode_measure = (session.query(model.QnodeMeasure)
                     .get((submission.program_id, submission.survey_id, measure_id)))
                 if not qnode_measure:
-                    raise handlers.MissingDocError(
+                    raise errors.MissingDocError(
                         "That survey has no such measure")
 
                 response = model.Response(
@@ -159,7 +157,8 @@ class ResponseHandler(handlers.BaseHandler):
                                    program_id=submission.program_id)
                         .first())
                 qnode_measure = measure.get_qnode_measure(submission.survey_id)
-                parent = qnode_measure.qnode.get_rnode(submission)
+                parent = model.ResponseNode.from_qnode(
+                    qnode_measure.qnode, submission)
                 user = (session.query(model.AppUser)
                         .filter_by(id=response_history.user_id)
                         .first())
@@ -180,8 +179,8 @@ class ResponseHandler(handlers.BaseHandler):
 
             def gather_variables(response):
                 source_responses = {
-                    mv.source_qnode_measure: mv.source_qnode_measure.get_response(
-                        response.submission)
+                    mv.source_qnode_measure: model.Response.from_measure(
+                        mv.source_qnode_measure, response.submission)
                     for mv in response.qnode_measure.source_vars}
                 source_variables = {
                     source_qnode_measure: response and response.variables or {}
@@ -208,7 +207,7 @@ class ResponseHandler(handlers.BaseHandler):
         try:
             version = int(version)
         except ValueError:
-            raise handlers.ModelError("Invalid version number")
+            raise errors.ModelError("Invalid version number")
         if version == response.version:
             return None
 
@@ -216,14 +215,14 @@ class ResponseHandler(handlers.BaseHandler):
             .get((response.submission_id, response.measure_id, version)))
 
         if history is None:
-            raise handlers.MissingDocError("No such version")
+            raise errors.MissingDocError("No such version")
         return history
 
     def query(self, submission_id):
         '''Get a list.'''
         qnode_id = self.get_argument('qnodeId', '')
         if qnode_id == '':
-            raise handlers.ModelError("qnode ID required")
+            raise errors.ModelError("qnode ID required")
 
         with model.session_scope() as session:
             submission = (session.query(model.Submission)
@@ -231,7 +230,7 @@ class ResponseHandler(handlers.BaseHandler):
                 .first())
 
             if submission is None:
-                raise handlers.MissingDocError("No such submission")
+                raise errors.MissingDocError("No such submission")
             self._check_authz(submission)
 
             rnode = (session.query(model.ResponseNode)
@@ -276,7 +275,7 @@ class ResponseHandler(handlers.BaseHandler):
                 submission = (session.query(model.Submission)
                     .get(submission_id))
                 if submission is None:
-                    raise handlers.MissingDocError("No such submission")
+                    raise errors.MissingDocError("No such submission")
 
                 self._check_authz(submission)
 
@@ -291,7 +290,7 @@ class ResponseHandler(handlers.BaseHandler):
                     qnode_measure = (session.query(model.QnodeMeasure)
                         .get((program_id, survey_id, measure_id)))
                     if qnode_measure is None:
-                        raise handlers.MissingDocError("No such measure")
+                        raise errors.MissingDocError("No such measure")
                     response = model.Response(
                         qnode_measure=qnode_measure,
                         submission=submission,
@@ -310,7 +309,7 @@ class ResponseHandler(handlers.BaseHandler):
                     # Convert to int to avoid string conversion errors during
                     # JSON marshalling.
                     if int(modified) < int(response.modified.timestamp()):
-                        raise handlers.ModelError(
+                        raise errors.ModelError(
                             "This response has changed since you loaded the"
                             " page. Please copy or remember your changes and"
                             " refresh the page.")
@@ -336,7 +335,7 @@ class ResponseHandler(handlers.BaseHandler):
                     calculator.mark_measure_dirty(response.qnode_measure)
                     calculator.execute()
                 except ResponseTypeError as e:
-                    raise handlers.ModelError(str(e))
+                    raise errors.ModelError(str(e))
 
                 act = Activities(session)
                 act.record(self.current_user, response, verbs)
@@ -345,20 +344,20 @@ class ResponseHandler(handlers.BaseHandler):
                     self.reason("Subscribed to submission")
 
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
+            raise errors.ModelError.from_sa(e)
         self.get(submission_id, measure_id)
 
     def _check_authz(self, submission):
         if not self.has_privillege('consultant'):
             if submission.organisation.id != self.organisation.id:
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't modify another organisation's response")
 
     def _update(self, response, son):
         '''
         Apply user-provided data to the saved model.
         '''
-        update = updater(response, error_factory=handlers.ModelError)
+        update = updater(response, error_factory=errors.ModelError)
         update('comment', son, sanitise=True)
         update('not_relevant', son)
         update('response_parts', son)
@@ -379,7 +378,7 @@ class ResponseHandler(handlers.BaseHandler):
         # Attachments are stored elsewhere.
 
 
-class ResponseHistoryHandler(handlers.Paginate, handlers.BaseHandler):
+class ResponseHistoryHandler(base_handler.Paginate, base_handler.BaseHandler):
     @tornado.web.authenticated
     def get(self, submission_id, measure_id):
         '''Get a list of versions of a response.'''

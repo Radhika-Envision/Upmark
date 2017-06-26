@@ -14,6 +14,7 @@ import sqlalchemy
 from sqlalchemy.orm import joinedload
 from sqlalchemy.engine.result import RowProxy
 
+import errors
 import model
 
 
@@ -244,10 +245,7 @@ class updater:
         else:
             value = current_value
 
-        if value is None:
-            column = getattr(self.model.__class__, name)
-            if not column.nullable:
-                raise self.error_factory("Missing value for %s" % name)
+        self.validate(name, value)
 
         if isinstance(current_value, uuid.UUID):
             equal = str(current_value) == str(value)
@@ -260,6 +258,21 @@ class updater:
         log.debug('Setting %s: %s -> %s', name, current_value, value)
         setattr(self.model, name, value)
 
+    def validate(self, name, value):
+        if value is not None:
+            return
+
+        column = getattr(self.model.__class__, name)
+        if not column.nullable:
+            insp = sqlalchemy.inspect(self.model)
+            if insp.persistent:
+                # For persistent objects, column.default is not used.
+                raise self.error_factory("'%s' is empty" % name)
+            elif column.default is None:
+                # Non-persistent objects are new; column.default will be used
+                # when the session is flushed.
+                raise self.error_factory("'%s' is empty" % name)
+
 
 def reorder(collection, son, id_attr='id'):
     '''
@@ -269,7 +282,7 @@ def reorder(collection, son, id_attr='id'):
     current = {str(getattr(m, id_attr)): m.seq for m in collection}
     proposed = {m['id']: m['seq'] for m in son}
     if current != proposed:
-        raise handlers.MethodError(
+        raise errors.MethodError(
             "The proposed changes are not compatible with the "
             "current sequence: items have been added or removed, or another "
             "user has changed the order too. Try reloading the list.")

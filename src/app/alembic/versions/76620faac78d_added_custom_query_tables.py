@@ -18,7 +18,7 @@ from sqlalchemy import column, func
 from sqlalchemy.dialects.postgresql import array, TEXT
 from sqlalchemy.sql.expression import cast
 
-import guid
+import old_deps.guid as guid
 
 
 def upgrade():

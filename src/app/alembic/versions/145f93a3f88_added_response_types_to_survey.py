@@ -19,7 +19,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.schema import MetaData
 
-from guid import GUID
+from old_deps.guid import GUID
 
 
 metadata = MetaData()

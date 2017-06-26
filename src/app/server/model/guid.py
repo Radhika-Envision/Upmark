@@ -1,4 +1,3 @@
-# model/uuid.py
 from __future__ import absolute_import
 import uuid
 from sqlalchemy.types import TypeDecorator, CHAR
@@ -37,3 +36,11 @@ class GUID(TypeDecorator):
             return value
         else:
             return uuid.UUID(value)
+
+    @classmethod
+    def gen(cls):
+        return uuid.uuid4()
+
+
+def is_guid(value):
+    return isinstance(value, uuid.UUID)

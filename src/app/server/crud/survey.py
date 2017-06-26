@@ -1,25 +1,22 @@
-import datetime
-import time
-import uuid
-
-from tornado.escape import json_decode, json_encode
+from tornado.escape import json_encode
 import tornado.web
 import sqlalchemy
-from sqlalchemy.orm import joinedload
 
 from activity import Activities
+import auth
+import base_handler
 import crud.program
-import handlers
+import errors
 import model
 import logging
 import voluptuous
-from utils import reorder, ToSon, truthy, updater
+from utils import ToSon, truthy, updater
 
 
 log = logging.getLogger('app.crud.survey')
 
 
-class SurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
+class SurveyHandler(crud.program.ProgramCentric, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, survey_id):
@@ -38,7 +35,7 @@ class SurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
             except (sqlalchemy.exc.StatementError,
                     sqlalchemy.orm.exc.NoResultFound,
                     ValueError):
-                raise handlers.MissingDocError("No such survey")
+                raise errors.MissingDocError("No such survey")
 
             self.check_browse_program(session, self.program_id, survey_id)
 
@@ -93,11 +90,11 @@ class SurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def post(self, survey_id):
         '''Create new.'''
         if survey_id != '':
-            raise handlers.MethodError("Can't use POST for existing object")
+            raise errors.MethodError("Can't use POST for existing object")
 
         self.check_editable()
 
@@ -118,14 +115,14 @@ class SurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
 
                 survey_id = str(survey.id)
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
+            raise errors.ModelError.from_sa(e)
         self.get(survey_id)
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def put(self, survey_id):
         '''Update existing.'''
         if survey_id == '':
-            raise handlers.MethodError("Survey ID required")
+            raise errors.MethodError("Survey ID required")
 
         self.check_editable()
 
@@ -152,15 +149,15 @@ class SurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
                     self.reason("Subscribed to program")
 
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such survey")
+            raise errors.MissingDocError("No such survey")
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
+            raise errors.ModelError.from_sa(e)
         self.get(survey_id)
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def delete(self, survey_id):
         if survey_id == '':
-            raise handlers.MethodError("Survey ID required")
+            raise errors.MethodError("Survey ID required")
 
         self.check_editable()
 
@@ -181,17 +178,17 @@ class SurveyHandler(crud.program.ProgramCentric, handlers.BaseHandler):
                 survey.deleted = True
 
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError("This survey is in use")
+            raise errors.ModelError("This survey is in use")
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such survey")
+            raise errors.MissingDocError("No such survey")
 
         self.finish()
 
     def _update(self, survey, son):
-        update = updater(survey, error_factory=handlers.ModelError)
+        update = updater(survey, error_factory=errors.ModelError)
         update('title', son)
         update('description', son, sanitise=True)
         try:
             update('structure', son)
         except voluptuous.Error as e:
-            raise handlers.ModelError("Structure is invalid: %s" % str(e))
+            raise errors.ModelError("Structure is invalid: %s" % str(e))

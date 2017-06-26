@@ -81,6 +81,18 @@ class OrgTest(base.AqHttpTestBase):
 
 class UserTest(base.AqHttpTestBase):
 
+    def password_field_test(self):
+        with model.session_scope() as session:
+            org = session.query(model.Organisation).first()
+            user = model.AppUser(
+                email='a', name='b', role='clerk', organisation=org)
+            user.password = 'foo'
+            session.add(user)
+            session.flush()
+            self.assertEqual(user.password, 'foo')
+            self.assertNotEqual(str(user.password), 'foo')
+            self.assertNotEqual(user.password, 'bar')
+
     def test_list_org(self):
         with base.mock_user('admin'):
             response = self.fetch(
@@ -200,6 +212,14 @@ class OrgAuthzTest(base.AqHttpTestBase):
 
 class UserAuthzTest(base.AqHttpTestBase):
 
+    def test_missing_field(self):
+        self.create_user(
+            '', 'fail', 'admin', 'utility', 'clerk', 403,
+            "'email' is empty", {'email': None})
+        self.create_user(
+            '', 'fail', 'admin', 'utility', 'clerk', 403,
+            "'name' is empty", {'name': None})
+
     def test_create_user(self):
         users_own = [
             ('clerk', 'Utility', 403, "You can't create a new user."),
@@ -250,20 +270,25 @@ class UserAuthzTest(base.AqHttpTestBase):
         for i, (user_email, role, org_name, code, reason) in enumerate(org_admin_role):
             self.create_user(i, 'org_admin', user_email, org_name, role, code, reason)
 
-    def create_user(self, prefix, i, user_email, org_name, role, code, reason):
+    def org_id(self, name):
         with model.session_scope() as session:
             org = session.query(model.Organisation).\
                 filter(func.lower(model.Organisation.name) ==
-                       func.lower(org_name)).one()
-            session.expunge(org)
+                       func.lower(name)).one()
+            return org.id
 
+    def create_user(
+            self, prefix, i, user_email, org_name, role, code, reason,
+            custom_data=None):
         post_data = {
             'email': 'user%s%s' % (prefix, i),
             'name': 'foo',
             'password': 'bar',
             'role': role,
-            'organisation': {'id': str(org.id)}
+            'organisation': {'id': str(self.org_id(org_name))}
         }
+        if custom_data:
+            post_data.update(custom_data)
 
         with base.mock_user(user_email), \
                 mock.patch('crud.user.test_password', lambda x: (1.0, 0.1, {})):
@@ -274,18 +299,12 @@ class UserAuthzTest(base.AqHttpTestBase):
             self.assertEqual(code, response.code)
 
     def test_set_password(self):
-        with model.session_scope() as session:
-            org = session.query(model.Organisation).\
-                filter(func.lower(model.Organisation.name) ==
-                       func.lower('utility')).one()
-            session.expunge(org)
-
         post_data = {
             'email': 'passwordTest',
             'name': 'ptest',
             'password': 'bar',
             'role': 'clerk',
-            'organisation': {'id': str(org.id)}
+            'organisation': {'id': str(self.org_id('utility'))}
         }
 
         with base.mock_user('admin'):

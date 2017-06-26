@@ -78,9 +78,13 @@ def print_survey(survey):
 
 class AqModelTestBase(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        cls._engine = model.connect_db(os.environ.get('DATABASE_URL'))
+
     def setUp(self):
         super().setUp()
-        engine = model.connect_db(os.environ.get('DATABASE_URL'))
+        engine = self.__class__._engine
         engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
         engine.execute("DROP ROLE IF EXISTS analyst")
         engine.execute("CREATE SCHEMA public")
@@ -90,7 +94,7 @@ class AqModelTestBase(unittest.TestCase):
         self.create_program_structure()
 
     def create_org_structure(self):
-        engine = model.connect_db(os.environ.get('DATABASE_URL'))
+        engine = self.__class__._engine
         engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
         engine.execute("DROP ROLE analyst")
         engine.execute("CREATE SCHEMA public")
@@ -116,38 +120,32 @@ class AqModelTestBase(unittest.TestCase):
 
             user = model.AppUser(
                 name='Admin', email='admin', role='admin',
-                organisation=org1)
-            user.set_password('foo')
+                organisation=org1, password='foo')
             session.add(user)
 
             user = model.AppUser(
                 name='Author', email='author', role='author',
-                organisation=org1, email_interval=model.ONE_DAY_S)
-            user.set_password('bar')
+                organisation=org1, password='bar')
             session.add(user)
 
             user = model.AppUser(
                 name='Authority', email='authority', role='authority',
-                organisation=org1)
-            user.set_password('bar')
+                organisation=org1, password='bar')
             session.add(user)
 
             user = model.AppUser(
                 name='Consultant', email='consultant', role='consultant',
-                organisation=org1)
-            user.set_password('bar')
+                organisation=org1, password='bar')
             session.add(user)
 
             user = model.AppUser(
                 name='Org Admin', email='org_admin', role='org_admin',
-                organisation=org2)
-            user.set_password('bar')
+                organisation=org2, password='bar')
             session.add(user)
 
             user = model.AppUser(
                 name='Clerk', email='clerk', role='clerk',
-                organisation=org2)
-            user.set_password('bar')
+                organisation=org2, password='bar')
             session.add(user)
 
     def create_program_structure(self):

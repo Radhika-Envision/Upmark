@@ -1,18 +1,17 @@
-import datetime
 import logging
-import time
-import uuid
 
 from tornado.escape import json_decode, json_encode
 import tornado.web
 import sqlalchemy
 from sqlalchemy.dialects.postgresql import array
-from sqlalchemy.orm import aliased, joinedload
+from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import literal
 
 from activity import Activities
+import auth
+import base_handler
 import crud
-import handlers
+import errors
 import model
 from score import Calculator
 from utils import reorder, ToSon, truthy, updater
@@ -22,7 +21,7 @@ log = logging.getLogger('app.crud.qnode')
 
 
 class QuestionNodeHandler(
-        handlers.Paginate, crud.program.ProgramCentric, handlers.BaseHandler):
+        base_handler.Paginate, crud.program.ProgramCentric, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, qnode_id):
@@ -40,7 +39,7 @@ class QuestionNodeHandler(
             except (sqlalchemy.exc.StatementError,
                     sqlalchemy.orm.exc.NoResultFound,
                     ValueError):
-                raise handlers.MissingDocError("No such category")
+                raise errors.MissingDocError("No such category")
 
             self.check_browse_program(session, self.program_id,
                                      qnode.survey_id)
@@ -112,10 +111,10 @@ class QuestionNodeHandler(
         deleted = self.get_argument('deleted', '')
 
         if root is not None and parent_id != '':
-            raise handlers.ModelError(
+            raise errors.ModelError(
                 "Can't specify parent ID when requesting roots")
         if survey_id == '' and parent_id == '':
-            raise handlers.ModelError(
+            raise errors.ModelError(
                 "Survey or parent ID required")
 
         with model.session_scope() as session:
@@ -184,7 +183,7 @@ class QuestionNodeHandler(
             deleted = None
 
         if survey_id == '':
-            raise handlers.ModelError("Survey ID required")
+            raise errors.ModelError("Survey ID required")
 
         with model.session_scope() as session:
             # Use Postgres' WITH statement
@@ -271,13 +270,13 @@ class QuestionNodeHandler(
         self.write(json_encode(sons))
         self.finish()
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def post(self, qnode_id):
         '''Create new.'''
         self.check_editable()
 
         if qnode_id != '':
-            raise handlers.MethodError("Can't use POST for existing object")
+            raise errors.MethodError("Can't use POST for existing object")
 
         survey_id = self.get_argument('surveyId', '')
         parent_id = self.get_argument('parentId', '')
@@ -294,7 +293,7 @@ class QuestionNodeHandler(
                     survey = session.query(model.Survey)\
                         .get((survey_id, self.program_id))
                     if survey is None:
-                        raise handlers.ModelError("No such survey")
+                        raise errors.ModelError("No such survey")
                 else:
                     survey = None
                 log.debug("survey: %s", survey)
@@ -303,11 +302,11 @@ class QuestionNodeHandler(
                     parent = session.query(model.QuestionNode)\
                         .get((parent_id, self.program_id))
                     if parent is None:
-                        raise handlers.ModelError("Parent does not exist")
+                        raise errors.ModelError("Parent does not exist")
                     if survey is None:
                         survey = parent.survey
                     elif parent.survey != survey:
-                        raise handlers.ModelError(
+                        raise errors.ModelError(
                             "Parent does not belong to that survey")
                 else:
                     parent = None
@@ -325,7 +324,7 @@ class QuestionNodeHandler(
                     survey.qnodes.reorder()
                     log.debug("committing: %s", survey.qnodes)
                 else:
-                    raise handlers.ModelError("Parent or survey ID required")
+                    raise errors.ModelError("Parent or survey ID required")
 
                 # Need to flush so object has an ID to record action against.
                 session.flush()
@@ -343,16 +342,16 @@ class QuestionNodeHandler(
                     self.reason("Subscribed to program")
 
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
+            raise errors.ModelError.from_sa(e)
         self.get(qnode_id)
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def delete(self, qnode_id):
         '''Delete existing.'''
         self.check_editable()
 
         if qnode_id == '':
-            raise handlers.MethodError("Question node ID required")
+            raise errors.MethodError("Question node ID required")
 
         self.check_editable()
 
@@ -387,13 +386,13 @@ class QuestionNodeHandler(
                 calculator.execute()
 
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError("Question node is in use")
+            raise errors.ModelError("Question node is in use")
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such question node")
+            raise errors.MissingDocError("No such question node")
 
         self.finish()
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def put(self, qnode_id):
         '''Update existing.'''
         self.check_editable()
@@ -423,7 +422,7 @@ class QuestionNodeHandler(
                     new_parent = session.query(model.QuestionNode)\
                         .get((parent_id, self.program_id))
                     if new_parent is None:
-                        raise handlers.ModelError("No such question node")
+                        raise errors.ModelError("No such question node")
                     old_parent.children.remove(qnode)
                     old_parent.children.reorder()
                     new_parent.children.append(qnode)
@@ -460,14 +459,14 @@ class QuestionNodeHandler(
                     self.reason("Subscribed to program")
 
         except (sqlalchemy.exc.StatementError, ValueError):
-            raise handlers.MissingDocError("No such question node")
+            raise errors.MissingDocError("No such question node")
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
+            raise errors.ModelError.from_sa(e)
         self.get(qnode_id)
 
     def _update(self, session, qnode, son):
         '''Apply user-provided data to the saved model.'''
-        update = updater(qnode, error_factory=handlers.ModelError)
+        update = updater(qnode, error_factory=errors.ModelError)
         update('title', son)
         update('description', son, sanitise=True)
 
@@ -479,13 +478,13 @@ class QuestionNodeHandler(
         root = self.get_argument('root', None)
 
         if root is None and parent_id == '':
-            raise handlers.ModelError(
+            raise errors.ModelError(
                 "Parent ID required, or specify 'root=' for root nodes")
         if root is not None and parent_id != '':
-            raise handlers.ModelError(
+            raise errors.ModelError(
                 "Can't specify both 'root=' and parent ID")
             if survey_id == '':
-                raise handlers.ModelError(
+                raise errors.ModelError(
                     "Survey ID is required for operating on root nodes")
 
         son = json_decode(self.request.body)
@@ -497,11 +496,11 @@ class QuestionNodeHandler(
                     parent = session.query(model.QuestionNode)\
                         .get((parent_id, self.program_id))
                     if parent is None:
-                        raise handlers.MissingDocError(
+                        raise errors.MissingDocError(
                             "Parent question node does not exist")
                     if survey_id != '':
                         if survey_id != str(parent.survey_id):
-                            raise handlers.MissingDocError(
+                            raise errors.MissingDocError(
                                 "Parent does not belong to that survey")
                     log.debug("Reordering children of: %s", parent)
                     reorder(parent.children, son)
@@ -513,7 +512,7 @@ class QuestionNodeHandler(
                     survey = session.query(model.Survey)\
                         .get((survey_id, self.program_id))
                     if survey is None:
-                        raise handlers.MissingDocError("No such survey")
+                        raise errors.MissingDocError("No such survey")
                     log.debug("Reordering children of: %s", survey)
                     reorder(survey.qnodes, son)
                     act.record(
@@ -522,10 +521,10 @@ class QuestionNodeHandler(
                         act.subscribe(self.current_user, survey.program)
                         self.reason("Subscribed to program")
                 else:
-                    raise handlers.ModelError(
+                    raise errors.ModelError(
                         "Survey or parent ID required")
 
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
+            raise errors.ModelError.from_sa(e)
 
         self.query()

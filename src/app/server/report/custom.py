@@ -17,8 +17,10 @@ from tornado.escape import json_encode, utf8, to_basestring
 from tornado.concurrent import run_on_executor
 import xlsxwriter
 
+import auth
+import base_handler
 import config
-import handlers
+import errors
 import model
 import logging
 
@@ -43,20 +45,20 @@ MAX_LIMIT = 2500
 BUF_SIZE = 4096
 
 
-class CustomQueryReportHandler(handlers.BaseHandler):
+class CustomQueryReportHandler(base_handler.BaseHandler):
     '''
     Runs custom stored SQL queries.
     '''
 
-    @handlers.authz('admin')
+    @auth.authz('admin')
     @gen.coroutine
     def post(self, query_id, file_type):
         with model.session_scope() as session:
             custom_query = session.query(model.CustomQuery).get(query_id)
             if not custom_query:
-                raise handlers.MissingDocError("No such query")
+                raise errors.MissingDocError("No such query")
             if not custom_query.text:
-                raise handlers.ModelError("Query is empty")
+                raise errors.ModelError("Query is empty")
 
             conf = self.get_config(session)
             session.expunge(custom_query)
@@ -69,19 +71,19 @@ class CustomQueryReportHandler(handlers.BaseHandler):
             limit = float(self.get_argument('limit', '0'))
             wall_time = float(self.get_argument('wall_time', '0'))
         except ValueError:
-            raise handlers.ModelError(str(e))
+            raise errors.ModelError(str(e))
 
         max_wall_time = config.get_setting(session, 'custom_timeout') * 1000
         if wall_time == 0:
             wall_time = max_wall_time
         elif not 0 <= wall_time <= max_wall_time:
-            raise handlers.ModelError('Query wall time is out of bounds')
+            raise errors.ModelError('Query wall time is out of bounds')
 
         max_limit = config.get_setting(session, 'custom_max_limit')
         if limit == 0:
             limit = max_limit
         elif not 0 <= limit <= max_limit:
-            raise handlers.ModelError('Query row limit is out of bounds')
+            raise errors.ModelError('Query row limit is out of bounds')
 
         return Bunch({
             'wall_time': int(wall_time * 1000),
@@ -98,7 +100,7 @@ class CustomQueryReportHandler(handlers.BaseHandler):
         elif file_type == 'xlsx':
             writer = ExcelWriter(conf.base_url)
         else:
-            raise handlers.MissingDocError('%s not supported' % file_type)
+            raise errors.MissingDocError('%s not supported' % file_type)
 
         runner = QueryRunner(writer)
         with tempfile.TemporaryDirectory() as tempdir:
@@ -124,12 +126,12 @@ class CustomQueryPreviewHandler(CustomQueryReportHandler):
     Allows ad-hoc queries using SQL.
     '''
 
-    @handlers.authz('admin')
+    @auth.authz('admin')
     @gen.coroutine
     def post(self, file_type):
         text = to_basestring(self.request.body)
         if not text:
-            raise handlers.ModelError("Query is empty")
+            raise errors.ModelError("Query is empty")
         custom_query = model.CustomQuery(description="Preview", text=text)
 
         with model.session_scope() as session:
@@ -162,16 +164,16 @@ class QueryRunner:
             session.execute("SET statement_timeout TO :wall_time",
                             {'wall_time': conf.wall_time})
         except sqlalchemy.exc.SQLAlchemyError as e:
-            raise handlers.ModelError(
+            raise errors.ModelError(
                 "Failed to prepare database session: %s" % e)
 
     def execute(self, session, text):
         try:
             return session.execute(text)
         except sqlalchemy.exc.ProgrammingError as e:
-            raise handlers.ModelError.from_sa(e, reason="")
+            raise errors.ModelError.from_sa(e, reason="")
         except sqlalchemy.exc.OperationalError as e:
-            raise handlers.ModelError.from_sa(e, reason="")
+            raise errors.ModelError.from_sa(e, reason="")
 
 
 class ResultSet:
@@ -328,9 +330,9 @@ class ExcelWriter:
             worksheet_r.activate()
 
 
-class CustomQueryConfigHandler(handlers.BaseHandler):
+class CustomQueryConfigHandler(base_handler.BaseHandler):
 
-    @handlers.authz('admin')
+    @auth.authz('admin')
     def get(self):
         to_son = ToSon(r'.*')
         self.set_header("Content-Type", "application/json")
@@ -343,8 +345,8 @@ class CustomQueryConfigHandler(handlers.BaseHandler):
         self.finish()
 
 
-class SqlFormatHandler(handlers.BaseHandler):
-    @handlers.authz('admin')
+class SqlFormatHandler(base_handler.BaseHandler):
+    @auth.authz('admin')
     def post(self):
         query = to_basestring(self.request.body)
         query = sqlparse.format(
@@ -356,8 +358,8 @@ class SqlFormatHandler(handlers.BaseHandler):
         self.finish()
 
 
-class SqlIdentifierHandler(handlers.BaseHandler):
-    @handlers.authz('admin')
+class SqlIdentifierHandler(base_handler.BaseHandler):
+    @auth.authz('admin')
     def post(self):
         query = to_basestring(self.request.body)
 

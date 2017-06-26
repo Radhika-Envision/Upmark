@@ -1,29 +1,26 @@
-import datetime
-import time
-import uuid
-
-from tornado.escape import json_decode, json_encode
+from tornado.escape import json_encode
 import tornado.web
 import sqlalchemy
 from sqlalchemy import func
-from sqlalchemy.orm import joinedload
 import voluptuous.error
 
 from activity import Activities
+import auth
+import base_handler
 import crud
-import handlers
+import errors
 import logging
 import model
 from response_type import ResponseTypeError
 from score import Calculator
-from utils import falsy, reorder, ToSon, truthy, updater
+from utils import ToSon, updater
 
 
 log = logging.getLogger('app.crud.response_type')
 
 
 class ResponseTypeHandler(
-        handlers.Paginate, crud.program.ProgramCentric, handlers.BaseHandler):
+        base_handler.Paginate, crud.program.ProgramCentric, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, response_type_id):
@@ -41,7 +38,7 @@ class ResponseTypeHandler(
                 .group_by(model.ResponseType.id, model.ResponseType.program_id)
                 .first()) or (None, None)
             if not response_type:
-                raise handlers.MissingDocError("No such response type")
+                raise errors.MissingDocError("No such response type")
             to_son = ToSon(
                 r'/id$',
                 r'/program_id$',
@@ -101,22 +98,22 @@ class ResponseTypeHandler(
         self.write(json_encode(sons))
         self.finish()
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def post(self, response_type_id):
         '''Create new'''
         if response_type_id:
-            raise handlers.ModelError("Can't specify ID when creating")
+            raise errors.ModelError("Can't specify ID when creating")
         with model.session_scope() as session:
             program = session.query(model.Program).get(self.program_id)
             if not program:
-                raise handlers.MissingDocError("No such program")
+                raise errors.MissingDocError("No such program")
 
             rt_by_name = (session.query(model.ResponseType)
                 .filter(model.ResponseType.program_id == self.program_id)
                 .filter(model.ResponseType.name == self.request_son.get('name'))
                 .first())
             if rt_by_name is not None:
-                raise handlers.ModelError(
+                raise errors.ModelError(
                     "A response type of that name already exists")
 
             response_type = model.ResponseType(program=program)
@@ -124,14 +121,14 @@ class ResponseTypeHandler(
             try:
                 self._update(response_type, self.request_son)
             except ResponseTypeError as e:
-                raise handlers.ModelError(str(e))
+                raise errors.ModelError(str(e))
             except voluptuous.error.Error as e:
-                raise handlers.ModelError(str(e))
+                raise errors.ModelError(str(e))
 
             try:
                 session.flush()
             except sqlalchemy.exc.IntegrityError as e:
-                raise handlers.ModelError.from_sa(e)
+                raise errors.ModelError.from_sa(e)
 
             response_type_id = str(response_type.id)
             # No need for survey update: RT is not being used yet
@@ -143,14 +140,14 @@ class ResponseTypeHandler(
                 self.reason("Subscribed to program")
         self.get(response_type_id)
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def delete(self, response_type_id):
         '''Delete'''
         with model.session_scope() as session:
             response_type = (session.query(model.ResponseType)
                 .get((response_type_id, self.program_id)))
             if not response_type:
-                raise handlers.MissingDocError("No such response type")
+                raise errors.MissingDocError("No such response type")
             session.delete(response_type)
             # No need for survey update: delete will fail if any measures are
             # using this RT
@@ -163,14 +160,14 @@ class ResponseTypeHandler(
         self.set_header("Content-Type", "text/plain")
         self.finish()
 
-    @handlers.authz('author')
+    @auth.authz('author')
     def put(self, response_type_id):
         '''Update existing'''
         with model.session_scope() as session:
             response_type = (session.query(model.ResponseType)
                 .get((response_type_id, self.program_id)))
             if not response_type:
-                raise handlers.MissingDocError("No such response type")
+                raise errors.MissingDocError("No such response type")
 
             if 'name' in self.request_son:
                 rt_by_name = (session.query(model.ResponseType)
@@ -178,15 +175,15 @@ class ResponseTypeHandler(
                     .filter(model.ResponseType.name == self.request_son['name'])
                     .first())
                 if rt_by_name and rt_by_name != response_type:
-                    raise handlers.ModelError(
+                    raise errors.ModelError(
                         "A response type of that name already exists")
 
             try:
                 self._update(response_type, self.request_son)
             except ResponseTypeError as e:
-                raise handlers.ModelError(str(e))
+                raise errors.ModelError(str(e))
             except voluptuous.error.Error as e:
-                raise handlers.ModelError(str(e))
+                raise errors.ModelError(str(e))
 
             verbs = []
             # Check if modified now to avoid problems with autoflush later
@@ -208,7 +205,7 @@ class ResponseTypeHandler(
 
     def _update(self, response_type, son):
         '''Apply user-provided data to the saved model.'''
-        update = updater(response_type, error_factory=handlers.ModelError)
+        update = updater(response_type, error_factory=errors.ModelError)
         update('name', son)
         update('parts', son)
         update('formula', son)

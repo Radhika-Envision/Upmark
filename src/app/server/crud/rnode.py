@@ -1,25 +1,22 @@
 from concurrent.futures import ThreadPoolExecutor
-import datetime
 import logging
-import time
-import uuid
 
 from tornado import gen
 from tornado.concurrent import run_on_executor
-from tornado.escape import json_decode, json_encode
+from tornado.escape import json_encode
 import tornado.web
 import sqlalchemy
 from sqlalchemy import func
-from sqlalchemy.orm import joinedload
 
 from activity import Activities
+import base_handler
 import crud.response
 import crud.program
-import handlers
+import errors
 import model
 from response_type import ResponseTypeError
 from score import Calculator
-from utils import reorder, ToSon, truthy, updater
+from utils import ToSon, updater
 
 
 log = logging.getLogger('app.crud.rnode')
@@ -27,7 +24,7 @@ log = logging.getLogger('app.crud.rnode')
 MAX_WORKERS = 4
 
 
-class ResponseNodeHandler(handlers.BaseHandler):
+class ResponseNodeHandler(base_handler.BaseHandler):
 
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
@@ -52,7 +49,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                             model.Submission.id == submission_id)
                     .first())
                 if qnode is None:
-                    raise handlers.MissingDocError("No such category")
+                    raise errors.MissingDocError("No such category")
                 rnode = model.ResponseNode(
                     qnode=qnode,
                     qnode_id=qnode_id,
@@ -110,10 +107,10 @@ class ResponseNodeHandler(handlers.BaseHandler):
         root = self.get_argument('root', None)
 
         if root is not None and parent_id != '':
-            raise handlers.ModelError(
+            raise errors.ModelError(
                 "Can't specify parent ID when requesting roots")
         if root is None and parent_id == '':
-            raise handlers.ModelError(
+            raise errors.ModelError(
                 "'root' or parent ID required")
 
         with model.session_scope() as session:
@@ -121,7 +118,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 .get((submission_id,)))
 
             if submission is None:
-                raise handlers.MissingDocError("No such submission")
+                raise errors.MissingDocError("No such submission")
             self._check_authz(submission)
 
             if root is not None:
@@ -183,7 +180,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                 submission = (session.query(model.Submission)
                     .get(submission_id))
                 if submission is None:
-                    raise handlers.MissingDocError("No such submission")
+                    raise errors.MissingDocError("No such submission")
 
                 self._check_authz(submission)
 
@@ -196,8 +193,9 @@ class ResponseNodeHandler(handlers.BaseHandler):
                     qnode = (session.query(model.QuestionNode)
                         .get((qnode_id, submission.program.id)))
                     if qnode is None:
-                        raise handlers.MissingDocError("No such question node")
-                    rnode = qnode.get_rnode(submission, create=True)
+                        raise errors.MissingDocError("No such question node")
+                    rnode = model.ResponseNode.from_qnode(
+                        qnode, submission, create=True)
 
                 importance = self.request_son.get('importance')
                 if importance is not None:
@@ -228,7 +226,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                     calculator.mark_qnode_dirty(rnode.qnode)
                     calculator.execute()
                 except ResponseTypeError as e:
-                    raise handlers.ModelError(str(e))
+                    raise errors.ModelError(str(e))
 
                 act = Activities(session)
                 act.record(self.current_user, rnode, verbs)
@@ -237,7 +235,7 @@ class ResponseNodeHandler(handlers.BaseHandler):
                     self.reason("Subscribed to submission")
 
         except sqlalchemy.exc.IntegrityError as e:
-            raise handlers.ModelError.from_sa(e)
+            raise errors.ModelError.from_sa(e)
         self.get(submission_id, qnode_id)
 
     @run_on_executor
@@ -258,15 +256,15 @@ class ResponseNodeHandler(handlers.BaseHandler):
         for response, is_new in self.walk_responses(session, rnode, missing):
             try:
                 crud.response.check_modify(self.current_user.role, response)
-            except (handlers.AuthzError, handlers.ModelError) as e:
+            except (errors.AuthzError, errors.ModelError) as e:
                 err = ("Response %s: %s You might need to downgrade the "
                     "response's approval status. You can use the bulk "
                     "approval tool for this.".format(
                         response.qnode_measure.get_path(), e))
-                if isinstance(e, handlers.AuthzError):
-                    raise handlers.AuthzError(err)
+                if isinstance(e, errors.AuthzError):
+                    raise errors.AuthzError(err)
                 else:
-                    raise handlers.ModelError(err)
+                    raise errors.ModelError(err)
             if not_relevant:
                 response.not_relevant = True
                 if is_new:
@@ -275,16 +273,16 @@ class ResponseNodeHandler(handlers.BaseHandler):
                     try:
                         crud.response.check_approval_change(
                             self.current_user.role, submission, submission.approval)
-                    except (handlers.AuthzError, handlers.ModelError) as e:
+                    except (errors.AuthzError, errors.ModelError) as e:
                         err = ("Response %s: %s You might "
                             "need to downgrade the submission's approval "
                             "status.".format(
                                 response.qnode_measure.get_path(),
                                 e))
-                        if isinstance(e, handlers.AuthzError):
-                            raise handlers.AuthzError(err)
+                        if isinstance(e, errors.AuthzError):
+                            raise errors.AuthzError(err)
                         else:
-                            raise handlers.ModelError(err)
+                            raise errors.ModelError(err)
                     response.approval = submission.approval
                     response.comment = "*Marked Not Relevant as a bulk action " \
                         "(was previously empty)*"
@@ -356,7 +354,8 @@ class ResponseNodeHandler(handlers.BaseHandler):
 
     def walk_responses(self, session, rnode, missing):
         for qnode_measure in rnode.qnode.ordered_qnode_measures:
-            response = qnode_measure.get_response(rnode.submission)
+            response = model.Response.from_measure(
+                qnode_measure, rnode.submission)
             if not response:
                 if missing != 'CREATE':
                     continue
@@ -374,13 +373,13 @@ class ResponseNodeHandler(handlers.BaseHandler):
     def _check_authz(self, submission):
         if not self.has_privillege('consultant'):
             if submission.organisation.id != self.organisation.id:
-                raise handlers.AuthzError(
+                raise errors.AuthzError(
                     "You can't view another organisation's response")
 
     def _update(self, rnode, son):
         '''
         Apply user-provided data to the saved model.
         '''
-        update = updater(rnode, error_factory=handlers.ModelError)
+        update = updater(rnode, error_factory=errors.ModelError)
         update('importance', son)
         update('urgency', son)
