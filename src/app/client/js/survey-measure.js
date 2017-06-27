@@ -402,6 +402,65 @@ angular.module('upmark.survey.measure', [
 })
 
 
+.controller('MeasureLinkCtrl', [
+        '$scope', 'QuestionNode', 'routeData', 'Authz',
+        '$location', 'Notifications', 'Current', 'format',
+        'Measure', 'layout',
+        function($scope, QuestionNode, routeData, Authz,
+                 $location, Notifications, current, format,
+                 Measure, layout) {
+
+    $scope.layout = layout;
+    $scope.qnode = routeData.parent;
+    $scope.program = routeData.program;
+
+    $scope.measure = {
+        parent: $scope.qnode,
+        responseType: "dummy"
+    };
+
+    $scope.select = function(measure) {
+        // postData is empty: we don't want to update the contents of the
+        // measure; just its links to parents (giving in query string).
+        var postData = {};
+        Measure.save({
+            id: measure.id,
+            parentId: $scope.qnode.id,
+            programId: $scope.program.id
+        }, postData,
+            function success(measure, headers) {
+                var message = "Saved";
+                if (headers('Operation-Details'))
+                    message += ': ' + headers('Operation-Details');
+                Notifications.set('edit', 'success', message);
+                $location.url(format(
+                    '/2/qnode/{}?program={}', $scope.qnode.id, $scope.program.id));
+            },
+            function failure(details) {
+                Notifications.set('edit', 'error',
+                    "Could not save: " + details.statusText);
+            }
+        );
+    };
+
+    $scope.search = {
+        term: "",
+        programId: $scope.program.id,
+        page: 0,
+        pageSize: 10
+    };
+    $scope.$watch('search', function(search) {
+        Measure.query(search).$promise.then(function(measures) {
+            $scope.measures = measures;
+        });
+    }, true);
+
+    $scope.checkRole = Authz({program: $scope.program});
+    $scope.QuestionNode = QuestionNode;
+    $scope.Measure = Measure;
+}])
+
+
 .controller('MeasureListCtrl',
         function($scope, Authz, Measure, Current, layout, routeData,
             $routeParams) {
