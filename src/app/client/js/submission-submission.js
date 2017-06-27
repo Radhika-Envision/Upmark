@@ -1,7 +1,8 @@
 'use strict';
 
-angular.module('upmark.submission', ['ngResource', 'upmark.admin',
-                                      'ui.select', 'vpac.utils'])
+angular.module('upmark.submission.submission', [
+    'ngResource', 'upmark.admin', 'ui.select', 'vpac.utils'])
+
 
 .factory('Submission', ['$resource', 'paged', function($resource, paged) {
     return $resource('/submission/:id.json', {id: '@id'}, {

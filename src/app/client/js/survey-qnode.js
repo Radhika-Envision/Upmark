@@ -1,8 +1,7 @@
 'use strict';
 
 angular.module('upmark.survey.qnode', [
-  'ngResource', 'ngSanitize',
-  'ui.select', 'ui.sortable',
+  'ngResource', 'ngSanitize', 'ui.select', 'ui.sortable',
   'upmark.admin', 'upmark.survey.services'])
 
 

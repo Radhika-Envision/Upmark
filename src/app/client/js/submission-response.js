@@ -1,7 +1,7 @@
 'use strict'
 
-angular.module('upmark.submission.response', ['ngResource', 'upmark.admin',
-    'ui.select', 'vpac.utils'])
+angular.module('upmark.submission.response', [
+    'ngResource', 'upmark.admin', 'ui.select', 'vpac.utils'])
 
 
 .factory('Response', ['$resource', function($resource) {
@@ -175,16 +175,6 @@ angular.module('upmark.submission.response', ['ngResource', 'upmark.admin',
         );
     };
 })
-
-
-.factory('ResponseNode', ['$resource', function($resource) {
-    return $resource('/submission/:submissionId/rnode/:qnodeId.json',
-            {submissionId: '@submissionId', qnodeId: '@qnodeId'}, {
-        get: { method: 'GET', cache: false },
-        save: { method: 'PUT' },
-        query: { method: 'GET', isArray: true, cache: false }
-    });
-}])
 
 
 .directive('responseForm', function() {
