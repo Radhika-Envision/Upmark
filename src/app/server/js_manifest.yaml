@@ -76,6 +76,7 @@
         - /js/submission.js
         - /js/survey-answer.js
         - /js/survey-measure.js
+        - /js/survey-program.js
         - /js/survey-qnode.js
         - /js/survey-question.js
         - /js/survey-services.js

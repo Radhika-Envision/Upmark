@@ -4,21 +4,6 @@ angular.module('upmark.survey.services', [
     'ngResource', 'vpac.utils'])
 
 
-.factory('Program', ['$resource', 'paged', function($resource, paged) {
-    return $resource('/program/:id.json', {id: '@id'}, {
-        get: { method: 'GET', cache: false },
-        create: { method: 'POST' },
-        save: { method: 'PUT' },
-        query: {
-            method: 'GET', isArray: true, cache: false,
-            interceptor: {response: paged}
-        },
-        history: { method: 'GET', url: '/program/:id/history.json',
-            isArray: true, cache: false }
-    });
-}])
-
-
 .factory('ResponseType', ['$resource', 'paged', function($resource, paged) {
     var ResponseType = $resource('/response_type/:id.json', {
         id: '@id', programId: '@programId'
