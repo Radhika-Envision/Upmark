@@ -19,18 +19,6 @@ angular.module('upmark.survey.services', [
 }])
 
 
-.factory('Survey', ['$resource', function($resource) {
-    return $resource('/survey/:id.json', {id: '@id'}, {
-        get: { method: 'GET', cache: false },
-        create: { method: 'POST' },
-        save: { method: 'PUT' },
-        query: { method: 'GET', isArray: true, cache: false },
-        history: { method: 'GET', url: '/survey/:id/program.json',
-            isArray: true, cache: false }
-    });
-}])
-
-
 .factory('ResponseType', ['$resource', 'paged', function($resource, paged) {
     var ResponseType = $resource('/response_type/:id.json', {
         id: '@id', programId: '@programId'

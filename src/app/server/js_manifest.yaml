@@ -79,5 +79,6 @@
         - /js/survey-qnode.js
         - /js/survey-question.js
         - /js/survey-services.js
+        - /js/survey-survey.js
         - /js/utils.js
         - /js/widgets.js

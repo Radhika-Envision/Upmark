@@ -20,6 +20,7 @@ angular.module('upmark', [
     'upmark.subscription',
     'upmark.submission',
     'upmark.survey.qnode',
+    'upmark.survey.survey',
     'upmark.surveyAnswers',
     'upmark.surveyQuestions',
     'upmark.survey.measure',
