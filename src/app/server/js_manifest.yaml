@@ -74,7 +74,7 @@
         - /js/response-type.js
         - /js/subscription.js
         - /js/submission.js
-        - /js/survey-answer.js
+        - /js/submission-response.js
         - /js/survey-measure.js
         - /js/survey-program.js
         - /js/survey-qnode.js

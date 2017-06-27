@@ -34,16 +34,6 @@ angular.module('upmark.survey.services', [
 }])
 
 
-.factory('Attachment', ['$resource', function($resource) {
-    return $resource('/submission/:submissionId/measure/:measureId/attachment.json',
-            {submissionId: '@submissionId', measureId: '@measureId'}, {
-        saveExternals: { method: 'PUT', isArray: true },
-        query: { method: 'GET', isArray: true, cache: false },
-        remove: { method: 'DELETE', url: '/attachment/:id', cache: false }
-    });
-}])
-
-
 .factory('Statistics', ['$resource', function($resource) {
     return $resource('/report/sub/stats/program/:programId/survey/:surveyId.json', {
         programId: '@programId',
