@@ -17,6 +17,7 @@ angular.module('upmark', [
     'upmark.home',
     'upmark.response.type',
     'upmark.settings',
+    'upmark.statistics',
     'upmark.subscription',
     'upmark.submission.response',
     'upmark.submission.rnode',
