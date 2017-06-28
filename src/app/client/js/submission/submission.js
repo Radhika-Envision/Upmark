@@ -365,7 +365,7 @@ angular.module('upmark.submission.submission', [
                 max_date: new Date()
             }
 
-            if ($scope.checkRole('submission_full_review'))
+            if ($scope.checkRole('report_temporal_full'))
                 $scope.reportForm.allowedStates = null;
 
         } else {

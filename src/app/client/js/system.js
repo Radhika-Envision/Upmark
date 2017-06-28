@@ -1,7 +1,8 @@
 'use strict'
 
 angular.module('upmark.system', [
-    'ngResource', 'upmark.admin.settings', 'upmark.notifications', 'upmark.user'])
+    'ngResource', 'upmark.admin.settings', 'upmark.authz',
+    'upmark.notifications', 'upmark.user'])
 
 
 .factory('SystemConfig', ['$resource', function($resource) {
