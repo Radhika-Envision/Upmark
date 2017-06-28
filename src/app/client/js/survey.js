@@ -1,22 +1,7 @@
 'use strict'
 
-angular.module('upmark.headers', [
+angular.module('upmark.survey', [
     'upmark.structure', 'vpac.utils'])
-
-
-.directive('submissionHeader', [function() {
-    return {
-        templateUrl: 'submission_header.html',
-        replace: true,
-        scope: true,
-        controller: ['$scope', function($scope) {
-            $scope.showSubmissionChooser = false;
-            $scope.toggleDropdown = function() {
-                $scope.showSubmissionChooser = !$scope.showSubmissionChooser;
-            };
-        }]
-    }
-}])
 
 
 .directive('questionHeader', [function() {
@@ -110,5 +95,6 @@ angular.module('upmark.headers', [
         }]
     }
 }])
+
 
 ;
