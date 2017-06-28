@@ -755,7 +755,7 @@ angular.module('vpac.widgets', [])
                 elem.css('height', '' + height + 'px');
             };
 
-//            elem.on('input change propertychange', resize);
+            //elem.on('input change propertychange', resize);
             scope.$watch(function() {return ngModel.$viewValue; }, resize);
 
             scope.$on('$destroy', function() {
