@@ -84,8 +84,8 @@
 </div>
 
 <submission-header ng-if="!edit.model"></submission-header>
-<div error-header structure-node="submission.survey" submission-node="submission"
-    ng-if="!edit.model"></div>
+<div error-header error-node="submission.survey" ng-if="!edit.model"></div>
+<div error-header error-node="submission" ng-if="!edit.model"></div>
 
 <div class="container" ng-if="edit.model && !edit.model.survey">
     <p>

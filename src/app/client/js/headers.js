@@ -111,23 +111,4 @@ angular.module('upmark.headers', [
     }
 }])
 
-
-.directive('errorHeader', function() {
-    return {
-        restrict: 'A',
-        scope: {
-            structureNode: '=',
-            submissionNode: '='
-        },
-        templateUrl: '/error_header.html',
-        link: function(scope, elem, attrs) {
-            elem.addClass('subheader bg-warning');
-            scope.$watchGroup(['structureNode.error', 'submissionNode.error'],
-                    function(vars) {
-                elem.toggleClass('ng-hide', !vars[0] && !vars[1]);
-            });
-        }
-    };
-})
-
 ;

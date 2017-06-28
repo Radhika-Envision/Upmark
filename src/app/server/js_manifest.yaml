@@ -73,6 +73,7 @@
         - /js/diff.js
         - /js/headers.js
         - /js/home.js
+        - /js/notifications.js
         - /js/response-type.js
         - /js/statistics.js
         - /js/subscription.js

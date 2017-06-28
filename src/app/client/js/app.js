@@ -17,6 +17,7 @@ angular.module('upmark', [
     'upmark.diff',
     'upmark.headers',
     'upmark.home',
+    'upmark.notifications',
     'upmark.response.type',
     'upmark.settings',
     'upmark.statistics',
