@@ -24,31 +24,35 @@ log = logging.getLogger('app.test.test_authz')
 
 
 class AuthzMechanismTest(unittest.TestCase):
-    def test_policy(self):
-        policy = authz.Policy()
-
-        policy.declare({
+    def setUp(self):
+        self.policy = authz.Policy(error_factory=TestPermissionError)
+        self.policy.declare({
             'name': 'admin',
             'description': "the administrator role",
+            'failure': "you are not an administrator",
             'rule': 's.has_role("admin")',
         })
-        policy.declare({
+        self.policy.declare({
             'name': 'org_admin',
             'description': "the organisation administrator role",
+            'failure': "you are not an organisation administrator",
             'rule': 's.has_role("org_admin")',
         })
-        policy.declare({
+        self.policy.declare({
             'name': '_own_org',
             'description': "you are a member of the organisation",
+            'failure': "you are not a member of the organisation",
             'rule': 'org.id == s.org.id',
         })
-        policy.declare({
+        self.policy.declare({
             'name': 'user_add',
             'description': "permission to add a new user",
+            'failure': "you can't add a new user",
             'rule': '@admin or (@org_admin and @_own_org)',
         })
 
-        user_policy = policy.derive({
+    def test_policy(self):
+        user_policy = self.policy.derive({
             's': Munch(
                 has_role=lambda name: name in {'admin', 'org_admin'},
                 org=Munch(id='foo')
@@ -57,7 +61,7 @@ class AuthzMechanismTest(unittest.TestCase):
         })
         self.assertEqual(user_policy.check('user_add'), True)
 
-        user_policy = policy.derive({
+        user_policy = self.policy.derive({
             's': Munch(
                 has_role=lambda name: name in set(),
                 org=Munch(id='foo')
@@ -66,7 +70,7 @@ class AuthzMechanismTest(unittest.TestCase):
         })
         self.assertEqual(user_policy.check('user_add'), False)
 
-        user_policy = policy.derive({
+        user_policy = self.policy.derive({
             's': Munch(
                 has_role=lambda name: name in {'org_admin'},
                 org=Munch(id='foo')
@@ -75,8 +79,38 @@ class AuthzMechanismTest(unittest.TestCase):
         })
         self.assertEqual(user_policy.check('user_add'), False)
 
+    def test_missing_rule(self):
+        user_policy = self.policy.derive({})
         with self.assertRaises(authz.AuthzError):
             user_policy.check('missing_rule')
+
+    def test_permission(self):
+        user_policy = self.policy.derive({
+            's': Munch(
+                has_role=lambda name: name in {'org_admin'},
+                org=Munch(id='foo')
+            ),
+            'org': Munch(id='bar')
+        })
+        permission = user_policy.permission('user_add')
+        self.assertIn("can't add a new user", str(permission))
+        self.assertIn("not a member", str(permission))
+        self.assertIn("not an administrator", str(permission))
+
+    def test_verify(self):
+        user_policy = self.policy.derive({
+            's': Munch(
+                has_role=lambda name: name in {'org_admin'},
+                org=Munch(id='foo')
+            ),
+            'org': Munch(id='bar')
+        })
+        with self.assertRaises(TestPermissionError):
+            user_policy.verify('user_add')
+
+
+class TestPermissionError(Exception):
+    pass
 
 
 class StatisticsAuthzTest(base.AqHttpTestBase):

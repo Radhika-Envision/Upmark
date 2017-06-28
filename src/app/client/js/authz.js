@@ -1,17 +1,16 @@
 'use strict';
 
+// IMPORTANT: Make sure this module matches the functionality of authz.py.
+
 angular.module('upmark.authz', [])
 
 
 .factory('Authz', function($parse) {
 
-    function Policy(context, rules) {
+    function Policy(context, rules, errorFactory) {
         this.rules = rules != null ? rules : {};
         this.context = context != null ? context : {};
-        var that = this;
-        this.context['$authz'] = function(ruleName) {
-            return that._check(ruleName);
-        };
+        this.errorFactory = errorFactory ? errorFactory : defaultErrorFactory;
     };
     Policy.prototype.declare = function(decl) {
         var rule = new Rule(decl.name, decl.description, decl.rule);
@@ -28,19 +27,57 @@ angular.module('upmark.authz', [])
         angular.extend(policy.context, context);
         return policy;
     };
-    Policy.prototype._check = function(ruleName) {
+    Policy.prototype._check = function(ruleName, context) {
         var rule = this.rules[ruleName];
         if (!rule)
             throw new AuthzError("Unknown rule '" + ruleName + "'");
-        return rule.check(this.context);
+        if (rule.check(context))
+            return true;
+        context.$failures.push(rule);
+        return false;
     };
-    Policy.prototype.check = function(ruleName) {
+    Policy.prototype.permission = function(ruleName) {
+        var context = angular.extend({}, this.context);
+        var that = this;
+        context.$authz = function(ruleName) {
+            return that._check(ruleName, context);
+        };
+        context.$failures = [];
         try {
-            return this._check(ruleName);
+            this._check(ruleName, context);
         } catch (e) {
             throw new AuthzError(
                 "Error while evaluating " + ruleName + ": " + e);
+        } finally {
+            that = null;
         }
+        return new Permission(context.$failures);
+    };
+    Policy.prototype.check = function(ruleName) {
+        return this.permission(ruleName).valueOf();
+    };
+    Policy.prototype.verify = function(ruleName) {
+        permission = this.permission(rule_name)
+        if (!permission.valueOf())
+            throw this.error_factory(permission.toString());
+    };
+
+
+    function Permission(failures) {
+        this.failures = failures;
+    };
+    Permission.prototype.valueOf = function() {
+        return !this.failures || this.failures.length == 0;
+    };
+    Permission.prototype.toString = function() {
+        if (!!this)
+            return "Success"
+
+        return "Failure: " + this.failures.filter(function(rule) {
+            return !!rule.failure;
+        }).map(function(rule) {
+            return rule.failure;
+        }).join('; ');
     };
 
 
@@ -88,6 +125,9 @@ angular.module('upmark.authz', [])
     AuthzError.prototype.constructor = AuthzError;
     AuthzError.prototype.toString = function() {
         return this.message;
+    };
+    function defaultErrorFactory(message) {
+        return new AuthzError(message);
     };
 
     // TODO: change this to just return the root policy (waiting on refactor
