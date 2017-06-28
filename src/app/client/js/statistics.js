@@ -1,8 +1,9 @@
 'use strict'
 
 angular.module('upmark.statistics', [
-    'ngResource', 'upmark.submission.submission', 'upmark.structure',
-    'upmark.admin', 'upmark.submission.rnode', 'upmark.survey.qnode'])
+    'ngResource', 'upmark.admin.settings', 'upmark.submission.submission',
+    'upmark.structure', 'upmark.submission.rnode', 'upmark.survey.qnode',
+    'upmark.user'])
 
 
 .factory('Statistics', ['$resource', function($resource) {

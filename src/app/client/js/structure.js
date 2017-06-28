@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('upmark.structure', [
-    'ngResource', 'ngSanitize', 'ui.select', 'ui.sortable', 'upmark.admin'])
+    'ngResource', 'ngSanitize', 'ui.select', 'ui.sortable', 'upmark.admin.settings'])
 
 
 .factory('Structure', function() {

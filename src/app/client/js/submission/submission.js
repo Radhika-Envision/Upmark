@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('upmark.submission.submission', [
-    'ngResource', 'upmark.admin', 'ui.select', 'vpac.utils'])
+    'ngResource', 'ui.select', 'upmark.admin.settings', 'upmark.user', 'vpac.utils'])
 
 
 .factory('Submission', ['$resource', 'paged', function($resource, paged) {

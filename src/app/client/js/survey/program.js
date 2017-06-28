@@ -2,7 +2,7 @@
 
 angular.module('upmark.survey.program',[
     'ngResource', 'ngSanitize', 'ui.select', 'ui.sortable',
-    'upmark.admin', 'vpac.utils'])
+    'upmark.admin.settings', 'upmark.user', 'vpac.utils'])
 
 
 .factory('Program', ['$resource', 'paged', function($resource, paged) {

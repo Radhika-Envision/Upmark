@@ -11,7 +11,7 @@ angular.module('upmark', [
     'ngRoute',
     'ui.bootstrap',
     'ui.bootstrap.showErrors',
-    'upmark.admin',
+    'upmark.admin.settings',
     'upmark.authz',
     'upmark.custom',
     'upmark.diff',

@@ -67,7 +67,7 @@
  -  min-href: /minify/app-min.js
     hrefs:
         - /js/app.js
-        - /js/admin.js
+        - /js/admin-settings.js
         - /js/authz.js
         - /js/custom.js
         - /js/diff.js

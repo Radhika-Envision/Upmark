@@ -1,7 +1,7 @@
 'use strict'
 
 angular.module('upmark.user', [
-    'ngResource', 'vpac.utils'])
+    'ngResource', 'upmark.notifications', 'vpac.utils'])
 
 
 .factory('User', ['$resource', 'paged', function($resource, paged) {
@@ -15,6 +15,66 @@ angular.module('upmark.user', [
         create: { method: 'POST', cache: false },
         impersonate: { method: 'PUT', url: '/login/:id', cache: false }
     });
+}])
+
+
+.factory('Password', ['$resource', function($resource) {
+    return $resource('/password.json', {}, {
+        test: { method: 'POST', cache: true }
+    });
+}])
+
+
+.factory('Current', [
+        'User', '$q', '$cookies', 'Notifications',
+         function(User, $q, $cookies, Notifications) {
+    var deferred = $q.defer();
+    var Current = {
+        user: User.get({id: 'current'}),
+        superuser: $cookies.get('superuser') != null,
+        $promise: null,
+        $resolved: false
+    };
+    Current.$promise = $q.all([Current.user.$promise]).then(
+        function success(values) {
+            Current.$resolved = true;
+            return Current;
+        },
+        function error(details) {
+            Notifications.set('Current', 'error',
+                "Failed to get current user: " + details.statusText)
+            return $q.reject(details);
+        }
+    );
+    return Current;
+}])
+
+
+.factory('Roles', ['$resource', function($resource) {
+    var Roles = $resource('/roles.json', {}, {
+        get: { method: 'GET', isArray: true, cache: false }
+    });
+
+    Roles.hierarchy = {
+        'admin': ['author', 'authority', 'consultant', 'org_admin', 'clerk'],
+        'author': [],
+        'authority': ['consultant'],
+        'consultant': [],
+        'org_admin': ['clerk'],
+        'clerk': []
+    };
+
+    Roles.hasPermission = function(currentRole, targetRole) {
+        if (!currentRole)
+            return false;
+        if (targetRole == currentRole)
+            return true;
+        if (Roles.hierarchy[currentRole].indexOf(targetRole) >= 0)
+            return true;
+        return false;
+    };
+
+    return Roles;
 }])
 
 

@@ -3,7 +3,7 @@
 angular.module('upmark.survey.survey', [
   'ngResource', 'ngSanitize',
   'ui.select', 'ui.sortable',
-  'upmark.admin'])
+  'upmark.admin.settings', 'upmark.user'])
 
 
 .factory('Survey', ['$resource', function($resource) {

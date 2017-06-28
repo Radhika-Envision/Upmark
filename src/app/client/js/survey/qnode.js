@@ -2,7 +2,7 @@
 
 angular.module('upmark.survey.qnode', [
   'ngResource', 'ngSanitize', 'ui.select', 'ui.sortable',
-  'upmark.admin'])
+  'upmark.admin.settings', 'upmark.user'])
 
 
 .factory('QuestionNode', ['$resource', 'paged', function($resource, paged) {
