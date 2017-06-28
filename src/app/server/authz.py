@@ -38,10 +38,10 @@ class Policy:
         context['_authz'] = lambda rule_name: self._check(rule_name, context)
         context['_failures'] = []
         try:
-            self._check(rule_name, context)
+            success = self._check(rule_name, context)
         except AuthzError as e:
             raise AuthzError("Error while evaluating %s: %s" % (rule_name, e))
-        return Permission(context['_failures'])
+        return Permission(rule_name, success, context['_failures'])
 
     def check(self, rule_name):
         return bool(self.permission(rule_name))
@@ -53,11 +53,13 @@ class Policy:
 
 
 class Permission:
-    def __init__(self, failures):
+    def __init__(self, rule_name, success, failures):
+        self.rule_name = rule_name
+        self.success = success
         self.failures = failures
 
     def __bool__(self):
-        return not self.failures
+        return self.success
 
     def __eq__(self, other):
         if hasattr(other, 'failures'):

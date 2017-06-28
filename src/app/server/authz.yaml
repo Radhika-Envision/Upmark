@@ -89,7 +89,7 @@
  - name: user_impersonate
    description: "permission to impersonate another user"
    failure: "you can't impersonate a user"
-   expression: '@user_add and not @_own_user and s.superuser'
+   expression: 'not @_own_user and s.superuser'
 
 
 # Organisation

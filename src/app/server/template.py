@@ -11,7 +11,7 @@ import cache_bust
 import config
 import model
 import theme
-from utils import truthy
+from utils import ToSon, truthy
 
 # A string to break through caches. This changes each time the app is deployed.
 DEPLOY_ID = str(time.time())
@@ -150,9 +150,22 @@ class TemplateHandler(base_handler.BaseHandler):
         with model.session_scope() as session:
             params = TemplateParams(session)
             theme_params = theme.ThemeParams(session)
+
+            to_son = ToSon(
+                r'/id$',
+                r'/name$',
+                r'/email$',
+                r'/role$',
+                r'/deleted$',
+                r'/organisation$',
+                r'!password',
+            )
+            user_son = json_encode(to_son(self.current_user))
+
             self.render(
                 template, params=params, theme=theme_params,
-                user=self.current_user, organisation=self.organisation)
+                user=self.current_user, organisation=self.organisation,
+                user_son=user_son)
 
 
 class UnauthenticatedTemplateHandler(base_handler.BaseHandler):

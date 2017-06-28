@@ -44,15 +44,16 @@ angular.module('upmark.authz', [])
             return that._check(ruleName, context);
         };
         context.$failures = [];
+        var success;
         try {
-            this._check(ruleName, context);
+            success = this._check(ruleName, context);
         } catch (e) {
             throw new AuthzError(
                 "Error while evaluating " + ruleName + ": " + e);
         } finally {
             that = null;
         }
-        return new Permission(context.$failures);
+        return new Permission(ruleName, success, context.$failures);
     };
     Policy.prototype.check = function(ruleName) {
         var permission = this.permission(ruleName)
@@ -65,11 +66,13 @@ angular.module('upmark.authz', [])
     };
 
 
-    function Permission(failures) {
+    function Permission(ruleName, success, failures) {
+        this.ruleName = ruleName;
+        this.success = success;
         this.failures = failures;
     };
     Permission.prototype.valueOf = function() {
-        return !this.failures || this.failures.length == 0;
+        return this.success;
     };
     Permission.prototype.toString = function() {
         if (!!this)

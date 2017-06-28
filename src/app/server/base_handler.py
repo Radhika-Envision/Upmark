@@ -6,6 +6,7 @@ import re
 from expiringdict import ExpiringDict
 from munch import Munch
 import sqlalchemy
+from sqlalchemy.orm import joinedload
 from tornado.escape import json_decode
 import tornado.options
 import tornado.web
@@ -41,7 +42,9 @@ class BaseHandler(tornado.web.RequestHandler):
         uid = uid.decode('utf8')
         with model.session_scope() as session:
             try:
-                user = session.query(model.AppUser).get(uid)
+                user = (session.query(model.AppUser)
+                    .options(joinedload('organisation'))
+                    .get(uid))
                 if user is None:
                     return None
                 if user.deleted:
@@ -50,6 +53,7 @@ class BaseHandler(tornado.web.RequestHandler):
                         return None
             except sqlalchemy.exc.StatementError:
                 return None
+            session.expunge(user.organisation)
             session.expunge(user)
             return user
 
@@ -100,13 +104,9 @@ class BaseHandler(tornado.web.RequestHandler):
 
     @property
     def organisation(self):
-        if self.current_user is None or self.current_user.organisation_id is None:
+        if not self.current_user:
             return None
-        with model.session_scope() as session:
-            organisation = session.query(model.Organisation).\
-                get(self.current_user.organisation_id)
-            session.expunge(organisation)
-            return organisation
+        return self.current_user.organisation
 
     @property
     def request_son(self):

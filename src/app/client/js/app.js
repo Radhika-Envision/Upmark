@@ -13,6 +13,7 @@ angular.module('upmark', [
     'ui.bootstrap.showErrors',
     'upmark.admin',
     'upmark.authz',
+    'upmark.current_user',
     'upmark.custom',
     'upmark.home',
     'upmark.response',
@@ -1072,21 +1073,15 @@ angular.module('upmark', [
 })
 
 
-.run(function(Authz, Current, Roles) {
+.run(function(Authz, currentUser, Roles, $cookies) {
     var session = {
-        user: null,
-        org: null,
-        superuser: false,
-        has_role: null,
+        user: currentUser,
+        org: currentUser.organisation,
+        superuser: $cookies.get('superuser') != null,
+        has_role: function(role) {
+            return Roles.hasPermission(currentUser.role, role);
+        },
     };
-    Current.$promise.then(function(current) {
-        session.user = current.user;
-        session.org = current.user.organisation;
-        session.superuser = current.superuser;
-        session.has_role = function(role) {
-            return Roles.hasPermission(current.user.role, role);
-        };
-    });
     Authz.rootPolicy.context.s = session;
 })
 
