@@ -191,7 +191,6 @@ def get_resource(name, context=None):
         cache[name] = config
 
     if context is not None:
-
         config = [
             d for d in config
             if d.get('context', context) == context]

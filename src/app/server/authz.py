@@ -11,7 +11,7 @@ class Policy:
 
     def declare(self, decl):
         rule = Rule(
-            decl['name'], decl['rule'],
+            decl['name'], decl['expression'],
             decl.get('description'), decl.get('failure'))
         self.rules[rule.name] = rule
 
@@ -78,15 +78,16 @@ class Rule:
         self.name = name
         self.description = description
         self.failure = failure
+        self.expression = expression
         expression = self.translate_exp(expression)
         expression = self.interpolate(expression)
-        self.expression = expression
+        self._expression = expression
 
     def check(self, context):
         # This is not secure - but user-defined expressions should not be used.
         # Only the contents of context may be user-provided.
         # print(self.name, context)
-        return eval(self.expression, {'__builtins__': {}}, context)
+        return eval(self._expression, {'__builtins__': {}}, context)
 
     def translate_exp(self, expression):
         # Grammar is already the same as Python expressions

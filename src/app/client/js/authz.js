@@ -13,7 +13,8 @@ angular.module('upmark.authz', [])
         this.errorFactory = errorFactory ? errorFactory : defaultErrorFactory;
     };
     Policy.prototype.declare = function(decl) {
-        var rule = new Rule(decl.name, decl.description, decl.rule);
+        var rule = new Rule(
+            decl.name, decl.expression, decl.description, decl.failure);
         this.rules[rule.name] = rule;
     };
     Policy.prototype.copy = function() {
@@ -54,10 +55,11 @@ angular.module('upmark.authz', [])
         return new Permission(context.$failures);
     };
     Policy.prototype.check = function(ruleName) {
-        return this.permission(ruleName).valueOf();
+        var permission = this.permission(ruleName)
+        return permission.valueOf();
     };
     Policy.prototype.verify = function(ruleName) {
-        permission = this.permission(rule_name)
+        var permission = this.permission(ruleName)
         if (!permission.valueOf())
             throw this.error_factory(permission.toString());
     };
@@ -81,10 +83,11 @@ angular.module('upmark.authz', [])
     };
 
 
-    function Rule(name, description, expression) {
+    function Rule(name, expression, description, failure) {
         this.name = name;
         this.description = description;
         this.expression = expression;
+        this.failure = failure;
         expression = this.translateExp(expression);
         expression = this.interpolate(expression);
         // Use Angular's expression parser.
@@ -99,6 +102,8 @@ angular.module('upmark.authz', [])
         expression = expression.replace(/(^|\W)not($|\W)/g, '$1!');
         expression = expression.replace(/(^|\W)and($|\W)/g, '$1&&$2');
         expression = expression.replace(/(^|\W)or($|\W)/g, '$1||$2');
+        expression = expression.replace(/(^|\W)True($|\W)/g, '$1true$2');
+        expression = expression.replace(/(^|\W)False($|\W)/g, '$1false$2');
         return expression;
     };
     Rule.prototype.interpolate = function(expression) {

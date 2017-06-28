@@ -8,32 +8,32 @@
  - name: admin
    description: "the administrator role"
    failure: "you are not an administrator"
-   rule: 's.has_role("admin")'
+   expression: 's.has_role("admin")'
 
  - name: author
    description: "the author role"
    failure: "you are not an author"
-   rule: 's.has_role("author")'
+   expression: 's.has_role("author")'
 
  - name: authority
    description: "authority role"
    failure: "you are not an authority"
-   rule: 's.has_role("authority")'
+   expression: 's.has_role("authority")'
 
  - name: clerk
    description: "the clerk role"
    failure: "you are not a clerk"
-   rule: 's.has_role("clerk")'
+   expression: 's.has_role("clerk")'
 
  - name: consultant
    description: "the consultant role"
    failure: "you are not a consultant"
-   rule: 's.has_role("consultant")'
+   expression: 's.has_role("consultant")'
 
  - name: org_admin
    description: "the organisation admin role"
    failure: "you are not an organisation administrator"
-   rule: 's.has_role("org_admin")'
+   expression: 's.has_role("org_admin")'
 
 
 # Admin
@@ -41,7 +41,7 @@
  - name: conf_edit
    description: "permission to edit system config"
    failure: "you can not edit system config"
-   rule: '@admin'
+   expression: '@admin'
 
 
 # User
@@ -49,37 +49,37 @@
  - name: _own_user
    description: "you are the owner"
    failure: "you are not the owner"
-   rule: 'user.id == s.user.id'
+   expression: 'user.id == s.user.id'
 
  - name: user_add
    description: "permission to add a new user"
    failure: "you can't add a new user"
-   rule: '@admin or (@org_admin and @_own_org)'
+   expression: '@admin or (@org_admin and @_own_org)'
 
  - name: user_change_org
    description: "permission to change a user's organisation"
    failure: "you can't change a user's organisation"
-   rule: '@admin'
+   expression: '@admin'
 
  - name: user_del
    description: "permission to delete a user"
    failure: "you can't delete a user"
-   rule: '@user_add and not @_own_user'
+   expression: '@user_add and not @_own_user'
 
  - name: user_edit
    description: "permission to modify a user"
    failure: "you can't modify a user"
-   rule: '@user_add or @_own_user'
+   expression: '@user_add or @_own_user'
 
  - name: user_enable
    description: "permission to enable a user's account"
    failure: "you can't enable a user"
-   rule: '@user_add'
+   expression: '@user_add'
 
  - name: user_impersonate
    description: "permission to impersonate another user"
    failure: "you can't impersonate a user"
-   rule: '@user_add and not @_own_user and s.superuser'
+   expression: '@user_add and not @_own_user and s.superuser'
 
 
 # Organisation
@@ -87,22 +87,22 @@
  - name: _own_org
    description: "you are a member of the organisation"
    failure: "you are not a member of the organisation"
-   rule: 'org.id == s.org.id'
+   expression: 'org.id == s.org.id'
 
  - name: org_add
    description: "permission to add a new organisation"
    failure: "you can't add a new organisation"
-   rule: '@admin'
+   expression: '@admin'
 
  - name: org_del
    description: "permission to delete an organisation"
    failure: "you can't delete an organisation"
-   rule: '@org_add and not @_own_org'
+   expression: '@org_add and not @_own_org'
 
  - name: org_edit
    description: "permission to edit an organisation"
    failure: "you can't modify an organisation"
-   rule: '@org_add or (@org_admin and @_own_org)'
+   expression: '@org_add or (@org_admin and @_own_org)'
 
 
 # Post
@@ -110,27 +110,27 @@
  - name: _own_post
    description: "the post belongs to your organisation"
    failure: "the post doesn't belong to your oganisation"
-   rule: 'post.org_id == s.org.id'
+   expression: 'post.org_id == s.org.id'
 
  - name: post_new
    description: "permission to broadcast a message"
    failure: "you can't broadcast a message"
-   rule: '@org_admin'
+   expression: '@org_admin'
 
  - name: post_to_all
    description: "permission to broadcast a message to everyone"
    failure: "you can't broadcast a message to everyone"
-   rule: '@admin'
+   expression: '@admin'
 
  - name: post_edit
    description: "permission to edit a post"
    failure: "you can't modify a post"
-   rule: '@admin or (@org_admin and @_own_post)'
+   expression: '@admin or (@org_admin and @_own_post)'
 
  - name: post_edit_try
    description: "permission to attempt to edit a post"
    failure: "you can't attempt to modify a post"
-   rule: '@org_admin'
+   expression: '@org_admin'
 
 
 # Survey
@@ -138,97 +138,97 @@
  - name: measure_add
    description: "permission to add a new measure"
    failure: "you can't add a new measure"
-   rule: '@program_edit'
+   expression: '@program_edit'
 
  - name: measure_del
    description: "permission to delete a measure"
    failure: "you can't delete a measure"
-   rule: '@program_edit'
+   expression: '@program_edit'
 
  - name: measure_edit
    description: "permission to edit a measure"
    failure: "you can't modify a measure"
-   rule: '@program_edit'
+   expression: '@program_edit'
 
  - name: program_add
    description: "permission to add a new program"
    failure: "you can't add a new program"
-   rule: '@author'
+   expression: '@author'
 
  - name: program_del
    description: "permission to delete a program"
    failure: "you can't delete a program"
-   rule: '@program_add'
+   expression: '@program_add'
 
  - name: program_dup
    description: "permission to duplicate a program"
    failure: "you can't duplicate a program"
-   rule: '@admin'
+   expression: '@admin'
 
  - name: program_edit
    description: "permission to edit a program"
    failure: "you can't edit a program"
-   rule: '@program_add'
+   expression: '@program_add'
 
  - name: program_node_edit
    description: "permission to edit a program node"
    failure: "you can't edit a program node"
-   rule: '@program_edit'
+   expression: '@program_edit'
 
  - name: program_state
    description: "permission to change a program's state"
    failure: "you can't change a program's state"
-   rule: '@admin'
+   expression: '@admin'
 
  - name: qnode_add
    description: "permission to add a new category"
    failure: "you can't add a new category"
-   rule: '@program_edit'
+   expression: '@program_edit'
 
  - name: qnode_del
    description: "permission to delete a category"
    failure: "you can't delete a category"
-   rule: '@program_edit'
+   expression: '@program_edit'
 
  - name: qnode_edit
    description: "permission to edit a category"
    failure: "you can't edit a category"
-   rule: '@program_edit'
+   expression: '@program_edit'
 
  - name: response_type_add
    description: "permission to add a new response type"
    failure: "you can't add a new response type"
-   rule: '@program_edit'
+   expression: '@program_edit'
 
  - name: response_type_del
    description: "permission to delete a response type"
    failure: "you can't delete a response type"
-   rule: '@program_edit'
+   expression: '@program_edit'
 
  - name: response_type_edit
    description: "permission to edit a response type"
    failure: "you can't edit a response type"
-   rule: '@program_edit'
+   expression: '@program_edit'
 
  - name: survey_add
    description: "permission to create a survey"
    failure: "you can't create a survey"
-   rule: '@program_edit'
+   expression: '@program_edit'
 
  - name: survey_del
    description: "permission to delete a survey"
    failure: "you can't delete a survey"
-   rule: '@program_edit'
+   expression: '@program_edit'
 
  - name: survey_edit
    description: "permission to edit a survey"
    failure: "you can't edit a survey"
-   rule: '@program_edit'
+   expression: '@program_edit'
 
  - name: survey_purchase
    description: "permission to give access to a survey"
    failure: "you can't give access to a survey"
-   rule: '@admin'
+   expression: '@admin'
 
 
 # Submission
@@ -236,47 +236,47 @@
  - name: response_edit
    description: "permission to edit a response"
    failure: "you can't edit a response"
-   rule: '@submission_edit'
+   expression: '@submission_edit'
 
  - name: response_view
    description: "permission to view a response"
    failure: "you can't view a response"
-   rule: '@response_edit'
+   expression: '@response_edit'
 
  - name: submission_add
    description: "permission to create a submission"
    failure: "you can't create a submission"
-   rule: '@consultant or (@clerk and @_own_org)'
+   expression: '@consultant or (@clerk and @_own_org)'
 
  - name: submission_browse
    description: "permission to browse submissions"
    failure: "you can't browse submissions"
-   rule: '@submission_browse_any or (@clerk and @_own_org)'
+   expression: '@submission_browse_any or (@clerk and @_own_org)'
 
  - name: submission_browse_any
    description: "permission to browse all submissions"
    failure: "you can't browse all submissions"
-   rule: '@consultant'
+   expression: '@consultant'
 
  - name: submission_del
    description: "permission to delete a submission"
    failure: "you can't delete a submission"
-   rule: '@submission_edit'
+   expression: '@submission_edit'
 
  - name: submission_edit
    description: "permission to edit a submission"
    failure: "you can't edit a submission"
-   rule: '@consultant or (@org_admin and @_own_org)'
+   expression: '@consultant or (@org_admin and @_own_org)'
 
  - name: submission_view_aggregate_score
    description: "permission to view aggregate scores"
    failure: "you can't view aggregate scores"
-   rule: '@submission_view_single_score'
+   expression: '@submission_view_single_score'
 
  - name: submission_view_single_score
    description: "permission to view a single score"
    failure: "you can't view a single score"
-   rule: '@consultant or (@org_admin and @_own_org)'
+   expression: '@consultant or (@org_admin and @_own_org)'
 
 
 # Report
@@ -284,19 +284,19 @@
  - name: custom_query
    description: "permission to run a custom report"
    failure: "you can't run a custom report"
-   rule: '@admin'
+   expression: '@admin'
 
  - name: report_chart
    description: "permission to view a chart"
    failure: "you can't view a chart"
-   rule: '@consultant'
+   expression: '@consultant'
 
  - name: report_temporal
    description: "permission to view a temporal report"
    failure: "you can't view a temporal report"
-   rule: '@report_temporal_full'
+   expression: '@report_temporal_full'
 
  - name: report_temporal_full
    description: "permission to view a temporal report"
    failure: "you can't view a temporal report"
-   rule: '@consultant'
+   expression: '@consultant'

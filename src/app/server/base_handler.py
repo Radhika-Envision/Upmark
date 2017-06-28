@@ -3,11 +3,15 @@ from math import ceil
 import os
 import re
 
+from expiringdict import ExpiringDict
+from munch import Munch
 import sqlalchemy
 from tornado.escape import json_decode
 import tornado.options
 import tornado.web
 
+import authz
+import config
 import errors
 import model
 from utils import denormalise, truthy
@@ -15,7 +19,12 @@ from utils import denormalise, truthy
 log = logging.getLogger('app.base_handler')
 
 
+cache = ExpiringDict(max_len=100, max_age_seconds=10)
+
+
 class BaseHandler(tornado.web.RequestHandler):
+
+    root_policy = None
 
     def prepare(self):
         if (truthy(tornado.options.options.force_https) and
@@ -43,6 +52,31 @@ class BaseHandler(tornado.web.RequestHandler):
                 return None
             session.expunge(user)
             return user
+
+    @property
+    def authz_policy(self):
+        if hasattr(self, '_policy'):
+            return self._policy
+        try:
+            root_policy = cache['root_policy']
+        except KeyError:
+            rule_declarations = config.get_resource('authz')
+            root_policy = authz.Policy(error_factory=errors.AuthzError)
+            for decl in rule_declarations:
+                root_policy.declare(decl)
+            cache['root_policy'] = root_policy
+
+        policy = root_policy.derive({
+            's': Munch(
+                has_role=lambda name: model.has_privillege(
+                    self.current_user.role, name),
+                user=self.current_user,
+                org=self.organisation,
+            ),
+        })
+
+        self._policy = policy
+        return self._policy
 
     def has_privillege(self, *roles):
         return model.has_privillege(self.current_user.role, *roles)
