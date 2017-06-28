@@ -1,7 +1,8 @@
 'use strict'
 
 angular.module('upmark.organisation', [
-    'ngResource', 'vpac.utils'])
+    'ngResource', 'vpac.utils', 'upmark.admin'])
+
 
 .factory('Organisation', ['$resource', 'paged', function($resource, paged) {
     return $resource('/organisation/:id.json', {id: '@id'}, {

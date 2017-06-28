@@ -72,6 +72,7 @@
         - /js/custom.js
         - /js/diff.js
         - /js/home.js
+        - /js/location.js
         - /js/notifications.js
         - /js/organisation.js
         - /js/response-type.js
@@ -87,6 +88,7 @@
         - /js/survey/qnode.js
         - /js/structure.js
         - /js/survey/survey.js
+        - /js/system.js
         - /js/user.js
         - /js/utils.js
         - /js/widgets.js
