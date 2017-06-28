@@ -38,9 +38,19 @@
 
 # Admin
 
+ - name: conf_view
+   description: "permission to view system config"
+   failure: "you can't view system config"
+   expression: '@admin'
+
  - name: conf_edit
    description: "permission to edit system config"
-   failure: "you can not edit system config"
+   failure: "you can't edit system config"
+   expression: '@admin'
+
+ - name: conf_del
+   description: "permission to edit system config"
+   failure: "you can't edit system config"
    expression: '@admin'
 
 

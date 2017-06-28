@@ -479,10 +479,12 @@ angular.module('upmark.admin', [
         $scope.$broadcast('prepareFormSubmit', async_task_promises);
         var promise = $q.all(async_task_promises).then(
             function success(async_tasks) {
+                return $scope.edit.save();
+            },
+            function success(systemconfig) {
                 Notifications.remove('systemConfig');
                 $window.location.reload();
                 $scope.state.cacheBust = Date.now();
-                return $scope.edit.save();
             },
             function failure(reason) {
                 Notifications.set('systemConfig', 'error', reason);

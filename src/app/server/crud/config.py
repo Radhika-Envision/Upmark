@@ -24,8 +24,10 @@ MAX_WORKERS = 4
 
 
 class SystemConfigHandler(base_handler.BaseHandler):
-    @auth.authz('admin')
+
+    @tornado.web.authenticated
     def get(self):
+        self.authz_policy.verify('conf_view')
         with model.session_scope() as session:
             settings = {}
             for name, schema in config.SCHEMA.items():
@@ -43,8 +45,9 @@ class SystemConfigHandler(base_handler.BaseHandler):
         self.write(json_encode(ToSon()(settings)))
         self.finish()
 
-    @auth.authz('admin')
+    @tornado.web.authenticated
     def put(self):
+        self.authz_policy.verify('conf_edit')
         with model.session_scope() as session:
             settings = {}
             for name, schema in config.SCHEMA.items():
@@ -67,7 +70,7 @@ class SystemConfigItemHandler(base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, name):
-        self.check_privillege('admin')
+        self.authz_policy.verify('conf_view')
         name = to_snake_case(name)
         schema = config.SCHEMA.get(name)
         if not schema or config.is_private(name, schema):
@@ -93,7 +96,7 @@ class SystemConfigItemHandler(base_handler.BaseHandler):
     @tornado.web.authenticated
     @gen.coroutine
     def post(self, name):
-        self.check_privillege('admin')
+        self.authz_policy.verify('conf_edit')
         name = to_snake_case(name)
         schema = config.SCHEMA.get(name)
         if not schema or config.is_private(name, schema):
@@ -115,7 +118,7 @@ class SystemConfigItemHandler(base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def delete(self, name):
-        self.check_privillege('admin')
+        self.authz_policy.verify('conf_del')
         name = to_snake_case(name)
         schema = config.SCHEMA.get(name)
         if not schema or config.is_private(name, schema):
