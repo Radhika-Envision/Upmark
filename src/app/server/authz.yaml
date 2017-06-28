@@ -89,6 +89,16 @@
    failure: "you are not a member of the organisation"
    expression: 'org.id == s.org.id'
 
+ - name: org_browse
+   description: "permission to browse organisations organisation"
+   failure: "you can't browse organisations"
+   expression: 'True'
+
+ - name: org_view
+   description: "permission to view an organisation"
+   failure: "you can't view an organisation"
+   expression: 'True'
+
  - name: org_add
    description: "permission to add a new organisation"
    failure: "you can't add a new organisation"
