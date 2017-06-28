@@ -640,7 +640,7 @@ angular.module('upmark.admin', [
 })
 
 
-.directive('colourSetting', function() {
+.directive('colourSetting', function($timeout) {
     return {
         restrict: 'E',
         scope: {
@@ -658,8 +658,11 @@ angular.module('upmark.admin', [
                 scope.setting.value = scope.setting.defaultValue;
                 formCtrl.$setDirty();
             };
-            elem.find('.color-picker-input-wrapper').append(
-                elem.find('.input-group-btn'));
+            $timeout(function() {
+                elem.find('.color-picker-input-wrapper').append(
+                    elem.find('.input-group-btn'));
+                elem.find('.color-picker-input').toggleClass('form-control', true);
+            });
         }
     };
 })
