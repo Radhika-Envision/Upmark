@@ -5,7 +5,7 @@ class Policy:
     def __init__(self, context=None, rules=None):
         self.rules = rules if rules is not None else {}
         self.context = context if context is not None else {}
-        self.context['_authz'] = lambda ruleName: self._check(ruleName)
+        self.context['_authz'] = lambda rule_name: self._check(rule_name)
 
     def declare(self, decl):
         rule = Rule(decl['name'], decl['description'], decl['rule'])
@@ -19,24 +19,24 @@ class Policy:
         policy.context.update(context)
         return policy
 
-    def _check(self, ruleName):
-        rule = self.rules.get(ruleName)
+    def _check(self, rule_name):
+        rule = self.rules.get(rule_name)
         if not rule:
-            raise AuthzError("No such rule %s" % ruleName)
+            raise AuthzError("No such rule %s" % rule_name)
         return rule.check(self.context)
 
-    def check(self, ruleName):
+    def check(self, rule_name):
         try:
-            return self._check(ruleName)
+            return self._check(rule_name)
         except AuthzError as e:
-            raise AuthzError("Error while evaluating %s: %s" % (ruleName, e))
+            raise AuthzError("Error while evaluating %s: %s" % (rule_name, e))
 
 
 class Rule:
     def __init__(self, name, description, expression):
         self.name = name
         self.description = description
-        expression = self.translateExp(expression)
+        expression = self.translate_exp(expression)
         expression = self.interpolate(expression)
         self.expression = expression
 
@@ -46,7 +46,7 @@ class Rule:
         # print(self.name, context)
         return eval(self.expression, {'__builtins__': {}}, context)
 
-    def translateExp(self, expression):
+    def translate_exp(self, expression):
         # Grammar is already the same as Python expressions
         return expression
 
