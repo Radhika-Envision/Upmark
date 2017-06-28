@@ -1,7 +1,7 @@
 'use strict'
 
 angular.module('upmark.diff', [
-    'ngResource', 'upmark.admin', 'upmark.surveyQuestions', 'vpac.utils'])
+    'ngResource', 'upmark.admin', 'upmark.structure', 'vpac.utils'])
 
 
 .factory('Diff', ['$resource', function($resource) {

@@ -1,9 +1,7 @@
 'use strict';
 
-angular.module('upmark.surveyQuestions', [
-    'ngResource', 'ngSanitize',
-    'ui.select', 'ui.sortable',
-    'upmark.admin', 'upmark.survey.services'])
+angular.module('upmark.structure', [
+    'ngResource', 'ngSanitize', 'ui.select', 'ui.sortable', 'upmark.admin'])
 
 
 .factory('Structure', function() {

@@ -1,7 +1,7 @@
 'use strict'
 
 angular.module('upmark.statistics', [
-    'ngResource', 'upmark.submission.submission', 'upmark.surveyQuestions',
+    'ngResource', 'upmark.submission.submission', 'upmark.structure',
     'upmark.admin', 'upmark.submission.rnode', 'upmark.survey.qnode'])
 
 

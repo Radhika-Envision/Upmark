@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('upmark.survey.measure', [
-    'upmark.surveyQuestions', 'upmark.survey.services', 'upmark.response.type'])
+    'upmark.structure', 'upmark.response.type'])
 
 
 .factory('Measure', ['$resource', 'paged', function($resource, paged) {

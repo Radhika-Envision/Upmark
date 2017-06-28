@@ -71,17 +71,18 @@
         - /js/authz.js
         - /js/custom.js
         - /js/diff.js
+        - /js/headers.js
         - /js/home.js
         - /js/response-type.js
         - /js/statistics.js
         - /js/subscription.js
-        - /js/submission-response.js
-        - /js/submission-rnode.js
-        - /js/submission-submission.js
-        - /js/survey-measure.js
-        - /js/survey-program.js
-        - /js/survey-qnode.js
-        - /js/survey-question.js
-        - /js/survey-survey.js
+        - /js/submission/response.js
+        - /js/submission/rnode.js
+        - /js/submission/submission.js
+        - /js/survey/measure.js
+        - /js/survey/program.js
+        - /js/survey/qnode.js
+        - /js/structure.js
+        - /js/survey/survey.js
         - /js/utils.js
         - /js/widgets.js
