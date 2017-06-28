@@ -5,9 +5,9 @@ angular.module('upmark.authz', [])
 
 .factory('Authz', function($parse) {
 
-    function Policy() {
-        this.rules = {};
-        this.context = {};
+    function Policy(context, rules) {
+        this.rules = rules != null ? rules : {};
+        this.context = context != null ? context : {};
         var that = this;
         this.context['$authz'] = function(ruleName) {
             return that._check(ruleName);
@@ -18,10 +18,10 @@ angular.module('upmark.authz', [])
         this.rules[rule.name] = rule;
     };
     Policy.prototype.copy = function() {
-        var policy = new Policy();
-        angular.extend(policy.rules, this.rules);
-        angular.extend(policy.context, this.context);
-        return policy;
+        return new Policy(
+            angular.extend({}, this.context),
+            angular.extend({}, this.rules)
+        );
     };
     Policy.prototype.derive = function(context) {
         var policy = this.copy();
@@ -50,12 +50,15 @@ angular.module('upmark.authz', [])
         this.expression = expression;
         expression = this.translateExp(expression);
         expression = this.interpolate(expression);
+        // Use Angular's expression parser.
         this.getter = $parse(expression);
     };
     Rule.prototype.check = function(context) {
         return this.getter(context);
     };
     Rule.prototype.translateExp = function(expression) {
+        // Convert expression syntax into something usable by the expression
+        // parser.
         expression = expression.replace(/(^|\W)not($|\W)/g, '$1!');
         expression = expression.replace(/(^|\W)and($|\W)/g, '$1&&$2');
         expression = expression.replace(/(^|\W)or($|\W)/g, '$1||$2');

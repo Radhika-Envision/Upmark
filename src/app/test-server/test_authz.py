@@ -5,7 +5,7 @@ import pprint
 import unittest
 from unittest import mock
 
-from bunch import Bunch
+from munch import Munch
 import sqlalchemy
 from sqlalchemy.sql import func
 from sqlalchemy.orm.session import make_transient
@@ -33,9 +33,14 @@ class AuthzMechanismTest(unittest.TestCase):
             'rule': 's.has_role("admin")',
         })
         policy.declare({
-            'name': '_own_user',
-            'description': "you are the owner",
-            'rule': 'user.id == s.user.id',
+            'name': 'org_admin',
+            'description': "the organisation administrator role",
+            'rule': 's.has_role("org_admin")',
+        })
+        policy.declare({
+            'name': '_own_org',
+            'description': "you are a member of the organisation",
+            'rule': 'org.id == s.org.id',
         })
         policy.declare({
             'name': 'user_add',
@@ -44,29 +49,29 @@ class AuthzMechanismTest(unittest.TestCase):
         })
 
         user_policy = policy.derive({
-            's': Bunch(
-                has_role=lambda name: True,
-                user=Bunch(id='foo')
+            's': Munch(
+                has_role=lambda name: name in {'admin', 'org_admin'},
+                org=Munch(id='foo')
             ),
-            'user': Bunch(id='foo')
+            'org': Munch(id='foo')
         })
         self.assertEqual(user_policy.check('user_add'), True)
 
         user_policy = policy.derive({
-            's': Bunch(
-                has_role=lambda name: False,
-                user=Bunch(id='foo')
+            's': Munch(
+                has_role=lambda name: name in set(),
+                org=Munch(id='foo')
             ),
-            'user': Bunch(id='foo')
+            'org': Munch(id='foo')
         })
         self.assertEqual(user_policy.check('user_add'), False)
 
         user_policy = policy.derive({
-            's': Bunch(
-                has_role=lambda name: True,
-                user=Bunch(id='foo')
+            's': Munch(
+                has_role=lambda name: name in {'org_admin'},
+                org=Munch(id='foo')
             ),
-            'user': Bunch(id='bar')
+            'org': Munch(id='bar')
         })
         self.assertEqual(user_policy.check('user_add'), False)
 

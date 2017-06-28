@@ -2,9 +2,9 @@ import re
 
 
 class Policy:
-    def __init__(self):
-        self.rules = {}
-        self.context = {}
+    def __init__(self, context=None, rules=None):
+        self.rules = rules if rules is not None else {}
+        self.context = context if context is not None else {}
         self.context['_authz'] = lambda ruleName: self._check(ruleName)
 
     def declare(self, decl):
@@ -12,10 +12,7 @@ class Policy:
         self.rules[rule.name] = rule
 
     def copy(self):
-        policy = Policy()
-        policy.rules = self.rules.copy()
-        policy.context = self.context.copy()
-        return policy
+        return Policy(self.context.copy(), self.rules.copy())
 
     def derive(self, context):
         policy = self.copy()
@@ -54,7 +51,8 @@ class Rule:
         return expression
 
     def interpolate(self, expression):
-        return re.sub(r'@(\w+)', r'_authz("\1")', expression)
+        expression = re.sub(r'@(\w+)', r'_authz("\1")', expression)
+        return expression
 
     def __str__(self):
         return self.expression

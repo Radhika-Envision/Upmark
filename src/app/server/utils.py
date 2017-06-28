@@ -9,7 +9,7 @@ import time
 import uuid
 import yaml
 
-from bunch import Bunch
+from munch import Munch
 import sqlalchemy
 from sqlalchemy.orm import joinedload
 from sqlalchemy.engine.result import RowProxy
@@ -115,7 +115,7 @@ class ToSon:
         if isinstance(value, model.Base):
             names = dir(value)
 
-            son = Bunch()
+            son = Munch()
             for name in names:
                 if not self.can_emit(name, path):
                     continue
@@ -138,7 +138,7 @@ class ToSon:
         elif (hasattr(value, '__getitem__') and hasattr(value, 'keys') and
               hasattr(value, 'values') and not isinstance(value, RowProxy)):
             # Dictionaries
-            son = Bunch()
+            son = Munch()
             for name in value.keys():
                 if not self.can_emit(name, path):
                     continue
@@ -205,7 +205,7 @@ def denormalise(value):
     if isinstance(value, str):
         return value
     elif hasattr(value, '__getitem__') and hasattr(value, 'items'):
-        return Bunch((pattern.sub(r'\1_\2', k).lower(), denormalise(v))
+        return Munch((pattern.sub(r'\1_\2', k).lower(), denormalise(v))
                 for k, v in value.items())
     elif hasattr(value, '__getitem__') and hasattr(value, '__iter__'):
         return [denormalise(v) for v in value]

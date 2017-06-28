@@ -9,7 +9,7 @@ import tempfile
 import time
 import uuid
 
-from bunch import Bunch
+from munch import Munch
 import sqlalchemy
 import sqlparse
 from tornado import gen
@@ -85,7 +85,7 @@ class CustomQueryReportHandler(base_handler.BaseHandler):
         elif not 0 <= limit <= max_limit:
             raise errors.ModelError('Query row limit is out of bounds')
 
-        return Bunch({
+        return Munch({
             'wall_time': int(wall_time * 1000),
             'limit': int(limit),
             'base_url': config.get_setting(session, 'app_base_url'),
