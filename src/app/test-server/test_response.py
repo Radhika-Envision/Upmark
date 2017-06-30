@@ -118,7 +118,7 @@ TEST_RESPONSE_TYPES = [
 ]
 
 
-class ResponseTypeTest(unittest.TestCase):
+class ResponseTypeTest(base.LoggingTestCase):
     @classmethod
     def setUpClass(cls):
         cls.rts = {

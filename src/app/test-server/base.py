@@ -1,3 +1,4 @@
+from atexit import register as atexit
 import logging
 import json
 import os
@@ -42,8 +43,9 @@ def get_secure_cookie(user_email=None, super_email=None):
 
 
 def mock_user(email):
-    return mock.patch('tornado.web.RequestHandler.get_secure_cookie',
-                get_secure_cookie(user_email=email))
+    return mock.patch(
+        'tornado.web.RequestHandler.get_secure_cookie',
+        get_secure_cookie(user_email=email))
 
 
 def print_survey(survey):
@@ -76,7 +78,27 @@ def print_survey(survey):
         print_qnode(qnode, indent="  ")
 
 
-class AqModelTestBase(unittest.TestCase):
+results = set()
+
+
+class LoggingTestCase(unittest.TestCase):
+    def run(self, result=None):
+        results.add(result)
+        super().run(result)
+
+
+def show_failed_tests():
+    print("Failures:", ' '.join(
+        case.id()
+        for result in results
+        for case, _ in result.failures
+    ))
+
+
+atexit(show_failed_tests)
+
+
+class AqModelTestBase(LoggingTestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -153,7 +175,8 @@ class AqModelTestBase(unittest.TestCase):
             os.path.dirname(os.path.abspath(__file__)), '..')
 
         with open(os.path.join(
-                proj_dir, 'test-server', 'default_response_types.json')) as file:
+                proj_dir, 'test-server', 'default_response_types.json')
+                ) as file:
             response_types = json.load(file)
 
         # Measure declaration, separate from survey to allow cross-linking.
@@ -361,7 +384,7 @@ class AqModelTestBase(unittest.TestCase):
 
         with model.session_scope() as session:
             # Create survey
-            program = entity = model.Program(
+            program = model.Program(
                 title='Test Program 1',
                 description="This is a test program")
             session.add(program)
@@ -413,7 +436,7 @@ class AqModelTestBase(unittest.TestCase):
 
                     msons = qson.get('measures', [])
                     for measure in (ordered_measures[i] for i in msons):
-                        qm = model.QnodeMeasure(
+                        model.QnodeMeasure(
                             program=program, survey=survey,
                             qnode=qnode, measure=measure,
                             seq=-1)

@@ -7,6 +7,7 @@ import uuid
 
 from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
 
+import base
 import model
 from model.guid import GUID
 from utils import denormalise, truthy, falsy, UtilException, ToSon
@@ -36,7 +37,7 @@ class TestNode(model.Base):
         return "TestNode(%d)" % self.int_col
 
 
-class ConversionTest(unittest.TestCase):
+class ConversionTest(base.LoggingTestCase):
 
     def test_truthy(self):
         self.assertTrue(truthy(True))
