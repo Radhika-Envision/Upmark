@@ -156,21 +156,6 @@ angular.module('vpac.widgets', [])
 }])
 
 
-.directive('deleteCycle', [function() {
-    return {
-        restrict: 'E',
-        templateUrl: 'delete_cycle.html',
-        replace: true,
-        scope: {
-            model: '='
-        },
-        controller: ['$scope', 'tricycle', function($scope, tricycle) {
-            $scope.tricycle = tricycle;
-        }]
-    };
-}])
-
-
 .directive('deleteButton', [function() {
     return {
         restrict: 'E',

@@ -90,5 +90,14 @@
         - /js/survey/survey.js
         - /js/system.js
         - /js/user.js
-        - /js/utils.js
+        - /js/utils/arrays.js
+        - /js/utils/events.js
+        - /js/utils/logging.js
+        - /js/utils/math.js
+        - /js/utils/observer.js
+        - /js/utils/queue.js
+        - /js/utils/requests.js
+        - /js/utils/string.js
+        - /js/utils/cycle.js
+        - /js/utils/watch.js
         - /js/widgets.js
