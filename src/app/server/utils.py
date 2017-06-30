@@ -5,13 +5,11 @@ import inspect
 import logging
 import os
 import re
-import time
 import uuid
 import yaml
 
-from munch import Munch
+from munch import UMunch
 import sqlalchemy
-from sqlalchemy.orm import joinedload
 from sqlalchemy.engine.result import RowProxy
 
 import errors
@@ -34,7 +32,8 @@ def get_config(file_name):
 
 def truthy(value):
     '''
-    @return True if the value is a string like 'True' (etc), or the boolean True
+    @return True if the value is a string like 'True' (etc), or the boolean
+        True
     '''
     if isinstance(value, bool):
         return value
@@ -86,8 +85,8 @@ class ToSon:
         Unsafe fields can be sanitised (HTML) by prefixing with '<':
             - Include and sanitise 'description' field: r'</description$'
 
-        Prefix with a '\' if you want to use one of the other special characters
-        at the start of the expression.
+        Prefix with a '\' if you want to use one of the other special
+        characters at the start of the expression.
         '''
         for expression in expressions:
             if expression.startswith('<'):
@@ -115,7 +114,7 @@ class ToSon:
         if isinstance(value, model.Base):
             names = dir(value)
 
-            son = Munch()
+            son = UMunch()
             for name in names:
                 if not self.can_emit(name, path):
                     continue
@@ -138,7 +137,7 @@ class ToSon:
         elif (hasattr(value, '__getitem__') and hasattr(value, 'keys') and
               hasattr(value, 'values') and not isinstance(value, RowProxy)):
             # Dictionaries
-            son = Munch()
+            son = UMunch()
             for name in value.keys():
                 if not self.can_emit(name, path):
                     continue
@@ -159,7 +158,8 @@ class ToSon:
         else:
             son = value
 
-        if isinstance(son, str) and any(s.search(path) for s in self._sanitise):
+        if (isinstance(son, str) and
+                any(s.search(path) for s in self._sanitise)):
             son = bleach.clean(son, strip=True)
 
         self.visited.pop()
@@ -205,8 +205,9 @@ def denormalise(value):
     if isinstance(value, str):
         return value
     elif hasattr(value, '__getitem__') and hasattr(value, 'items'):
-        return Munch((pattern.sub(r'\1_\2', k).lower(), denormalise(v))
-                for k, v in value.items())
+        return UMunch(
+            (pattern.sub(r'\1_\2', k).lower(), denormalise(v))
+            for k, v in value.items())
     elif hasattr(value, '__getitem__') and hasattr(value, '__iter__'):
         return [denormalise(v) for v in value]
     else:

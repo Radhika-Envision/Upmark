@@ -23,32 +23,32 @@ from utils import ToSon
 log = logging.getLogger('app.test.test_authz')
 
 
-class AuthzMechanismTest(unittest.TestCase):
+class AuthzMechanismTest(base.LoggingTestCase):
     def setUp(self):
         self.policy = authz.Policy(error_factory=TestPermissionError)
         self.policy.declare({
             'name': 'admin',
             'description': "the administrator role",
             'failure': "you are not an administrator",
-            'rule': 's.has_role("admin")',
+            'expression': 's.has_role("admin")',
         })
         self.policy.declare({
             'name': 'org_admin',
             'description': "the organisation administrator role",
             'failure': "you are not an organisation administrator",
-            'rule': 's.has_role("org_admin")',
+            'expression': 's.has_role("org_admin")',
         })
         self.policy.declare({
             'name': '_own_org',
             'description': "you are a member of the organisation",
             'failure': "you are not a member of the organisation",
-            'rule': 'org.id == s.org.id',
+            'expression': 'org.id == s.org.id',
         })
         self.policy.declare({
             'name': 'user_add',
             'description': "permission to add a new user",
             'failure': "you can't add a new user",
-            'rule': '@admin or (@org_admin and @_own_org)',
+            'expression': '@admin or (@org_admin and @_own_org)',
         })
 
     def test_policy(self):

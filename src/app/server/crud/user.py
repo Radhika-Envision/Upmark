@@ -58,6 +58,9 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             except (sqlalchemy.exc.StatementError, ValueError):
                 raise errors.MissingDocError("No such user")
 
+            policy = self.authz_policy.derive({'user': user})
+            policy.verify('user_view')
+
             to_son = ToSon(
                 r'/id$',
                 r'/name$',
@@ -70,7 +73,7 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
                 # Exclude password from response. Not really necessary because
                 # 1. it's hashed and 2. it's not in the list above. But just to
                 # be safe.
-                r'!password'
+                r'!password',
             )
             son = to_son(user)
         self.set_header("Content-Type", "application/json")
@@ -84,12 +87,19 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
 
         sons = []
         with model.session_scope() as session:
+            organisation_id = self.get_argument("organisationId", None)
+            if organisation_id:
+                org = session.query(model.Organisation).get(organisation_id)
+            else:
+                org = None
+            policy = self.authz_policy.derive({'org': org})
+            policy.verify('user_browse')
+
             query = (session.query(model.AppUser)
                 .join(
                     model.Organisation,
                     model.Organisation.id == model.AppUser.organisation_id))
 
-            organisation_id = self.get_argument("organisationId", None)
             if organisation_id is not None:
                 query = query.filter(model.Organisation.id == organisation_id)
 
@@ -152,16 +162,24 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
         except voluptuous.error.Invalid as e:
             raise errors.ModelError.from_voluptuous(e)
 
-        self._check_create(self.request_son)
-
         try:
             with model.session_scope() as session:
                 org = (session.query(model.Organisation)
                     .get(self.request_son['organisation']['id']))
                 if org is None:
                     raise errors.ModelError("No such organisation")
+
                 user = model.AppUser(organisation=org)
-                self._check_update(self.request_son, None)
+
+                policy = self.authz_policy.derive({
+                    'org': user.organisation,
+                    'user': user,
+                    'target': self.request_son,
+                })
+                policy.verify('user_add')
+                policy.verify('user_change_role')
+                self.check_password(self.request_son.password)
+
                 self._update(user, self.request_son, session)
                 session.add(user)
 
@@ -199,12 +217,30 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
                 user = session.query(model.AppUser).get(user_id)
                 if user is None:
                     raise ValueError("No such object")
-                self._check_update(self.request_son, user)
+
+                policy = self.authz_policy.derive({
+                    'org': user.organisation,
+                    'user': user,
+                    'target': self.request_son,
+                })
+                policy.verify('user_edit')
+
+                if self.request_son.role and self.request_son != user.role:
+                    policy.verify('user_change_role')
+
+                if ('deleted' in self.request_son and
+                        self.request_son['deleted'] != user.deleted):
+                    policy.verify('user_enable')
+
+                if self.request_son.get('password'):
+                    self.check_password(self.request_son.password)
 
                 verbs = []
                 oid = self.request_son.get('organisation', {}).get('id')
                 if oid and oid != str(user.organisation_id):
+                    policy.verify('user_change_org')
                     verbs.append('relation')
+
                 self._update(user, self.request_son, session)
 
                 act = Activities(session)
@@ -240,7 +276,12 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
                 user = session.query(model.AppUser).get(user_id)
                 if user is None:
                     raise ValueError("No such object")
-                self._check_delete(user)
+
+                policy = self.authz_policy.derive({
+                    'org': user.organisation,
+                    'user': user,
+                })
+                policy.verify('user_del')
 
                 act = Activities(session)
                 if not user.deleted:
@@ -259,58 +300,11 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
 
         self.finish()
 
-    def _check_create(self, son):
-        if not model.has_privillege(self.current_user.role, 'org_admin'):
-            raise errors.AuthzError("You can't create a new user.")
-
-    def _check_update(self, son, user):
-        if model.has_privillege(self.current_user.role, 'admin'):
-            pass
-        elif model.has_privillege(self.current_user.role, 'org_admin'):
-            if str(self.organisation.id) != son['organisation']['id']:
-                raise errors.AuthzError(
-                    "You can't create/modify another organisation's user.")
-            if son['role'] not in {'org_admin', 'clerk'}:
-                raise errors.AuthzError(
-                    "You can't set this role.")
-            if user and user.role == 'admin':
-                raise errors.AuthzError(
-                    "You can't modify a user with that role.")
-        else:
-            if str(self.current_user.id) != str(user.id):
-                raise errors.AuthzError(
-                    "You can't modify another user.")
-            if str(self.organisation.id) != son['organisation']['id']:
-                raise errors.AuthzError(
-                    "You can't change your organisation.")
-            if son['role'] != self.current_user.role:
-                raise errors.AuthzError(
-                    "You can't change your role.")
-
-        if 'deleted' in son and son['deleted'] != user.deleted:
-            if str(self.current_user.id) == str(user.id):
-                raise errors.AuthzError(
-                    "You can't enable or disable yourself.")
-
-        if son.get('password', '') != '':
-            strength, threshold, _ = test_password(son['password'])
+    def check_password(self, password):
+        if password:
+            strength, threshold, _ = test_password(password)
             if strength < threshold:
                 raise errors.ModelError("Password is not strong enough")
-
-    def _check_delete(self, user):
-        if str(self.current_user.id) == str(user.id):
-            raise errors.AuthzError(
-                "You can't delete yourself.")
-
-        if model.has_privillege(self.current_user.role, 'admin'):
-            pass
-        elif model.has_privillege(self.current_user.role, 'org_admin'):
-            if str(self.organisation.id) != str(user.organisation_id):
-                raise errors.AuthzError(
-                    "You can't delete another organisation's user.")
-        elif str(self.current_user.id) != str(user.id):
-            raise errors.AuthzError(
-                "You can't delete another user.")
 
     def _update(self, user, son, session):
         '''
@@ -333,6 +327,7 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
 
 class PasswordHandler(base_handler.BaseHandler):
 
+    @tornado.web.authenticated
     def post(self):
         '''
         Check the strength of a password.

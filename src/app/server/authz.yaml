@@ -61,6 +61,16 @@
    failure: "you are not the owner"
    expression: 'user.id == s.user.id'
 
+ - name: user_browse
+   description: "permission to browse users"
+   failure: "you can't browse users"
+   expression: 'True'
+
+ - name: user_view
+   description: "permission to view a user"
+   failure: "you can't view a user"
+   expression: 'True'
+
  - name: user_add
    description: "permission to add a new user"
    failure: "you can't add a new user"
@@ -70,6 +80,16 @@
    description: "permission to change a user's organisation"
    failure: "you can't change a user's organisation"
    expression: '@admin'
+
+ - name: user_change_role
+   description: "set a user's role"
+   failure: "you can't set that role"
+   expression: >
+    @admin or (
+        @org_admin and @_own_org and (
+            target.role == "org_admin" or target.role == "clerk"
+        )
+    )
 
  - name: user_del
    description: "permission to delete a user"
