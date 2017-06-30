@@ -1,6 +1,6 @@
 'use strict'
 
-angular.module('upmark.utils.string', [])
+angular.module('vpac.utils.string', [])
 
 
 /*
@@ -66,5 +66,6 @@ angular.module('upmark.utils.string', [])
         }
     };
 }])
+
 
 ;

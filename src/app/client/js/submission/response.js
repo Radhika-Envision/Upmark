@@ -1,7 +1,7 @@
 'use strict'
 
 angular.module('upmark.submission.response', [
-    'ngResource', 'upmark.admin.settings', 'ui.select', 'vpac.utils'])
+    'ngResource', 'upmark.admin.settings', 'ui.select'])
 
 
 .factory('Response', ['$resource', function($resource) {

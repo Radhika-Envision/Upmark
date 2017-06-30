@@ -1,6 +1,6 @@
 'use strict'
 
-angular.module('upmark.utils.logging', [])
+angular.module('vpac.utils.logging', [])
 
 
 /*

@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('upmark.response.type', [
-    'ngResource', 'upmark.admin.settings', 'upmark.user', 'vpac.utils'])
+    'ngResource', 'upmark.admin.settings', 'upmark.user'])
 
 
 .factory('responseTypes', function() {

@@ -1,6 +1,6 @@
 'use strict'
 
-angular.module('upmark.utils.arrays', [])
+angular.module('vpac.utils.arrays', [])
 
 
 .factory('Arrays', [function() {

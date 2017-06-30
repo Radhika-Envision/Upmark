@@ -1,7 +1,7 @@
 'use strict'
 
-angular.module('upmark.utils.observer', [
-    'upmark.utils.arrays'])
+angular.module('vpac.utils.observer', [
+    'vpac.utils.arrays'])
 
 
 /**

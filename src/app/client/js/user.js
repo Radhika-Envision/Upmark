@@ -1,7 +1,7 @@
 'use strict'
 
 angular.module('upmark.user', [
-    'ngResource', 'upmark.notifications', 'vpac.utils'])
+    'ngResource', 'upmark.notifications', 'vpac.utils.requests'])
 
 
 .factory('User', ['$resource', 'paged', function($resource, paged) {
@@ -75,6 +75,19 @@ angular.module('upmark.user', [
     };
 
     return Roles;
+}])
+
+
+.factory('checkLogin', ['$q', 'User', '$cookies', '$http',
+         function($q, User, $cookies, $http) {
+    return function checkLogin() {
+        var user = $cookies.get('user');
+        var xsrf = $cookies.get($http.defaults.xsrfCookieName);
+        if (!user || !xsrf)
+            return $q.reject("Session cookies are not defined");
+
+        return User.get({id: 'current'}).$promise;
+    };
 }])
 
 

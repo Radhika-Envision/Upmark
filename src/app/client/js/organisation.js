@@ -1,7 +1,8 @@
 'use strict'
 
 angular.module('upmark.organisation', [
-    'ngResource', 'upmark.admin.settings', 'upmark.user', 'vpac.utils'])
+    'ngResource', 'upmark.admin.settings', 'upmark.authz', 'upmark.user',
+    'vpac.utils.requests', 'vpac.widgets.editor'])
 
 
 .factory('Organisation', ['$resource', 'paged', function($resource, paged) {

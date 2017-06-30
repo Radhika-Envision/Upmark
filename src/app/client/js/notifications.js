@@ -1,7 +1,7 @@
 'use strict'
 
 angular.module('upmark.notifications', [
-   'vpac.utils'])
+   'vpac.utils.arrays'])
 
 
 .factory('Notifications', ['log', '$timeout', 'Arrays',
@@ -65,6 +65,19 @@ angular.module('upmark.notifications', [
         }
     };
 })
+
+
+.directive('messages', [function() {
+    return {
+        restrict: 'E',
+        templateUrl: 'messages.html',
+        replace: true,
+        scope: {},
+        controller: ['$scope', 'Notifications', function($scope, Notifications) {
+            $scope.notifications = Notifications;
+        }]
+    };
+}])
 
 
 ;

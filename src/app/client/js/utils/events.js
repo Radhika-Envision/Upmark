@@ -1,9 +1,9 @@
 'use strict'
 
-angular.module('upmark.utils.events', [])
+angular.module('vpac.utils.events', [])
 
 
-/** TODO: Move to some sort of on-events module
+/**
  * Focus an element in response to an event.
  */
 .directive('focusOn', [function() {
@@ -28,7 +28,7 @@ angular.module('upmark.utils.events', [])
 }])
 
 
-/** TODO: Move to some sort of on-events module
+/**
  * Return focus to the last-focussed element in response to an event.
  */
 .directive('blurOn', ['$window', '$document', function($window, $document) {

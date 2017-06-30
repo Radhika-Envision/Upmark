@@ -1,6 +1,6 @@
 'use strict'
 
-angular.module('upmark.utils.queue', [])
+angular.module('vpac.utils.queue', [])
 
 
 /*

@@ -1,7 +1,7 @@
 'use strict'
 
-angular.module('upmark.utils.watch', [
-    'upmark.utils.logging'])
+angular.module('vpac.utils.watch', [
+    'vpac.utils.logging'])
 
 
 /*

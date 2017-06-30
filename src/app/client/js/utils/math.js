@@ -1,6 +1,6 @@
 'use strict'
 
-angular.module('upmark.utils.math', [])
+angular.module('vpac.utils.math', [])
 
 
 .factory('Numbers', [function() {

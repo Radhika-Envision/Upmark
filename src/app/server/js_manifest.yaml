@@ -79,10 +79,13 @@
         - /js/statistics.js
         - /js/subscription.js
         - /js/submission.js
+        - /js/submission/approval.js
         - /js/submission/response.js
         - /js/submission/rnode.js
         - /js/submission/submission.js
         - /js/survey.js
+        - /js/survey/history.js
+        - /js/survey/layout.js
         - /js/survey/measure.js
         - /js/survey/program.js
         - /js/survey/qnode.js
@@ -97,7 +100,20 @@
         - /js/utils/observer.js
         - /js/utils/queue.js
         - /js/utils/requests.js
+        - /js/utils/session.js
         - /js/utils/string.js
         - /js/utils/cycle.js
         - /js/utils/watch.js
-        - /js/widgets.js
+        - /js/widgets/any-href.js
+        - /js/widgets/dimmer.js
+        - /js/widgets/docs.js
+        - /js/widgets/editor.js
+        - /js/widgets/form-controls.js
+        - /js/widgets/markdown.js
+        - /js/widgets/page-title.js
+        - /js/widgets/progress.js
+        - /js/widgets/size.js
+        - /js/widgets/spinner.js
+        - /js/widgets/text.js
+        - /js/widgets/time.js
+        - /js/widgets/visibility.js

@@ -1,6 +1,6 @@
 'use strict'
 
-angular.module('upmark.utils.session', [])
+angular.module('vpac.utils.session', [])
 
 
 /*

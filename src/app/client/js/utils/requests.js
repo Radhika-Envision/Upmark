@@ -1,6 +1,6 @@
 'use strict'
 
-angular.module('upmark.utils.requests', [])
+angular.module('vpac.utils.requests', [])
 
 
 .factory('paged', [function() {

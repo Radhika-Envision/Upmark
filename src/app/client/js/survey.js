@@ -1,7 +1,7 @@
 'use strict'
 
 angular.module('upmark.survey', [
-    'upmark.structure', 'vpac.utils'])
+    'upmark.structure'])
 
 
 .directive('questionHeader', [function() {
