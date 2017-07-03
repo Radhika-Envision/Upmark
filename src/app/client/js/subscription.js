@@ -1,6 +1,7 @@
 'use strict';
 
-angular.module('upmark.subscription', ['ngResource', 'upmark.admin'])
+angular.module('upmark.subscription', [
+    'ngResource', 'upmark.admin.settings', 'upmark.user'])
 
 
 .factory('Subscription', ['$resource', function($resource) {

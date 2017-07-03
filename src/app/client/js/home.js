@@ -1,6 +1,8 @@
 'use strict';
 
-angular.module('upmark.home', ['ngResource', 'upmark.admin'])
+angular.module('upmark.home', [
+    'ngResource', 'upmark.admin.settings', 'upmark.authz', 'upmark.notifications',
+    'upmark.user'])
 
 
 .factory('Activity', ['$resource', function($resource) {
