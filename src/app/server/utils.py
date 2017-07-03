@@ -8,12 +8,13 @@ import re
 import uuid
 import yaml
 
-from munch import UMunch
+from munch import DefaultMunch
 import sqlalchemy
 from sqlalchemy.engine.result import RowProxy
 
 import errors
 import model
+from undefined import undefined
 
 
 log = logging.getLogger('app.utils')
@@ -114,7 +115,7 @@ class ToSon:
         if isinstance(value, model.Base):
             names = dir(value)
 
-            son = UMunch()
+            son = DefaultMunch(undefined)
             for name in names:
                 if not self.can_emit(name, path):
                     continue
@@ -137,7 +138,7 @@ class ToSon:
         elif (hasattr(value, '__getitem__') and hasattr(value, 'keys') and
               hasattr(value, 'values') and not isinstance(value, RowProxy)):
             # Dictionaries
-            son = UMunch()
+            son = DefaultMunch(undefined)
             for name in value.keys():
                 if not self.can_emit(name, path):
                     continue
@@ -198,16 +199,17 @@ def to_snake_case(name):
 
 def denormalise(value):
     '''
-    Convert the keys of a JSON-like object to Python form (snake case).
+    Recursively convert the keys of a JSON-like object to Python form (snake
+    case).
     '''
     pattern = re.compile(r'([^A-Z])([A-Z])')
 
     if isinstance(value, str):
         return value
     elif hasattr(value, '__getitem__') and hasattr(value, 'items'):
-        return UMunch(
+        return DefaultMunch(undefined, (
             (pattern.sub(r'\1_\2', k).lower(), denormalise(v))
-            for k, v in value.items())
+            for k, v in value.items()))
     elif hasattr(value, '__getitem__') and hasattr(value, '__iter__'):
         return [denormalise(v) for v in value]
     else:
