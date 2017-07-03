@@ -4,7 +4,6 @@ from tornado.escape import json_encode
 import tornado.web
 
 from activity import Activities
-import auth
 import base_handler
 import errors
 import model
@@ -12,13 +11,12 @@ from utils import ToSon, truthy, updater
 
 
 class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
+
     @tornado.web.authenticated
     def get(self, query_id):
         if not query_id:
             self.query()
             return
-
-        self._check_authz()
 
         version = self.get_argument('version', '')
 
@@ -26,6 +24,9 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             custom_query = session.query(model.CustomQuery).get(query_id)
             if custom_query is None:
                 raise errors.MissingDocError("No such query")
+
+            policy = self.authz_policy.derive({'custom_query': custom_query})
+            policy.verify('custom_query_view')
 
             old_version = self.get_version(session, custom_query, version)
 
@@ -81,7 +82,9 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
         return history
 
     def query(self):
-        self._check_authz()
+
+        policy = self.authz_policy.derive({})
+        policy.verify('custom_query_browse')
 
         with model.session_scope() as session:
             query = session.query(model.CustomQuery)
@@ -127,7 +130,6 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def post(self, query_id):
-        self._check_authz()
         if query_id:
             raise errors.MethodError("Can't use POST for existing query.")
 
@@ -136,6 +138,9 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             self.update(custom_query, self.request_son)
             self.update_auto(custom_query)
             session.add(custom_query)
+
+            policy = self.authz_policy.derive({'custom_query': custom_query})
+            policy.verify('custom_query_add')
 
             session.flush()
             act = Activities(session)
@@ -150,7 +155,6 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def put(self, query_id):
-        self._check_authz()
         if not query_id:
             raise errors.MethodError("Can't use PUT for new query.")
 
@@ -158,6 +162,9 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             custom_query = session.query(model.CustomQuery).get(query_id)
             if custom_query is None:
                 raise errors.MissingDocError("No such query")
+
+            policy = self.authz_policy.derive({'custom_query': custom_query})
+            policy.verify('custom_query_edit')
 
             self.check_concurrent_write(custom_query)
             if not self.should_save_new_version(custom_query):
@@ -203,9 +210,8 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
         hours_since_update = td.total_seconds() / 60 / 60
         return not same_user or hours_since_update >= 8
 
-    @auth.authz('admin')
+    @tornado.web.authenticated
     def delete(self, query_id):
-        self._check_authz()
         if not query_id:
             raise errors.MethodError("Query ID required")
 
@@ -213,6 +219,9 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             custom_query = session.query(model.CustomQuery).get(query_id)
             if custom_query is None:
                 raise errors.MissingDocError("No such query")
+
+            policy = self.authz_policy.derive({'custom_query': custom_query})
+            policy.verify('custom_query_delete')
 
             act = Activities(session)
             if not custom_query.deleted:
@@ -239,10 +248,6 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
         update = updater(custom_query)
         update('modified', extras)
         update('user_id', extras)
-
-    def _check_authz(self):
-        if not self.has_privillege('admin'):
-            raise errors.AuthzError("You can't use custom queries")
 
 
 class CustomQueryHistoryHandler(

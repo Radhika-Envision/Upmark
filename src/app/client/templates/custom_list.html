@@ -2,7 +2,8 @@
     <div class="container">
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="Add new"
-                    ng-href="#/2/custom/new" ng-if="checkRole('custom_query')">
+                    ng-href="#/2/custom/new"
+                    ng-if="checkRole('custom_query_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
         </div>
         <h2>
@@ -44,7 +45,8 @@
                 <span ng-if="!customQueries.length">
                     No queries match your search terms.</span>
 
-                <span ng-if="!customQueries.length && checkRole('custom_query')">
+                <span ng-if="!customQueries.length &&
+                        checkRole('custom_query_add')">
                     You can create a query by pressing the
                     <i class="fa fa-fw fa-plus"></i> button above.
                 </span>

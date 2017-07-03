@@ -181,7 +181,7 @@ angular.module('upmark.custom', [
         return col.richType;
     };
 
-    $scope.checkRole = Authz({});
+    $scope.checkRole = Authz({'custom_query': $scope.query});
 
     hotkeys.bindTo($scope)
         .add({
