@@ -1,7 +1,9 @@
 __all__ = ['undefined']
 
+from sentinels import Sentinel
 
-class Undefined:
+
+class Undefined(Sentinel):
     """
     Behaves similarly to JavaScript's `undefined`:
 
@@ -26,4 +28,4 @@ class Undefined:
         return 'undefined'
 
 
-undefined = Undefined()
+undefined = Undefined('undefined')

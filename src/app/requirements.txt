@@ -16,6 +16,7 @@ passwordmeter~=0.1.8
 py_expression_eval~=0.3.4
 pyyaml~=3.12
 scour~=0.35
+sentinels~=1.0.0
 # simpleeval is still required by the version upgrade scripts
 simpleeval~=0.8.5
 slimit~=0.8.1
