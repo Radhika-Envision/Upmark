@@ -1,22 +1,18 @@
 from concurrent.futures import ThreadPoolExecutor
 import logging
-import os
 
 from tornado import gen
 from tornado.concurrent import run_on_executor
-from tornado.escape import json_decode, json_encode
+from tornado.escape import json_encode
 import tornado.web
-from scour import scour
-import sqlalchemy
 
-import auth
 import base_handler
 import config
 import errors
 import model
 import image
 
-from utils import get_package_dir, to_camel_case, to_snake_case, ToSon
+from utils import to_camel_case, to_snake_case, ToSon
 
 
 log = logging.getLogger('app.crud.config')
@@ -49,7 +45,6 @@ class SystemConfigHandler(base_handler.BaseHandler):
     def put(self):
         self.authz_policy.verify('conf_edit')
         with model.session_scope() as session:
-            settings = {}
             for name, schema in config.SCHEMA.items():
                 if config.is_private(name, schema):
                     continue

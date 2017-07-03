@@ -115,7 +115,7 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
                     model.Program.title.ilike(r'%{}%'.format(term)))
 
             if is_editable:
-                query = query.filter(model.Program.finalised_date==None)
+                query = query.filter(model.Program.finalised_date == None)
 
             deleted = self.get_argument('deleted', '')
             if deleted != '':
@@ -162,7 +162,8 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
             act = Activities(session)
 
             if duplicate_id != '':
-                source_program = (session.query(model.Program)
+                source_program = (
+                    session.query(model.Program)
                     .get(duplicate_id))
                 if source_program is None:
                     raise errors.MissingDocError(
@@ -402,7 +403,8 @@ class ProgramTrackingHandler(base_handler.BaseHandler):
             if program is None:
                 raise errors.MissingDocError("No such program")
 
-            query = (session.query(model.Program)
+            query = (
+                session.query(model.Program)
                 .filter(model.Program.tracking_id == program.tracking_id)
                 .order_by(model.Program.created))
 
@@ -437,7 +439,8 @@ class ProgramHistoryHandler(base_handler.BaseHandler):
         a single survey may be present in multiple programs.
         '''
         with model.session_scope() as session:
-            query = (session.query(model.Program)
+            query = (
+                session.query(model.Program)
                 .join(self.mapper)
                 .filter(self.mapper.id == entity_id)
                 .order_by(model.Program.created))

@@ -10,7 +10,6 @@ from sqlalchemy.orm.session import make_transient
 
 from activity import Activities
 import base_handler
-import crud.program
 import errors
 import math_utils
 import model
@@ -177,7 +176,8 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
 
         try:
             with model.session_scope() as session:
-                self._check_open(program_id, survey_id, organisation_id, session)
+                self._check_open(
+                    program_id, survey_id, organisation_id, session)
 
                 submission = model.Submission(
                     program_id=program_id, survey_id=survey_id,
@@ -207,8 +207,7 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
         self.get(submission_id)
 
     def _check_open(self, program_id, survey_id, organisation_id, session):
-        survey = (session.query(model.Survey)
-            .get((survey_id, program_id)))
+        survey = session.query(model.Survey).get((survey_id, program_id))
         if not survey:
             raise errors.ModelError("No such survey")
         if survey.deleted:
@@ -216,7 +215,8 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
         if survey.program.deleted:
             raise errors.ModelError("That program has been deleted")
 
-        purchased_survey = (session.query(model.PurchasedSurvey)
+        purchased_survey = (
+            session.query(model.PurchasedSurvey)
             .filter_by(program_id=program_id,
                        survey_id=survey_id,
                        organisation_id=organisation_id)
@@ -231,24 +231,26 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
             raise errors.MissingDocError(
                 "Source submission (for duplication) not found")
 
-        if str(s_submission.organisation_id) != str(submission.organisation_id):
+        s_org_id = str(s_submission.organisation_id)
+        org_id = str(submission.organisation_id)
+        if s_org_id != org_id:
             raise errors.ModelError(
                 "Can't duplicate a submission across two organisations: "
                 "'%s' and '%s'" % (
                     s_submission.organisation.name,
                     submission.organisation.name))
 
-        survey_id = str(submission.survey.id)
         measure_ids = {
             str(qm.measure_id)
             for qm in submission.survey.ordered_qnode_measures}
 
-        qnode_ids = {str(q.id) for q in  submission.survey.ordered_qnodes}
+        qnode_ids = {str(q.id) for q in submission.survey.ordered_qnodes}
 
-        s_rnodes = (session.query(model.ResponseNode)
-                .filter_by(submission_id=s_submission.id)
-                .filter(model.ResponseNode.qnode_id.in_(qnode_ids))
-                .all())
+        s_rnodes = (
+            session.query(model.ResponseNode)
+            .filter_by(submission_id=s_submission.id)
+            .filter(model.ResponseNode.qnode_id.in_(qnode_ids))
+            .all())
 
         for rnode in s_rnodes:
             if str(rnode.qnode_id) not in qnode_ids:
@@ -328,8 +330,6 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
                 score += new_bias(bias) * qnode_measure.measure.weight
             rnode.score = score
             return score
-
-        user = session.query(model.AppUser).get(str(self.current_user.id))
 
         for i, qnode in enumerate(submission.survey.qnodes):
             random.seed(i)
@@ -416,19 +416,20 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
     def _check_approval(self, session, submission, approval):
         approval_set = self.approval_set(approval)
 
-        n_relevant_responses = (session.query(model.Response)
-                 .filter(model.Response.submission_id == submission.id,
-                         model.Response.approval.in_(approval_set))
-                 .count())
-        n_measures = (session.query(model.QnodeMeasure.measure_id)
-                .join(model.QuestionNode)
-                .filter(model.QuestionNode.survey_id ==
-                            submission.survey_id,
-                        model.QuestionNode.program_id == submission.program_id,
-                        model.QnodeMeasure.program_id == submission.program_id,
-                        model.QnodeMeasure.qnode_id == model.QuestionNode.id)
-                .distinct()
-                .count())
+        n_relevant_responses = (
+            session.query(model.Response)
+            .filter(model.Response.submission_id == submission.id,
+                    model.Response.approval.in_(approval_set))
+            .count())
+        n_measures = (
+            session.query(model.QnodeMeasure.measure_id)
+            .join(model.QuestionNode)
+            .filter(model.QuestionNode.survey_id == submission.survey_id,
+                    model.QuestionNode.program_id == submission.program_id,
+                    model.QnodeMeasure.program_id == submission.program_id,
+                    model.QnodeMeasure.qnode_id == model.QuestionNode.id)
+            .distinct()
+            .count())
 
         if n_relevant_responses < n_measures:
             raise errors.ModelError(

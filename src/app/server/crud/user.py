@@ -19,9 +19,9 @@ def test_password(text):
         setting = config.get_setting(session, 'pass_threshold')
         threshold = float(setting)
     password_tester = passwordmeter.Meter(settings={
-            'threshold': threshold,
-            'pessimism': 10,
-            'factor.casemix.weight': 0.3})
+        'threshold': threshold,
+        'pessimism': 10,
+        'factor.casemix.weight': 0.3})
     strength, improvements = password_tester.test(text)
     return strength, threshold, improvements
 
@@ -95,7 +95,8 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             policy = self.authz_policy.derive({'org': org})
             policy.verify('user_browse')
 
-            query = (session.query(model.AppUser)
+            query = (
+                session.query(model.AppUser)
                 .join(
                     model.Organisation,
                     model.Organisation.id == model.AppUser.organisation_id))
@@ -112,8 +113,8 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             if deleted is not None:
                 deleted = truthy(deleted)
 
-            # Filter deleted users. If organisation_id is not specified, users inherit
-            # their organisation's deleted flag too.
+            # Filter deleted users. If organisation_id is not specified, users
+            # inherit their organisation's deleted flag too.
             if deleted == True and not organisation_id:
                 query = query.filter(
                     (model.AppUser.deleted == True) |
@@ -164,7 +165,8 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
 
         try:
             with model.session_scope() as session:
-                org = (session.query(model.Organisation)
+                org = (
+                    session.query(model.Organisation)
                     .get(self.request_son['organisation']['id']))
                 if org is None:
                     raise errors.ModelError("No such organisation")
@@ -318,7 +320,8 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
         update('password', son)
 
         if son.get('organisation', '') != '':
-            org = (session.query(model.Organisation)
+            org = (
+                session.query(model.Organisation)
                 .get(self.request_son['organisation']['id']))
             if org is None:
                 raise errors.ModelError("No such organisation")

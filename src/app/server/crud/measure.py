@@ -47,11 +47,13 @@ class MeasureHandler(
 
             self.check_browse_program(session, program_id, survey_id)
 
-            query = (session.query(model.Measure)
+            query = (
+                session.query(model.Measure)
                 .filter(model.Measure.id == measure_id)
                 .filter(model.Measure.program_id == program_id))
             if survey_id:
-                query = (query
+                query = (
+                    query
                     .join(model.QnodeMeasure)
                     .filter(model.QnodeMeasure.survey_id == survey_id))
 
@@ -117,7 +119,8 @@ class MeasureHandler(
                     'source_measure': {
                         'id': mv.source_qnode_measure.measure_id,
                         'title': mv.source_qnode_measure.measure.title,
-                        'declared_vars': self.get_declared_vars(mv.source_qnode_measure.measure)
+                        'declared_vars': self.get_declared_vars(
+                            mv.source_qnode_measure.measure)
                     },
                     'source_field': mv.source_field,
                     'target_field': mv.target_field,
@@ -131,17 +134,20 @@ class MeasureHandler(
                     'target_field': mv.target_field,
                 } for mv in qnode_measure.target_vars])
 
-                prev = (session.query(model.QnodeMeasure)
-                    .filter(model.QnodeMeasure.qnode_id == qnode_measure.qnode_id,
-                            model.QnodeMeasure.program_id == measure.program_id,
-                            model.QnodeMeasure.seq < son['seq'])
-                    .order_by(model.QnodeMeasure.seq.desc())
+                QnodeMeasure = model.QnodeMeasure
+                prev = (
+                    session.query(QnodeMeasure)
+                    .filter(QnodeMeasure.qnode_id == qnode_measure.qnode_id,
+                            QnodeMeasure.program_id == measure.program_id,
+                            QnodeMeasure.seq < son['seq'])
+                    .order_by(QnodeMeasure.seq.desc())
                     .first())
-                next_ = (session.query(model.QnodeMeasure)
-                    .filter(model.QnodeMeasure.qnode_id == qnode_measure.qnode_id,
-                            model.QnodeMeasure.program_id == measure.program_id,
-                            model.QnodeMeasure.seq > son['seq'])
-                    .order_by(model.QnodeMeasure.seq)
+                next_ = (
+                    session.query(QnodeMeasure)
+                    .filter(QnodeMeasure.qnode_id == qnode_measure.qnode_id,
+                            QnodeMeasure.program_id == measure.program_id,
+                            QnodeMeasure.seq > son['seq'])
+                    .order_by(QnodeMeasure.seq)
                     .first())
 
                 if prev is not None:
@@ -161,13 +167,14 @@ class MeasureHandler(
         qnode_id = self.get_argument('qnodeId', '')
         if qnode_id != '':
             self.query_children_of(qnode_id)
-            return;
+            return
 
         orphan = self.get_argument('orphan', '')
         term = self.get_argument('term', '')
         program_id = self.get_argument('programId', '')
         survey_id = self.get_argument('surveyId', '')
-        with_declared_variables = truthy(self.get_argument('withDeclaredVariables', ''))
+        with_declared_variables = truthy(self.get_argument(
+            'withDeclaredVariables', ''))
 
         to_son = ToSon(
             # Fields to match from any visited object
@@ -214,18 +221,21 @@ class MeasureHandler(
                     model.Measure.title.ilike(r'%{}%'.format(term)))
 
             if rt_term:
-                query = (query
+                query = (
+                    query
                     .join(model.ResponseType)
                     .filter(
                         (cast(model.ResponseType.id, String) == rt_term) |
-                        (model.ResponseType.name.ilike(r'%{}%'.format(rt_term)))
+                        (model.ResponseType.name.ilike(
+                            r'%{}%'.format(rt_term)))
                     ))
 
             if with_declared_variables:
                 query = (query.options(joinedload('response_type')))
 
             if survey_id:
-                query = (query
+                query = (
+                    query
                     .options(joinedload('qnode_measures'))
                     .join(model.QnodeMeasure)
                     .filter(model.QnodeMeasure.survey_id == survey_id))
@@ -312,7 +322,6 @@ class MeasureHandler(
         self.check_editable()
 
         program_id = self.get_argument('programId', '')
-        survey_id = self.get_argument('surveyId', '')
         parent_id = self.get_argument('parentId', '')
 
         try:
@@ -383,12 +392,14 @@ class MeasureHandler(
 
                 # Just unlink from qnodes
                 if parent_id:
-                    qnode = (session.query(model.QuestionNode)
+                    qnode = (
+                        session.query(model.QuestionNode)
                         .get((parent_id, program_id)))
                     if qnode is None:
                         raise errors.MissingDocError(
                             "No such question node")
-                    qnode_measure = (session.query(model.QnodeMeasure)
+                    qnode_measure = (
+                        session.query(model.QnodeMeasure)
                         .get((program_id, qnode.survey_id, measure.id)))
                     if qnode_measure is None:
                         raise errors.ModelError(
@@ -443,10 +454,12 @@ class MeasureHandler(
                         calculator.mark_measure_dirty(qnode_measure)
 
                 if survey_id:
-                    qnode_measure = (session.query(model.QnodeMeasure)
+                    qnode_measure = (
+                        session.query(model.QnodeMeasure)
                         .get((program_id, survey_id, measure_id)))
                     if not qnode_measure:
-                        raise errors.MissingDocError("No such measure in that survey")
+                        raise errors.MissingDocError(
+                            "No such measure in that survey")
                     self._update_qnode_measure(qnode_measure, self.request_son)
 
                     # If relations have changed, mark this measure dirty.
@@ -467,7 +480,8 @@ class MeasureHandler(
                         .get((parent_id, program_id))
                     if new_parent is None:
                         raise errors.ModelError("No such question node")
-                    qnode_measure = measure.get_qnode_measure(new_parent.survey_id)
+                    qnode_measure = measure.get_qnode_measure(
+                        new_parent.survey_id)
                     if qnode_measure:
                         old_parent = qnode_measure.qnode
                         if old_parent == new_parent:
@@ -482,7 +496,8 @@ class MeasureHandler(
                         old_parent.qnode_measures.reorder()
                     else:
                         qnode_measure = model.QnodeMeasure(
-                            program=new_parent.program, survey=new_parent.survey,
+                            program=new_parent.program,
+                            survey=new_parent.survey,
                             qnode=new_parent, measure=measure)
                         self.reason('Added to %s' % new_parent.get_path())
                     new_parent.qnode_measures.reorder()

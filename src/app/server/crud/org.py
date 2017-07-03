@@ -7,7 +7,6 @@ import tornado.web
 import sqlalchemy
 
 from activity import Activities
-import auth
 import base_handler
 import crud.program
 import errors
@@ -142,9 +141,9 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
                 self._update(org, self.request_son)
 
                 verbs = []
-                if (session.is_modified(org)
-                        or org.locations != old_locations
-                        or session.is_modified(org.meta)):
+                if (session.is_modified(org) or
+                        org.locations != old_locations or
+                        session.is_modified(org.meta)):
                     verbs.append('update')
 
                 if org.deleted:
@@ -238,7 +237,9 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
             setattr(org.meta, n, son.get(n))
 
 
-class PurchasedSurveyHandler(crud.program.ProgramCentric, base_handler.BaseHandler):
+class PurchasedSurveyHandler(
+        crud.program.ProgramCentric, base_handler.BaseHandler):
+
     @tornado.web.authenticated
     def head(self, organisation_id, survey_id):
         with model.session_scope() as session:
@@ -249,7 +250,8 @@ class PurchasedSurveyHandler(crud.program.ProgramCentric, base_handler.BaseHandl
             policy = self.authz_policy.derive({'org': org})
             policy.verify('submission_browse')
 
-            purchased_survey = (session.query(model.PurchasedSurvey)
+            purchased_survey = (
+                session.query(model.PurchasedSurvey)
                 .filter_by(program_id=self.program_id,
                            survey_id=survey_id,
                            organisation_id=organisation_id)
@@ -277,9 +279,12 @@ class PurchasedSurveyHandler(crud.program.ProgramCentric, base_handler.BaseHandl
             policy = self.authz_policy.derive({'org': org})
             policy.verify('submission_browse')
 
-            query = (session.query(model.Survey)
+            query = (
+                session.query(model.Survey)
                 .join(model.PurchasedSurvey)
-                .filter(model.PurchasedSurvey.organisation_id == organisation_id))
+                .filter(
+                    model.PurchasedSurvey.organisation_id == organisation_id)
+            )
 
             if deleted:
                 deleted = truthy(deleted)
@@ -316,7 +321,8 @@ class PurchasedSurveyHandler(crud.program.ProgramCentric, base_handler.BaseHandl
             org = session.query(model.Organisation).get(organisation_id)
             if org is None:
                 raise errors.MissingDocError("No such organisation")
-            survey = (session.query(model.Survey)
+            survey = (
+                session.query(model.Survey)
                 .get((survey_id, self.program_id)))
             if not survey:
                 raise errors.MissingDocError('No such survey')
@@ -327,19 +333,21 @@ class PurchasedSurveyHandler(crud.program.ProgramCentric, base_handler.BaseHandl
             })
             policy.verify('survey_purchase')
 
-            purchased_survey = (session.query(model.PurchasedSurvey)
+            purchased_survey = (
+                session.query(model.PurchasedSurvey)
                 .get((self.program_id, survey_id, org.id)))
 
             if not purchased_survey:
                 org.surveys.append(survey)
 
     @tornado.web.authenticated
-    def delete(self, organisation_id, program_id):
+    def delete(self, organisation_id, survey_id):
         with model.session_scope() as session:
             org = session.query(model.Organisation).get(organisation_id)
             if not org:
                 raise errors.MissingDocError('No such organisation')
-            survey = (session.query(model.Survey)
+            survey = (
+                session.query(model.Survey)
                 .get((survey_id, self.program_id)))
             if not survey:
                 raise errors.MissingDocError('No such survey')

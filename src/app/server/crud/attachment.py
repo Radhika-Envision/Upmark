@@ -1,21 +1,14 @@
 import logging
-import datetime
 import os
-import time
 import hashlib
 import tempfile
 
-import boto3
 import botocore
-from tornado.escape import json_decode, json_encode
+from tornado.escape import json_encode
 from tornado import gen
 import tornado.web
-from tornado.web import asynchronous
-from tornado.concurrent import run_on_executor
 from concurrent.futures import ThreadPoolExecutor
 import sqlalchemy
-from sqlalchemy import func
-from sqlalchemy.orm import joinedload
 
 import aws
 import base_handler
@@ -87,7 +80,9 @@ class AttachmentHandler(base_handler.Paginate, base_handler.BaseHandler):
                     "You can't modify another organisation's response")
 
 
-class ResponseAttachmentsHandler(base_handler.Paginate, base_handler.BaseHandler):
+class ResponseAttachmentsHandler(
+        base_handler.Paginate, base_handler.BaseHandler):
+
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated
@@ -95,7 +90,8 @@ class ResponseAttachmentsHandler(base_handler.Paginate, base_handler.BaseHandler
         son = self.request_son
         externals = son["externals"]
         with model.session_scope() as session:
-            response = (session.query(model.Response)
+            response = (
+                session.query(model.Response)
                 .get((submission_id, measure_id)))
 
             if response is None:
@@ -122,13 +118,13 @@ class ResponseAttachmentsHandler(base_handler.Paginate, base_handler.BaseHandler
                 session.add(attachment)
         self.get(submission_id, measure_id)
 
-
     @tornado.web.authenticated
     @gen.coroutine
     def post(self, submission_id, measure_id):
         fileinfo = self.request.files['file'][0]
         with model.session_scope() as session:
-            response = (session.query(model.Response)
+            response = (
+                session.query(model.Response)
                 .get((submission_id, measure_id)))
 
             if response is None:
@@ -146,7 +142,8 @@ class ResponseAttachmentsHandler(base_handler.Paginate, base_handler.BaseHandler
                 # Metadata can not contain non-ASCII characters - so encode
                 # higher Unicode characters :/
                 # https://github.com/boto/boto3/issues/478#issuecomment-180608544
-                file_name_enc = (fileinfo["filename"]
+                file_name_enc = (
+                    fileinfo["filename"]
                     .encode('ascii', errors='backslashreplace')
                     .decode('ascii')
                     [:1024])
@@ -169,16 +166,15 @@ class ResponseAttachmentsHandler(base_handler.Paginate, base_handler.BaseHandler
             if aws.session is not None:
                 attachment.storage = "aws"
                 aws_url = aws.s3_url.format(
-                            region=aws.region_name,
-                            bucket=bucket,
-                            s3_path=s3_path)
+                    region=aws.region_name,
+                    bucket=bucket,
+                    s3_path=s3_path)
                 attachment.url = aws_url
             else:
                 attachment.storage = "database"
                 attachment.blob = bytes(fileinfo['body'])
             session.add(attachment)
             session.flush()
-
 
             attachment_id = str(attachment.id)
 
@@ -189,7 +185,8 @@ class ResponseAttachmentsHandler(base_handler.Paginate, base_handler.BaseHandler
     @tornado.web.authenticated
     def get(self, submission_id, measure_id):
         with model.session_scope() as session:
-            response = (session.query(model.Response)
+            response = (
+                session.query(model.Response)
                 .get((submission_id, measure_id)))
 
             if response is None:
@@ -197,8 +194,9 @@ class ResponseAttachmentsHandler(base_handler.Paginate, base_handler.BaseHandler
 
             self._check_authz(response.submission)
 
-            query = (session.query(model.Attachment)
-                    .filter(model.Attachment.response == response))
+            query = (
+                session.query(model.Attachment)
+                .filter(model.Attachment.response == response))
 
             to_son = ToSon(
                 r'/id$',

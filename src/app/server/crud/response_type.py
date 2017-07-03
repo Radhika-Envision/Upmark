@@ -20,7 +20,8 @@ log = logging.getLogger('app.crud.response_type')
 
 
 class ResponseTypeHandler(
-        base_handler.Paginate, crud.program.ProgramCentric, base_handler.BaseHandler):
+        base_handler.Paginate, crud.program.ProgramCentric,
+        base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, response_type_id):
@@ -108,9 +109,10 @@ class ResponseTypeHandler(
             if not program:
                 raise errors.MissingDocError("No such program")
 
-            rt_by_name = (session.query(model.ResponseType)
+            rt_by_name = (
+                session.query(model.ResponseType)
                 .filter(model.ResponseType.program_id == self.program_id)
-                .filter(model.ResponseType.name == self.request_son.get('name'))
+                .filter(model.ResponseType.name == self.request_son.name)
                 .first())
             if rt_by_name is not None:
                 raise errors.ModelError(
@@ -144,7 +146,8 @@ class ResponseTypeHandler(
     def delete(self, response_type_id):
         '''Delete'''
         with model.session_scope() as session:
-            response_type = (session.query(model.ResponseType)
+            response_type = (
+                session.query(model.ResponseType)
                 .get((response_type_id, self.program_id)))
             if not response_type:
                 raise errors.MissingDocError("No such response type")
@@ -164,15 +167,17 @@ class ResponseTypeHandler(
     def put(self, response_type_id):
         '''Update existing'''
         with model.session_scope() as session:
-            response_type = (session.query(model.ResponseType)
+            response_type = (
+                session.query(model.ResponseType)
                 .get((response_type_id, self.program_id)))
             if not response_type:
                 raise errors.MissingDocError("No such response type")
 
             if 'name' in self.request_son:
-                rt_by_name = (session.query(model.ResponseType)
+                rt_by_name = (
+                    session.query(model.ResponseType)
                     .filter(model.ResponseType.program_id == self.program_id)
-                    .filter(model.ResponseType.name == self.request_son['name'])
+                    .filter(model.ResponseType.name == self.request_son.name)
                     .first())
                 if rt_by_name and rt_by_name != response_type:
                     raise errors.ModelError(

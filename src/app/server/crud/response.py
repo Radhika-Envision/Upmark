@@ -75,20 +75,25 @@ class ResponseHandler(base_handler.BaseHandler):
         version = self.get_argument('version', '')
 
         with model.session_scope() as session:
-            response = (session.query(model.Response)
+            response = (
+                session.query(model.Response)
                 .get((submission_id, measure_id)))
 
             dummy = False
             if response is None:
-                # Synthesise response so it can be returned. The session will be
-                # rolled back to avoid actually making this change.
-                submission = (session.query(model.Submission)
+                # Synthesise response so it can be returned. The session will
+                # be rolled back to avoid actually making this change.
+                submission = (
+                    session.query(model.Submission)
                     .get(submission_id))
                 if not submission:
                     raise errors.MissingDocError("No such submission")
 
-                qnode_measure = (session.query(model.QnodeMeasure)
-                    .get((submission.program_id, submission.survey_id, measure_id)))
+                qnode_measure = (
+                    session.query(model.QnodeMeasure)
+                    .get((
+                        submission.program_id, submission.survey_id,
+                        measure_id)))
                 if not qnode_measure:
                     raise errors.MissingDocError(
                         "That survey has no such measure")
@@ -149,13 +154,15 @@ class ResponseHandler(base_handler.BaseHandler):
                 son = to_son(response)
             else:
                 son = to_son(response_history)
-                submission = (session.query(model.Submission)
-                        .filter_by(id=response_history.submission_id)
-                        .first())
-                measure = (session.query(model.Measure)
-                        .filter_by(id=response_history.measure_id,
-                                   program_id=submission.program_id)
-                        .first())
+                submission = (
+                    session.query(model.Submission)
+                    .filter_by(id=response_history.submission_id)
+                    .first())
+                measure = (
+                    session.query(model.Measure)
+                    .filter_by(id=response_history.measure_id,
+                               program_id=submission.program_id)
+                    .first())
                 qnode_measure = measure.get_qnode_measure(submission.survey_id)
                 parent = model.ResponseNode.from_qnode(
                     qnode_measure.qnode, submission)
@@ -184,10 +191,12 @@ class ResponseHandler(base_handler.BaseHandler):
                     for mv in response.qnode_measure.source_vars}
                 source_variables = {
                     source_qnode_measure: response and response.variables or {}
-                    for source_qnode_measure, response in source_responses.items()}
+                    for source_qnode_measure, response
+                    in source_responses.items()}
                 variables_by_target = {
                     mv.target_field:
-                    source_variables[mv.source_qnode_measure].get(mv.source_field)
+                    source_variables[mv.source_qnode_measure].get(
+                        mv.source_field)
                     for mv in response.qnode_measure.source_vars}
                 # Filter out blank/null variables
                 return {k: v for k, v in variables_by_target.items() if v}
@@ -211,7 +220,8 @@ class ResponseHandler(base_handler.BaseHandler):
         if version == response.version:
             return None
 
-        history = (session.query(model.ResponseHistory)
+        history = (
+            session.query(model.ResponseHistory)
             .get((response.submission_id, response.measure_id, version)))
 
         if history is None:
@@ -225,7 +235,8 @@ class ResponseHandler(base_handler.BaseHandler):
             raise errors.ModelError("qnode ID required")
 
         with model.session_scope() as session:
-            submission = (session.query(model.Submission)
+            submission = (
+                session.query(model.Submission)
                 .filter_by(id=submission_id)
                 .first())
 
@@ -233,7 +244,8 @@ class ResponseHandler(base_handler.BaseHandler):
                 raise errors.MissingDocError("No such submission")
             self._check_authz(submission)
 
-            rnode = (session.query(model.ResponseNode)
+            rnode = (
+                session.query(model.ResponseNode)
                 .filter_by(submission_id=submission_id,
                            qnode_id=qnode_id)
                 .first())
@@ -272,22 +284,25 @@ class ResponseHandler(base_handler.BaseHandler):
 
         try:
             with model.session_scope(version=True) as session:
-                submission = (session.query(model.Submission)
+                submission = (
+                    session.query(model.Submission)
                     .get(submission_id))
                 if submission is None:
                     raise errors.MissingDocError("No such submission")
 
                 self._check_authz(submission)
 
-                query = (session.query(model.Response).filter_by(
-                     submission_id=submission_id, measure_id=measure_id))
+                query = (
+                    session.query(model.Response).filter_by(
+                        submission_id=submission_id, measure_id=measure_id))
                 response = query.first()
 
                 verbs = []
                 if response is None:
                     program_id = submission.program_id
                     survey_id = submission.survey_id
-                    qnode_measure = (session.query(model.QnodeMeasure)
+                    qnode_measure = (
+                        session.query(model.QnodeMeasure)
                         .get((program_id, survey_id, measure_id)))
                     if qnode_measure is None:
                         raise errors.MissingDocError("No such measure")
@@ -384,13 +399,15 @@ class ResponseHistoryHandler(base_handler.Paginate, base_handler.BaseHandler):
         '''Get a list of versions of a response.'''
         with model.session_scope() as session:
             # Current version
-            versions = (session.query(model.Response)
+            versions = (
+                session.query(model.Response)
                 .filter_by(submission_id=submission_id,
                            measure_id=measure_id)
                 .all())
 
             # Other versions
-            query = (session.query(model.ResponseHistory)
+            query = (
+                session.query(model.ResponseHistory)
                 .filter_by(submission_id=submission_id,
                            measure_id=measure_id)
                 .order_by(model.ResponseHistory.version.desc()))
@@ -398,8 +415,8 @@ class ResponseHistoryHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             versions += query.all()
 
-            # Important! If you're going to include the comment field here, make
-            # sure it is cleaned first to prevent XSS attacks.
+            # Important! If you're going to include the comment field here,
+            # make sure it is cleaned first to prevent XSS attacks.
             to_son = ToSon(
                 r'/id$',
                 r'/name$',

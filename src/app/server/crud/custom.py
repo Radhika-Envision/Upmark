@@ -72,7 +72,8 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
         if version == custom_query.version:
             return None
 
-        history = (session.query(model.CustomQueryHistory)
+        history = (
+            session.query(model.CustomQueryHistory)
             .get((custom_query.id, version)))
 
         if history is None:
@@ -244,26 +245,30 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             raise errors.AuthzError("You can't use custom queries")
 
 
-class CustomQueryHistoryHandler(base_handler.Paginate, base_handler.BaseHandler):
+class CustomQueryHistoryHandler(
+        base_handler.Paginate, base_handler.BaseHandler):
+
     @tornado.web.authenticated
     def get(self, custom_query_id):
         '''Get a list of versions of a response.'''
         with model.session_scope() as session:
             # Current version
-            versions = (session.query(model.CustomQuery)
+            versions = (
+                session.query(model.CustomQuery)
                 .filter_by(id=custom_query_id)
                 .all())
 
             # Other versions
-            query = (session.query(model.CustomQueryHistory)
+            query = (
+                session.query(model.CustomQueryHistory)
                 .filter_by(id=custom_query_id)
                 .order_by(model.CustomQueryHistory.version.desc()))
             query = self.paginate(query)
 
             versions += query.all()
 
-            # Important! If you're going to include the comment field here, make
-            # sure it is cleaned first to prevent XSS attacks.
+            # Important! If you're going to include the description field here,
+            # make sure it is cleaned first to prevent XSS attacks.
             to_son = ToSon(
                 r'/id$',
                 r'/name$',

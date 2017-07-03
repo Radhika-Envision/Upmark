@@ -8,13 +8,12 @@ from tornado.concurrent import run_on_executor
 from tornado.escape import json_encode
 import tornado.web
 import sqlalchemy
-from sqlalchemy.orm import defer, noload, joinedload
 
 from activity import Activities
 import base_handler
 import errors
 import model
-from utils import ToSon, truthy, updater
+from utils import ToSon, updater
 
 
 MAX_WORKERS = 4
@@ -24,6 +23,8 @@ log = logging.getLogger('app.crud.activity')
 
 perf_time = time.perf_counter()
 perf_start = None
+
+
 def perf():
     global perf_start, perf_time
     if perf_start is None:
@@ -125,7 +126,6 @@ class ActivityHandler(base_handler.BaseHandler):
             # (5ms vs 300ms)
             start = perf()
             user_sons = {}
-            org_sons = {}
             activity_sons = []
             for a in activities:
                 a_son = {
@@ -177,7 +177,8 @@ class ActivityHandler(base_handler.BaseHandler):
         with model.session_scope() as session:
             if self.request_son['to'] == 'org':
                 self.check_privillege('org_admin')
-                ob = (session.query(model.Organisation)
+                ob = (
+                    session.query(model.Organisation)
                     .get(self.current_user.organisation_id))
                 if ob is None:
                     raise errors.ModelError('No such organisation')
@@ -221,7 +222,8 @@ class ActivityHandler(base_handler.BaseHandler):
     @tornado.web.authenticated
     def put(self, activity_id):
         with model.session_scope() as session:
-            activity = (session.query(model.Activity)
+            activity = (
+                session.query(model.Activity)
                 .get(activity_id))
             if not activity:
                 raise errors.MissingDocError("No such activity")
@@ -241,7 +243,8 @@ class ActivityHandler(base_handler.BaseHandler):
     @tornado.web.authenticated
     def delete(self, activity_id):
         with model.session_scope() as session:
-            activity = (session.query(model.Activity)
+            activity = (
+                session.query(model.Activity)
                 .get(activity_id))
             if not activity:
                 raise errors.MissingDocError("No such activity")
@@ -287,7 +290,8 @@ class SubscriptionHandler(base_handler.BaseHandler):
 
         subscription_id = ids
         with model.session_scope() as session:
-            subscription = (session.query(model.Subscription)
+            subscription = (
+                session.query(model.Subscription)
                 .get(subscription_id))
             if not subscription:
                 raise errors.MissingDocError("No such subscription")
@@ -316,7 +320,6 @@ class SubscriptionHandler(base_handler.BaseHandler):
                 raise errors.MissingDocError("No such object")
 
             act = Activities(session)
-            subs = act.subscriptions(self.current_user, ob)
             subscription_map = {
                 tuple(sub.ob_refs): sub.subscribed
                 for sub in act.subscriptions(self.current_user, ob)}
@@ -366,7 +369,8 @@ class SubscriptionHandler(base_handler.BaseHandler):
                 subscription.subscribed = self.request_son.get(
                     'subscribed', False)
                 if subscription.subscribed:
-                    user = (session.query(model.AppUser)
+                    user = (
+                        session.query(model.AppUser)
                         .get(self.current_user.id))
                     self.check_subscribe_authz(user, ob)
 
@@ -385,7 +389,8 @@ class SubscriptionHandler(base_handler.BaseHandler):
                 "Can't provide object type when updating a subscription")
 
         with model.session_scope() as session:
-            subscription = (session.query(model.Subscription)
+            subscription = (
+                session.query(model.Subscription)
                 .get(subscription_id))
 
             if not subscription:
@@ -413,7 +418,8 @@ class SubscriptionHandler(base_handler.BaseHandler):
                 "Can't provide object type when deleting a subscription")
 
         with model.session_scope() as session:
-            subscription = (session.query(model.Subscription)
+            subscription = (
+                session.query(model.Subscription)
                 .get(subscription_id))
 
             if not subscription:
@@ -437,62 +443,73 @@ class SubscriptionHandler(base_handler.BaseHandler):
 
         if ob_type == 'custom_query':
             arglen(len(ob_refs), 1)
-            query = (session.query(model.CustomQuery)
+            query = (
+                session.query(model.CustomQuery)
                 .filter(model.CustomQuery.id == ob_refs[0]))
 
         elif ob_type == 'organisation':
             arglen(len(ob_refs), 1)
-            query = (session.query(model.Organisation)
+            query = (
+                session.query(model.Organisation)
                 .filter(model.Organisation.id == ob_refs[0]))
 
         elif ob_type == 'user':
             arglen(len(ob_refs), 1)
-            query = (session.query(model.AppUser)
+            query = (
+                session.query(model.AppUser)
                 .filter(model.AppUser.id == ob_refs[0]))
 
         elif ob_type == 'program':
             arglen(len(ob_refs), 1)
-            query = (session.query(model.Program)
+            query = (
+                session.query(model.Program)
                 .filter(model.Program.id == ob_refs[0]))
 
         elif ob_type == 'survey':
             arglen(len(ob_refs), 2, 2)
-            query = (session.query(model.Survey)
+            query = (
+                session.query(model.Survey)
                 .filter(model.Survey.id == ob_refs[0],
                         model.Survey.program_id == ob_refs[1]))
 
         elif ob_type == 'qnode':
             arglen(len(ob_refs), 2, 2)
-            query = (session.query(model.QuestionNode)
+            query = (
+                session.query(model.QuestionNode)
                 .filter(model.QuestionNode.id == ob_refs[0],
                         model.QuestionNode.program_id == ob_refs[1]))
 
         elif ob_type == 'measure':
             arglen(len(ob_refs), 2, 2)
-            query = (session.query(model.Measure)
+            query = (
+                session.query(model.Measure)
                 .filter(model.Measure.id == ob_refs[0],
                         model.Measure.program_id == ob_refs[1]))
 
         elif ob_type == 'response_type':
             arglen(len(ob_refs), 2, 2)
-            query = (session.query(model.ResponseType)
+            query = (
+                session.query(model.ResponseType)
                 .filter(model.ResponseType.id == ob_refs[0],
                         model.ResponseType.program_id == ob_refs[1]))
 
         elif ob_type == 'submission':
             arglen(len(ob_refs), 1)
-            query = (session.query(model.Submission)
+            query = (
+                session.query(model.Submission)
                 .filter(model.Submission.id == ob_refs[0]))
 
         elif ob_type == 'rnode':
             arglen(len(ob_refs), 2, 2)
-            query = (session.query(model.ResponseNode)
+            query = (
+                session.query(model.ResponseNode)
                 .filter(model.ResponseNode.qnode_id == ob_refs[0],
                         model.ResponseNode.submission_id == ob_refs[1]))
 
         elif ob_type == 'response':
             arglen(len(ob_refs), 2, 2)
-            query = (session.query(model.Response)
+            query = (
+                session.query(model.Response)
                 .filter(model.Response.measure_id == ob_refs[0],
                         model.Response.submission_id == ob_refs[1]))
 
@@ -509,9 +526,11 @@ class SubscriptionHandler(base_handler.BaseHandler):
         elif not self.has_privillege('org_admin'):
             raise errors.AuthzError(
                 "You can't access another user's subscriptions.")
-        elif str(user.organisation_id) != str(self.current_user.organisation_id):
+        elif str(user.organisation_id) != str(
+                self.current_user.organisation_id):
             raise errors.AuthzError(
-                "You can't access another organisation's user's subscriptions.")
+                "You can't access another organisation's user's "
+                "subscriptions.")
 
     def check_subscribe_authz(self, user, ob):
         if self.has_privillege('consultant'):
@@ -524,7 +543,7 @@ class SubscriptionHandler(base_handler.BaseHandler):
                 survey = ob.survey
             else:
                 survey = ob
-            if not survey in user.organisation.purchased_surveys:
+            if survey not in user.organisation.purchased_surveys:
                 raise errors.AuthzError(
                     "You can't subscribe to a survey that you haven't"
                     " purchased.")
@@ -535,7 +554,8 @@ class SubscriptionHandler(base_handler.BaseHandler):
                 organisation_id = ob.organisation_id
             if organisation_id != user.organisation_id:
                 raise errors.AuthzError(
-                    "You can't subscribe to another organisation's submission.")
+                    "You can't subscribe to another organisation's "
+                    "submission.")
 
     def update(self, subscription, son):
         '''
@@ -564,7 +584,8 @@ class CardHandler(base_handler.BaseHandler):
             }))
 
             if self.has_privillege('author', 'consultant'):
-                programs = (session.query(model.Program)
+                programs = (
+                    session.query(model.Program)
                     .filter(model.Program.finalised_date == None)
                     .order_by(model.Program.created.desc())
                     .limit(2)
@@ -577,8 +598,10 @@ class CardHandler(base_handler.BaseHandler):
                 } for s in programs])
 
             if self.has_privillege('clerk'):
-                submissions = (session.query(model.Submission)
-                    .filter(model.Submission.organisation_id == organisation_id)
+                submissions = (
+                    session.query(model.Submission)
+                    .filter(
+                        model.Submission.organisation_id == organisation_id)
                     .order_by(model.Submission.created.desc())
                     .limit(2)
                     .all())

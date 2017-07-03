@@ -4,7 +4,6 @@ from tornado import gen
 from tornado.concurrent import run_on_executor
 
 import base_handler
-import config
 import errors
 import image
 import model

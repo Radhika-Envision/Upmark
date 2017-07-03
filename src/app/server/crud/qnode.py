@@ -21,7 +21,8 @@ log = logging.getLogger('app.crud.qnode')
 
 
 class QuestionNodeHandler(
-        base_handler.Paginate, crud.program.ProgramCentric, base_handler.BaseHandler):
+        base_handler.Paginate, crud.program.ProgramCentric,
+        base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, qnode_id):
@@ -41,8 +42,8 @@ class QuestionNodeHandler(
                     ValueError):
                 raise errors.MissingDocError("No such category")
 
-            self.check_browse_program(session, self.program_id,
-                                     qnode.survey_id)
+            self.check_browse_program(
+                session, self.program_id, qnode.survey_id)
 
             to_son = ToSon(
                 # Fields to match from any visited object
@@ -72,17 +73,20 @@ class QuestionNodeHandler(
                 to_son.exclude(r'/total_weight$')
             son = to_son(qnode)
 
-            sibling_query = (session.query(model.QuestionNode)
+            sibling_query = (
+                session.query(model.QuestionNode)
                 .filter(model.QuestionNode.program_id == qnode.program_id,
                         model.QuestionNode.survey_id == qnode.survey_id,
                         model.QuestionNode.parent_id == qnode.parent_id,
                         model.QuestionNode.deleted == False))
 
-            prev = (sibling_query
+            prev = (
+                sibling_query
                 .filter(model.QuestionNode.seq < qnode.seq)
                 .order_by(model.QuestionNode.seq.desc())
                 .first())
-            next_ = (sibling_query
+            next_ = (
+                sibling_query
                 .filter(model.QuestionNode.seq > qnode.seq)
                 .order_by(model.QuestionNode.seq)
                 .first())
@@ -118,7 +122,8 @@ class QuestionNodeHandler(
                 "Survey or parent ID required")
 
         with model.session_scope() as session:
-            query = (session.query(model.QuestionNode)
+            query = (
+                session.query(model.QuestionNode)
                 .filter(model.QuestionNode.program_id == self.program_id))
 
             if survey_id != '':
@@ -132,7 +137,8 @@ class QuestionNodeHandler(
                 query = query.filter(
                     model.QuestionNode.title.ilike('%{}%'.format(term)))
             if parent_not != '':
-                query = query.filter(model.QuestionNode.parent_id != parent_not)
+                query = query.filter(
+                    model.QuestionNode.parent_id != parent_not)
 
             if deleted != '':
                 deleted = truthy(deleted)
@@ -193,11 +199,13 @@ class QuestionNodeHandler(
 
             # Start by selecting root nodes
             QN1 = model.QuestionNode
-            start = (session.query(QN1,
-                                   literal(0).label('level'),
-                                   array([QN1.seq]).label('path'),
-                                   (QN1.seq + 1).concat('.').label('pathstr'),
-                                   (QN1.deleted).label('any_deleted'))
+            start = (
+                session.query(
+                    QN1,
+                    literal(0).label('level'),
+                    array([QN1.seq]).label('path'),
+                    (QN1.seq + 1).concat('.').label('pathstr'),
+                    (QN1.deleted).label('any_deleted'))
                 .filter(QN1.parent_id == None,
                         QN1.program_id == self.program_id,
                         QN1.survey_id == survey_id)
@@ -205,13 +213,15 @@ class QuestionNodeHandler(
 
             # Now iterate down the tree to the desired level
             QN2 = aliased(model.QuestionNode, name='qnode2')
-            recurse = (session.query(QN2,
-                                     (start.c.level + 1).label('level'),
-                                     start.c.path.concat(QN2.seq).label('path'),
-                                     start.c.pathstr.concat(QN2.seq + 1)
-                                        .concat('.').label('pathstr'),
-                                     (start.c.any_deleted | QN2.deleted)
-                                        .label('any_deleted'))
+            recurse = (
+                session.query(
+                    QN2,
+                    (start.c.level + 1).label('level'),
+                    start.c.path.concat(QN2.seq).label('path'),
+                    start.c.pathstr.concat(QN2.seq + 1).concat('.').label(
+                        'pathstr'),
+                    (start.c.any_deleted | QN2.deleted).label(
+                        'any_deleted'))
                 .filter(QN2.parent_id == start.c.id,
                         QN2.program_id == start.c.program_id,
                         QN2.survey_id == start.c.survey_id,
@@ -221,22 +231,27 @@ class QuestionNodeHandler(
             cte = start.union_all(recurse)
 
             # Discard all but the lowest level
-            subquery = (session.query(cte.c.id, cte.c.pathstr, cte.c.any_deleted)
+            subquery = (
+                session.query(cte.c.id, cte.c.pathstr, cte.c.any_deleted)
                 .filter(cte.c.level == level)
                 .order_by(cte.c.path)
                 .subquery())
 
             # Select again to get the actual qnodes
-            query = (session.query(
-                    model.QuestionNode, subquery.c.pathstr, subquery.c.any_deleted)
+            query = (
+                session.query(
+                    model.QuestionNode, subquery.c.pathstr,
+                    subquery.c.any_deleted)
                 .filter(model.QuestionNode.program_id == self.program_id)
                 .join(subquery,
                       model.QuestionNode.id == subquery.c.id))
 
             if parent_not == '':
-                query = query.filter(model.QuestionNode.parent_id != None)
+                query = query.filter(
+                    model.QuestionNode.parent_id != None)
             elif parent_not is not None:
-                query = query.filter(model.QuestionNode.parent_id != parent_not)
+                query = query.filter(
+                    model.QuestionNode.parent_id != parent_not)
 
             if term != '':
                 query = query.filter(

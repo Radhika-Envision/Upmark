@@ -35,14 +35,15 @@ class ResponseNodeHandler(base_handler.BaseHandler):
             return
 
         with model.session_scope() as session:
-            rnode = (session.query(model.ResponseNode)
+            rnode = (
+                session.query(model.ResponseNode)
                 .get((submission_id, qnode_id)))
 
             if rnode is None:
                 # Create an empty one, and roll back later (because GET
                 # shouldn't modify anything).
-                qnode, submission = (session.query(
-                        model.QuestionNode, model.Submission)
+                qnode, submission = (
+                    session.query(model.QuestionNode, model.Submission)
                     .join(model.Program)
                     .join(model.Submission)
                     .filter(model.QuestionNode.id == qnode_id,
@@ -114,8 +115,7 @@ class ResponseNodeHandler(base_handler.BaseHandler):
                 "'root' or parent ID required")
 
         with model.session_scope() as session:
-            submission = (session.query(model.Submission)
-                .get((submission_id,)))
+            submission = session.query(model.Submission).get((submission_id,))
 
             if submission is None:
                 raise errors.MissingDocError("No such submission")
@@ -124,7 +124,8 @@ class ResponseNodeHandler(base_handler.BaseHandler):
             if root is not None:
                 children = submission.rnodes
             else:
-                rnode = (session.query(model.ResponseNode)
+                rnode = (
+                    session.query(model.ResponseNode)
                     .get((submission_id, parent_id)))
                 if rnode is None:
                     # Rnodes get created from the bottom of the tree up, so if
@@ -177,20 +178,23 @@ class ResponseNodeHandler(base_handler.BaseHandler):
 
         try:
             with model.session_scope() as session:
-                submission = (session.query(model.Submission)
+                submission = (
+                    session.query(model.Submission)
                     .get(submission_id))
                 if submission is None:
                     raise errors.MissingDocError("No such submission")
 
                 self._check_authz(submission)
 
-                rnode = (session.query(model.ResponseNode)
+                rnode = (
+                    session.query(model.ResponseNode)
                     .get((submission_id, qnode_id)))
 
                 verbs = []
 
                 if rnode is None:
-                    qnode = (session.query(model.QuestionNode)
+                    qnode = (
+                        session.query(model.QuestionNode)
                         .get((qnode_id, submission.program.id)))
                     if qnode is None:
                         raise errors.MissingDocError("No such question node")
@@ -257,7 +261,8 @@ class ResponseNodeHandler(base_handler.BaseHandler):
             try:
                 crud.response.check_modify(self.current_user.role, response)
             except (errors.AuthzError, errors.ModelError) as e:
-                err = ("Response %s: %s You might need to downgrade the "
+                err = (
+                    "Response %s: %s You might need to downgrade the "
                     "response's approval status. You can use the bulk "
                     "approval tool for this.".format(
                         response.qnode_measure.get_path(), e))
@@ -272,9 +277,11 @@ class ResponseNodeHandler(base_handler.BaseHandler):
                     # is allowed
                     try:
                         crud.response.check_approval_change(
-                            self.current_user.role, submission, submission.approval)
+                            self.current_user.role, submission,
+                            submission.approval)
                     except (errors.AuthzError, errors.ModelError) as e:
-                        err = ("Response %s: %s You might "
+                        err = (
+                            "Response %s: %s You might "
                             "need to downgrade the submission's approval "
                             "status.".format(
                                 response.qnode_measure.get_path(),
@@ -284,8 +291,9 @@ class ResponseNodeHandler(base_handler.BaseHandler):
                         else:
                             raise errors.ModelError(err)
                     response.approval = submission.approval
-                    response.comment = "*Marked Not Relevant as a bulk action " \
-                        "(was previously empty)*"
+                    response.comment = (
+                        "*Marked Not Relevant as a bulk action "
+                        "(was previously empty)*")
                     created += 1
                 else:
                     changed += 1
