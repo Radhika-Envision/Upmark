@@ -67,15 +67,53 @@
  -  min-href: /minify/app-min.js
     hrefs:
         - /js/app.js
-        - /js/admin.js
+        - /js/admin-settings.js
         - /js/authz.js
         - /js/custom.js
+        - /js/diff.js
         - /js/home.js
-        - /js/response.js
+        - /js/location.js
+        - /js/notifications.js
+        - /js/organisation.js
+        - /js/response-type.js
+        - /js/statistics.js
         - /js/subscription.js
-        - /js/survey-answer.js
-        - /js/survey-measure.js
-        - /js/survey-question.js
-        - /js/survey-services.js
-        - /js/utils.js
-        - /js/widgets.js
+        - /js/submission.js
+        - /js/submission/approval.js
+        - /js/submission/response.js
+        - /js/submission/rnode.js
+        - /js/submission/submission.js
+        - /js/survey.js
+        - /js/survey/history.js
+        - /js/survey/layout.js
+        - /js/survey/measure.js
+        - /js/survey/program.js
+        - /js/survey/qnode.js
+        - /js/structure.js
+        - /js/survey/survey.js
+        - /js/system.js
+        - /js/user.js
+        - /js/utils/arrays.js
+        - /js/utils/events.js
+        - /js/utils/logging.js
+        - /js/utils/math.js
+        - /js/utils/observer.js
+        - /js/utils/queue.js
+        - /js/utils/requests.js
+        - /js/utils/session.js
+        - /js/utils/string.js
+        - /js/utils/cycle.js
+        - /js/utils/watch.js
+        - /js/widgets/any-href.js
+        - /js/widgets/dimmer.js
+        - /js/widgets/docs.js
+        - /js/widgets/editor.js
+        - /js/widgets/form-controls.js
+        - /js/widgets/markdown.js
+        - /js/widgets/page-title.js
+        - /js/widgets/progress.js
+        - /js/widgets/size.js
+        - /js/widgets/spinner.js
+        - /js/widgets/text.js
+        - /js/widgets/time.js
+        - /js/widgets/visibility.js

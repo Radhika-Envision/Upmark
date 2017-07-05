@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('upmark.custom', [
-    'ui.select', 'ui.sortable', 'vpac.utils'])
+    'ui.select', 'ui.sortable', 'upmark.user'])
 
 
 .factory('CustomQuery', ['$resource', function($resource) {
