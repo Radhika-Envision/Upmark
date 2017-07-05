@@ -11,6 +11,9 @@ from function_asfrom import ColumnFunction
 import model
 
 
+__all__ = 'Activities'
+
+
 log = logging.getLogger('app.activity')
 
 
@@ -37,16 +40,18 @@ class Activities:
     def record(self, subject, ob, verbs):
         '''
         Record an action for an object. If the object was changed in the last
-        little while, and the most recent change was by the same subject (user),
-        then the last action will be reused and its timestamp will be updated.
+        little while, and the most recent change was by the same subject
+        (user), then the last action will be reused and its timestamp will be
+        updated.
         '''
         if len(verbs) == 0:
             log.debug("Not recording %s: no verbs", ob)
-            return None;
+            return None
         log.debug("Record %s %s", ob, verbs)
         desc = ob.action_descriptor
         from_time = datetime.datetime.utcnow() - Activities.UPDATE_WINDOW
-        action = (self.session.query(model.Activity)
+        action = (
+            self.session.query(model.Activity)
             .filter(model.Activity.created >= from_time,
                     model.Activity.ob_ids == desc.ob_ids)
             .order_by(model.Activity.created.desc())
@@ -77,7 +82,8 @@ class Activities:
 
     def has_subscription(self, observer, ob):
         desc = ob.action_descriptor
-        count = (self.session.query(model.Subscription)
+        count = (
+            self.session.query(model.Subscription)
             .filter(model.Subscription.user_id == observer.id,
                     model.Subscription.ob_refs.contained_by(desc.ob_refs))
             .count())
@@ -90,7 +96,8 @@ class Activities:
         determines the actual subscription state.
         '''
         desc = ob.action_descriptor
-        subs = list(self.session.query(model.Subscription)
+        subs = list(
+            self.session.query(model.Subscription)
             .filter(model.Subscription.user_id == observer.id,
                     model.Subscription.ob_refs.contained_by(desc.ob_refs))
             .all())
@@ -98,7 +105,8 @@ class Activities:
         subs.sort(key=lambda sub: ob_refs.index(str(sub.ob_refs[-1])))
         return subs
 
-    def timeline_query(self, user_id, from_date, until_date, sticky_flags=None):
+    def timeline_query(
+            self, user_id, from_date, until_date, sticky_flags=None):
         '''
         Construct a query that filters the activity stream based on the
         subscriptions of a user.
@@ -128,16 +136,15 @@ class Activities:
         if 'include' in sticky_flags:
             time_filter = (model.Activity.sticky == True) | time_filter
 
-        order_cols = [model.Activity.created.desc(),
-                    model.Activity.id]
-        distinct_cols = [model.Activity.created,
-                         model.Activity.id]
+        order_cols = [model.Activity.created.desc(), model.Activity.id]
+        distinct_cols = [model.Activity.created, model.Activity.id]
 
         if 'at_top' in sticky_flags:
             order_cols = [model.Activity.sticky.desc()] + order_cols
             distinct_cols = [model.Activity.sticky] + distinct_cols
 
-        query = (self.session.query(model.Activity)
+        query = (
+            self.session.query(model.Activity)
             .filter(time_filter)
             .order_by(*order_cols))
 
@@ -145,7 +152,8 @@ class Activities:
         # Join with the subscription table using the ob_refs field
         act_ref = unnest_func(model.Activity.ob_refs).alias('act_ref')
         broadcast = cast(['broadcast'], ARRAY(VARCHAR))
-        query = (query
+        query = (
+            query
             .add_columns(
                 act_ref.c.unnest,
                 act_ref.c.ordinality,
@@ -166,7 +174,8 @@ class Activities:
         # Join with survey and purchased_survey tables using ob_refs
         # field
         if filter_purchased:
-            query = (query
+            query = (
+                query
                 .add_columns(
                     ((model.Survey.id == None) |
                      (model.PurchasedSurvey.survey_id != None))
@@ -181,7 +190,7 @@ class Activities:
                     model.Activity.ob_refs.contains(
                         array([model.PurchasedSurvey.program_id,
                                model.PurchasedSurvey.survey_id])) &
-                    (model.PurchasedSurvey.program_id == model.Survey.program_id) &
+                    (model.PurchasedSurvey.program_id == model.Survey.program_id) &  # noqa: E501
                     (model.PurchasedSurvey.survey_id == model.Survey.id))
                 .filter(
                     (model.PurchasedSurvey.organisation_id == None) |
@@ -189,14 +198,15 @@ class Activities:
 
         # Create a subquery so we can discard duplicate subscriptions (based on
         # subscription depth; see use of `unnest` above).
-        sub = (query
+        sub = (
+            query
             .distinct(*distinct_cols)
             .subquery('sub'))
 
-        query = (self.session.query(model.Activity)
+        query = (
+            self.session.query(model.Activity)
             .select_entity_from(sub)
-            .filter((sub.c.subscribed == None) |
-                     (sub.c.subscribed == True)))
+            .filter((sub.c.subscribed == None) | (sub.c.subscribed == True)))
 
         if filter_purchased:
             query = query.filter(sub.c.purchased == True)

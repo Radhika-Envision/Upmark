@@ -1,4 +1,7 @@
 from __future__ import absolute_import
+
+__all__ = ['GUID', 'is_guid']
+
 import uuid
 from sqlalchemy.types import TypeDecorator, CHAR
 from sqlalchemy.dialects.postgresql import UUID

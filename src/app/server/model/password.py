@@ -27,7 +27,8 @@ class Password(TypeDecorator):
             return str(value)
         else:
             raise PasswordError(
-                "Password columns must be instrumented with password.instrument")
+                "Password columns must be instrumented with "
+                "password.instrument")
 
     def process_result_value(self, value, dialect):
         if value is None:
@@ -38,7 +39,8 @@ class Password(TypeDecorator):
     @staticmethod
     def instrument(mapper_attr):
         '''
-        Sets up a listener to convert plaintext to HashedPassword on assignment.
+        Sets up a listener to convert plaintext to HashedPassword on
+        assignment.
         '''
         @event.listens_for(mapper_attr, 'set', retval=True)
         def receive_set(target, value, oldvalue, initiator):

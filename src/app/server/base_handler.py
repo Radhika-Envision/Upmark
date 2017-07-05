@@ -1,6 +1,5 @@
 import logging
 from math import ceil
-import os
 import re
 
 from expiringdict import ExpiringDict
@@ -29,9 +28,10 @@ class BaseHandler(tornado.web.RequestHandler):
 
     def prepare(self):
         if (truthy(tornado.options.options.force_https) and
-            'X-Forwarded-Proto' in self.request.headers and
-            self.request.headers['X-Forwarded-Proto'] != 'https'):
-            self.redirect(re.sub(r'^([^:]+)', 'https', self.request.full_url()))
+                'X-Forwarded-Proto' in self.request.headers and
+                self.request.headers['X-Forwarded-Proto'] != 'https'):
+            self.redirect(
+                re.sub(r'^([^:]+)', 'https', self.request.full_url()))
 
     def get_current_user(self):
         # Cached value is available in current_user property.
@@ -42,7 +42,8 @@ class BaseHandler(tornado.web.RequestHandler):
         uid = uid.decode('utf8')
         with model.session_scope() as session:
             try:
-                user = (session.query(model.AppUser)
+                user = (
+                    session.query(model.AppUser)
                     .options(joinedload('organisation'))
                     .get(uid))
                 if user is None:
@@ -93,7 +94,8 @@ class BaseHandler(tornado.web.RequestHandler):
         if self.has_privillege('consultant', 'author'):
             return
 
-        n_purchased_surveys = (session.query(model.PurchasedSurvey)
+        n_purchased_surveys = (
+            session.query(model.PurchasedSurvey)
             .filter_by(program_id=program_id,
                        survey_id=survey_id,
                        organisation_id=self.current_user.organisation_id)
@@ -138,8 +140,8 @@ class BaseHandler(tornado.web.RequestHandler):
         self.add_header("Operation-Details", message)
 
     def log_exception(self, typ, value, tb):
-        # Print stack trace for InternalModelErrors, since they are very similar
-        # to uncaught errors.
+        # Print stack trace for InternalModelErrors, since they are very
+        # similar to uncaught errors.
         if isinstance(value, errors.InternalModelError):
             log.error(
                 "Partially-handled, unexpected error: %s\n%r",

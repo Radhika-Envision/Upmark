@@ -7,7 +7,6 @@ __all__ = [
 ]
 
 from contextlib import contextmanager
-from datetime import datetime
 from itertools import count
 import logging
 import time
@@ -16,7 +15,7 @@ from sqlalchemy import create_engine
 import sqlalchemy.exc
 from sqlalchemy.orm import sessionmaker
 
-from .base import Base, ModelError
+from .base import ModelError
 from .config import SystemConfig
 from .history_meta import versioned_session
 
@@ -87,7 +86,8 @@ def connect_db_ro(base_url):
     global ReadonlySession
 
     with session_scope() as session:
-        count = (session.execute(
+        count = (
+            session.execute(
                 '''SELECT count(*)
                    FROM pg_catalog.pg_user u
                    WHERE u.usename = :usename''',
@@ -96,9 +96,10 @@ def connect_db_ro(base_url):
         if count != 1:
             raise MissingUser("analyst user does not exist")
 
-        password = (session.query(SystemConfig.value)
-                .filter(SystemConfig.name == '_analyst_password')
-                .scalar())
+        password = (
+            session.query(SystemConfig.value)
+            .filter(SystemConfig.name == '_analyst_password')
+            .scalar())
 
     parsed_url = sqlalchemy.engine.url.make_url(base_url)
     readonly_url = sqlalchemy.engine.url.URL(

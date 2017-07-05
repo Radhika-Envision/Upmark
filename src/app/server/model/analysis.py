@@ -10,7 +10,7 @@ import base64
 from datetime import datetime
 import os
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Text
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import ForeignKeyConstraint
 
@@ -86,13 +86,14 @@ def create_analyst_user():
             "  email_time, email_interval)"
             " ON appuser TO analyst")
         for table in Base.metadata.tables:
-            if str(table) not in {'appuser', 'systemconfig', 'alembic_version'}:
+            if str(table) not in {
+                    'appuser', 'systemconfig', 'alembic_version'}:
                 session.execute(
                     "GRANT SELECT ON {} TO analyst".format(table))
 
 
 def reset_analyst_password():
-     with session_scope() as session:
+    with session_scope() as session:
         password = base64.b32encode(os.urandom(30)).decode('ascii')
         store_analyst_password(password, session)
         session.execute(
