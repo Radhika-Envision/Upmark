@@ -25,7 +25,8 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             if custom_query is None:
                 raise errors.MissingDocError("No such query")
 
-            policy = self.authz_policy.derive({'custom_query': custom_query})
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({'custom_query': custom_query})
             policy.verify('custom_query_view')
 
             old_version = self.get_version(session, custom_query, version)
@@ -37,7 +38,7 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
                 r'/latest_modified$',
                 r'/user$',
                 r'/title$',
-                r'/description$',
+                r'</description$',
                 r'/name$',
                 r'/text$',
                 r'/version$',
@@ -82,11 +83,11 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
         return history
 
     def query(self):
-
-        policy = self.authz_policy.derive({})
-        policy.verify('custom_query_browse')
-
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({})
+            policy.verify('custom_query_browse')
+
             query = session.query(model.CustomQuery)
 
             term = self.get_argument('term', None)
@@ -139,7 +140,8 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             self.update_auto(custom_query)
             session.add(custom_query)
 
-            policy = self.authz_policy.derive({'custom_query': custom_query})
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({'custom_query': custom_query})
             policy.verify('custom_query_add')
 
             session.flush()
@@ -163,7 +165,8 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             if custom_query is None:
                 raise errors.MissingDocError("No such query")
 
-            policy = self.authz_policy.derive({'custom_query': custom_query})
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({'custom_query': custom_query})
             policy.verify('custom_query_edit')
 
             self.check_concurrent_write(custom_query)
@@ -220,7 +223,8 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             if custom_query is None:
                 raise errors.MissingDocError("No such query")
 
-            policy = self.authz_policy.derive({'custom_query': custom_query})
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({'custom_query': custom_query})
             policy.verify('custom_query_delete')
 
             act = Activities(session)

@@ -27,31 +27,30 @@ class AttachmentHandler(base_handler.Paginate, base_handler.BaseHandler):
     @tornado.web.authenticated
     def get(self, attachment_id, file_name):
         with model.session_scope() as session:
-            try:
-                attachment = session.query(model.Attachment)\
-                    .get(attachment_id)
+            user_session = self.get_user_session(session)
 
-                if attachment is None:
-                    raise errors.MissingDocError("No such attachment")
+            attachment = session.query(model.Attachment).get(attachment_id)
 
-                self._check_authz(attachment)
-
-                if attachment.storage == "aws":
-                    s3 = aws.session.client('s3', verify=False)
-                    object_loc = aws.S3_PATTERN.match(attachment.url)
-                    with tempfile.NamedTemporaryFile() as temp:
-                        s3.download_file(
-                            object_loc.group('bucket'),
-                            object_loc.group('path'), temp.name)
-
-                        with open(temp.name, "rb") as file:
-                            blob = file.read()
-                else:
-                    blob = attachment.blob
-            except (sqlalchemy.exc.StatementError,
-                    sqlalchemy.orm.exc.NoResultFound,
-                    ValueError):
+            if not attachment:
                 raise errors.MissingDocError("No such attachment")
+
+            policy = user_session.policy.derive({
+                'org': attachment.organisation,
+            })
+            policy.verify('attachment_view')
+
+            if attachment.storage == "aws":
+                s3 = aws.session.client('s3', verify=False)
+                object_loc = aws.S3_PATTERN.match(attachment.url)
+                with tempfile.NamedTemporaryFile() as temp:
+                    s3.download_file(
+                        object_loc.group('bucket'),
+                        object_loc.group('path'), temp.name)
+
+                    with open(temp.name, "rb") as file:
+                        blob = file.read()
+            else:
+                blob = attachment.blob
 
         self.set_header('Content-Type', 'application/octet-stream')
         self.set_header('Content-Disposition', 'attachment')
@@ -61,23 +60,21 @@ class AttachmentHandler(base_handler.Paginate, base_handler.BaseHandler):
     @tornado.web.authenticated
     def delete(self, attachment_id):
         with model.session_scope() as session:
-            attachment = session.query(model.Attachment)\
-                .get(attachment_id)
+            user_session = self.get_user_session(session)
+
+            attachment = session.query(model.Attachment).get(attachment_id)
 
             if attachment is None:
                 raise errors.MissingDocError("No such attachment")
 
-            self._check_authz(attachment)
+            policy = user_session.policy.derive({
+                'org': attachment.organisation,
+            })
+            policy.verify('attachment_del')
 
             session.delete(attachment)
 
         self.finish()
-
-    def _check_authz(self, attachment):
-        if not self.has_privillege('consultant'):
-            if attachment.organisation.id != self.organisation.id:
-                raise errors.AuthzError(
-                    "You can't modify another organisation's response")
 
 
 class ResponseAttachmentsHandler(
@@ -90,6 +87,8 @@ class ResponseAttachmentsHandler(
         son = self.request_son
         externals = son["externals"]
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             response = (
                 session.query(model.Response)
                 .get((submission_id, measure_id)))
@@ -97,7 +96,9 @@ class ResponseAttachmentsHandler(
             if response is None:
                 raise errors.MissingDocError("No such response")
 
-            self._check_authz(response.submission)
+            org = response.submission.organisation
+            policy = user_session.policy.derive({'org': org})
+            policy.verify('attachment_add')
 
             for external in externals:
                 url = external.get('url', '').strip()
@@ -123,6 +124,8 @@ class ResponseAttachmentsHandler(
     def post(self, submission_id, measure_id):
         fileinfo = self.request.files['file'][0]
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             response = (
                 session.query(model.Response)
                 .get((submission_id, measure_id)))
@@ -130,7 +133,9 @@ class ResponseAttachmentsHandler(
             if response is None:
                 raise errors.MissingDocError("No such response")
 
-            self._check_authz(response.submission)
+            org = response.submission.organisation
+            policy = user_session.policy.derive({'org': org})
+            policy.verify('attachment_add')
 
             if aws.session is not None:
                 s3 = aws.session.resource('s3', verify=False)
@@ -185,6 +190,8 @@ class ResponseAttachmentsHandler(
     @tornado.web.authenticated
     def get(self, submission_id, measure_id):
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             response = (
                 session.query(model.Response)
                 .get((submission_id, measure_id)))
@@ -192,7 +199,9 @@ class ResponseAttachmentsHandler(
             if response is None:
                 raise errors.MissingDocError("No such response")
 
-            self._check_authz(response.submission)
+            org = response.submission.organisation
+            policy = user_session.policy.derive({'org': org})
+            policy.verify('attachment_view')
 
             query = (
                 session.query(model.Attachment)
@@ -211,6 +220,7 @@ class ResponseAttachmentsHandler(
 
             sons = []
             for attachment in query.all():
+                assert (attachment.organisation_id == org.id)
                 if attachment.storage == 'external':
                     sons.append(to_son(attachment))
                 else:
@@ -219,9 +229,3 @@ class ResponseAttachmentsHandler(
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
         self.finish()
-
-    def _check_authz(self, submission):
-        if not self.has_privillege('consultant'):
-            if submission.organisation.id != self.organisation.id:
-                raise errors.AuthzError(
-                    "You can't modify another organisation's response")

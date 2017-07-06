@@ -264,7 +264,6 @@ def get_mappings():
             report.custom.CustomQueryReportHandler, {}),
 
         (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
-        (r"/import/response.json", import_handlers.ImportResponseHandler, {}),
         (r"/import/submission.json", import_handlers.ImportSubmissionHandler, {}),
         (r"/redirect", protocol.RedirectHandler),
 

@@ -3,18 +3,12 @@ from math import ceil
 import re
 
 from expiringdict import ExpiringDict
-from munch import DefaultMunch
-import sqlalchemy
-from sqlalchemy.orm import joinedload
 from tornado.escape import json_decode
 import tornado.options
 import tornado.web
 
-import authz
-import config
 import errors
-import model
-from undefined import undefined
+from session import UserSession
 from utils import denormalise, truthy
 
 log = logging.getLogger('app.base_handler')
@@ -34,83 +28,14 @@ class BaseHandler(tornado.web.RequestHandler):
             self.redirect(
                 re.sub(r'^([^:]+)', 'https', self.request.full_url()))
 
-    def get_current_user(self):
-        # Cached value is available in current_user property.
-        # http://tornado.readthedocs.org/en/latest/web.html#tornado.web.RequestHandler.current_user
-        uid = self.get_secure_cookie('user')
-        if uid is None:
-            return None
-        uid = uid.decode('utf8')
-        with model.session_scope() as session:
-            try:
-                user = (
-                    session.query(model.AppUser)
-                    .options(joinedload('organisation'))
-                    .get(uid))
-                if user is None:
-                    return None
-                if user.deleted:
-                    superuser = self.get_secure_cookie('superuser')
-                    if superuser is None:
-                        return None
-            except sqlalchemy.exc.StatementError:
-                return None
-            session.expunge(user.organisation)
-            session.expunge(user)
-            return user
-
-    @property
-    def authz_policy(self):
-        if hasattr(self, '_policy'):
-            return self._policy
-        try:
-            root_policy = cache['root_policy']
-        except KeyError:
-            rule_declarations = config.get_resource('authz')
-            root_policy = authz.Policy(error_factory=errors.AuthzError)
-            for decl in rule_declarations:
-                root_policy.declare(decl)
-            cache['root_policy'] = root_policy
-
-        policy = root_policy.derive({
-            's': DefaultMunch(
-                undefined,
-                has_role=lambda name: model.has_privillege(
-                    self.current_user.role, name),
-                user=self.current_user,
-                org=self.organisation,
-            ),
-        })
-
-        self._policy = policy
-        return self._policy
-
-    def has_privillege(self, *roles):
-        return model.has_privillege(self.current_user.role, *roles)
-
-    def check_privillege(self, *roles):
-        if not self.has_privillege(*roles):
-            raise errors.AuthzError()
-
-    def check_browse_program(self, session, program_id, survey_id):
-        if self.has_privillege('consultant', 'author'):
-            return
-
-        n_purchased_surveys = (
-            session.query(model.PurchasedSurvey)
-            .filter_by(program_id=program_id,
-                       survey_id=survey_id,
-                       organisation_id=self.current_user.organisation_id)
-            .count())
-
-        if n_purchased_surveys == 0:
-            raise errors.AuthzError("This survey has not been purchased yet")
-
-    @property
-    def organisation(self):
-        if not self.current_user:
-            return None
-        return self.current_user.organisation
+    def get_user_session(self, db_session):
+        user_id = self.get_secure_cookie('user')
+        if user_id:
+            user_id = user_id.decode('utf8')
+        superuser_id = self.get_secure_cookie('superuser')
+        if superuser_id:
+            superuser_id = superuser_id.decode('utf8')
+        return UserSession(db_session, user_id, superuser_id)
 
     @property
     def request_son(self):

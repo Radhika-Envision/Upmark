@@ -785,16 +785,14 @@ angular.module('upmark', [
                             id: $route.current.params.submission
                         }).$promise;
                     }],
-                    measure: ['Measure', '$route',
-                            function(Measure, $route) {
+                    measure: ['Measure', '$route', 'submission',
+                            function(Measure, $route, submission) {
                         return Measure.get({
                             id: $route.current.params.measure,
-                            programId: $route.current.params.submission
-                                ? null
-                                : $route.current.params.program,
-                            surveyId: $route.current.params.submission
-                                ? null
-                                : $route.current.params.survey,
+                            programId: submission ? submission.program.id :
+                                $route.current.params.program,
+                            surveyId: submission ? submission.survey.id :
+                                $route.current.params.survey,
                             submissionId: $route.current.params.submission
                         }).$promise;
                     }],

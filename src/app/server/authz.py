@@ -2,11 +2,16 @@
 
 import re
 
+from munch import DefaultMunch
+
+from undefined import undefined
+
 
 class Policy:
     def __init__(self, context=None, rules=None, error_factory=None):
         self.rules = rules if rules is not None else {}
-        self.context = context if context is not None else {}
+        self.context = context if context is not None else DefaultMunch(
+            undefined)
         self.error_factory = error_factory if error_factory else AuthzError
 
     def declare(self, decl):
@@ -16,8 +21,8 @@ class Policy:
         self.rules[rule.name] = rule
 
     def copy(self):
-        return Policy(
-            self.context.copy(), self.rules.copy(), self.error_factory)
+        context = DefaultMunch(undefined, self.context)
+        return Policy(context, self.rules.copy(), self.error_factory)
 
     def derive(self, context):
         policy = self.copy()

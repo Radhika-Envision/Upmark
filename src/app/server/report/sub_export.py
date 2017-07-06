@@ -30,25 +30,28 @@ class ExportSubmissionHandler(base_handler.BaseHandler):
                 "Unrecognised format: %s" % fmt)
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             submission = (session.query(model.Submission)
                           .get(submission_id))
-
             if not submission:
                 raise errors.MissingDocError("No such submission")
             elif submission.deleted:
                 raise errors.MissingDocError(
                     "That submission has been deleted")
 
-            if submission.organisation.id != self.organisation.id:
-                self.check_privillege('consultant')
+            policy = user_session.policy.derive({
+                'org': submission.organisation,
+            })
+            policy.verify('report_sub_export')
 
             survey_id = str(submission.survey_id)
             program_id = str(submission.program_id)
             self.check_browse_program(session, program_id, survey_id)
 
         output_file = 'submission_{0}_{1}.xlsx'.format(submission_id, fmt)
-        base_url = ("%s://%s" % (self.request.protocol,
-                self.request.host))
+        base_url = ("%s://%s" % (
+            self.request.protocol, self.request.host))
 
         with tempfile.TemporaryDirectory() as tmpdirname:
             output_path = os.path.join(tmpdirname, output_file)

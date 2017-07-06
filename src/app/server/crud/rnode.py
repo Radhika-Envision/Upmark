@@ -9,6 +9,7 @@ import sqlalchemy
 from sqlalchemy import func
 
 from activity import Activities
+from approval import APPROVAL_STATES
 import base_handler
 import crud.response
 import crud.program
@@ -35,6 +36,8 @@ class ResponseNodeHandler(base_handler.BaseHandler):
             return
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             rnode = (
                 session.query(model.ResponseNode)
                 .get((submission_id, qnode_id)))
@@ -49,7 +52,7 @@ class ResponseNodeHandler(base_handler.BaseHandler):
                     .filter(model.QuestionNode.id == qnode_id,
                             model.Submission.id == submission_id)
                     .first())
-                if qnode is None:
+                if not qnode:
                     raise errors.MissingDocError("No such category")
                 rnode = model.ResponseNode(
                     qnode=qnode,
@@ -63,7 +66,11 @@ class ResponseNodeHandler(base_handler.BaseHandler):
                     n_approved=0,
                     n_not_relevant=0)
 
-            self._check_authz(rnode.submission)
+            policy = user_session.policy.derive({
+                'org': submission.organisation,
+                'submission': submission,
+            })
+            policy.verify('rnode_view')
 
             to_son = ToSon(
                 # Fields to match from any visited object
@@ -87,7 +94,7 @@ class ResponseNodeHandler(base_handler.BaseHandler):
                 # The IDs of rnodes and responses are not part of the API
                 r'!^/id$',
             )
-            if self.current_user.role == 'clerk':
+            if user_session.user.role == 'clerk':
                 to_son.exclude(
                     r'/score$',
                     r'/total_weight$',
@@ -115,11 +122,18 @@ class ResponseNodeHandler(base_handler.BaseHandler):
                 "'root' or parent ID required")
 
         with model.session_scope() as session:
-            submission = session.query(model.Submission).get((submission_id,))
+            user_session = self.get_user_session(session)
 
-            if submission is None:
+            submission = session.query(model.Submission).get(submission_id)
+
+            if not submission:
                 raise errors.MissingDocError("No such submission")
-            self._check_authz(submission)
+
+            policy = user_session.policy.derive({
+                'org': submission.organisation,
+                'submission': submission,
+            })
+            policy.verify('rnode_view')
 
             if root is not None:
                 children = submission.rnodes
@@ -127,7 +141,7 @@ class ResponseNodeHandler(base_handler.BaseHandler):
                 rnode = (
                     session.query(model.ResponseNode)
                     .get((submission_id, parent_id)))
-                if rnode is None:
+                if not rnode:
                     # Rnodes get created from the bottom of the tree up, so if
                     # the parent doesn't exist, its children shouldn't either.
                     children = []
@@ -154,7 +168,7 @@ class ResponseNodeHandler(base_handler.BaseHandler):
                 # The IDs of rnodes and responses are not part of the API
                 r'!^/[0-9]+/id$',
             )
-            if self.current_user.role == 'clerk':
+            if user_session.user.role == 'clerk':
                 to_son.exclude(
                     r'/score$',
                     r'/total_weight$'
@@ -178,13 +192,21 @@ class ResponseNodeHandler(base_handler.BaseHandler):
 
         try:
             with model.session_scope() as session:
+                user_session = self.get_user_session(session)
+
                 submission = (
                     session.query(model.Submission)
                     .get(submission_id))
-                if submission is None:
+                if not submission:
                     raise errors.MissingDocError("No such submission")
 
-                self._check_authz(submission)
+                policy = user_session.policy.derive({
+                    'org': submission.organisation,
+                    'submission': submission,
+                    'approval': approval,
+                    'index': APPROVAL_STATES.index,
+                })
+                policy.verify('rnode_edit')
 
                 rnode = (
                     session.query(model.ResponseNode)
@@ -192,7 +214,7 @@ class ResponseNodeHandler(base_handler.BaseHandler):
 
                 verbs = []
 
-                if rnode is None:
+                if not rnode:
                     qnode = (
                         session.query(model.QuestionNode)
                         .get((qnode_id, submission.program.id)))
@@ -203,25 +225,25 @@ class ResponseNodeHandler(base_handler.BaseHandler):
 
                 importance = self.request_son.get('importance')
                 if importance is not None:
-                    if importance <= 0:
+                    if int(importance) <= 0:
                         self.request_son['importance'] = None
-                    elif importance > 5:
+                    elif int(importance) > 5:
                         self.request_son['importance'] = 5
                 urgency = self.request_son.get('urgency')
                 if urgency is not None:
-                    if urgency <= 0:
+                    if int(urgency) <= 0:
                         self.request_son['urgency'] = None
-                    elif urgency > 5:
+                    elif int(urgency) > 5:
                         self.request_son['urgency'] = 5
                 self._update(rnode, self.request_son)
                 if session.is_modified(rnode):
                     verbs.append('update')
                 session.flush()
 
-                if approval != '':
+                if approval:
                     yield self.set_approval(session, rnode, approval)
                     verbs.append('state')
-                if relevance != '':
+                if relevance:
                     yield self.set_relevance(session, rnode, relevance)
                     verbs.append('update')
 
@@ -377,12 +399,6 @@ class ResponseNodeHandler(base_handler.BaseHandler):
             else:
                 created = False
             yield response, created
-
-    def _check_authz(self, submission):
-        if not self.has_privillege('consultant'):
-            if submission.organisation.id != self.organisation.id:
-                raise errors.AuthzError(
-                    "You can't view another organisation's response")
 
     def _update(self, rnode, son):
         '''

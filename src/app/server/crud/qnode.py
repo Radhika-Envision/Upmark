@@ -26,24 +26,22 @@ class QuestionNodeHandler(
 
     @tornado.web.authenticated
     def get(self, qnode_id):
-        if qnode_id == '':
+        if not qnode_id:
             self.query()
             return
 
         with model.session_scope() as session:
-            try:
-                qnode = session.query(model.QuestionNode)\
-                    .get((qnode_id, self.program_id))
-
-                if qnode is None:
-                    raise ValueError("No such object")
-            except (sqlalchemy.exc.StatementError,
-                    sqlalchemy.orm.exc.NoResultFound,
-                    ValueError):
+            user_session = self.get_user_session(session)
+            qnode = (
+                session.query(model.QuestionNode)
+                .get((qnode_id, self.program_id)))
+            if not qnode:
                 raise errors.MissingDocError("No such category")
 
-            self.check_browse_program(
-                session, self.program_id, qnode.survey_id)
+            policy = user_session.policy.derive({
+                'survey': qnode.survey,
+            })
+            policy.verify('qnode_view')
 
             to_son = ToSon(
                 # Fields to match from any visited object
@@ -69,7 +67,7 @@ class QuestionNodeHandler(
                 # Response types needed here when creating a new measure
                 r'/response_types.*$',
             )
-            if self.current_user.role == 'clerk':
+            if user_session.user.role == 'clerk':
                 to_son.exclude(r'/total_weight$')
             son = to_son(qnode)
 
@@ -103,44 +101,66 @@ class QuestionNodeHandler(
     def query(self):
         '''Get list.'''
         level = self.get_argument('level', '')
-        if level != '':
+        if level:
             self.query_by_level(level)
             return
 
         survey_id = self.get_argument('surveyId', '')
         parent_id = self.get_argument('parentId', '')
-        root = self.get_argument('root', None)
+        root = self.get_argument('root', '')
         term = self.get_argument('term', '')
         parent_not = self.get_argument('parent__not', '')
         deleted = self.get_argument('deleted', '')
 
-        if root is not None and parent_id != '':
+        if root and parent_id:
             raise errors.ModelError(
                 "Can't specify parent ID when requesting roots")
-        if survey_id == '' and parent_id == '':
-            raise errors.ModelError(
-                "Survey or parent ID required")
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
+            if survey_id:
+                survey = (
+                    session.query(model.Survey)
+                    .get((survey_id, self.program_id)))
+                if not survey:
+                    raise errors.MissingDocError("No such survey")
+            else:
+                parent = (
+                    session.query(model.QuestionNode)
+                    .get((parent_id, self.program_id)))
+                if not parent:
+                    raise errors.MissingDocError("No such parent category")
+                survey = parent.survey
+            else:
+                raise errors.ModelError("Survey or parent ID required")
+
+            policy = user_session.policy.derive({
+                'survey': survey,
+            })
+            policy.verify('qnode_view')
+
             query = (
                 session.query(model.QuestionNode)
                 .filter(model.QuestionNode.program_id == self.program_id))
 
-            if survey_id != '':
+            if survey_id:
                 self.check_browse_program(session, self.program_id, survey_id)
                 query = query.filter_by(survey_id=survey_id)
-            if parent_id != '':
+
+            if parent_id:
                 query = query.filter_by(parent_id=parent_id)
-            if root is not None:
+            elif root:
                 query = query.filter_by(parent_id=None)
-            if term is not None:
+
+            if term:
                 query = query.filter(
                     model.QuestionNode.title.ilike('%{}%'.format(term)))
-            if parent_not != '':
+            if parent_not:
                 query = query.filter(
                     model.QuestionNode.parent_id != parent_not)
 
-            if deleted != '':
+            if deleted:
                 deleted = truthy(deleted)
                 query = query.filter(model.QuestionNode.deleted == deleted)
 

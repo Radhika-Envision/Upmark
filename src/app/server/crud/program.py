@@ -6,11 +6,9 @@ from tornado import gen
 from tornado.concurrent import run_on_executor
 from tornado.escape import json_encode
 import tornado.web
-import sqlalchemy
 from sqlalchemy.orm.session import make_transient
 
 from activity import Activities
-import auth
 import base_handler
 import errors
 import model
@@ -65,15 +63,14 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
             return
 
         with model.session_scope() as session:
-            try:
-                query = session.query(model.Program)
-                program = query.get(program_id)
-                if program is None:
-                    raise ValueError("No such object")
-            except (sqlalchemy.exc.StatementError,
-                    sqlalchemy.orm.exc.NoResultFound,
-                    ValueError):
+            user_session = self.get_user_session(session)
+
+            program = session.query(model.Program).get(program_id)
+            if not program:
                 raise errors.MissingDocError("No such program")
+
+            policy = user_session.policy.derive({})
+            policy.verify('program_view')
 
             to_son = ToSon(
                 r'/ob_type$',
@@ -88,7 +85,7 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
                 r'/has_quality$',
                 r'/hide_aggregate$',
             )
-            if not self.has_privillege('author'):
+            if not user_session.has_role('author'):
                 to_son.exclude(
                     r'/response_types.*score$',
                     r'/response_types.*formula$',
@@ -98,7 +95,6 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
         self.write(json_encode(son))
         self.finish()
 
-    @tornado.web.authenticated
     def query(self):
         '''
         Get a list of programs.
@@ -139,7 +135,7 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
-    @auth.authz('author')
+    @tornado.web.authenticated
     @gen.coroutine
     def post(self, program_id):
         '''
@@ -151,9 +147,14 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
         duplicate_id = self.get_argument('duplicateId', '')
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             program = model.Program()
             self._update(program, self.request_son)
             session.add(program)
+
+            policy = user_session.policy.derive({})
+            policy.verify('program_add')
 
             # Need to flush so object has an ID to record action against.
             session.flush()
@@ -261,7 +262,7 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
 
         dup_surveys(source_program.surveys)
 
-    @auth.authz('author')
+    @tornado.web.authenticated
     def delete(self, program_id):
         '''
         Delete an existing program.
@@ -269,32 +270,28 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
         if program_id == '':
             raise errors.MethodError("Program ID required")
 
-        try:
-            with model.session_scope() as session:
-                program = session.query(model.Program)\
-                    .get(program_id)
-                if program is None:
-                    raise ValueError("No such object")
-                if not program.is_editable:
-                    raise errors.MethodError(
-                        "This program is closed for editing")
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
 
-                act = Activities(session)
-                if not program.deleted:
-                    act.record(self.current_user, program, ['delete'])
-                if not act.has_subscription(self.current_user, program):
-                    act.subscribe(self.current_user, program)
-                    self.reason("Subscribed to program")
+            program = session.query(model.Program).get(program_id)
+            if not program:
+                raise errors.MissingDocError("No such program")
 
-                program.deleted = True
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError("Program is in use")
-        except (sqlalchemy.exc.StatementError, ValueError):
-            raise errors.MissingDocError("No such program")
+            policy = user_session.policy.derive({})
+            policy.verify('program_del')
+
+            act = Activities(session)
+            if not program.deleted:
+                act.record(self.current_user, program, ['delete'])
+            if not act.has_subscription(self.current_user, program):
+                act.subscribe(self.current_user, program)
+                self.reason("Subscribed to program")
+
+            program.deleted = True
 
         self.finish()
 
-    @auth.authz('author')
+    @tornado.web.authenticated
     def put(self, program_id):
         '''
         Update an existing program.
@@ -304,77 +301,76 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
                 "Can't use PUT for new program (no ID).")
 
         editable = self.get_argument('editable', '')
-        if editable != '':
+        if not editable:
             self._update_state(program_id, editable)
             return
 
-        try:
-            with model.session_scope() as session:
-                program = session.query(model.Program).get(program_id)
-                if program is None:
-                    raise ValueError("No such object")
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
 
-                if not program.is_editable:
-                    raise errors.MethodError(
-                        "This program is closed for editing")
+            program = session.query(model.Program).get(program_id)
+            if not program:
+                raise errors.MissingDocError("No such program")
 
-                calculator = Calculator.structural()
-                if self.request_son['has_quality'] != program.has_quality:
-                    # Recalculate stats for surveys. This will trigger the
-                    # recalculation of the submissions in the recalculation
-                    # daemon.
-                    for survey in program.surveys:
-                        calculator.mark_survey_dirty(survey)
+            policy = user_session.policy.derive({})
+            policy.verify('program_edit')
 
-                self._update(program, self.request_son)
+            if not program.is_editable:
+                raise errors.MethodError("This program is closed for editing")
 
-                calculator.execute()
+            calculator = Calculator.structural()
+            if self.request_son['has_quality'] != program.has_quality:
+                # Recalculate stats for surveys. This will trigger the
+                # recalculation of the submissions in the recalculation
+                # daemon.
+                for survey in program.surveys:
+                    calculator.mark_survey_dirty(survey)
 
-                verbs = []
-                if session.is_modified(program):
-                    verbs.append('update')
+            self._update(program, self.request_son)
 
-                if program.deleted:
-                    program.deleted = False
-                    verbs.append('undelete')
+            calculator.execute()
 
-                act = Activities(session)
-                act.record(self.current_user, program, verbs)
-                if not act.has_subscription(self.current_user, program):
-                    act.subscribe(self.current_user, program)
-                    self.reason("Subscribed to program")
-        except (sqlalchemy.exc.StatementError, ValueError):
-            raise errors.MissingDocError("No such program")
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError.from_sa(e)
+            verbs = []
+            if session.is_modified(program):
+                verbs.append('update')
+
+            if program.deleted:
+                program.deleted = False
+                verbs.append('undelete')
+
+            act = Activities(session)
+            act.record(self.current_user, program, verbs)
+            if not act.has_subscription(self.current_user, program):
+                act.subscribe(self.current_user, program)
+                self.reason("Subscribed to program")
         self.get(program_id)
 
     def _update_state(self, program_id, editable):
         '''
         Just update the state of the program (not title etc.)
         '''
-        try:
-            with model.session_scope() as session:
-                program = session.query(model.Program).get(program_id)
-                if program is None:
-                    raise ValueError("No such object")
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
 
-                if editable != '':
-                    if truthy(editable):
-                        program.finalised_date = None
-                    else:
-                        program.finalised_date = datetime.datetime.utcnow()
+            program = session.query(model.Program).get(program_id)
+            if not program:
+                raise errors.MissingDocError("No such program")
 
-                act = Activities(session)
-                if session.is_modified(program):
-                    act.record(self.current_user, program, ['state'])
-                if not act.has_subscription(self.current_user, program):
-                    act.subscribe(self.current_user, program)
-                    self.reason("Subscribed to program")
-        except (sqlalchemy.exc.StatementError, ValueError):
-            raise errors.MissingDocError("No such program")
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError.from_sa(e)
+            policy = user_session.policy.derive({})
+            policy.verify('program_edit')
+
+            if editable != '':
+                if truthy(editable):
+                    program.finalised_date = None
+                else:
+                    program.finalised_date = datetime.datetime.utcnow()
+
+            act = Activities(session)
+            if session.is_modified(program):
+                act.record(self.current_user, program, ['state'])
+            if not act.has_subscription(self.current_user, program):
+                act.subscribe(self.current_user, program)
+                self.reason("Subscribed to program")
         self.get(program_id)
 
     def _update(self, program, son):
@@ -399,9 +395,14 @@ class ProgramTrackingHandler(base_handler.BaseHandler):
             raise errors.MethodError("Program ID is required")
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             program = session.query(model.Program).get(program_id)
-            if program is None:
+            if not program:
                 raise errors.MissingDocError("No such program")
+
+            policy = user_session.policy.derive({})
+            policy.verify('program_view')
 
             query = (
                 session.query(model.Program)

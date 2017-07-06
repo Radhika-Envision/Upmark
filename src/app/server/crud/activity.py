@@ -175,21 +175,19 @@ class ActivityHandler(base_handler.BaseHandler):
             raise errors.ModelError("Message is too short")
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             if self.request_son['to'] == 'org':
-                self.check_privillege('org_admin')
-                ob = (
-                    session.query(model.Organisation)
-                    .get(self.current_user.organisation_id))
-                if ob is None:
+                ob = user_session.org
+                if not ob:
                     raise errors.ModelError('No such organisation')
             elif self.request_son['to'] == 'all':
-                self.check_privillege('admin')
                 ob = None
             else:
                 raise errors.ModelError('Unrecognised recipient')
 
             activity = model.Activity(
-                subject_id=self.current_user.id,
+                subject_id=user_session.user.id,
                 verbs=['broadcast'],
                 message=self.request_son['message'],
                 sticky=self.request_son['sticky']
@@ -207,12 +205,18 @@ class ActivityHandler(base_handler.BaseHandler):
 
             session.add(activity)
             session.flush()
-            self.check_create(activity)
+
+            policy = user_session.policy.derive({
+                'activity': activity,
+                'org': activity.subject.organisation,
+            })
+            policy.verify('post_add')
+
             son = ActivityHandler.TO_SON(activity)
 
             act = Activities(session)
-            if ob and not act.has_subscription(self.current_user, ob):
-                act.subscribe(self.current_user, ob)
+            if ob and not act.has_subscription(user_session.user, ob):
+                act.subscribe(user_session.user, ob)
                 self.reason("Subscribed to " + ob.ob_type)
 
         self.set_header("Content-Type", "application/json")
@@ -228,7 +232,12 @@ class ActivityHandler(base_handler.BaseHandler):
             if not activity:
                 raise errors.MissingDocError("No such activity")
 
-            self.check_modify(activity)
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({
+                'activity': activity,
+                'org': activity.subject.organisation,
+            })
+            policy.verify('post_edit')
 
             if 'sticky' in self.request_son:
                 activity.sticky = self.request_son['sticky']
@@ -248,43 +257,26 @@ class ActivityHandler(base_handler.BaseHandler):
                 .get(activity_id))
             if not activity:
                 raise errors.MissingDocError("No such activity")
-            self.check_delete(activity)
+
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({
+                'activity': activity,
+                'org': activity.subject.organisation,
+            })
+            policy.verify('post_del')
+
             session.delete(activity)
 
         self.set_header("Content-Type", "text/plain")
         self.write("Deleted")
         self.finish()
 
-    def check_create(self, activity):
-        if activity.verbs != ['broadcast']:
-            raise errors.AuthzError(
-                "You can't create a non-broadcast activity")
-        self.check_modify(activity)
-
-    def check_modify(self, activity):
-        if self.has_privillege('admin'):
-            return
-        elif self.has_privillege('org_admin'):
-            org = activity.subject.organisation
-            if str(org.id) != str(self.current_user.organisation_id):
-                raise errors.AuthzError(
-                    "You can't modify another organisation's activity")
-        else:
-            raise errors.AuthzError(
-                "You can't modify activities")
-
-    def check_delete(self, activity):
-        if activity.verbs != ['broadcast']:
-            raise errors.AuthzError(
-                "You can't delete a non-broadcast activity")
-        self.check_modify(activity)
-
 
 class SubscriptionHandler(base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, ob_type, ids):
-        if ob_type != '':
+        if ob_type:
             self.query(ob_type, ids.split(','))
             return
 
@@ -296,9 +288,11 @@ class SubscriptionHandler(base_handler.BaseHandler):
             if not subscription:
                 raise errors.MissingDocError("No such subscription")
 
-            if subscription.user_id != self.current_user.id:
-                raise errors.ModelError(
-                    "Can't view another user's subscriptions")
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({
+                'user': subscription.user,
+            })
+            policy.verify('subscription_view')
 
             to_son = ToSon(
                 r'/created$',
@@ -319,13 +313,14 @@ class SubscriptionHandler(base_handler.BaseHandler):
             if not ob:
                 raise errors.MissingDocError("No such object")
 
+            user_session = self.get_user_session(session)
             act = Activities(session)
             subscription_map = {
                 tuple(sub.ob_refs): sub.subscribed
-                for sub in act.subscriptions(self.current_user, ob)}
+                for sub in act.subscriptions(user_session.user, ob)}
             subscription_id_map = {
                 tuple(sub.ob_refs): sub.id
-                for sub in act.subscriptions(self.current_user, ob)}
+                for sub in act.subscriptions(user_session.user, ob)}
 
             lineage = [{
                 'id': subscription_id_map.get(tuple(item.ob_ids), None),
@@ -354,41 +349,43 @@ class SubscriptionHandler(base_handler.BaseHandler):
         object_ids = object_ids.split(',')
         log.error("%s", object_ids)
 
-        if ob_type == '':
+        if not ob_type:
             raise errors.ModelError(
                 "Object type required when creating a subscription")
 
-        try:
-            with model.session_scope() as session:
-                ob = self.get_ob(session, ob_type, object_ids)
-                if not ob:
-                    raise errors.MissingDocError("No such object")
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
 
-                act = Activities(session)
-                subscription = act.subscribe(self.current_user, ob)
-                subscription.subscribed = self.request_son.get(
-                    'subscribed', False)
-                if subscription.subscribed:
-                    user = (
-                        session.query(model.AppUser)
-                        .get(self.current_user.id))
-                    self.check_subscribe_authz(user, ob)
+            ob = self.get_ob(session, ob_type, object_ids)
+            if not ob:
+                raise errors.MissingDocError("No such object")
 
-                session.flush()
-                subscription_id = str(subscription.id)
+            act = Activities(session)
+            subscription = act.subscribe(user_session.user, ob)
+            subscription.subscribed = self.request_son.get(
+                'subscribed', False)
 
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError.from_sa(e)
+            policy = user_session.policy.derive({
+                'user': subscription.user,
+                'survey': self.get_survey(ob),
+                'submission': self.get_submission(ob),
+            })
+            policy.verify('subscription_add')
+
+            session.flush()
+            subscription_id = str(subscription.id)
 
         self.get('', subscription_id)
 
     @tornado.web.authenticated
     def put(self, ob_type, subscription_id):
-        if ob_type != '':
+        if ob_type:
             raise errors.ModelError(
                 "Can't provide object type when updating a subscription")
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             subscription = (
                 session.query(model.Subscription)
                 .get(subscription_id))
@@ -401,11 +398,15 @@ class SubscriptionHandler(base_handler.BaseHandler):
                     "You can't modify another user's subscriptions")
 
             subscription.subscribed = self.request_son.get('subscribed', False)
-            if subscription.subscribed:
-                user = session.query(model.AppUser).get(self.current_user.id)
-                ob = self.get_ob(
-                    session, subscription.ob_type, subscription.ob_refs)
-                self.check_subscribe_authz(user, ob)
+
+            ob = self.get_ob(
+                session, subscription.ob_type, subscription.ob_refs)
+            policy = user_session.policy.derive({
+                'user': subscription.user,
+                'survey': self.get_survey(ob),
+                'submission': self.get_submission(ob),
+            })
+            policy.verify('subscription_edit')
 
             subscription_id = str(subscription.id)
 
@@ -413,11 +414,13 @@ class SubscriptionHandler(base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def delete(self, ob_type, subscription_id):
-        if ob_type != '':
+        if ob_type:
             raise errors.ModelError(
                 "Can't provide object type when deleting a subscription")
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             subscription = (
                 session.query(model.Subscription)
                 .get(subscription_id))
@@ -425,9 +428,10 @@ class SubscriptionHandler(base_handler.BaseHandler):
             if not subscription:
                 raise model.MissingDocError("No subscription for that object")
 
-            if subscription.user_id != self.current_user.id:
-                raise errors.AuthzError(
-                    "You can't modify another user's subscriptions")
+            policy = user_session.policy.derive({
+                'user': subscription.user,
+            })
+            policy.verify('subscription_del')
 
             session.delete(subscription)
 
@@ -518,44 +522,19 @@ class SubscriptionHandler(base_handler.BaseHandler):
 
         return query.first()
 
-    def check_authz(self, user):
-        if self.has_privillege('admin'):
-            return
-        elif str(user.id) == str(self.current_user.id):
-            return
-        elif not self.has_privillege('org_admin'):
-            raise errors.AuthzError(
-                "You can't access another user's subscriptions.")
-        elif str(user.organisation_id) != str(
-                self.current_user.organisation_id):
-            raise errors.AuthzError(
-                "You can't access another organisation's user's "
-                "subscriptions.")
+    def get_survey(self, ob):
+        if ob.ob_type not in {'survey', 'qnode', 'measure'}:
+            return None
+        if hasattr(ob, 'survey'):
+            return ob.survey
+        return ob
 
-    def check_subscribe_authz(self, user, ob):
-        if self.has_privillege('consultant'):
-            return
-
-        if ob.ob_type in {'organisation', 'user', 'program'}:
-            return
-        elif ob.ob_type in {'survey', 'qnode', 'measure'}:
-            if hasattr(ob, 'survey'):
-                survey = ob.survey
-            else:
-                survey = ob
-            if survey not in user.organisation.purchased_surveys:
-                raise errors.AuthzError(
-                    "You can't subscribe to a survey that you haven't"
-                    " purchased.")
-        elif ob.ob_type in {'submission', 'rnode', 'response'}:
-            if hasattr(ob, 'submission'):
-                organisation_id = ob.submission.organisation_id
-            else:
-                organisation_id = ob.organisation_id
-            if organisation_id != user.organisation_id:
-                raise errors.AuthzError(
-                    "You can't subscribe to another organisation's "
-                    "submission.")
+    def get_submission(self, ob):
+        if ob.ob_type not in {'submission', 'rnode', 'response'}:
+            return None
+        if hasattr(ob, 'submission'):
+            return ob.submission
+        return ob
 
     def update(self, subscription, son):
         '''
@@ -574,8 +553,9 @@ class CardHandler(base_handler.BaseHandler):
             r'.*'
         )
         with model.session_scope() as session:
-            organisation_id = self.current_user.organisation_id
-            org = (session.query(model.Organisation).get(organisation_id))
+            user_session = self.get_user_session(session)
+
+            org = user_session.org
             sons.append(to_son({
                 'title': org.name,
                 'created': org.created,
@@ -583,7 +563,7 @@ class CardHandler(base_handler.BaseHandler):
                 'ob_ids': [org.id],
             }))
 
-            if self.has_privillege('author', 'consultant'):
+            if user_session.has_role('author', 'consultant'):
                 programs = (
                     session.query(model.Program)
                     .filter(model.Program.finalised_date == None)
@@ -597,11 +577,10 @@ class CardHandler(base_handler.BaseHandler):
                     'ob_ids': [s.id],
                 } for s in programs])
 
-            if self.has_privillege('clerk'):
+            if user_session.has_role('clerk'):
                 submissions = (
                     session.query(model.Submission)
-                    .filter(
-                        model.Submission.organisation_id == organisation_id)
+                    .filter(model.Submission.organisation_id == org.id)
                     .order_by(model.Submission.created.desc())
                     .limit(2)
                     .all())

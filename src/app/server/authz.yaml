@@ -147,15 +147,17 @@
 
 # Post
 
- - name: _own_post
-   description: "the post belongs to your organisation"
-   failure: "the post doesn't belong to your oganisation"
-   expression: 'post.org_id == s.org.id'
+ - name: _post_broadcast
+   description: "the post is a broadcast message"
+   failure: "the post is not a broadcast message"
+   expression: >-
+       len(activity.verbs) == 1
+       and activity.verbs[0] == 'broadcast'
 
- - name: post_new
+ - name: post_add
    description: "permission to broadcast a message"
    failure: "you can't broadcast a message"
-   expression: '@org_admin'
+   expression: '_post_broadcast and (@admin or (@org_admin and @_own_org))'
 
  - name: post_to_all
    description: "permission to broadcast a message to everyone"
@@ -165,12 +167,48 @@
  - name: post_edit
    description: "permission to edit a post"
    failure: "you can't modify a post"
-   expression: '@admin or (@org_admin and @_own_post)'
+   expression: '@post_add'
+
+ - name: post_del
+   description: "permission to edit a post"
+   failure: "you can't modify a post"
+   expression: '@post_add'
 
  - name: post_edit_try
    description: "permission to attempt to edit a post"
    failure: "you can't attempt to modify a post"
    expression: '@org_admin'
+
+
+# Subscriptions
+
+ - name: subscribe
+   description: "permission to subscribe to an object"
+   description: "you can't subscribe to that object"
+   expression: >-
+       (not survey and not submission)
+       or (survey and purchased_survey(survey))
+       or (submission and submission.organisation_id == s.org.id)
+
+ - name: subscription_view
+   description: "permission to view a subscription"
+   failure: "you can't view a subscription"
+   expression: '@_own_user'
+
+ - name: subscription_add
+   description: "permission to subscribe"
+   failure: "you can't subscribe"
+   expression: '@_own_user and @subscribe'
+
+ - name: subscription_edit
+   description: "permission to edit a subscription"
+   failure: "you can't edit a subscription"
+   expression: '@_own_user and @subscribe'
+
+ - name: subscription_del
+   description: "permission to unsubscribe"
+   failure: "you can't unsubscribe"
+   expression: '@_own_user'
 
 
 # Survey
@@ -189,6 +227,18 @@
    description: "permission to edit a measure"
    failure: "you can't modify a measure"
    expression: '@program_edit'
+
+ - name: measure_view
+   description: "permission to view a measure"
+   failure: "you can't view a measure"
+   expression: '@program_view'
+
+ - name: program_view
+   description: "permission to view a program"
+   failure: "you can't view a program"
+   expression: >-
+        @author or @consultant or
+        (not survey or purchased_survey(survey))
 
  - name: program_add
    description: "permission to add a new program"
@@ -235,6 +285,11 @@
    failure: "you can't edit a category"
    expression: '@program_edit'
 
+ - name: qnode_view
+   description: "permission to edit a category"
+   failure: "you can't edit a category"
+   expression: '@program_view'
+
  - name: response_type_add
    description: "permission to add a new response type"
    failure: "you can't add a new response type"
@@ -273,25 +328,74 @@
 
 # Submission
 
+ - name: attachment_add
+   description: "permission to add a new attachment"
+   failure: "you can't add a new attachment"
+   expression: '@attachment_view'
+
+ - name: attachment_edit
+   description: "permission to edit an attachment"
+   failure: "you can't edit that attachment"
+   expression: '@attachment_view'
+
+ - name: attachment_del
+   description: "permission to delete an attachment"
+   failure: "you can't delete that attachment"
+   expression: '@attachment_view'
+
+ - name: attachment_view
+   description: "permission to view an attachment"
+   failure: "you can't view that attachment"
+   expression: '@consultant or @_own_org'
+
+ - name: approval
+   description: "permission to set the approval level"
+   failure: "you can't set that approval level"
+   expression: >-
+        not approval or
+        (approval == 'draft') or
+        (approval == 'final') or
+        (approval == 'reviewed' and @consultant) or
+        (approval == 'approved' and @authority)
+
+ - name: submission_response_approval
+   description: "response has at least the same approval as its submission"
+   failure: "response must have at least the same approval as its submission"
+   expression: 'index(submission.approval) <= index(approval)'
+
  - name: response_edit
    description: "permission to edit a response"
    failure: "you can't edit a response"
-   expression: '@submission_edit'
+   expression: >-
+        @submission_edit and @approval and @submission_response_approval
 
  - name: response_view
    description: "permission to view a response"
    failure: "you can't view a response"
    expression: '@response_edit'
 
+ - name: rnode_view
+   description: "permission to view category scores"
+   failure: "you can't view category scores"
+   expression: '@consultant or @_own_org'
+
+ - name: rnode_edit
+   description: "permission to view category scores"
+   failure: "you can't view category scores"
+   expression: '@response_edit'
+
  - name: submission_add
    description: "permission to create a submission"
    failure: "you can't create a submission"
-   expression: '@consultant or (@clerk and @_own_org)'
+   expression: >-
+        @approval and
+        purchased_survey(survey) and
+        (@consultant or @_own_org')
 
  - name: submission_browse
    description: "permission to browse submissions"
    failure: "you can't browse submissions"
-   expression: '@submission_browse_any or (@clerk and @_own_org)'
+   expression: '@submission_browse_any or @_own_org'
 
  - name: submission_browse_any
    description: "permission to browse all submissions"
@@ -306,7 +410,14 @@
  - name: submission_edit
    description: "permission to edit a submission"
    failure: "you can't edit a submission"
-   expression: '@consultant or (@org_admin and @_own_org)'
+   expression: >-
+        @approval and
+        (@consultant or @_own_org')
+
+ - name: submission_view
+   description: "permission to view a submission"
+   failure: "you can't view that submission"
+   expression: '@consultant or @_own_org'
 
  - name: submission_view_aggregate_score
    description: "permission to view aggregate scores"
@@ -358,15 +469,28 @@
 
  - name: report_chart
    description: "permission to view a chart"
-   failure: "you can't view a chart"
-   expression: '@consultant'
+   failure: "you can't view that chart"
+   expression: >-
+        (@consultant or purchased_survey(survey)) and
+        (index(approval) >= index(survey.min_stats_approval))
 
  - name: report_temporal
    description: "permission to view a temporal report"
    failure: "you can't view a temporal report"
-   expression: '@report_temporal_full'
+   expression: >-
+        @report_temporal_full or (
+            (consituents == None or constituents >= 5) and
+            (not approval or index(approval) >= index('reviewed')) and
+            (not type or type == 'summary') and
+            (@org_admin and @_own_org)
+        )
 
  - name: report_temporal_full
-   description: "permission to view a temporal report"
-   failure: "you can't view a temporal report"
+   description: "permission to view a full temporal report"
+   failure: "you can't view a full temporal report"
    expression: '@consultant'
+
+ - name: report_sub_export
+   description: "permission to export a submission"
+   failure: "you can't export that submission"
+   expression: '@consultant or @_own_org'

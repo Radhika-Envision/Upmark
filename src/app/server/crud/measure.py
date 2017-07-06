@@ -34,18 +34,17 @@ class MeasureHandler(
 
         '''Get a single measure.'''
         program_id = self.get_argument('programId', '')
-        submission_id = self.get_argument('submissionId', '')
         survey_id = self.get_argument('surveyId', '')
+        if not program_id:
+            raise errors.MissingDocError("Missing program ID")
 
         with model.session_scope() as session:
-            if submission_id:
-                submission = session.query(model.Submission).get(submission_id)
-                if not submission:
-                    raise errors.MissingDocError("No such submission")
-                program_id = submission.program_id
-                survey_id = submission.survey_id
-
-            self.check_browse_program(session, program_id, survey_id)
+            program = session.query(model.Program).get(program_id)
+            if survey_id:
+                survey = session.query(model.Survey).get(
+                    (survey_id, program_id))
+            else:
+                survey = None
 
             query = (
                 session.query(model.Measure)
@@ -61,6 +60,14 @@ class MeasureHandler(
             if not measure:
                 raise errors.MissingDocError("No such measure")
 
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({
+                'measure': measure,
+                'program': program,
+                'survey': survey,
+            })
+            policy.verify('measure_view')
+
             to_son = ToSon(
                 # Fields to match from any visited object
                 r'/ob_type$',
@@ -75,17 +82,14 @@ class MeasureHandler(
                 r'^/weight$',
                 r'^/response_type_id$',
                 r'/parent$',
+                r'/parents$',
+                r'/parents/[0-9]+$',
                 r'/survey$',
                 r'/survey/program$',
                 r'/survey/structure.*$',
                 r'/has_quality$',
                 r'/is_editable$',
             )
-            if not submission_id:
-                to_son.add(
-                    r'/parents$',
-                    r'/parents/[0-9]+$',
-                )
             son = to_son(measure)
 
             if survey_id:

@@ -55,7 +55,8 @@ class CustomQueryReportHandler(base_handler.BaseHandler):
             if not custom_query:
                 raise errors.MissingDocError("No such query")
 
-            policy = self.authz_policy.derive({'custom_query': custom_query})
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({'custom_query': custom_query})
             policy.verify('custom_query_execute')
 
             if not custom_query.text:
@@ -133,14 +134,16 @@ class CustomQueryPreviewHandler(CustomQueryReportHandler):
     @tornado.web.authenticated
     @gen.coroutine
     def post(self, file_type):
-        self.authz_policy.verify('custom_query_preview')
-
-        text = to_basestring(self.request.body)
-        if not text:
-            raise errors.ModelError("Query is empty")
-        custom_query = model.CustomQuery(description="Preview", text=text)
-
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({})
+            policy.verify('custom_query_preview')
+
+            text = to_basestring(self.request.body)
+            if not text:
+                raise errors.ModelError("Query is empty")
+            custom_query = model.CustomQuery(description="Preview", text=text)
+
             conf = self.get_config(session)
 
         yield self.export(custom_query, conf, file_type)
@@ -341,13 +344,18 @@ class CustomQueryConfigHandler(base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self):
-        self.authz_policy.verify('custom_query_view')
-        to_son = ToSon(r'.*')
-        self.set_header("Content-Type", "application/json")
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({})
+            policy.verify('custom_query_view')
+
+            to_son = ToSon(r'.*')
+            self.set_header("Content-Type", "application/json")
+
             wall_time = config.get_setting(session, 'custom_timeout') * 1000
             max_limit = config.get_setting(session, 'custom_max_limit')
             conf = {'wall_time': wall_time, 'max_limit': max_limit}
+
         self.write(json_encode(to_son(conf)))
         self.finish()
 
@@ -356,7 +364,11 @@ class SqlFormatHandler(base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def post(self):
-        self.authz_policy.verify('custom_query_add')
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({})
+            policy.verify('custom_query_add')
+
         query = to_basestring(self.request.body)
         query = sqlparse.format(
             query, keyword_case='upper', identifier_case='lower',
@@ -371,7 +383,11 @@ class SqlIdentifierHandler(base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def post(self):
-        self.authz_policy.verify('custom_query_add')
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({})
+            policy.verify('custom_query_add')
+
         query = to_basestring(self.request.body)
 
         extractor = NameExtractor()

@@ -24,14 +24,12 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
             return
 
         with model.session_scope() as session:
-            try:
-                org = session.query(model.Organisation).get(organisation_id)
-                if org is None:
-                    raise ValueError("No such object")
-            except (sqlalchemy.exc.StatementError, ValueError):
+            org = session.query(model.Organisation).get(organisation_id)
+            if not org:
                 raise errors.MissingDocError("No such organisation")
 
-            policy = self.authz_policy.derive({'org': org})
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({'org': org})
             policy.verify('org_view')
 
             to_son = ToSon(
@@ -54,10 +52,12 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
         self.finish()
 
     def query(self):
-        self.authz_policy.verify('org_browse')
-
         sons = []
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({})
+            policy.verify('org_browse')
+
             query = session.query(model.Organisation)
             term = self.get_argument('term', None)
             if term is not None:
@@ -97,26 +97,25 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
             raise errors.MethodError(
                 "Can't use POST for existing organisation.")
 
-        self.authz_policy.verify('org_add')
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+            policy = user_session.policy
+            policy.verify('org_add')
 
-        try:
-            with model.session_scope() as session:
-                org = model.Organisation()
-                self._update(org, self.request_son)
-                session.add(org)
+            org = model.Organisation()
+            self._update(org, self.request_son)
+            session.add(org)
 
-                # Need to flush so object has an ID to record action against.
-                session.flush()
+            # Need to flush so object has an ID to record action against.
+            session.flush()
 
-                act = Activities(session)
-                act.record(self.current_user, org, ['create'])
-                if not act.has_subscription(self.current_user, org):
-                    act.subscribe(self.current_user, org)
-                    self.reason("Subscribed to organisation")
+            act = Activities(session)
+            act.record(self.current_user, org, ['create'])
+            if not act.has_subscription(self.current_user, org):
+                act.subscribe(self.current_user, org)
+                self.reason("Subscribed to organisation")
 
-                organisation_id = str(org.id)
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError.from_sa(e)
+            organisation_id = str(org.id)
         self.get(organisation_id)
 
     @tornado.web.authenticated
@@ -128,64 +127,58 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
             raise errors.MethodError(
                 "Can't use PUT for new organisations (no ID).")
 
-        try:
-            with model.session_scope() as session:
-                org = session.query(model.Organisation).get(organisation_id)
-                if org is None:
-                    raise ValueError("No such object")
+        with model.session_scope() as session:
+            org = session.query(model.Organisation).get(organisation_id)
+            if not org:
+                raise errors.MissingDocError("No such organisation")
 
-                policy = self.authz_policy.derive({'org': org})
-                policy.verify('org_edit')
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({'org': org})
+            policy.verify('org_edit')
 
-                old_locations = list(org.locations)
-                self._update(org, self.request_son)
+            old_locations = list(org.locations)
+            self._update(org, self.request_son)
 
-                verbs = []
-                if (session.is_modified(org) or
-                        org.locations != old_locations or
-                        session.is_modified(org.meta)):
-                    verbs.append('update')
+            verbs = []
+            if (session.is_modified(org) or
+                    org.locations != old_locations or
+                    session.is_modified(org.meta)):
+                verbs.append('update')
 
-                if org.deleted:
-                    org.deleted = False
-                    verbs.append('undelete')
+            if org.deleted:
+                org.deleted = False
+                verbs.append('undelete')
 
-                act = Activities(session)
-                act.record(self.current_user, org, verbs)
-                if not act.has_subscription(self.current_user, org):
-                    act.subscribe(self.current_user, org)
-                    self.reason("Subscribed to organisation")
+            act = Activities(session)
+            act.record(self.current_user, org, verbs)
+            if not act.has_subscription(self.current_user, org):
+                act.subscribe(self.current_user, org)
+                self.reason("Subscribed to organisation")
 
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError.from_sa(e)
-        except (sqlalchemy.exc.StatementError, ValueError):
-            raise errors.MissingDocError("No such organisation")
         self.get(organisation_id)
 
     @tornado.web.authenticated
     def delete(self, organisation_id):
         if organisation_id == '':
             raise errors.MethodError("Organisation ID required")
-        try:
-            with model.session_scope() as session:
-                org = session.query(model.Organisation).get(organisation_id)
-                if org is None:
-                    raise errors.MissingDocError("No such organisation")
 
-                policy = self.authz_policy.derive({'org': org})
-                policy.verify('org_del')
+        with model.session_scope() as session:
+            org = session.query(model.Organisation).get(organisation_id)
+            if org is None:
+                raise errors.MissingDocError("No such organisation")
 
-                act = Activities(session)
-                if not org.deleted:
-                    act.record(self.current_user, org, ['delete'])
-                if not act.has_subscription(self.current_user, org):
-                    act.subscribe(self.current_user, org)
-                    self.reason("Subscribed to organisation")
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({'org': org})
+            policy.verify('org_del')
 
-                org.deleted = True
+            act = Activities(session)
+            if not org.deleted:
+                act.record(self.current_user, org, ['delete'])
+            if not act.has_subscription(self.current_user, org):
+                act.subscribe(self.current_user, org)
+                self.reason("Subscribed to organisation")
 
-        except (sqlalchemy.exc.StatementError, ValueError):
-            raise errors.MissingDocError("No such organisation")
+            org.deleted = True
 
         self.finish()
 
@@ -247,7 +240,8 @@ class PurchasedSurveyHandler(
             if org is None:
                 raise errors.MissingDocError("No such organisation")
 
-            policy = self.authz_policy.derive({'org': org})
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({'org': org})
             policy.verify('submission_browse')
 
             purchased_survey = (
@@ -276,7 +270,8 @@ class PurchasedSurveyHandler(
             if org is None:
                 raise errors.MissingDocError("No such organisation")
 
-            policy = self.authz_policy.derive({'org': org})
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({'org': org})
             policy.verify('submission_browse')
 
             query = (
@@ -327,7 +322,8 @@ class PurchasedSurveyHandler(
             if not survey:
                 raise errors.MissingDocError('No such survey')
 
-            policy = self.authz_policy.derive({
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({
                 'org': org,
                 'survey': survey,
             })
@@ -352,7 +348,8 @@ class PurchasedSurveyHandler(
             if not survey:
                 raise errors.MissingDocError('No such survey')
 
-            policy = self.authz_policy.derive({
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({
                 'org': org,
                 'survey': survey,
             })
