@@ -1,23 +1,13 @@
 import datetime
 import logging
-import os
-import pprint
-import unittest
-from unittest import mock
 
-from munch import Munch
-import sqlalchemy
-from sqlalchemy.sql import func
-from sqlalchemy.orm.session import make_transient
+from munch import DefaultMunch
 from tornado.escape import json_encode
-from tornado.testing import AsyncHTTPTestCase
-from tornado.web import Application
 
-import app
 import authz
 import base
 import model
-from utils import ToSon
+from undefined import undefined
 
 
 log = logging.getLogger('app.test.test_authz')
@@ -52,31 +42,31 @@ class AuthzMechanismTest(base.LoggingTestCase):
         })
 
     def test_policy(self):
-        user_policy = self.policy.derive({
-            's': Munch(
-                has_role=lambda name: name in {'admin', 'org_admin'},
-                org=Munch(id='foo')
-            ),
-            'org': Munch(id='foo')
-        })
+        user_policy = self.policy.derive(DefaultMunch.fromDict({
+            's': {
+                'has_role': lambda name: name in {'admin', 'org_admin'},
+                'org': {'id': 'foo'}
+            },
+            'org': {'id': 'foo'}
+        }, default=undefined))
         self.assertEqual(user_policy.check('user_add'), True)
 
-        user_policy = self.policy.derive({
-            's': Munch(
-                has_role=lambda name: name in set(),
-                org=Munch(id='foo')
-            ),
-            'org': Munch(id='foo')
-        })
+        user_policy = self.policy.derive(DefaultMunch.fromDict({
+            's': {
+                'has_role': lambda name: name in set(),
+                'org': {'id': 'foo'}
+            },
+            'org': {'id': 'foo'}
+        }, default=undefined))
         self.assertEqual(user_policy.check('user_add'), False)
 
-        user_policy = self.policy.derive({
-            's': Munch(
-                has_role=lambda name: name in {'org_admin'},
-                org=Munch(id='foo')
-            ),
-            'org': Munch(id='bar')
-        })
+        user_policy = self.policy.derive(DefaultMunch.fromDict({
+            's': {
+                'has_role': lambda name: name in {'org_admin'},
+                'org': {'id': 'foo'}
+            },
+            'org': {'id': 'bar'}
+        }, default=undefined))
         self.assertEqual(user_policy.check('user_add'), False)
 
     def test_missing_rule(self):
@@ -85,26 +75,26 @@ class AuthzMechanismTest(base.LoggingTestCase):
             user_policy.check('missing_rule')
 
     def test_permission(self):
-        user_policy = self.policy.derive({
-            's': Munch(
-                has_role=lambda name: name in {'org_admin'},
-                org=Munch(id='foo')
-            ),
-            'org': Munch(id='bar')
-        })
+        user_policy = self.policy.derive(DefaultMunch.fromDict({
+            's': {
+                'has_role': lambda name: name in {'org_admin'},
+                'org': {'id': 'foo'}
+            },
+            'org': {'id': 'bar'}
+        }, default=undefined))
         permission = user_policy.permission('user_add')
         self.assertIn("can't add a new user", str(permission))
         self.assertIn("not a member", str(permission))
         self.assertIn("not an administrator", str(permission))
 
     def test_verify(self):
-        user_policy = self.policy.derive({
-            's': Munch(
-                has_role=lambda name: name in {'org_admin'},
-                org=Munch(id='foo')
-            ),
-            'org': Munch(id='bar')
-        })
+        user_policy = self.policy.derive(DefaultMunch.fromDict({
+            's': {
+                'has_role': lambda name: name in {'org_admin'},
+                'org': {'id': 'foo'}
+            },
+            'org': {'id': 'bar'}
+        }, default=undefined))
         with self.assertRaises(TestPermissionError):
             user_policy.verify('user_add')
 
@@ -115,20 +105,22 @@ class TestPermissionError(Exception):
 
 class StatisticsAuthzTest(base.AqHttpTestBase):
 
-    ### There is no meaning for testing authz for statistics.
-    ### Because user only request for whole survey statistics.
-    ### and for submission, user alredy checked submission authz
-    ### therefore only testing for the survey is purchased or not for
-    ### the organization is important.
+    # There is no meaning for testing authz for statistics.
+    # Because user only request for whole survey statistics.
+    # and for submission, user alredy checked submission authz
+    # therefore only testing for the survey is purchased or not for
+    # the organization is important.
     def test_get_statistics(self):
         with model.session_scope() as session:
             program = session.query(model.Program).one()
-            organisation = (session.query(model.Organisation)
-                    .filter_by(name='Utility')
-                    .one())
-            survey = (session.query(model.Survey)
-                    .filter_by(title='Survey 1')
-                    .one())
+            organisation = (
+                session.query(model.Organisation)
+                .filter_by(name='Utility')
+                .one())
+            survey = (
+                session.query(model.Survey)
+                .filter_by(title='Survey 1')
+                .one())
 
             self.program_id = str(program.id)
             self.organisation_id = str(organisation.id)
@@ -136,26 +128,30 @@ class StatisticsAuthzTest(base.AqHttpTestBase):
 
         with base.mock_user('consultant'):
             self.fetch(
-                "/report/sub/stats/program/%s/survey/%s.json?approval=reviewed" % (
+                "/report/sub/stats/program"
+                "/%s/survey/%s.json?approval=reviewed" % (
                     self.program_id, self.survey_id),
                 method='GET', expected=200, decode=False)
 
         with base.mock_user('authority'):
             self.fetch(
-                "/report/sub/stats/program/%s/survey/%s.json?approval=reviewed" % (
+                "/report/sub/stats/program"
+                "/%s/survey/%s.json?approval=reviewed" % (
                     self.program_id, self.survey_id),
                 method='GET', expected=200, decode=False)
 
         with base.mock_user('clerk'):
             self.fetch(
-                "/report/sub/stats/program/%s/survey/%s.json?approval=reviewed" % (
+                "/report/sub/stats/program"
+                "/%s/survey/%s.json?approval=reviewed" % (
                     self.program_id, self.survey_id),
                 method='GET', expected=403, decode=False)
 
         # Before purchase survey
         with base.mock_user('clerk'):
             self.fetch(
-                "/report/sub/stats/program/%s/survey/%s.json?approval=reviewed" % (
+                "/report/sub/stats/program"
+                "/%s/survey/%s.json?approval=reviewed" % (
                     self.program_id, self.survey_id),
                 method='GET', expected=403, decode=False)
 
@@ -165,7 +161,8 @@ class StatisticsAuthzTest(base.AqHttpTestBase):
 
         with base.mock_user('clerk'):
             self.fetch(
-                "/report/sub/stats/program/%s/survey/%s.json?approval=reviewed" % (
+                "/report/sub/stats/program"
+                "/%s/survey/%s.json?approval=reviewed" % (
                     self.program_id, self.survey_id),
                 method='GET', expected=200, decode=False)
 
@@ -176,18 +173,19 @@ class StatisticsAuthzTest(base.AqHttpTestBase):
             method='PUT', body='', expected=200)
 
 
-
 class ExporterAuthzTest(base.AqHttpTestBase):
     def setUp(self):
         super().setUp()
         with model.session_scope() as session:
             program = session.query(model.Program).one()
-            organisation = (session.query(model.Organisation)
-                    .filter_by(name='Utility')
-                    .one())
-            survey = (session.query(model.Survey)
-                    .filter_by(title='Survey 1')
-                    .one())
+            organisation = (
+                session.query(model.Organisation)
+                .filter_by(name='Utility')
+                .one())
+            survey = (
+                session.query(model.Survey)
+                .filter_by(title='Survey 1')
+                .one())
 
             self.program_id = str(program.id)
             self.organisation_id = str(organisation.id)
@@ -198,11 +196,13 @@ class ExporterAuthzTest(base.AqHttpTestBase):
 
     def test_structure_exporter_with_purchase(self):
         with base.mock_user('admin'):
-            self.fetch("/report/prog/export/%s/survey/%s/nested.xlsx" %
-                (self.program_id, self.survey_id),
+            self.fetch(
+                "/report/prog/export/%s/survey/%s/nested.xlsx" % (
+                    self.program_id, self.survey_id),
                 method='GET', expected=200)
-            self.fetch("/report/prog/export/%s/survey/%s/tabular.xlsx" %
-                (self.program_id, self.survey_id),
+            self.fetch(
+                "/report/prog/export/%s/survey/%s/tabular.xlsx" % (
+                    self.program_id, self.survey_id),
                 method='GET', expected=200)
 
     def test_submission_exporter(self):
@@ -212,9 +212,9 @@ class ExporterAuthzTest(base.AqHttpTestBase):
 
         with model.session_scope() as session:
             submission = session.query(model.Submission).filter(
-                            model.Submission.program_id==self.program_id,
-                            model.Submission.organisation_id==self.organisation_id,
-                            model.Submission.survey_id==self.survey_id).first()
+                model.Submission.program_id == self.program_id,
+                model.Submission.organisation_id == self.organisation_id,
+                model.Submission.survey_id == self.survey_id).first()
             submission_id = submission.id
 
         with base.mock_user('author'):
@@ -256,4 +256,4 @@ class ExporterAuthzTest(base.AqHttpTestBase):
             "/submission.json?organisationId=%s&programId=%s&surveyId=%s" %
             (self.organisation_id, self.program_id, self.survey_id),
             method='POST', body=json_encode(submission_son),
-        expected=200, decode=False)
+            expected=200, decode=False)

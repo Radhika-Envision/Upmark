@@ -3,7 +3,7 @@ from math import ceil
 import re
 
 from expiringdict import ExpiringDict
-from munch import Munch
+from munch import DefaultMunch
 import sqlalchemy
 from sqlalchemy.orm import joinedload
 from tornado.escape import json_decode
@@ -14,6 +14,7 @@ import authz
 import config
 import errors
 import model
+from undefined import undefined
 from utils import denormalise, truthy
 
 log = logging.getLogger('app.base_handler')
@@ -72,7 +73,8 @@ class BaseHandler(tornado.web.RequestHandler):
             cache['root_policy'] = root_policy
 
         policy = root_policy.derive({
-            's': Munch(
+            's': DefaultMunch(
+                undefined,
                 has_role=lambda name: model.has_privillege(
                     self.current_user.role, name),
                 user=self.current_user,

@@ -3,10 +3,11 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 import csv
 from datetime import datetime
+import logging
 import os
 import tempfile
 
-from munch import Munch
+from munch import DefaultMunch
 import sqlalchemy
 import sqlparse
 import tornado
@@ -19,8 +20,7 @@ import base_handler
 import config
 import errors
 import model
-import logging
-
+from undefined import undefined
 from utils import ToSon
 
 
@@ -86,11 +86,14 @@ class CustomQueryReportHandler(base_handler.BaseHandler):
         elif not 0 <= limit <= max_limit:
             raise errors.ModelError('Query row limit is out of bounds')
 
-        return Munch({
-            'wall_time': int(wall_time * 1000),
-            'limit': int(limit),
-            'base_url': config.get_setting(session, 'app_base_url'),
-        })
+        return DefaultMunch(
+            undefined,
+            {
+                'wall_time': int(wall_time * 1000),
+                'limit': int(limit),
+                'base_url': config.get_setting(session, 'app_base_url'),
+            }
+        )
 
     @gen.coroutine
     def export(self, custom_query, conf, file_type):
