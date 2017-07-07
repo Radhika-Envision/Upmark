@@ -38,15 +38,7 @@ class UserSession:
         for decl in rule_declarations:
             policy.declare(decl)
 
-        policy.context.update({
-            's': DefaultMunch(
-                undefined,
-                has_role=self.has_role,
-                user=self.user,
-                org=self.org,
-                purchased_survey=self.purchased_survey,
-            ),
-        })
+        policy.context.update({'s': self})
         return policy
 
     def has_role(self, *names):

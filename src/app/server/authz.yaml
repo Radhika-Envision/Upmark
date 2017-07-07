@@ -237,13 +237,14 @@
    description: "permission to view a program"
    failure: "you can't view a program"
    expression: >-
-        @author or @consultant or
-        (not survey or purchased_survey(survey))
+        @author or @consultant or (
+            survey and purchased_survey(survey) or
+            program and purchased_program(program))
 
  - name: program_add
    description: "permission to add a new program"
    failure: "you can't add a new program"
-   expression: '@author'
+   expression: '@author and program.is_editable'
 
  - name: program_del
    description: "permission to delete a program"
@@ -305,6 +306,11 @@
    failure: "you can't edit a response type"
    expression: '@program_edit'
 
+- name: response_type_view
+  description: "permission to view a response type"
+  failure: "you can't view that response type"
+  expression: '@program_view'
+
  - name: survey_add
    description: "permission to create a survey"
    failure: "you can't create a survey"
@@ -324,6 +330,11 @@
    description: "permission to give access to a survey"
    failure: "you can't give access to a survey"
    expression: '@admin'
+
+ - name: survey_view
+   description: "permission to view a survey"
+   failure: "you can't view that survey"
+   expression: '@program_view'
 
 
 # Submission
@@ -490,7 +501,17 @@
    failure: "you can't view a full temporal report"
    expression: '@consultant'
 
+- name: report_diff_view
+  description: "permission to view the difference between two survey_purchase"
+  failure: "you can't view the difference between those two surveys"
+  expression: '@author'
+
+- name: report_survey_export
+  description: "permission to export a surveyId"
+  failure: "you can't export that survey"
+  expression: '@survey_view'
+
  - name: report_sub_export
    description: "permission to export a submission"
    failure: "you can't export that submission"
-   expression: '@consultant or @_own_org'
+   expression: '@survey_view and (@consultant or @_own_org)'

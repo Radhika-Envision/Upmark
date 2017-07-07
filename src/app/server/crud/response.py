@@ -59,7 +59,7 @@ class ResponseHandler(base_handler.BaseHandler):
                 response = model.Response(
                     qnode_measure=qnode_measure,
                     submission=submission,
-                    user_id=self.current_user.id,
+                    user_id=user_session.user.id,
                     comment='',
                     response_parts=[],
                     variables={},
@@ -237,7 +237,7 @@ class ResponseHandler(base_handler.BaseHandler):
                 r'/[0-9]+$',
                 r'/measure$',
             )
-            if self.current_user.role == 'clerk':
+            if user_session.user.role == 'clerk':
                 to_son.exclude(r'/score$')
             sons = to_son(responses)
 
@@ -301,7 +301,7 @@ class ResponseHandler(base_handler.BaseHandler):
             if self.request_son['approval'] != response.approval:
                 verbs.append('state')
 
-            self._update(response, self.request_son)
+            self._update(response, self.request_son, user_session.user)
             if not session.is_modified(response) and 'update' in verbs:
                 verbs.remove('update')
 
@@ -326,14 +326,14 @@ class ResponseHandler(base_handler.BaseHandler):
                 raise errors.ModelError(str(e))
 
             act = Activities(session)
-            act.record(self.current_user, response, verbs)
-            if not act.has_subscription(self.current_user, response):
-                act.subscribe(self.current_user, response.submission)
+            act.record(user_session.user, response, verbs)
+            if not act.has_subscription(user_session.user, response):
+                act.subscribe(user_session.user, response.submission)
                 self.reason("Subscribed to submission")
 
         self.get(submission_id, measure_id)
 
-    def _update(self, response, son):
+    def _update(self, response, son, user):
         '''
         Apply user-provided data to the saved model.
         '''
@@ -345,7 +345,7 @@ class ResponseHandler(base_handler.BaseHandler):
 
         extras = {
             'modified': datetime.datetime.utcnow(),
-            'user_id': str(self.current_user.id),
+            'user_id': str(user.id),
         }
 
         update('approval', son)

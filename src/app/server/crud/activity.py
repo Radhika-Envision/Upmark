@@ -104,6 +104,8 @@ class ActivityHandler(base_handler.BaseHandler):
         start_super = perf()
         timing = []
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             act = Activities(session)
             sticky_flags = {'filter'}
             if include_sticky:
@@ -111,7 +113,7 @@ class ActivityHandler(base_handler.BaseHandler):
 
             start = perf()
             query = act.timeline_query(
-                self.current_user.id, from_date, until_date,
+                user_session.user.id, from_date, until_date,
                 sticky_flags=sticky_flags)
             duration = perf() - start
             timing.append("Query construction took %gs" % duration)
@@ -392,10 +394,6 @@ class SubscriptionHandler(base_handler.BaseHandler):
 
             if not subscription:
                 raise errors.MissingDocError("No such subscription")
-
-            if subscription.user_id != self.current_user.id:
-                raise errors.AuthzError(
-                    "You can't modify another user's subscriptions")
 
             subscription.subscribed = self.request_son.get('subscribed', False)
 

@@ -3,8 +3,9 @@
 import base64
 import logging.config
 import os
-import time
+import re
 import signal
+import socket
 from ssl import SSLError, SSLEOFError
 
 from sqlalchemy import func
@@ -15,22 +16,24 @@ import tornado.httpserver
 import tornado.options
 import tornado.web
 
-from utils import get_package_dir
+import auth
+import compile_handlers
+import crud
+import import_handlers
+import model
+import protocol
+import report.custom
+from report.diff import DiffHandler
+from report.prog_export import ExportProgramHandler
+from report.sub_export import ExportSubmissionHandler
+from report.sub_stats import StatisticsHandler
+from report.sub_temporal import TemporalReportHandler
+import template
+from utils import get_package_dir, truthy
 
 
 log = logging.getLogger('app')
-
-
-def configure_logging():
-    package_dir = get_package_dir()
-    logconf_path = os.path.join(package_dir, "logging.cfg")
-    if not os.path.exists(logconf_path):
-        log.info("Warning: log config file %s does not exist.", logconf_path)
-    else:
-        logging.config.fileConfig(logconf_path)
-
-
-configure_logging()
+tornado.options.options.logging = 'none'
 
 
 def ssl_log_filter(record):
@@ -55,28 +58,7 @@ def ssl_log_filter(record):
     return True
 
 
-import auth
-import compile_handlers
-import crud
-import import_handlers
-import model
-import protocol
-import report.custom
-from report.diff import DiffHandler
-from report.prog_export import ExportProgramHandler
-from report.sub_export import ExportSubmissionHandler
-from report.sub_stats import StatisticsHandler
-from report.sub_temporal import TemporalReportHandler
-import template
-from utils import truthy
-
-
-tornado.options.options.logging = 'none'
-
-
 def parse_options():
-    package_dir = get_package_dir()
-
     tornado.options.define(
         "port", default=os.environ.get('PORT', '8000'),
         help="Bind to this port")
@@ -126,7 +108,6 @@ def get_minimal_settings():
 
 
 def get_settings():
-    package_dir = get_package_dir()
     settings = get_minimal_settings()
     settings.update({
         "cookie_secret": get_cookie_secret(),
@@ -167,45 +148,59 @@ def default_settings():
             session.flush()
             user = model.AppUser(
                 email="admin", name="DEFAULT USER", role="admin",
-                organisation=org, password=password)
+                organisation=org, password="admin")
             session.add(user)
 
 
 def get_mappings():
     package_dir = get_package_dir()
     return [
-        (r"/login/?(.*)", auth.AuthLoginHandler, {
-            'path': os.path.join(package_dir, "..", "client")}),
-        (r"/logout/?", auth.AuthLogoutHandler),
-        (r"/()", template.TemplateHandler, {
-            'path': '../client/templates/'}),
-        (r"/(.*\.html)", tornado.web.StaticFileHandler, {
-            'path': os.path.join(package_dir, "../client/templates/")}),
+        (r"/login/?(.*)",
+            auth.AuthLoginHandler, {
+                'path': os.path.join(package_dir, "..", "client")}),
+        (r"/logout/?",
+            auth.AuthLogoutHandler),
+        (r"/()",
+            template.TemplateHandler, {'path': '../client/templates/'}),
+        (r"/(.*\.html)",
+            tornado.web.StaticFileHandler, {
+                'path': os.path.join(package_dir, "../client/templates/")}),
         (r"/(manifest.json|css/user_style.css)",
             template.UnauthenticatedTemplateHandler, {
                 'path': '../client/'}),
-        (r"/ping.*", protocol.PingHandler, {}),
+        (r"/ping.*",
+            protocol.PingHandler, {}),
 
-        (r"/bower_components/(.*)", tornado.web.StaticFileHandler, {
-            'path': os.path.join(
-                package_dir, "..", "client", "bower_components")}),
-        (r"/minify/(.*)", compile_handlers.MinifyHandler, {
-            'path': '/minify/',
-            'root': os.path.join(package_dir, "..", "client")}),
-        (r"/(.*\.css)", compile_handlers.CssHandler, {
-            'root': os.path.join(package_dir, "..", "client")}),
-        (r"/images/icon-(.*)\.png", crud.image.IconHandler, {}),
+        (r"/bower_components/(.*)",
+            tornado.web.StaticFileHandler, {
+                'path': os.path.join(
+                    package_dir, "..", "client", "bower_components")}),
+        (r"/minify/(.*)",
+            compile_handlers.MinifyHandler, {
+                'path': '/minify/',
+                'root': os.path.join(package_dir, "..", "client")}),
+        (r"/(.*\.css)",
+            compile_handlers.CssHandler, {
+                'root': os.path.join(package_dir, "..", "client")}),
+        (r"/images/icon-(.*)\.png",
+            crud.image.IconHandler, {}),
 
-        (r"/systemconfig.json", crud.config.SystemConfigHandler, {}),
-        (r"/systemconfig/(.*)", crud.config.SystemConfigItemHandler, {}),
-        (r"/custom_query/?([^/]*).json", crud.custom.CustomQueryHandler, {}),
+        (r"/systemconfig.json",
+            crud.config.SystemConfigHandler, {}),
+        (r"/systemconfig/(.*)",
+            crud.config.SystemConfigItemHandler, {}),
+        (r"/custom_query/?([^/]*).json",
+            crud.custom.CustomQueryHandler, {}),
         (r"/custom_query/?([^/]*)/history.json",
             crud.custom.CustomQueryHistoryHandler, {}),
-        (r"/organisation/?([^/]*).json", crud.org.OrgHandler, {}),
+        (r"/organisation/?([^/]*).json",
+            crud.org.OrgHandler, {}),
         (r"/organisation/?([^/]*)/survey/?([^/]*).json",
             crud.org.PurchasedSurveyHandler, {}),
-        (r"/geo/(.*).json", crud.org.LocationSearchHandler, {}),
-        (r"/user/?([^/]*).json", crud.user.UserHandler, {}),
+        (r"/geo/(.*).json",
+            crud.org.LocationSearchHandler, {}),
+        (r"/user/?([^/]*).json",
+            crud.user.UserHandler, {}),
         (r"/subscription/()([^/]*).json",
             crud.activity.SubscriptionHandler, {}),
         (r"/subscription/([^/]*)/(.*).json",
@@ -214,24 +209,34 @@ def get_mappings():
             crud.activity.ActivityHandler, {}),
         (r"/card.json",
             crud.activity.CardHandler, {}),
-        (r"/password.json", crud.user.PasswordHandler, {}),
+        (r"/password.json",
+            crud.user.PasswordHandler, {}),
 
-        (r"/program/?([^/]*).json", crud.program.ProgramHandler, {}),
-        (r"/program/?([^/]*)/history.json", crud.program.ProgramTrackingHandler, {}),
-        (r"/survey/?([^/]*).json", crud.survey.SurveyHandler, {}),
-        (r"/survey/?([^/]*)/program.json", crud.program.ProgramHistoryHandler, {
-            'mapper': model.Survey}),
-        (r"/qnode/?([^/]*).json", crud.qnode.QuestionNodeHandler, {}),
-        (r"/qnode/?([^/]*)/program.json", crud.program.ProgramHistoryHandler, {
-            'mapper': model.QuestionNode}),
-        (r"/measure/?([^/]*).json", crud.measure.MeasureHandler, {}),
-        (r"/measure/?([^/]*)/program.json", crud.program.ProgramHistoryHandler, {
-            'mapper': model.Measure}),
-        (r"/response_type/?([^/]*).json", crud.response_type.ResponseTypeHandler, {}),
-        (r"/response_type/?([^/]*)/program.json", crud.program.ProgramHistoryHandler, {
-            'mapper': model.ResponseType}),
+        (r"/program/?([^/]*).json",
+            crud.program.ProgramHandler, {}),
+        (r"/program/?([^/]*)/history.json",
+            crud.program.ProgramTrackingHandler, {}),
+        (r"/survey/?([^/]*).json",
+            crud.survey.SurveyHandler, {}),
+        (r"/survey/?([^/]*)/program.json",
+            crud.program.ProgramHistoryHandler, {'mapper': model.Survey}),
+        (r"/qnode/?([^/]*).json",
+            crud.qnode.QuestionNodeHandler, {}),
+        (r"/qnode/?([^/]*)/program.json",
+            crud.program.ProgramHistoryHandler, {
+                'mapper': model.QuestionNode}),
+        (r"/measure/?([^/]*).json",
+            crud.measure.MeasureHandler, {}),
+        (r"/measure/?([^/]*)/program.json",
+            crud.program.ProgramHistoryHandler, {'mapper': model.Measure}),
+        (r"/response_type/?([^/]*).json",
+            crud.response_type.ResponseTypeHandler, {}),
+        (r"/response_type/?([^/]*)/program.json",
+            crud.program.ProgramHistoryHandler, {
+                'mapper': model.ResponseType}),
 
-        (r"/submission/?([^/]*).json", crud.submission.SubmissionHandler, {}),
+        (r"/submission/?([^/]*).json",
+            crud.submission.SubmissionHandler, {}),
         (r"/submission/([^/]*)/rnode/?([^/]*).json",
             crud.rnode.ResponseNodeHandler, {}),
         (r"/submission/([^/]*)/response/?([^/]*).json",
@@ -263,8 +268,10 @@ def get_mappings():
         (r"/report/custom_query/([^.]+)/\w+\.(.+)",
             report.custom.CustomQueryReportHandler, {}),
 
-        (r"/import/structure.json", import_handlers.ImportStructureHandler, {}),
-        (r"/import/submission.json", import_handlers.ImportSubmissionHandler, {}),
+        (r"/import/structure.json",
+            import_handlers.ImportStructureHandler, {}),
+        (r"/import/submission.json",
+            import_handlers.ImportSubmissionHandler, {}),
         (r"/redirect", protocol.RedirectHandler),
 
         (r"/(.*)", tornado.web.StaticFileHandler, {
@@ -273,8 +280,6 @@ def get_mappings():
 
 
 def start_web_server():
-
-    package_dir = get_package_dir()
     settings = get_settings()
     default_settings()
 
@@ -288,7 +293,7 @@ def start_web_server():
         port = int(tornado.options.options.port)
     except ValueError:
         port = tornado.options.options.port
-    max_buffer_size = 10 * 1024**2 # 10MB
+    max_buffer_size = 10 * 1024**2  # 10MB
 
     config_dir = os.path.join(get_package_dir(), '..', 'config')
     if os.path.isfile(os.path.join(config_dir, "fullchain.pem")):
@@ -319,7 +324,6 @@ def start_web_server():
     http_server.listen(port)
 
     if log.isEnabledFor(logging.INFO):
-        import re, socket
         log.info("Tornado version: %s", tornado.version)
         log.debug("Tornado settings: %s", settings)
         log.info(

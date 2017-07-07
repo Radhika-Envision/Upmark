@@ -84,17 +84,13 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
         approval = self.get_argument('approval', '')
         tracking_id = self.get_argument('trackingId', '')
         deleted = self.get_argument('deleted', '')
-
         organisation_id = self.get_argument('organisationId', '')
-        if self.current_user.role in {'clerk', 'org_admin'}:
-            if organisation_id == '':
-                organisation_id = str(self.organisation.id)
-            elif organisation_id != str(self.organisation.id):
-                raise errors.AuthzError(
-                    "You can't view another organisation's submissions")
 
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
+            if user_session.user.role in {'clerk', 'org_admin'}:
+                if not organisation_id:
+                    organisation_id = user_session.org.id
 
             if organisation_id:
                 org = session.query(model.Organisation).get(organisation_id)

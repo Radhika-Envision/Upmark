@@ -42,12 +42,9 @@ class ExportSubmissionHandler(base_handler.BaseHandler):
 
             policy = user_session.policy.derive({
                 'org': submission.organisation,
+                'survey': submission.survey,
             })
             policy.verify('report_sub_export')
-
-            survey_id = str(submission.survey_id)
-            program_id = str(submission.program_id)
-            self.check_browse_program(session, program_id, survey_id)
 
         output_file = 'submission_{0}_{1}.xlsx'.format(submission_id, fmt)
         base_url = ("%s://%s" % (

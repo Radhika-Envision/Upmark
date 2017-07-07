@@ -135,20 +135,21 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             raise errors.MethodError("Can't use POST for existing query.")
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             custom_query = model.CustomQuery()
             self.update(custom_query, self.request_son)
-            self.update_auto(custom_query)
+            self.update_auto(custom_query, user_session.user)
             session.add(custom_query)
 
-            user_session = self.get_user_session(session)
             policy = user_session.policy.derive({'custom_query': custom_query})
             policy.verify('custom_query_add')
 
             session.flush()
             act = Activities(session)
-            act.record(self.current_user, custom_query, ['create'])
-            if not act.has_subscription(self.current_user, custom_query):
-                act.subscribe(self.current_user, custom_query)
+            act.record(user_session.user, custom_query, ['create'])
+            if not act.has_subscription(user_session.user, custom_query):
+                act.subscribe(user_session.user, custom_query)
                 self.reason("Subscribed to query")
 
             query_id = str(custom_query.id)
@@ -170,7 +171,8 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             policy.verify('custom_query_edit')
 
             self.check_concurrent_write(custom_query)
-            if not self.should_save_new_version(custom_query):
+            if not self.should_save_new_version(
+                    custom_query, user_session.user):
                 custom_query.version_on_update = False
 
             self.update(custom_query, self.request_son)
@@ -178,7 +180,7 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             verbs = []
             if session.is_modified(custom_query):
                 verbs.append('update')
-                self.update_auto(custom_query)
+                self.update_auto(custom_query, user_session.user)
             else:
                 custom_query.version_on_update = False
 
@@ -188,9 +190,9 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             session.flush()
             act = Activities(session)
-            act.record(self.current_user, custom_query, verbs)
-            if not act.has_subscription(self.current_user, custom_query):
-                act.subscribe(self.current_user, custom_query)
+            act.record(user_session.user, custom_query, verbs)
+            if not act.has_subscription(user_session.user, custom_query):
+                act.subscribe(user_session.user, custom_query)
                 self.reason("Subscribed to query")
 
             query_id = str(custom_query.id)
@@ -207,8 +209,8 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
                 " page. Please copy or remember your changes and"
                 " refresh the page.")
 
-    def should_save_new_version(self, custom_query):
-        same_user = custom_query.user.id == self.current_user.id
+    def should_save_new_version(self, custom_query, user):
+        same_user = custom_query.user.id == user.id
         td = datetime.datetime.utcnow() - custom_query.modified
         hours_since_update = td.total_seconds() / 60 / 60
         return not same_user or hours_since_update >= 8
@@ -229,9 +231,9 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             if not custom_query.deleted:
-                act.record(self.current_user, custom_query, ['delete'])
-            if not act.has_subscription(self.current_user, custom_query):
-                act.subscribe(self.current_user, custom_query)
+                act.record(user_session.user, custom_query, ['delete'])
+            if not act.has_subscription(user_session.user, custom_query):
+                act.subscribe(user_session.user, custom_query)
                 self.reason("Subscribed to query")
 
             custom_query.deleted = True
@@ -244,10 +246,10 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
         update('text', son)
         update('description', son, sanitise=True)
 
-    def update_auto(self, custom_query):
+    def update_auto(self, custom_query, user):
         extras = {
             'modified': datetime.datetime.utcnow(),
-            'user_id': str(self.current_user.id),
+            'user_id': str(user.id),
         }
         update = updater(custom_query)
         update('modified', extras)

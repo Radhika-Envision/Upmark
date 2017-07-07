@@ -24,11 +24,12 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
             return
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             org = session.query(model.Organisation).get(organisation_id)
             if not org:
                 raise errors.MissingDocError("No such organisation")
 
-            user_session = self.get_user_session(session)
             policy = user_session.policy.derive({'org': org})
             policy.verify('org_view')
 
@@ -99,8 +100,6 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
 
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
-            policy = user_session.policy
-            policy.verify('org_add')
 
             org = model.Organisation()
             self._update(org, self.request_son)
@@ -109,10 +108,15 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
             # Need to flush so object has an ID to record action against.
             session.flush()
 
+            policy = user_session.policy.derive({
+                'org': org,
+            })
+            policy.verify('org_add')
+
             act = Activities(session)
-            act.record(self.current_user, org, ['create'])
-            if not act.has_subscription(self.current_user, org):
-                act.subscribe(self.current_user, org)
+            act.record(user_session.user, org, ['create'])
+            if not act.has_subscription(user_session.user, org):
+                act.subscribe(user_session.user, org)
                 self.reason("Subscribed to organisation")
 
             organisation_id = str(org.id)
@@ -128,11 +132,12 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
                 "Can't use PUT for new organisations (no ID).")
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             org = session.query(model.Organisation).get(organisation_id)
             if not org:
                 raise errors.MissingDocError("No such organisation")
 
-            user_session = self.get_user_session(session)
             policy = user_session.policy.derive({'org': org})
             policy.verify('org_edit')
 
@@ -150,32 +155,33 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
                 verbs.append('undelete')
 
             act = Activities(session)
-            act.record(self.current_user, org, verbs)
-            if not act.has_subscription(self.current_user, org):
-                act.subscribe(self.current_user, org)
+            act.record(user_session.user, org, verbs)
+            if not act.has_subscription(user_session.user, org):
+                act.subscribe(user_session.user, org)
                 self.reason("Subscribed to organisation")
 
         self.get(organisation_id)
 
     @tornado.web.authenticated
     def delete(self, organisation_id):
-        if organisation_id == '':
+        if not organisation_id:
             raise errors.MethodError("Organisation ID required")
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             org = session.query(model.Organisation).get(organisation_id)
-            if org is None:
+            if not org:
                 raise errors.MissingDocError("No such organisation")
 
-            user_session = self.get_user_session(session)
             policy = user_session.policy.derive({'org': org})
             policy.verify('org_del')
 
             act = Activities(session)
             if not org.deleted:
-                act.record(self.current_user, org, ['delete'])
-            if not act.has_subscription(self.current_user, org):
-                act.subscribe(self.current_user, org)
+                act.record(user_session.user, org, ['delete'])
+            if not act.has_subscription(user_session.user, org):
+                act.subscribe(user_session.user, org)
                 self.reason("Subscribed to organisation")
 
             org.deleted = True

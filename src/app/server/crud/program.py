@@ -141,7 +141,7 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
         '''
         Create a new program.
         '''
-        if program_id != '':
+        if program_id:
             raise errors.MethodError("Can't use POST for existing program.")
 
         duplicate_id = self.get_argument('duplicateId', '')
@@ -153,30 +153,38 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
             self._update(program, self.request_son)
             session.add(program)
 
-            policy = user_session.policy.derive({})
-            policy.verify('program_add')
-
             # Need to flush so object has an ID to record action against.
             session.flush()
             program_id = str(program.id)
 
+            policy = user_session.policy.derive({
+                'program': program,
+            })
+            policy.verify('program_add')
+
             act = Activities(session)
 
-            if duplicate_id != '':
+            if duplicate_id:
                 source_program = (
                     session.query(model.Program)
                     .get(duplicate_id))
-                if source_program is None:
+                if not source_program:
                     raise errors.MissingDocError(
                         "Source program does not exist")
+
+                policy = user_session.policy.derive({
+                    'program': source_program,
+                })
+                policy.verify('program_view')
+
                 yield self.duplicate_structure(
                     source_program, program, session)
                 source_program.finalised_date = datetime.datetime.utcnow()
-                act.record(self.current_user, source_program, ['state'])
+                act.record(user_session.user, source_program, ['state'])
 
-            act.record(self.current_user, program, ['create'])
-            if not act.has_subscription(self.current_user, program):
-                act.subscribe(self.current_user, program)
+            act.record(user_session.user, program, ['create'])
+            if not act.has_subscription(user_session.user, program):
+                act.subscribe(user_session.user, program)
                 self.reason("Subscribed to program")
 
         self.get(program_id)
@@ -267,7 +275,7 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
         '''
         Delete an existing program.
         '''
-        if program_id == '':
+        if not program_id:
             raise errors.MethodError("Program ID required")
 
         with model.session_scope() as session:
@@ -277,14 +285,16 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
             if not program:
                 raise errors.MissingDocError("No such program")
 
-            policy = user_session.policy.derive({})
+            policy = user_session.policy.derive({
+                'program': program,
+            })
             policy.verify('program_del')
 
             act = Activities(session)
             if not program.deleted:
-                act.record(self.current_user, program, ['delete'])
-            if not act.has_subscription(self.current_user, program):
-                act.subscribe(self.current_user, program)
+                act.record(user_session.user, program, ['delete'])
+            if not act.has_subscription(user_session.user, program):
+                act.subscribe(user_session.user, program)
                 self.reason("Subscribed to program")
 
             program.deleted = True
@@ -312,7 +322,9 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
             if not program:
                 raise errors.MissingDocError("No such program")
 
-            policy = user_session.policy.derive({})
+            policy = user_session.policy.derive({
+                'program': program,
+            })
             policy.verify('program_edit')
 
             if not program.is_editable:
@@ -339,9 +351,9 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
                 verbs.append('undelete')
 
             act = Activities(session)
-            act.record(self.current_user, program, verbs)
-            if not act.has_subscription(self.current_user, program):
-                act.subscribe(self.current_user, program)
+            act.record(user_session.user, program, verbs)
+            if not act.has_subscription(user_session.user, program):
+                act.subscribe(user_session.user, program)
                 self.reason("Subscribed to program")
         self.get(program_id)
 
@@ -356,7 +368,9 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
             if not program:
                 raise errors.MissingDocError("No such program")
 
-            policy = user_session.policy.derive({})
+            policy = user_session.policy.derive({
+                'program': program,
+            })
             policy.verify('program_edit')
 
             if editable != '':
@@ -367,9 +381,9 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             if session.is_modified(program):
-                act.record(self.current_user, program, ['state'])
-            if not act.has_subscription(self.current_user, program):
-                act.subscribe(self.current_user, program)
+                act.record(user_session.user, program, ['state'])
+            if not act.has_subscription(user_session.user, program):
+                act.subscribe(user_session.user, program)
                 self.reason("Subscribed to program")
         self.get(program_id)
 
@@ -401,7 +415,9 @@ class ProgramTrackingHandler(base_handler.BaseHandler):
             if not program:
                 raise errors.MissingDocError("No such program")
 
-            policy = user_session.policy.derive({})
+            policy = user_session.policy.derive({
+                'program': program,
+            })
             policy.verify('program_view')
 
             query = (
@@ -440,6 +456,8 @@ class ProgramHistoryHandler(base_handler.BaseHandler):
         a single survey may be present in multiple programs.
         '''
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             query = (
                 session.query(model.Program)
                 .join(self.mapper)
@@ -451,6 +469,10 @@ class ProgramHistoryHandler(base_handler.BaseHandler):
                 deleted = truthy(deleted)
                 query = query.filter(model.Program.deleted == deleted)
 
+            programs = [
+                program for program in query.all()
+                if user_session.policy.derive({'program': program}).check()]
+
             to_son = ToSon(
                 r'/id$',
                 r'/title$',
@@ -460,7 +482,7 @@ class ProgramHistoryHandler(base_handler.BaseHandler):
                 # Descend
                 r'/[0-9]+$',
             )
-            sons = to_son(query.all())
+            sons = to_son(programs)
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))

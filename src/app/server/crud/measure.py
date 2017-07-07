@@ -2,12 +2,10 @@ import re
 
 from tornado.escape import json_encode
 import tornado.web
-import sqlalchemy
 from sqlalchemy import cast, String
 from sqlalchemy.orm import joinedload
 
 from activity import Activities
-import auth
 import base_handler
 from cache import instance_method_lru_cache
 import crud
@@ -28,7 +26,7 @@ class MeasureHandler(
 
     @tornado.web.authenticated
     def get(self, measure_id):
-        if measure_id == '':
+        if not measure_id:
             self.query()
             return
 
@@ -39,6 +37,8 @@ class MeasureHandler(
             raise errors.MissingDocError("Missing program ID")
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             program = session.query(model.Program).get(program_id)
             if survey_id:
                 survey = session.query(model.Survey).get(
@@ -60,9 +60,7 @@ class MeasureHandler(
             if not measure:
                 raise errors.MissingDocError("No such measure")
 
-            user_session = self.get_user_session(session)
             policy = user_session.policy.derive({
-                'measure': measure,
                 'program': program,
                 'survey': survey,
             })
@@ -194,6 +192,24 @@ class MeasureHandler(
         )
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
+            program = (
+                session.query(model.Program)
+                .get(program_id))
+            if survey_id:
+                survey = (
+                    session.query(model.Survey)
+                    .get(survey_id))
+            else:
+                survey = None
+
+            policy = user_session.policy.derive({
+                'survey': survey,
+                'program': program,
+            })
+            policy.verify('measure_view')
+
             if orphan != '' and truthy(orphan):
                 # Orphans only
                 query = session.query(model.Measure)\
@@ -316,10 +332,10 @@ class MeasureHandler(
         self.write(json_encode(sons))
         self.finish()
 
-    @auth.authz('author')
+    @tornado.web.authenticated
     def post(self, measure_id):
         '''Create new.'''
-        if measure_id != '':
+        if measure_id:
             raise errors.MethodError(
                 "Can't specify ID when creating a new measure.")
 
@@ -328,51 +344,65 @@ class MeasureHandler(
         program_id = self.get_argument('programId', '')
         parent_id = self.get_argument('parentId', '')
 
-        try:
-            with model.session_scope() as session:
-                measure = model.Measure(program_id=program_id)
-                session.add(measure)
-                self._update(measure, self.request_son)
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
 
-                # Need to flush so object has an ID to record action against.
-                session.flush()
+            program = (
+                session.query(model.Program)
+                .get(program_id))
 
-                calculator = Calculator.structural()
-                if parent_id:
-                    qnode = session.query(model.QuestionNode)\
-                        .get((parent_id, program_id))
-                    if qnode is None:
-                        raise errors.ModelError("No such question node")
-                    qnode_measure = model.QnodeMeasure(
-                        program=qnode.program, survey=qnode.survey,
-                        qnode=qnode, measure=measure)
-                    qnode.qnode_measures.reorder()
-                    self._update_qnode_measure(qnode_measure, self.request_son)
-                    calculator.mark_measure_dirty(qnode_measure)
+            measure = model.Measure(program=program)
+            session.add(measure)
+            self._update(measure, self.request_son)
 
-                calculator.execute()
+            # Need to flush so object has an ID to record action against.
+            session.flush()
 
-                measure_id = str(measure.id)
+            calculator = Calculator.structural()
+            if parent_id:
+                qnode = (
+                    session.query(model.QuestionNode)
+                    .get((parent_id, program_id)))
+                if not qnode:
+                    raise errors.ModelError("No such category")
+                qnode_measure = model.QnodeMeasure(
+                    program=qnode.program, survey=qnode.survey,
+                    qnode=qnode, measure=measure)
+                qnode.qnode_measures.reorder()
+                self._update_qnode_measure(qnode_measure, self.request_son)
+                calculator.mark_measure_dirty(qnode_measure)
+                survey = qnode.survey
+            else:
+                survey = None
 
-                verbs = ['create']
-                if parent_id:
-                    verbs.append('relation')
+            policy = user_session.policy.derive({
+                'program': program,
+                'survey': survey,
+            })
+            policy.verify('measure_add')
 
-                act = Activities(session)
-                act.record(self.current_user, measure, verbs)
-                if not act.has_subscription(self.current_user, measure):
-                    act.subscribe(self.current_user, measure.program)
-                    self.reason("Subscribed to program")
+            calculator.execute()
 
-                log.info("Created measure %s", measure_id)
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError.from_sa(e)
+            measure_id = str(measure.id)
+
+            verbs = ['create']
+            if parent_id:
+                verbs.append('relation')
+
+            act = Activities(session)
+            act.record(user_session.user, measure, verbs)
+            if not act.has_subscription(user_session.user, measure):
+                act.subscribe(user_session.user, measure.program)
+                self.reason("Subscribed to program")
+
+            log.info("Created measure %s", measure_id)
+
         self.get(measure_id)
 
-    @auth.authz('author')
+    @tornado.web.authenticated
     def delete(self, measure_id):
         '''Delete an existing measure.'''
-        if measure_id == '':
+        if not measure_id:
             raise errors.MethodError("Measure ID required")
 
         program_id = self.get_argument('programId', '')
@@ -383,57 +413,58 @@ class MeasureHandler(
 
         self.check_editable()
 
-        try:
-            with model.session_scope() as session:
-                measure = session.query(model.Measure)\
-                    .get((measure_id, program_id))
-                if measure is None:
-                    raise errors.MissingDocError("No such measure")
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
 
-                act = Activities(session)
+            measure = (
+                session.query(model.Measure)
+                .get((measure_id, program_id)))
+            if not measure:
+                raise errors.MissingDocError("No such measure")
 
-                calculator = Calculator.structural()
+            act = Activities(session)
 
-                # Just unlink from qnodes
-                if parent_id:
-                    qnode = (
-                        session.query(model.QuestionNode)
-                        .get((parent_id, program_id)))
-                    if qnode is None:
-                        raise errors.MissingDocError(
-                            "No such question node")
-                    qnode_measure = (
-                        session.query(model.QnodeMeasure)
-                        .get((program_id, qnode.survey_id, measure.id)))
-                    if qnode_measure is None:
-                        raise errors.ModelError(
-                            "Measure does not belong to that question node")
-                    calculator.mark_measure_dirty(
-                        qnode_measure, force_dependants=True)
-                    qnode.qnode_measures.remove(qnode_measure)
-                    qnode.qnode_measures.reorder()
+            calculator = Calculator.structural()
 
-                calculator.execute()
+            # Just unlink from qnodes
+            qnode = (
+                session.query(model.QuestionNode)
+                .get((parent_id, program_id)))
+            if not qnode:
+                raise errors.MissingDocError("No such question node")
+            qnode_measure = (
+                session.query(model.QnodeMeasure)
+                .get((program_id, qnode.survey_id, measure.id)))
+            if not qnode_measure:
+                raise errors.ModelError(
+                    "Measure does not belong to that question node")
+            calculator.mark_measure_dirty(
+                qnode_measure, force_dependants=True)
+            qnode.qnode_measures.remove(qnode_measure)
+            qnode.qnode_measures.reorder()
 
-                act.record(self.current_user, measure, ['delete'])
-                if not act.has_subscription(self.current_user, measure):
-                    act.subscribe(self.current_user, measure.program)
-                    self.reason("Subscribed to program")
+            policy = user_session.policy.derive({
+                'program': qnode.program,
+                'survey': qnode.survey,
+            })
+            policy.verify('measure_del')
 
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError("Measure is in use")
-        except sqlalchemy.exc.StatementError:
-            raise errors.MissingDocError("No such measure")
+            calculator.execute()
+
+            act.record(user_session.user, measure, ['delete'])
+            if not act.has_subscription(user_session.user, measure):
+                act.subscribe(user_session.user, measure.program)
+                self.reason("Subscribed to program")
 
         self.finish()
 
-    @auth.authz('author')
+    @tornado.web.authenticated
     def put(self, measure_id):
         '''Update existing.'''
 
         self.check_editable()
 
-        if measure_id == '':
+        if not measure_id:
             self.ordering()
             return
 
@@ -441,89 +472,100 @@ class MeasureHandler(
         survey_id = self.get_argument('surveyId', '')
         parent_id = self.get_argument('parentId', '')
 
-        try:
-            with model.session_scope() as session:
-                measure = session.query(model.Measure)\
-                    .get((measure_id, program_id))
-                if measure is None:
-                    raise errors.MissingDocError("No such measure")
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
 
-                verbs = set()
-                calculator = Calculator.structural()
-                self._update(measure, self.request_son)
-                # Check if modified now to avoid problems with autoflush later
-                if session.is_modified(measure):
+            measure = (
+                session.query(model.Measure)
+                .get((measure_id, program_id)))
+            if not measure:
+                raise errors.MissingDocError("No such measure")
+
+            verbs = set()
+            calculator = Calculator.structural()
+            self._update(measure, self.request_son)
+            # Check if modified now to avoid problems with autoflush later
+            if session.is_modified(measure):
+                verbs.add('update')
+                for qnode_measure in measure.qnode_measures:
+                    calculator.mark_measure_dirty(qnode_measure)
+
+            if survey_id:
+                qnode_measure = (
+                    session.query(model.QnodeMeasure)
+                    .get((program_id, survey_id, measure_id)))
+                if not qnode_measure:
+                    raise errors.MissingDocError(
+                        "No such measure in that survey")
+
+                policy = user_session.policy.derive({
+                    'program': qnode_measure.program,
+                    'survey': qnode_measure.survey,
+                })
+                policy.verify('measure_edit')
+                self._update_qnode_measure(qnode_measure, self.request_son)
+
+                # If relations have changed, mark this measure dirty.
+                # No need to check target_vars, because they aren't
+                # updated here (that must be done via the other measure).
+                if session.is_modified(qnode_measure):
                     verbs.add('update')
-                    for qnode_measure in measure.qnode_measures:
-                        calculator.mark_measure_dirty(qnode_measure)
-
-                if survey_id:
-                    qnode_measure = (
-                        session.query(model.QnodeMeasure)
-                        .get((program_id, survey_id, measure_id)))
-                    if not qnode_measure:
-                        raise errors.MissingDocError(
-                            "No such measure in that survey")
-                    self._update_qnode_measure(qnode_measure, self.request_son)
-
-                    # If relations have changed, mark this measure dirty.
-                    # No need to check target_vars, because they aren't
-                    # updated here (that must be done via the other measure).
-                    if session.is_modified(qnode_measure):
+                    calculator.mark_measure_dirty(qnode_measure)
+                for mv in qnode_measure.source_vars:
+                    if session.is_modified(mv):
                         verbs.add('update')
                         calculator.mark_measure_dirty(qnode_measure)
-                    for mv in qnode_measure.source_vars:
-                        if session.is_modified(mv):
-                            verbs.add('update')
-                            calculator.mark_measure_dirty(qnode_measure)
 
-                def relink(parent_id):
-                    # Add links to parents. Links can't be removed like this;
-                    # use the delete method instead.
-                    new_parent = session.query(model.QuestionNode)\
-                        .get((parent_id, program_id))
-                    if new_parent is None:
-                        raise errors.ModelError("No such question node")
-                    qnode_measure = measure.get_qnode_measure(
-                        new_parent.survey_id)
-                    if qnode_measure:
-                        old_parent = qnode_measure.qnode
-                        if old_parent == new_parent:
-                            return False
-                        # Mark dirty now, before the move, to cause old parents
-                        # to be updated.
-                        calculator.mark_measure_dirty(qnode_measure)
-                        self.reason(
-                            'Moved from %s to %s' %
-                            (old_parent.get_path(), new_parent.get_path()))
-                        qnode_measure.qnode = new_parent
-                        old_parent.qnode_measures.reorder()
-                    else:
-                        qnode_measure = model.QnodeMeasure(
-                            program=new_parent.program,
-                            survey=new_parent.survey,
-                            qnode=new_parent, measure=measure)
-                        self.reason('Added to %s' % new_parent.get_path())
-                    new_parent.qnode_measures.reorder()
-                    # Mark dirty again.
-                    calculator.mark_measure_dirty(
-                        qnode_measure, force_dependants=True)
-                    return True
+            def relink(new_parent):
+                # Add links to parents. Links can't be removed like this;
+                # use the delete method instead.
+                qnode_measure = measure.get_qnode_measure(new_parent.survey_id)
+                if qnode_measure:
+                    old_parent = qnode_measure.qnode
+                    if old_parent == new_parent:
+                        return False
+                    # Mark dirty now, before the move, to cause old parents
+                    # to be updated.
+                    calculator.mark_measure_dirty(qnode_measure)
+                    self.reason(
+                        'Moved from %s to %s' %
+                        (old_parent.get_path(), new_parent.get_path()))
+                    qnode_measure.qnode = new_parent
+                    old_parent.qnode_measures.reorder()
+                else:
+                    qnode_measure = model.QnodeMeasure(
+                        program=new_parent.program,
+                        survey=new_parent.survey,
+                        qnode=new_parent, measure=measure)
+                    self.reason('Added to %s' % new_parent.get_path())
+                new_parent.qnode_measures.reorder()
+                # Mark dirty again.
+                calculator.mark_measure_dirty(
+                    qnode_measure, force_dependants=True)
+                return True
 
-                if parent_id:
-                    if relink(parent_id):
-                        verbs.add('relation')
+            if parent_id:
+                new_parent = (
+                    session.query(model.QuestionNode)
+                    .get((parent_id, program_id)))
+                if not new_parent:
+                    raise errors.ModelError("No such category")
+                policy = user_session.policy.derive({
+                    'program': new_parent.program,
+                    'survey': new_parent.survey,
+                })
+                policy.verify('measure_edit')
+                if relink(new_parent):
+                    verbs.add('relation')
 
-                calculator.execute()
+            calculator.execute()
 
-                act = Activities(session)
-                act.record(self.current_user, measure, verbs)
-                if not act.has_subscription(self.current_user, measure):
-                    act.subscribe(self.current_user, measure.program)
-                    self.reason("Subscribed to program")
+            act = Activities(session)
+            act.record(user_session.user, measure, verbs)
+            if not act.has_subscription(user_session.user, measure):
+                act.subscribe(user_session.user, measure.program)
+                self.reason("Subscribed to program")
 
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError.from_sa(e)
         self.get(measure_id)
 
     def ordering(self):
@@ -536,23 +578,25 @@ class MeasureHandler(
         if qnode_id == None:
             raise errors.MethodError("Question node ID is required.")
 
-        list
-        try:
-            with model.session_scope() as session:
-                qnode = session.query(model.QuestionNode)\
-                    .get((qnode_id, program_id))
-                reorder(
-                    qnode.qnode_measures, self.request_son,
-                    id_attr='measure_id')
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+            qnode = (
+                session.query(model.QuestionNode)
+                .get((qnode_id, program_id)))
+            policy = user_session.policy.derive({
+                'program': qnode.program,
+                'survey': qnode.survey,
+            })
+            policy.verify('measure_edit')
+            reorder(
+                qnode.qnode_measures, self.request_son,
+                id_attr='measure_id')
 
-                act = Activities(session)
-                act.record(self.current_user, qnode, ['reorder_children'])
-                if not act.has_subscription(self.current_user, qnode):
-                    act.subscribe(self.current_user, qnode.program)
-                    self.reason("Subscribed to program")
-
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError.from_sa(e)
+            act = Activities(session)
+            act.record(user_session.user, qnode, ['reorder_children'])
+            if not act.has_subscription(user_session.user, qnode):
+                act.subscribe(user_session.user, qnode.program)
+                self.reason("Subscribed to program")
 
         self.query()
 

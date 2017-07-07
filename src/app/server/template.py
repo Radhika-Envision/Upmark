@@ -148,6 +148,7 @@ class TemplateHandler(base_handler.BaseHandler):
         template = os.path.join(self.path, path)
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
             params = TemplateParams(session)
             theme_params = theme.ThemeParams(session)
 
@@ -160,11 +161,11 @@ class TemplateHandler(base_handler.BaseHandler):
                 r'/organisation$',
                 r'!password',
             )
-            user_son = json_encode(to_son(self.current_user))
+            user_son = json_encode(to_son(user_session.user))
 
             self.render(
                 template, params=params, theme=theme_params,
-                user=self.current_user, organisation=self.organisation,
+                user=user_session.user, organisation=user_session.org,
                 user_son=user_son)
 
 

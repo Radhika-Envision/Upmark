@@ -21,23 +21,23 @@ class SurveyHandler(crud.program.ProgramCentric, base_handler.BaseHandler):
     @tornado.web.authenticated
     def get(self, survey_id):
 
-        if survey_id == '':
+        if not survey_id:
             self.query()
             return
 
         with model.session_scope() as session:
-            try:
-                survey = session.query(model.Survey)\
-                    .get((survey_id, self.program_id))
+            user_session = self.get_user_session(session)
 
-                if survey is None:
-                    raise ValueError("No such object")
-            except (sqlalchemy.exc.StatementError,
-                    sqlalchemy.orm.exc.NoResultFound,
-                    ValueError):
+            survey = (
+                session.query(model.Survey)
+                .get((survey_id, self.program_id)))
+            if not survey:
                 raise errors.MissingDocError("No such survey")
 
-            self.check_browse_program(session, self.program_id, survey_id)
+            policy = user_session.policy.derive({
+                'survey': survey,
+            })
+            policy.verify('survey_view')
 
             to_son = ToSon(
                 # Any
@@ -90,6 +90,7 @@ class SurveyHandler(crud.program.ProgramCentric, base_handler.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
+    @tornado.web.authenticated
     @auth.authz('author')
     def post(self, survey_id):
         '''Create new.'''
@@ -118,6 +119,7 @@ class SurveyHandler(crud.program.ProgramCentric, base_handler.BaseHandler):
             raise errors.ModelError.from_sa(e)
         self.get(survey_id)
 
+    @tornado.web.authenticated
     @auth.authz('author')
     def put(self, survey_id):
         '''Update existing.'''
@@ -154,6 +156,7 @@ class SurveyHandler(crud.program.ProgramCentric, base_handler.BaseHandler):
             raise errors.ModelError.from_sa(e)
         self.get(survey_id)
 
+    @tornado.web.authenticated
     @auth.authz('author')
     def delete(self, survey_id):
         if survey_id == '':

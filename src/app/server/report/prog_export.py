@@ -30,18 +30,21 @@ class ExportProgramHandler(base_handler.BaseHandler):
                 "Unrecognised format: %s" % fmt)
 
         with model.session_scope() as session:
-            self.check_browse_program(session, program_id, survey_id)
-
-            survey = (session.query(model.Survey)
-                         .get((survey_id, program_id)))
-            if program_id != str(survey.program_id):
-                raise errors.ModelError(
-                    "Survey does not belong to specified program.")
+            user_session = self.get_user_session(session)
+            survey = (
+                session.query(model.Survey)
+                .get((survey_id, program_id)))
+            if not survey:
+                raise errors.MissingDocError("No such survey")
+            policy = user_session.policy.derive({
+                'survey': survey,
+            })
+            policy.verify('survey_export')
 
         output_file = 'program_{0}_survey_{1}_{2}.xlsx'.format(
             program_id, survey_id, fmt)
-        base_url = ("%s://%s" % (self.request.protocol,
-                self.request.host))
+        base_url = ("%s://%s" % (
+            self.request.protocol, self.request.host))
 
         with tempfile.TemporaryDirectory() as tmpdirname:
             output_path = os.path.join(tmpdirname, output_file)
