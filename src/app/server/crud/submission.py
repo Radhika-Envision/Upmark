@@ -1,23 +1,19 @@
 from concurrent.futures import ThreadPoolExecutor
 import datetime
-import random
+import logging
 
 from tornado import gen
 from tornado.escape import json_encode
 import tornado.web
-import sqlalchemy
 from sqlalchemy.orm.session import make_transient
 
 from activity import Activities
-from approval import APPROVAL_STATES
 import base_handler
 import errors
-import math_utils
 import model
-import logging
-
 from score import Calculator
 from utils import ToSon, truthy, updater
+from .approval import APPROVAL_STATES
 
 
 log = logging.getLogger('app.crud.submission')
@@ -180,8 +176,6 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
 
         # Source submission ID
         duplicate_id = self.get_argument('duplicateId', '')
-
-        fill_random = truthy(self.get_argument('fillRandom', ''))
 
         with model.session_scope() as session:
             user_session = self.get_user_session(session)

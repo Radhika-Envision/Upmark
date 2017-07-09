@@ -2,15 +2,12 @@ import logging
 
 from tornado.escape import json_decode, json_encode
 import tornado.web
-import sqlalchemy
 from sqlalchemy.dialects.postgresql import array
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import literal
 
 from activity import Activities
-import auth
 import base_handler
-import crud
 import errors
 import model
 from score import Calculator
@@ -20,9 +17,7 @@ from utils import reorder, ToSon, truthy, updater
 log = logging.getLogger('app.crud.qnode')
 
 
-class QuestionNodeHandler(
-        base_handler.Paginate, crud.program.ProgramCentric,
-        base_handler.BaseHandler):
+class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, qnode_id):
@@ -30,11 +25,13 @@ class QuestionNodeHandler(
             self.query()
             return
 
+        program_id = self.get_argument('programId', '')
+
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
             qnode = (
                 session.query(model.QuestionNode)
-                .get((qnode_id, self.program_id)))
+                .get((qnode_id, program_id)))
             if not qnode:
                 raise errors.MissingDocError("No such category")
 
@@ -105,6 +102,7 @@ class QuestionNodeHandler(
             self.query_by_level(level)
             return
 
+        program_id = self.get_argument('programId', '')
         survey_id = self.get_argument('surveyId', '')
         parent_id = self.get_argument('parentId', '')
         root = self.get_argument('root', None)
@@ -122,13 +120,13 @@ class QuestionNodeHandler(
             if root is not None and survey_id:
                 survey = (
                     session.query(model.Survey)
-                    .get((survey_id, self.program_id)))
+                    .get((survey_id, program_id)))
                 if not survey:
                     raise errors.MissingDocError("No such survey")
             elif parent_id:
                 parent = (
                     session.query(model.QuestionNode)
-                    .get((parent_id, self.program_id)))
+                    .get((parent_id, program_id)))
                 if not parent:
                     raise errors.MissingDocError("No such parent category")
                 survey = parent.survey
@@ -143,7 +141,7 @@ class QuestionNodeHandler(
 
             query = (
                 session.query(model.QuestionNode)
-                .filter(model.QuestionNode.program_id == self.program_id))
+                .filter(model.QuestionNode.program_id == program_id))
 
             if survey_id:
                 query = query.filter_by(survey_id=survey_id)
@@ -194,6 +192,7 @@ class QuestionNodeHandler(
 
     def query_by_level(self, level):
         level = int(level)
+        program_id = self.get_argument('programId', '')
         survey_id = self.get_argument('surveyId', '')
         term = self.get_argument('term', '')
         parent_not = self.get_argument('parent__not', None)
@@ -211,7 +210,7 @@ class QuestionNodeHandler(
 
             survey = (
                 session.query(model.Survey)
-                .get((survey_id, self.program_id)))
+                .get((survey_id, program_id)))
             policy = user_session.policy.derive({
                 'program': survey.program,
                 'survey': survey,
@@ -233,7 +232,7 @@ class QuestionNodeHandler(
                     (QN1.seq + 1).concat('.').label('pathstr'),
                     (QN1.deleted).label('any_deleted'))
                 .filter(QN1.parent_id == None,
-                        QN1.program_id == self.program_id,
+                        QN1.program_id == program_id,
                         QN1.survey_id == survey_id)
                 .cte(name='root', recursive=True))
 
@@ -268,7 +267,7 @@ class QuestionNodeHandler(
                 session.query(
                     model.QuestionNode, subquery.c.pathstr,
                     subquery.c.any_deleted)
-                .filter(model.QuestionNode.program_id == self.program_id)
+                .filter(model.QuestionNode.program_id == program_id)
                 .join(subquery,
                       model.QuestionNode.id == subquery.c.id))
 
@@ -318,15 +317,14 @@ class QuestionNodeHandler(
         if qnode_id:
             raise errors.MethodError("Can't use POST for existing object")
 
+        program_id = self.get_argument('programId', '')
         survey_id = self.get_argument('surveyId', '')
         parent_id = self.get_argument('parentId', '')
 
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
-            program = (
-                session.query(model.Program)
-                .get(self.program_id))
+            program = session.query(model.Program).get(program_id)
             if not program:
                 raise errors.ModelError("No such program")
 
@@ -337,7 +335,7 @@ class QuestionNodeHandler(
             if survey_id != '':
                 survey = (
                     session.query(model.Survey)
-                    .get((survey_id, self.program_id)))
+                    .get((survey_id, program_id)))
                 if not survey:
                     raise errors.ModelError("No such survey")
             else:
@@ -347,7 +345,7 @@ class QuestionNodeHandler(
             if parent_id:
                 parent = (
                     session.query(model.QuestionNode)
-                    .get((parent_id, self.program_id)))
+                    .get((parent_id, program_id)))
                 if not parent:
                     raise errors.ModelError("Parent does not exist")
                 if not survey:
@@ -403,12 +401,14 @@ class QuestionNodeHandler(
         if not qnode_id:
             raise errors.MethodError("Question node ID required")
 
+        program_id = self.get_argument('programId', '')
+
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
             qnode = (
                 session.query(model.QuestionNode)
-                .get((qnode_id, self.program_id)))
+                .get((qnode_id, program_id)))
             if not qnode:
                 raise errors.MissingDocError("No such question node")
             log.debug("deleting: %s", qnode)
@@ -451,6 +451,7 @@ class QuestionNodeHandler(
             self.ordering()
             return
 
+        program_id = self.get_argument('programId', '')
         parent_id = self.get_argument('parentId', '')
 
         with model.session_scope() as session:
@@ -458,7 +459,7 @@ class QuestionNodeHandler(
 
             qnode = (
                 session.query(model.QuestionNode)
-                .get((qnode_id, self.program_id)))
+                .get((qnode_id, program_id)))
             if not qnode:
                 raise errors.MissingDocError("No such question node")
 
@@ -480,7 +481,7 @@ class QuestionNodeHandler(
                 old_parent = qnode.parent
                 new_parent = (
                     session.query(model.QuestionNode)
-                    .get((parent_id, self.program_id)))
+                    .get((parent_id, program_id)))
                 if new_parent.survey != qnode.survey:
                     raise errors.ModelError("Can't move to different survey")
                 if not new_parent:
@@ -531,6 +532,7 @@ class QuestionNodeHandler(
     def ordering(self):
         '''Change the order of all children in a parent's collection.'''
 
+        program_id = self.get_argument('programId', '')
         survey_id = self.get_argument('surveyId', '')
         parent_id = self.get_argument('parentId', '')
         root = self.get_argument('root', None)
@@ -554,7 +556,7 @@ class QuestionNodeHandler(
             if parent_id:
                 parent = (
                     session.query(model.QuestionNode)
-                    .get((parent_id, self.program_id)))
+                    .get((parent_id, program_id)))
                 if not parent:
                     raise errors.MissingDocError(
                         "Parent question node does not exist")
@@ -572,7 +574,7 @@ class QuestionNodeHandler(
             elif root is not None:
                 survey = (
                     session.query(model.Survey)
-                    .get((survey_id, self.program_id)))
+                    .get((survey_id, program_id)))
                 if not survey:
                     raise errors.MissingDocError("No such survey")
                 log.debug("Reordering children of: %s", survey)

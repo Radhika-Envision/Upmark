@@ -6,13 +6,13 @@ import tornado.web
 from sqlalchemy.orm.session import object_session
 
 from activity import Activities
-from approval import APPROVAL_STATES
 import base_handler
 import errors
 import model
 from response_type import ResponseTypeError
 from score import Calculator
 from utils import ToSon, updater
+from .approval import APPROVAL_STATES
 
 
 log = logging.getLogger('app.crud.response')

@@ -6,7 +6,6 @@ import voluptuous.error
 
 from activity import Activities
 import base_handler
-import crud
 import errors
 import logging
 import model
@@ -18,9 +17,7 @@ from utils import ToSon, updater
 log = logging.getLogger('app.crud.response_type')
 
 
-class ResponseTypeHandler(
-        base_handler.Paginate, crud.program.ProgramCentric,
-        base_handler.BaseHandler):
+class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, response_type_id):
@@ -29,6 +26,8 @@ class ResponseTypeHandler(
             self.query()
             return
 
+        program_id = self.get_argument('programId', '')
+
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
@@ -36,7 +35,7 @@ class ResponseTypeHandler(
                 session.query(model.ResponseType, func.count(model.Measure.id))
                 .outerjoin(model.Measure)
                 .filter(model.ResponseType.id == response_type_id)
-                .filter(model.ResponseType.program_id == self.program_id)
+                .filter(model.ResponseType.program_id == program_id)
                 .group_by(model.ResponseType.id, model.ResponseType.program_id)
                 .first()) or (None, None)
             if not response_type:
@@ -67,6 +66,7 @@ class ResponseTypeHandler(
 
     def query(self):
         '''Get a list.'''
+        program_id = self.get_argument('programId', '')
         term = self.get_argument('term', None)
 
         with model.session_scope() as session:
@@ -74,7 +74,7 @@ class ResponseTypeHandler(
 
             program = (
                 session.query(model.Program)
-                .get(self.program_id))
+                .get(program_id))
             policy = user_session.policy.derive({
                 'program': program,
             })
@@ -83,7 +83,7 @@ class ResponseTypeHandler(
             query = (
                 session.query(model.ResponseType, func.count(model.Measure.id))
                 .outerjoin(model.Measure)
-                .filter(model.ResponseType.program_id == self.program_id)
+                .filter(model.ResponseType.program_id == program_id)
                 .group_by(model.ResponseType.id, model.ResponseType.program_id)
                 .order_by(model.ResponseType.name))
 
@@ -121,10 +121,13 @@ class ResponseTypeHandler(
         '''Create new'''
         if response_type_id:
             raise errors.ModelError("Can't specify ID when creating")
+
+        program_id = self.get_argument('programId', '')
+
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
-            program = session.query(model.Program).get(self.program_id)
+            program = session.query(model.Program).get(program_id)
             if not program:
                 raise errors.MissingDocError("No such program")
 
@@ -135,7 +138,7 @@ class ResponseTypeHandler(
 
             rt_by_name = (
                 session.query(model.ResponseType)
-                .filter(model.ResponseType.program_id == self.program_id)
+                .filter(model.ResponseType.program_id == program_id)
                 .filter(model.ResponseType.name == self.request_son.name)
                 .first())
             if rt_by_name:
@@ -169,12 +172,15 @@ class ResponseTypeHandler(
     @tornado.web.authenticated
     def delete(self, response_type_id):
         '''Delete'''
+
+        program_id = self.get_argument('programId', '')
+
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
             response_type = (
                 session.query(model.ResponseType)
-                .get((response_type_id, self.program_id)))
+                .get((response_type_id, program_id)))
             if not response_type:
                 raise errors.MissingDocError("No such response type")
 
@@ -198,12 +204,15 @@ class ResponseTypeHandler(
     @tornado.web.authenticated
     def put(self, response_type_id):
         '''Update existing'''
+
+        program_id = self.get_argument('programId', '')
+
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
             response_type = (
                 session.query(model.ResponseType)
-                .get((response_type_id, self.program_id)))
+                .get((response_type_id, program_id)))
             if not response_type:
                 raise errors.MissingDocError("No such response type")
 
@@ -215,7 +224,7 @@ class ResponseTypeHandler(
             if 'name' in self.request_son:
                 rt_by_name = (
                     session.query(model.ResponseType)
-                    .filter(model.ResponseType.program_id == self.program_id)
+                    .filter(model.ResponseType.program_id == program_id)
                     .filter(model.ResponseType.name == self.request_son.name)
                     .first())
                 if rt_by_name and rt_by_name != response_type:

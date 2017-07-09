@@ -5,11 +5,9 @@ from tornado import gen
 from tornado.concurrent import run_on_executor
 from tornado.escape import json_encode
 import tornado.web
-import sqlalchemy
 from sqlalchemy import func
 
 from activity import Activities
-from approval import APPROVAL_STATES
 import base_handler
 import crud.response
 import crud.program
@@ -18,6 +16,7 @@ import model
 from response_type import ResponseTypeError
 from score import Calculator
 from utils import ToSon, updater
+from .approval import APPROVAL_STATES
 
 
 log = logging.getLogger('app.crud.rnode')

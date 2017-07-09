@@ -16,6 +16,8 @@ import tornado.httpserver
 import tornado.options
 import tornado.web
 
+import configure_logging  # noqa: F401
+
 import auth
 import compile_handlers
 import crud

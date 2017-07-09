@@ -21,35 +21,6 @@ log = logging.getLogger('app.crud.program')
 MAX_WORKERS = 4
 
 
-class ProgramCentric:
-    '''
-    Mixin for handlers that deal with models that have a program ID as part of
-    a composite primary key.
-    '''
-    @property
-    def program_id(self):
-        program_id = self.get_argument("programId", "")
-        if program_id == '':
-            raise errors.MethodError("Program ID is required")
-
-        return program_id
-
-    @property
-    def program(self):
-        if not hasattr(self, '_program'):
-            with model.session_scope() as session:
-                program = session.query(model.Program).get(self.program_id)
-                if program is None:
-                    raise errors.MissingDocError("No such program")
-                session.expunge(program)
-            self._program = program
-        return self._program
-
-    def check_editable(self):
-        if not self.program.is_editable:
-            raise errors.MethodError("This program is closed for editing")
-
-
 class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 

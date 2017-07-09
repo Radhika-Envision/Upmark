@@ -4,8 +4,8 @@ import numpy
 from sqlalchemy.orm import joinedload
 import tornado.web
 
-from approval import APPROVAL_STATES
 import base_handler
+from crud.approval import APPROVAL_STATES
 import errors
 import model
 import logging

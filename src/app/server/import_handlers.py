@@ -32,7 +32,7 @@ class ImportError(Exception):
 class ImportStructureHandler(base_handler.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-    @tornado.authenticated
+    @tornado.web.authenticated
     @gen.coroutine
     def post(self):
         with model.session_scope() as session:
@@ -65,7 +65,7 @@ class ImportStructureHandler(base_handler.BaseHandler):
 class ImportSubmissionHandler(base_handler.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-    @tornado.authenticated
+    @tornado.web.authenticated
     @gen.coroutine
     def post(self):
         org_id = self.get_argument('organisation')

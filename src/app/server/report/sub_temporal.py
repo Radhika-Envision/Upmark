@@ -16,8 +16,8 @@ from tornado.concurrent import run_on_executor
 import tornado.web
 import xlsxwriter
 
-from approval import APPROVAL_STATES
 import base_handler
+from crud.approval import APPROVAL_STATES
 import errors
 import model
 from utils import keydefaultdict

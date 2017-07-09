@@ -8,7 +8,6 @@ import sqlalchemy
 
 from activity import Activities
 import base_handler
-import crud.program
 import errors
 import model
 
@@ -236,14 +235,15 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
             setattr(org.meta, n, son.get(n))
 
 
-class PurchasedSurveyHandler(
-        crud.program.ProgramCentric, base_handler.BaseHandler):
+class PurchasedSurveyHandler(base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def head(self, organisation_id, survey_id):
+        program_id = self.get_argument('programId', '')
+
         with model.session_scope() as session:
             org = session.query(model.Organisation).get(organisation_id)
-            if org is None:
+            if not org:
                 raise errors.MissingDocError("No such organisation")
 
             user_session = self.get_user_session(session)
@@ -252,10 +252,7 @@ class PurchasedSurveyHandler(
 
             purchased_survey = (
                 session.query(model.PurchasedSurvey)
-                .filter_by(program_id=self.program_id,
-                           survey_id=survey_id,
-                           organisation_id=organisation_id)
-                .first())
+                .get((program_id, survey_id, organisation_id)))
             if not purchased_survey:
                 raise errors.MissingDocError(
                     "This survey has not been purchased yet")
@@ -273,7 +270,7 @@ class PurchasedSurveyHandler(
         deleted = self.get_argument('deleted', '')
         with model.session_scope() as session:
             org = session.query(model.Organisation).get(organisation_id)
-            if org is None:
+            if not org:
                 raise errors.MissingDocError("No such organisation")
 
             user_session = self.get_user_session(session)
@@ -284,8 +281,7 @@ class PurchasedSurveyHandler(
                 session.query(model.Survey)
                 .join(model.PurchasedSurvey)
                 .filter(
-                    model.PurchasedSurvey.organisation_id == organisation_id)
-            )
+                    model.PurchasedSurvey.organisation_id == organisation_id))
 
             if deleted:
                 deleted = truthy(deleted)
@@ -318,13 +314,15 @@ class PurchasedSurveyHandler(
 
     @tornado.web.authenticated
     def put(self, organisation_id, survey_id):
+        program_id = self.get_argument('programId', '')
+
         with model.session_scope() as session:
             org = session.query(model.Organisation).get(organisation_id)
-            if org is None:
+            if not org:
                 raise errors.MissingDocError("No such organisation")
             survey = (
                 session.query(model.Survey)
-                .get((survey_id, self.program_id)))
+                .get((survey_id, program_id)))
             if not survey:
                 raise errors.MissingDocError('No such survey')
 
@@ -337,20 +335,22 @@ class PurchasedSurveyHandler(
 
             purchased_survey = (
                 session.query(model.PurchasedSurvey)
-                .get((self.program_id, survey_id, org.id)))
+                .get((program_id, survey_id, org.id)))
 
             if not purchased_survey:
                 org.surveys.append(survey)
 
     @tornado.web.authenticated
     def delete(self, organisation_id, survey_id):
+        program_id = self.get_argument('programId', '')
+
         with model.session_scope() as session:
             org = session.query(model.Organisation).get(organisation_id)
             if not org:
                 raise errors.MissingDocError('No such organisation')
             survey = (
                 session.query(model.Survey)
-                .get((survey_id, self.program_id)))
+                .get((survey_id, program_id)))
             if not survey:
                 raise errors.MissingDocError('No such survey')
 

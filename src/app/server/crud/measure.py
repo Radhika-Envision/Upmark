@@ -8,7 +8,6 @@ from sqlalchemy.orm import joinedload
 from activity import Activities
 import base_handler
 from cache import instance_method_lru_cache
-import crud
 import errors
 import logging
 import model
@@ -20,9 +19,7 @@ from utils import falsy, reorder, ToSon, truthy, updater
 log = logging.getLogger('app.crud.measure')
 
 
-class MeasureHandler(
-        base_handler.Paginate,
-        crud.program.ProgramCentric, base_handler.BaseHandler):
+class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, measure_id):
@@ -339,8 +336,6 @@ class MeasureHandler(
             raise errors.MethodError(
                 "Can't specify ID when creating a new measure.")
 
-        self.check_editable()
-
         program_id = self.get_argument('programId', '')
         parent_id = self.get_argument('parentId', '')
 
@@ -411,8 +406,6 @@ class MeasureHandler(
         if not parent_id:
             raise errors.ModelError("Please specify a parent to unlink from")
 
-        self.check_editable()
-
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
@@ -461,8 +454,6 @@ class MeasureHandler(
     @tornado.web.authenticated
     def put(self, measure_id):
         '''Update existing.'''
-
-        self.check_editable()
 
         if not measure_id:
             self.ordering()
@@ -570,8 +561,6 @@ class MeasureHandler(
 
     def ordering(self):
         '''Change the order that would be returned by a query.'''
-
-        self.check_editable()
 
         program_id = self.get_argument('programId', '')
         qnode_id = self.get_argument('qnodeId', '')
