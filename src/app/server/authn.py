@@ -16,13 +16,13 @@ import theme
 log = logging.getLogger('app.auth')
 
 
-class AuthLoginHandler(template.TemplateHandler):
+class LoginHandler(template.TemplateHandler):
     SESSION_LENGTH = datetime.timedelta(days=30)
 
     def prepare(self):
         self.session_expires = (
             datetime.datetime.utcnow() +
-            AuthLoginHandler.SESSION_LENGTH)
+            type(self).SESSION_LENGTH)
 
     def get(self, user_id):
         '''
@@ -166,7 +166,7 @@ class AuthLoginHandler(template.TemplateHandler):
             json_encode(past_users), plus=False))
 
 
-class AuthLogoutHandler(base_handler.BaseHandler):
+class LogoutHandler(base_handler.BaseHandler):
     def get(self):
         self.clear_cookie("user")
         self.clear_cookie("superuser")

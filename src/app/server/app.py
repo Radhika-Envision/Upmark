@@ -18,7 +18,7 @@ import tornado.web
 
 import configure_logging  # noqa: F401
 
-import auth
+import authn
 import compile_handlers
 import crud
 import import_handlers
@@ -158,10 +158,10 @@ def get_mappings():
     package_dir = get_package_dir()
     return [
         (r"/login/?(.*)",
-            auth.AuthLoginHandler, {
+            authn.LoginHandler, {
                 'path': os.path.join(package_dir, "..", "client")}),
         (r"/logout/?",
-            auth.AuthLogoutHandler),
+            authn.LogoutHandler),
         (r"/()",
             template.TemplateHandler, {'path': '../client/templates/'}),
         (r"/(.*\.html)",
