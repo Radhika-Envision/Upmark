@@ -2,22 +2,14 @@ import datetime
 import json
 import logging
 import os
-import pprint
-import unittest
-from unittest import mock
 
-from sqlalchemy.sql import func
-from sqlalchemy.orm.session import make_transient, object_session
+from sqlalchemy.orm.session import object_session
 from tornado.escape import json_encode
-from tornado.testing import AsyncHTTPTestCase
-from tornado.web import Application
 
-import app
 import base
 import model
-from response_type import ExpressionError, ResponseType, ResponseError
+from response_type import ResponseType, ResponseError
 from score import Calculator
-from utils import ToSon
 
 
 log = logging.getLogger('app.test.test_response')
@@ -130,8 +122,9 @@ class ResponseTypeTest(base.LoggingTestCase):
         proj_dir = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), '..')
 
-        with open(os.path.join(
-                proj_dir, 'test-server', 'default_response_types.json')) as file:
+        rt_path = os.path.join(
+            proj_dir, 'test-server', 'default_response_types.json')
+        with open(rt_path) as file:
             [
                 ResponseType(t.get('name'), t['parts'], t.get('formula'))
                 for t in json.load(file)
@@ -247,12 +240,14 @@ class SubmissionTest(base.AqHttpTestBase):
     def test_create(self):
         with model.session_scope() as session:
             program = session.query(model.Program).one()
-            organisation = (session.query(model.Organisation)
-                    .filter_by(name='Utility')
-                    .one())
-            survey_1 = (session.query(model.Survey)
-                    .filter_by(title='Survey 1')
-                    .one())
+            organisation = (
+                session.query(model.Organisation)
+                .filter_by(name='Utility')
+                .one())
+            survey_1 = (
+                session.query(model.Survey)
+                .filter_by(title='Survey 1')
+                .one())
 
             program_id = str(program.id)
             organisation_id = str(organisation.id)
@@ -286,12 +281,14 @@ class SubmissionTest(base.AqHttpTestBase):
     def test_extern(self):
         '''Check that variables can depend on each other'''
         with model.session_scope() as session:
-            user = (session.query(model.AppUser)
-                    .filter_by(email='clerk')
-                    .one())
-            survey = (session.query(model.Survey)
-                    .filter_by(title='Survey 1')
-                    .one())
+            user = (
+                session.query(model.AppUser)
+                .filter_by(email='clerk')
+                .one())
+            survey = (
+                session.query(model.Survey)
+                .filter_by(title='Survey 1')
+                .one())
             program = survey.program
 
             # Add a response type that has an extenal variable
@@ -328,11 +325,10 @@ class SubmissionTest(base.AqHttpTestBase):
             session.flush()
 
             submission_id = str(submission.id)
-            user_id = str(user.id)
-            organisation_id = str(user.organisation_id)
-            mid_111 = str(survey.qnodes[0].children[0].qnode_measures[0].measure_id)
-            mid_112 = str(survey.qnodes[0].children[0].qnode_measures[1].measure_id)
-            mid_121 = str(survey.qnodes[0].children[1].qnode_measures[0].measure_id)
+            mid_111 = str(
+                survey.qnodes[0].children[0].qnode_measures[0].measure_id)
+            mid_112 = str(
+                survey.qnodes[0].children[0].qnode_measures[1].measure_id)
 
         # Put dependant response with errors. Check that the error refers to
         # missing dependency.
@@ -349,11 +345,13 @@ class SubmissionTest(base.AqHttpTestBase):
                 expected=200, decode=True)
 
         with model.session_scope() as session:
-            response = (session.query(model.Response)
+            response = (
+                session.query(model.Response)
                 .get((submission_id, mid_112)))
             self.assertIn('depends on', response.error)
             self.assertIn('measure has an error', response.parent.error)
-            self.assertIn('sub-category has an error', response.parent.parent.error)
+            self.assertIn(
+                'sub-category has an error', response.parent.parent.error)
             self.assertIn('category has an error', response.submission.error)
 
         # Put dependency, and check that error of dependant has changed.
@@ -370,13 +368,15 @@ class SubmissionTest(base.AqHttpTestBase):
                 expected=200, decode=True)
 
         with model.session_scope() as session:
-            response = (session.query(model.Response)
+            response = (
+                session.query(model.Response)
                 .get((submission_id, mid_111)))
             self.assertIs(response.error, None)
             # Parent still has an error due to sibling
             self.assertIn('measure has an error', response.parent.error)
 
-            response = (session.query(model.Response)
+            response = (
+                session.query(model.Response)
                 .get((submission_id, mid_112)))
             # Error has changed: dependency has been provided, but response
             # is still incomplete
@@ -388,21 +388,21 @@ class SubmissionTest(base.AqHttpTestBase):
                 "/submission/%s/response/%s.json" % (submission_id, mid_112),
                 method='GET', expected=200, decode=True)
             response_son['response_parts'] = [{'value': 1}]
-            response_son['comment']= "Complete dependant response"
+            response_son['comment'] = "Complete dependant response"
             response_son = self.fetch(
                 "/submission/%s/response/%s.json" % (submission_id, mid_112),
                 method='PUT', body=response_son,
                 expected=200, decode=True)
 
         with model.session_scope() as session:
-            response = (session.query(model.Response)
+            response = (
+                session.query(model.Response)
                 .get((submission_id, mid_112)))
             # Error has been resolved.
             self.assertIs(response.error, None)
             self.assertIs(response.error, response.parent.error)
             self.assertIs(response.error, response.parent.parent.error)
             self.assertIs(response.error, response.submission.error)
-
 
     def create_submission(self, survey, user):
         session = object_session(survey)
@@ -433,7 +433,8 @@ class SubmissionTest(base.AqHttpTestBase):
             session.add(response)
             if response_type.name == 'Yes / No':
                 response.response_parts = [{'index': 1, 'note': "Yes"}]
-            elif response_type.name in {'Numerical', 'External Numerical', 'Planned', 'Actual'}:
+            elif response_type.name in {
+                    'Numerical', 'External Numerical', 'Planned', 'Actual'}:
                 response.response_parts = [{'value': 1}]
             else:
                 raise ValueError("Unknown response type")
@@ -466,16 +467,18 @@ class SubmissionTest(base.AqHttpTestBase):
     def test_duplicate(self):
         # Respond to a survey
         with model.session_scope() as session:
-            program = session.query(model.Program).one()
-            user = (session.query(model.AppUser)
-                    .filter_by(email='clerk')
-                    .one())
-            survey_1 = (session.query(model.Survey)
-                    .filter_by(title='Survey 1')
-                    .one())
-            survey_2 = (session.query(model.Survey)
-                    .filter_by(title='Survey 2')
-                    .one())
+            user = (
+                session.query(model.AppUser)
+                .filter_by(email='clerk')
+                .one())
+            survey_1 = (
+                session.query(model.Survey)
+                .filter_by(title='Survey 1')
+                .one())
+            survey_2 = (
+                session.query(model.Survey)
+                .filter_by(title='Survey 2')
+                .one())
 
             submission = self.create_submission(survey_1, user)
             organisation_id = str(user.organisation.id)
@@ -548,16 +551,21 @@ class SubmissionTest(base.AqHttpTestBase):
 
         # Check contents
         with model.session_scope() as session:
-            submission_1 = (session.query(model.Submission)
+            submission_1 = (
+                session.query(model.Submission)
                 .get(first_submission_id))
-            submission_2 = (session.query(model.Submission)
+            submission_2 = (
+                session.query(model.Submission)
                 .get(second_submission_id))
-            submission_3 = (session.query(model.Submission)
+            submission_3 = (
+                session.query(model.Submission)
                 .get(third_submission_id))
 
-            self.assertEqual(submission_1.survey_id,
+            self.assertEqual(
+                submission_1.survey_id,
                 submission_2.survey_id)
-            self.assertNotEqual(submission_1.survey_id,
+            self.assertNotEqual(
+                submission_1.survey_id,
                 submission_3.survey_id)
 
             # Submission 1 has responses against six measures. Two are
@@ -572,15 +580,18 @@ class SubmissionTest(base.AqHttpTestBase):
             self.assertEqual(len(submission_3.responses), 2)
             self.assertEqual(session.query(model.Response).count(), 12)
 
-            # Make sure the number of rnodes matches the number of qnodes in the
-            # survey (no leftovers).
-            self.assertEqual(session.query(model.ResponseNode)
+            # Make sure the number of rnodes matches the number of qnodes in
+            # the survey (no leftovers).
+            self.assertEqual(
+                session.query(model.ResponseNode)
                 .filter_by(submission_id=submission_1.id)
                 .count(), 4)
-            self.assertEqual(session.query(model.ResponseNode)
+            self.assertEqual(
+                session.query(model.ResponseNode)
                 .filter_by(submission_id=submission_2.id)
                 .count(), 4)
-            self.assertEqual(session.query(model.ResponseNode)
+            self.assertEqual(
+                session.query(model.ResponseNode)
                 .filter_by(submission_id=submission_3.id)
                 .count(), 3)
 
@@ -641,8 +652,10 @@ class SubmissionTest(base.AqHttpTestBase):
                 self.assertEqual(str(r1.measure_id), str(r2.measure_id))
                 self.assertEqual(len(r1.attachments), 3)
                 self.assertEqual(len(r2.attachments), 3)
-                attachments_1 = sorted(r1.attachments, key=lambda a: a.file_name)
-                attachments_2 = sorted(r2.attachments, key=lambda a: a.file_name)
+                attachments_1 = sorted(
+                    r1.attachments, key=lambda a: a.file_name)
+                attachments_2 = sorted(
+                    r2.attachments, key=lambda a: a.file_name)
                 for a1, a2 in zip(attachments_1, attachments_2):
                     self.assertNotEqual(str(a1.id), str(a2.id))
                     self.assertEqual(a1.file_name, a2.file_name)

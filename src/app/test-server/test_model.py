@@ -1,22 +1,13 @@
 import itertools
 import logging
-import os
-import pprint
-import unittest
-from unittest import mock
 
 import sqlalchemy
-from sqlalchemy.sql import func
 from sqlalchemy.orm.session import make_transient
 from tornado.escape import json_encode
-from tornado.testing import AsyncHTTPTestCase
-from tornado.web import Application
 
-import app
 import base
 import model
 from score import Calculator
-from utils import ToSon
 
 
 log = logging.getLogger('app.test.test_model')
@@ -112,7 +103,8 @@ class ProgramStructureTest(base.AqModelTestBase):
         # Find non-orphans using inner join
         with model.session_scope() as session:
             program = session.query(model.Program).first()
-            measures = (session.query(model.Measure)
+            measures = (
+                session.query(model.Measure)
                 .join(model.QnodeMeasure)
                 .filter(model.Measure.program_id == program.id)
                 .order_by(model.Measure.title)
@@ -125,7 +117,8 @@ class ProgramStructureTest(base.AqModelTestBase):
 
     def test_graph(self):
         with model.session_scope() as session:
-            survey = (session.query(model.Survey)
+            survey = (
+                session.query(model.Survey)
                 .filter(model.Survey.title == 'Survey 1')
                 .first())
             program = survey.program
@@ -235,12 +228,12 @@ class ProgramStructureTest(base.AqModelTestBase):
             self.assertIn('cyclic', qnode_measure_111.error.lower())
             self.assertIn('cyclic', qnode_measure_112.error.lower())
             self.assertIn('cyclic', qnode_measure_111.qnode.error.lower())
-            self.assertIn('cyclic', qnode_measure_111.qnode.parent.error.lower())
+            self.assertIn(
+                'cyclic', qnode_measure_111.qnode.parent.error.lower())
             self.assertIn('cyclic', survey.error.lower())
             self.assertIn('cyclic', program.error.lower())
             self.assertIs(qnode_measure_121.error, None)
             self.assertIs(qnode_measure_121.qnode.error, None)
-
 
     def test_history(self):
         # Duplicate a couple of objects
@@ -275,23 +268,27 @@ class ProgramStructureTest(base.AqModelTestBase):
         # Get all programs for some survey ID
         with model.session_scope() as session:
             # This survey was duplicated, and should be in two programs.
-            survey = (session.query(model.Survey)
+            survey = (
+                session.query(model.Survey)
                 .filter_by(title="Survey 1")
                 .one())
-            programs = (session.query(model.Program)
+            programs = (
+                session.query(model.Program)
                 .join(model.Survey)
-                .filter(model.Survey.id==survey.id)
+                .filter(model.Survey.id == survey.id)
                 .all())
             titles = {s.title for s in programs}
             self.assertEqual(titles, {"Duplicate program", "Test Program 1"})
 
             # This one was not, so it should only be in the first.
-            survey = (session.query(model.Survey)
+            survey = (
+                session.query(model.Survey)
                 .filter_by(title="Survey 2")
                 .one())
-            programs = (session.query(model.Program)
+            programs = (
+                session.query(model.Program)
                 .join(model.Survey)
-                .filter(model.Survey.id==survey.id)
+                .filter(model.Survey.id == survey.id)
                 .all())
             titles = {s.title for s in programs}
             self.assertEqual(titles, {"Test Program 1"})
@@ -317,12 +314,6 @@ class ProgramTest(base.AqHttpTestBase):
             h = program.surveys[0]
             sid = str(program.id)
             hid = str(h.id)
-            m3 = (session.query(model.Measure)
-                .filter_by(title='Baz Measure')
-                .one())
-            user = (session.query(model.AppUser)
-                    .filter_by(email='author')
-                    .one())
 
         with base.mock_user('author'):
             # Query for qnodes based on deletion
@@ -340,8 +331,8 @@ class ProgramTest(base.AqHttpTestBase):
                 method='GET', expected=200, decode=True)
             self.assertEqual(len(q_son), 4)
 
-            # Query for qnodes based on deletion again, this time taking parents
-            # into account.
+            # Query for qnodes based on deletion again, this time taking
+            # parents into account.
             url += "&level=1"
             q_son = self.fetch(
                 url,
@@ -399,9 +390,11 @@ class ModifyProgramTest(base.AqHttpTestBase):
                     yield qm.measure
 
         with model.session_scope() as session:
-            for h in (session.query(model.Survey)
-                    .filter(model.Survey.deleted == False)
-                    .all()):
+            surveys = (
+                session.query(model.Survey)
+                .filter(model.Survey.deleted == False)
+                .all())
+            for h in surveys:
                 for q in qnodes(h.qnodes):
                     n_measures = len(list(measures([q])))
                     weight = sum(m.weight for m in measures([q]))
@@ -451,7 +444,8 @@ class ModifyProgramTest(base.AqHttpTestBase):
 
     def test_measure_move(self):
         with base.mock_user('author'):
-            # Move measure to different parent and check that weights have moved
+            # Move measure to different parent and check that weights have
+            # moved
             m_son = self.fetch(
                 "/measure/{}.json?programId={}&parentId={}".format(
                     self.midABA, self.sid, self.qidAA),
@@ -480,12 +474,14 @@ class ModifyProgramTest(base.AqHttpTestBase):
                 method='GET', expected=200, decode=True)
             self.assertAlmostEqual(q_son['total_weight'], 11 + 13)
 
-            # Move a measure out of the deleted qnode...
-            m_son = self.fetch(
+            # Check that a measure is still writable
+            self.fetch(
                 "/measure/{}.json?programId={}&parentId={}".format(
                     self.midAAA, self.sid, self.qidB),
                 method='PUT', body=json_encode({}),
                 expected=200, decode=True)
+
+            # Move a measure out of the deleted qnode...
             q_son = self.fetch(
                 "/qnode/{}.json?programId={}".format(self.qidA, self.sid),
                 method='GET', expected=200, decode=True)
@@ -577,9 +573,10 @@ class ModifyProgramTest(base.AqHttpTestBase):
                     new_qnode_sons = self.fetch(
                         url2, method='GET', expected=200, decode=True)
 
-                    self.assertEqual(original_qnode_sons, new_qnode_sons,
-                        "URL 1: %s\n" % url1
-                        + "URL 2: %s" % url2)
+                    self.assertEqual(
+                        original_qnode_sons, new_qnode_sons,
+                        ("URL 1: %s\n" % url1) +
+                        ("URL 2: %s" % url2))
                     for q1, q2 in zip(original_qnode_sons, new_qnode_sons):
                         log.info("q1: %s, q2: %s", q1, q2)
                         self.assertEqual(q1['title'], q2['title'])
@@ -673,10 +670,12 @@ class ModifyProgramTest(base.AqHttpTestBase):
                 self.assertEqual(a.qnode, qa)
                 self.assertEqual(b.qnode, qb)
 
-                for mva, mvb in itertools.zip_longest(a.source_vars, b.source_vars):
+                for mva, mvb in itertools.zip_longest(
+                        a.source_vars, b.source_vars):
                     visit_var(mva, mvb)
 
-                for mva, mvb in itertools.zip_longest(a.target_vars, b.target_vars):
+                for mva, mvb in itertools.zip_longest(
+                        a.target_vars, b.target_vars):
                     visit_var(mva, mvb)
 
                 visit_measure(a.measure, b.measure, a, b)
@@ -708,7 +707,8 @@ class ModifyProgramTest(base.AqHttpTestBase):
                     self.assertIn(qmb, b.qnode_measures)
                     self.assertNotIn(qmb, a.qnode_measures)
 
-            # A has five measures, but two are only referenced by deleted nodes.
+            # A has five measures, but two are only referenced by deleted
+            # nodes.
             self.assertEqual(len(sa.measures), 6)
             self.assertEqual(len(sb.measures), 4)
             measures_in_a = {m.id: m for m in sa.measures}
@@ -725,7 +725,8 @@ class ModifyProgramTest(base.AqHttpTestBase):
 
     def purchase_program(self, survey_id, program_id):
         with model.session_scope() as session:
-            user = (session.query(model.AppUser)
+            user = (
+                session.query(model.AppUser)
                 .filter_by(email='admin')
                 .one())
             organisation_id = str(user.organisation.id)
@@ -815,7 +816,8 @@ class ResponseTypeTest(base.AqHttpTestBase):
 
     def test_authz(self):
         with model.session_scope() as session:
-            survey = (session.query(model.Survey)
+            survey = (
+                session.query(model.Survey)
                 .filter(model.Survey.title == 'Survey 1')
                 .first())
             pid = str(survey.program_id)

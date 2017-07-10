@@ -1,15 +1,6 @@
-import os
-import unittest
-from unittest import mock
-import urllib
+from tornado.escape import json_encode
 
-from sqlalchemy.sql import func
-from tornado.escape import json_decode, json_encode
-
-import app
 import base
-import model
-from utils import ToSon
 
 
 class CustomQueryTest(base.AqHttpTestBase):

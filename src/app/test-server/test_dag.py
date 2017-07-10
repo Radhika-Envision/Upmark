@@ -1,8 +1,7 @@
 from itertools import repeat
-import unittest
 
 import base
-from dag import Graph, GraphBuilder, NodeBuilder, Ops, OpsProxy
+from dag import GraphBuilder, NodeBuilder, Ops, OpsProxy
 
 
 class DagTest(base.LoggingTestCase):
