@@ -2,6 +2,7 @@ __all__ = [
     'CustomQuery',
     'CustomQueryHistory',
     'create_analyst_user',
+    'drop_analyst_user',
     'reset_analyst_password',
     'store_analyst_password',
 ]
@@ -90,6 +91,15 @@ def create_analyst_user():
                     'appuser', 'systemconfig', 'alembic_version'}:
                 session.execute(
                     "GRANT SELECT ON {} TO analyst".format(table))
+
+
+def drop_analyst_user():
+    with session_scope() as session:
+        rs = session.execute(
+            "SELECT count(*) FROM pg_roles WHERE rolname = 'analyst'")
+        if rs.first()[0] > 0:
+            session.execute("DROP OWNED BY analyst CASCADE")
+            session.execute("DROP ROLE analyst")
 
 
 def reset_analyst_password():

@@ -5,6 +5,9 @@ from sqlalchemy import event
 from sqlalchemy.types import TypeDecorator, Text
 
 
+HASH_ROUNDS = 535000
+
+
 class Password(TypeDecorator):
     '''
     Hashes passwords and provides mechanism for validation.
@@ -63,7 +66,7 @@ class HashedPassword:
     @classmethod
     def from_plaintext(cls, plaintext):
         password = cls()
-        password.cyphertext = sha256_crypt.hash(plaintext)
+        password.cyphertext = sha256_crypt.hash(plaintext, rounds=HASH_ROUNDS)
         return password
 
     def __eq__(self, other):

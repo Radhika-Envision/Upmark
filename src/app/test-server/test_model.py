@@ -741,7 +741,10 @@ class ResponseTypeTest(base.AqHttpTestBase):
 
     def test_get(self):
         with model.session_scope() as session:
-            survey = session.query(model.Survey).first()
+            survey = (
+                session.query(model.Survey)
+                .filter(model.Survey.title == 'Survey 1')
+                .first())
             pid = str(survey.program_id)
 
         with base.mock_user('clerk'):

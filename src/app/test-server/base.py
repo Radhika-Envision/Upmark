@@ -103,27 +103,50 @@ class AqModelTestBase(LoggingTestCase):
     @classmethod
     def setUpClass(cls):
         cls._engine = model.connect_db(os.environ.get('DATABASE_URL'))
+        cls.destroy_schema()
+        model.drop_analyst_user()
+        model.Base.metadata.create_all(cls._engine)
 
     def setUp(self):
         super().setUp()
-        engine = self.__class__._engine
-        engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
-        engine.execute("DROP ROLE IF EXISTS analyst")
-        engine.execute("CREATE SCHEMA public")
-        model.initialise_schema(engine)
+        self.remove_all_data(type(self)._engine)
+        model.drop_analyst_user()
+        model.create_analyst_user()
         model.connect_db_ro(os.environ.get('DATABASE_URL'))
         self.create_org_structure()
         self.create_program_structure()
 
-    def create_org_structure(self):
-        engine = self.__class__._engine
-        engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
-        engine.execute("DROP ROLE analyst")
-        engine.execute("CREATE SCHEMA public")
-        model.initialise_schema(engine)
-        model.connect_db_ro(os.environ.get('DATABASE_URL'))
-
+    @classmethod
+    def destroy_schema(cls):
         with model.session_scope() as session:
+            tables = [
+                r[0] for r in
+                session.execute("""
+                    SELECT tablename
+                    FROM pg_tables
+                    WHERE schemaname = current_schema()""")]
+            for table in tables:
+                session.execute("DROP TABLE IF EXISTS %s CASCADE" % table)
+
+    def remove_all_data(self, engine):
+        with model.session_scope() as session:
+            tables = [
+                r[0] for r in
+                session.execute("""
+                    SELECT tablename
+                    FROM pg_tables
+                    WHERE schemaname = current_schema()""")]
+            for table in tables:
+                session.execute("TRUNCATE TABLE %s CASCADE" % table)
+
+    def create_org_structure(self):
+        def fast_password_hash():
+            return mock.patch(
+                'model.password.HASH_ROUNDS',
+                1000)
+
+        # with model.session_scope() as session:
+        with model.session_scope() as session, fast_password_hash():
             org1 = model.Organisation(
                 name='Primary',
                 url='http://primary.org',

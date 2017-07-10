@@ -211,10 +211,13 @@ class ExporterAuthzTest(base.AqHttpTestBase):
             self.add_submission()
 
         with model.session_scope() as session:
-            submission = session.query(model.Submission).filter(
-                model.Submission.program_id == self.program_id,
-                model.Submission.organisation_id == self.organisation_id,
-                model.Submission.survey_id == self.survey_id).first()
+            submission = (
+                session.query(model.Submission)
+                .filter(
+                    model.Submission.program_id == self.program_id,
+                    model.Submission.organisation_id == self.organisation_id,
+                    model.Submission.survey_id == self.survey_id)
+                .first())
             submission_id = submission.id
 
         with base.mock_user('author'):

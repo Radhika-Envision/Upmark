@@ -40,7 +40,10 @@ class UserTest(base.AqHttpTestBase):
 
     def test_password_field(self):
         with model.session_scope() as session:
-            org = session.query(model.Organisation).first()
+            org = (
+                session.query(model.Organisation)
+                .filter(model.Organisation.name == 'Primary')
+                .first())
             user = model.AppUser(
                 email='a', name='b', role='clerk', organisation=org)
             user.password = 'foo'
