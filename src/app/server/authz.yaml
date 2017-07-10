@@ -187,7 +187,7 @@
     description: "you can't subscribe to that object"
     expression: >-
         (not survey and not submission)
-        or (survey and purchased_survey(survey))
+        or @purchased_survey
         or (submission and submission.organisation_id == s.org.id)
 
  -  name: subscription_view
@@ -213,6 +213,13 @@
 
 # Survey
 
+ -  name: _purchased_survey
+    description: "the survey has been purchased"
+    failure: "your organisation is not taking part in that survey"
+    expression: >-
+        (survey and s.purchased_survey(survey)) or
+        (not survey and program and s.purchased_program(program))
+
  -  name: measure_add
     description: "permission to add a new measure"
     failure: "you can't add that new measure"
@@ -237,9 +244,7 @@
     description: "permission to view a program"
     failure: "you can't view that program"
     expression: >-
-        @author or @consultant or (
-            survey and s.purchased_survey(survey) or
-            program and s.purchased_program(program))
+        @author or @consultant or @_purchased_survey
 
  -  name: program_add
     description: "permission to add a new program"
@@ -400,7 +405,7 @@
     failure: "you can't create that submission"
     expression: >-
         @approval and
-        purchased_survey(survey) and
+        @_purchased_survey and
         (@consultant or @_own_org)
 
  -  name: submission_browse
@@ -482,7 +487,7 @@
     description: "permission to view a chart"
     failure: "you can't view that chart"
     expression: >-
-        (@consultant or purchased_survey(survey)) and
+        (@consultant or @_purchased_survey) and
         (index(approval) >= index(survey.min_stats_approval))
 
  -  name: report_temporal
