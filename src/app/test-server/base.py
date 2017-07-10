@@ -174,9 +174,9 @@ class AqModelTestBase(LoggingTestCase):
         proj_dir = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), '..')
 
-        with open(os.path.join(
-                proj_dir, 'test-server', 'default_response_types.json')
-                ) as file:
+        rt_path = os.path.join(
+            proj_dir, 'test-server', 'default_response_types.json')
+        with open(rt_path) as file:
             response_types = json.load(file)
 
         # Measure declaration, separate from survey to allow cross-linking.

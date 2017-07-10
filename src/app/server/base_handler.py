@@ -8,6 +8,7 @@ import tornado.options
 import tornado.web
 
 import errors
+import model
 from session import UserSession
 from utils import denormalise, truthy
 
@@ -27,6 +28,19 @@ class BaseHandler(tornado.web.RequestHandler):
                 self.request.headers['X-Forwarded-Proto'] != 'https'):
             self.redirect(
                 re.sub(r'^([^:]+)', 'https', self.request.full_url()))
+            return
+
+    def get_current_user(self):
+        user_id = self.get_secure_cookie('user')
+        if not user_id:
+            return None
+        user_id = user_id.decode('utf8')
+        with model.session_scope() as session:
+            user = session.query(model.AppUser).get(user_id)
+            if not user:
+                return None
+            session.expunge(user)
+        return user
 
     def get_user_session(self, db_session):
         user_id = self.get_secure_cookie('user')
@@ -42,13 +56,14 @@ class BaseHandler(tornado.web.RequestHandler):
         try:
             return self._request_son
         except AttributeError:
-            try:
-                self._request_son = denormalise(json_decode(self.request.body))
-            except (TypeError, UnicodeError, ValueError) as e:
-                raise errors.ModelError(
-                    "Could not decode request body: %s. Body started with %s" %
-                    (str(e), self.request.body[0:30]))
-            return self._request_son
+            pass
+        try:
+            self._request_son = denormalise(json_decode(self.request.body))
+        except (TypeError, UnicodeError, ValueError) as e:
+            raise errors.ModelError(
+                "Could not decode request body: %s. Body started with %s" %
+                (str(e), self.request.body[0:30]))
+        return self._request_son
 
     # Expression to remove invalid characters from headers. Without this,
     # requests may silently fail to be serviced.

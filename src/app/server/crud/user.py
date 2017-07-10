@@ -1,7 +1,6 @@
 import passwordmeter
 from tornado.escape import json_encode
 import tornado.web
-import sqlalchemy
 from sqlalchemy.orm import joinedload
 import voluptuous
 from voluptuous import Extra, All, Required, Schema

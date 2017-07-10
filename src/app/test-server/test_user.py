@@ -1,44 +1,11 @@
-import os
-import unittest
 from unittest import mock
-import urllib
 
 from sqlalchemy.sql import func
 from tornado.escape import json_decode, json_encode
 
-import app
 import base
 import model
 from utils import ToSon
-
-
-class AuthNTest(base.AqHttpTestBase):
-
-    def test_unauthenticated_root(self):
-        response = self.fetch("/", follow_redirects=True)
-        self.assertIn("/login/", response.effective_url)
-
-    def test_login(self):
-        post_data = {
-            'email': 'admin',
-            'password': 'bar'
-        }
-        response = self.fetch(
-            "/login", follow_redirects=False, method='POST',
-            body=urllib.parse.urlencode(post_data), expected=302)
-        self.assertIn('user="";', response.headers['set-cookie'])
-        self.assertIn('superuser="";', response.headers['set-cookie'])
-
-        post_data['password'] = 'foo'
-        response = self.fetch(
-            "/login", follow_redirects=False, method='POST',
-            body=urllib.parse.urlencode(post_data), expected=302)
-        self.assertIn('user=', response.headers['set-cookie'])
-
-    def test_authenticated_root(self):
-        with base.mock_user('admin'):
-            response = self.fetch("/", expected=200)
-        self.assertIn("Sign out", response.body.decode('utf8'))
 
 
 class OrgTest(base.AqHttpTestBase):
@@ -78,18 +45,6 @@ class OrgTest(base.AqHttpTestBase):
 
 
 class UserTest(base.AqHttpTestBase):
-
-    def password_field_test(self):
-        with model.session_scope() as session:
-            org = session.query(model.Organisation).first()
-            user = model.AppUser(
-                email='a', name='b', role='clerk', organisation=org)
-            user.password = 'foo'
-            session.add(user)
-            session.flush()
-            self.assertEqual(user.password, 'foo')
-            self.assertNotEqual(str(user.password), 'foo')
-            self.assertNotEqual(user.password, 'bar')
 
     def test_list_org(self):
         with base.mock_user('admin'):
@@ -226,7 +181,8 @@ class UserAuthzTest(base.AqHttpTestBase):
         ]
 
         for i, (user_email, org_name, code, reason) in enumerate(users_own):
-            self.create_user(i, 'own', user_email, org_name, 'clerk', code, reason)
+            self.create_user(
+                i, 'own', user_email, org_name, 'clerk', code, reason)
 
         users_other = [
             ('clerk', 'Primary', 403, "can't add a new user"),
@@ -237,8 +193,9 @@ class UserAuthzTest(base.AqHttpTestBase):
             ('admin', 'Utility', 200, 'OK')
         ]
 
-        for i, (user_email, org_name, code, reason) in enumerate(users_own):
-            self.create_user(i, 'other', user_email, org_name, 'clerk', code, reason)
+        for i, (user_email, org_name, code, reason) in enumerate(users_other):
+            self.create_user(
+                i, 'other', user_email, org_name, 'clerk', code, reason)
 
     def test_create_user_role(self):
         admin_role = [
@@ -250,8 +207,10 @@ class UserAuthzTest(base.AqHttpTestBase):
             ('admin', 'admin', 'Primary', 200, 'OK')
         ]
 
-        for i, (user_email, role, org_name, code, reason) in enumerate(admin_role):
-            self.create_user(i, 'admin', user_email, org_name, role, code, reason)
+        for i, (user_email, role, org_name, code, reason) in enumerate(
+                admin_role):
+            self.create_user(
+                i, 'admin', user_email, org_name, role, code, reason)
 
         org_admin_role = [
             ('org_admin', 'clerk', 'Utility', 200, 'OK'),
@@ -262,8 +221,10 @@ class UserAuthzTest(base.AqHttpTestBase):
             ('org_admin', 'admin', 'Utility', 403, "can't set that role")
         ]
 
-        for i, (user_email, role, org_name, code, reason) in enumerate(org_admin_role):
-            self.create_user(i, 'org_admin', user_email, org_name, role, code, reason)
+        for i, (user_email, role, org_name, code, reason) in enumerate(
+                org_admin_role):
+            self.create_user(
+                i, 'org_admin', user_email, org_name, role, code, reason)
 
     def org_id(self, name):
         with model.session_scope() as session:
@@ -286,7 +247,8 @@ class UserAuthzTest(base.AqHttpTestBase):
             post_data.update(custom_data)
 
         with base.mock_user(user_email), \
-                mock.patch('crud.user.test_password', lambda x: (1.0, 0.1, {})):
+                mock.patch(
+                    'crud.user.test_password', lambda x: (1.0, 0.1, {})):
             response = self.fetch(
                 "/user.json", method='POST',
                 body=json_encode(post_data), expected=code)
@@ -322,13 +284,6 @@ class UserAuthzTest(base.AqHttpTestBase):
                 r'!/password$'
             )
             user_son = to_son(user)
-
-            org = session.query(model.Organisation).\
-                filter_by(name='Primary').one()
-            org1_id = str(org.id)
-            org = session.query(model.Organisation).\
-                filter_by(name='Utility').one()
-            org2_id = str(org.id)
 
         users = [
             ('consultant', 403, "are not the owner"),
@@ -379,9 +334,11 @@ class UserAuthzTest(base.AqHttpTestBase):
         ]
 
         for user_email, current_org_name, new_org_name, code, reason in users:
-            self.modify_org_in_user(user_email, current_org_name, new_org_name, code, reason)
+            self.modify_org_in_user(
+                user_email, current_org_name, new_org_name, code, reason)
 
-    def modify_org_in_user(self, user_email, old_org_name, new_org_name, code, reason):
+    def modify_org_in_user(
+            self, user_email, old_org_name, new_org_name, code, reason):
         with model.session_scope() as session:
             org = session.query(model.Organisation).\
                 filter(func.lower(model.Organisation.name) ==
@@ -390,9 +347,11 @@ class UserAuthzTest(base.AqHttpTestBase):
             to_son = ToSon(r'/id$', r'/name$')
             org_son = to_son(org)
 
-            user = session.query(model.AppUser).\
-                    filter(func.lower(model.AppUser.email) ==
-                           func.lower(user_email)).one()
+            user = (
+                session.query(model.AppUser)
+                .filter(
+                    func.lower(model.AppUser.email) == func.lower(user_email))
+                .one())
 
             user_son = to_son(user)
             user_son['organisation'] = org_son
@@ -402,50 +361,3 @@ class UserAuthzTest(base.AqHttpTestBase):
                     "/user/%s.json" % user_son['id'], method='PUT',
                     body=json_encode(user_son), expected=code)
                 self.assertIn(reason, response.reason, msg=user_email)
-
-
-class PasswordTest(base.AqHttpTestBase):
-
-    def test_password_strength(self):
-        response = self.fetch(
-            "/password.json", method='POST',
-            body=json_encode({'password': 'foo'}),
-            expected=403)
-
-        with base.mock_user('clerk'):
-            response = self.fetch(
-                "/password.json", method='POST',
-                body=json_encode({'password': 'foo'}),
-                expected=200)
-        son = json_decode(response.body)
-        self.assertLess(son['strength'], 0.5)
-        self.assertIn('charmix', son['improvements'])
-        self.assertIn('length', son['improvements'])
-
-        with base.mock_user('clerk'):
-            response = self.fetch(
-                "/password.json", method='POST',
-                body=json_encode({'password': 'f0!'}),
-                expected=200)
-        son = json_decode(response.body)
-        self.assertNotIn('charmix', son['improvements'])
-        self.assertIn('length', son['improvements'])
-
-        with base.mock_user('clerk'):
-            response = self.fetch(
-                "/password.json", method='POST',
-                body=json_encode({'password': 'fooooooooooooooooooooooo'}),
-                expected=200)
-        son = json_decode(response.body)
-        self.assertIn('charmix', son['improvements'])
-        self.assertNotIn('length', son['improvements'])
-
-        with base.mock_user('clerk'):
-            response = self.fetch(
-                "/password.json", method='POST',
-                body=json_encode({'password': 'bdFiuo2807 g97834tq !'}),
-                expected=200)
-        son = json_decode(response.body)
-        self.assertGreater(son['strength'], 0.9)
-        self.assertNotIn('length', son['improvements'])
-        self.assertNotIn('charmix', son['improvements'])
