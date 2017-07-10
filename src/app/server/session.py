@@ -1,11 +1,10 @@
-from munch import DefaultMunch
 from sqlalchemy.orm import joinedload
+from sqlalchemy.orm.session import object_session
 
 import authz
 import config
 import errors
 import model
-from undefined import undefined
 
 
 class UserSession:
@@ -45,4 +44,22 @@ class UserSession:
         return model.has_privillege(self.user.role, *names)
 
     def purchased_survey(self, survey):
-        return survey in self.org.surveys
+        print('purchased_program')
+        session = object_session(survey)
+        count = (
+            session.query(model.PurchasedSurvey)
+            .filter(model.PurchasedSurvey.program_id == survey.program_id)
+            .filter(model.PurchasedSurvey.survey_id == survey.id)
+            .filter(model.PurchasedSurvey.organisation_id == self.org.id)
+            .count())
+        return count > 0
+
+    def purchased_program(self, program):
+        print('purchased_program')
+        session = object_session(program)
+        count = (
+            session.query(model.PurchasedSurvey)
+            .filter(model.PurchasedSurvey.program_id == program.id)
+            .filter(model.PurchasedSurvey.organisation_id == self.org.id)
+            .count())
+        return count > 0

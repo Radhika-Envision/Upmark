@@ -31,9 +31,16 @@ angular.module('upmark.authz', [])
     Policy.prototype._check = function(ruleName, context) {
         var rule = this.rules[ruleName];
         if (!rule)
-            throw new AuthzError("Unknown rule '" + ruleName + "'");
-        if (rule.check(context))
-            return true;
+            throw new AuthzConfigError("Unknown rule '" + ruleName + "'");
+        try {
+            if (rule.check(context))
+                return true;
+        } catch (e) {
+            if (e.name == 'AuthzConfigError')
+                throw e;
+            throw new AuthzConfigError(
+                "Error while evaluating " + ruleName + ": " + e);
+        }
         context.$failures.push(rule);
         return false;
     };
@@ -47,9 +54,6 @@ angular.module('upmark.authz', [])
         var success;
         try {
             success = this._check(ruleName, context);
-        } catch (e) {
-            throw new AuthzError(
-                "Error while evaluating " + ruleName + ": " + e);
         } finally {
             that = null;
         }
@@ -120,22 +124,37 @@ angular.module('upmark.authz', [])
     // Exception classes recipe by asselin of StackOverflow
     // https://stackoverflow.com/users/1639641/asselin
     // https://stackoverflow.com/a/27724419/320036
-    function AuthzError(message) {
+    function AccessDenied(message) {
         this.message = message;
         // Use V8's native method if available, otherwise fallback
         if ("captureStackTrace" in Error)
-            Error.captureStackTrace(this, AuthzError);
+            Error.captureStackTrace(this, AccessDenied);
         else
             this.stack = (new Error()).stack;
     }
-    AuthzError.prototype = Object.create(Error.prototype);
-    AuthzError.prototype.name = "AuthzError";
-    AuthzError.prototype.constructor = AuthzError;
-    AuthzError.prototype.toString = function() {
+    AccessDenied.prototype = Object.create(Error.prototype);
+    AccessDenied.prototype.name = "AccessDenied";
+    AccessDenied.prototype.constructor = AccessDenied;
+    AccessDenied.prototype.toString = function() {
         return this.message;
     };
     function defaultErrorFactory(message) {
-        return new AuthzError(message);
+        return new AccessDenied(message);
+    };
+
+    function AuthzConfigError(message) {
+        this.message = message;
+        // Use V8's native method if available, otherwise fallback
+        if ("captureStackTrace" in Error)
+            Error.captureStackTrace(this, AuthzConfigError);
+        else
+            this.stack = (new Error()).stack;
+    }
+    AuthzConfigError.prototype = Object.create(Error.prototype);
+    AuthzConfigError.prototype.name = "AuthzConfigError";
+    AuthzConfigError.prototype.constructor = AuthzConfigError;
+    AuthzConfigError.prototype.toString = function() {
+        return this.message;
     };
 
     // TODO: change this to just return the root policy (waiting on refactor

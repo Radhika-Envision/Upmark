@@ -12,7 +12,7 @@ class Policy:
         self.rules = rules if rules is not None else {}
         self.context = context if context is not None else DefaultMunch(
             undefined)
-        self.error_factory = error_factory if error_factory else AuthzError
+        self.error_factory = error_factory if error_factory else AccessDenied
 
     def declare(self, decl):
         rule = Rule(
@@ -32,9 +32,15 @@ class Policy:
     def _check(self, rule_name, context):
         rule = self.rules.get(rule_name)
         if not rule:
-            raise AuthzError("No such rule %s" % rule_name)
-        if rule.check(context):
-            return True
+            raise AuthzConfigError("No such rule %s" % rule_name)
+        try:
+            if rule.check(context):
+                return True
+        except AuthzConfigError:
+            raise
+        except Exception as e:
+            raise AuthzConfigError(
+                "Error while evaluating %s: %s" % (rule_name, e))
         context['_failures'].append(rule)
         return False
 
@@ -43,10 +49,7 @@ class Policy:
         context['_authz'] = lambda rule_name: self._check(rule_name, context)
         context['in'] = lambda x, xs: x in xs
         context['_failures'] = []
-        try:
-            success = self._check(rule_name, context)
-        except AuthzError as e:
-            raise AuthzError("Error while evaluating %s: %s" % (rule_name, e))
+        success = self._check(rule_name, context)
         return Permission(rule_name, success, context['_failures'])
 
     def check(self, rule_name):
@@ -109,7 +112,11 @@ class Rule:
         return self.name
 
 
-class AuthzError(Exception):
+class AccessDenied(Exception):
+    pass
+
+
+class AuthzConfigError(Exception):
     pass
 
 
