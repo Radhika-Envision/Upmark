@@ -244,29 +244,33 @@ class SubmissionTest(base.AqHttpTestBase):
                 session.query(model.Organisation)
                 .filter_by(name='Utility')
                 .one())
-            survey_1 = (
+            survey = (
                 session.query(model.Survey)
-                .filter_by(title='Survey 1')
+                .filter_by(title='Survey 2')
                 .one())
 
             program_id = str(program.id)
             organisation_id = str(organisation.id)
-            survey_1_id = str(survey_1.id)
+            survey_id = str(survey.id)
 
+        # Try to create a submission against a suvery that hasn't been
+        # purchased
         with base.mock_user('org_admin'):
             submission_son = {'title': "Submission"}
             submission_son = self.fetch(
                 "/submission.json?organisationId=%s&programId=%s&surveyId=%s" %
-                (organisation_id, program_id, survey_1_id),
+                (organisation_id, program_id, survey_id),
                 method='POST', body=json_encode(submission_son),
                 expected=403, decode=False)
 
+        # Grant access
         with base.mock_user('admin'):
             self.fetch(
                 "/organisation/%s/survey/%s.json?programId=%s" %
-                (organisation_id, survey_1_id, program_id),
+                (organisation_id, survey_id, program_id),
                 method='PUT', body='', expected=200)
 
+        # Retry
         with base.mock_user('org_admin'):
             submission_son = {
                 'title': "Submission",
@@ -274,7 +278,7 @@ class SubmissionTest(base.AqHttpTestBase):
             }
             submission_son = self.fetch(
                 "/submission.json?organisationId=%s&programId=%s&surveyId=%s" %
-                (organisation_id, program_id, survey_1_id),
+                (organisation_id, program_id, survey_id),
                 method='POST', body=json_encode(submission_son),
                 expected=200, decode=True)
 
@@ -312,9 +316,6 @@ class SubmissionTest(base.AqHttpTestBase):
                 source_qnode_measure=source_qm, source_field='_score',
                 target_qnode_measure=target_qm, target_field='ext'))
 
-            session.add(model.PurchasedSurvey(
-                organisation=user.organisation,
-                survey=survey))
             submission = model.Submission(
                 program=program,
                 organisation=user.organisation,

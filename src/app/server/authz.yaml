@@ -131,7 +131,7 @@
 
  -  name: org_add
     description: "permission to add a new organisation"
-    failure: "you can't add that new organisation"
+    failure: "you can't add that organisation"
     expression: '@admin'
 
  -  name: org_del
@@ -151,13 +151,13 @@
     description: "the post is a broadcast message"
     failure: "the post is not a broadcast message"
     expression: >-
-        len(activity.verbs) == 1
-        and activity.verbs[0] == 'broadcast'
+        len(activity.verbs) == 1 and
+        activity.verbs[0] == 'broadcast'
 
  -  name: post_add
     description: "permission to broadcast a message"
     failure: "you can't broadcast that message"
-    expression: '_post_broadcast and (@admin or (@org_admin and @_own_org))'
+    expression: '@_post_broadcast and (@admin or (@org_admin and @_own_org))'
 
  -  name: post_to_all
     description: "permission to broadcast a message to everyone"
@@ -176,7 +176,7 @@
 
  -  name: post_edit_try
     description: "permission to attempt to edit a post"
-    failure: "you can't attempt to modify a post"
+    failure: "you can't attempt to modify that post"
     expression: '@org_admin'
 
 
@@ -215,14 +215,14 @@
 
  -  name: _purchased_survey
     description: "the survey has been purchased"
-    failure: "your organisation is not taking part in that survey"
+    failure: "the organisation is not taking part in that survey"
     expression: >-
         (survey and s.purchased_survey(survey)) or
         (not survey and program and s.purchased_program(program))
 
  -  name: measure_add
     description: "permission to add a new measure"
-    failure: "you can't add that new measure"
+    failure: "you can't add that measure"
     expression: '@program_edit'
 
  -  name: measure_del
@@ -248,7 +248,7 @@
 
  -  name: program_add
     description: "permission to add a new program"
-    failure: "you can't add that new program"
+    failure: "you can't add that program"
     expression: '@author and program.is_editable'
 
  -  name: program_del
@@ -278,7 +278,7 @@
 
  -  name: qnode_add
     description: "permission to add a new category"
-    failure: "you can't add that new category"
+    failure: "you can't add that category"
     expression: '@program_edit'
 
  -  name: qnode_del
@@ -298,7 +298,7 @@
 
  -  name: response_type_add
     description: "permission to add a new response type"
-    failure: "you can't add that new response type"
+    failure: "you can't add that response type"
     expression: '@program_edit'
 
  -  name: response_type_del
@@ -333,7 +333,7 @@
 
  -  name: survey_purchase
     description: "permission to give access to a survey"
-    failure: "you can't give access to a survey"
+    failure: "you can't give access to that survey"
     expression: '@admin'
 
  -  name: survey_view
@@ -341,12 +341,17 @@
     failure: "you can't view that survey"
     expression: '@program_view'
 
+ -  name: survey_export
+    description: "permission to export a survey"
+    failure: "you can't export that survey"
+    expression: '@survey_view'
+
 
 # Submission
 
  -  name: attachment_add
     description: "permission to add a new attachment"
-    failure: "you can't add that new attachment"
+    failure: "you can't add that attachment"
     expression: '@attachment_view'
 
  -  name: attachment_edit
@@ -362,7 +367,7 @@
  -  name: attachment_view
     description: "permission to view an attachment"
     failure: "you can't view that attachment"
-    expression: '@consultant or @_own_org'
+    expression: '@submission_view'
 
  -  name: approval
     description: "permission to set the approval level"
@@ -388,12 +393,12 @@
  -  name: response_view
     description: "permission to view a response"
     failure: "you can't view that response"
-    expression: '@response_edit'
+    expression: '@submission_view'
 
  -  name: rnode_view
-    description: "permission to view category scores"
-    failure: "you can't view category scores"
-    expression: '@consultant or @_own_org'
+    description: "permission to view a response category"
+    failure: "you can't view the response to that category"
+    expression: '@submission_view'
 
  -  name: rnode_edit
     description: "permission to view category scores"

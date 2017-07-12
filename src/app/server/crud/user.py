@@ -224,7 +224,7 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             })
             policy.verify('user_edit')
 
-            if self.request_son.role and self.request_son != user.role:
+            if self.request_son.role and self.request_son.role != user.role:
                 policy.verify('user_change_role')
 
             if ('deleted' in self.request_son and

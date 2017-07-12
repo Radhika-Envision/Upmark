@@ -117,19 +117,21 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
-            if root is not None and survey_id:
-                survey = (
-                    session.query(model.Survey)
-                    .get((survey_id, program_id)))
-                if not survey:
-                    raise errors.MissingDocError("No such survey")
-            elif parent_id:
+            if parent_id:
                 parent = (
                     session.query(model.QuestionNode)
                     .get((parent_id, program_id)))
                 if not parent:
                     raise errors.MissingDocError("No such parent category")
+                if survey_id and survey_id != str(parent.survey_id):
+                    raise errors.ModelError("Category is not in that survey")
                 survey = parent.survey
+            elif survey_id:
+                survey = (
+                    session.query(model.Survey)
+                    .get((survey_id, program_id)))
+                if not survey:
+                    raise errors.MissingDocError("No such survey")
             else:
                 raise errors.ModelError("Survey or parent ID required")
 

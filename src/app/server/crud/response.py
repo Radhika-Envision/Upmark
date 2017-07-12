@@ -37,8 +37,10 @@ class ResponseHandler(base_handler.BaseHandler):
                 session.query(model.Response)
                 .get((submission_id, measure_id)))
 
-            dummy = False
-            if response is None:
+            if response:
+                submission = response.submission
+                dummy = False
+            else:
                 # Synthesise response so it can be returned. The session will
                 # be rolled back to avoid actually making this change.
                 submission = (

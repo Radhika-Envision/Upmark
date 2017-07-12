@@ -47,7 +47,7 @@ class Policy:
     def permission(self, rule_name):
         context = self.context.copy()
         context['_authz'] = lambda rule_name: self._check(rule_name, context)
-        context['in'] = lambda x, xs: x in xs
+        context['len'] = lambda xs: len(xs)
         context['_failures'] = []
         success = self._check(rule_name, context)
         return Permission(rule_name, success, context['_failures'])

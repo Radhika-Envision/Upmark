@@ -50,6 +50,9 @@ angular.module('upmark.authz', [])
         context.$authz = function(ruleName) {
             return that._check(ruleName, context);
         };
+        context.len = function(arr) {
+            return arr.length;
+        };
         context.$failures = [];
         var success;
         try {

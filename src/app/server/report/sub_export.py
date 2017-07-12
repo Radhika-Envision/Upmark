@@ -46,6 +46,9 @@ class ExportSubmissionHandler(base_handler.BaseHandler):
             })
             policy.verify('report_sub_export')
 
+            survey_id = submission.survey_id
+            program_id = submission.program_id
+
         output_file = 'submission_{0}_{1}.xlsx'.format(submission_id, fmt)
         base_url = ("%s://%s" % (
             self.request.protocol, self.request.host))

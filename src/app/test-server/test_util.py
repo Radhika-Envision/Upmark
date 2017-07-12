@@ -212,15 +212,15 @@ class ConversionTest(base.LoggingTestCase):
     def test_son_sanitise(self):
         input = {
             'safe_html':
-                '<script>foo</script>'
-                '<a href="http://bar">bar</a>'
+                '<script>foo</script> '
+                '<a href="http://bar">bar</a> '
                 '<a href="javascript:fn()">baz</a>',
             'strip_script': '<script>foo</script>',
             'strip_protocol':
-                '<a href="http://bar">bar</a>'
+                '<a href="http://bar">bar</a> '
                 '<a href="javascript:fn()">baz</a>',
             'strip_click':
-                '<span onclick="fn()">bar</span>'
+                '<span onclick="fn()">bar</span> '
                 '<a onclick="fn()">baz</a>',
             'a_dict': {
                 'strip_script': '<script>foo</script>',
@@ -228,8 +228,8 @@ class ConversionTest(base.LoggingTestCase):
         }
         output = {
             'safeHtml':
-                '<script>foo</script>'
-                '<a href="http://bar">bar</a>'
+                '<script>foo</script> '
+                '<a href="http://bar">bar</a> '
                 '<a href="javascript:fn()">baz</a>',
             'stripScript': 'foo',
             'stripProtocol': '<a href="http://bar">bar</a> <a>baz</a>',

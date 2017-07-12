@@ -82,11 +82,11 @@ class OrgAuthzTest(base.AqHttpTestBase):
 
     def test_create_org(self):
         users = [
-            ('clerk', 403, "can't add a new organisation"),
-            ('org_admin', 403, "can't add a new organisation"),
-            ('consultant', 403, "can't add a new organisation"),
-            ('authority', 403, "can't add a new organisation"),
-            ('author', 403, "can't add a new organisation"),
+            ('clerk', 403, "can't add that organisation"),
+            ('org_admin', 403, "can't add that organisation"),
+            ('consultant', 403, "can't add that organisation"),
+            ('authority', 403, "can't add that organisation"),
+            ('author', 403, "can't add that organisation"),
             ('admin', 200, 'OK')
         ]
 
@@ -172,11 +172,11 @@ class UserAuthzTest(base.AqHttpTestBase):
 
     def test_create_user(self):
         users_own = [
-            ('clerk', 'Utility', 403, "can't add a new user"),
+            ('clerk', 'Utility', 403, "can't add that user"),
             ('org_admin', 'Utility', 200, 'OK'),
-            ('consultant', 'Primary', 403, "can't add a new user"),
-            ('authority', 'Primary', 403, "can't add a new user"),
-            ('author', 'Primary', 403, "can't add a new user"),
+            ('consultant', 'Primary', 403, "can't add that user"),
+            ('authority', 'Primary', 403, "can't add that user"),
+            ('author', 'Primary', 403, "can't add that user"),
             ('admin', 'Primary', 200, 'OK')
         ]
 
@@ -185,11 +185,11 @@ class UserAuthzTest(base.AqHttpTestBase):
                 i, 'own', user_email, org_name, 'clerk', code, reason)
 
         users_other = [
-            ('clerk', 'Primary', 403, "can't add a new user"),
-            ('org_admin', 'Primary', 403, "can't add a new user"),
-            ('consultant', 'Utility', 403, "can't add a new user"),
-            ('authority', 'Utility', 403, "can't add a new user"),
-            ('author', 'Utility', 403, "can't add a new user"),
+            ('clerk', 'Primary', 403, "can't add that user"),
+            ('org_admin', 'Primary', 403, "can't add that user"),
+            ('consultant', 'Utility', 403, "can't add that user"),
+            ('authority', 'Utility', 403, "can't add that user"),
+            ('author', 'Utility', 403, "can't add that user"),
             ('admin', 'Utility', 200, 'OK')
         ]
 
@@ -272,9 +272,10 @@ class UserAuthzTest(base.AqHttpTestBase):
     def test_modify_user(self):
         with model.session_scope() as session:
             # TODO: Refactor this to make it reusable.
-            user = session.query(model.AppUser).\
-                filter(func.lower(model.AppUser.email) ==
-                       func.lower('clerk')).one()
+            user = (
+                session.query(model.AppUser)
+                .filter(model.AppUser.email == 'clerk')
+                .one())
 
             to_son = ToSon(
                 r'/id$',
@@ -300,11 +301,12 @@ class UserAuthzTest(base.AqHttpTestBase):
             with base.mock_user(user_email):
                 response = self.fetch(
                     "/user/%s.json" % user_son['id'], method='PUT',
-                    body=json_encode(post_data), expected=code)
+                    body=json_encode(post_data))
                 self.assertIn(reason, response.reason, msg=user_email)
+                self.assertEqual(code, response.code, msg=user_email)
 
         users = [
-            ('clerk', 403, "can't enable a user"),
+            ('clerk', 403, "can't add that user"),
             ('org_admin', 200, 'OK'),
         ]
 
@@ -315,21 +317,22 @@ class UserAuthzTest(base.AqHttpTestBase):
             with base.mock_user(user_email):
                 response = self.fetch(
                     "/user/%s.json" % user_son['id'], method='PUT',
-                    body=json_encode(post_data), expected=code)
+                    body=json_encode(post_data))
                 self.assertIn(reason, response.reason, msg=user_email)
+                self.assertEqual(code, response.code, msg=user_email)
 
     def test_modify_org_in_user(self):
         users = [
             ('clerk', 'Utility', 'Primary', 403,
-                "can't change a user's organisation"),
+                "can't change that user's organisation"),
             ('org_admin', 'Utility', 'Primary', 403,
-                "can't change a user's organisation"),
+                "can't change that user's organisation"),
             ('consultant', 'Primary', 'Utility', 403,
-                "can't change a user's organisation"),
+                "can't change that user's organisation"),
             ('authority', 'Primary', 'Utility', 403,
-                "can't change a user's organisation"),
+                "can't change that user's organisation"),
             ('author', 'Primary', 'Utility', 403,
-                "can't change a user's organisation"),
+                "can't change that user's organisation"),
             ('admin', 'Primary', 'Utility', 200, 'OK')
         ]
 

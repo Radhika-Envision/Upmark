@@ -91,7 +91,7 @@ def show_failed_tests():
     print("Failures:", ' '.join(
         case.id()
         for result in results
-        for case, _ in result.failures
+        for case, _ in result.failures + result.errors
     ))
 
 
@@ -115,6 +115,7 @@ class AqModelTestBase(LoggingTestCase):
         model.connect_db_ro(os.environ.get('DATABASE_URL'))
         self.create_org_structure()
         self.create_program_structure()
+        self.assign_access()
 
     @classmethod
     def destroy_schema(cls):
@@ -510,6 +511,21 @@ class AqModelTestBase(LoggingTestCase):
                 return surveys
 
             create_surveys(hsons)
+
+    def assign_access(self):
+        with model.session_scope() as session:
+            survey = (
+                session.query(model.Survey)
+                .filter(model.Survey.title == 'Survey 1')
+                .first())
+            org = (
+                session.query(model.Organisation)
+                .filter(model.Organisation.name == 'Utility')
+                .first())
+            purchased_survey = model.PurchasedSurvey(
+                organisation=org,
+                survey=survey)
+            session.add(purchased_survey)
 
 
 def printable(mime_type):

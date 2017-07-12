@@ -37,7 +37,7 @@ class AuthzMechanismTest(base.LoggingTestCase):
         self.policy.declare({
             'name': 'user_add',
             'description': "permission to add a new user",
-            'failure': "you can't add a new user",
+            'failure': "you can't add that user",
             'expression': '@admin or (@org_admin and @_own_org)',
         })
 
@@ -71,7 +71,7 @@ class AuthzMechanismTest(base.LoggingTestCase):
 
     def test_missing_rule(self):
         user_policy = self.policy.derive({})
-        with self.assertRaises(authz.AuthzError):
+        with self.assertRaises(authz.AuthzConfigError):
             user_policy.check('missing_rule')
 
     def test_permission(self):
@@ -83,7 +83,7 @@ class AuthzMechanismTest(base.LoggingTestCase):
             'org': {'id': 'bar'}
         }, default=undefined))
         permission = user_policy.permission('user_add')
-        self.assertIn("can't add a new user", str(permission))
+        self.assertIn("can't add that user", str(permission))
         self.assertIn("not a member", str(permission))
         self.assertIn("not an administrator", str(permission))
 
@@ -105,11 +105,6 @@ class TestPermissionError(Exception):
 
 class StatisticsAuthzTest(base.AqHttpTestBase):
 
-    # There is no meaning for testing authz for statistics.
-    # Because user only request for whole survey statistics.
-    # and for submission, user alredy checked submission authz
-    # therefore only testing for the survey is purchased or not for
-    # the organization is important.
     def test_get_statistics(self):
         with model.session_scope() as session:
             program = session.query(model.Program).one()
@@ -119,7 +114,7 @@ class StatisticsAuthzTest(base.AqHttpTestBase):
                 .one())
             survey = (
                 session.query(model.Survey)
-                .filter_by(title='Survey 1')
+                .filter_by(title='Survey 2')
                 .one())
 
             self.program_id = str(program.id)
@@ -139,13 +134,6 @@ class StatisticsAuthzTest(base.AqHttpTestBase):
                 "/%s/survey/%s.json?approval=reviewed" % (
                     self.program_id, self.survey_id),
                 method='GET', expected=200, decode=False)
-
-        with base.mock_user('clerk'):
-            self.fetch(
-                "/report/sub/stats/program"
-                "/%s/survey/%s.json?approval=reviewed" % (
-                    self.program_id, self.survey_id),
-                method='GET', expected=403, decode=False)
 
         # Before purchase survey
         with base.mock_user('clerk'):
@@ -208,6 +196,8 @@ class ExporterAuthzTest(base.AqHttpTestBase):
     def test_submission_exporter(self):
         with base.mock_user('admin'):
             self.purchase_program()
+
+        with base.mock_user('clerk'):
             self.add_submission()
 
         with model.session_scope() as session:
