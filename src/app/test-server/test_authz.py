@@ -15,7 +15,9 @@ log = logging.getLogger('app.test.test_authz')
 
 class AuthzMechanismTest(base.LoggingTestCase):
     def setUp(self):
-        self.policy = authz.Policy(error_factory=TestPermissionError)
+        self.policy = authz.Policy(
+            error_factory=TestPermissionError, aspect='server')
+
         self.policy.declare({
             'name': 'admin',
             'description': "the administrator role",

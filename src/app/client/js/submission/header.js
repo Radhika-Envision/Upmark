@@ -1,6 +1,6 @@
 'use strict'
 
-angular.module('upmark.submission', [
+angular.module('upmark.submission.header', [
     ])
 
 

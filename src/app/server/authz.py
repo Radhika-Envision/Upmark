@@ -8,21 +8,30 @@ from undefined import undefined
 
 
 class Policy:
-    def __init__(self, context=None, rules=None, error_factory=None):
+    def __init__(
+            self, context=None, rules=None, error_factory=None, aspect=None):
         self.rules = rules if rules is not None else {}
         self.context = context if context is not None else DefaultMunch(
             undefined)
         self.error_factory = error_factory if error_factory else AccessDenied
+        self.aspect = aspect
 
     def declare(self, decl):
+        expression = decl['expression']
+        if isinstance(expression, dict):
+            # Rule has various aspects. Use matching aspect; deny by default.
+            expression = decl['expression'].get(self.aspect, 'False')
+
         rule = Rule(
-            decl['name'], decl['expression'],
+            decl['name'], expression,
             decl.get('description'), decl.get('failure'))
         self.rules[rule.name] = rule
 
     def copy(self):
-        context = DefaultMunch(undefined, self.context)
-        return Policy(context, self.rules.copy(), self.error_factory)
+        return Policy(
+            DefaultMunch(undefined, self.context),
+            self.rules.copy(),
+            self.error_factory, self.aspect)
 
     def derive(self, context):
         policy = self.copy()

@@ -33,7 +33,7 @@ class UserSession:
 
     def get_policy(self):
         rule_declarations = config.get_resource('authz')
-        policy = authz.Policy(error_factory=errors.AuthzError)
+        policy = authz.Policy(error_factory=errors.AuthzError, aspect='server')
         for decl in rule_declarations:
             policy.declare(decl)
 
@@ -44,7 +44,6 @@ class UserSession:
         return model.has_privillege(self.user.role, *names)
 
     def purchased_survey(self, survey):
-        print('purchased_program')
         session = object_session(survey)
         count = (
             session.query(model.PurchasedSurvey)
@@ -55,7 +54,6 @@ class UserSession:
         return count > 0
 
     def purchased_program(self, program):
-        print('purchased_program')
         session = object_session(program)
         count = (
             session.query(model.PurchasedSurvey)

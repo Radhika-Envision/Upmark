@@ -145,7 +145,7 @@
     expression: '@org_add or (@org_admin and @_own_org)'
 
 
-# Post
+# Post (timeline messages)
 
  -  name: _post_broadcast
     description: "the post is a broadcast message"
@@ -157,7 +157,9 @@
  -  name: post_add
     description: "permission to broadcast a message"
     failure: "you can't broadcast that message"
-    expression: '@_post_broadcast and (@admin or (@org_admin and @_own_org))'
+    expression:
+        server: '@_post_broadcast and (@admin or (@org_admin and @_own_org))'
+        client: '@admin or (@org_admin and @_own_org)'
 
  -  name: post_to_all
     description: "permission to broadcast a message to everyone"
@@ -216,9 +218,11 @@
  -  name: _purchased_survey
     description: "the survey has been purchased"
     failure: "the organisation is not taking part in that survey"
-    expression: >-
-        (survey and s.purchased_survey(survey)) or
-        (not survey and program and s.purchased_program(program))
+    expression:
+        server: >-
+            (survey and s.purchased_survey(survey)) or
+            (not survey and program and s.purchased_program(program))
+        client: 'True'
 
  -  name: measure_add
     description: "permission to add a new measure"

@@ -24,10 +24,12 @@ angular.module('upmark', [
     'upmark.settings',
     'upmark.statistics',
     'upmark.subscription',
-    'upmark.submission',
     'upmark.submission.approval',
+    'upmark.submission.export',
+    'upmark.submission.header',
     'upmark.submission.response',
     'upmark.submission.rnode',
+    'upmark.submission.select',
     'upmark.submission.submission',
     'upmark.survey',
     'upmark.survey.history',
@@ -1110,16 +1112,25 @@ angular.module('upmark', [
 })
 
 
-.run(function(Authz, currentUser, Roles, $cookies) {
-    var session = {
+.factory('Authz', function(AuthzPolicy, currentUser, Roles, $cookies) {
+    var policyFactory = function(context) {
+        var localPolicy = policyFactory.rootPolicy.derive(context);
+        return function(ruleName) {
+            return localPolicy.check(ruleName);
+        };
+    };
+    policyFactory.rootPolicy = new AuthzPolicy(null, null, null, 'client');
+
+    policyFactory.rootPolicy.context.s = {
         user: currentUser,
         org: currentUser.organisation,
-        superuser: $cookies.get('superuser') != null,
+        superuser: !!$cookies.get('superuser'),
         has_role: function(role) {
             return Roles.hasPermission(currentUser.role, role);
         },
     };
-    Authz.rootPolicy.context.s = session;
+
+    return policyFactory;
 })
 
 

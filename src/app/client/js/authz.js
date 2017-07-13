@@ -5,23 +5,28 @@
 angular.module('upmark.authz', [])
 
 
-.factory('Authz', function($parse) {
+.factory('AuthzPolicy', function($parse) {
 
-    function Policy(context, rules, errorFactory) {
+    function Policy(context, rules, errorFactory, aspect) {
         this.rules = rules != null ? rules : {};
         this.context = context != null ? context : {};
         this.errorFactory = errorFactory ? errorFactory : defaultErrorFactory;
+        this.aspect = aspect;
     };
     Policy.prototype.declare = function(decl) {
+        var expression = decl.expression;
+        if (angular.isObject(expression))
+            expression = expression[this.aspect] || 'False';
+
         var rule = new Rule(
-            decl.name, decl.expression, decl.description, decl.failure);
+            decl.name, expression, decl.description, decl.failure);
         this.rules[rule.name] = rule;
     };
     Policy.prototype.copy = function() {
         return new Policy(
             angular.extend({}, this.context),
-            angular.extend({}, this.rules)
-        );
+            angular.extend({}, this.rules),
+            this.error_factory, this.aspect);
     };
     Policy.prototype.derive = function(context) {
         var policy = this.copy();
@@ -160,16 +165,7 @@ angular.module('upmark.authz', [])
         return this.message;
     };
 
-    // TODO: change this to just return the root policy (waiting on refactor
-    // elsewhere).
-    var policyFactory = function(context) {
-        var localPolicy = policyFactory.rootPolicy.derive(context);
-        return function(ruleName) {
-            return localPolicy.check(ruleName);
-        };
-    };
-    policyFactory.rootPolicy = new Policy();
-    return policyFactory;
+    return Policy;
 })
 
 ;
