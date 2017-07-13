@@ -11,13 +11,10 @@ angular.module('upmark.diff', [
 }])
 
 
-.controller('DiffCtrl', [
-        '$scope', 'QuestionNode', 'routeData', 'Editor',
-        '$location', 'Notifications', 'Current', 'format', 'Structure',
-        'Enqueue', 'Diff', '$timeout',
-        function($scope, QuestionNode, routeData, Editor,
-                 $location, Notifications, current, format, Structure,
-                 Enqueue, Diff, $timeout) {
+.controller('DiffCtrl', function(
+        $scope, QuestionNode, routeData, Editor,
+        $location, Notifications, format, Structure,
+        Enqueue, Diff, $timeout) {
 
     $scope.survey1 = routeData.survey1;
     $scope.survey2 = routeData.survey2;
@@ -89,7 +86,7 @@ angular.module('upmark.diff', [
             $scope.chooser = num;
     };
 
-}])
+})
 
 
 ;

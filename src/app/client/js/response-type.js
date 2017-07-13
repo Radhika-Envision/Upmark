@@ -280,7 +280,7 @@ angular.module('upmark.response.type', [
 
 
 .controller('ResponseTypeCtrl',
-        function($scope, Authz, Measure, Current, layout, routeData,
+        function($scope, Authz, Measure, layout, routeData,
             ResponseType) {
 
     $scope.layout = layout;

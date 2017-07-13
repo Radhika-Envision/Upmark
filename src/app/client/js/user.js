@@ -25,31 +25,6 @@ angular.module('upmark.user', [
 }])
 
 
-.factory('Current', [
-        'User', '$q', '$cookies', 'Notifications',
-         function(User, $q, $cookies, Notifications) {
-    var deferred = $q.defer();
-    var Current = {
-        user: User.get({id: 'current'}),
-        superuser: $cookies.get('superuser') != null,
-        $promise: null,
-        $resolved: false
-    };
-    Current.$promise = $q.all([Current.user.$promise]).then(
-        function success(values) {
-            Current.$resolved = true;
-            return Current;
-        },
-        function error(details) {
-            Notifications.set('Current', 'error',
-                "Failed to get current user: " + details.statusText)
-            return $q.reject(details);
-        }
-    );
-    return Current;
-}])
-
-
 .factory('Roles', ['$resource', function($resource) {
     var Roles = $resource('/roles.json', {}, {
         get: { method: 'GET', isArray: true, cache: false }
@@ -91,13 +66,10 @@ angular.module('upmark.user', [
 }])
 
 
-.controller('UserCtrl', [
-        '$scope', 'User', 'routeData', 'Editor', 'Organisation', 'Authz',
-        '$window', '$location', 'log', 'Notifications', 'Current', '$q',
-        'Password', 'format',
-        function($scope, User, routeData, Editor, Organisation, Authz,
-                 $window, $location, log, Notifications, Current, $q,
-                 Password, format) {
+.controller('UserCtrl', function(
+        $scope, User, routeData, Editor, Organisation, Authz,
+        $window, $location, log, Notifications, currentUser, $q,
+        Password, format) {
 
     $scope.edit = Editor('user', $scope);
     if (routeData.user) {
@@ -112,7 +84,7 @@ angular.module('upmark.user', [
                 name: $location.search().orgName
             };
         } else {
-            org = Current.user.organisation;
+            org = currentUser.organisation;
         }
         $scope.user = new User({
             role: 'clerk',
@@ -172,12 +144,10 @@ angular.module('upmark.user', [
             }
         );
     });
-}])
+})
 
 
-.controller('UserListCtrl', ['$scope', 'Authz', 'User', 'Current',
-            'Notifications', '$q',
-        function($scope, Authz, User, Current, Notifications, $q) {
+.controller('UserListCtrl', function($scope, Authz, User, Notifications, $q) {
 
     $scope.users = null;
     $scope.checkRole = Authz({org: $scope.org});
@@ -201,10 +171,10 @@ angular.module('upmark.user', [
             }
         );
     }, true);
-}])
+})
 
 
-.directive('userList', [function() {
+.directive('userList', function() {
     return {
         restrict: 'E',
         templateUrl: 'user_list.html',
@@ -216,7 +186,7 @@ angular.module('upmark.user', [
             scope.hideOrg = attrs.hideOrg !== undefined;
         }
     }
-}])
+})
 
 
 ;

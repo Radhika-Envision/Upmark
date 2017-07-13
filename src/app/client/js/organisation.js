@@ -33,11 +33,9 @@ angular.module('upmark.organisation', [
 }])
 
 
-.controller('OrganisationCtrl', [
-        '$scope', 'Organisation', 'org', 'Editor', 'Authz', 'User',
-        '$location', 'Current', 'LocationSearch',
+.controller('OrganisationCtrl',
         function($scope, Organisation, org, Editor, Authz, User,
-            $location, Current, LocationSearch) {
+            $location, LocationSearch) {
 
     $scope.edit = Editor('org', $scope);
     if (org) {
@@ -129,13 +127,11 @@ angular.module('upmark.organisation', [
     }];
 
     $scope.checkRole = Authz({org: $scope.org});
-}])
+})
 
 
-.controller('OrganisationListCtrl', [
-            '$scope', 'Authz', 'Organisation', 'Notifications', 'Current',
-            '$q',
-        function($scope, Authz, Organisation, Notifications, Current, $q) {
+.controller('OrganisationListCtrl',
+        function($scope, Authz, Organisation, Notifications, $q) {
 
     $scope.orgs = null;
     $scope.checkRole = Authz({});
@@ -158,7 +154,7 @@ angular.module('upmark.organisation', [
             }
         );
     }, true);
-}])
+})
 
 
 .controller('PurchasedSurveyAddCtrl', [

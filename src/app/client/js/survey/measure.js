@@ -20,11 +20,11 @@ angular.module('upmark.survey.measure', [
 }])
 
 
-.controller('MeasureCtrl',
-        function($scope, Measure, routeData, Editor, Authz,
-                 $location, Notifications, Current, Program, format, layout,
-                 Structure, Arrays, Response, hotkeys, $q, $timeout, $window,
-                 responseTypes, ResponseType, Enqueue) {
+.controller('MeasureCtrl', function(
+        $scope, Measure, routeData, Editor, Authz,
+        $location, Notifications, currentUser, Program, format, layout,
+        Structure, Arrays, Response, hotkeys, $q, $timeout, $window,
+        responseTypes, ResponseType, Enqueue) {
 
     $scope.layout = layout;
     $scope.parent = routeData.parent;
@@ -361,9 +361,9 @@ angular.module('upmark.survey.measure', [
 
     if ($scope.submission) {
         var t_approval;
-        if (Current.user.role == 'clerk' || Current.user.role == 'org_admin')
+        if (currentUser.role == 'clerk' || currentUser.role == 'org_admin')
             t_approval = 'final';
-        else if (Current.user.role == 'consultant')
+        else if (currentUser.role == 'consultant')
             t_approval = 'reviewed';
         else
             t_approval = 'approved';
@@ -402,13 +402,10 @@ angular.module('upmark.survey.measure', [
 })
 
 
-.controller('MeasureLinkCtrl', [
-        '$scope', 'QuestionNode', 'routeData', 'Authz',
-        '$location', 'Notifications', 'Current', 'format',
-        'Measure', 'layout',
-        function($scope, QuestionNode, routeData, Authz,
-                 $location, Notifications, current, format,
-                 Measure, layout) {
+.controller('MeasureLinkCtrl', function(
+        $scope, QuestionNode, routeData, Authz,
+        $location, Notifications, format,
+        Measure, layout) {
 
     $scope.layout = layout;
     $scope.qnode = routeData.parent;
@@ -458,12 +455,11 @@ angular.module('upmark.survey.measure', [
     $scope.checkRole = Authz({program: $scope.program});
     $scope.QuestionNode = QuestionNode;
     $scope.Measure = Measure;
-}])
+})
 
 
-.controller('MeasureListCtrl',
-        function($scope, Authz, Measure, Current, layout, routeData,
-            $routeParams) {
+.controller('MeasureListCtrl', function(
+        $scope, Authz, Measure, layout, routeData, $routeParams) {
 
     $scope.layout = layout;
     $scope.checkRole = Authz({});

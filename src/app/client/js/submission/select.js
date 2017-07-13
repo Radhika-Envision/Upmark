@@ -16,12 +16,10 @@ angular.module('upmark.submission.select', ['ui.select', 'upmark.user'])
             formatUrl: '=',
             disallowNone: '='
         },
-        controller: ['$scope', 'Current', 'Submission', 'Organisation',
-                '$location', 'format', 'Notifications', 'PurchasedSurvey',
-                'Structure', 'Authz', 'Enqueue',
-                function($scope, current, Submission, Organisation,
-                         $location, format, Notifications, PurchasedSurvey,
-                         Structure, Authz, Enqueue) {
+        controller: function(
+                $scope, currentUser, Submission, Organisation,
+                $location, format, Notifications, PurchasedSurvey,
+                Structure, Authz, Enqueue) {
 
             $scope.aSearch = {
                 organisation: null,
@@ -30,7 +28,7 @@ angular.module('upmark.submission.select', ['ui.select', 'upmark.user'])
 
             $scope.$watch('submission.organisation', function(org) {
                 if (!org)
-                    org = $scope.org || current.user.organisation;
+                    org = $scope.org || currentUser.organisation;
                 $scope.aSearch.organisation = org;
             });
 
@@ -137,6 +135,6 @@ angular.module('upmark.submission.select', ['ui.select', 'upmark.user'])
                 program: $scope.program,
                 org: $scope.org,
             });
-        }]
+        }
     }
 }])

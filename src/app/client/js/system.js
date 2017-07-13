@@ -14,7 +14,7 @@ angular.module('upmark.system', [
 
 
 .controller('SystemConfigCtrl',
-        function($scope, SystemConfig, Editor, Authz, Current,
+        function($scope, SystemConfig, Editor, Authz,
             systemConfig, $q, Notifications, $window) {
 
     $scope.edit = Editor('systemConfig', $scope);

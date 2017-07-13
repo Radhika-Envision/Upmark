@@ -19,7 +19,7 @@ angular.module('upmark.submission.submission', [
 
 .controller('SubmissionCtrl',
         function($scope, Submission, Survey, routeData, Editor, Authz,
-             layout, $location, Current, format, $filter, Notifications,
+             layout, $location, format, $filter, Notifications,
              Structure, LocationSearch, download) {
 
     $scope.layout = layout;
@@ -157,11 +157,9 @@ angular.module('upmark.submission.submission', [
 })
 
 
-.controller('SubmissionDuplicateCtrl', [
-        '$scope', 'Submission', 'routeData', 'layout', '$location',
-        'Current', 'format', '$filter', 'Notifications',
-        function($scope, Submission, routeData, layout, $location,
-                 Current, format, $filter, Notifications) {
+.controller('SubmissionDuplicateCtrl', function(
+        $scope, Submission, routeData, layout, $location,
+        format, $filter, Notifications) {
 
     $scope.layout = layout;
     $scope.program = routeData.program;
@@ -188,7 +186,7 @@ angular.module('upmark.submission.submission', [
             i = -1;
         $scope.search.approval = states[i + 1];
     };
-}])
+})
 
 
 .controller('SubmissionImportCtrl', function(

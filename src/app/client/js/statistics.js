@@ -16,13 +16,9 @@ angular.module('upmark.statistics', [
 }])
 
 
-.controller('StatisticsCtrl', [
-        '$scope', 'QuestionNode', 'routeData', 'Editor', 'Authz',
-        '$location', 'Notifications', 'Current', 'format', 'Structure',
-        'layout', 'Arrays', 'ResponseNode', 'Statistics', 'Submission',
-        '$timeout',
+.controller('StatisticsCtrl',
         function($scope, QuestionNode, routeData, Editor, Authz,
-                 $location, Notifications, current, format, Structure,
+                 $location, Notifications, format, Structure,
                  layout, Arrays, ResponseNode, Statistics, Submission,
                  $timeout) {
 
@@ -500,7 +496,7 @@ angular.module('upmark.statistics', [
         fillData($scope.submission2, $scope.rnodes2, $scope.stats2);
 
     drawChart();
-}])
+})
 
 
 ;

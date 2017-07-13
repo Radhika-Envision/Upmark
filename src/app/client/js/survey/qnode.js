@@ -21,13 +21,10 @@ angular.module('upmark.survey.qnode', [
 }])
 
 
-.controller('QuestionNodeCtrl', [
-        '$scope', 'QuestionNode', 'routeData', 'Editor', 'Authz',
-        '$location', 'Notifications', 'Current', 'format', 'Structure',
-        'layout', 'Arrays', 'ResponseNode', '$timeout', '$route',
-        function($scope, QuestionNode, routeData, Editor, Authz,
-                 $location, Notifications, current, format, Structure,
-                 layout, Arrays, ResponseNode, $timeout, $route) {
+.controller('QuestionNodeCtrl', function(
+        $scope, QuestionNode, routeData, Editor, Authz,
+        $location, Notifications, current, format, Structure,
+        layout, Arrays, ResponseNode, $timeout, $route) {
 
     // routeData.parent and routeData.survey will only be defined when
     // creating a new qnode.
@@ -310,16 +307,13 @@ angular.module('upmark.survey.qnode', [
                 $scope.qnode.id, $scope.program.id);
         }
     };
-}])
+})
 
 
-.controller('QnodeLinkCtrl', [
-        '$scope', 'QuestionNode', 'routeData', 'Authz',
-        '$location', 'Notifications', 'Current', 'format',
-        'layout', 'Structure',
-        function($scope, QuestionNode, routeData, Authz,
-                 $location, Notifications, current, format,
-                 layout, Structure) {
+.controller('QnodeLinkCtrl', function(
+        $scope, QuestionNode, routeData, Authz,
+        $location, Notifications, format,
+        layout, Structure) {
 
     $scope.layout = layout;
     $scope.survey = routeData.survey;
@@ -376,7 +370,7 @@ angular.module('upmark.survey.qnode', [
 
     $scope.checkRole = Authz({program: $scope.program});
     $scope.QuestionNode = QuestionNode;
-}])
+})
 
 
 .controller('QnodeChildren', ['$scope', 'bind', 'Editor', 'QuestionNode',
