@@ -8,8 +8,10 @@ cairosvg~=2.0.3
 #expiringdict~=1.1.2
 -e git://github.com/mailgun/expiringdict.git@v1.1.4#egg=expiringdict
 libsass~=0.12.3
+# DefaultMunch is not yet in any tagged release. When it is, switch back to
+# using pypi repository.
 #munch~=2.1.1
--e git://github.com/z0u/munch.git@387cc6c70e5483fc96bb45d1b5b56556381fdd04#egg=munch
+-e git://github.com/Infinidat/munch.git@ac91ac51cfd7d69d9c237695e307012e7ae44569#egg=munch
 numpy~=1.13.0rc2
 passlib~=1.7.1
 passwordmeter~=0.1.8
