@@ -3,6 +3,7 @@ from math import ceil
 import re
 
 from expiringdict import ExpiringDict
+from sqlalchemy.orm import joinedload
 from tornado.escape import json_decode
 import tornado.options
 import tornado.web
@@ -44,12 +45,42 @@ class BaseHandler(tornado.web.RequestHandler):
 
     def get_user_session(self, db_session):
         user_id = self.get_secure_cookie('user')
-        if user_id:
-            user_id = user_id.decode('utf8')
+        if not user_id:
+            return None
+
         superuser_id = self.get_secure_cookie('superuser')
         if superuser_id:
             superuser_id = superuser_id.decode('utf8')
-        return UserSession(db_session, user_id, superuser_id)
+            superuser = (
+                db_session.query(model.AppUser)
+                .join(model.Organisation)
+                .filter(model.AppUser.id == superuser_id)
+                .filter(~model.AppUser.deleted)
+                .filter(~model.Organisation.deleted)
+                .first())
+            if not superuser:
+                return None
+        else:
+            superuser = None
+
+        user_id = user_id.decode('utf8')
+        query = (
+            db_session.query(model.AppUser)
+            .options(joinedload('organisation'))
+            .join(model.Organisation)
+            .filter(model.AppUser.id == user_id))
+        if not superuser:
+            # Only superusers can log in as deleted users (for impersonation
+            # purposes).
+            query = (
+                query
+                .filter(~model.AppUser.deleted)
+                .filter(~model.Organisation.deleted))
+        user = query.first()
+        if not user:
+            return None
+
+        return UserSession(user, superuser)
 
     @property
     def request_son(self):
