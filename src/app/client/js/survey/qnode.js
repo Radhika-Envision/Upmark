@@ -23,7 +23,7 @@ angular.module('upmark.survey.qnode', [
 
 .controller('QuestionNodeCtrl', function(
         $scope, QuestionNode, routeData, Editor, Authz,
-        $location, Notifications, current, format, Structure,
+        $location, Notifications, format, Structure,
         layout, Arrays, ResponseNode, $timeout, $route) {
 
     // routeData.parent and routeData.survey will only be defined when

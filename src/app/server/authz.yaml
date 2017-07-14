@@ -166,6 +166,11 @@
     failure: "you can't broadcast that message to everyone"
     expression: '@admin'
 
+ -  name: post_pin
+    description: "permission to edit a post"
+    failure: "you can't modify that post"
+    expression: '@admin or (@org_admin and @_own_org)'
+
  -  name: post_edit
     description: "permission to edit a post"
     failure: "you can't modify that post"
@@ -253,7 +258,9 @@
  -  name: program_add
     description: "permission to add a new program"
     failure: "you can't add that program"
-    expression: '@author and program.is_editable'
+    expression:
+        server: '@author and program.is_editable'
+        client: '@author and program.isEditable'
 
  -  name: program_del
     description: "permission to delete a program"

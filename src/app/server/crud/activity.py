@@ -169,7 +169,7 @@ class ActivityHandler(base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def post(self, activity_id):
-        if activity_id != '':
+        if activity_id:
             raise errors.ModelError("Can't specify ID for new activity")
 
         if len(self.request_son['message']) < 3:
@@ -238,12 +238,17 @@ class ActivityHandler(base_handler.BaseHandler):
                 'activity': activity,
                 'org': activity.subject.organisation,
             })
-            policy.verify('post_edit')
 
             if 'sticky' in self.request_son:
-                activity.sticky = self.request_son['sticky']
+                if self.request_son.sticky != activity.sticky:
+                    policy.verify('post_pin')
+                    activity.sticky = self.request_son.sticky
+
             if 'message' in self.request_son:
-                activity.message = self.request_son['message']
+                if self.request_son.message != activity.message:
+                    policy.verify('post_edit')
+                    activity.message = self.request_son.message
+
             son = ActivityHandler.TO_SON(activity)
 
         self.set_header("Content-Type", "application/json")

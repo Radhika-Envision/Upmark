@@ -197,12 +197,11 @@ angular.module('upmark.home', [
 
 
 .controller('HomeCtrl',
-        function($scope, Activity, Notifications, $q, format, currentUser,
+        function($scope, Activity, Notifications, $q, format,
             Authz, Card, hotkeys, ActivityTransform, Enqueue) {
 
     $scope.acts = ActivityTransform;
     $scope.activity = null;
-    $scope.current = Current;
 
     $scope.cards = Card.query({});
 
