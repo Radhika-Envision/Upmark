@@ -118,6 +118,8 @@ class SurveyHandler(base_handler.BaseHandler):
             program = (
                 session.query(model.Program)
                 .get(program_id))
+            if not program:
+                raise errors.ModelError("No such program")
 
             survey = model.Survey(program=program)
             self._update(survey, self.request_son)

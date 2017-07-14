@@ -282,8 +282,8 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
                 "Can't use PUT for new program (no ID).")
 
         editable = self.get_argument('editable', '')
-        if not editable:
-            self._update_state(program_id, editable)
+        if editable != '':
+            self._update_state(program_id, truthy(editable))
             return
 
         with model.session_scope() as session:
@@ -342,13 +342,13 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'program': program,
             })
-            policy.verify('program_edit')
 
-            if editable != '':
-                if truthy(editable):
-                    program.finalised_date = None
-                else:
-                    program.finalised_date = datetime.datetime.utcnow()
+            if editable:
+                program.finalised_date = None
+                policy.verify('program_edit')
+            else:
+                policy.verify('program_edit')
+                program.finalised_date = datetime.datetime.utcnow()
 
             act = Activities(session)
             if session.is_modified(program):

@@ -258,9 +258,7 @@
  -  name: program_add
     description: "permission to add a new program"
     failure: "you can't add that program"
-    expression:
-        server: '@author and program.is_editable'
-        client: '@author and program.isEditable'
+    expression: '@author'
 
  -  name: program_del
     description: "permission to delete a program"
@@ -275,7 +273,9 @@
  -  name: program_edit
     description: "permission to edit a program"
     failure: "you can't edit that program"
-    expression: '@program_add'
+    expression:
+        server: '@author and program.is_editable'
+        client: '@author and program.isEditable'
 
  -  name: program_node_edit
     description: "permission to edit a program node"
