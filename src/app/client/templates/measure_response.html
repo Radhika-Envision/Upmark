@@ -198,10 +198,11 @@
                 ng-click="m.activeAttachment = attachment; $event.preventDefault()">
             <button class="btn btn-default btn-round pull-right hidden-print"
                     title="Remove"
-                    ng-click="m.deletingAttachment =
-                                  m.deletingAttachment ? null : attachment;
-                              $event.stopPropagation();
-                              $event.preventDefault()"
+                    ng-click="
+                        m.deletingAttachment = m.deletingAttachment ?
+                            null : attachment;
+                        $event.stopPropagation();
+                        $event.preventDefault()"
                     highlight="attachment == m.deletingAttachment"
                     ng-if="!structure.deletedItem">
                 <i class="fa fa-fw"
@@ -238,7 +239,11 @@
                 class="hide-print-url">
             <button class="btn btn-default btn-round pull-right hidden-print"
                     title="Remove"
-                    ng-click="m.deletingAttachment = m.deletingAttachment ? null : attachment"
+                    ng-click="
+                        m.deletingAttachment = m.deletingAttachment ?
+                            null : attachment;
+                        $event.stopPropagation();
+                        $event.preventDefault()"
                     highlight="attachment == m.deletingAttachment"
                     ng-if="!structure.deletedItem">
                 <i class="fa fa-fw"

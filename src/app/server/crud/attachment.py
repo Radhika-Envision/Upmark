@@ -8,7 +8,6 @@ from tornado.escape import json_encode
 from tornado import gen
 import tornado.web
 from concurrent.futures import ThreadPoolExecutor
-import sqlalchemy
 
 import aws
 import base_handler
@@ -58,7 +57,7 @@ class AttachmentHandler(base_handler.Paginate, base_handler.BaseHandler):
         self.finish()
 
     @tornado.web.authenticated
-    def delete(self, attachment_id):
+    def delete(self, attachment_id, file_name):
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
