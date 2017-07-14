@@ -1,9 +1,10 @@
 import datetime
 import logging
 
+from sqlalchemy.orm import joinedload
+from sqlalchemy.orm.session import object_session
 from tornado.escape import json_encode
 import tornado.web
-from sqlalchemy.orm.session import object_session
 
 from activity import Activities
 import base_handler
@@ -195,7 +196,7 @@ class ResponseHandler(base_handler.BaseHandler):
     def query(self, submission_id):
         '''Get a list.'''
         qnode_id = self.get_argument('qnodeId', '')
-        if qnode_id == '':
+        if not qnode_id:
             raise errors.ModelError("qnode ID required")
 
         with model.session_scope() as session:
@@ -203,26 +204,23 @@ class ResponseHandler(base_handler.BaseHandler):
 
             submission = (
                 session.query(model.Submission)
+                .options(joinedload('organisation'))
                 .filter_by(id=submission_id)
                 .first())
 
-            if submission is None:
+            if not submission:
                 raise errors.MissingDocError("No such submission")
-            self._check_authz(submission)
-
-            rnode = (
-                session.query(model.ResponseNode)
-                .filter_by(submission_id=submission_id,
-                           qnode_id=qnode_id)
-                .first())
 
             policy = user_session.policy.derive({
-                'org': rnode.submission.organisation,
+                'org': submission.organisation,
                 'submission': submission,
             })
             policy.verify('response_view')
 
-            if rnode is None:
+            rnode = (
+                session.query(model.ResponseNode)
+                .get((submission_id, qnode_id)))
+            if not rnode:
                 responses = []
             else:
                 responses = rnode.responses

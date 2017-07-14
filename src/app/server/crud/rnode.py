@@ -1,11 +1,12 @@
 from concurrent.futures import ThreadPoolExecutor
 import logging
 
+from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 from tornado import gen
 from tornado.concurrent import run_on_executor
 from tornado.escape import json_encode
 import tornado.web
-from sqlalchemy import func
 
 from activity import Activities
 import base_handler
@@ -39,9 +40,13 @@ class ResponseNodeHandler(base_handler.BaseHandler):
 
             rnode = (
                 session.query(model.ResponseNode)
+                .options(joinedload('submission'))
+                .options(joinedload('submission.organisation'))
                 .get((submission_id, qnode_id)))
 
-            if rnode is None:
+            if rnode:
+                submission = rnode.submission
+            else:
                 # Create an empty one, and roll back later (because GET
                 # shouldn't modify anything).
                 qnode, submission = (
@@ -239,6 +244,7 @@ class ResponseNodeHandler(base_handler.BaseHandler):
             session.flush()
 
             if approval:
+                policy.verify('submission_response_approval')
                 yield self.set_approval(
                     session, rnode, approval, user_session)
                 verbs.append('state')
@@ -345,8 +351,8 @@ class ResponseNodeHandler(base_handler.BaseHandler):
                     "process (was previously empty)*"
                 created += 1
             else:
-                i1 = crud.response.STATES.index(response.approval)
-                i2 = crud.response.STATES.index(approval)
+                i1 = APPROVAL_STATES.index(response.approval)
+                i2 = APPROVAL_STATES.index(approval)
                 if i1 < i2 and 'PROMOTE' in promote:
                     response.approval = approval
                     response.modified = func.now()

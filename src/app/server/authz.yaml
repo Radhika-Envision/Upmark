@@ -414,7 +414,7 @@
  -  name: rnode_edit
     description: "permission to view category scores"
     failure: "you can't view category scores"
-    expression: '@response_edit'
+    expression: '@submission_edit and @approval'
 
  -  name: submission_add
     description: "permission to create a submission"
