@@ -73,6 +73,7 @@ class SystemConfigItemHandler(base_handler.BaseHandler):
             user_session = self.get_user_session(session)
             user_session.policy.verify('conf_view')
 
+            name = to_snake_case(name)
             schema = self.get_schema(name)
             if schema['type'] == 'image' and schema['accept'] == '.svg':
                 self.set_header('Content-Type', 'image/svg+xml')
@@ -93,6 +94,7 @@ class SystemConfigItemHandler(base_handler.BaseHandler):
             user_session = self.get_user_session(session)
             user_session.policy.verify('conf_edit')
 
+            name = to_snake_case(name)
             schema = self.get_schema(name)
             fileinfo = self.request.files['file'][0]
             body = fileinfo['body']
@@ -109,13 +111,13 @@ class SystemConfigItemHandler(base_handler.BaseHandler):
             user_session = self.get_user_session(session)
             user_session.policy.verify('conf_del')
 
+            name = to_snake_case(name)
             self.get_schema(name)
             config.reset_setting(session, name)
 
         self.finish()
 
     def get_schema(self, name):
-        name = to_snake_case(name)
         schema = config.SCHEMA.get(name)
         if not schema or config.is_private(name, schema):
             raise errors.MissingDocError("No such setting")

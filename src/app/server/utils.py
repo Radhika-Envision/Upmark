@@ -278,7 +278,7 @@ class updater:
 
         column = self.inspector.columns[name]
         if not column.nullable:
-            if self.inspector.persistent:
+            if sqlalchemy.inspect(self.model).persistent:
                 # For persistent objects, column.default is not used.
                 raise self.error_factory("'%s' is empty" % name)
             elif column.default is None:
