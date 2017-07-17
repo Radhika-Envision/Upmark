@@ -1,10 +1,10 @@
 import datetime
 import logging
 
+from sqlalchemy.orm import joinedload
+from sqlalchemy.orm.session import object_session
 from tornado.escape import json_encode
 import tornado.web
-import sqlalchemy
-from sqlalchemy.orm.session import object_session
 
 from activity import Activities
 import base_handler
@@ -13,53 +13,10 @@ import model
 from response_type import ResponseTypeError
 from score import Calculator
 from utils import ToSon, updater
+from .approval import APPROVAL_STATES
 
 
 log = logging.getLogger('app.crud.response')
-
-
-STATES = ['draft', 'final', 'reviewed', 'approved']
-
-
-def check_approval_change(role, submission, approval):
-    '''
-    Check whether a user can set the state of a response, given the current
-    state of the submission.
-    '''
-    if STATES.index(submission.approval) > STATES.index(approval):
-        raise errors.ModelError(
-            "The submission has a state of '%s'."
-            % submission.approval)
-
-    if role in {'org_admin', 'clerk'}:
-        if approval not in {'draft', 'final'}:
-            raise errors.AuthzError(
-                "You can't mark this as %s." % approval)
-    elif role == 'consultant':
-        if approval not in {'draft', 'final', 'reviewed'}:
-            raise errors.AuthzError(
-                "You can't mark this as %s." % approval)
-    elif model.has_privillege(role, 'authority'):
-        pass
-    else:
-        raise errors.AuthzError(
-            "You can't mark this as %s." % approval)
-
-
-def check_modify(role, response):
-    '''
-    Check whether a user can modify a response in its current state.
-    '''
-    if response.approval in {'draft', 'final'}:
-        pass
-    elif response.approval == 'reviewed':
-        if not model.has_privillege(role, 'consultant'):
-            raise errors.AuthzError(
-                "This response has already been reviewed")
-    else:
-        if not model.has_privillege(role, 'authority'):
-            raise errors.AuthzError(
-                "This response has already been approved")
 
 
 class ResponseHandler(base_handler.BaseHandler):
@@ -75,20 +32,29 @@ class ResponseHandler(base_handler.BaseHandler):
         version = self.get_argument('version', '')
 
         with model.session_scope() as session:
-            response = (session.query(model.Response)
+            user_session = self.get_user_session(session)
+
+            response = (
+                session.query(model.Response)
                 .get((submission_id, measure_id)))
 
-            dummy = False
-            if response is None:
-                # Synthesise response so it can be returned. The session will be
-                # rolled back to avoid actually making this change.
-                submission = (session.query(model.Submission)
+            if response:
+                submission = response.submission
+                dummy = False
+            else:
+                # Synthesise response so it can be returned. The session will
+                # be rolled back to avoid actually making this change.
+                submission = (
+                    session.query(model.Submission)
                     .get(submission_id))
                 if not submission:
                     raise errors.MissingDocError("No such submission")
 
-                qnode_measure = (session.query(model.QnodeMeasure)
-                    .get((submission.program_id, submission.survey_id, measure_id)))
+                qnode_measure = (
+                    session.query(model.QnodeMeasure)
+                    .get((
+                        submission.program_id, submission.survey_id,
+                        measure_id)))
                 if not qnode_measure:
                     raise errors.MissingDocError(
                         "That survey has no such measure")
@@ -96,7 +62,7 @@ class ResponseHandler(base_handler.BaseHandler):
                 response = model.Response(
                     qnode_measure=qnode_measure,
                     submission=submission,
-                    user_id=self.current_user.id,
+                    user_id=user_session.user.id,
                     comment='',
                     response_parts=[],
                     variables={},
@@ -108,7 +74,11 @@ class ResponseHandler(base_handler.BaseHandler):
 
             response_history = self.get_version(session, response, version)
 
-            self._check_authz(response.submission)
+            policy = user_session.policy.derive({
+                'org': submission.organisation,
+                'submission': submission,
+            })
+            policy.verify('response_view')
 
             to_son = ToSon(
                 # Fields to match from any visited object
@@ -149,13 +119,15 @@ class ResponseHandler(base_handler.BaseHandler):
                 son = to_son(response)
             else:
                 son = to_son(response_history)
-                submission = (session.query(model.Submission)
-                        .filter_by(id=response_history.submission_id)
-                        .first())
-                measure = (session.query(model.Measure)
-                        .filter_by(id=response_history.measure_id,
-                                   program_id=submission.program_id)
-                        .first())
+                submission = (
+                    session.query(model.Submission)
+                    .filter_by(id=response_history.submission_id)
+                    .first())
+                measure = (
+                    session.query(model.Measure)
+                    .filter_by(id=response_history.measure_id,
+                               program_id=submission.program_id)
+                    .first())
                 qnode_measure = measure.get_qnode_measure(submission.survey_id)
                 parent = model.ResponseNode.from_qnode(
                     qnode_measure.qnode, submission)
@@ -184,10 +156,12 @@ class ResponseHandler(base_handler.BaseHandler):
                     for mv in response.qnode_measure.source_vars}
                 source_variables = {
                     source_qnode_measure: response and response.variables or {}
-                    for source_qnode_measure, response in source_responses.items()}
+                    for source_qnode_measure, response
+                    in source_responses.items()}
                 variables_by_target = {
                     mv.target_field:
-                    source_variables[mv.source_qnode_measure].get(mv.source_field)
+                    source_variables[mv.source_qnode_measure].get(
+                        mv.source_field)
                     for mv in response.qnode_measure.source_vars}
                 # Filter out blank/null variables
                 return {k: v for k, v in variables_by_target.items() if v}
@@ -211,7 +185,8 @@ class ResponseHandler(base_handler.BaseHandler):
         if version == response.version:
             return None
 
-        history = (session.query(model.ResponseHistory)
+        history = (
+            session.query(model.ResponseHistory)
             .get((response.submission_id, response.measure_id, version)))
 
         if history is None:
@@ -221,24 +196,31 @@ class ResponseHandler(base_handler.BaseHandler):
     def query(self, submission_id):
         '''Get a list.'''
         qnode_id = self.get_argument('qnodeId', '')
-        if qnode_id == '':
+        if not qnode_id:
             raise errors.ModelError("qnode ID required")
 
         with model.session_scope() as session:
-            submission = (session.query(model.Submission)
+            user_session = self.get_user_session(session)
+
+            submission = (
+                session.query(model.Submission)
+                .options(joinedload('organisation'))
                 .filter_by(id=submission_id)
                 .first())
 
-            if submission is None:
+            if not submission:
                 raise errors.MissingDocError("No such submission")
-            self._check_authz(submission)
 
-            rnode = (session.query(model.ResponseNode)
-                .filter_by(submission_id=submission_id,
-                           qnode_id=qnode_id)
-                .first())
+            policy = user_session.policy.derive({
+                'org': submission.organisation,
+                'submission': submission,
+            })
+            policy.verify('response_view')
 
-            if rnode is None:
+            rnode = (
+                session.query(model.ResponseNode)
+                .get((submission_id, qnode_id)))
+            if not rnode:
                 responses = []
             else:
                 responses = rnode.responses
@@ -255,7 +237,7 @@ class ResponseHandler(base_handler.BaseHandler):
                 r'/[0-9]+$',
                 r'/measure$',
             )
-            if self.current_user.role == 'clerk':
+            if user_session.user.role == 'clerk':
                 to_son.exclude(r'/score$')
             sons = to_son(responses)
 
@@ -270,90 +252,88 @@ class ResponseHandler(base_handler.BaseHandler):
     def put(self, submission_id, measure_id):
         '''Save (create or update).'''
 
-        try:
-            with model.session_scope(version=True) as session:
-                submission = (session.query(model.Submission)
-                    .get(submission_id))
-                if submission is None:
-                    raise errors.MissingDocError("No such submission")
+        with model.session_scope(version=True) as session:
+            user_session = self.get_user_session(session)
 
-                self._check_authz(submission)
+            submission = (
+                session.query(model.Submission)
+                .get(submission_id))
+            if not submission:
+                raise errors.MissingDocError("No such submission")
 
-                query = (session.query(model.Response).filter_by(
-                     submission_id=submission_id, measure_id=measure_id))
-                response = query.first()
+            response = (
+                session.query(model.Response)
+                .get((submission_id, measure_id)))
 
-                verbs = []
-                if response is None:
-                    program_id = submission.program_id
-                    survey_id = submission.survey_id
-                    qnode_measure = (session.query(model.QnodeMeasure)
-                        .get((program_id, survey_id, measure_id)))
-                    if qnode_measure is None:
-                        raise errors.MissingDocError("No such measure")
-                    response = model.Response(
-                        qnode_measure=qnode_measure,
-                        submission=submission,
-                        approval='draft')
-                    session.add(response)
-                    verbs.append('create')
-                else:
-                    same_user = response.user.id == self.current_user.id
-                    td = datetime.datetime.utcnow() - response.modified
-                    hours_since_update = td.total_seconds() / 60 / 60
+            verbs = []
+            if response is None:
+                program_id = submission.program_id
+                survey_id = submission.survey_id
+                qnode_measure = (
+                    session.query(model.QnodeMeasure)
+                    .get((program_id, survey_id, measure_id)))
+                if qnode_measure is None:
+                    raise errors.MissingDocError("No such measure")
+                response = model.Response(
+                    qnode_measure=qnode_measure,
+                    submission=submission,
+                    approval='draft')
+                session.add(response)
+                verbs.append('create')
+            else:
+                same_user = response.user.id == user_session.user.id
+                td = datetime.datetime.utcnow() - response.modified
+                hours_since_update = td.total_seconds() / 60 / 60
 
-                    if same_user and hours_since_update < 8:
-                        response.version_on_update = False
+                if same_user and hours_since_update < 8:
+                    response.version_on_update = False
 
-                    modified = self.request_son.get("latest_modified", 0)
-                    # Convert to int to avoid string conversion errors during
-                    # JSON marshalling.
-                    if int(modified) < int(response.modified.timestamp()):
-                        raise errors.ModelError(
-                            "This response has changed since you loaded the"
-                            " page. Please copy or remember your changes and"
-                            " refresh the page.")
-                    verbs.append('update')
+                modified = self.request_son.get("latest_modified", 0)
+                # Convert to int to avoid string conversion errors during
+                # JSON marshalling.
+                if int(modified) < int(response.modified.timestamp()):
+                    raise errors.ModelError(
+                        "This response has changed since you loaded the"
+                        " page. Please copy or remember your changes and"
+                        " refresh the page.")
+                verbs.append('update')
 
-                if self.request_son['approval'] != response.approval:
-                    check_approval_change(
-                        self.current_user.role, submission,
-                        self.request_son['approval'])
-                    verbs.append('state')
+            if self.request_son['approval'] != response.approval:
+                verbs.append('state')
 
-                self._update(response, self.request_son)
-                if not session.is_modified(response) and 'update' in verbs:
-                    verbs.remove('update')
-                check_modify(self.current_user.role, response)
-                session.flush()
+            self._update(response, self.request_son, user_session.user)
+            if not session.is_modified(response) and 'update' in verbs:
+                verbs.remove('update')
 
-                # Prevent creating a second version during following operations
-                response.version_on_update = False
+            policy = user_session.policy.derive({
+                'org': submission.organisation,
+                'submission': submission,
+                'approval': response.approval,
+                'index': APPROVAL_STATES.index,
+            })
+            policy.verify('response_edit')
 
-                try:
-                    calculator = Calculator.scoring(submission)
-                    calculator.mark_measure_dirty(response.qnode_measure)
-                    calculator.execute()
-                except ResponseTypeError as e:
-                    raise errors.ModelError(str(e))
+            session.flush()
 
-                act = Activities(session)
-                act.record(self.current_user, response, verbs)
-                if not act.has_subscription(self.current_user, response):
-                    act.subscribe(self.current_user, response.submission)
-                    self.reason("Subscribed to submission")
+            # Prevent creating a second version during following operations
+            response.version_on_update = False
 
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError.from_sa(e)
+            try:
+                calculator = Calculator.scoring(submission)
+                calculator.mark_measure_dirty(response.qnode_measure)
+                calculator.execute()
+            except ResponseTypeError as e:
+                raise errors.ModelError(str(e))
+
+            act = Activities(session)
+            act.record(user_session.user, response, verbs)
+            if not act.has_subscription(user_session.user, response):
+                act.subscribe(user_session.user, response.submission)
+                self.reason("Subscribed to submission")
+
         self.get(submission_id, measure_id)
 
-    def _check_authz(self, submission):
-        if not self.has_privillege('consultant'):
-            if submission.organisation.id != self.organisation.id:
-                raise errors.AuthzError(
-                    "You can't modify another organisation's response")
-
-    def _update(self, response, son):
+    def _update(self, response, son, user):
         '''
         Apply user-provided data to the saved model.
         '''
@@ -365,7 +345,7 @@ class ResponseHandler(base_handler.BaseHandler):
 
         extras = {
             'modified': datetime.datetime.utcnow(),
-            'user_id': str(self.current_user.id),
+            'user_id': str(user.id),
         }
 
         update('approval', son)
@@ -383,14 +363,28 @@ class ResponseHistoryHandler(base_handler.Paginate, base_handler.BaseHandler):
     def get(self, submission_id, measure_id):
         '''Get a list of versions of a response.'''
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
+            submission = session.query(model.Submission).get(submission_id)
+            if not submission:
+                raise errors.MissingDocError("No such submission")
+
+            policy = user_session.policy.derive({
+                'org': submission.organisation,
+                'submission': submission,
+            })
+            policy.verify('response_view')
+
             # Current version
-            versions = (session.query(model.Response)
+            versions = (
+                session.query(model.Response)
                 .filter_by(submission_id=submission_id,
                            measure_id=measure_id)
                 .all())
 
             # Other versions
-            query = (session.query(model.ResponseHistory)
+            query = (
+                session.query(model.ResponseHistory)
                 .filter_by(submission_id=submission_id,
                            measure_id=measure_id)
                 .order_by(model.ResponseHistory.version.desc()))
@@ -398,8 +392,8 @@ class ResponseHistoryHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             versions += query.all()
 
-            # Important! If you're going to include the comment field here, make
-            # sure it is cleaned first to prevent XSS attacks.
+            # Important! If you're going to include the comment field here,
+            # make sure it is cleaned first to prevent XSS attacks.
             to_son = ToSon(
                 r'/id$',
                 r'/name$',

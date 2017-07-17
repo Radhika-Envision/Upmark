@@ -14,7 +14,7 @@ angular.module('upmark.system', [
 
 
 .controller('SystemConfigCtrl',
-        function($scope, SystemConfig, Editor, Authz, Current,
+        function($scope, SystemConfig, Editor, Authz,
             systemConfig, $q, Notifications, $window) {
 
     $scope.edit = Editor('systemConfig', $scope);
@@ -35,10 +35,12 @@ angular.module('upmark.system', [
         $scope.$broadcast('prepareFormSubmit', async_task_promises);
         var promise = $q.all(async_task_promises).then(
             function success(async_tasks) {
+                return $scope.edit.save();
+            },
+            function success(systemconfig) {
                 Notifications.remove('systemConfig');
                 $window.location.reload();
                 $scope.state.cacheBust = Date.now();
-                return $scope.edit.save();
             },
             function failure(reason) {
                 Notifications.set('systemConfig', 'error', reason);

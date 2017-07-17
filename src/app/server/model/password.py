@@ -5,6 +5,9 @@ from sqlalchemy import event
 from sqlalchemy.types import TypeDecorator, Text
 
 
+HASH_ROUNDS = 535000
+
+
 class Password(TypeDecorator):
     '''
     Hashes passwords and provides mechanism for validation.
@@ -27,7 +30,8 @@ class Password(TypeDecorator):
             return str(value)
         else:
             raise PasswordError(
-                "Password columns must be instrumented with password.instrument")
+                "Password columns must be instrumented with "
+                "password.instrument")
 
     def process_result_value(self, value, dialect):
         if value is None:
@@ -38,7 +42,8 @@ class Password(TypeDecorator):
     @staticmethod
     def instrument(mapper_attr):
         '''
-        Sets up a listener to convert plaintext to HashedPassword on assignment.
+        Sets up a listener to convert plaintext to HashedPassword on
+        assignment.
         '''
         @event.listens_for(mapper_attr, 'set', retval=True)
         def receive_set(target, value, oldvalue, initiator):
@@ -61,7 +66,7 @@ class HashedPassword:
     @classmethod
     def from_plaintext(cls, plaintext):
         password = cls()
-        password.cyphertext = sha256_crypt.hash(plaintext)
+        password.cyphertext = sha256_crypt.hash(plaintext, rounds=HASH_ROUNDS)
         return password
 
     def __eq__(self, other):

@@ -41,6 +41,15 @@ When you run in `DEV_MODE`:
 [disable caching]: http://stackoverflow.com/a/7000899/320036
 
 
+## Testing
+
+Run server tests with:
+
+```
+sudo docker-compose run --rm test [module[.class[.method]]] [...]
+```
+
+
 ## Deployment
 
  - [Deploy to a single self-contained machine](doc/aws_small.md). Includes

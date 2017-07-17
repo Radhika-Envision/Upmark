@@ -1,15 +1,10 @@
 import datetime
 import logging
 import time
-import unittest
 from unittest import mock
 
 import sqlalchemy as sa
-from sqlalchemy.sql import func
-from sqlalchemy.orm.session import make_transient
 from tornado.escape import json_encode
-from tornado.testing import AsyncHTTPTestCase
-from tornado.web import Application
 
 import base
 import config as app_config
@@ -26,6 +21,7 @@ log = logging.getLogger('app.test.test_daemon')
 
 class ExpectedError(Exception):
     pass
+
 
 class UnexpectedError(Exception):
     pass
@@ -46,7 +42,9 @@ class DaemonTest(base.AqHttpTestBase):
                 method='GET', expected=200, decode=True)
             hid = survey_sons[0]['id']
 
-            url = "/qnode.json?programId=%s&surveyId=%s&root=&deleted=false" % (sid, hid)
+            url = (
+                "/qnode.json?programId=%s&surveyId=%s&root=&deleted=false" %
+                (sid, hid))
             qnode_sons = self.fetch(
                 url, method='GET', expected=200, decode=True)
             self.assertTrue(all(q['deleted'] == False for q in qnode_sons))
@@ -64,7 +62,7 @@ class DaemonTest(base.AqHttpTestBase):
             ss = [sub['subscribed'] for sub in sub_son]
             self.assertTrue(all(s is None for s in ss))
 
-            q_son = self.fetch(
+            self.fetch(
                 "/qnode/{}.json?programId={}".format(qid1, sid),
                 method='DELETE', expected=200)
 
@@ -92,6 +90,7 @@ class DaemonTest(base.AqHttpTestBase):
 
         config = utils.get_config("notification.yaml")
         messages = None
+
         def send(config, msg, to):
             messages[to] = msg
 
@@ -124,7 +123,7 @@ class DaemonTest(base.AqHttpTestBase):
 
         # Delete another qnode
         with base.mock_user('author'):
-            q_son = self.fetch(
+            self.fetch(
                 "/qnode/{}.json?programId={}".format(qid2, sid),
                 method='DELETE', expected=200)
 
@@ -139,6 +138,7 @@ class DaemonTest(base.AqHttpTestBase):
         time.sleep(0.1)
 
         sa_func_now = sa.func.now
+
         def next_week():
             return sa_func_now() + datetime.timedelta(days=7)
 
@@ -163,6 +163,7 @@ class DaemonTest(base.AqHttpTestBase):
 
     def test_timeline_failure(self):
         messages = None
+
         def send(config, msg, to):
             messages.append(msg)
 
@@ -180,15 +181,18 @@ class DaemonTest(base.AqHttpTestBase):
         # Respond to a survey
         with model.session_scope() as session:
             program = session.query(model.Program).one()
-            user = (session.query(model.AppUser)
-                    .filter_by(email='clerk')
-                    .one())
-            organisation = (session.query(model.Organisation)
-                    .filter_by(name='Utility')
-                    .one())
-            survey = (session.query(model.Survey)
-                    .filter_by(title='Survey 1')
-                    .one())
+            user = (
+                session.query(model.AppUser)
+                .filter_by(email='clerk')
+                .one())
+            organisation = (
+                session.query(model.Organisation)
+                .filter_by(name='Utility')
+                .one())
+            survey = (
+                session.query(model.Survey)
+                .filter_by(title='Survey 1')
+                .one())
             submission = model.Submission(
                 program_id=program.id,
                 organisation_id=organisation.id,
@@ -260,6 +264,7 @@ class DaemonTest(base.AqHttpTestBase):
         # Run recalculation script
         config = utils.get_config("recalculate.yaml")
         messages = None
+
         def send(config, msg):
             messages.append(msg)
 
@@ -298,6 +303,7 @@ class DaemonTest(base.AqHttpTestBase):
         # Run recalculation script
         config = utils.get_config("recalculate.yaml")
         messages = None
+
         def send(config, msg, to):
             messages.append(msg)
 

@@ -1,10 +1,10 @@
 from itertools import repeat
-import unittest
 
-from dag import Graph, GraphBuilder, NodeBuilder, Ops, OpsProxy
+import base
+from dag import GraphBuilder, NodeBuilder, Ops, OpsProxy
 
 
-class DagTest(unittest.TestCase):
+class DagTest(base.LoggingTestCase):
 
     def test_simple(self):
         '''Test evaluation of a simple arithmetic tree'''

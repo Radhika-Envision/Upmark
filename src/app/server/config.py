@@ -13,10 +13,9 @@ from utils import get_package_dir
 log = logging.getLogger('app.config')
 
 
-# This SCHEMA defines configuration parameters that a user is allowed to modify.
-# The application may store other things in the systemconfig table, but only
-# these ones will be visible / editable.
-# Paths are relative to app.py.
+# This SCHEMA defines configuration parameters that a user is allowed to
+# modify. The application may store other things in the systemconfig table, but
+# only these ones will be visible / editable. Paths are relative to app.py.
 SCHEMA = {
     'pass_threshold': {
         'type': 'numerical',
@@ -90,6 +89,7 @@ def is_primitive(schema):
 
 def is_private(name, schema):
     return name.startswith('_')
+
 
 def get_setting(session, name, force_default=False):
     schema = SCHEMA.get(name)
@@ -191,7 +191,6 @@ def get_resource(name, context=None):
         cache[name] = config
 
     if context is not None:
-
         config = [
             d for d in config
             if d.get('context', context) == context]

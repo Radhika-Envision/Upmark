@@ -35,7 +35,7 @@ angular.module('upmark.custom', [
 
 .controller('CustomCtrl',
             function($scope, $http, Notifications, hotkeys, routeData,
-                download, CustomQuery, $q, Editor, Current, Authz,
+                download, CustomQuery, $q, Editor, Authz,
                 $location, CustomQuerySettings, Enqueue) {
     $scope.config = routeData.config;
     if (routeData.query) {
@@ -181,7 +181,7 @@ angular.module('upmark.custom', [
         return col.richType;
     };
 
-    $scope.checkRole = Authz({});
+    $scope.checkRole = Authz({'custom_query': $scope.query});
 
     hotkeys.bindTo($scope)
         .add({
@@ -196,7 +196,7 @@ angular.module('upmark.custom', [
 
 
 .controller('CustomListCtrl',
-        function($scope, CustomQuery, $routeParams, Current, Authz) {
+        function($scope, CustomQuery, $routeParams, Authz) {
 
     $scope.checkRole = Authz({});
 

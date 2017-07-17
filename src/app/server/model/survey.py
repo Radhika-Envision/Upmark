@@ -10,17 +10,16 @@ __all__ = [
 ]
 
 from datetime import datetime
-from itertools import chain, count, zip_longest
+from itertools import chain, zip_longest
 
 from sqlalchemy import Boolean, Column, DateTime, Float, \
-    ForeignKey, Index, Integer, Text
-from sqlalchemy.dialects.postgresql import JSON
+    ForeignKey, Index, Integer, JSON, Text
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import backref, foreign, relationship, remote, \
     validates
 from sqlalchemy.orm.session import object_session
-from sqlalchemy.schema import ForeignKeyConstraint, Index, UniqueConstraint
+from sqlalchemy.schema import ForeignKeyConstraint, UniqueConstraint
 from voluptuous import All, Length, Schema
 from voluptuous.humanize import validate_with_humanized_errors
 
@@ -102,7 +101,8 @@ class PurchasedSurvey(Base):
     organisation = relationship(Organisation, backref='purchased_surveys')
     survey = relationship(
         'Survey', backref=backref(
-            'purchased_surveys', passive_deletes=True, order_by=open_date.desc()))
+            'purchased_surveys', passive_deletes=True,
+            order_by=open_date.desc()))
 
     # This constructor is used by association_proxy when adding items to the
     # collection.
@@ -144,7 +144,6 @@ class Survey(Observable, Base):
             'label': All(str, Length(min=1, max=2))
         }
     }, required=True)
-
 
     @validates('structure')
     def validate_structure(self, k, s):
@@ -200,8 +199,8 @@ Organisation.surveys = association_proxy('purchased_surveys', 'survey')
 
 class QuestionNode(Observable, Base):
     '''
-    A program category; contains sub-categories and measures. Gives a program its
-    structure. Both measures and sub-categories are ordered.
+    A program category; contains sub-categories and measures. Gives a program
+    its structure. Both measures and sub-categories are ordered.
     '''
     __tablename__ = 'qnode'
     id = Column(GUID, default=GUID.gen, primary_key=True)
@@ -324,7 +323,8 @@ class Measure(Observable, Base):
 
     def get_qnode_measure(self, survey):
         sid = to_id(survey)
-        return (object_session(self).query(QnodeMeasure)
+        return (
+            object_session(self).query(QnodeMeasure)
             .get((self.program_id, sid, self.id)))
 
     def lineage(self, survey=None):
@@ -363,9 +363,9 @@ class Measure(Observable, Base):
 
 
 class QnodeMeasure(Base):
-    # This is an association object for qnodes <-> measures. Normally this would
-    # be done with a raw table, but because we want access to the `seq` column,
-    # it needs to be a mapped class.
+    # This is an association object for qnodes <-> measures. Normally this
+    # would be done with a raw table, but because we want access to the `seq`
+    # column, it needs to be a mapped class.
     __tablename__ = 'qnode_measure'
     program_id = Column(GUID, nullable=False, primary_key=True)
     survey_id = Column(GUID, nullable=False, primary_key=True)
@@ -392,8 +392,12 @@ class QnodeMeasure(Base):
             ['program_id'],
             ['program.id']
         ),
-        Index('qnodemeasure_qnode_id_program_id_index', qnode_id, program_id),
-        Index('qnodemeasure_measure_id_program_id_index', measure_id, program_id),
+        Index(
+            'qnodemeasure_qnode_id_program_id_index',
+            qnode_id, program_id),
+        Index(
+            'qnodemeasure_measure_id_program_id_index',
+            measure_id, program_id),
     )
 
     program = relationship(Program)
@@ -419,11 +423,13 @@ class QnodeMeasure(Base):
         return self.qnode.closest_deleted_ancestor()
 
     def __repr__(self):
-        return "QnodeMeasure(path={}, program={}, survey={}, measure={})".format(
-            self.get_path(),
-            getattr(self.program, 'title', None),
-            getattr(self.survey, 'title', None),
-            getattr(self.measure, 'title', None))
+        return (
+            "QnodeMeasure(path={}, program={}, survey={}, measure={})"
+            .format(
+                self.get_path(),
+                getattr(self.program, 'title', None),
+                getattr(self.survey, 'title', None),
+                getattr(self.measure, 'title', None)))
 
 
 class ResponseType(Observable, Base):
@@ -533,10 +539,10 @@ class MeasureVariable(Base):
 #
 # We need to give explicit join rules due to use of foreign key in composite
 # primary keys. The foreign_keys argument is used to mark which columns are
-# writable. For example, where a class has a program relationship that can write
-# to the program_id column, the foreign_keys list for other relationships will
-# not include the program_id column so that there is no ambiguity when both
-# relationships are written to.
+# writable. For example, where a class has a program relationship that can
+# write to the program_id column, the foreign_keys list for other relationships
+# will not include the program_id column so that there is no ambiguity when
+# both relationships are written to.
 # http://docs.sqlalchemy.org/en/rel_1_0/orm/join_conditions.html#overlapping-foreign-keys
 #
 # Addtitionally, self-referential relationships (trees) need the remote_side
@@ -572,14 +578,14 @@ class MeasureVariable(Base):
 #  3. Reinstate the link to the owning program with `h.program = s`.
 
 
-
 Survey.program = relationship(Program)
 
 Program.surveys = relationship(
     Survey, back_populates='program', passive_deletes=True,
     order_by='Survey.title',
-    primaryjoin=(Program.id == Survey.program_id) &
-                (Survey.deleted == False))
+    primaryjoin=(
+        (Program.id == Survey.program_id) &
+        (Survey.deleted == False)))
 
 
 # The link from a node to a survey uses a one-way backref for another reason.
@@ -598,10 +604,11 @@ QuestionNode.survey = relationship(
 Survey.qnodes = relationship(
     QuestionNode, back_populates='survey', passive_deletes=True,
     order_by=QuestionNode.seq, collection_class=ordering_list('seq'),
-    primaryjoin=(foreign(QuestionNode.survey_id) == Survey.id) &
-                (QuestionNode.program_id == Survey.program_id) &
-                (QuestionNode.parent_id == None) &
-                (QuestionNode.deleted == False))
+    primaryjoin=(
+        (foreign(QuestionNode.survey_id) == Survey.id) &
+        (QuestionNode.program_id == Survey.program_id) &
+        (QuestionNode.parent_id == None) &
+        (QuestionNode.deleted == False)))
 
 
 # The remote_side argument needs to be set on the many-to-one side, so it's
@@ -611,35 +618,40 @@ Survey.qnodes = relationship(
 # placed on the one-to-many side, so they are nested in the backref argument.
 QuestionNode.parent = relationship(
     QuestionNode,
-    primaryjoin=(foreign(QuestionNode.parent_id) == remote(QuestionNode.id)) &
-                (QuestionNode.program_id == remote(QuestionNode.program_id)))
+    primaryjoin=(
+        (foreign(QuestionNode.parent_id) == remote(QuestionNode.id)) &
+        (QuestionNode.program_id == remote(QuestionNode.program_id))))
 
 
 QuestionNode.children = relationship(
     QuestionNode, back_populates='parent', passive_deletes=True,
     order_by=QuestionNode.seq, collection_class=ordering_list('seq'),
-    primaryjoin=(foreign(remote(QuestionNode.parent_id)) == QuestionNode.id) &
-                (remote(QuestionNode.program_id) == QuestionNode.program_id) &
-                (remote(QuestionNode.deleted) == False))
+    primaryjoin=(
+        (foreign(remote(QuestionNode.parent_id)) == QuestionNode.id) &
+        (remote(QuestionNode.program_id) == QuestionNode.program_id) &
+        (remote(QuestionNode.deleted) == False)))
 
 
 QuestionNode.qnode_measures = relationship(
     QnodeMeasure, backref='qnode', cascade='all, delete-orphan',
     order_by=QnodeMeasure.seq, collection_class=ordering_list('seq'),
-    primaryjoin=(foreign(QnodeMeasure.qnode_id) == QuestionNode.id) &
-                (QnodeMeasure.program_id == QuestionNode.program_id))
+    primaryjoin=(
+        (foreign(QnodeMeasure.qnode_id) == QuestionNode.id) &
+        (QnodeMeasure.program_id == QuestionNode.program_id)))
 
 
 Measure.qnode_measures = relationship(
     QnodeMeasure, backref='measure',
-    primaryjoin=(foreign(QnodeMeasure.measure_id) == Measure.id) &
-                (QnodeMeasure.program_id == Measure.program_id))
+    primaryjoin=(
+        (foreign(QnodeMeasure.measure_id) == Measure.id) &
+        (QnodeMeasure.program_id == Measure.program_id)))
 
 
 QnodeMeasure.survey = relationship(
     Survey,
-    primaryjoin=(foreign(QnodeMeasure.survey_id) == remote(Survey.id)) &
-                (QnodeMeasure.program_id == remote(Survey.program_id)))
+    primaryjoin=(
+        (foreign(QnodeMeasure.survey_id) == remote(Survey.id)) &
+        (QnodeMeasure.program_id == remote(Survey.program_id))))
 
 
 #
@@ -659,31 +671,38 @@ QnodeMeasure.survey = relationship(
 
 # Dependencies - yes, the source is the target. It's funny how that is.
 QnodeMeasure.target_vars = relationship(
-    MeasureVariable, backref='source_qnode_measure', cascade="all, delete-orphan",
-    primaryjoin=(foreign(MeasureVariable.source_measure_id) == QnodeMeasure.measure_id) &
-                (MeasureVariable.survey_id == QnodeMeasure.survey_id) &
-                (MeasureVariable.program_id == QnodeMeasure.program_id))
+    MeasureVariable, backref='source_qnode_measure',
+    cascade="all, delete-orphan",
+    primaryjoin=(
+        (foreign(MeasureVariable.source_measure_id) == QnodeMeasure.measure_id) &  # noqa: E501
+        (MeasureVariable.survey_id == QnodeMeasure.survey_id) &
+        (MeasureVariable.program_id == QnodeMeasure.program_id)))
 
 # Dependants - yes, the target is the source. It's funny how that is.
 QnodeMeasure.source_vars = relationship(
-    MeasureVariable, backref='target_qnode_measure', cascade="all, delete-orphan",
-    primaryjoin=(foreign(MeasureVariable.target_measure_id) == QnodeMeasure.measure_id) &
-                (MeasureVariable.survey_id == QnodeMeasure.survey_id) &
-                (MeasureVariable.program_id == QnodeMeasure.program_id))
+    MeasureVariable, backref='target_qnode_measure',
+    cascade="all, delete-orphan",
+    primaryjoin=(
+        (foreign(MeasureVariable.target_measure_id) == QnodeMeasure.measure_id) &  # noqa: E501
+        (MeasureVariable.survey_id == QnodeMeasure.survey_id) &
+        (MeasureVariable.program_id == QnodeMeasure.program_id)))
 
 
 MeasureVariable.survey = relationship(
     Survey,
-    primaryjoin=(foreign(MeasureVariable.survey_id) == Survey.id) &
-                (MeasureVariable.program_id == Survey.program_id))
+    primaryjoin=(
+        (foreign(MeasureVariable.survey_id) == Survey.id) &
+        (MeasureVariable.program_id == Survey.program_id)))
 
 
 Measure.response_type = relationship(
     ResponseType,
-    primaryjoin=(foreign(Measure.response_type_id) == ResponseType.id) &
-                (ResponseType.program_id == Measure.program_id))
+    primaryjoin=(
+        (foreign(Measure.response_type_id) == ResponseType.id) &
+        (ResponseType.program_id == Measure.program_id)))
 
 ResponseType.measures = relationship(
     Measure, back_populates='response_type', passive_deletes=True,
-    primaryjoin=(foreign(Measure.response_type_id) == ResponseType.id) &
-                (ResponseType.program_id == Measure.program_id))
+    primaryjoin=(
+        (foreign(Measure.response_type_id) == ResponseType.id) &
+        (ResponseType.program_id == Measure.program_id)))

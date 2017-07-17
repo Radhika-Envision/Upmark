@@ -1,8 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
-import json
 import time
 
-import sqlalchemy
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import literal
 from tornado import gen
@@ -25,6 +23,8 @@ log = logging.getLogger('app.report.diff')
 
 perf_time = time.perf_counter()
 perf_start = None
+
+
 def perf():
     global perf_start, perf_time
     if perf_start is None:
@@ -49,11 +49,11 @@ class DiffHandler(base_handler.BaseHandler):
 
         ignore_tags = set().union(self.get_arguments("ignoreTag"))
 
-        if program_id_a == '':
+        if not program_id_a:
             raise errors.ModelError("Program ID 1 required")
-        if program_id_b == '':
+        if not program_id_b:
             raise errors.ModelError("Program ID 2 required")
-        if survey_id == '':
+        if not survey_id:
             raise errors.ModelError("Survey ID required")
 
         include_scores = self.current_user.role != 'clerk'
@@ -74,14 +74,25 @@ class DiffHandler(base_handler.BaseHandler):
             include_scores):
 
         with model.session_scope() as session:
-            self.check_browse_program(session, program_id_a, survey_id)
-            self.check_browse_program(session, program_id_b, survey_id)
+            user_session = self.get_user_session(session)
+            survey_a = (
+                session.query(model.Survey)
+                .get((survey_id, program_id_a)))
+            survey_b = (
+                session.query(model.Survey)
+                .get((survey_id, program_id_b)))
+            policy = user_session.policy.derive({
+                'survey_a': survey_a,
+                'survey_b': survey_b,
+            })
+            policy.verify('report_diff_view')
 
             diff_engine = DiffEngine(
                 session, program_id_a, program_id_b, survey_id, include_scores)
             diff = diff_engine.execute()
-            diff = [di for di in diff
-                    if len(set().union(di['tags']).difference(ignore_tags)) > 0]
+            diff = [
+                di for di in diff
+                if len(set().union(di['tags']).difference(ignore_tags)) > 0]
             son = {
                 'diff': diff
             }
@@ -122,7 +133,8 @@ class DiffEngine:
 
         qnode_pairs = self.realise_soft_deletion(qnode_pairs)
         qnode_pairs = self.remove_soft_deletion_dups(qnode_pairs)
-        qnode_diff = [{
+        qnode_diff = [
+            {
                 'type': 'qnode',
                 'tags': [],
                 'pair': pair,
@@ -136,7 +148,8 @@ class DiffEngine:
 
         measure_pairs = self.realise_soft_deletion(measure_pairs)
         measure_pairs = self.remove_soft_deletion_dups(measure_pairs)
-        measure_diff = [{
+        measure_diff = [
+            {
                 'type': 'measure',
                 'tags': [],
                 'pair': pair,
@@ -167,7 +180,8 @@ class DiffEngine:
 
         HA = model.Survey
         HB = aliased(model.Survey, name='survey_b')
-        survey_a, survey_b = (self.session.query(HA, HB)
+        survey_a, survey_b = (
+            self.session.query(HA, HB)
             .join(HB, (HA.id == HB.id))
             .filter(HA.program_id == self.program_id_a,
                     HB.program_id == self.program_id_b,
@@ -201,7 +215,8 @@ class DiffEngine:
         start = perf()
 
         # Find modified / relocated qnodes
-        qnode_mod_query = (self.session.query(QA, QB)
+        qnode_mod_query = (
+            self.session.query(QA, QB)
             .join(QB, QA.id == QB.id)
 
             # Basic survey membership
@@ -218,7 +233,8 @@ class DiffEngine:
         )
 
         # Find deleted qnodes
-        qnode_del_query = (self.session.query(QA, literal(None))
+        qnode_del_query = (
+            self.session.query(QA, literal(None))
             .select_from(QA)
             .filter(QA.program_id == self.program_id_a,
                     QA.survey_id == self.survey_id,
@@ -230,7 +246,8 @@ class DiffEngine:
         )
 
         # Find added qnodes
-        qnode_add_query = (self.session.query(literal(None), QB)
+        qnode_add_query = (
+            self.session.query(literal(None), QB)
             .select_from(QB)
             .filter(QB.program_id == self.program_id_b,
                     QB.survey_id == self.survey_id,
@@ -241,9 +258,10 @@ class DiffEngine:
                                     QA.deleted == False)))
         )
 
-        qnodes = list(qnode_mod_query.all()
-                    + qnode_add_query.all()
-                    + qnode_del_query.all())
+        qnodes = list(
+            qnode_mod_query.all() +
+            qnode_add_query.all() +
+            qnode_del_query.all())
         duration = perf() - start
         self.timing.append("Primary qnode query took %gs" % duration)
         return qnodes
@@ -259,7 +277,8 @@ class DiffEngine:
         start = perf()
 
         # Find modified / relocated measures
-        measure_mod_query = (self.session.query(MA, MB)
+        measure_mod_query = (
+            self.session.query(MA, MB)
 
             .join(MB, MA.id == MB.id)
 
@@ -292,7 +311,8 @@ class DiffEngine:
         )
 
         # Find deleted measures
-        measure_del_query = (self.session.query(MA, literal(None))
+        measure_del_query = (
+            self.session.query(MA, literal(None))
             .select_from(MA)
             .join(QMA,
                   (QMA.program_id == MA.program_id) &
@@ -312,7 +332,8 @@ class DiffEngine:
         )
 
         # Find added measures
-        measure_add_query = (self.session.query(literal(None), MB)
+        measure_add_query = (
+            self.session.query(literal(None), MB)
             .select_from(MB)
             .join(QMB,
                   (QMB.program_id == MB.program_id) &
@@ -331,9 +352,10 @@ class DiffEngine:
                                     QA.survey_id == self.survey_id)))
         )
 
-        measures = list(measure_mod_query.all()
-                    + measure_add_query.all()
-                    + measure_del_query.all())
+        measures = list(
+            measure_mod_query.all() +
+            measure_add_query.all() +
+            measure_del_query.all())
         duration = perf() - start
         self.timing.append("Primary measure query took %gs" % duration)
         return measures
@@ -396,12 +418,16 @@ class DiffEngine:
         # Create sets of ids; group by transform type
         deleted = {str(a.id) for a, b in measure_pairs if b is None}
         added = {str(b.id) for a, b in measure_pairs if a is None}
-        relocated = {str(a.id) for a, b in measure_pairs
-                     if a and b and (a.get_qnode_measure(self.survey_id).qnode_id !=
-                                     b.get_qnode_measure(self.survey_id).qnode_id)}
-        item_index = {str(a.id) for a, b in measure_pairs
-                      if a and b and (a.get_qnode_measure(self.survey_id).seq !=
-                                      b.get_qnode_measure(self.survey_id).seq)}
+        relocated = {
+            str(a.id) for a, b in measure_pairs
+            if a and b and (
+                a.get_qnode_measure(self.survey_id).qnode_id !=
+                b.get_qnode_measure(self.survey_id).qnode_id)}
+        item_index = {
+            str(a.id) for a, b in measure_pairs
+            if a and b and (
+                a.get_qnode_measure(self.survey_id).seq !=
+                b.get_qnode_measure(self.survey_id).seq)}
 
         reorder_ignore = set().union(deleted, added, relocated)
 
@@ -428,13 +454,15 @@ class DiffEngine:
         self.timing.append("Measure reorder filter took %gs" % reorder_time)
 
     def qnode_was_reordered(self, a, b, reorder_ignore):
-        a_siblings = (self.session.query(model.QuestionNode.id)
+        a_siblings = (
+            self.session.query(model.QuestionNode.id)
             .filter(model.QuestionNode.parent_id == a.parent_id,
                     model.QuestionNode.program_id == self.program_id_a,
                     ~model.QuestionNode.id.in_(reorder_ignore))
             .order_by(model.QuestionNode.seq)
             .all())
-        b_siblings = (self.session.query(model.QuestionNode.id)
+        b_siblings = (
+            self.session.query(model.QuestionNode.id)
             .filter(model.QuestionNode.parent_id == b.parent_id,
                     model.QuestionNode.program_id == self.program_id_b,
                     ~model.QuestionNode.id.in_(reorder_ignore))
@@ -455,7 +483,8 @@ class DiffEngine:
     def measure_was_reordered(self, a, b, reorder_ignore):
         a_qnode_measure = a.get_qnode_measure(self.survey_id)
         b_qnode_measure = b.get_qnode_measure(self.survey_id)
-        a_siblings = (self.session.query(model.Measure.id)
+        a_siblings = (
+            self.session.query(model.Measure.id)
             .join(model.QnodeMeasure,
                   (model.QnodeMeasure.program_id == model.Measure.program_id) &
                   (model.QnodeMeasure.measure_id == model.Measure.id))
@@ -464,7 +493,8 @@ class DiffEngine:
                     ~model.Measure.id.in_(reorder_ignore))
             .order_by(model.QnodeMeasure.seq)
             .all())
-        b_siblings = (self.session.query(model.Measure.id)
+        b_siblings = (
+            self.session.query(model.Measure.id)
             .join(model.QnodeMeasure,
                   (model.QnodeMeasure.program_id == model.Measure.program_id) &
                   (model.QnodeMeasure.measure_id == model.Measure.id))
@@ -476,8 +506,6 @@ class DiffEngine:
 
         a_siblings = [str(id_) for (id_,) in a_siblings]
         b_siblings = [str(id_) for (id_,) in b_siblings]
-        #log.error('Siblings A %s', a_siblings)
-        #log.error('Siblings B %s', b_siblings)
         if not str(a.id) in a_siblings or not str(b.id) in b_siblings:
             return False
         a_index = a_siblings.index(str(a.id))
@@ -512,12 +540,12 @@ class DiffEngine:
             changes = 0
             for name in list(keys):
                 changed = a and b and a[name] != b[name]
-                if not changed and not name in protect:
+                if not changed and name not in protect:
                     if a:
                         del a[name]
                     if b:
                         del b[name]
-                if changed and not name in ignore:
+                if changed and name not in ignore:
                     changes += 1
             if changes > 0:
                 diff_item['tags'].append('modified')

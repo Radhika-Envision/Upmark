@@ -1,12 +1,11 @@
 import datetime
 import itertools
 import time
-import unittest
-from unittest import mock
 import uuid
 
-from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, Integer, String
 
+import base
 import model
 from model.guid import GUID
 from utils import denormalise, truthy, falsy, UtilException, ToSon
@@ -36,7 +35,7 @@ class TestNode(model.Base):
         return "TestNode(%d)" % self.int_col
 
 
-class ConversionTest(unittest.TestCase):
+class ConversionTest(base.LoggingTestCase):
 
     def test_truthy(self):
         self.assertTrue(truthy(True))
@@ -212,16 +211,26 @@ class ConversionTest(unittest.TestCase):
 
     def test_son_sanitise(self):
         input = {
-            'safe_html': '<script>foo</script><a href="http://bar">bar</a><a href="javascript:fn()">baz</a>',
+            'safe_html':
+                '<script>foo</script> '
+                '<a href="http://bar">bar</a> '
+                '<a href="javascript:fn()">baz</a>',
             'strip_script': '<script>foo</script>',
-            'strip_protocol': '<a href="http://bar">bar</a> <a href="javascript:fn()">baz</a>',
-            'strip_click': '<span onclick="fn()">bar</span> <a onclick="fn()">baz</a>',
+            'strip_protocol':
+                '<a href="http://bar">bar</a> '
+                '<a href="javascript:fn()">baz</a>',
+            'strip_click':
+                '<span onclick="fn()">bar</span> '
+                '<a onclick="fn()">baz</a>',
             'a_dict': {
                 'strip_script': '<script>foo</script>',
             }
         }
         output = {
-            'safeHtml': '<script>foo</script><a href="http://bar">bar</a><a href="javascript:fn()">baz</a>',
+            'safeHtml':
+                '<script>foo</script> '
+                '<a href="http://bar">bar</a> '
+                '<a href="javascript:fn()">baz</a>',
             'stripScript': 'foo',
             'stripProtocol': '<a href="http://bar">bar</a> <a>baz</a>',
             'stripClick': 'bar <a>baz</a>',

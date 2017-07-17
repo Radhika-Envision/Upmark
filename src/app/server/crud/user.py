@@ -1,7 +1,6 @@
 import passwordmeter
 from tornado.escape import json_encode
 import tornado.web
-import sqlalchemy
 from sqlalchemy.orm import joinedload
 import voluptuous
 from voluptuous import Extra, All, Required, Schema
@@ -19,9 +18,9 @@ def test_password(text):
         setting = config.get_setting(session, 'pass_threshold')
         threshold = float(setting)
     password_tester = passwordmeter.Meter(settings={
-            'threshold': threshold,
-            'pessimism': 10,
-            'factor.casemix.weight': 0.3})
+        'threshold': threshold,
+        'pessimism': 10,
+        'factor.casemix.weight': 0.3})
     strength, improvements = password_tester.test(text)
     return strength, threshold, improvements
 
@@ -42,7 +41,7 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
         '''
         Get a single user.
         '''
-        if user_id == "":
+        if not user_id:
             self.query()
             return
 
@@ -50,13 +49,14 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             user_id = str(self.current_user.id)
 
         with model.session_scope() as session:
-            try:
-                user = session.query(model.AppUser).\
-                    options(joinedload('organisation')).get(user_id)
-                if user is None:
-                    raise ValueError("No such object")
-            except (sqlalchemy.exc.StatementError, ValueError):
+            user = session.query(model.AppUser).\
+                options(joinedload('organisation')).get(user_id)
+            if not user:
                 raise errors.MissingDocError("No such user")
+
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({'user': user})
+            policy.verify('user_view')
 
             to_son = ToSon(
                 r'/id$',
@@ -70,7 +70,7 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
                 # Exclude password from response. Not really necessary because
                 # 1. it's hashed and 2. it's not in the list above. But just to
                 # be safe.
-                r'!password'
+                r'!password',
             )
             son = to_son(user)
         self.set_header("Content-Type", "application/json")
@@ -84,12 +84,22 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
 
         sons = []
         with model.session_scope() as session:
-            query = (session.query(model.AppUser)
+            organisation_id = self.get_argument("organisationId", None)
+            if organisation_id:
+                org = session.query(model.Organisation).get(organisation_id)
+            else:
+                org = None
+
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({'org': org})
+            policy.verify('user_browse')
+
+            query = (
+                session.query(model.AppUser)
                 .join(
                     model.Organisation,
                     model.Organisation.id == model.AppUser.organisation_id))
 
-            organisation_id = self.get_argument("organisationId", None)
             if organisation_id is not None:
                 query = query.filter(model.Organisation.id == organisation_id)
 
@@ -102,8 +112,8 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             if deleted is not None:
                 deleted = truthy(deleted)
 
-            # Filter deleted users. If organisation_id is not specified, users inherit
-            # their organisation's deleted flag too.
+            # Filter deleted users. If organisation_id is not specified, users
+            # inherit their organisation's deleted flag too.
             if deleted == True and not organisation_id:
                 query = query.filter(
                     (model.AppUser.deleted == True) |
@@ -144,7 +154,7 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
         '''
         Create a new user.
         '''
-        if user_id != '':
+        if user_id:
             raise errors.MethodError("Can't use POST for existing users.")
 
         try:
@@ -152,33 +162,40 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
         except voluptuous.error.Invalid as e:
             raise errors.ModelError.from_voluptuous(e)
 
-        self._check_create(self.request_son)
+        with model.session_scope() as session:
+            org = (
+                session.query(model.Organisation)
+                .get(self.request_son['organisation']['id']))
+            if not org:
+                raise errors.ModelError("No such organisation")
 
-        try:
-            with model.session_scope() as session:
-                org = (session.query(model.Organisation)
-                    .get(self.request_son['organisation']['id']))
-                if org is None:
-                    raise errors.ModelError("No such organisation")
-                user = model.AppUser(organisation=org)
-                self._check_update(self.request_son, None)
-                self._update(user, self.request_son, session)
-                session.add(user)
+            user = model.AppUser(organisation=org)
 
-                # Need to flush so object has an ID to record action against.
-                session.flush()
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({
+                'org': user.organisation,
+                'user': user,
+                'target': self.request_son,
+            })
+            policy.verify('user_add')
+            policy.verify('user_change_role')
+            self.check_password(self.request_son.password)
 
-                act = Activities(session)
-                act.record(self.current_user, user, ['create'])
-                if not act.has_subscription(self.current_user, user):
-                    act.subscribe(self.current_user, user.organisation)
-                    self.reason("Subscribed to organisation")
-                act.subscribe(user, user.organisation)
-                self.reason("New user subscribed to organisation")
+            self._update(user, self.request_son, session)
+            session.add(user)
 
-                user_id = user.id
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError.from_sa(e)
+            # Need to flush so object has an ID to record action against.
+            session.flush()
+
+            act = Activities(session)
+            act.record(self.current_user, user, ['create'])
+            if not act.has_subscription(self.current_user, user):
+                act.subscribe(self.current_user, user.organisation)
+                self.reason("Subscribed to organisation")
+            act.subscribe(user, user.organisation)
+            self.reason("New user subscribed to organisation")
+
+            user_id = user.id
         self.get(user_id)
 
     @tornado.web.authenticated
@@ -186,7 +203,7 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
         '''
         Update an existing user.
         '''
-        if user_id == '':
+        if not user_id:
             raise errors.MethodError("Can't use PUT for new users (no ID).")
 
         try:
@@ -194,123 +211,90 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
         except voluptuous.error.Invalid as e:
             raise errors.ModelError.from_voluptuous(e)
 
-        try:
-            with model.session_scope() as session:
-                user = session.query(model.AppUser).get(user_id)
-                if user is None:
-                    raise ValueError("No such object")
-                self._check_update(self.request_son, user)
+        with model.session_scope() as session:
+            user = session.query(model.AppUser).get(user_id)
+            if not user:
+                raise errors.MissingDocError("No such user")
 
-                verbs = []
-                oid = self.request_son.get('organisation', {}).get('id')
-                if oid and oid != str(user.organisation_id):
-                    verbs.append('relation')
-                self._update(user, self.request_son, session)
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({
+                'org': user.organisation,
+                'user': user,
+                'target': self.request_son,
+            })
+            policy.verify('user_edit')
 
-                act = Activities(session)
-                if session.is_modified(user):
-                    verbs.append('update')
+            if self.request_son.role and self.request_son.role != user.role:
+                policy.verify('user_change_role')
 
-                if user.deleted:
-                    user.deleted = False
-                    verbs.append('undelete')
+            if ('deleted' in self.request_son and
+                    self.request_son['deleted'] != user.deleted):
+                policy.verify('user_enable')
 
-                session.flush()
-                if len(verbs) > 0:
-                    act.record(self.current_user, user, verbs)
-                    if not act.has_subscription(self.current_user, user):
-                        act.subscribe(self.current_user, user.organisation)
-                        self.reason("Subscribed to organisation")
-                    if not act.has_subscription(user, user):
-                        act.subscribe(user, user.organisation)
-                        self.reason("User subscribed to organisation")
+            if self.request_son.get('password'):
+                self.check_password(self.request_son.password)
 
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError.from_sa(e)
-        except (sqlalchemy.exc.StatementError, ValueError):
-            raise errors.MissingDocError("No such user")
+            verbs = []
+            oid = self.request_son.get('organisation', {}).get('id')
+            if oid and oid != str(user.organisation_id):
+                policy.verify('user_change_org')
+                verbs.append('relation')
+
+            self._update(user, self.request_son, session)
+
+            act = Activities(session)
+            if session.is_modified(user):
+                verbs.append('update')
+
+            if user.deleted:
+                user.deleted = False
+                verbs.append('undelete')
+
+            session.flush()
+            if len(verbs) > 0:
+                act.record(self.current_user, user, verbs)
+                if not act.has_subscription(self.current_user, user):
+                    act.subscribe(self.current_user, user.organisation)
+                    self.reason("Subscribed to organisation")
+                if not act.has_subscription(user, user):
+                    act.subscribe(user, user.organisation)
+                    self.reason("User subscribed to organisation")
+
         self.get(user_id)
 
     @tornado.web.authenticated
     def delete(self, user_id):
-        if user_id == '':
+        if not user_id:
             raise errors.MethodError("User ID required")
-        try:
-            with model.session_scope() as session:
-                user = session.query(model.AppUser).get(user_id)
-                if user is None:
-                    raise ValueError("No such object")
-                self._check_delete(user)
 
-                act = Activities(session)
-                if not user.deleted:
-                    act.record(self.current_user, user, ['delete'])
-                if not act.has_subscription(self.current_user, user):
-                    act.subscribe(self.current_user, user.organisation)
-                    self.reason("Subscribed to organisation")
+        with model.session_scope() as session:
+            user = session.query(model.AppUser).get(user_id)
+            if not user:
+                raise errors.MissingDocError("No such user")
 
-                user.deleted = True
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({
+                'org': user.organisation,
+                'user': user,
+            })
+            policy.verify('user_del')
 
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError(
-                "User owns content and can not be deleted")
-        except (sqlalchemy.exc.StatementError, ValueError):
-            raise errors.MissingDocError("No such user")
+            act = Activities(session)
+            if not user.deleted:
+                act.record(self.current_user, user, ['delete'])
+            if not act.has_subscription(self.current_user, user):
+                act.subscribe(self.current_user, user.organisation)
+                self.reason("Subscribed to organisation")
+
+            user.deleted = True
 
         self.finish()
 
-    def _check_create(self, son):
-        if not model.has_privillege(self.current_user.role, 'org_admin'):
-            raise errors.AuthzError("You can't create a new user.")
-
-    def _check_update(self, son, user):
-        if model.has_privillege(self.current_user.role, 'admin'):
-            pass
-        elif model.has_privillege(self.current_user.role, 'org_admin'):
-            if str(self.organisation.id) != son['organisation']['id']:
-                raise errors.AuthzError(
-                    "You can't create/modify another organisation's user.")
-            if son['role'] not in {'org_admin', 'clerk'}:
-                raise errors.AuthzError(
-                    "You can't set this role.")
-            if user and user.role == 'admin':
-                raise errors.AuthzError(
-                    "You can't modify a user with that role.")
-        else:
-            if str(self.current_user.id) != str(user.id):
-                raise errors.AuthzError(
-                    "You can't modify another user.")
-            if str(self.organisation.id) != son['organisation']['id']:
-                raise errors.AuthzError(
-                    "You can't change your organisation.")
-            if son['role'] != self.current_user.role:
-                raise errors.AuthzError(
-                    "You can't change your role.")
-
-        if 'deleted' in son and son['deleted'] != user.deleted:
-            if str(self.current_user.id) == str(user.id):
-                raise errors.AuthzError(
-                    "You can't enable or disable yourself.")
-
-        if son.get('password', '') != '':
-            strength, threshold, _ = test_password(son['password'])
+    def check_password(self, password):
+        if password:
+            strength, threshold, _ = test_password(password)
             if strength < threshold:
                 raise errors.ModelError("Password is not strong enough")
-
-    def _check_delete(self, user):
-        if str(self.current_user.id) == str(user.id):
-            raise errors.AuthzError(
-                "You can't delete yourself.")
-
-        if model.has_privillege(self.current_user.role, 'admin'):
-            pass
-        elif model.has_privillege(self.current_user.role, 'org_admin'):
-            if str(self.organisation.id) != str(user.organisation_id):
-                raise errors.AuthzError(
-                    "You can't delete another organisation's user.")
-        elif str(self.current_user.id) != str(user.id):
-            raise errors.AuthzError(
-                "You can't delete another user.")
 
     def _update(self, user, son, session):
         '''
@@ -324,7 +308,8 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
         update('password', son)
 
         if son.get('organisation', '') != '':
-            org = (session.query(model.Organisation)
+            org = (
+                session.query(model.Organisation)
                 .get(self.request_son['organisation']['id']))
             if org is None:
                 raise errors.ModelError("No such organisation")
@@ -333,6 +318,7 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
 
 class PasswordHandler(base_handler.BaseHandler):
 
+    @tornado.web.authenticated
     def post(self):
         '''
         Check the strength of a password.

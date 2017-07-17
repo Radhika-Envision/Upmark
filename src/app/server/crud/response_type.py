@@ -5,9 +5,7 @@ from sqlalchemy import func
 import voluptuous.error
 
 from activity import Activities
-import auth
 import base_handler
-import crud
 import errors
 import logging
 import model
@@ -19,8 +17,7 @@ from utils import ToSon, updater
 log = logging.getLogger('app.crud.response_type')
 
 
-class ResponseTypeHandler(
-        base_handler.Paginate, crud.program.ProgramCentric, base_handler.BaseHandler):
+class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, response_type_id):
@@ -29,16 +26,26 @@ class ResponseTypeHandler(
             self.query()
             return
 
+        program_id = self.get_argument('programId', '')
+
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             response_type, count = (
                 session.query(model.ResponseType, func.count(model.Measure.id))
                 .outerjoin(model.Measure)
                 .filter(model.ResponseType.id == response_type_id)
-                .filter(model.ResponseType.program_id == self.program_id)
+                .filter(model.ResponseType.program_id == program_id)
                 .group_by(model.ResponseType.id, model.ResponseType.program_id)
                 .first()) or (None, None)
             if not response_type:
                 raise errors.MissingDocError("No such response type")
+
+            policy = user_session.policy.derive({
+                'program': response_type.program,
+            })
+            policy.verify('response_type_view')
+
             to_son = ToSon(
                 r'/id$',
                 r'/program_id$',
@@ -59,13 +66,24 @@ class ResponseTypeHandler(
 
     def query(self):
         '''Get a list.'''
+        program_id = self.get_argument('programId', '')
         term = self.get_argument('term', None)
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
+            program = (
+                session.query(model.Program)
+                .get(program_id))
+            policy = user_session.policy.derive({
+                'program': program,
+            })
+            policy.verify('response_type_view')
+
             query = (
                 session.query(model.ResponseType, func.count(model.Measure.id))
                 .outerjoin(model.Measure)
-                .filter(model.ResponseType.program_id == self.program_id)
+                .filter(model.ResponseType.program_id == program_id)
                 .group_by(model.ResponseType.id, model.ResponseType.program_id)
                 .order_by(model.ResponseType.name))
 
@@ -98,21 +116,32 @@ class ResponseTypeHandler(
         self.write(json_encode(sons))
         self.finish()
 
-    @auth.authz('author')
+    @tornado.web.authenticated
     def post(self, response_type_id):
         '''Create new'''
         if response_type_id:
             raise errors.ModelError("Can't specify ID when creating")
+
+        program_id = self.get_argument('programId', '')
+
         with model.session_scope() as session:
-            program = session.query(model.Program).get(self.program_id)
+            user_session = self.get_user_session(session)
+
+            program = session.query(model.Program).get(program_id)
             if not program:
                 raise errors.MissingDocError("No such program")
 
-            rt_by_name = (session.query(model.ResponseType)
-                .filter(model.ResponseType.program_id == self.program_id)
-                .filter(model.ResponseType.name == self.request_son.get('name'))
+            policy = user_session.policy.derive({
+                'program': program,
+            })
+            policy.verify('response_type_add')
+
+            rt_by_name = (
+                session.query(model.ResponseType)
+                .filter(model.ResponseType.program_id == program_id)
+                .filter(model.ResponseType.name == self.request_son.name)
                 .first())
-            if rt_by_name is not None:
+            if rt_by_name:
                 raise errors.ModelError(
                     "A response type of that name already exists")
 
@@ -134,45 +163,69 @@ class ResponseTypeHandler(
             # No need for survey update: RT is not being used yet
 
             act = Activities(session)
-            act.record(self.current_user, response_type, ['create'])
-            if not act.has_subscription(self.current_user, response_type):
-                act.subscribe(self.current_user, response_type.program)
+            act.record(user_session.user, response_type, ['create'])
+            if not act.has_subscription(user_session.user, response_type):
+                act.subscribe(user_session.user, response_type.program)
                 self.reason("Subscribed to program")
         self.get(response_type_id)
 
-    @auth.authz('author')
+    @tornado.web.authenticated
     def delete(self, response_type_id):
         '''Delete'''
+
+        program_id = self.get_argument('programId', '')
+
         with model.session_scope() as session:
-            response_type = (session.query(model.ResponseType)
-                .get((response_type_id, self.program_id)))
+            user_session = self.get_user_session(session)
+
+            response_type = (
+                session.query(model.ResponseType)
+                .get((response_type_id, program_id)))
             if not response_type:
                 raise errors.MissingDocError("No such response type")
+
+            policy = user_session.policy.derive({
+                'program': response_type.program,
+            })
+            policy.verify('response_type_del')
+
             session.delete(response_type)
             # No need for survey update: delete will fail if any measures are
             # using this RT
 
             act = Activities(session)
-            act.record(self.current_user, response_type, ['delete'])
-            if not act.has_subscription(self.current_user, response_type):
-                act.subscribe(self.current_user, response_type.program)
+            act.record(user_session.user, response_type, ['delete'])
+            if not act.has_subscription(user_session.user, response_type):
+                act.subscribe(user_session.user, response_type.program)
                 self.reason("Subscribed to program")
         self.set_header("Content-Type", "text/plain")
         self.finish()
 
-    @auth.authz('author')
+    @tornado.web.authenticated
     def put(self, response_type_id):
         '''Update existing'''
+
+        program_id = self.get_argument('programId', '')
+
         with model.session_scope() as session:
-            response_type = (session.query(model.ResponseType)
-                .get((response_type_id, self.program_id)))
+            user_session = self.get_user_session(session)
+
+            response_type = (
+                session.query(model.ResponseType)
+                .get((response_type_id, program_id)))
             if not response_type:
                 raise errors.MissingDocError("No such response type")
 
+            policy = user_session.policy.derive({
+                'program': response_type.program,
+            })
+            policy.verify('response_type_edit')
+
             if 'name' in self.request_son:
-                rt_by_name = (session.query(model.ResponseType)
-                    .filter(model.ResponseType.program_id == self.program_id)
-                    .filter(model.ResponseType.name == self.request_son['name'])
+                rt_by_name = (
+                    session.query(model.ResponseType)
+                    .filter(model.ResponseType.program_id == program_id)
+                    .filter(model.ResponseType.name == self.request_son.name)
                     .first())
                 if rt_by_name and rt_by_name != response_type:
                     raise errors.ModelError(
@@ -196,9 +249,9 @@ class ResponseTypeHandler(
                 calculator.execute()
 
             act = Activities(session)
-            act.record(self.current_user, response_type, verbs)
-            if not act.has_subscription(self.current_user, response_type):
-                act.subscribe(self.current_user, response_type.program)
+            act.record(user_session.user, response_type, verbs)
+            if not act.has_subscription(user_session.user, response_type):
+                act.subscribe(user_session.user, response_type.program)
                 self.reason("Subscribed to program")
 
         self.get(response_type_id)

@@ -12,9 +12,9 @@ from sqlalchemy import Boolean, Column, DateTime, Enum, Float, \
     ForeignKey, Index, Integer, Text, LargeBinary
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy.orm import backref, foreign, relationship, validates
+from sqlalchemy.orm import foreign, relationship, validates
 from sqlalchemy.orm.session import object_session
-from sqlalchemy.schema import ForeignKeyConstraint, Index
+from sqlalchemy.schema import ForeignKeyConstraint
 from voluptuous.humanize import validate_with_humanized_errors
 
 import response_type
@@ -22,7 +22,7 @@ from .observe import ActionDescriptor, Observable
 from .base import Base, to_id
 from .guid import GUID
 from .history_meta import Versioned
-from .survey import *
+from .survey import Program, QnodeMeasure, QuestionNode, Survey
 from .user import AppUser, Organisation
 
 
@@ -208,8 +208,8 @@ class ResponseNode(Observable, Base):
 
     @property
     def action_descriptor(self):
-        # Use qnodes instead of rnodes for lineage, because rnode.id is not part
-        # of the API.
+        # Use qnodes instead of rnodes for lineage, because rnode.id is not
+        # part of the API.
         lineage = ([self.submission.id] +
                    [q.id for q in self.qnode.lineage()])
         return ActionDescriptor(
@@ -248,8 +248,14 @@ class Response(Observable, Versioned, Base):
 
     __table_args__ = (
         ForeignKeyConstraint(
-            ['program_id', 'survey_id', 'measure_id'],
-            ['qnode_measure.program_id', 'qnode_measure.survey_id', 'qnode_measure.measure_id'],
+            [
+                'program_id',
+                'survey_id',
+                'measure_id'],
+            [
+                'qnode_measure.program_id',
+                'qnode_measure.survey_id',
+                'qnode_measure.measure_id'],
             info={'version': True}
         ),
         ForeignKeyConstraint(
@@ -269,7 +275,8 @@ class Response(Observable, Versioned, Base):
     @classmethod
     def from_measure(cls, qnode_measure, submission):
         submission_id = to_id(submission)
-        return (object_session(qnode_measure).query(cls)
+        return (
+            object_session(qnode_measure).query(cls)
             .get((submission_id, qnode_measure.measure_id)))
 
     @property
@@ -369,13 +376,11 @@ Submission.responses = relationship(
 
 ResponseNode.qnode = relationship(
     QuestionNode,
-    primaryjoin=(foreign(ResponseNode.qnode_id) == QuestionNode.id) &
-                (ResponseNode.program_id == QuestionNode.program_id))
+    primaryjoin=(
+        (foreign(ResponseNode.qnode_id) == QuestionNode.id) &
+        (ResponseNode.program_id == QuestionNode.program_id)))
 
 
-Response.qnode_measure = relationship(
-    QnodeMeasure)
-    # primaryjoin=(foreign(Response.measure_id) == Measure.id) &
-    #             (Response.program_id == Measure.program_id))
+Response.qnode_measure = relationship(QnodeMeasure)
 
 Response.measure = association_proxy('qnode_measure', 'measure')

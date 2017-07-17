@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from . import guid
 from . import history_meta
 from .activity import *

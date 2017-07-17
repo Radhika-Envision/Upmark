@@ -17,10 +17,9 @@ angular.module('upmark.subscription', [
 }])
 
 
-.controller('SubscriptionCtrl', ['$scope', 'Subscription', 'Notifications',
-            '$q', 'format', 'Current', 'hotkeys', '$route', 'ActivityTransform',
-        function($scope, Subscription, Notifications, $q, format, Current,
-            hotkeys, $route, ActivityTransform) {
+.controller('SubscriptionCtrl', function(
+        $scope, Subscription, Notifications, $q, format,
+        hotkeys, $route, ActivityTransform) {
 
     $scope.obType = $route.current.params.type;
     $scope.ids = $route.current.params.id;
@@ -121,7 +120,7 @@ angular.module('upmark.subscription', [
         }
     };
 
-}])
+})
 
 
 ;

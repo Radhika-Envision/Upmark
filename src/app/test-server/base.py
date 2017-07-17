@@ -1,3 +1,4 @@
+from atexit import register as atexit
 import logging
 import json
 import os
@@ -42,8 +43,9 @@ def get_secure_cookie(user_email=None, super_email=None):
 
 
 def mock_user(email):
-    return mock.patch('tornado.web.RequestHandler.get_secure_cookie',
-                get_secure_cookie(user_email=email))
+    return mock.patch(
+        'tornado.web.RequestHandler.get_secure_cookie',
+        get_secure_cookie(user_email=email))
 
 
 def print_survey(survey):
@@ -76,32 +78,76 @@ def print_survey(survey):
         print_qnode(qnode, indent="  ")
 
 
-class AqModelTestBase(unittest.TestCase):
+results = set()
+
+
+class LoggingTestCase(unittest.TestCase):
+    def run(self, result=None):
+        results.add(result)
+        super().run(result)
+
+
+def show_failed_tests():
+    print("Failures:", ' '.join(
+        case.id()
+        for result in results
+        for case, _ in result.failures + result.errors
+    ))
+
+
+atexit(show_failed_tests)
+
+
+class AqModelTestBase(LoggingTestCase):
 
     @classmethod
     def setUpClass(cls):
         cls._engine = model.connect_db(os.environ.get('DATABASE_URL'))
+        cls.destroy_schema()
+        model.drop_analyst_user()
+        model.Base.metadata.create_all(cls._engine)
 
     def setUp(self):
         super().setUp()
-        engine = self.__class__._engine
-        engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
-        engine.execute("DROP ROLE IF EXISTS analyst")
-        engine.execute("CREATE SCHEMA public")
-        model.initialise_schema(engine)
+        self.remove_all_data(type(self)._engine)
+        model.drop_analyst_user()
+        model.create_analyst_user()
         model.connect_db_ro(os.environ.get('DATABASE_URL'))
         self.create_org_structure()
         self.create_program_structure()
+        self.assign_access()
+
+    @classmethod
+    def destroy_schema(cls):
+        with model.session_scope() as session:
+            tables = [
+                r[0] for r in
+                session.execute("""
+                    SELECT tablename
+                    FROM pg_tables
+                    WHERE schemaname = current_schema()""")]
+            for table in tables:
+                session.execute("DROP TABLE IF EXISTS %s CASCADE" % table)
+
+    def remove_all_data(self, engine):
+        with model.session_scope() as session:
+            tables = [
+                r[0] for r in
+                session.execute("""
+                    SELECT tablename
+                    FROM pg_tables
+                    WHERE schemaname = current_schema()""")]
+            for table in tables:
+                session.execute("TRUNCATE TABLE %s CASCADE" % table)
 
     def create_org_structure(self):
-        engine = self.__class__._engine
-        engine.execute("DROP SCHEMA IF EXISTS public CASCADE")
-        engine.execute("DROP ROLE analyst")
-        engine.execute("CREATE SCHEMA public")
-        model.initialise_schema(engine)
-        model.connect_db_ro(os.environ.get('DATABASE_URL'))
+        def fast_password_hash():
+            return mock.patch(
+                'model.password.HASH_ROUNDS',
+                1000)
 
-        with model.session_scope() as session:
+        # with model.session_scope() as session:
+        with model.session_scope() as session, fast_password_hash():
             org1 = model.Organisation(
                 name='Primary',
                 url='http://primary.org',
@@ -152,8 +198,9 @@ class AqModelTestBase(unittest.TestCase):
         proj_dir = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), '..')
 
-        with open(os.path.join(
-                proj_dir, 'test-server', 'default_response_types.json')) as file:
+        rt_path = os.path.join(
+            proj_dir, 'test-server', 'default_response_types.json')
+        with open(rt_path) as file:
             response_types = json.load(file)
 
         # Measure declaration, separate from survey to allow cross-linking.
@@ -361,7 +408,7 @@ class AqModelTestBase(unittest.TestCase):
 
         with model.session_scope() as session:
             # Create survey
-            program = entity = model.Program(
+            program = model.Program(
                 title='Test Program 1',
                 description="This is a test program")
             session.add(program)
@@ -413,7 +460,7 @@ class AqModelTestBase(unittest.TestCase):
 
                     msons = qson.get('measures', [])
                     for measure in (ordered_measures[i] for i in msons):
-                        qm = model.QnodeMeasure(
+                        model.QnodeMeasure(
                             program=program, survey=survey,
                             qnode=qnode, measure=measure,
                             seq=-1)
@@ -464,6 +511,21 @@ class AqModelTestBase(unittest.TestCase):
                 return surveys
 
             create_surveys(hsons)
+
+    def assign_access(self):
+        with model.session_scope() as session:
+            survey = (
+                session.query(model.Survey)
+                .filter(model.Survey.title == 'Survey 1')
+                .first())
+            org = (
+                session.query(model.Organisation)
+                .filter(model.Organisation.name == 'Utility')
+                .first())
+            purchased_survey = model.PurchasedSurvey(
+                organisation=org,
+                survey=survey)
+            session.add(purchased_survey)
 
 
 def printable(mime_type):

@@ -7,13 +7,12 @@ __all__ = [
 ]
 
 from datetime import datetime
-import time
 
 from sqlalchemy import Boolean, Column, DateTime, Enum, Float, \
     ForeignKey, Index, Integer, Text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import backref, relationship
-from sqlalchemy.schema import CheckConstraint, Index
+from sqlalchemy.schema import CheckConstraint
 from sqlalchemy.sql import func
 
 from .base import Base
@@ -144,8 +143,8 @@ class AppUser(Observable, Base):
     name = Column(Text, nullable=False)
     password = Column(Password, nullable=False)
     role = Column(Enum(
-            'admin', 'author', 'authority', 'consultant', 'org_admin', 'clerk',
-            native_enum=False), nullable=False)
+        'admin', 'author', 'authority', 'consultant', 'org_admin', 'clerk',
+        native_enum=False), nullable=False)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
     deleted = Column(Boolean, default=False, nullable=False)
 

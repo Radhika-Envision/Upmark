@@ -18,13 +18,10 @@ angular.module('upmark.survey.survey', [
 }])
 
 
-.controller('SurveyCtrl', [
-        '$scope', 'Survey', 'routeData', 'Editor', 'Authz', 'layout',
-        '$location', 'Current', 'format', 'QuestionNode', 'Structure',
-        'Notifications', 'download',
-        function($scope, Survey, routeData, Editor, Authz, layout,
-                 $location, current, format, QuestionNode, Structure,
-                 Notifications, download) {
+.controller('SurveyCtrl', function(
+        $scope, Survey, routeData, Editor, Authz, layout,
+        $location, format, QuestionNode, Structure,
+        Notifications, download) {
 
     $scope.layout = layout;
     $scope.program = routeData.program;
@@ -111,23 +108,22 @@ angular.module('upmark.survey.survey', [
     $scope.checkRole = Authz({program: $scope.program});
     $scope.QuestionNode = QuestionNode;
     $scope.Survey = Survey;
-}])
+})
 
 
-.controller('SurveyChoiceCtrl', [
-        '$scope', 'routeData', 'Structure', 'Authz', 'Current',
-        'Survey', 'layout', '$location', 'Roles',
-        function($scope, routeData, Structure, Authz, current,
-                 Survey, layout, $location, Roles) {
+.controller('SurveyChoiceCtrl', function(
+        $scope, routeData, Structure, Authz, currentUser,
+        Survey, layout, $location, Roles) {
+
     $scope.layout = layout;
     $scope.program = routeData.program;
     $scope.survey = routeData.survey;
     $scope.org = routeData.org;
     $scope.structure = Structure($scope.survey);
 
-    if (current.user.role == 'author')
+    if (currentUser.role == 'author')
         $location.path('/2/survey/' + $scope.survey.id);
 
     $scope.Survey = Survey;
     $scope.checkRole = Authz({program: $scope.program});
-}])
+})

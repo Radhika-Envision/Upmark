@@ -1,8 +1,6 @@
 import datetime
-import functools
 import logging
 
-import sqlalchemy
 from sqlalchemy.sql import func
 from tornado.escape import json_decode, json_encode, url_escape, url_unescape
 import tornado.options
@@ -18,30 +16,27 @@ import theme
 log = logging.getLogger('app.auth')
 
 
-class AuthLoginHandler(template.TemplateHandler):
+class LoginHandler(template.TemplateHandler):
     SESSION_LENGTH = datetime.timedelta(days=30)
 
     def prepare(self):
-        self.session_expires = datetime.datetime.utcnow() + \
-            AuthLoginHandler.SESSION_LENGTH
+        self.session_expires = (
+            datetime.datetime.utcnow() +
+            type(self).SESSION_LENGTH)
 
     def get(self, user_id):
         '''
         Log in page (form).
         '''
-        try:
-            errormessage = self.get_argument("error")
-        except:
-            errormessage = ""
-
-        next = self.get_argument("next", "/")
+        errormessage = self.get_argument("error", '')
+        next_page = self.get_argument("next", "/")
 
         with model.session_scope() as session:
             params = template.TemplateParams(session)
             theme_params = theme.ThemeParams(session)
             self.render(
                 "../client/templates/login.html",
-                params=params, theme=theme_params, next=next,
+                params=params, theme=theme_params, next=next_page,
                 error=errormessage)
 
     def post(self, user_id):
@@ -50,37 +45,36 @@ class AuthLoginHandler(template.TemplateHandler):
         '''
         email = self.get_argument("email", "")
         password = self.get_argument("password", "")
-        try:
-            with model.session_scope() as session:
-                user = session.query(model.AppUser).\
-                    filter(func.lower(model.AppUser.email) == func.lower(email)).\
-                    one()
-                if not user.password == password:
-                    raise ValueError("Login incorrect")
-                deleted = user.deleted or user.organisation.deleted
-                session.expunge(user)
-        except (sqlalchemy.orm.exc.NoResultFound, ValueError):
-            self.clear_cookie("user")
-            self.clear_cookie("superuser")
-            error_msg = "?error=" + tornado.escape.url_escape("Login incorrect")
-            self.redirect("/login/" + error_msg)
-            return
 
-        if deleted:
-            self.clear_cookie("user")
-            self.clear_cookie("superuser")
-            error_msg = "?error=" + tornado.escape.url_escape(
-                "Your account is inactive. Please contact an administrator")
-            self.redirect("/login/" + error_msg)
-            return
+        with model.session_scope() as session:
+            user = (
+                session.query(model.AppUser)
+                .filter(func.lower(model.AppUser.email) == func.lower(email))
+                .first())
 
-        self.set_secure_cookie(
-            "user", str(user.id).encode('utf8'),
-            expires=self.session_expires)
-        if model.has_privillege(user.role, 'admin'):
+            if not user or user.password != password:
+                self.clear_cookie("user")
+                self.clear_cookie("superuser")
+                error_msg = "?error={}".format(
+                    tornado.escape.url_escape("Login incorrect"))
+                self.redirect("/login/" + error_msg)
+                return
+
+            if user.deleted or user.organisation.deleted:
+                self.clear_cookie("user")
+                self.clear_cookie("superuser")
+                error_msg = "?error=" + tornado.escape.url_escape(
+                    "Your account is inactive")
+                self.redirect("/login/" + error_msg)
+                return
+
             self.set_secure_cookie(
-                "superuser", str(user.id).encode('utf8'),
+                "user", str(user.id).encode('utf8'),
                 expires=self.session_expires)
+            if model.has_privillege(user.role, 'admin'):
+                self.set_secure_cookie(
+                    "superuser", str(user.id).encode('utf8'),
+                    expires=self.session_expires)
 
         # Make sure the XSRF token expires at the same time
         self.xsrf_token
@@ -95,9 +89,7 @@ class AuthLoginHandler(template.TemplateHandler):
         # between the _xsrf and user cookie expiration causes POST requests
         # to fail even when the user thinks they are still logged in.
         token = super().xsrf_token
-        self.set_cookie(
-            '_xsrf', token,
-            expires=self.session_expires)
+        self.set_cookie('_xsrf', token, expires=self.session_expires)
         return token
 
     @tornado.web.authenticated
@@ -108,27 +100,32 @@ class AuthLoginHandler(template.TemplateHandler):
         '''
         superuser_id = self.get_secure_cookie('superuser')
 
-        if superuser_id is None:
+        if not superuser_id:
             raise errors.AuthzError("Not authorised: you are not a superuser")
         superuser_id = superuser_id.decode('utf8')
+
         with model.session_scope() as session:
-            superuser = session.query(model.AppUser).get(superuser_id)
-            if superuser is None or not model.has_privillege(
-                    superuser.role, 'admin'):
-                raise errors.MissingDocError(
-                    "Not authorised: you are not a superuser")
+            user_session = self.get_user_session(session)
 
             user = session.query(model.AppUser).get(user_id)
-            if user is None:
+            if not user:
                 raise errors.MissingDocError("No such user")
 
-            self._store_last_user(session);
+            policy = user_session.policy.derive({
+                'user': user,
+            })
+            policy.verify('user_impersonate')
+
+            self._store_last_user(session)
 
             name = user.name
-            log.warn('User %s is impersonating %s', superuser.email, user.email)
+            log.warn(
+                'User %s is impersonating %s',
+                policy.context.s.user.email, user.email)
             self.set_secure_cookie(
                 "user", str(user.id).encode('utf8'),
                 expires=self.session_expires)
+
             # Make sure the XSRF token expires at the same time
             self.xsrf_token
 
@@ -150,8 +147,8 @@ class AuthLoginHandler(template.TemplateHandler):
             log.warn('Failed to decode past users: %s', e)
             past_users = []
 
-        if user_id is None:
-            return;
+        if not user_id:
+            return
         try:
             past_users = list(filter(lambda x: x['id'] != user_id, past_users))
         except KeyError:
@@ -159,7 +156,7 @@ class AuthLoginHandler(template.TemplateHandler):
 
         log.warn('%s', user_id)
         user = session.query(model.AppUser).get(user_id)
-        if user is None:
+        if not user:
             return
 
         past_users.insert(0, {'id': user_id, 'name': user.name})
@@ -169,28 +166,8 @@ class AuthLoginHandler(template.TemplateHandler):
             json_encode(past_users), plus=False))
 
 
-class AuthLogoutHandler(base_handler.BaseHandler):
+class LogoutHandler(base_handler.BaseHandler):
     def get(self):
         self.clear_cookie("user")
         self.clear_cookie("superuser")
         self.redirect(self.get_argument("next", "/"))
-
-
-def authz(*roles):
-    '''
-    Decorator to check whether a user is authorised. This only checks whether
-    the user has the privilleges of a certain role. If not, a 403 error will be
-    generated. Attach to a request handler method like this:
-
-    @authz('org_admin', 'consultant')
-    def get(self, path):
-        ...
-    '''
-    def decorator(fn):
-        @functools.wraps(fn)
-        def wrapper(self, *args, **kwargs):
-            if not model.has_privillege(self.current_user.role, *roles):
-                raise errors.AuthzError()
-            return fn(self, *args, **kwargs)
-        return wrapper
-    return decorator

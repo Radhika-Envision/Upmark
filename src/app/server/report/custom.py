@@ -3,27 +3,24 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 import csv
 from datetime import datetime
-import json
+import logging
 import os
 import tempfile
-import time
-import uuid
 
-from bunch import Bunch
+from munch import DefaultMunch
 import sqlalchemy
 import sqlparse
+import tornado
 from tornado import gen
 from tornado.escape import json_encode, utf8, to_basestring
 from tornado.concurrent import run_on_executor
 import xlsxwriter
 
-import auth
 import base_handler
 import config
 import errors
 import model
-import logging
-
+from undefined import undefined
 from utils import ToSon
 
 
@@ -50,13 +47,18 @@ class CustomQueryReportHandler(base_handler.BaseHandler):
     Runs custom stored SQL queries.
     '''
 
-    @auth.authz('admin')
+    @tornado.web.authenticated
     @gen.coroutine
     def post(self, query_id, file_type):
         with model.session_scope() as session:
             custom_query = session.query(model.CustomQuery).get(query_id)
             if not custom_query:
                 raise errors.MissingDocError("No such query")
+
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({'custom_query': custom_query})
+            policy.verify('custom_query_execute')
+
             if not custom_query.text:
                 raise errors.ModelError("Query is empty")
 
@@ -70,7 +72,7 @@ class CustomQueryReportHandler(base_handler.BaseHandler):
         try:
             limit = float(self.get_argument('limit', '0'))
             wall_time = float(self.get_argument('wall_time', '0'))
-        except ValueError:
+        except ValueError as e:
             raise errors.ModelError(str(e))
 
         max_wall_time = config.get_setting(session, 'custom_timeout') * 1000
@@ -85,11 +87,14 @@ class CustomQueryReportHandler(base_handler.BaseHandler):
         elif not 0 <= limit <= max_limit:
             raise errors.ModelError('Query row limit is out of bounds')
 
-        return Bunch({
-            'wall_time': int(wall_time * 1000),
-            'limit': int(limit),
-            'base_url': config.get_setting(session, 'app_base_url'),
-        })
+        return DefaultMunch(
+            undefined,
+            {
+                'wall_time': int(wall_time * 1000),
+                'limit': int(limit),
+                'base_url': config.get_setting(session, 'app_base_url'),
+            }
+        )
 
     @gen.coroutine
     def export(self, custom_query, conf, file_type):
@@ -126,15 +131,19 @@ class CustomQueryPreviewHandler(CustomQueryReportHandler):
     Allows ad-hoc queries using SQL.
     '''
 
-    @auth.authz('admin')
+    @tornado.web.authenticated
     @gen.coroutine
     def post(self, file_type):
-        text = to_basestring(self.request.body)
-        if not text:
-            raise errors.ModelError("Query is empty")
-        custom_query = model.CustomQuery(description="Preview", text=text)
-
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({})
+            policy.verify('custom_query_preview')
+
+            text = to_basestring(self.request.body)
+            if not text:
+                raise errors.ModelError("Query is empty")
+            custom_query = model.CustomQuery(description="Preview", text=text)
+
             conf = self.get_config(session)
 
         yield self.export(custom_query, conf, file_type)
@@ -186,11 +195,11 @@ class ResultSet:
     @property
     def cols(self):
         return [{
-                'name': c.name,
-                'type': TYPES.get(c.type_code, (None, None))[0],
-                'rich_type': TYPES.get(c.type_code, (None, None))[1],
-                'type_code': c.type_code
-            } for c in self.result.context.cursor.description]
+            'name': c.name,
+            'type': TYPES.get(c.type_code, (None, None))[0],
+            'rich_type': TYPES.get(c.type_code, (None, None))[1],
+            'type_code': c.type_code
+        } for c in self.result.context.cursor.description]
 
     @property
     def rows(self):
@@ -226,7 +235,6 @@ class JsonWriter:
             f.write('{"cols": %s, "rows": [' % json_encode(
                 to_son(resultset.cols)))
 
-            first = True
             to_son = ToSon(
                 r'/[0-9]+$',
             )
@@ -317,37 +325,50 @@ class ExcelWriter:
             if resultset.is_exhausted:
                 worksheet_r.insert_textbox(
                     1, 1, 'Row limit reached; data truncated.',
-                    {'width': 400, 'height': 200,
-                     'x_offset': 10, 'y_offset': 10,
-                     'fill': {'color': "#ffdd88"},
-                     'border': {'color': "#634E19"},
-                     'font': {'color': "#634E19"},
-                     'align': {
-                        'vertical': 'middle',
-                        'horizontal': 'center'
-                     }})
+                    {
+                        'width': 400, 'height': 200,
+                        'x_offset': 10, 'y_offset': 10,
+                        'fill': {'color': "#ffdd88"},
+                        'border': {'color': "#634E19"},
+                        'font': {'color': "#634E19"},
+                        'align': {
+                            'vertical': 'middle',
+                            'horizontal': 'center',
+                        },
+                    })
 
             worksheet_r.activate()
 
 
 class CustomQueryConfigHandler(base_handler.BaseHandler):
 
-    @auth.authz('admin')
+    @tornado.web.authenticated
     def get(self):
-        to_son = ToSon(r'.*')
-        self.set_header("Content-Type", "application/json")
         with model.session_scope() as session:
-            conf = {
-                'wall_time': config.get_setting(session, 'custom_timeout') * 1000,
-                'max_limit': config.get_setting(session, 'custom_max_limit'),
-            }
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({})
+            policy.verify('custom_query_view')
+
+            to_son = ToSon(r'.*')
+            self.set_header("Content-Type", "application/json")
+
+            wall_time = config.get_setting(session, 'custom_timeout') * 1000
+            max_limit = config.get_setting(session, 'custom_max_limit')
+            conf = {'wall_time': wall_time, 'max_limit': max_limit}
+
         self.write(json_encode(to_son(conf)))
         self.finish()
 
 
 class SqlFormatHandler(base_handler.BaseHandler):
-    @auth.authz('admin')
+
+    @tornado.web.authenticated
     def post(self):
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({})
+            policy.verify('custom_query_add')
+
         query = to_basestring(self.request.body)
         query = sqlparse.format(
             query, keyword_case='upper', identifier_case='lower',
@@ -359,8 +380,14 @@ class SqlFormatHandler(base_handler.BaseHandler):
 
 
 class SqlIdentifierHandler(base_handler.BaseHandler):
-    @auth.authz('admin')
+
+    @tornado.web.authenticated
     def post(self):
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({})
+            policy.verify('custom_query_add')
+
         query = to_basestring(self.request.body)
 
         extractor = NameExtractor()

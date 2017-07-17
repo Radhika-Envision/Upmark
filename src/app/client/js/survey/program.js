@@ -20,10 +20,10 @@ angular.module('upmark.survey.program',[
 }])
 
 
-.controller('ProgramCtrl',
-        function($scope, Program, routeData, Editor, Authz, hotkeys,
-                 $location, Notifications, Current, Survey, layout, format,
-                 Organisation, Submission) {
+.controller('ProgramCtrl', function(
+        $scope, Program, routeData, Editor, Authz, hotkeys,
+        $location, Notifications, Survey, layout, format,
+        Organisation, Submission) {
 
     $scope.layout = layout;
     if (routeData.program) {
@@ -114,9 +114,7 @@ angular.module('upmark.survey.program',[
 })
 
 
-.controller('ProgramListCtrl', ['$scope', 'Authz', 'Program', 'Current',
-        'layout',
-        function($scope, Authz, Program, current, layout) {
+.controller('ProgramListCtrl', function($scope, Authz, Program, layout) {
 
     $scope.layout = layout;
     $scope.checkRole = Authz({});
@@ -133,7 +131,7 @@ angular.module('upmark.survey.program',[
             $scope.programs = programs;
         });
     }, true);
-}])
+})
 
 
 .controller('ProgramImportCtrl', [

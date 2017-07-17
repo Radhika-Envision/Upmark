@@ -11,7 +11,7 @@ import cache_bust
 import config
 import model
 import theme
-from utils import truthy
+from utils import ToSon, truthy
 
 # A string to break through caches. This changes each time the app is deployed.
 DEPLOY_ID = str(time.time())
@@ -89,11 +89,7 @@ class TemplateParams:
     @property
     def authz_declarations(self):
         decls = config.get_resource('authz')
-        authz_decls = {}
-        # Flatten nested dictionary.
-        for ds in decls.values():
-            authz_decls.update(ds)
-        return json_encode(authz_decls)
+        return json_encode(decls)
 
     def prepare_resources(self, declarations):
         '''
@@ -152,11 +148,25 @@ class TemplateHandler(base_handler.BaseHandler):
         template = os.path.join(self.path, path)
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
             params = TemplateParams(session)
             theme_params = theme.ThemeParams(session)
+
+            to_son = ToSon(
+                r'/id$',
+                r'/name$',
+                r'/email$',
+                r'/role$',
+                r'/deleted$',
+                r'/organisation$',
+                r'!password',
+            )
+            user_son = json_encode(to_son(user_session.user))
+
             self.render(
                 template, params=params, theme=theme_params,
-                user=self.current_user, organisation=self.organisation)
+                user=user_session.user, organisation=user_session.org,
+                user_son=user_son)
 
 
 class UnauthenticatedTemplateHandler(base_handler.BaseHandler):

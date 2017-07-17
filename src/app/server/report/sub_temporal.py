@@ -7,6 +7,7 @@ from numbers import Number
 import os
 import tempfile
 
+from munch import DefaultMunch
 import numpy as np
 from sqlalchemy import true, false
 from sqlalchemy.orm import joinedload
@@ -16,9 +17,12 @@ import tornado.web
 import xlsxwriter
 
 import base_handler
+from crud.approval import APPROVAL_STATES
 import errors
 import model
 from utils import keydefaultdict
+from undefined import undefined
+
 
 BUF_SIZE = 4096
 MAX_WORKERS = 4
@@ -37,25 +41,28 @@ class TemporalReportHandler(base_handler.BaseHandler):
         parameters = self.request_son
         organisation_id = parameters.get('organisation_id')
 
-        self.check_privillege('org_admin', 'consultant')
-
-        if organisation_id != str(self.organisation.id):
-            self.check_privillege('consultant')
-
         try:
             parameters['min_constituents'] = int(
                 parameters.get('min_constituents', MIN_CONSITUENTS))
         except ValueError:
             raise errors.ModelError("Invalid minimum number of constituents")
 
-        if parameters['min_constituents'] < MIN_CONSITUENTS:
-            if not self.has_privillege('consultant'):
-                raise errors.ModelError(
-                    "You can't generate a report with so few consituents")
+        if 'approval' not in parameters:
+            raise errors.ModelError("Approval status required")
 
-        if parameters.get('type') != 'summary':
-            if not self.has_privillege('consultant'):
-                raise errors.ModelError("You can't generate a detailed report")
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+            if organisation_id:
+                org = session.query(model.Organisation).get(organisation_id)
+            else:
+                None
+
+            policy = user_session.policy.derive({
+                'org': org,
+                'consituents': parameters['min_constituents'],
+                'approval': parameters['approval'],
+            })
+            policy.verify('report_temporal')
 
         with tempfile.TemporaryDirectory() as tmpdir:
             outpath, outfile = yield self.process_temporal(
@@ -89,7 +96,8 @@ class TemporalReportHandler(base_handler.BaseHandler):
 
             if parameters.get('type') == 'summary':
                 report_type = 'summary'
-                organisation = (session
+                organisation = (
+                    session
                     .query(model.Organisation)
                     .get(parameters['organisation_id']))
                 rows = self.convert_to_stats(
@@ -112,19 +120,21 @@ class TemporalReportHandler(base_handler.BaseHandler):
 
     def build_query(self, session, parameters, survey_id):
         # All responses to current survey
-        query = (session.query(model.Response)
-                .options(joinedload('submission'))
-                .options(joinedload('submission.organisation'))
-                .options(joinedload('qnode_measure'))
-                .join(model.Submission)
-                .join(model.Survey)
-                .join(model.Organisation)
-                .filter(model.Submission.survey_id == survey_id)
-                .filter(~model.Submission.deleted)
-                .filter(~model.Survey.deleted)
-                .order_by(model.Response.measure_id,
-                    model.Submission.organisation_id,
-                    model.Submission.created))
+        query = (
+            session.query(model.Response)
+            .options(joinedload('submission'))
+            .options(joinedload('submission.organisation'))
+            .options(joinedload('qnode_measure'))
+            .join(model.Submission)
+            .join(model.Survey)
+            .join(model.Organisation)
+            .filter(model.Submission.survey_id == survey_id)
+            .filter(~model.Submission.deleted)
+            .filter(~model.Survey.deleted)
+            .order_by(
+                model.Response.measure_id,
+                model.Submission.organisation_id,
+                model.Submission.created))
 
         def date_filter(query):
             interval = Interval.from_parameters(parameters)
@@ -137,7 +147,8 @@ class TemporalReportHandler(base_handler.BaseHandler):
                 min_date.strftime('%d %b %Y'),
                 max_date.strftime('%d %b %Y')))
 
-            return (query
+            return (
+                query
                 .filter(model.Submission.created >= min_date)
                 .filter(model.Submission.created < max_date))
 
@@ -146,42 +157,35 @@ class TemporalReportHandler(base_handler.BaseHandler):
             return query.filter(model.Response.quality >= quality)
 
         def approval_filter(query):
-            approval = parameters.get('approval', 'reviewed')
-            approval_states = ['draft', 'final', 'reviewed', 'approved']
-            approval_index = approval_states.index(approval)
-            if self.has_privillege('consultant'):
-                min_approval = approval_states.index('draft')
-            else:
-                min_approval = approval_states.index('reviewed')
-            if approval_index < min_approval:
-                raise errors.ModelError(
-                    "You can't generate a report for that approval state")
-            included_approval_states=approval_states[approval_index:]
+            approval = parameters['approval']
+            approval_index = APPROVAL_STATES.index(approval)
+            included_approval_states = APPROVAL_STATES[approval_index:]
             return query.filter(
                 model.Submission.approval.in_(included_approval_states))
 
         def location_filter(query):
-            locations = parameters.get('locations')
+            locations = DefaultMunch.fromDict(
+                parameters.get('locations'), default=undefined)
 
             query = query.join(model.OrgLocation)
             union_loc_filter = false()
 
             for loc in locations:
                 loc_filter = true()
-                if loc.get('country'):
-                    loc_filter &= model.OrgLocation.country == loc.get('country')
-                if loc.get('state'):
-                    loc_filter &= model.OrgLocation.state == loc.get('state')
-                if loc.get('region'):
-                    loc_filter &= model.OrgLocation.region == loc.get('region')
-                if loc.get('county'):
-                    loc_filter &= model.OrgLocation.county == loc.get('county')
-                if loc.get('city'):
-                    loc_filter &= model.OrgLocation.city == loc.get('city')
-                if loc.get('postcode'):
-                    loc_filter &= model.OrgLocation.postcode == loc.get('postcode')
-                if loc.get('suburb'):
-                    loc_filter &= model.OrgLocation.suburb == loc.get('suburb')
+                if loc.country:
+                    loc_filter &= model.OrgLocation.country == loc.country
+                if loc.state:
+                    loc_filter &= model.OrgLocation.state == loc.state
+                if loc.region:
+                    loc_filter &= model.OrgLocation.region == loc.region
+                if loc.county:
+                    loc_filter &= model.OrgLocation.county == loc.county
+                if loc.city:
+                    loc_filter &= model.OrgLocation.city == loc.city
+                if loc.postcode:
+                    loc_filter &= model.OrgLocation.postcode == loc.postcode
+                if loc.suburb:
+                    loc_filter &= model.OrgLocation.suburb == loc.suburb
                 union_loc_filter |= loc_filter
             return query.filter(union_loc_filter)
 
@@ -224,7 +228,7 @@ class TemporalReportHandler(base_handler.BaseHandler):
             if parameters.get('max_population'):
                 max_population = parameters.get('max_population')
                 query = query.filter(
-                    model.OrgMeta.population_served <= max_employees)
+                    model.OrgMeta.population_served <= max_population)
 
             return query
 
@@ -294,7 +298,9 @@ class TemporalReportHandler(base_handler.BaseHandler):
 
     def convert_to_stats(self, rows, organisation, min_constituents):
         out_rows = []
-        for qm_row, org_rows in itertools.groupby(rows, key=lambda r: r.qm_row):
+        for qm_row, org_rows in itertools.groupby(
+                rows, key=lambda r: r.qm_row):
+
             org_rows = list(org_rows)
 
             dataset = [row.data() for row in org_rows]
@@ -307,12 +313,18 @@ class TemporalReportHandler(base_handler.BaseHandler):
                     if org_row.organisation == organisation))
             except StopIteration:
                 out_rows.append(OrganisationRow(qm_row, organisation))
-            out_rows.append(StatisticRow(qm_row, "Min", list(stats[0])))
-            out_rows.append(StatisticRow(qm_row, "1st Quartile", list(stats[1])))
-            out_rows.append(StatisticRow(qm_row, "Median", list(stats[2])))
-            out_rows.append(StatisticRow(qm_row, "3rd Quartile", list(stats[3])))
-            out_rows.append(StatisticRow(qm_row, "Max", list(stats[4])))
-            out_rows.append(StatisticRow(qm_row, "Consituents", list(stats[5])))
+            out_rows.append(StatisticRow(
+                qm_row, "Min", list(stats[0])))
+            out_rows.append(StatisticRow(
+                qm_row, "1st Quartile", list(stats[1])))
+            out_rows.append(StatisticRow(
+                qm_row, "Median", list(stats[2])))
+            out_rows.append(StatisticRow(
+                qm_row, "3rd Quartile", list(stats[3])))
+            out_rows.append(StatisticRow(
+                qm_row, "Max", list(stats[4])))
+            out_rows.append(StatisticRow(
+                qm_row, "Consituents", list(stats[5])))
 
         return out_rows
 
@@ -483,7 +495,7 @@ class TableMeta:
         return self.bucketed_responses.get(k, default)
 
     def __iter__(self):
-        return iter(keys(self))
+        return iter(self.keys())
 
     def __len__(self):
         return len(self.bucketed_responses)
@@ -508,8 +520,8 @@ class TemporalResponseBucketer:
         k = (mid, response.submission.organisation.id, bucket)
 
         if k in self.bucketed_responses:
-            if (self.bucketed_responses[k].submission.created
-                    > response.submission.created):
+            if (self.bucketed_responses[k].submission.created >
+                    response.submission.created):
                 return
 
         self.bucketed_responses[k] = response
@@ -523,7 +535,8 @@ class TemporalResponseBucketer:
     def to_table_meta(self):
         buckets = sorted(self.buckets)
         qnode_measures = sorted(
-            self.qnode_measure_map.values(), key=lambda qm: qm.get_path_tuple())
+            self.qnode_measure_map.values(),
+            key=lambda qm: qm.get_path_tuple())
         organisations = sorted(
             self.organisations, key=lambda o: o.name)
         return TableMeta(
@@ -587,7 +600,8 @@ class OrganisationRow:
             self.latest_response = response
 
     def headers(self, base_url):
-        return self.qm_row.headers() + [self.organisation.name, self.link(base_url)]
+        return self.qm_row.headers() + [
+            self.organisation.name, self.link(base_url)]
 
     def data(self):
         return [

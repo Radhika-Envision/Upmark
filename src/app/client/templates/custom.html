@@ -73,7 +73,7 @@
             <i class="fa fa-print"></i>
         </button>
         <delete-button model="query" editor="edit"
-                ng-if="!edit.model && checkRole('custom_query')"></delete-button>
+                ng-if="!edit.model && checkRole('custom_query_edit')"></delete-button>
 
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"
@@ -86,7 +86,7 @@
         <button class="btn btn-default btn-round" title="Edit"
                 ng-click="edit.edit()"
                 ng-if="!query.deleted && !edit.model &&
-                       checkRole('custom_query')">
+                       checkRole('custom_query_edit')">
             <i class="fa fa-pencil"></i>
         </button>
         <a class="btn btn-default btn-round" title="Subscriptions"

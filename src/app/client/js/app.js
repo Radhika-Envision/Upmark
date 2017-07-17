@@ -13,6 +13,7 @@ angular.module('upmark', [
     'ui.bootstrap.showErrors',
     'upmark.admin.settings',
     'upmark.authz',
+    'upmark.current_user',
     'upmark.custom',
     'upmark.diff',
     'upmark.home',
@@ -23,10 +24,12 @@ angular.module('upmark', [
     'upmark.settings',
     'upmark.statistics',
     'upmark.subscription',
-    'upmark.submission',
     'upmark.submission.approval',
+    'upmark.submission.export',
+    'upmark.submission.header',
     'upmark.submission.response',
     'upmark.submission.rnode',
+    'upmark.submission.select',
     'upmark.submission.submission',
     'upmark.survey',
     'upmark.survey.history',
@@ -364,7 +367,8 @@ angular.module('upmark', [
                     surveys: ['Survey', 'program',
                             function(Survey, program) {
                         return Survey.query({
-                            programId: program.id
+                            programId: program.id,
+                            deleted: false,
                         }).$promise;
                     }],
                     duplicate: ['Submission', '$route',
@@ -784,16 +788,14 @@ angular.module('upmark', [
                             id: $route.current.params.submission
                         }).$promise;
                     }],
-                    measure: ['Measure', '$route',
-                            function(Measure, $route) {
+                    measure: ['Measure', '$route', 'submission',
+                            function(Measure, $route, submission) {
                         return Measure.get({
                             id: $route.current.params.measure,
-                            programId: $route.current.params.submission
-                                ? null
-                                : $route.current.params.program,
-                            surveyId: $route.current.params.submission
-                                ? null
-                                : $route.current.params.survey,
+                            programId: submission ? submission.program.id :
+                                $route.current.params.program,
+                            surveyId: submission ? submission.survey.id :
+                                $route.current.params.survey,
                             submissionId: $route.current.params.submission
                         }).$promise;
                     }],
@@ -1111,22 +1113,25 @@ angular.module('upmark', [
 })
 
 
-.run(function(Authz, Current, Roles) {
-    var session = {
-        user: null,
-        org: null,
-        superuser: false,
-        has_role: null,
-    };
-    Current.$promise.then(function(current) {
-        session.user = current.user;
-        session.org = current.user.organisation;
-        session.superuser = current.superuser;
-        session.has_role = function(role) {
-            return Roles.hasPermission(current.user.role, role);
+.factory('Authz', function(AuthzPolicy, currentUser, Roles, $cookies) {
+    var policyFactory = function(context) {
+        var localPolicy = policyFactory.rootPolicy.derive(context);
+        return function(ruleName) {
+            return localPolicy.check(ruleName);
         };
-    });
-    Authz.baseContext.s = session;
+    };
+    policyFactory.rootPolicy = new AuthzPolicy(null, null, null, 'client');
+
+    policyFactory.rootPolicy.context.s = {
+        user: currentUser,
+        org: currentUser.organisation,
+        superuser: !!$cookies.get('superuser'),
+        has_role: function(role) {
+            return Roles.hasPermission(currentUser.role, role);
+        },
+    };
+
+    return policyFactory;
 })
 
 

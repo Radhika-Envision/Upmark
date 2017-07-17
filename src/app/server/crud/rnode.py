@@ -1,12 +1,12 @@
 from concurrent.futures import ThreadPoolExecutor
 import logging
 
+from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 from tornado import gen
 from tornado.concurrent import run_on_executor
 from tornado.escape import json_encode
 import tornado.web
-import sqlalchemy
-from sqlalchemy import func
 
 from activity import Activities
 import base_handler
@@ -17,6 +17,7 @@ import model
 from response_type import ResponseTypeError
 from score import Calculator
 from utils import ToSon, updater
+from .approval import APPROVAL_STATES
 
 
 log = logging.getLogger('app.crud.rnode')
@@ -35,20 +36,27 @@ class ResponseNodeHandler(base_handler.BaseHandler):
             return
 
         with model.session_scope() as session:
-            rnode = (session.query(model.ResponseNode)
+            user_session = self.get_user_session(session)
+
+            rnode = (
+                session.query(model.ResponseNode)
+                .options(joinedload('submission'))
+                .options(joinedload('submission.organisation'))
                 .get((submission_id, qnode_id)))
 
-            if rnode is None:
+            if rnode:
+                submission = rnode.submission
+            else:
                 # Create an empty one, and roll back later (because GET
                 # shouldn't modify anything).
-                qnode, submission = (session.query(
-                        model.QuestionNode, model.Submission)
+                qnode, submission = (
+                    session.query(model.QuestionNode, model.Submission)
                     .join(model.Program)
                     .join(model.Submission)
                     .filter(model.QuestionNode.id == qnode_id,
                             model.Submission.id == submission_id)
                     .first())
-                if qnode is None:
+                if not qnode:
                     raise errors.MissingDocError("No such category")
                 rnode = model.ResponseNode(
                     qnode=qnode,
@@ -62,7 +70,11 @@ class ResponseNodeHandler(base_handler.BaseHandler):
                     n_approved=0,
                     n_not_relevant=0)
 
-            self._check_authz(rnode.submission)
+            policy = user_session.policy.derive({
+                'org': submission.organisation,
+                'submission': submission,
+            })
+            policy.verify('rnode_view')
 
             to_son = ToSon(
                 # Fields to match from any visited object
@@ -86,7 +98,7 @@ class ResponseNodeHandler(base_handler.BaseHandler):
                 # The IDs of rnodes and responses are not part of the API
                 r'!^/id$',
             )
-            if self.current_user.role == 'clerk':
+            if user_session.user.role == 'clerk':
                 to_son.exclude(
                     r'/score$',
                     r'/total_weight$',
@@ -114,19 +126,26 @@ class ResponseNodeHandler(base_handler.BaseHandler):
                 "'root' or parent ID required")
 
         with model.session_scope() as session:
-            submission = (session.query(model.Submission)
-                .get((submission_id,)))
+            user_session = self.get_user_session(session)
 
-            if submission is None:
+            submission = session.query(model.Submission).get(submission_id)
+
+            if not submission:
                 raise errors.MissingDocError("No such submission")
-            self._check_authz(submission)
+
+            policy = user_session.policy.derive({
+                'org': submission.organisation,
+                'submission': submission,
+            })
+            policy.verify('rnode_view')
 
             if root is not None:
                 children = submission.rnodes
             else:
-                rnode = (session.query(model.ResponseNode)
+                rnode = (
+                    session.query(model.ResponseNode)
                     .get((submission_id, parent_id)))
-                if rnode is None:
+                if not rnode:
                     # Rnodes get created from the bottom of the tree up, so if
                     # the parent doesn't exist, its children shouldn't either.
                     children = []
@@ -153,7 +172,7 @@ class ResponseNodeHandler(base_handler.BaseHandler):
                 # The IDs of rnodes and responses are not part of the API
                 r'!^/[0-9]+/id$',
             )
-            if self.current_user.role == 'clerk':
+            if user_session.user.role == 'clerk':
                 to_son.exclude(
                     r'/score$',
                     r'/total_weight$'
@@ -175,71 +194,82 @@ class ResponseNodeHandler(base_handler.BaseHandler):
         approval = self.get_argument('approval', '')
         relevance = self.get_argument('relevance', '')
 
-        try:
-            with model.session_scope() as session:
-                submission = (session.query(model.Submission)
-                    .get(submission_id))
-                if submission is None:
-                    raise errors.MissingDocError("No such submission")
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
 
-                self._check_authz(submission)
+            submission = (
+                session.query(model.Submission)
+                .get(submission_id))
+            if not submission:
+                raise errors.MissingDocError("No such submission")
 
-                rnode = (session.query(model.ResponseNode)
-                    .get((submission_id, qnode_id)))
+            policy = user_session.policy.derive({
+                'org': submission.organisation,
+                'submission': submission,
+                'approval': approval,
+                'index': APPROVAL_STATES.index,
+            })
+            policy.verify('rnode_edit')
 
-                verbs = []
+            rnode = (
+                session.query(model.ResponseNode)
+                .get((submission_id, qnode_id)))
 
-                if rnode is None:
-                    qnode = (session.query(model.QuestionNode)
-                        .get((qnode_id, submission.program.id)))
-                    if qnode is None:
-                        raise errors.MissingDocError("No such question node")
-                    rnode = model.ResponseNode.from_qnode(
-                        qnode, submission, create=True)
+            verbs = []
 
-                importance = self.request_son.get('importance')
-                if importance is not None:
-                    if importance <= 0:
-                        self.request_son['importance'] = None
-                    elif importance > 5:
-                        self.request_son['importance'] = 5
-                urgency = self.request_son.get('urgency')
-                if urgency is not None:
-                    if urgency <= 0:
-                        self.request_son['urgency'] = None
-                    elif urgency > 5:
-                        self.request_son['urgency'] = 5
-                self._update(rnode, self.request_son)
-                if session.is_modified(rnode):
-                    verbs.append('update')
-                session.flush()
+            if not rnode:
+                qnode = (
+                    session.query(model.QuestionNode)
+                    .get((qnode_id, submission.program.id)))
+                if qnode is None:
+                    raise errors.MissingDocError("No such question node")
+                rnode = model.ResponseNode.from_qnode(
+                    qnode, submission, create=True)
 
-                if approval != '':
-                    yield self.set_approval(session, rnode, approval)
-                    verbs.append('state')
-                if relevance != '':
-                    yield self.set_relevance(session, rnode, relevance)
-                    verbs.append('update')
+            importance = self.request_son.get('importance')
+            if importance is not None:
+                if int(importance) <= 0:
+                    self.request_son['importance'] = None
+                elif int(importance) > 5:
+                    self.request_son['importance'] = 5
+            urgency = self.request_son.get('urgency')
+            if urgency is not None:
+                if int(urgency) <= 0:
+                    self.request_son['urgency'] = None
+                elif int(urgency) > 5:
+                    self.request_son['urgency'] = 5
+            self._update(rnode, self.request_son)
+            if session.is_modified(rnode):
+                verbs.append('update')
+            session.flush()
 
-                try:
-                    calculator = Calculator.scoring(submission)
-                    calculator.mark_qnode_dirty(rnode.qnode)
-                    calculator.execute()
-                except ResponseTypeError as e:
-                    raise errors.ModelError(str(e))
+            if approval:
+                policy.verify('submission_response_approval')
+                yield self.set_approval(
+                    session, rnode, approval, user_session)
+                verbs.append('state')
+            if relevance:
+                yield self.set_relevance(
+                    session, rnode, relevance, user_session)
+                verbs.append('update')
 
-                act = Activities(session)
-                act.record(self.current_user, rnode, verbs)
-                if not act.has_subscription(self.current_user, rnode):
-                    act.subscribe(self.current_user, rnode.submission)
-                    self.reason("Subscribed to submission")
+            try:
+                calculator = Calculator.scoring(submission)
+                calculator.mark_qnode_dirty(rnode.qnode)
+                calculator.execute()
+            except ResponseTypeError as e:
+                raise errors.ModelError(str(e))
 
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError.from_sa(e)
+            act = Activities(session)
+            act.record(user_session.user, rnode, verbs)
+            if not act.has_subscription(user_session.user, rnode):
+                act.subscribe(user_session.user, rnode.submission)
+                self.reason("Subscribed to submission")
+
         self.get(submission_id, qnode_id)
 
     @run_on_executor
-    def set_relevance(self, session, rnode, relevance):
+    def set_relevance(self, session, rnode, relevance, user_session):
         not_relevant = relevance == 'NOT_RELEVANT'
         if not_relevant:
             missing = self.get_argument('missing', '')
@@ -253,45 +283,39 @@ class ResponseNodeHandler(base_handler.BaseHandler):
         changed = failed = created = 0
 
         calculator = Calculator.scoring(submission)
-        for response, is_new in self.walk_responses(session, rnode, missing):
-            try:
-                crud.response.check_modify(self.current_user.role, response)
-            except (errors.AuthzError, errors.ModelError) as e:
-                err = ("Response %s: %s You might need to downgrade the "
-                    "response's approval status. You can use the bulk "
-                    "approval tool for this.".format(
-                        response.qnode_measure.get_path(), e))
-                if isinstance(e, errors.AuthzError):
-                    raise errors.AuthzError(err)
-                else:
-                    raise errors.ModelError(err)
+        for response, is_new in self.walk_responses(
+                session, rnode, missing, user_session.user):
+
             if not_relevant:
                 response.not_relevant = True
                 if is_new:
-                    # Try to set to current submission approval state, IF user
-                    # is allowed
-                    try:
-                        crud.response.check_approval_change(
-                            self.current_user.role, submission, submission.approval)
-                    except (errors.AuthzError, errors.ModelError) as e:
-                        err = ("Response %s: %s You might "
-                            "need to downgrade the submission's approval "
-                            "status.".format(
-                                response.qnode_measure.get_path(),
-                                e))
-                        if isinstance(e, errors.AuthzError):
-                            raise errors.AuthzError(err)
-                        else:
-                            raise errors.ModelError(err)
                     response.approval = submission.approval
-                    response.comment = "*Marked Not Relevant as a bulk action " \
-                        "(was previously empty)*"
+                    response.comment = (
+                        "*Marked Not Relevant as a bulk action "
+                        "(was previously empty)*")
                     created += 1
                 else:
                     changed += 1
             else:
                 response.not_relevant = False
                 changed += 1
+
+            policy = user_session.policy.derive({
+                'org': response.submission.organisation,
+                'submission': response.submission,
+                'approval': response.approval,
+                'index': APPROVAL_STATES.index,
+            })
+            try:
+                policy.verify('response_edit')
+            except errors.AuthzError as e:
+                err = (
+                    "Response %s: %s. You might need to downgrade the "
+                    "response's approval status. You can use the bulk "
+                    "approval tool for this.".format(
+                        response.qnode_measure.get_path(), e))
+                raise errors.AuthzError(err)
+
             calculator.mark_measure_dirty(response.qnode_measure)
 
         calculator.execute()
@@ -309,10 +333,7 @@ class ResponseNodeHandler(base_handler.BaseHandler):
             self.reason("No changes to relevance")
 
     @run_on_executor
-    def set_approval(self, session, rnode, approval):
-        crud.response.check_approval_change(
-            self.current_user.role, rnode.submission, approval)
-
+    def set_approval(self, session, rnode, approval, user_session):
         promote = self.get_arguments('promote')
         missing = self.get_argument('missing', '')
 
@@ -320,7 +341,9 @@ class ResponseNodeHandler(base_handler.BaseHandler):
         promoted = demoted = created = 0
 
         calculator = Calculator.scoring(submission)
-        for response, is_new in self.walk_responses(session, rnode, missing):
+        for response, is_new in self.walk_responses(
+                session, rnode, missing, user_session.user):
+
             if is_new:
                 response.not_relevant = True
                 response.approval = approval
@@ -328,8 +351,8 @@ class ResponseNodeHandler(base_handler.BaseHandler):
                     "process (was previously empty)*"
                 created += 1
             else:
-                i1 = crud.response.STATES.index(response.approval)
-                i2 = crud.response.STATES.index(approval)
+                i1 = APPROVAL_STATES.index(response.approval)
+                i2 = APPROVAL_STATES.index(approval)
                 if i1 < i2 and 'PROMOTE' in promote:
                     response.approval = approval
                     response.modified = func.now()
@@ -352,7 +375,7 @@ class ResponseNodeHandler(base_handler.BaseHandler):
         if created == promoted == demoted == 0:
             self.reason("No changes to approval status")
 
-    def walk_responses(self, session, rnode, missing):
+    def walk_responses(self, session, rnode, missing, user):
         for qnode_measure in rnode.qnode.ordered_qnode_measures:
             response = model.Response.from_measure(
                 qnode_measure, rnode.submission)
@@ -360,7 +383,7 @@ class ResponseNodeHandler(base_handler.BaseHandler):
                 if missing != 'CREATE':
                     continue
                 response = model.Response(
-                    user_id=self.current_user.id,
+                    user_id=user.id,
                     submission=rnode.submission,
                     qnode_measure=qnode_measure)
                 response.modified = func.now()
@@ -369,12 +392,6 @@ class ResponseNodeHandler(base_handler.BaseHandler):
             else:
                 created = False
             yield response, created
-
-    def _check_authz(self, submission):
-        if not self.has_privillege('consultant'):
-            if submission.organisation.id != self.organisation.id:
-                raise errors.AuthzError(
-                    "You can't view another organisation's response")
 
     def _update(self, rnode, son):
         '''

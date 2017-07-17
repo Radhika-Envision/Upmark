@@ -1,23 +1,19 @@
 from concurrent.futures import ThreadPoolExecutor
 import datetime
-import random
+import logging
 
 from tornado import gen
 from tornado.escape import json_encode
 import tornado.web
-import sqlalchemy
 from sqlalchemy.orm.session import make_transient
 
 from activity import Activities
 import base_handler
-import crud.program
 import errors
-import math_utils
 import model
-import logging
-
 from score import Calculator
 from utils import ToSon, truthy, updater
+from .approval import APPROVAL_STATES
 
 
 log = logging.getLogger('app.crud.submission')
@@ -35,18 +31,17 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
             return
 
         with model.session_scope() as session:
-            try:
-                submission = session.query(model.Submission)\
-                    .get(submission_id)
+            user_session = self.get_user_session(session)
 
-                if submission is None:
-                    raise ValueError("No such object")
-                if submission.organisation.id != self.organisation.id:
-                    self.check_privillege('author', 'consultant')
-            except (sqlalchemy.exc.StatementError,
-                    sqlalchemy.orm.exc.NoResultFound,
-                    ValueError):
+            submission = session.query(model.Submission).get(submission_id)
+
+            if not submission:
                 raise errors.MissingDocError("No such submission")
+
+            policy = user_session.policy.derive({
+                'org': submission.organisation,
+            })
+            policy.verify('submission_view')
 
             to_son = ToSon(
                 # Any
@@ -85,42 +80,54 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
         approval = self.get_argument('approval', '')
         tracking_id = self.get_argument('trackingId', '')
         deleted = self.get_argument('deleted', '')
-
         organisation_id = self.get_argument('organisationId', '')
-        if self.current_user.role in {'clerk', 'org_admin'}:
-            if organisation_id == '':
-                organisation_id = str(self.organisation.id)
-            elif organisation_id != str(self.organisation.id):
-                raise errors.AuthzError(
-                    "You can't view another organisation's submissions")
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+            if user_session.user.role in {'clerk', 'org_admin'}:
+                if not organisation_id:
+                    organisation_id = user_session.org.id
+
+            if organisation_id:
+                org = session.query(model.Organisation).get(organisation_id)
+            else:
+                org = None
+
+            policy = user_session.policy.derive({
+                'org': org,
+            })
+
+            if org:
+                policy.verify('submission_browse')
+            else:
+                policy.verify('submission_browse_any')
+
             query = session.query(model.Submission)
 
-            if term != '':
+            if term:
                 query = query.filter(
                     model.Submission.title.ilike(r'%{}%'.format(term)))
 
-            if program_id != '':
+            if program_id:
                 query = query.filter_by(program_id=program_id)
 
-            if survey_id != '':
+            if survey_id:
                 query = query.filter_by(survey_id=survey_id)
 
-            if approval != '':
+            if approval:
                 approval_set = self.approval_set(approval)
                 log.debug('Approval set: %s', approval_set)
                 query = query.filter(
                     model.Submission.approval.in_(approval_set))
 
-            if organisation_id != '':
+            if organisation_id:
                 query = query.filter_by(organisation_id=organisation_id)
 
-            if tracking_id != '':
+            if tracking_id:
                 query = query.join(model.Program)
                 query = query.filter(model.Program.tracking_id == tracking_id)
 
-            if deleted != '':
+            if deleted:
                 deleted = truthy(deleted)
                 query = query.filter(model.Submission.deleted == deleted)
 
@@ -152,78 +159,60 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
     @gen.coroutine
     def post(self, submission_id):
         '''Create new.'''
-        if submission_id != '':
+        if submission_id:
             raise errors.MethodError("Can't use POST for existing object")
 
         program_id = self.get_argument('programId', '')
-        if program_id == '':
+        if not program_id:
             raise errors.ModelError("Program ID is required")
 
         survey_id = self.get_argument('surveyId', '')
-        if survey_id == '':
+        if not survey_id:
             raise errors.ModelError("Survey ID is required")
 
         organisation_id = self.get_argument('organisationId', '')
-        if organisation_id == '':
+        if not organisation_id:
             raise errors.ModelError("Organisation ID is required")
 
         # Source submission ID
         duplicate_id = self.get_argument('duplicateId', '')
 
-        fill_random = truthy(self.get_argument('fillRandom', ''))
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
 
-        if organisation_id != str(self.organisation.id):
-            self.check_privillege('consultant')
+            org = session.query(model.Organisation).get(organisation_id)
+            if not org:
+                raise errors.ModelError("No such organisation")
 
-        try:
-            with model.session_scope() as session:
-                self._check_open(program_id, survey_id, organisation_id, session)
+            survey = session.query(model.Survey).get((survey_id, program_id))
+            if not survey:
+                raise errors.ModelError("No such survey")
 
-                submission = model.Submission(
-                    program_id=program_id, survey_id=survey_id,
-                    organisation_id=organisation_id, approval='draft')
-                self._update(submission, self.request_son)
-                session.add(submission)
-                session.flush()
-                submission_id = str(submission.id)
+            policy = user_session.policy.derive({
+                'org': org,
+                'survey': survey,
+            })
+            policy.verify('submission_add')
 
-                if duplicate_id != '':
-                    yield SubmissionHandler.executor.submit(
-                        self.duplicate, submission, duplicate_id, session)
+            submission = model.Submission(
+                program_id=program_id, survey_id=survey_id,
+                organisation_id=organisation_id, approval='draft')
+            self._update(submission, self.request_son)
+            session.add(submission)
+            session.flush()
+            submission_id = str(submission.id)
 
-                elif fill_random:
-                    self.check_privillege('author')
-                    yield SubmissionHandler.executor.submit(
-                        self.fill_random, submission, session)
+            if duplicate_id:
+                yield SubmissionHandler.executor.submit(
+                    self.duplicate, submission, duplicate_id, session)
 
-                act = Activities(session)
-                act.record(self.current_user, submission, ['create'])
-                if not act.has_subscription(self.current_user, submission):
-                    act.subscribe(self.current_user, submission.organisation)
-                    self.reason("Subscribed to organisation")
+            act = Activities(session)
+            act.record(self.current_user, submission, ['create'])
+            if not act.has_subscription(self.current_user, submission):
+                act.subscribe(self.current_user, submission.organisation)
+                self.reason("Subscribed to organisation")
 
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError.from_sa(e)
         self.get(submission_id)
-
-    def _check_open(self, program_id, survey_id, organisation_id, session):
-        survey = (session.query(model.Survey)
-            .get((survey_id, program_id)))
-        if not survey:
-            raise errors.ModelError("No such survey")
-        if survey.deleted:
-            raise errors.ModelError("That survey has been deleted")
-        if survey.program.deleted:
-            raise errors.ModelError("That program has been deleted")
-
-        purchased_survey = (session.query(model.PurchasedSurvey)
-            .filter_by(program_id=program_id,
-                       survey_id=survey_id,
-                       organisation_id=organisation_id)
-            .first())
-        if not purchased_survey:
-            raise errors.ModelError(
-                "Survey is not open: it needs to be purchased")
 
     def duplicate(self, submission, duplicate_id, session):
         s_submission = session.query(model.Submission).get(duplicate_id)
@@ -231,24 +220,26 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
             raise errors.MissingDocError(
                 "Source submission (for duplication) not found")
 
-        if str(s_submission.organisation_id) != str(submission.organisation_id):
+        s_org_id = str(s_submission.organisation_id)
+        org_id = str(submission.organisation_id)
+        if s_org_id != org_id:
             raise errors.ModelError(
                 "Can't duplicate a submission across two organisations: "
                 "'%s' and '%s'" % (
                     s_submission.organisation.name,
                     submission.organisation.name))
 
-        survey_id = str(submission.survey.id)
         measure_ids = {
             str(qm.measure_id)
             for qm in submission.survey.ordered_qnode_measures}
 
-        qnode_ids = {str(q.id) for q in  submission.survey.ordered_qnodes}
+        qnode_ids = {str(q.id) for q in submission.survey.ordered_qnodes}
 
-        s_rnodes = (session.query(model.ResponseNode)
-                .filter_by(submission_id=s_submission.id)
-                .filter(model.ResponseNode.qnode_id.in_(qnode_ids))
-                .all())
+        s_rnodes = (
+            session.query(model.ResponseNode)
+            .filter_by(submission_id=s_submission.id)
+            .filter(model.ResponseNode.qnode_id.in_(qnode_ids))
+            .all())
 
         for rnode in s_rnodes:
             if str(rnode.qnode_id) not in qnode_ids:
@@ -306,37 +297,6 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
         calculator.mark_entire_survey_dirty(submission.survey)
         calculator.execute()
 
-    def fill_random(self, submission, session):
-        '''
-        Fill the rnodes with random scores for testing purposes.
-        '''
-
-        def new_bias(bias, hold=0.8):
-            return math_utils.lerp(random.random(), bias, hold)
-
-        def visit_qnode(qnode, bias):
-            rnode = model.ResponseNode.from_qnode(qnode, submission)
-            if not rnode:
-                rnode = model.ResponseNode(
-                    program=submission.program, submission=submission,
-                    qnode=qnode)
-                session.add(rnode)
-            score = 0
-            for child in qnode.children:
-                score += visit_qnode(child, new_bias(bias))
-            for qnode_measure in qnode.qnode_measures:
-                score += new_bias(bias) * qnode_measure.measure.weight
-            rnode.score = score
-            return score
-
-        user = session.query(model.AppUser).get(str(self.current_user.id))
-
-        for i, qnode in enumerate(submission.survey.qnodes):
-            random.seed(i)
-            bias = random.random()
-            random.seed()
-            visit_qnode(qnode, new_bias(bias, hold=0.2))
-
     @tornado.web.authenticated
     def put(self, submission_id):
         '''Update existing.'''
@@ -345,36 +305,39 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
 
         approval = self.get_argument('approval', '')
 
-        try:
-            with model.session_scope() as session:
-                submission = session.query(model.Submission)\
-                    .get(submission_id)
-                if submission is None:
-                    raise errors.ModelError("No such submission")
-                self._check_modify(submission)
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
 
-                verbs = []
-                if approval != '':
-                    self._check_approval(session, submission, approval)
-                    if approval != submission.approval:
-                        verbs.append('state')
-                    self._set_approval(submission, approval)
-                self._update(submission, self.request_son)
-                if session.is_modified(submission):
-                    verbs.append('update')
+            submission = session.query(model.Submission).get(submission_id)
+            if not submission:
+                raise errors.MissingDocError("No such submission")
 
-                if submission.deleted:
-                    submission.deleted = False
-                    verbs.append('undelete')
+            policy = user_session.policy.derive({
+                'org': submission.organisation,
+                'approval': approval,
+            })
+            policy.verify('submission_edit')
 
-                act = Activities(session)
-                act.record(self.current_user, submission, verbs)
-                if not act.has_subscription(self.current_user, submission):
-                    act.subscribe(self.current_user, submission.organisation)
-                    self.reason("Subscribed to organisation")
+            verbs = []
+            if approval:
+                self.check_approval(session, submission, approval)
+                if approval != submission.approval:
+                    verbs.append('state')
+                submission.approval = approval
+            self._update(submission, self.request_son)
+            if session.is_modified(submission):
+                verbs.append('update')
 
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError.from_sa(e)
+            if submission.deleted:
+                submission.deleted = False
+                verbs.append('undelete')
+
+            act = Activities(session)
+            act.record(self.current_user, submission, verbs)
+            if not act.has_subscription(self.current_user, submission):
+                act.subscribe(self.current_user, submission.organisation)
+                self.reason("Subscribed to organisation")
+
         self.get(submission_id)
 
     @tornado.web.authenticated
@@ -382,53 +345,47 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
         if submission_id == '':
             raise errors.MethodError("Submission ID required")
 
-        try:
-            with model.session_scope() as session:
-                submission = session.query(model.Submission)\
-                    .get(submission_id)
-                if submission is None:
-                    raise errors.ModelError("No such submission")
-                self._check_delete(submission)
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
 
-                act = Activities(session)
-                if not submission.deleted:
-                    act.record(self.current_user, submission, ['delete'])
-                if not act.has_subscription(self.current_user, submission):
-                    act.subscribe(self.current_user, submission.organisation)
-                    self.reason("Subscribed to organisation")
+            submission = session.query(model.Submission)\
+                .get(submission_id)
+            if not submission:
+                raise errors.MissingDocError("No such submission")
 
-                submission.deleted = True
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError("This submission is in use")
-        except (sqlalchemy.exc.StatementError, ValueError):
-            raise errors.MissingDocError("No such submission")
+            policy = user_session.policy.derive({
+                'org': submission.organisation,
+            })
+            policy.verify('submission_del')
+
+            act = Activities(session)
+            if not submission.deleted:
+                act.record(self.current_user, submission, ['delete'])
+            if not act.has_subscription(self.current_user, submission):
+                act.subscribe(self.current_user, submission.organisation)
+                self.reason("Subscribed to organisation")
+
+            submission.deleted = True
 
         self.finish()
 
-    def _check_delete(self, submission):
-        if submission.organisation.id != self.organisation.id:
-            self.check_privillege('admin')
-
-    def _check_modify(self, submission):
-        if submission.organisation.id != self.organisation.id:
-            self.check_privillege('consultant')
-
-    def _check_approval(self, session, submission, approval):
+    def check_approval(self, session, submission, approval):
         approval_set = self.approval_set(approval)
 
-        n_relevant_responses = (session.query(model.Response)
-                 .filter(model.Response.submission_id == submission.id,
-                         model.Response.approval.in_(approval_set))
-                 .count())
-        n_measures = (session.query(model.QnodeMeasure.measure_id)
-                .join(model.QuestionNode)
-                .filter(model.QuestionNode.survey_id ==
-                            submission.survey_id,
-                        model.QuestionNode.program_id == submission.program_id,
-                        model.QnodeMeasure.program_id == submission.program_id,
-                        model.QnodeMeasure.qnode_id == model.QuestionNode.id)
-                .distinct()
-                .count())
+        n_relevant_responses = (
+            session.query(model.Response)
+            .filter(model.Response.submission_id == submission.id,
+                    model.Response.approval.in_(approval_set))
+            .count())
+        n_measures = (
+            session.query(model.QnodeMeasure.measure_id)
+            .join(model.QuestionNode)
+            .filter(model.QuestionNode.survey_id == submission.survey_id,
+                    model.QuestionNode.program_id == submission.program_id,
+                    model.QnodeMeasure.program_id == submission.program_id,
+                    model.QnodeMeasure.qnode_id == model.QuestionNode.id)
+            .distinct()
+            .count())
 
         if n_relevant_responses < n_measures:
             raise errors.ModelError(
@@ -436,24 +393,7 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
                 (n_measures - n_relevant_responses, n_measures))
 
     def approval_set(self, minimum):
-        order = ['draft', 'final', 'reviewed', 'approved']
-        return order[order.index(minimum):]
-
-    def _set_approval(self, submission, approval):
-        if self.current_user.role == 'org_admin':
-            if approval not in {'draft', 'final'}:
-                raise errors.AuthzError(
-                    "You can't mark this submission as %s." % approval)
-        elif self.current_user.role == 'consultant':
-            if approval not in {'draft', 'final', 'reviewed'}:
-                raise errors.AuthzError(
-                    "You can't mark this submission as %s." % approval)
-        elif self.has_privillege('authority'):
-            pass
-        else:
-            raise errors.AuthzError(
-                "You can't mark this submission as %s." % approval)
-        submission.approval = approval
+        return APPROVAL_STATES[APPROVAL_STATES.index(minimum):]
 
     def _update(self, submission, son):
         update = updater(submission, error_factory=errors.ModelError)

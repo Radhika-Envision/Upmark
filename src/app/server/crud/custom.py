@@ -4,7 +4,6 @@ from tornado.escape import json_encode
 import tornado.web
 
 from activity import Activities
-import auth
 import base_handler
 import errors
 import model
@@ -12,13 +11,12 @@ from utils import ToSon, truthy, updater
 
 
 class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
+
     @tornado.web.authenticated
     def get(self, query_id):
         if not query_id:
             self.query()
             return
-
-        self._check_authz()
 
         version = self.get_argument('version', '')
 
@@ -26,6 +24,10 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             custom_query = session.query(model.CustomQuery).get(query_id)
             if custom_query is None:
                 raise errors.MissingDocError("No such query")
+
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({'custom_query': custom_query})
+            policy.verify('custom_query_view')
 
             old_version = self.get_version(session, custom_query, version)
 
@@ -36,7 +38,7 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
                 r'/latest_modified$',
                 r'/user$',
                 r'/title$',
-                r'/description$',
+                r'</description$',
                 r'/name$',
                 r'/text$',
                 r'/version$',
@@ -72,7 +74,8 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
         if version == custom_query.version:
             return None
 
-        history = (session.query(model.CustomQueryHistory)
+        history = (
+            session.query(model.CustomQueryHistory)
             .get((custom_query.id, version)))
 
         if history is None:
@@ -80,9 +83,11 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
         return history
 
     def query(self):
-        self._check_authz()
-
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({})
+            policy.verify('custom_query_browse')
+
             query = session.query(model.CustomQuery)
 
             term = self.get_argument('term', None)
@@ -126,21 +131,25 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def post(self, query_id):
-        self._check_authz()
         if query_id:
             raise errors.MethodError("Can't use POST for existing query.")
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             custom_query = model.CustomQuery()
             self.update(custom_query, self.request_son)
-            self.update_auto(custom_query)
+            self.update_auto(custom_query, user_session.user)
             session.add(custom_query)
+
+            policy = user_session.policy.derive({'custom_query': custom_query})
+            policy.verify('custom_query_add')
 
             session.flush()
             act = Activities(session)
-            act.record(self.current_user, custom_query, ['create'])
-            if not act.has_subscription(self.current_user, custom_query):
-                act.subscribe(self.current_user, custom_query)
+            act.record(user_session.user, custom_query, ['create'])
+            if not act.has_subscription(user_session.user, custom_query):
+                act.subscribe(user_session.user, custom_query)
                 self.reason("Subscribed to query")
 
             query_id = str(custom_query.id)
@@ -149,7 +158,6 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def put(self, query_id):
-        self._check_authz()
         if not query_id:
             raise errors.MethodError("Can't use PUT for new query.")
 
@@ -158,8 +166,13 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             if custom_query is None:
                 raise errors.MissingDocError("No such query")
 
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({'custom_query': custom_query})
+            policy.verify('custom_query_edit')
+
             self.check_concurrent_write(custom_query)
-            if not self.should_save_new_version(custom_query):
+            if not self.should_save_new_version(
+                    custom_query, user_session.user):
                 custom_query.version_on_update = False
 
             self.update(custom_query, self.request_son)
@@ -167,7 +180,7 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             verbs = []
             if session.is_modified(custom_query):
                 verbs.append('update')
-                self.update_auto(custom_query)
+                self.update_auto(custom_query, user_session.user)
             else:
                 custom_query.version_on_update = False
 
@@ -177,9 +190,9 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             session.flush()
             act = Activities(session)
-            act.record(self.current_user, custom_query, verbs)
-            if not act.has_subscription(self.current_user, custom_query):
-                act.subscribe(self.current_user, custom_query)
+            act.record(user_session.user, custom_query, verbs)
+            if not act.has_subscription(user_session.user, custom_query):
+                act.subscribe(user_session.user, custom_query)
                 self.reason("Subscribed to query")
 
             query_id = str(custom_query.id)
@@ -196,15 +209,14 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
                 " page. Please copy or remember your changes and"
                 " refresh the page.")
 
-    def should_save_new_version(self, custom_query):
-        same_user = custom_query.user.id == self.current_user.id
+    def should_save_new_version(self, custom_query, user):
+        same_user = custom_query.user.id == user.id
         td = datetime.datetime.utcnow() - custom_query.modified
         hours_since_update = td.total_seconds() / 60 / 60
         return not same_user or hours_since_update >= 8
 
-    @auth.authz('admin')
+    @tornado.web.authenticated
     def delete(self, query_id):
-        self._check_authz()
         if not query_id:
             raise errors.MethodError("Query ID required")
 
@@ -213,11 +225,15 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             if custom_query is None:
                 raise errors.MissingDocError("No such query")
 
+            user_session = self.get_user_session(session)
+            policy = user_session.policy.derive({'custom_query': custom_query})
+            policy.verify('custom_query_del')
+
             act = Activities(session)
             if not custom_query.deleted:
-                act.record(self.current_user, custom_query, ['delete'])
-            if not act.has_subscription(self.current_user, custom_query):
-                act.subscribe(self.current_user, custom_query)
+                act.record(user_session.user, custom_query, ['delete'])
+            if not act.has_subscription(user_session.user, custom_query):
+                act.subscribe(user_session.user, custom_query)
                 self.reason("Subscribed to query")
 
             custom_query.deleted = True
@@ -230,40 +246,40 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
         update('text', son)
         update('description', son, sanitise=True)
 
-    def update_auto(self, custom_query):
+    def update_auto(self, custom_query, user):
         extras = {
             'modified': datetime.datetime.utcnow(),
-            'user_id': str(self.current_user.id),
+            'user_id': str(user.id),
         }
         update = updater(custom_query)
         update('modified', extras)
         update('user_id', extras)
 
-    def _check_authz(self):
-        if not self.has_privillege('admin'):
-            raise errors.AuthzError("You can't use custom queries")
 
+class CustomQueryHistoryHandler(
+        base_handler.Paginate, base_handler.BaseHandler):
 
-class CustomQueryHistoryHandler(base_handler.Paginate, base_handler.BaseHandler):
     @tornado.web.authenticated
     def get(self, custom_query_id):
         '''Get a list of versions of a response.'''
         with model.session_scope() as session:
             # Current version
-            versions = (session.query(model.CustomQuery)
+            versions = (
+                session.query(model.CustomQuery)
                 .filter_by(id=custom_query_id)
                 .all())
 
             # Other versions
-            query = (session.query(model.CustomQueryHistory)
+            query = (
+                session.query(model.CustomQueryHistory)
                 .filter_by(id=custom_query_id)
                 .order_by(model.CustomQueryHistory.version.desc()))
             query = self.paginate(query)
 
             versions += query.all()
 
-            # Important! If you're going to include the comment field here, make
-            # sure it is cleaned first to prevent XSS attacks.
+            # Important! If you're going to include the description field here,
+            # make sure it is cleaned first to prevent XSS attacks.
             to_son = ToSon(
                 r'/id$',
                 r'/name$',

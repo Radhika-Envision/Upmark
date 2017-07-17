@@ -5,17 +5,17 @@ import inspect
 import logging
 import os
 import re
-import time
 import uuid
 import yaml
 
-from bunch import Bunch
+from munch import DefaultMunch, unmunchify
 import sqlalchemy
-from sqlalchemy.orm import joinedload
+from sqlalchemy import JSON
 from sqlalchemy.engine.result import RowProxy
 
 import errors
 import model
+from undefined import undefined
 
 
 log = logging.getLogger('app.utils')
@@ -34,7 +34,8 @@ def get_config(file_name):
 
 def truthy(value):
     '''
-    @return True if the value is a string like 'True' (etc), or the boolean True
+    @return True if the value is a string like 'True' (etc), or the boolean
+        True
     '''
     if isinstance(value, bool):
         return value
@@ -86,8 +87,8 @@ class ToSon:
         Unsafe fields can be sanitised (HTML) by prefixing with '<':
             - Include and sanitise 'description' field: r'</description$'
 
-        Prefix with a '\' if you want to use one of the other special characters
-        at the start of the expression.
+        Prefix with a '\' if you want to use one of the other special
+        characters at the start of the expression.
         '''
         for expression in expressions:
             if expression.startswith('<'):
@@ -115,7 +116,7 @@ class ToSon:
         if isinstance(value, model.Base):
             names = dir(value)
 
-            son = Bunch()
+            son = DefaultMunch(undefined)
             for name in names:
                 if not self.can_emit(name, path):
                     continue
@@ -138,7 +139,7 @@ class ToSon:
         elif (hasattr(value, '__getitem__') and hasattr(value, 'keys') and
               hasattr(value, 'values') and not isinstance(value, RowProxy)):
             # Dictionaries
-            son = Bunch()
+            son = DefaultMunch(undefined)
             for name in value.keys():
                 if not self.can_emit(name, path):
                     continue
@@ -159,7 +160,8 @@ class ToSon:
         else:
             son = value
 
-        if isinstance(son, str) and any(s.search(path) for s in self._sanitise):
+        if (isinstance(son, str) and
+                any(s.search(path) for s in self._sanitise)):
             son = bleach.clean(son, strip=True)
 
         self.visited.pop()
@@ -198,15 +200,17 @@ def to_snake_case(name):
 
 def denormalise(value):
     '''
-    Convert the keys of a JSON-like object to Python form (snake case).
+    Recursively convert the keys of a JSON-like object to Python form (snake
+    case).
     '''
     pattern = re.compile(r'([^A-Z])([A-Z])')
 
     if isinstance(value, str):
         return value
     elif hasattr(value, '__getitem__') and hasattr(value, 'items'):
-        return Bunch((pattern.sub(r'\1_\2', k).lower(), denormalise(v))
-                for k, v in value.items())
+        return DefaultMunch(undefined, (
+            (pattern.sub(r'\1_\2', k).lower(), denormalise(v))
+            for k, v in value.items()))
     elif hasattr(value, '__getitem__') and hasattr(value, '__iter__'):
         return [denormalise(v) for v in value]
     else:
@@ -225,6 +229,7 @@ class updater:
 
     def __init__(self, model, on_absent=SKIP, error_factory=ValueError):
         self.model = model
+        self.inspector = sqlalchemy.inspect(type(model))
         self.on_absent = on_absent
         self.error_factory = error_factory
 
@@ -245,6 +250,7 @@ class updater:
         else:
             value = current_value
 
+        value = self.coerce(name, value)
         self.validate(name, value)
 
         if isinstance(current_value, uuid.UUID):
@@ -258,14 +264,21 @@ class updater:
         log.debug('Setting %s: %s -> %s', name, current_value, value)
         setattr(self.model, name, value)
 
+    def coerce(self, name, value):
+        column = self.inspector.columns[name]
+        if isinstance(column.type, JSON):
+            # DefaultMunch objects confuse SQLAlchemy, because it uses
+            # `hasattr` to check for magic values.
+            return unmunchify(value)
+        return value
+
     def validate(self, name, value):
         if value is not None:
             return
 
-        column = getattr(self.model.__class__, name)
+        column = self.inspector.columns[name]
         if not column.nullable:
-            insp = sqlalchemy.inspect(self.model)
-            if insp.persistent:
+            if sqlalchemy.inspect(self.model).persistent:
                 # For persistent objects, column.default is not used.
                 raise self.error_factory("'%s' is empty" % name)
             elif column.default is None:

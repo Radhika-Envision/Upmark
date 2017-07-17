@@ -1,124 +1,127 @@
-web:
-  build: ./src/app/
-  ports:
-   - "8000:8000"
-  env_file:
-   - ../aq_conf/aq.conf
-  environment:
-    HISTFILE: /root/scratch/bash_history
-    XDG_CONFIG_HOME: /root/scratch
-    TERM: xterm-color
-  volumes:
-   - ./src/app:/usr/share/aquamark/app
-   - ./scratch:/root/scratch
-  links:
-   - postgres:postgres
-  restart: always
+version: '2.0'
 
-webssl:
-  build: ./src/app/
-  ports:
-   - "443:8000"
-  env_file:
-   - ../aq_conf/aq.conf
-  volumes:
-   - ./src/app:/usr/share/aquamark/app
-   - ../aq_conf:/usr/share/aquamark/app/config
-  links:
-   - postgres
-   - redirect
-  restart: always
+services:
+  web:
+    build: ./src/app/
+    ports:
+     - "8000:8000"
+    env_file:
+     - ../aq_conf/aq.conf
+    environment:
+      HISTFILE: /root/scratch/bash_history
+      XDG_CONFIG_HOME: /root/scratch
+      TERM: xterm-color
+    volumes:
+     - ./src/app:/usr/share/aquamark/app
+     - ./scratch:/root/scratch
+    links:
+     - postgres:postgres
+    restart: always
 
-recalc:
-  build: ./src/app/
-  env_file:
-    - ../aq_conf/aq.conf
-  volumes:
-    - ../aq_conf:/usr/share/aquamark/app/config
-  links:
-    - postgres:postgres
-  command: ['python3', './server/recalculate.py']
+  webssl:
+    build: ./src/app/
+    ports:
+     - "443:8000"
+    env_file:
+     - ../aq_conf/aq.conf
+    volumes:
+     - ./src/app:/usr/share/aquamark/app
+     - ../aq_conf:/usr/share/aquamark/app/config
+    links:
+     - postgres
+     - redirect
+    restart: always
 
-notify:
-  build: ./src/app/
-  env_file:
-    - ../aq_conf/aq.conf
-  volumes:
-    - ../aq_conf:/usr/share/aquamark/app/config
-  links:
-    - postgres:postgres
-  command: ['python3', './server/notifications.py']
+  recalc:
+    build: ./src/app/
+    env_file:
+      - ../aq_conf/aq.conf
+    volumes:
+      - ../aq_conf:/usr/share/aquamark/app/config
+    links:
+      - postgres:postgres
+    command: ['python3', './server/recalculate.py']
 
-redirect:
-  image: geldim/https-redirect
-  ports:
-   - 80:80
-  restart: always
+  notify:
+    build: ./src/app/
+    env_file:
+      - ../aq_conf/aq.conf
+    volumes:
+      - ../aq_conf:/usr/share/aquamark/app/config
+    links:
+      - postgres:postgres
+    command: ['python3', './server/notifications.py']
 
-test:
-  build: ./src/app/
-  environment:
-    HISTFILE: /root/scratch/bash_history
-    XDG_CONFIG_HOME: /root/scratch
-    TERM: xterm-color
-  volumes:
-   - ./src/app:/usr/share/aquamark/app
-   - ./scratch:/root/scratch
-  links:
-   - postgresTest:postgres
-  working_dir: /usr/share/aquamark/app/test-server
-  entrypoint: ['python3', '-m', 'unittest']
-  command: ['discover']
+  redirect:
+    image: geldim/https-redirect
+    ports:
+     - 80:80
+    restart: always
 
-postgres:
-  image: postgres:9
-  environment:
-    POSTGRES_PASSWORD: postgres
-  restart: always
+  test:
+    build: ./src/app/
+    environment:
+      HISTFILE: /root/scratch/bash_history
+      XDG_CONFIG_HOME: /root/scratch
+      TERM: xterm-color
+    volumes:
+     - ./src/app:/usr/share/aquamark/app
+     - ./scratch:/root/scratch
+    links:
+     - postgres-test:postgres
+    working_dir: /usr/share/aquamark/app/test-server
+    entrypoint: ['python3', '-m', 'unittest']
+    command: ['discover']
 
-dbadmin:
-  image: postgres:9
-  links:
-    - postgres
-  environment:
-    PGHOST: postgres
-    PGUSER: postgres
-    PGDATABASE: postgres
-    PGPASSWORD: postgres
-    PSQLRC: /root/scratch/psqlrc
-    PSQL_HISTORY: /root/scratch/psql_history
-    HISTFILE: /root/scratch/bash_history
-    XDG_CONFIG_HOME: /root/scratch
-    TERM: xterm-color
-  volumes:
-    - ../backup:/backup
-    - ./scratch:/root/scratch
-  working_dir: /backup
-  command: ['psql']
+  postgres:
+    image: postgres:9
+    environment:
+      POSTGRES_PASSWORD: postgres
+    restart: always
 
-dbadmin-test:
-  image: postgres:9
-  links:
-    - postgresTest:postgres
-  environment:
-    PGHOST: postgres
-    PGUSER: postgres
-    PGDATABASE: postgres
-    PGPASSWORD: postgres
-    PSQLRC: /root/scratch/psqlrc
-    PSQL_HISTORY: /root/scratch/psql_history
-    HISTFILE: /root/scratch/bash_history
-    XDG_CONFIG_HOME: /root/scratch
-    TERM: xterm-color
-  volumes:
-    - ../backup:/backup
-    - ./scratch:/root/scratch
-  working_dir: /backup
-  command: ['psql']
+  dbadmin:
+    image: postgres:9
+    links:
+      - postgres
+    environment:
+      PGHOST: postgres
+      PGUSER: postgres
+      PGDATABASE: postgres
+      PGPASSWORD: postgres
+      PSQLRC: /root/scratch/psqlrc
+      PSQL_HISTORY: /root/scratch/psql_history
+      HISTFILE: /root/scratch/bash_history
+      XDG_CONFIG_HOME: /root/scratch
+      TERM: xterm-color
+    volumes:
+      - ../backup:/backup
+      - ./scratch:/root/scratch
+    working_dir: /backup
+    command: ['psql']
 
-postgresTest:
-  image: postgres:9
-  volumes:
-   - .testdb:/var/lib/postgresql/data
-  environment:
-    POSTGRES_PASSWORD: postgres
+  dbadmin-test:
+    image: postgres:9
+    links:
+      - postgres-test:postgres
+    environment:
+      PGHOST: postgres
+      PGUSER: postgres
+      PGDATABASE: postgres
+      PGPASSWORD: postgres
+      PSQLRC: /root/scratch/psqlrc
+      PSQL_HISTORY: /root/scratch/psql_history
+      HISTFILE: /root/scratch/bash_history
+      XDG_CONFIG_HOME: /root/scratch
+      TERM: xterm-color
+    volumes:
+      - ../backup:/backup
+      - ./scratch:/root/scratch
+    working_dir: /backup
+    command: ['psql']
+
+  postgres-test:
+    image: postgres:9
+    tmpfs:
+     - /var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: postgres

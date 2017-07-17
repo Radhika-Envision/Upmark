@@ -78,10 +78,12 @@
         - /js/response-type.js
         - /js/statistics.js
         - /js/subscription.js
-        - /js/submission.js
         - /js/submission/approval.js
+        - /js/submission/export.js
+        - /js/submission/header.js
         - /js/submission/response.js
         - /js/submission/rnode.js
+        - /js/submission/select.js
         - /js/submission/submission.js
         - /js/survey.js
         - /js/survey/history.js

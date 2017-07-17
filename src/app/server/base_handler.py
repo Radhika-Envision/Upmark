@@ -1,91 +1,100 @@
 import logging
 from math import ceil
-import os
 import re
 
-import sqlalchemy
+from expiringdict import ExpiringDict
+from sqlalchemy.orm import joinedload
 from tornado.escape import json_decode
 import tornado.options
 import tornado.web
 
 import errors
 import model
+from session import UserSession
 from utils import denormalise, truthy
 
 log = logging.getLogger('app.base_handler')
 
 
+cache = ExpiringDict(max_len=100, max_age_seconds=10)
+
+
 class BaseHandler(tornado.web.RequestHandler):
+
+    root_policy = None
 
     def prepare(self):
         if (truthy(tornado.options.options.force_https) and
-            'X-Forwarded-Proto' in self.request.headers and
-            self.request.headers['X-Forwarded-Proto'] != 'https'):
-            self.redirect(re.sub(r'^([^:]+)', 'https', self.request.full_url()))
-
-    def get_current_user(self):
-        # Cached value is available in current_user property.
-        # http://tornado.readthedocs.org/en/latest/web.html#tornado.web.RequestHandler.current_user
-        uid = self.get_secure_cookie('user')
-        if uid is None:
-            return None
-        uid = uid.decode('utf8')
-        with model.session_scope() as session:
-            try:
-                user = session.query(model.AppUser).get(uid)
-                if user is None:
-                    return None
-                if user.deleted:
-                    superuser = self.get_secure_cookie('superuser')
-                    if superuser is None:
-                        return None
-            except sqlalchemy.exc.StatementError:
-                return None
-            session.expunge(user)
-            return user
-
-    def has_privillege(self, *roles):
-        return model.has_privillege(self.current_user.role, *roles)
-
-    def check_privillege(self, *roles):
-        if not self.has_privillege(*roles):
-            raise errors.AuthzError()
-
-    def check_browse_program(self, session, program_id, survey_id):
-        if self.has_privillege('consultant', 'author'):
+                'X-Forwarded-Proto' in self.request.headers and
+                self.request.headers['X-Forwarded-Proto'] != 'https'):
+            self.redirect(
+                re.sub(r'^([^:]+)', 'https', self.request.full_url()))
             return
 
-        n_purchased_surveys = (session.query(model.PurchasedSurvey)
-            .filter_by(program_id=program_id,
-                       survey_id=survey_id,
-                       organisation_id=self.current_user.organisation_id)
-            .count())
-
-        if n_purchased_surveys == 0:
-            raise errors.AuthzError("This survey has not been purchased yet")
-
-    @property
-    def organisation(self):
-        if self.current_user is None or self.current_user.organisation_id is None:
+    def get_current_user(self):
+        user_id = self.get_secure_cookie('user')
+        if not user_id:
             return None
+        user_id = user_id.decode('utf8')
         with model.session_scope() as session:
-            organisation = session.query(model.Organisation).\
-                get(self.current_user.organisation_id)
-            session.expunge(organisation)
-            return organisation
+            user = session.query(model.AppUser).get(user_id)
+            if not user:
+                return None
+            session.expunge(user)
+        return user
+
+    def get_user_session(self, db_session):
+        user_id = self.get_secure_cookie('user')
+        if not user_id:
+            return None
+
+        superuser_id = self.get_secure_cookie('superuser')
+        if superuser_id:
+            superuser_id = superuser_id.decode('utf8')
+            superuser = (
+                db_session.query(model.AppUser)
+                .join(model.Organisation)
+                .filter(model.AppUser.id == superuser_id)
+                .filter(~model.AppUser.deleted)
+                .filter(~model.Organisation.deleted)
+                .first())
+            if not superuser:
+                return None
+        else:
+            superuser = None
+
+        user_id = user_id.decode('utf8')
+        query = (
+            db_session.query(model.AppUser)
+            .options(joinedload('organisation'))
+            .join(model.Organisation)
+            .filter(model.AppUser.id == user_id))
+        if not superuser:
+            # Only superusers can log in as deleted users (for impersonation
+            # purposes).
+            query = (
+                query
+                .filter(~model.AppUser.deleted)
+                .filter(~model.Organisation.deleted))
+        user = query.first()
+        if not user:
+            return None
+
+        return UserSession(user, superuser)
 
     @property
     def request_son(self):
         try:
             return self._request_son
         except AttributeError:
-            try:
-                self._request_son = denormalise(json_decode(self.request.body))
-            except (TypeError, UnicodeError, ValueError) as e:
-                raise errors.ModelError(
-                    "Could not decode request body: %s. Body started with %s" %
-                    (str(e), self.request.body[0:30]))
-            return self._request_son
+            pass
+        try:
+            self._request_son = denormalise(json_decode(self.request.body))
+        except (TypeError, UnicodeError, ValueError) as e:
+            raise errors.ModelError(
+                "Could not decode request body: %s. Body started with %s" %
+                (str(e), self.request.body[0:30]))
+        return self._request_son
 
     # Expression to remove invalid characters from headers. Without this,
     # requests may silently fail to be serviced.
@@ -104,8 +113,8 @@ class BaseHandler(tornado.web.RequestHandler):
         self.add_header("Operation-Details", message)
 
     def log_exception(self, typ, value, tb):
-        # Print stack trace for InternalModelErrors, since they are very similar
-        # to uncaught errors.
+        # Print stack trace for InternalModelErrors, since they are very
+        # similar to uncaught errors.
         if isinstance(value, errors.InternalModelError):
             log.error(
                 "Partially-handled, unexpected error: %s\n%r",

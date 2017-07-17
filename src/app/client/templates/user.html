@@ -6,7 +6,7 @@
             ng-if="!edit.model && checkRole('user_del')"></delete-button>
         <button class="btn btn-default btn-round" title="Impersonate"
                 ng-click="impersonate()"
-                ng-if="checkRole('user_impersonate')">
+                ng-if="!edit.model && checkRole('user_impersonate')">
             <i class="fa fa-paw"></i></button>
         <button class="btn btn-default btn-round" title="Cancel"
                 ng-click="edit.cancel()"

@@ -2,15 +2,12 @@ import logging
 
 from tornado.escape import json_decode, json_encode
 import tornado.web
-import sqlalchemy
 from sqlalchemy.dialects.postgresql import array
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import literal
 
 from activity import Activities
-import auth
 import base_handler
-import crud
 import errors
 import model
 from score import Calculator
@@ -20,29 +17,28 @@ from utils import reorder, ToSon, truthy, updater
 log = logging.getLogger('app.crud.qnode')
 
 
-class QuestionNodeHandler(
-        base_handler.Paginate, crud.program.ProgramCentric, base_handler.BaseHandler):
+class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, qnode_id):
-        if qnode_id == '':
+        if not qnode_id:
             self.query()
             return
 
-        with model.session_scope() as session:
-            try:
-                qnode = session.query(model.QuestionNode)\
-                    .get((qnode_id, self.program_id))
+        program_id = self.get_argument('programId', '')
 
-                if qnode is None:
-                    raise ValueError("No such object")
-            except (sqlalchemy.exc.StatementError,
-                    sqlalchemy.orm.exc.NoResultFound,
-                    ValueError):
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+            qnode = (
+                session.query(model.QuestionNode)
+                .get((qnode_id, program_id)))
+            if not qnode:
                 raise errors.MissingDocError("No such category")
 
-            self.check_browse_program(session, self.program_id,
-                                     qnode.survey_id)
+            policy = user_session.policy.derive({
+                'survey': qnode.survey,
+            })
+            policy.verify('qnode_view')
 
             to_son = ToSon(
                 # Fields to match from any visited object
@@ -68,21 +64,24 @@ class QuestionNodeHandler(
                 # Response types needed here when creating a new measure
                 r'/response_types.*$',
             )
-            if self.current_user.role == 'clerk':
+            if user_session.user.role == 'clerk':
                 to_son.exclude(r'/total_weight$')
             son = to_son(qnode)
 
-            sibling_query = (session.query(model.QuestionNode)
+            sibling_query = (
+                session.query(model.QuestionNode)
                 .filter(model.QuestionNode.program_id == qnode.program_id,
                         model.QuestionNode.survey_id == qnode.survey_id,
                         model.QuestionNode.parent_id == qnode.parent_id,
                         model.QuestionNode.deleted == False))
 
-            prev = (sibling_query
+            prev = (
+                sibling_query
                 .filter(model.QuestionNode.seq < qnode.seq)
                 .order_by(model.QuestionNode.seq.desc())
                 .first())
-            next_ = (sibling_query
+            next_ = (
+                sibling_query
                 .filter(model.QuestionNode.seq > qnode.seq)
                 .order_by(model.QuestionNode.seq)
                 .first())
@@ -99,10 +98,11 @@ class QuestionNodeHandler(
     def query(self):
         '''Get list.'''
         level = self.get_argument('level', '')
-        if level != '':
+        if level:
             self.query_by_level(level)
             return
 
+        program_id = self.get_argument('programId', '')
         survey_id = self.get_argument('surveyId', '')
         parent_id = self.get_argument('parentId', '')
         root = self.get_argument('root', None)
@@ -110,31 +110,57 @@ class QuestionNodeHandler(
         parent_not = self.get_argument('parent__not', '')
         deleted = self.get_argument('deleted', '')
 
-        if root is not None and parent_id != '':
+        if root is not None and parent_id:
             raise errors.ModelError(
                 "Can't specify parent ID when requesting roots")
-        if survey_id == '' and parent_id == '':
-            raise errors.ModelError(
-                "Survey or parent ID required")
 
         with model.session_scope() as session:
-            query = (session.query(model.QuestionNode)
-                .filter(model.QuestionNode.program_id == self.program_id))
+            user_session = self.get_user_session(session)
 
-            if survey_id != '':
-                self.check_browse_program(session, self.program_id, survey_id)
+            if parent_id:
+                parent = (
+                    session.query(model.QuestionNode)
+                    .get((parent_id, program_id)))
+                if not parent:
+                    raise errors.MissingDocError("No such parent category")
+                if survey_id and survey_id != str(parent.survey_id):
+                    raise errors.ModelError("Category is not in that survey")
+                survey = parent.survey
+            elif survey_id:
+                survey = (
+                    session.query(model.Survey)
+                    .get((survey_id, program_id)))
+                if not survey:
+                    raise errors.MissingDocError("No such survey")
+            else:
+                raise errors.ModelError("Survey or parent ID required")
+
+            policy = user_session.policy.derive({
+                'program': survey.program,
+                'survey': survey,
+            })
+            policy.verify('qnode_view')
+
+            query = (
+                session.query(model.QuestionNode)
+                .filter(model.QuestionNode.program_id == program_id))
+
+            if survey_id:
                 query = query.filter_by(survey_id=survey_id)
-            if parent_id != '':
+
+            if parent_id:
                 query = query.filter_by(parent_id=parent_id)
-            if root is not None:
+            elif root is not None:
                 query = query.filter_by(parent_id=None)
-            if term is not None:
+
+            if term:
                 query = query.filter(
                     model.QuestionNode.title.ilike('%{}%'.format(term)))
-            if parent_not != '':
-                query = query.filter(model.QuestionNode.parent_id != parent_not)
+            if parent_not:
+                query = query.filter(
+                    model.QuestionNode.parent_id != parent_not)
 
-            if deleted != '':
+            if deleted:
                 deleted = truthy(deleted)
                 query = query.filter(model.QuestionNode.deleted == deleted)
 
@@ -157,15 +183,10 @@ class QuestionNodeHandler(
             )
             if truthy(self.get_argument('desc', False)):
                 to_son.add(r'</description$')
-            if self.current_user.role == 'clerk':
+            if user_session.user.role == 'clerk':
                 to_son.exclude(r'/total_weight$')
 
-            qnodes = list(query.all())
-            survey_ids = {q.survey_id for q in qnodes}
-            for hid in survey_ids:
-                self.check_browse_program(session, self.program_id, hid)
-
-            sons = to_son(qnodes)
+            sons = to_son(query.all())
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
@@ -173,6 +194,7 @@ class QuestionNodeHandler(
 
     def query_by_level(self, level):
         level = int(level)
+        program_id = self.get_argument('programId', '')
         survey_id = self.get_argument('surveyId', '')
         term = self.get_argument('term', '')
         parent_not = self.get_argument('parent__not', None)
@@ -182,10 +204,21 @@ class QuestionNodeHandler(
         else:
             deleted = None
 
-        if survey_id == '':
+        if not survey_id:
             raise errors.ModelError("Survey ID required")
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
+            survey = (
+                session.query(model.Survey)
+                .get((survey_id, program_id)))
+            policy = user_session.policy.derive({
+                'program': survey.program,
+                'survey': survey,
+            })
+            policy.verify('qnode_view')
+
             # Use Postgres' WITH statement
             # http://www.postgresql.org/docs/9.1/static/queries-with.html
             # http://docs.sqlalchemy.org/en/rel_1_0/orm/query.html#sqlalchemy.orm.query.Query.cte
@@ -193,25 +226,29 @@ class QuestionNodeHandler(
 
             # Start by selecting root nodes
             QN1 = model.QuestionNode
-            start = (session.query(QN1,
-                                   literal(0).label('level'),
-                                   array([QN1.seq]).label('path'),
-                                   (QN1.seq + 1).concat('.').label('pathstr'),
-                                   (QN1.deleted).label('any_deleted'))
+            start = (
+                session.query(
+                    QN1,
+                    literal(0).label('level'),
+                    array([QN1.seq]).label('path'),
+                    (QN1.seq + 1).concat('.').label('pathstr'),
+                    (QN1.deleted).label('any_deleted'))
                 .filter(QN1.parent_id == None,
-                        QN1.program_id == self.program_id,
+                        QN1.program_id == program_id,
                         QN1.survey_id == survey_id)
                 .cte(name='root', recursive=True))
 
             # Now iterate down the tree to the desired level
             QN2 = aliased(model.QuestionNode, name='qnode2')
-            recurse = (session.query(QN2,
-                                     (start.c.level + 1).label('level'),
-                                     start.c.path.concat(QN2.seq).label('path'),
-                                     start.c.pathstr.concat(QN2.seq + 1)
-                                        .concat('.').label('pathstr'),
-                                     (start.c.any_deleted | QN2.deleted)
-                                        .label('any_deleted'))
+            recurse = (
+                session.query(
+                    QN2,
+                    (start.c.level + 1).label('level'),
+                    start.c.path.concat(QN2.seq).label('path'),
+                    start.c.pathstr.concat(QN2.seq + 1).concat('.').label(
+                        'pathstr'),
+                    (start.c.any_deleted | QN2.deleted).label(
+                        'any_deleted'))
                 .filter(QN2.parent_id == start.c.id,
                         QN2.program_id == start.c.program_id,
                         QN2.survey_id == start.c.survey_id,
@@ -221,22 +258,27 @@ class QuestionNodeHandler(
             cte = start.union_all(recurse)
 
             # Discard all but the lowest level
-            subquery = (session.query(cte.c.id, cte.c.pathstr, cte.c.any_deleted)
+            subquery = (
+                session.query(cte.c.id, cte.c.pathstr, cte.c.any_deleted)
                 .filter(cte.c.level == level)
                 .order_by(cte.c.path)
                 .subquery())
 
             # Select again to get the actual qnodes
-            query = (session.query(
-                    model.QuestionNode, subquery.c.pathstr, subquery.c.any_deleted)
-                .filter(model.QuestionNode.program_id == self.program_id)
+            query = (
+                session.query(
+                    model.QuestionNode, subquery.c.pathstr,
+                    subquery.c.any_deleted)
+                .filter(model.QuestionNode.program_id == program_id)
                 .join(subquery,
                       model.QuestionNode.id == subquery.c.id))
 
             if parent_not == '':
-                query = query.filter(model.QuestionNode.parent_id != None)
+                query = query.filter(
+                    model.QuestionNode.parent_id != None)
             elif parent_not is not None:
-                query = query.filter(model.QuestionNode.parent_id != parent_not)
+                query = query.filter(
+                    model.QuestionNode.parent_id != parent_not)
 
             if term != '':
                 query = query.filter(
@@ -256,7 +298,7 @@ class QuestionNodeHandler(
             )
             if truthy(self.get_argument('desc', False)):
                 to_son.add(r'</description$')
-            if self.current_user.role == 'clerk':
+            if user_session.user.role == 'clerk':
                 to_son.exclude(r'/total_weight$')
 
             sons = []
@@ -270,198 +312,217 @@ class QuestionNodeHandler(
         self.write(json_encode(sons))
         self.finish()
 
-    @auth.authz('author')
+    @tornado.web.authenticated
     def post(self, qnode_id):
         '''Create new.'''
-        self.check_editable()
 
-        if qnode_id != '':
+        if qnode_id:
             raise errors.MethodError("Can't use POST for existing object")
 
+        program_id = self.get_argument('programId', '')
         survey_id = self.get_argument('surveyId', '')
         parent_id = self.get_argument('parentId', '')
 
-        self.check_editable()
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
 
-        try:
-            with model.session_scope() as session:
-                qnode = model.QuestionNode(program_id=self.program_id)
-                self._update(session, qnode, self.request_son)
-                log.debug("new: %s", qnode)
+            program = session.query(model.Program).get(program_id)
+            if not program:
+                raise errors.ModelError("No such program")
 
-                if survey_id != '':
-                    survey = session.query(model.Survey)\
-                        .get((survey_id, self.program_id))
-                    if survey is None:
-                        raise errors.ModelError("No such survey")
-                else:
-                    survey = None
-                log.debug("survey: %s", survey)
+            qnode = model.QuestionNode(program=program)
+            self._update(session, qnode, self.request_son)
+            log.debug("new: %s", qnode)
 
-                if parent_id != '':
-                    parent = session.query(model.QuestionNode)\
-                        .get((parent_id, self.program_id))
-                    if parent is None:
-                        raise errors.ModelError("Parent does not exist")
-                    if survey is None:
-                        survey = parent.survey
-                    elif parent.survey != survey:
-                        raise errors.ModelError(
-                            "Parent does not belong to that survey")
-                else:
-                    parent = None
+            if survey_id != '':
+                survey = (
+                    session.query(model.Survey)
+                    .get((survey_id, program_id)))
+                if not survey:
+                    raise errors.ModelError("No such survey")
+            else:
+                survey = None
+            log.debug("survey: %s", survey)
 
-                qnode.survey = survey
+            if parent_id:
+                parent = (
+                    session.query(model.QuestionNode)
+                    .get((parent_id, program_id)))
+                if not parent:
+                    raise errors.ModelError("Parent does not exist")
+                if not survey:
+                    survey = parent.survey
+                elif parent.survey != survey:
+                    raise errors.ModelError(
+                        "Parent does not belong to that survey")
+            else:
+                parent = None
 
-                if parent is not None:
-                    log.debug("Appending to parent")
-                    parent.children.append(qnode)
-                    parent.children.reorder()
-                    log.debug("committing: %s", parent.children)
-                elif survey is not None:
-                    log.debug("Appending to survey")
-                    survey.qnodes.append(qnode)
-                    survey.qnodes.reorder()
-                    log.debug("committing: %s", survey.qnodes)
-                else:
-                    raise errors.ModelError("Parent or survey ID required")
+            qnode.survey = survey
 
-                # Need to flush so object has an ID to record action against.
-                session.flush()
+            if parent:
+                log.debug("Appending to parent")
+                parent.children.append(qnode)
+                parent.children.reorder()
+                log.debug("committing: %s", parent.children)
+            elif survey:
+                log.debug("Appending to survey")
+                survey.qnodes.append(qnode)
+                survey.qnodes.reorder()
+                log.debug("committing: %s", survey.qnodes)
+            else:
+                raise errors.ModelError("Parent or survey ID required")
 
-                calculator = Calculator.structural()
-                calculator.mark_qnode_dirty(qnode)
-                calculator.execute()
+            # Need to flush so object has an ID to record action against.
+            session.flush()
 
-                qnode_id = str(qnode.id)
+            policy = user_session.policy.derive({
+                'program': survey.program,
+                'survey': survey,
+            })
+            policy.verify('qnode_add')
 
-                act = Activities(session)
-                act.record(self.current_user, qnode, ['create'])
-                if not act.has_subscription(self.current_user, qnode):
-                    act.subscribe(self.current_user, qnode.program)
-                    self.reason("Subscribed to program")
+            calculator = Calculator.structural()
+            calculator.mark_qnode_dirty(qnode)
+            calculator.execute()
 
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError.from_sa(e)
+            qnode_id = str(qnode.id)
+
+            act = Activities(session)
+            act.record(user_session.user, qnode, ['create'])
+            if not act.has_subscription(user_session.user, qnode):
+                act.subscribe(user_session.user, qnode.program)
+                self.reason("Subscribed to program")
+
         self.get(qnode_id)
 
-    @auth.authz('author')
+    @tornado.web.authenticated
     def delete(self, qnode_id):
         '''Delete existing.'''
-        self.check_editable()
 
-        if qnode_id == '':
+        if not qnode_id:
             raise errors.MethodError("Question node ID required")
 
-        self.check_editable()
+        program_id = self.get_argument('programId', '')
 
-        try:
-            with model.session_scope() as session:
-                qnode = session.query(model.QuestionNode)\
-                    .get((qnode_id, self.program_id))
-                if qnode is None:
-                    raise ValueError("No such object")
-                log.debug("deleting: %s", qnode)
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
 
-                program = qnode.program
-                survey = qnode.survey
-                parent = qnode.parent
+            qnode = (
+                session.query(model.QuestionNode)
+                .get((qnode_id, program_id)))
+            if not qnode:
+                raise errors.MissingDocError("No such question node")
+            log.debug("deleting: %s", qnode)
 
-                act = Activities(session)
-                if not qnode.deleted:
-                    act.record(self.current_user, qnode, ['delete'])
-                if not act.has_subscription(self.current_user, qnode):
-                    act.subscribe(self.current_user, program)
-                    self.reason("Subscribed to program")
+            program = qnode.program
+            survey = qnode.survey
+            parent = qnode.parent
 
-                qnode.deleted = True
+            policy = user_session.policy.derive({
+                'program': program,
+                'survey': survey,
+            })
+            policy.verify('qnode_del')
 
-                calculator = Calculator.structural()
-                if parent is not None:
-                    parent.children.reorder()
-                    calculator.mark_qnode_dirty(parent)
-                else:
-                    survey.qnodes.reorder()
-                    calculator.mark_survey_dirty(survey)
-                calculator.execute()
+            act = Activities(session)
+            if not qnode.deleted:
+                act.record(user_session.user, qnode, ['delete'])
+            if not act.has_subscription(user_session.user, qnode):
+                act.subscribe(user_session.user, program)
+                self.reason("Subscribed to program")
 
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError("Question node is in use")
-        except (sqlalchemy.exc.StatementError, ValueError):
-            raise errors.MissingDocError("No such question node")
+            qnode.deleted = True
+
+            calculator = Calculator.structural()
+            if parent:
+                parent.children.reorder()
+                calculator.mark_qnode_dirty(parent)
+            else:
+                survey.qnodes.reorder()
+                calculator.mark_survey_dirty(survey)
+            calculator.execute()
 
         self.finish()
 
-    @auth.authz('author')
+    @tornado.web.authenticated
     def put(self, qnode_id):
         '''Update existing.'''
-        self.check_editable()
 
-        if qnode_id == '':
+        if not qnode_id:
             self.ordering()
             return
 
+        program_id = self.get_argument('programId', '')
         parent_id = self.get_argument('parentId', '')
 
-        try:
-            with model.session_scope() as session:
-                qnode = session.query(model.QuestionNode)\
-                    .get((qnode_id, self.program_id))
-                if qnode is None:
-                    raise ValueError("No such object")
-                self._update(session, qnode, self.request_son)
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
 
-                verbs = []
-                if session.is_modified(qnode):
-                    verbs.append('update')
+            qnode = (
+                session.query(model.QuestionNode)
+                .get((qnode_id, program_id)))
+            if not qnode:
+                raise errors.MissingDocError("No such question node")
 
-                calculator = Calculator.structural()
-                if parent_id != '' and str(qnode.parent_id) != parent_id:
-                    # Change parent
-                    old_parent = qnode.parent
-                    new_parent = session.query(model.QuestionNode)\
-                        .get((parent_id, self.program_id))
-                    if new_parent is None:
-                        raise errors.ModelError("No such question node")
-                    old_parent.children.remove(qnode)
-                    old_parent.children.reorder()
-                    new_parent.children.append(qnode)
-                    new_parent.children.reorder()
-                    calculator.mark_qnode_dirty(old_parent)
-                    calculator.mark_qnode_dirty(qnode)
-                    self.reason("Moved from %s to %s" % (
-                        old_parent.title, new_parent.title))
-                    verbs.append('relation')
+            policy = user_session.policy.derive({
+                'program': qnode.program,
+                'survey': qnode.survey,
+            })
+            policy.verify('qnode_edit')
 
-                if qnode.deleted:
-                    # Get a reference to the collection before changing the
-                    # deleted flag - otherwise, if a query is needed to
-                    # instantiate the collection, it will seem as if the object
-                    # is already in the collection and insert will not work as
-                    # expected.
-                    if qnode.parent:
-                        collection = qnode.parent.children
-                    else:
-                        collection = qnode.survey.qnodes
-                    qnode.deleted = False
-                    collection.insert(qnode.seq, qnode)
-                    collection.reorder()
-                    calculator.mark_qnode_dirty(qnode)
-                    verbs.append('undelete')
+            self._update(session, qnode, self.request_son)
 
-                calculator.execute()
+            verbs = []
+            if session.is_modified(qnode):
+                verbs.append('update')
 
-                act = Activities(session)
-                act.record(self.current_user, qnode, verbs)
+            calculator = Calculator.structural()
+            if parent_id and str(qnode.parent_id) != parent_id:
+                # Change parent
+                old_parent = qnode.parent
+                new_parent = (
+                    session.query(model.QuestionNode)
+                    .get((parent_id, program_id)))
+                if new_parent.survey != qnode.survey:
+                    raise errors.ModelError("Can't move to different survey")
+                if not new_parent:
+                    raise errors.ModelError("No such question node")
+                old_parent.children.remove(qnode)
+                old_parent.children.reorder()
+                new_parent.children.append(qnode)
+                new_parent.children.reorder()
+                calculator.mark_qnode_dirty(old_parent)
+                calculator.mark_qnode_dirty(qnode)
+                self.reason("Moved from %s to %s" % (
+                    old_parent.title, new_parent.title))
+                verbs.append('relation')
 
-                if not act.has_subscription(self.current_user, qnode):
-                    act.subscribe(self.current_user, qnode.program)
-                    self.reason("Subscribed to program")
+            if qnode.deleted:
+                # Get a reference to the collection before changing the
+                # deleted flag - otherwise, if a query is needed to
+                # instantiate the collection, it will seem as if the object
+                # is already in the collection and insert will not work as
+                # expected.
+                if qnode.parent:
+                    collection = qnode.parent.children
+                else:
+                    collection = qnode.survey.qnodes
+                qnode.deleted = False
+                collection.insert(qnode.seq, qnode)
+                collection.reorder()
+                calculator.mark_qnode_dirty(qnode)
+                verbs.append('undelete')
 
-        except (sqlalchemy.exc.StatementError, ValueError):
-            raise errors.MissingDocError("No such question node")
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError.from_sa(e)
+            calculator.execute()
+
+            act = Activities(session)
+            act.record(user_session.user, qnode, verbs)
+
+            if not act.has_subscription(user_session.user, qnode):
+                act.subscribe(user_session.user, qnode.program)
+                self.reason("Subscribed to program")
+
         self.get(qnode_id)
 
     def _update(self, session, qnode, son):
@@ -473,58 +534,67 @@ class QuestionNodeHandler(
     def ordering(self):
         '''Change the order of all children in a parent's collection.'''
 
+        program_id = self.get_argument('programId', '')
         survey_id = self.get_argument('surveyId', '')
         parent_id = self.get_argument('parentId', '')
         root = self.get_argument('root', None)
 
-        if root is None and parent_id == '':
+        if parent_id and root is None:
             raise errors.ModelError(
                 "Parent ID required, or specify 'root=' for root nodes")
-        if root is not None and parent_id != '':
+        if root is not None and parent_id:
             raise errors.ModelError(
                 "Can't specify both 'root=' and parent ID")
-            if survey_id == '':
+            if not survey_id:
                 raise errors.ModelError(
                     "Survey ID is required for operating on root nodes")
 
         son = json_decode(self.request.body)
-        try:
-            with model.session_scope() as session:
 
-                act = Activities(session)
-                if parent_id != '':
-                    parent = session.query(model.QuestionNode)\
-                        .get((parent_id, self.program_id))
-                    if parent is None:
-                        raise errors.MissingDocError(
-                            "Parent question node does not exist")
-                    if survey_id != '':
-                        if survey_id != str(parent.survey_id):
-                            raise errors.MissingDocError(
-                                "Parent does not belong to that survey")
-                    log.debug("Reordering children of: %s", parent)
-                    reorder(parent.children, son)
-                    act.record(self.current_user, parent, ['reorder_children'])
-                    if not act.has_subscription(self.current_user, parent):
-                        act.subscribe(self.current_user, parent.program)
-                        self.reason("Subscribed to program")
-                elif root is not None:
-                    survey = session.query(model.Survey)\
-                        .get((survey_id, self.program_id))
-                    if survey is None:
-                        raise errors.MissingDocError("No such survey")
-                    log.debug("Reordering children of: %s", survey)
-                    reorder(survey.qnodes, son)
-                    act.record(
-                        self.current_user, survey, ['reorder_children'])
-                    if not act.has_subscription(self.current_user, survey):
-                        act.subscribe(self.current_user, survey.program)
-                        self.reason("Subscribed to program")
-                else:
-                    raise errors.ModelError(
-                        "Survey or parent ID required")
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
 
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError.from_sa(e)
+            act = Activities(session)
+            if parent_id:
+                parent = (
+                    session.query(model.QuestionNode)
+                    .get((parent_id, program_id)))
+                if not parent:
+                    raise errors.MissingDocError(
+                        "Parent question node does not exist")
+                survey = parent.survey
+                if survey_id and survey_id != str(survey.id):
+                    raise errors.MissingDocError(
+                        "Parent does not belong to that survey")
+                log.debug("Reordering children of: %s", parent)
+                reorder(parent.children, son)
+                act.record(user_session.user, parent, ['reorder_children'])
+                if not act.has_subscription(user_session.user, parent):
+                    act.subscribe(user_session.user, parent.program)
+                    self.reason("Subscribed to program")
+
+            elif root is not None:
+                survey = (
+                    session.query(model.Survey)
+                    .get((survey_id, program_id)))
+                if not survey:
+                    raise errors.MissingDocError("No such survey")
+                log.debug("Reordering children of: %s", survey)
+                reorder(survey.qnodes, son)
+                act.record(
+                    user_session.user, survey, ['reorder_children'])
+                if not act.has_subscription(user_session.user, survey):
+                    act.subscribe(user_session.user, survey.program)
+                    self.reason("Subscribed to program")
+
+            else:
+                raise errors.ModelError(
+                    "Survey or parent ID required")
+
+            policy = user_session.policy.derive({
+                'program': survey.program,
+                'survey': survey,
+            })
+            policy.verify('qnode_edit')
 
         self.query()

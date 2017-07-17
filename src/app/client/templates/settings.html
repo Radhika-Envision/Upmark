@@ -53,8 +53,11 @@ angular.module('upmark.settings', [])
 
 .constant('pageTitleSuffix', ' - {{theme.app_name_short}}')
 
-.config(function(AuthzProvider) {
-    AuthzProvider.addAll({% raw params.authz_declarations %});
+.run(function(Authz) {
+    var decls = {% raw params.authz_declarations %};
+    decls.forEach(function(decl) {
+        Authz.rootPolicy.declare(decl);
+    });
 })
 
 ;

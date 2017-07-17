@@ -1,11 +1,8 @@
 from tornado.escape import json_encode
 import tornado.web
-import sqlalchemy
 
 from activity import Activities
-import auth
 import base_handler
-import crud.program
 import errors
 import model
 import logging
@@ -16,28 +13,30 @@ from utils import ToSon, truthy, updater
 log = logging.getLogger('app.crud.survey')
 
 
-class SurveyHandler(crud.program.ProgramCentric, base_handler.BaseHandler):
+class SurveyHandler(base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, survey_id):
 
-        if survey_id == '':
+        if not survey_id:
             self.query()
             return
 
-        with model.session_scope() as session:
-            try:
-                survey = session.query(model.Survey)\
-                    .get((survey_id, self.program_id))
+        program_id = self.get_argument('programId', '')
 
-                if survey is None:
-                    raise ValueError("No such object")
-            except (sqlalchemy.exc.StatementError,
-                    sqlalchemy.orm.exc.NoResultFound,
-                    ValueError):
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
+            survey = (
+                session.query(model.Survey)
+                .get((survey_id, program_id)))
+            if not survey:
                 raise errors.MissingDocError("No such survey")
 
-            self.check_browse_program(session, self.program_id, survey_id)
+            policy = user_session.policy.derive({
+                'survey': survey,
+            })
+            policy.verify('survey_view')
 
             to_son = ToSon(
                 # Any
@@ -65,10 +64,25 @@ class SurveyHandler(crud.program.ProgramCentric, base_handler.BaseHandler):
     @tornado.web.authenticated
     def query(self):
         '''Get a list.'''
+
+        program_id = self.get_argument('programId', '')
+
         with model.session_scope() as session:
-            query = session.query(model.Survey)\
-                .filter_by(program_id=self.program_id)\
-                .order_by(model.Survey.title)
+            user_session = self.get_user_session(session)
+
+            program = (
+                session.query(model.Program)
+                .get(program_id))
+
+            policy = user_session.policy.derive({
+                'program': program,
+            })
+            policy.verify('program_view')
+
+            query = (
+                session.query(model.Survey)
+                .filter(model.Survey.program_id == program_id)
+                .order_by(model.Survey.title))
 
             deleted = self.get_argument('deleted', '')
             if deleted != '':
@@ -90,97 +104,116 @@ class SurveyHandler(crud.program.ProgramCentric, base_handler.BaseHandler):
         self.write(json_encode(sons))
         self.finish()
 
-    @auth.authz('author')
+    @tornado.web.authenticated
     def post(self, survey_id):
         '''Create new.'''
-        if survey_id != '':
+        if survey_id:
             raise errors.MethodError("Can't use POST for existing object")
 
-        self.check_editable()
+        program_id = self.get_argument('programId', '')
 
-        try:
-            with model.session_scope() as session:
-                survey = model.Survey(program_id=self.program_id)
-                self._update(survey, self.request_son)
-                session.add(survey)
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
 
-                # Need to flush so object has an ID to record action against.
-                session.flush()
+            program = (
+                session.query(model.Program)
+                .get(program_id))
+            if not program:
+                raise errors.ModelError("No such program")
 
-                act = Activities(session)
-                act.record(self.current_user, survey, ['create'])
-                if not act.has_subscription(self.current_user, survey):
-                    act.subscribe(self.current_user, survey.program)
-                    self.reason("Subscribed to program")
+            survey = model.Survey(program=program)
+            self._update(survey, self.request_son)
+            session.add(survey)
 
-                survey_id = str(survey.id)
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError.from_sa(e)
+            # Need to flush so object has an ID to record action against.
+            session.flush()
+
+            policy = user_session.policy.derive({
+                'program': program,
+                'survey': survey,
+            })
+            policy.verify('survey_add')
+
+            act = Activities(session)
+            act.record(user_session.user, survey, ['create'])
+            if not act.has_subscription(user_session.user, survey):
+                act.subscribe(user_session.user, survey.program)
+                self.reason("Subscribed to program")
+
+            survey_id = str(survey.id)
+
         self.get(survey_id)
 
-    @auth.authz('author')
+    @tornado.web.authenticated
     def put(self, survey_id):
         '''Update existing.'''
-        if survey_id == '':
+        if not survey_id:
             raise errors.MethodError("Survey ID required")
 
-        self.check_editable()
+        program_id = self.get_argument('programId', '')
 
-        try:
-            with model.session_scope() as session:
-                survey = session.query(model.Survey)\
-                    .get((survey_id, self.program_id))
-                if survey is None:
-                    raise ValueError("No such object")
-                self._update(survey, self.request_son)
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
 
-                verbs = []
-                if session.is_modified(survey):
-                    verbs.append('update')
+            survey = (
+                session.query(model.Survey)
+                .get((survey_id, program_id)))
+            if not survey:
+                raise errors.MissingDocError("No such survey")
+            self._update(survey, self.request_son)
 
-                if survey.deleted:
-                    survey.deleted = False
-                    verbs.append('undelete')
+            policy = user_session.policy.derive({
+                'program': survey.program,
+                'survey': survey,
+            })
+            policy.verify('survey_edit')
 
-                act = Activities(session)
-                act.record(self.current_user, survey, verbs)
-                if not act.has_subscription(self.current_user, survey):
-                    act.subscribe(self.current_user, survey.program)
-                    self.reason("Subscribed to program")
+            verbs = []
+            if session.is_modified(survey):
+                verbs.append('update')
 
-        except (sqlalchemy.exc.StatementError, ValueError):
-            raise errors.MissingDocError("No such survey")
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError.from_sa(e)
+            if survey.deleted:
+                survey.deleted = False
+                verbs.append('undelete')
+
+            act = Activities(session)
+            act.record(user_session.user, survey, verbs)
+            if not act.has_subscription(user_session.user, survey):
+                act.subscribe(user_session.user, survey.program)
+                self.reason("Subscribed to program")
+
         self.get(survey_id)
 
-    @auth.authz('author')
+    @tornado.web.authenticated
     def delete(self, survey_id):
-        if survey_id == '':
+        if not survey_id:
             raise errors.MethodError("Survey ID required")
 
-        self.check_editable()
+        program_id = self.get_argument('programId', '')
 
-        try:
-            with model.session_scope() as session:
-                survey = session.query(model.Survey)\
-                    .get((survey_id, self.program_id))
-                if survey is None:
-                    raise ValueError("No such object")
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
 
-                act = Activities(session)
-                if not survey.deleted:
-                    act.record(self.current_user, survey, ['delete'])
-                if not act.has_subscription(self.current_user, survey):
-                    act.subscribe(self.current_user, survey.program)
-                    self.reason("Subscribed to program")
+            survey = (
+                session.query(model.Survey)
+                .get((survey_id, program_id)))
+            if not survey:
+                raise errors.MissingDocError("No such survey")
 
-                survey.deleted = True
+            policy = user_session.policy.derive({
+                'program': survey.program,
+                'survey': survey,
+            })
+            policy.verify('survey_del')
 
-        except sqlalchemy.exc.IntegrityError as e:
-            raise errors.ModelError("This survey is in use")
-        except (sqlalchemy.exc.StatementError, ValueError):
-            raise errors.MissingDocError("No such survey")
+            act = Activities(session)
+            if not survey.deleted:
+                act.record(user_session.user, survey, ['delete'])
+            if not act.has_subscription(user_session.user, survey):
+                act.subscribe(user_session.user, survey.program)
+                self.reason("Subscribed to program")
+
+            survey.deleted = True
 
         self.finish()
 

@@ -1,46 +1,11 @@
-import os
-import unittest
 from unittest import mock
-import urllib
 
 from sqlalchemy.sql import func
 from tornado.escape import json_decode, json_encode
 
-import app
 import base
 import model
 from utils import ToSon
-
-
-class AuthNTest(base.AqHttpTestBase):
-
-    def test_unauthenticated_root(self):
-        response = self.fetch("/", follow_redirects=True)
-        self.assertIn("/login/", response.effective_url)
-
-    def test_login(self):
-        post_data = {
-            'email': 'admin',
-            'password': 'bar'
-        }
-        response = self.fetch(
-            "/login", follow_redirects=False, method='POST',
-            body=urllib.parse.urlencode(post_data))
-        self.assertEqual(302, response.code)
-        self.assertIn('user="";', response.headers['set-cookie'])
-        self.assertIn('superuser="";', response.headers['set-cookie'])
-
-        post_data['password'] = 'foo'
-        response = self.fetch(
-            "/login", follow_redirects=False, method='POST',
-            body=urllib.parse.urlencode(post_data))
-        self.assertEqual(302, response.code)
-        self.assertIn('user=', response.headers['set-cookie'])
-
-    def test_authenticated_root(self):
-        with base.mock_user('admin'):
-            response = self.fetch("/")
-        self.assertIn("Sign out", response.body.decode('utf8'))
 
 
 class OrgTest(base.AqHttpTestBase):
@@ -48,7 +13,7 @@ class OrgTest(base.AqHttpTestBase):
     def test_list_org(self):
         with base.mock_user('admin'):
             response = self.fetch(
-                "/organisation.json", method='GET',)
+                "/organisation.json", method='GET', expected=200)
 
         orgs_son = json_decode(response.body)
         self.assertIsInstance(orgs_son, list)
@@ -81,22 +46,10 @@ class OrgTest(base.AqHttpTestBase):
 
 class UserTest(base.AqHttpTestBase):
 
-    def password_field_test(self):
-        with model.session_scope() as session:
-            org = session.query(model.Organisation).first()
-            user = model.AppUser(
-                email='a', name='b', role='clerk', organisation=org)
-            user.password = 'foo'
-            session.add(user)
-            session.flush()
-            self.assertEqual(user.password, 'foo')
-            self.assertNotEqual(str(user.password), 'foo')
-            self.assertNotEqual(user.password, 'bar')
-
     def test_list_org(self):
         with base.mock_user('admin'):
             response = self.fetch(
-                "/user.json?pageSize=2&page=0", method='GET',)
+                "/user.json?pageSize=2&page=0", method='GET', expected=200)
 
         orgs_son = json_decode(response.body)
         self.assertIsInstance(orgs_son, list)
@@ -129,11 +82,11 @@ class OrgAuthzTest(base.AqHttpTestBase):
 
     def test_create_org(self):
         users = [
-            ('clerk', 403, 'Not authorised'),
-            ('org_admin', 403, 'Not authorised'),
-            ('consultant', 403, 'Not authorised'),
-            ('authority', 403, 'Not authorised'),
-            ('author', 403, 'Not authorised'),
+            ('clerk', 403, "can't add that organisation"),
+            ('org_admin', 403, "can't add that organisation"),
+            ('consultant', 403, "can't add that organisation"),
+            ('authority', 403, "can't add that organisation"),
+            ('author', 403, "can't add that organisation"),
             ('admin', 200, 'OK')
         ]
 
@@ -152,33 +105,31 @@ class OrgAuthzTest(base.AqHttpTestBase):
             with base.mock_user(user):
                 response = self.fetch(
                     "/organisation.json", method='POST',
-                    body=json_encode(post_data))
-                self.assertEqual(reason, response.reason)
-                self.assertEqual(code, response.code)
+                    body=json_encode(post_data), expected=code)
+                self.assertIn(reason, response.reason)
 
     def test_modify_org(self):
         users_own = [
-            ('clerk', 'Utility', 403, 'Not authorised'),
+            ('clerk', 'Utility', 403, "can't modify an organisation"),
             ('org_admin', 'Utility', 200, 'OK'),
-            ('consultant', 'Primary', 403, 'Not authorised'),
-            ('authority', 'Primary', 403, 'Not authorised'),
-            ('author', 'Primary', 403, 'Not authorised'),
+            ('consultant', 'Primary', 403, "can't modify an organisation"),
+            ('authority', 'Primary', 403, "can't modify an organisation"),
+            ('author', 'Primary', 403, "can't modify an organisation"),
             ('admin', 'Primary', 200, 'OK')
         ]
         for user, org_name, code, reason in users_own:
             self.modify_org(user, org_name, code, reason)
 
         users_other = [
-            ('clerk', 'Primary', 403, 'Not authorised'),
-            ('org_admin', 'Primary', 403, "can't modify another organisation"),
-            ('consultant', 'Utility', 403, 'Not authorised'),
-            ('authority', 'Utility', 403, 'Not authorised'),
-            ('author', 'Utility', 403, 'Not authorised'),
+            ('clerk', 'Primary', 403, "can't modify an organisation"),
+            ('org_admin', 'Primary', 403, "not a member of the organisation"),
+            ('consultant', 'Utility', 403, "can't modify an organisation"),
+            ('authority', 'Utility', 403, "can't modify an organisation"),
+            ('author', 'Utility', 403, "can't modify an organisation"),
             ('admin', 'Utility', 200, 'OK')
         ]
         for user, org_name, code, reason in users_other:
             self.modify_org(user, org_name, code, reason)
-
 
     def modify_org(self, user_email, org_name, code, reason):
         with model.session_scope() as session:
@@ -205,9 +156,8 @@ class OrgAuthzTest(base.AqHttpTestBase):
             post_data = org_son.copy()
             response = self.fetch(
                 "/organisation/%s.json" % org_son['id'], method='PUT',
-                body=json_encode(post_data))
+                body=json_encode(post_data), expected=code)
         self.assertIn(reason, response.reason)
-        self.assertEqual(code, response.code)
 
 
 class UserAuthzTest(base.AqHttpTestBase):
@@ -222,28 +172,30 @@ class UserAuthzTest(base.AqHttpTestBase):
 
     def test_create_user(self):
         users_own = [
-            ('clerk', 'Utility', 403, "You can't create a new user."),
+            ('clerk', 'Utility', 403, "can't add that user"),
             ('org_admin', 'Utility', 200, 'OK'),
-            ('consultant', 'Primary', 403, "You can't create a new user."),
-            ('authority', 'Primary', 403, "You can't create a new user."),
-            ('author', 'Primary', 403, "You can't create a new user."),
+            ('consultant', 'Primary', 403, "can't add that user"),
+            ('authority', 'Primary', 403, "can't add that user"),
+            ('author', 'Primary', 403, "can't add that user"),
             ('admin', 'Primary', 200, 'OK')
         ]
 
         for i, (user_email, org_name, code, reason) in enumerate(users_own):
-            self.create_user(i, 'own', user_email, org_name, 'clerk', code, reason)
+            self.create_user(
+                i, 'own', user_email, org_name, 'clerk', code, reason)
 
         users_other = [
-            ('clerk', 'Primary', 403, "You can't create a new user."),
-            ('org_admin', 'Primary', 403, "You can't create/modify another organisation's user."),
-            ('consultant', 'Utility', 403, "You can't create a new user."),
-            ('authority', 'Utility', 403, "You can't create a new user."),
-            ('author', 'Utility', 403, "You can't create a new user."),
+            ('clerk', 'Primary', 403, "can't add that user"),
+            ('org_admin', 'Primary', 403, "can't add that user"),
+            ('consultant', 'Utility', 403, "can't add that user"),
+            ('authority', 'Utility', 403, "can't add that user"),
+            ('author', 'Utility', 403, "can't add that user"),
             ('admin', 'Utility', 200, 'OK')
         ]
 
-        for i, (user_email, org_name, code, reason) in enumerate(users_own):
-            self.create_user(i, 'other', user_email, org_name, 'clerk', code, reason)
+        for i, (user_email, org_name, code, reason) in enumerate(users_other):
+            self.create_user(
+                i, 'other', user_email, org_name, 'clerk', code, reason)
 
     def test_create_user_role(self):
         admin_role = [
@@ -255,20 +207,24 @@ class UserAuthzTest(base.AqHttpTestBase):
             ('admin', 'admin', 'Primary', 200, 'OK')
         ]
 
-        for i, (user_email, role, org_name, code, reason) in enumerate(admin_role):
-            self.create_user(i, 'admin', user_email, org_name, role, code, reason)
+        for i, (user_email, role, org_name, code, reason) in enumerate(
+                admin_role):
+            self.create_user(
+                i, 'admin', user_email, org_name, role, code, reason)
 
         org_admin_role = [
             ('org_admin', 'clerk', 'Utility', 200, 'OK'),
             ('org_admin', 'org_admin', 'Utility', 200, 'OK'),
-            ('org_admin', 'consultant', 'Utility', 403, "You can't set this role."),
-            ('org_admin', 'authority', 'Utility', 403, "You can't set this role."),
-            ('org_admin', 'author', 'Utility', 403, "You can't set this role."),
-            ('org_admin', 'admin', 'Utility', 403, "You can't set this role.")
+            ('org_admin', 'consultant', 'Utility', 403, "can't set that role"),
+            ('org_admin', 'authority', 'Utility', 403, "can't set that role"),
+            ('org_admin', 'author', 'Utility', 403, "can't set that role"),
+            ('org_admin', 'admin', 'Utility', 403, "can't set that role")
         ]
 
-        for i, (user_email, role, org_name, code, reason) in enumerate(org_admin_role):
-            self.create_user(i, 'org_admin', user_email, org_name, role, code, reason)
+        for i, (user_email, role, org_name, code, reason) in enumerate(
+                org_admin_role):
+            self.create_user(
+                i, 'org_admin', user_email, org_name, role, code, reason)
 
     def org_id(self, name):
         with model.session_scope() as session:
@@ -291,12 +247,12 @@ class UserAuthzTest(base.AqHttpTestBase):
             post_data.update(custom_data)
 
         with base.mock_user(user_email), \
-                mock.patch('crud.user.test_password', lambda x: (1.0, 0.1, {})):
+                mock.patch(
+                    'crud.user.test_password', lambda x: (1.0, 0.1, {})):
             response = self.fetch(
                 "/user.json", method='POST',
-                body=json_encode(post_data))
+                body=json_encode(post_data), expected=code)
             self.assertIn(reason, response.reason, msg=user_email)
-            self.assertEqual(code, response.code)
 
     def test_set_password(self):
         post_data = {
@@ -310,16 +266,16 @@ class UserAuthzTest(base.AqHttpTestBase):
         with base.mock_user('admin'):
             response = self.fetch(
                 "/user.json", method='POST',
-                body=json_encode(post_data))
+                body=json_encode(post_data), expected=403)
             self.assertIn('not strong enough', response.reason)
-            self.assertEqual(403, response.code)
 
     def test_modify_user(self):
         with model.session_scope() as session:
             # TODO: Refactor this to make it reusable.
-            user = session.query(model.AppUser).\
-                filter(func.lower(model.AppUser.email) ==
-                       func.lower('clerk')).one()
+            user = (
+                session.query(model.AppUser)
+                .filter(model.AppUser.email == 'clerk')
+                .one())
 
             to_son = ToSon(
                 r'/id$',
@@ -330,17 +286,10 @@ class UserAuthzTest(base.AqHttpTestBase):
             )
             user_son = to_son(user)
 
-            org = session.query(model.Organisation).\
-                filter_by(name='Primary').one()
-            org1_id = str(org.id)
-            org = session.query(model.Organisation).\
-                filter_by(name='Utility').one()
-            org2_id = str(org.id)
-
         users = [
-            ('consultant', 403, "can't modify another user"),
-            ('authority', 403, "can't modify another user"),
-            ('author', 403, "can't modify another user"),
+            ('consultant', 403, "are not the owner"),
+            ('authority', 403, "are not the owner"),
+            ('author', 403, "are not the owner"),
             ('clerk', 200, 'OK'),
             ('org_admin', 200, 'OK'),
             ('admin', 200, 'OK')
@@ -354,10 +303,10 @@ class UserAuthzTest(base.AqHttpTestBase):
                     "/user/%s.json" % user_son['id'], method='PUT',
                     body=json_encode(post_data))
                 self.assertIn(reason, response.reason, msg=user_email)
-                self.assertEqual(code, response.code)
+                self.assertEqual(code, response.code, msg=user_email)
 
         users = [
-            ('clerk', 403, "can't enable or disable yourself"),
+            ('clerk', 403, "can't add that user"),
             ('org_admin', 200, 'OK'),
         ]
 
@@ -370,22 +319,29 @@ class UserAuthzTest(base.AqHttpTestBase):
                     "/user/%s.json" % user_son['id'], method='PUT',
                     body=json_encode(post_data))
                 self.assertIn(reason, response.reason, msg=user_email)
-                self.assertEqual(code, response.code)
+                self.assertEqual(code, response.code, msg=user_email)
 
     def test_modify_org_in_user(self):
         users = [
-            ('clerk', 'Utility', 'Primary', 403, "You can't change your organisation."),
-            ('org_admin', 'Utility', 'Primary', 403, "You can't create/modify another organisation's user."),
-            ('consultant', 'Primary', 'Utility', 403, "You can't change your organisation."),
-            ('authority', 'Primary', 'Utility', 403, "You can't change your organisation."),
-            ('author', 'Primary', 'Utility', 403, "You can't change your organisation."),
+            ('clerk', 'Utility', 'Primary', 403,
+                "can't change that user's organisation"),
+            ('org_admin', 'Utility', 'Primary', 403,
+                "can't change that user's organisation"),
+            ('consultant', 'Primary', 'Utility', 403,
+                "can't change that user's organisation"),
+            ('authority', 'Primary', 'Utility', 403,
+                "can't change that user's organisation"),
+            ('author', 'Primary', 'Utility', 403,
+                "can't change that user's organisation"),
             ('admin', 'Primary', 'Utility', 200, 'OK')
         ]
 
         for user_email, current_org_name, new_org_name, code, reason in users:
-            self.modify_org_in_user(user_email, current_org_name, new_org_name, code, reason)
+            self.modify_org_in_user(
+                user_email, current_org_name, new_org_name, code, reason)
 
-    def modify_org_in_user(self, user_email, old_org_name, new_org_name, code, reason):
+    def modify_org_in_user(
+            self, user_email, old_org_name, new_org_name, code, reason):
         with model.session_scope() as session:
             org = session.query(model.Organisation).\
                 filter(func.lower(model.Organisation.name) ==
@@ -394,9 +350,11 @@ class UserAuthzTest(base.AqHttpTestBase):
             to_son = ToSon(r'/id$', r'/name$')
             org_son = to_son(org)
 
-            user = session.query(model.AppUser).\
-                    filter(func.lower(model.AppUser.email) ==
-                           func.lower(user_email)).one()
+            user = (
+                session.query(model.AppUser)
+                .filter(
+                    func.lower(model.AppUser.email) == func.lower(user_email))
+                .one())
 
             user_son = to_son(user)
             user_son['organisation'] = org_son
@@ -404,44 +362,5 @@ class UserAuthzTest(base.AqHttpTestBase):
             with base.mock_user(user_email):
                 response = self.fetch(
                     "/user/%s.json" % user_son['id'], method='PUT',
-                    body=json_encode(user_son))
+                    body=json_encode(user_son), expected=code)
                 self.assertIn(reason, response.reason, msg=user_email)
-                self.assertEqual(code, response.code)
-
-
-class PasswordTest(base.AqHttpTestBase):
-
-    def test_password_strength(self):
-        response = self.fetch(
-            "/password.json", method='POST',
-            body=json_encode({'password': 'foo'}))
-        self.assertEqual(200, response.code)
-        son = json_decode(response.body)
-        self.assertLess(son['strength'], 0.5)
-        self.assertIn('charmix', son['improvements'])
-        self.assertIn('length', son['improvements'])
-
-        response = self.fetch(
-            "/password.json", method='POST',
-            body=json_encode({'password': 'f0!'}))
-        self.assertEqual(200, response.code)
-        son = json_decode(response.body)
-        self.assertNotIn('charmix', son['improvements'])
-        self.assertIn('length', son['improvements'])
-
-        response = self.fetch(
-            "/password.json", method='POST',
-            body=json_encode({'password': 'fooooooooooooooooooooooo'}))
-        self.assertEqual(200, response.code)
-        son = json_decode(response.body)
-        self.assertIn('charmix', son['improvements'])
-        self.assertNotIn('length', son['improvements'])
-
-        response = self.fetch(
-            "/password.json", method='POST',
-            body=json_encode({'password': 'bdFiuo2807 g97834tq !'}))
-        self.assertEqual(200, response.code)
-        son = json_decode(response.body)
-        self.assertGreater(son['strength'], 0.9)
-        self.assertNotIn('length', son['improvements'])
-        self.assertNotIn('charmix', son['improvements'])
