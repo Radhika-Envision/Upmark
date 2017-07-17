@@ -62,8 +62,8 @@ angular.module('upmark.survey.measure', [
 
         return new ResponseType({
             obType: 'response_type',
-            programId: $scope.measure.programId,
-            name: $scope.measure.title,
+            programId: $scope.edit.model.programId,
+            name: $scope.edit.model.title,
             parts: parts,
             formula: 'a',
         });

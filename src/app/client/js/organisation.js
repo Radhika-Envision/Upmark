@@ -185,7 +185,10 @@ angular.module('upmark.organisation', [
             );
         }, true);
     } else {
-        Survey.query({programId: $scope.program.id}).$promise.then(
+        Survey.query({
+            programId: $scope.program.id,
+            deleted: false,
+        }).$promise.then(
             function success(surveys) {
                 $scope.surveys = surveys;
             },

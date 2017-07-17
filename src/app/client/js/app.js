@@ -367,7 +367,8 @@ angular.module('upmark', [
                     surveys: ['Survey', 'program',
                             function(Survey, program) {
                         return Survey.query({
-                            programId: program.id
+                            programId: program.id,
+                            deleted: false,
                         }).$promise;
                     }],
                     duplicate: ['Submission', '$route',
