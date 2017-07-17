@@ -484,7 +484,7 @@
     failure: "you can't edit custom queries"
     expression: '@admin'
 
- -  name: custom_query_delete
+ -  name: custom_query_del
     description: "permission to delete custom queries"
     failure: "you can't delete custom queries"
     expression: '@admin'

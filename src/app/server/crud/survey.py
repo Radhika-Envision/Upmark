@@ -204,7 +204,7 @@ class SurveyHandler(base_handler.BaseHandler):
                 'program': survey.program,
                 'survey': survey,
             })
-            policy.verify('survey_delete')
+            policy.verify('survey_del')
 
             act = Activities(session)
             if not survey.deleted:

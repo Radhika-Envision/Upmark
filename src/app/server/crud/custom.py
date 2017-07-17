@@ -227,7 +227,7 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             user_session = self.get_user_session(session)
             policy = user_session.policy.derive({'custom_query': custom_query})
-            policy.verify('custom_query_delete')
+            policy.verify('custom_query_del')
 
             act = Activities(session)
             if not custom_query.deleted:
