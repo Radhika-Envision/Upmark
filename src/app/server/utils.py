@@ -8,8 +8,9 @@ import re
 import uuid
 import yaml
 
-from munch import DefaultMunch
+from munch import DefaultMunch, unmunchify
 import sqlalchemy
+from sqlalchemy import JSON
 from sqlalchemy.engine.result import RowProxy
 
 import errors
@@ -228,6 +229,7 @@ class updater:
 
     def __init__(self, model, on_absent=SKIP, error_factory=ValueError):
         self.model = model
+        self.inspector = sqlalchemy.inspect(type(model))
         self.on_absent = on_absent
         self.error_factory = error_factory
 
@@ -248,6 +250,7 @@ class updater:
         else:
             value = current_value
 
+        value = self.coerce(name, value)
         self.validate(name, value)
 
         if isinstance(current_value, uuid.UUID):
@@ -261,14 +264,21 @@ class updater:
         log.debug('Setting %s: %s -> %s', name, current_value, value)
         setattr(self.model, name, value)
 
+    def coerce(self, name, value):
+        column = self.inspector.columns[name]
+        if isinstance(column.type, JSON):
+            # DefaultMunch objects confuse SQLAlchemy, because it uses
+            # `hasattr` to check for magic values.
+            return unmunchify(value)
+        return value
+
     def validate(self, name, value):
         if value is not None:
             return
 
-        column = getattr(self.model.__class__, name)
+        column = self.inspector.columns[name]
         if not column.nullable:
-            insp = sqlalchemy.inspect(self.model)
-            if insp.persistent:
+            if self.inspector.persistent:
                 # For persistent objects, column.default is not used.
                 raise self.error_factory("'%s' is empty" % name)
             elif column.default is None:

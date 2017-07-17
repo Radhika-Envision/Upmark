@@ -13,8 +13,7 @@ from datetime import datetime
 from itertools import chain, zip_longest
 
 from sqlalchemy import Boolean, Column, DateTime, Float, \
-    ForeignKey, Index, Integer, Text
-from sqlalchemy.dialects.postgresql import JSON
+    ForeignKey, Index, Integer, JSON, Text
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import backref, foreign, relationship, remote, \
