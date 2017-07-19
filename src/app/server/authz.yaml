@@ -54,6 +54,41 @@
     expression: '@admin'
 
 
+# Group
+
+ -  name: _own_group
+    description: "you belong to the survey group"
+    failure: "you are not a memeber of that survey group"
+    expression:
+        server: 's.in_group(group)'
+        client: 'True'
+
+ -  name: group_add
+    description: "permission to add a new group"
+    failure: "you can't add that group"
+    expression: '@super_admin'
+
+ -  name: group_browse
+    description: "permission to browse groups"
+    failure: "you can't browse groups"
+    expression: '@super_admin'
+
+ -  name: group_del
+    description: "permission to delete a group"
+    failure: "you can't delete that group"
+    expression: '@super_admin'
+
+ -  name: group_edit
+    description: "permission to edit a group"
+    failure: "you can't edit that group"
+    expression: '@super_admin'
+
+ -  name: group_view
+    description: "permission to view a group"
+    failure: "you can't view that group"
+    expression: '@super_admin'
+
+
 # User
 
  -  name: _own_user

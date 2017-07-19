@@ -1,5 +1,5 @@
 __all__ = [
-    'Project',
+    'Group',
 ]
 
 from datetime import datetime
@@ -11,16 +11,17 @@ from .guid import GUID
 from .observe import Observable
 
 
-class Project(Observable, Base):
-    __tablename__ = 'project'
+class Group(Observable, Base):
+    __tablename__ = 'survey_group'
     id = Column(GUID, default=GUID.gen, primary_key=True)
     title = Column(Text, nullable=False)
     description = Column(Text)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
+    deleted = Column(Boolean, default=False, nullable=False)
 
     __table_args__ = (
-        Index('project_title_key', func.lower(title), unique=True),
+        Index('group_title_key', func.lower(title), unique=True),
     )
 
     def __repr__(self):
-        return "Project(title={})".format(self.title)
+        return "Group(title={})".format(self.title)

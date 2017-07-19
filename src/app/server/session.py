@@ -25,6 +25,10 @@ class UserSession:
     def has_role(self, *names):
         return model.has_privillege(self.user.role, *names)
 
+    def in_group(self, group):
+        # FIXME: Implement this when the group relations are in place.
+        return True
+
     def purchased_survey(self, survey):
         session = object_session(survey)
         count = (

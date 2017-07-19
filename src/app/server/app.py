@@ -195,12 +195,16 @@ def get_mappings():
             crud.custom.CustomQueryHandler, {}),
         (r"/custom_query/?([^/]*)/history.json",
             crud.custom.CustomQueryHistoryHandler, {}),
+        (r"/geo/(.*).json",
+            crud.org.LocationSearchHandler, {}),
+
+        (r"/group/?([^/]*).json",
+            crud.group.GroupHandler, {}),
+
         (r"/organisation/?([^/]*).json",
             crud.org.OrgHandler, {}),
         (r"/organisation/?([^/]*)/survey/?([^/]*).json",
             crud.org.PurchasedSurveyHandler, {}),
-        (r"/geo/(.*).json",
-            crud.org.LocationSearchHandler, {}),
         (r"/user/?([^/]*).json",
             crud.user.UserHandler, {}),
         (r"/subscription/()([^/]*).json",

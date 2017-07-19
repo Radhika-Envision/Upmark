@@ -3,6 +3,7 @@ __all__ = (
     'attachment',
     'config',
     'custom',
+    'group',
     'image',
     'measure',
     'org',
@@ -19,6 +20,9 @@ __all__ = (
 from . import config
 from . import custom
 from . import image
+
+from . import group
+
 from . import org
 from . import user
 from . import activity
