@@ -31,6 +31,9 @@ angular.module('upmark.user', [
     });
 
     Roles.hierarchy = {
+        'super_admin': [
+            'admin', 'author', 'authority', 'consultant', 'org_admin',
+            'clerk'],
         'admin': ['author', 'authority', 'consultant', 'org_admin', 'clerk'],
         'author': [],
         'authority': ['consultant'],

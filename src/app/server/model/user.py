@@ -143,7 +143,8 @@ class AppUser(Observable, Base):
     name = Column(Text, nullable=False)
     password = Column(Password, nullable=False)
     role = Column(Enum(
-        'admin', 'author', 'authority', 'consultant', 'org_admin', 'clerk',
+        'super_admin', 'admin', 'author', 'authority', 'consultant',
+        'org_admin', 'clerk',
         native_enum=False), nullable=False)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
     deleted = Column(Boolean, default=False, nullable=False)
@@ -189,6 +190,8 @@ Password.instrument(AppUser.password)
 
 
 ROLE_HIERARCHY = {
+    'super_admin': {
+        'admin', 'author', 'authority', 'consultant', 'org_admin', 'clerk'},
     'admin': {'author', 'authority', 'consultant', 'org_admin', 'clerk'},
     'author': set(),
     'authority': {'consultant'},

@@ -16,6 +16,7 @@ angular.module('upmark', [
     'upmark.current_user',
     'upmark.custom',
     'upmark.diff',
+    'upmark.group',
     'upmark.home',
     'upmark.location',
     'upmark.notifications',
@@ -182,6 +183,32 @@ angular.module('upmark', [
             .when('/:uv/subscription/:type', {
                 templateUrl : 'subscription.html',
                 controller : 'SubscriptionCtrl'
+            })
+
+            .when('/:uv/groups', {
+                templateUrl : 'group_list.html',
+                controller : 'GroupListCtrl'
+            })
+            .when('/:uv/group/new', {
+                templateUrl : 'group.html',
+                controller : 'GroupCtrl',
+                resolve: {
+                    group: function() {
+                        return null;
+                    }
+                }
+            })
+            .when('/:uv/group/:id', {
+                templateUrl : 'group.html',
+                controller : 'GroupCtrl',
+                resolve: {
+                    group: ['Group', '$route',
+                            function(Group, $route) {
+                        return Group.get({
+                            id: $route.current.params.id
+                        }).$promise;
+                    }]
+                }
             })
 
             .when('/:uv/users', {

@@ -5,33 +5,53 @@
 
 # Roles
 
+ -  name: super_admin
+    description: >-
+        Super administrators can create and manage survey groups, and do
+        everything that administrators can do.
+    failure: "you are not a super administrator"
+    expression: 's.has_role("super_admin")'
+
  -  name: admin
-    description: "the administrator role"
+    description: >-
+        Administrators can create organisations in their own survey groups,
+        and do everything that authorities, authors and organisation
+        administrators can do.
     failure: "you are not an administrator"
     expression: 's.has_role("admin")'
 
  -  name: author
-    description: "the author role"
+    description: >-
+        Authors can create surveys in their own survey groups.
     failure: "you are not an author"
     expression: 's.has_role("author")'
 
  -  name: authority
-    description: "authority role"
+    description: >-
+        Authorities can mark responses and submissions in their own survey
+        groups as "Approved", and do everything that consultants can do.
     failure: "you are not an authority"
     expression: 's.has_role("authority")'
 
  -  name: clerk
-    description: "the clerk role"
+    description: >-
+        Clerks can respond to surveys in their own survey groups on behalf of
+        their own organisation, and mark responses and submissions as "Final".
     failure: "you are not a clerk"
     expression: 's.has_role("clerk")'
 
  -  name: consultant
-    description: "the consultant role"
+    description: >-
+        Consultants can respond to surveys in their own survey groups on behalf
+        of other organisations, and mark submissions and responses as
+        "Reviewed".
     failure: "you are not a consultant"
     expression: 's.has_role("consultant")'
 
  -  name: org_admin
-    description: "the organisation admin role"
+    description: >-
+        Organisation administrators can create new users in their own
+        organisation, and do everything that clerks can do.
     failure: "you are not an organisation administrator"
     expression: 's.has_role("org_admin")'
 
