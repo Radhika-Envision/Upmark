@@ -20,7 +20,7 @@
         <li ng-repeat="group in groups"
                 ng-class="{strike: group.deleted}">
             <a ng-href="#/2/group/{{group.id}}">
-                <h4>{{group.name}}</h4>
+                <h4>{{group.title}}</h4>
                 <p class="truncate" ng-if="group.description">
                     {{group.description}}
                 </p>

@@ -1,13 +1,11 @@
 __all__ = ['Activity', 'Subscription']
 
 from datetime import datetime
-import logging
-import time
 
 from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Index, Text
 from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.orm import backref, relationship
-from sqlalchemy.schema import CheckConstraint, Index, UniqueConstraint
+from sqlalchemy.orm import relationship
+from sqlalchemy.schema import CheckConstraint, UniqueConstraint
 
 from .base import Base
 from .guid import GUID
@@ -39,8 +37,10 @@ class Activity(Base):
     sticky = Column(Boolean, nullable=False, default=False)
 
     # Object reference (the entity being acted upon). The ob_type and ob_id_*
-    # columns are for looking up the target object (e.g. to create a hyperlink).
+    # columns are for looking up the target object (e.g. to create a
+    # hyperlink).
     ob_type = Column(Enum(
+        'group',
         'organisation', 'user',
         'program', 'survey', 'qnode', 'measure', 'response_type',
         'submission', 'rnode', 'response',
@@ -102,6 +102,7 @@ class Subscription(Base):
     # http://www.postgresql.org/docs/9.4/static/gin-intro.html
     # http://stackoverflow.com/questions/19959735/postgresql-gin-index-on-array-of-uuid
     ob_type = Column(Enum(
+        'group',
         'organisation', 'user',
         'program', 'survey', 'qnode', 'measure', 'response_type',
         'submission', 'rnode', 'response',

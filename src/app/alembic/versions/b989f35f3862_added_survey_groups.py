@@ -12,10 +12,13 @@ down_revision = '76620faac78d'
 branch_labels = None
 depends_on = None
 
-from alembic import op  # noqa: E402
-import sqlalchemy as sa  # noqa: E402
+from alembic import op
+import sqlalchemy as sa
+from sqlalchemy import column, func
+from sqlalchemy.dialects.postgresql import array, TEXT
+from sqlalchemy.sql.expression import cast
 
-import deps_b989f35f3862 as model  # noqa: E402
+import deps_b989f35f3862 as model
 
 
 def upgrade():
@@ -29,18 +32,61 @@ def upgrade():
         sa.PrimaryKeyConstraint('id')
     )
 
+    ob_types = array([
+        'group',
+        'organisation', 'user',
+        'program', 'survey', 'qnode', 'measure', 'response_type',
+        'submission', 'rnode', 'response',
+        'custom_query'], type_=TEXT)
+    op.drop_constraint(
+        'activity_ob_type_check', 'activity', type_='check')
+    op.create_check_constraint(
+        'activity_ob_type_check', 'activity',
+        cast(column('ob_type'), TEXT) == func.any(ob_types))
+    op.drop_constraint(
+        'subscription_ob_type_check', 'subscription', type_='check')
+    op.create_check_constraint(
+        'subscription_ob_type_check', 'subscription',
+        cast(column('ob_type'), TEXT) == func.any(ob_types))
+
+    roles = array([
+        'super_admin', 'admin', 'author', 'authority', 'consultant',
+        'org_admin', 'clerk'])
     op.drop_constraint('appuser_role_check', 'appuser', type_='check')
     op.create_check_constraint(
         'appuser_role_check', 'appuser',
-        """role = ANY (ARRAY[
-            'super_admin', 'admin', 'author', 'authority', 'consultant',
-            'org_admin', 'clerk'
-        ]::varchar[])""")
+        cast(column('role'), TEXT) == func.any(roles))
 
 
 def downgrade():
     op.drop_table('survey_group')
+    op.execute('''
+        DELETE FROM activity
+        WHERE ob_type = 'group'
+    ''')
+    op.execute('''
+        DELETE FROM subscription
+        WHERE ob_type = 'group'
+    ''')
 
+    ob_types = array([
+        'organisation', 'user',
+        'program', 'survey', 'qnode', 'measure', 'response_type',
+        'submission', 'rnode', 'response',
+        'custom_query'], type_=TEXT)
+    op.drop_constraint(
+        'activity_ob_type_check', 'activity', type_='check')
+    op.create_check_constraint(
+        'activity_ob_type_check', 'activity',
+        cast(column('ob_type'), TEXT) == func.any(ob_types))
+    op.drop_constraint(
+        'subscription_ob_type_check', 'subscription', type_='check')
+    op.create_check_constraint(
+        'subscription_ob_type_check', 'subscription',
+        cast(column('ob_type'), TEXT) == func.any(ob_types))
+
+    roles = array([
+        'admin', 'author', 'authority', 'consultant', 'org_admin', 'clerk'])
     op.execute("""
         UPDATE appuser
         SET role = 'admin'
@@ -49,6 +95,4 @@ def downgrade():
     op.drop_constraint('appuser_role_check', 'appuser', type_='check')
     op.create_check_constraint(
         'appuser_role_check', 'appuser',
-        """role = ANY (ARRAY[
-            'admin', 'author', 'authority', 'consultant', 'org_admin', 'clerk'
-        ]::varchar[])""")
+        cast(column('role'), TEXT) == func.any(roles))

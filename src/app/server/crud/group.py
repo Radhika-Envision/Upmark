@@ -92,7 +92,6 @@ class GroupHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             group = model.Group()
             self.update(group, self.request_son)
-            self.update_auto(group)
             session.add(group)
 
             session.flush()
@@ -129,7 +128,6 @@ class GroupHandler(base_handler.Paginate, base_handler.BaseHandler):
             verbs = []
             if session.is_modified(group):
                 verbs.append('update')
-                self.update_auto(group)
 
             if group.deleted:
                 group.deleted = False
@@ -182,5 +180,4 @@ class GroupHandler(base_handler.Paginate, base_handler.BaseHandler):
     def update(self, group, son):
         update = updater(group, error_factory=errors.ModelError)
         update('title', son)
-        update('text', son)
         update('description', son, sanitise=True)

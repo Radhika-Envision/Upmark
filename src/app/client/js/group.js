@@ -49,12 +49,12 @@ angular.module('upmark.group', [
 
 
 .controller('GroupCtrl', function(
-        $scope, Group, routeData, Editor, Authz, $location) {
+        $scope, Group, group, Editor, Authz, $location) {
 
     $scope.edit = Editor('group', $scope);
-    if (routeData.group) {
+    if (group) {
         // Editing old
-        $scope.group = routeData.group;
+        $scope.group = group;
     } else {
         // Creating new
         $scope.group = new Group({});
