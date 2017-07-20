@@ -13,6 +13,8 @@ angular.module('upmark', [
     'ui.bootstrap.showErrors',
     'upmark.admin.settings',
     'upmark.authz',
+    'upmark.cache_bust',
+    'upmark.chain',
     'upmark.current_user',
     'upmark.custom',
     'upmark.diff',
@@ -22,6 +24,8 @@ angular.module('upmark', [
     'upmark.notifications',
     'upmark.organisation',
     'upmark.response.type',
+    'upmark.root',
+    'upmark.route_version',
     'upmark.settings',
     'upmark.statistics',
     'upmark.subscription',
@@ -69,88 +73,6 @@ angular.module('upmark', [
     'vpac.widgets.visibility',
     'yaru22.angular-timeago',
 ])
-
-
-/**
- * Automatically resolves interdependencies between injected arguments.
- * Returns a function that can be used with $routeProvier.when's resolve
- * parameter.
- */
-.provider('chain', function resolveChain() {
-
-    function CyclicException(deps) {
-        this.message = "Detected cyclic dependency: " + deps.join(" -> ");
-        this.name = 'CyclicException';
-    };
-
-    var updateDepth = function(visited, decl, decls, depth) {
-        if (decl.depth === undefined || decl.depth < depth)
-            decl.depth = depth;
-        for (var i = 0; i < decl.length - 1; i ++) {
-            var dependency = decl[i];
-            if (visited.indexOf(dependency) >= 0)
-                throw new CyclicException(visited.concat(dependency));
-            if (decls[dependency]) {
-                updateDepth(visited.concat(dependency), decls[dependency],
-                    decls, depth + 1);
-            }
-        }
-        return null;
-    };
-
-    /*
-     * Compile a resolution declaration to resolve interdependencies.
-     */
-    var _chain = function($q, $injector, log, deps) {
-        deps = angular.copy(deps);
-
-        var orderedDeps = [];
-        for (var name in deps) {
-            var dep = deps[name];
-            updateDepth([name], dep, deps, 0);
-            orderedDeps.push({name: name, dep: dep})
-        }
-        orderedDeps.sort(function(a, b) {
-            return b.dep.depth - a.dep.depth;
-        });
-
-        var resolvedDeps = {};
-        angular.forEach(orderedDeps, function(value) {
-            var name = value.name;
-            var dep = value.dep;
-            if (angular.isString(dep)) {
-                resolvedDeps[name] = $injector.get(dep);
-                return;
-            }
-
-            var locals = {};
-            for (var j = 0; j < dep.length - 1; j++) {
-                var dependency = dep[j];
-                if (resolvedDeps[dependency])
-                    locals[dependency] = $q.when(resolvedDeps[dependency]);
-            }
-
-            resolvedDeps[name] = $q.all(locals).then(function(locals) {
-                log.debug("Resolving {} with locals {}", name, locals);
-                return $injector.invoke(dep, null, locals, name);
-            });
-        });
-        var ret = $q.all(resolvedDeps);
-        resolvedDeps = null;
-        return ret;
-    };
-
-    var chain = function(deps) {
-        // Services can't be injected at configure time, so defer injection
-        // until run time.
-        return ['$q', '$injector', 'log', function($q, $injector, log) {
-            return _chain($q, $injector, log, deps);
-        }];
-    };
-    chain.$get = chain;
-
-    return chain;
-})
 
 
 .config(['$routeProvider', '$httpProvider', '$parseProvider', '$animateProvider',
@@ -880,70 +802,6 @@ angular.module('upmark', [
 }])
 
 
-/*
- * Install an HTTP interceptor to add version numbers to the URLs of certain
- * resources. This is to improve the effectiveness of the browser cache, and to
- * give control over when the cache should be invalidated.
- */
- .config(['$httpProvider', 'versionedResources', 'version',
-     function($httpProvider, versionedResources, version) {
-         var rs = versionedResources.map(function(r) {
-             r._patterns = r.patterns.map(function(p) {
-                 return new RegExp(p);
-             });
-             r.matches = function(path) {
-                 var test = function(pattern) {
-                     return pattern.test(path);
-                 };
-                 return r._patterns.some(test);
-             };
-             return r;
-         });
-         var getVersionRule = function(path) {
-             for (var i = 0; i < rs.length; i++) {
-                 var r = rs[i];
-                 if (r.matches(path))
-                     return r.when;
-             }
-             return 'never';
-         };
-         var seq = 0;
-         var lastTimestamp = null;
-         var getTimestamp = function() {
-             var ts = Date.now() / 1000;
-             if (ts == lastTimestamp)
-                 seq += 1;
-             else
-                 seq = 0;
-             lastTimestamp = ts;
-             return '' + ts + '-' + seq;
-         };
-
-
-         $httpProvider.interceptors.push([function() {
-             return {
-                 request: function(config) {
-                     var vrule = getVersionRule(config.url);
-                     if (vrule == 'never')
-                         return config;
-
-                     var versionString = version[vrule];
-                     if (!versionString)
-                         return config;
-                     if (versionString == 'vv')
-                         versionString = 'vv_' + getTimestamp();
-
-                     if (config.url.indexOf('?') == -1)
-                         config.url += '?v=' + versionString;
-                     else
-                         config.url += '&v=' + versionString;
-                     return config;
-                 }
-             }
-         }]);
-     }
- ])
-
 
 /*
  * Install an HTTP interceptor to make error reasons easier to use. All HTTP
@@ -986,153 +844,6 @@ angular.module('upmark', [
 }])
 
 
-.run(function($rootScope, $window, $location, Notifications, log,
-        $route, checkLogin, $q, QuestionNode) {
-
-    // Upgrade route version
-    // The route version should be a number in the range 0-z
-    $rootScope.$on('$routeChangeStart', function(event, next, current) {
-        var CURRENT_VERSION = 2;
-        // Initialise from $location because it is aware of the hash. This
-        // should probably work with HTML5 mode URLs too.
-        var createUrl = function(urlOrStr) {
-            var url = new Url(urlOrStr.toString());
-            // Hacks for IE 11 because realitve URL construction doesn't work
-            // https://github.com/Mikhus/domurl/issues/6
-            url.host = url.port = url.protocol = '';
-            if (!url.path) {
-                url.path = '/';
-            }
-            return url;
-        };
-        var originalUrl = createUrl($location.url() || '/');
-
-        var vmatch = /^\/([0-9a-z])\//.exec(originalUrl.path);
-        var version = Number(vmatch && vmatch[1] || '0');
-
-        if (version >= CURRENT_VERSION)
-            return;
-        event.preventDefault();
-
-        // Special case for root location, since it gets used a lot (landing
-        // page).
-        if (originalUrl.toString() == '/') {
-            $location.url('/' + CURRENT_VERSION + '/');
-            return;
-        }
-
-        var deferred = $q.defer();
-        deferred.resolve(originalUrl);
-        var promise = deferred.promise;
-
-        if (version < 1) {
-            promise = promise.then(function(oldUrl) {
-                // Version 1: Rename:
-                //  - survey -> program
-                //  - hierarchy -> survey
-                //  - assessment -> submission
-                var url = createUrl(oldUrl);
-                var pElems = url.path.split('/').map(function(elem) {
-                    if (elem == 'survey')
-                        return 'program';
-                    else if (elem == 'surveys')
-                        return 'programs';
-                    else if (elem == 'hierarchy')
-                        return 'survey';
-                    else if (elem == 'assessment')
-                        return 'submission';
-                    else
-                        return elem;
-                });
-                pElems.splice(1, 0, '1');
-                url.path = pElems.join('/');
-
-                if (url.query.survey) {
-                    url.query.program = url.query.survey;
-                    delete url.query.survey;
-                }
-                if (url.query.hierarchy) {
-                    url.query.survey = url.query.hierarchy;
-                    delete url.query.hierarchy;
-                }
-                if (url.query.assessment) {
-                    url.query.submission = url.query.assessment;
-                    delete url.query.assessment;
-                }
-                if (url.query.assessment1) {
-                    url.query.submission1 = url.query.assessment1;
-                    delete url.query.assessment1;
-                }
-                if (url.query.assessment2) {
-                    url.query.submission2 = url.query.assessment2;
-                    delete url.query.assessment2;
-                }
-                return url;
-            });
-        }
-
-        if (version < 2) {
-            promise = promise.then(function(oldUrl) {
-                // Version 2: When accessing a measure, replace parent ID with
-                // survey ID - except for new measures.
-                var url = createUrl(oldUrl);
-                var measureMatch = /^\/1\/measure\/([\w-]+)/.exec(oldUrl);
-                var subPromise = null;
-                if (measureMatch && measureMatch[1] != 'new') {
-                    subPromise = QuestionNode.get({
-                        id: url.query.parent,
-                        programId: url.query.program,
-                    }).$promise.then(function(qnode) {
-                        url.query.survey = qnode.survey.id;
-                        delete url.query.parent;
-                    });
-                }
-                return $q.when(subPromise).then(function() {
-                    url.path = url.path.replace(/^\/\d+\//, '/2/');
-                    return url;
-                });
-            });
-        }
-
-        promise.then(function(newUrl) {
-            console.log('Upgraded route to v' + CURRENT_VERSION +
-                ':\n' + originalUrl + '\n' + newUrl);
-            $location.url(newUrl);
-        });
-    });
-
-    $rootScope.$on('$routeChangeError',
-            function(event, current, previous, rejection) {
-        var error;
-        if (rejection && rejection.statusText)
-            error = rejection.statusText;
-        else if (rejection && rejection.message)
-            error = rejection.message;
-        else if (angular.isString(rejection))
-            error = rejection;
-        else
-            error = "Object not found";
-        log.error("Failed to navigate to {}", $location.url());
-        Notifications.set('route', 'error', error, 10000);
-
-        checkLogin().then(
-            function sessionStillValid() {
-                if (previous)
-                    $window.history.back();
-            },
-            function sessionInvalid() {
-                Notifications.set('route', 'error',
-                    "Your session has expired. Please log in again.");
-            }
-        );
-    });
-
-    $rootScope.$on('$routeChangeSuccess', function(event) {
-        $window.ga('send', 'pageview', '/' + $route.current.loadedTemplateUrl);
-    });
-})
-
-
 .factory('Authz', function(AuthzPolicy, currentUser, $cookies) {
     var policyFactory = function(context) {
         var localPolicy = policyFactory.rootPolicy.derive(context);
@@ -1157,53 +868,5 @@ angular.module('upmark', [
     timeAgoSettings.allowFuture = true;
     timeAgoSettings.fullDateAfterSeconds = oneDay * 3;
 })
-
-
-.controller('RootCtrl', ['$scope', 'hotkeys', '$cookies', 'User',
-        'Notifications', '$window', 'aqVersion',
-        function($scope, hotkeys, $cookies, User, Notifications, $window,
-            aqVersion) {
-    $scope.aqVersion = aqVersion;
-    $scope.hotkeyHelp = hotkeys.toggleCheatSheet;
-
-    try {
-        var superuser = $cookies.get('superuser');
-        if (superuser) {
-            var pastUsers = decodeURIComponent($cookies.get('past-users'));
-            $scope.pastUsers = angular.fromJson(pastUsers);
-        } else {
-            $scope.pastUsers = null;
-        }
-    } catch (e) {
-        $scope.pastUsers = null;
-    }
-
-    $scope.impersonate = function(id) {
-        User.impersonate({id: id}).$promise.then(
-            function success() {
-                $window.location.reload();
-            },
-            function error(details) {
-                Notifications.set('user', 'error',
-                    "Could not impersonate: " + details.statusText);
-            }
-        );
-    };
-
-    $scope.trainingDocs = "This is the training site."
-        + " You can make changes without affecting the"
-        + " main site. Sometimes, information is copied from the"
-        + " main site to this one. When that happens, changes you have"
-        + " made here will be overwritten.";
-}])
-.controller('HeaderCtrl', function($scope, Authz) {
-    $scope.checkRole = Authz({});
-})
-.controller('EmptyCtrl', ['$scope',
-        function($scope) {
-}])
-.controller('LoginCtrl', ['$scope',
-        function($scope) {
-}])
 
 ;
