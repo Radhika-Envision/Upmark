@@ -12,6 +12,8 @@ down_revision = '76620faac78d'
 branch_labels = None
 depends_on = None
 
+import datetime
+
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import column, func
@@ -22,11 +24,11 @@ import deps_b989f35f3862 as model
 
 
 def upgrade():
-    op.create_table(
+    survey_group_table = op.create_table(
         'survey_group',
         sa.Column('id', model.guid.GUID(), nullable=False),
         sa.Column('title', sa.Text(), nullable=False),
-        sa.Column('description', sa.Text(), nullable=True),
+        sa.Column('description', sa.Text()),
         sa.Column('created', sa.DateTime(), nullable=False),
         sa.Column('deleted', sa.Boolean(), nullable=False),
         sa.PrimaryKeyConstraint('id')
@@ -56,6 +58,15 @@ def upgrade():
     op.create_check_constraint(
         'appuser_role_check', 'appuser',
         cast(column('role'), TEXT) == func.any(roles))
+
+    op.bulk_insert(survey_group_table, [
+        {
+            'id': model.guid.GUID.gen(),
+            'title': "DEFAULT SURVEY GROUP",
+            'created': datetime.datetime.now(),
+            'deleted': False,
+        },
+    ])
 
 
 def downgrade():
