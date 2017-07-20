@@ -1,7 +1,47 @@
 'use strict';
 
 angular.module('upmark.custom', [
-    'ui.select', 'ui.sortable', 'upmark.user'])
+    'ui.select', 'ui.sortable', 'upmark.user', 'upmark.chain'])
+
+
+.config(function($routeProvider, chainProvider) {
+    $routeProvider
+        .when('/:uv/custom', {
+            templateUrl : 'custom_list.html',
+            controller : 'CustomListCtrl',
+        })
+        .when('/:uv/custom/new', {
+            templateUrl : 'custom.html',
+            controller : 'CustomCtrl',
+            resolve: {routeData: chainProvider({
+                config: ['CustomQueryConfig', function(CustomQueryConfig) {
+                    return CustomQueryConfig.get({}).$promise;
+                }],
+                duplicate: ['CustomQuery', '$route', function(CustomQuery, $route) {
+                    var id = $route.current.params.duplicate;
+                    if (!id)
+                        return null;
+                    return CustomQuery.get({id: id}).$promise;
+                }],
+            })}
+        })
+        .when('/:uv/custom/:id', {
+            templateUrl : 'custom.html',
+            controller : 'CustomCtrl',
+            resolve: {routeData: chainProvider({
+                config: ['CustomQueryConfig', function(CustomQueryConfig) {
+                    return CustomQueryConfig.get({}).$promise;
+                }],
+                query: ['CustomQuery', '$route', function(CustomQuery, $route) {
+                    var id = $route.current.params.id;
+                    if (id == 'new')
+                        return null;
+                    return CustomQuery.get({id: id}).$promise;
+                }],
+            })}
+        })
+    ;
+})
 
 
 .factory('CustomQuery', ['$resource', function($resource) {

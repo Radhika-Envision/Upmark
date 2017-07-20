@@ -3,7 +3,156 @@
 angular.module('upmark.statistics', [
     'ngResource', 'upmark.admin.settings', 'upmark.submission.submission',
     'upmark.structure', 'upmark.submission.rnode', 'upmark.survey.qnode',
-    'upmark.user'])
+    'upmark.user', 'upmark.chain'])
+
+
+.config(function($routeProvider, chainProvider) {
+    $routeProvider
+        .when('/:uv/statistics', {
+            templateUrl : 'statistics.html',
+            controller : 'StatisticsCtrl',
+            resolve: {routeData: chainProvider({
+                submission1: ['Submission', '$route',
+                        function(Submission, $route) {
+                    return Submission.get({
+                        id: $route.current.params.submission1
+                    }).$promise;
+                }],
+                submission2: ['Submission', '$route',
+                        function(Submission, $route) {
+                    if (!$route.current.params.submission2)
+                        return null;
+                    return Submission.get({
+                        id: $route.current.params.submission2
+                    }).$promise;
+                }],
+                rnodes1: ['ResponseNode', '$route',
+                        function(ResponseNode, $route) {
+                    var qnodeId = $route.current.params.qnode;
+                    return ResponseNode.query({
+                        submissionId: $route.current.params.submission1,
+                        parentId: qnodeId,
+                        root: qnodeId ? null : ''
+                    }).$promise;
+                }],
+                rnodes2: ['ResponseNode', '$route',
+                        function(ResponseNode, $route) {
+                    if (!$route.current.params.submission2)
+                        return null;
+                    var qnodeId = $route.current.params.qnode;
+                    return ResponseNode.query({
+                        submissionId: $route.current.params.submission2,
+                        parentId: qnodeId,
+                        root: qnodeId ? null : ''
+                    }).$promise;
+                }],
+                approvals: ['submission1', 'submission2', '$q',
+                        function(submission1, submission2, $q) {
+                    var approvalStates = [
+                        'draft', 'final', 'reviewed', 'approved'];
+                    var minIndex = approvalStates.indexOf(
+                        submission1.survey.minStatsApproval);
+                    if (minIndex < 0) {
+                        return $q.reject(
+                            "Statistics have been disabled for this survey");
+                    }
+                    if (submission2) {
+                        var minIndex2 = approvalStates.indexOf(
+                            submission2.survey.minStatsApproval);
+                        if (minIndex2 < 0) {
+                            return $q.reject(
+                                "Statistics have been disabled for this survey");
+                        }
+                        if (minIndex2 > minIndex)
+                            minIndex = minIndex2;
+                    }
+                    return approvalStates.slice(minIndex);
+                }],
+                approval: ['$route', 'approvals', '$q',
+                        function($route, approvals, $q) {
+                    var approval = $route.current.params.approval || approvals[0];
+                    if (approvals.indexOf(approval) < 0) {
+                        return $q.reject(
+                            "You can't view data for that approval state");
+                    }
+                    return approval;
+                }],
+                stats1: ['Statistics', '$route', 'submission1', '$q',
+                            'submission2', 'approval',
+                        function(Statistics, $route, submission1, $q,
+                            submission2, approval) {
+                    return Statistics.get({
+                        programId: submission1.program.id,
+                        surveyId: submission1.survey.id,
+                        parentId: $route.current.params.qnode == '' ?
+                            null : $route.current.params.qnode,
+                        approval: approval
+                    }).$promise.then(function(stats1) {
+                        if (!submission2 && stats1.length == 0) {
+                            return $q.reject(
+                                "There is no data for that category");
+                        }
+                        else if (stats1.length == 0) {
+                            return $q.reject(
+                                "There is no data for that category of" +
+                                " the first survey/submission");
+                        }
+                        return stats1;
+                    });
+                }],
+                stats2: ['Statistics', '$route', 'submission1', '$q',
+                                 'submission2', 'approval', 'stats1',
+                         function(Statistics, $route, submission1, $q,
+                                 submission2, approval, stats1) {
+                    if (!submission2)
+                        return null;
+                    if (submission1.program.id == submission2.program.id)
+                        return stats1;
+                    return Statistics.get({
+                        programId: submission2.program.id,
+                        surveyId: submission2.survey.id,
+                        parentId: $route.current.params.qnode == '' ?
+                            null : $route.current.params.qnode,
+                        approval: approval
+                    }).$promise.then(function(stats1) {
+                        if (stats1.length == 0) {
+                            return $q.reject(
+                                "There is no data for that category of" +
+                                " the second survey/submission");
+                        }
+                        return stats1;
+                    });
+                }],
+                qnode1: ['QuestionNode', '$route', 'submission1',
+                        function(QuestionNode, $route, submission1) {
+                    if (!$route.current.params.qnode)
+                        return null;
+                    return QuestionNode.get({
+                        programId: submission1.program.id,
+                        id: $route.current.params.qnode == '' ?
+                            null : $route.current.params.qnode
+                    }).$promise;
+                }],
+                qnode2: ['QuestionNode', '$route', 'submission1',
+                         'submission2', 'qnode1',
+                        function(QuestionNode, $route, submission1,
+                                 submission2, qnode1) {
+                    if (!$route.current.params.qnode)
+                        return null;
+                    if (!submission2)
+                        return null;
+                    if (submission1.program.id == submission2.program.id)
+                        return qnode1;
+                    return QuestionNode.get({
+                        programId: submission2.program.id,
+                        id: $route.current.params.qnode == '' ?
+                            null : $route.current.params.qnode
+                    }).$promise;
+                }]
+            })}
+        })
+    ;
+})
 
 
 .factory('Statistics', ['$resource', function($resource) {

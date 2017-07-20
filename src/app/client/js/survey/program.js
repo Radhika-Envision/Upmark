@@ -2,7 +2,45 @@
 
 angular.module('upmark.survey.program',[
     'ngResource', 'ngSanitize', 'ui.select', 'ui.sortable',
-    'upmark.admin.settings', 'upmark.user'])
+    'upmark.admin.settings', 'upmark.user', 'upmark.chain'])
+
+
+.config(function($routeProvider, chainProvider) {
+    $routeProvider
+        .when('/:uv/programs', {
+            templateUrl : 'program_list.html',
+            controller : 'ProgramListCtrl'
+        })
+        .when('/:uv/program/new', {
+            templateUrl : 'program.html',
+            controller : 'ProgramCtrl',
+            resolve: {routeData: chainProvider({
+                duplicate: ['Program', '$route', function(Program, $route) {
+                    if (!$route.current.params.duplicate)
+                        return null;
+                    return Program.get({
+                        id: $route.current.params.duplicate
+                    }).$promise;
+                }]
+            })}
+        })
+        .when('/:uv/program/import', {
+            templateUrl : 'program_import.html',
+            controller : 'ProgramImportCtrl'
+        })
+        .when('/:uv/program/:program', {
+            templateUrl : 'program.html',
+            controller : 'ProgramCtrl',
+            resolve: {routeData: chainProvider({
+                program: ['Program', '$route', function(Program, $route) {
+                    return Program.get({
+                        id: $route.current.params.program
+                    }).$promise;
+                }]
+            })}
+        })
+    ;
+})
 
 
 .factory('Program', ['$resource', 'paged', function($resource, paged) {

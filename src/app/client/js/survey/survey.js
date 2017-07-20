@@ -1,10 +1,65 @@
 'use strict';
 
 angular.module('upmark.survey.survey', [
-  'ngResource', 'ngSanitize',
-  'ui.select', 'ui.sortable',
-  'upmark.admin.settings', 'upmark.user'])
+    'ngResource', 'ngSanitize', 'ui.select', 'ui.sortable',
+    'upmark.admin.settings', 'upmark.user', 'upmark.chain'])
 
+
+.config(function($routeProvider, chainProvider) {
+    $routeProvider
+        .when('/:uv/survey/new', {
+            templateUrl : 'survey.html',
+            controller : 'SurveyCtrl',
+            resolve: {routeData: chainProvider({
+                program: ['Program', '$route', function(Program, $route) {
+                    return Program.get({
+                        id: $route.current.params.program
+                    }).$promise;
+                }]
+            })}
+        })
+        .when('/:uv/survey/:survey/choice', {
+            templateUrl : 'survey_choice.html',
+            controller : 'SurveyChoiceCtrl',
+            resolve: {routeData: chainProvider({
+                survey: ['Survey', '$route',
+                        function(Survey, $route) {
+                    return Survey.get({
+                        id: $route.current.params.survey,
+                        programId: $route.current.params.program
+                    }).$promise;
+                }],
+                program: ['survey', function(survey) {
+                    return survey.program;
+                }],
+                org: ['Organisation', '$route',
+                        function(Organisation, $route) {
+                    if (!$route.current.params.organisation)
+                        return null;
+                    return Organisation.get({
+                        id: $route.current.params.organisation
+                    }).$promise;
+                }]
+            })}
+        })
+        .when('/:uv/survey/:survey', {
+            templateUrl : 'survey.html',
+            controller : 'SurveyCtrl',
+            resolve: {routeData: chainProvider({
+                survey: ['Survey', '$route',
+                        function(Survey, $route) {
+                    return Survey.get({
+                        id: $route.current.params.survey,
+                        programId: $route.current.params.program
+                    }).$promise;
+                }],
+                program: ['survey', function(survey) {
+                    return survey.program;
+                }]
+            })}
+        })
+    ;
+})
 
 .factory('Survey', ['$resource', function($resource) {
     return $resource('/survey/:id.json', {id: '@id'}, {

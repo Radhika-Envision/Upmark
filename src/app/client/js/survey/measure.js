@@ -1,8 +1,94 @@
 'use strict';
 
 angular.module('upmark.survey.measure', [
-    'upmark.response.type', 'upmark.structure', 'upmark.user'])
+    'upmark.response.type', 'upmark.structure', 'upmark.user', 'upmark.chain'])
 
+
+.config(function($routeProvider, chainProvider) {
+    $routeProvider
+        .when('/:uv/measures', {
+            templateUrl : 'measure_list.html',
+            controller : 'MeasureListCtrl',
+            resolve: {routeData: chainProvider({
+                program: ['Program', '$route', function(Program, $route) {
+                    return Program.get({
+                        id: $route.current.params.program
+                    }).$promise;
+                }],
+            })}
+        })
+        .when('/:uv/measure/new', {
+            templateUrl : 'measure.html',
+            controller : 'MeasureCtrl',
+            resolve: {routeData: chainProvider({
+                parent: ['QuestionNode', '$route',
+                        function(QuestionNode, $route) {
+                    if (!$route.current.params.parent)
+                        return null;
+                    return QuestionNode.get({
+                        id: $route.current.params.parent,
+                        programId: $route.current.params.program
+                    }).$promise;
+                }],
+                program: ['Program', '$route', function(Program, $route) {
+                    return Program.get({
+                        id: $route.current.params.program
+                    }).$promise;
+                }],
+            })}
+        })
+        .when('/:uv/measure/:measure', {
+            templateUrl : 'measure.html',
+            controller : 'MeasureCtrl',
+            resolve: {routeData: chainProvider({
+                submission: ['Submission', '$route',
+                        function(Submission, $route) {
+                    if (!$route.current.params.submission)
+                        return null;
+                    return Submission.get({
+                        id: $route.current.params.submission
+                    }).$promise;
+                }],
+                measure: ['Measure', '$route', 'submission',
+                        function(Measure, $route, submission) {
+                    return Measure.get({
+                        id: $route.current.params.measure,
+                        programId: submission ? submission.program.id :
+                            $route.current.params.program,
+                        surveyId: submission ? submission.survey.id :
+                            $route.current.params.survey,
+                        submissionId: $route.current.params.submission
+                    }).$promise;
+                }],
+                responseType: ['measure', 'ResponseType',
+                        function(measure, ResponseType) {
+                    return ResponseType.get({
+                        id: measure.responseTypeId,
+                        programId: measure.programId
+                    }).$promise;
+                }]
+            })}
+        })
+        .when('/:uv/measure-link', {
+            templateUrl : 'measure_link.html',
+            controller : 'MeasureLinkCtrl',
+            resolve: {routeData: chainProvider({
+                parent: ['QuestionNode', '$route',
+                        function(QuestionNode, $route) {
+                    return QuestionNode.get({
+                        id: $route.current.params.parent,
+                        programId: $route.current.params.program
+                    }).$promise;
+                }],
+                program: ['Program', '$route', function(Program, $route) {
+                    return Program.get({
+                        id: $route.current.params.program
+                    }).$promise;
+                }],
+            })}
+        })
+    ;
+})
 
 .factory('Measure', ['$resource', 'paged', function($resource, paged) {
     return $resource('/measure/:id.json?surveyId=:surveyId', {id: '@id'}, {

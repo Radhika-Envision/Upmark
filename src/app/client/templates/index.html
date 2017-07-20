@@ -41,6 +41,11 @@
             </div>
             <div class="collapse navbar-collapse">
                 <ul class="nav navbar-nav navbar-right">
+                    <li ng-if="checkRole('group_browse')">
+                        <a ng-href="#/2/groups" title="Survey groups">
+                            <span>Survey groups</span>
+                        </a>
+                    </li>
                     <li>
                         <a ng-href="#/2/programs" title="Programs">
                             <span>Programs</span>

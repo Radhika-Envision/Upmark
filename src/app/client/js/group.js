@@ -4,6 +4,37 @@ angular.module('upmark.group', [
     'ngResource', 'upmark.notifications', 'vpac.utils.requests'])
 
 
+.config(function($routeProvider) {
+    $routeProvider
+        .when('/:uv/groups', {
+            templateUrl : 'group_list.html',
+            controller : 'GroupListCtrl'
+        })
+        .when('/:uv/group/new', {
+            templateUrl : 'group.html',
+            controller : 'GroupCtrl',
+            resolve: {
+                group: function() {
+                    return null;
+                }
+            }
+        })
+        .when('/:uv/group/:id', {
+            templateUrl : 'group.html',
+            controller : 'GroupCtrl',
+            resolve: {
+                group: ['Group', '$route',
+                        function(Group, $route) {
+                    return Group.get({
+                        id: $route.current.params.id
+                    }).$promise;
+                }]
+            }
+        })
+    ;
+})
+
+
 .factory('Group', ['$resource', 'paged', function($resource, paged) {
     return $resource('/group/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },

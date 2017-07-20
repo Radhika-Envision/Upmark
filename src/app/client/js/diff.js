@@ -1,7 +1,34 @@
 'use strict'
 
 angular.module('upmark.diff', [
-    'ngResource', 'upmark.user', 'upmark.structure'])
+    'ngResource', 'upmark.user', 'upmark.structure', 'upmark.chain'])
+
+
+.config(function($routeProvider, chainProvider) {
+    $routeProvider
+        .when('/:uv/diff/:program1/:program2/:survey', {
+            templateUrl: 'diff.html',
+            controller: 'DiffCtrl',
+            reloadOnSearch: false,
+            resolve: {routeData: chainProvider({
+                survey1: ['Survey', '$route',
+                        function(Survey, $route) {
+                    return Survey.get({
+                        id: $route.current.params.survey,
+                        programId: $route.current.params.program1
+                    }).$promise;
+                }],
+                survey2: ['Survey', '$route',
+                        function(Survey, $route) {
+                    return Survey.get({
+                        id: $route.current.params.survey,
+                        programId: $route.current.params.program2
+                    }).$promise;
+                }]
+            })}
+        })
+    ;
+})
 
 
 .factory('Diff', ['$resource', function($resource) {

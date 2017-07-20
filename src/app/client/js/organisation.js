@@ -5,6 +5,63 @@ angular.module('upmark.organisation', [
     'vpac.utils.requests', 'vpac.widgets.editor'])
 
 
+.config(function($routeProvider) {
+    $routeProvider
+        .when('/:uv/orgs', {
+            templateUrl : 'organisation_list.html',
+            controller : 'OrganisationListCtrl'
+        })
+        .when('/:uv/org/new', {
+            templateUrl : 'organisation.html',
+            controller : 'OrganisationCtrl',
+            resolve: {
+                org: function() {
+                    return null;
+                }
+            }
+        })
+        .when('/:uv/org/:id', {
+            templateUrl : 'organisation.html',
+            controller : 'OrganisationCtrl',
+            resolve: {
+                org: ['Organisation', '$route',
+                        function(Organisation, $route) {
+                    return Organisation.get({
+                        id: $route.current.params.id
+                    }).$promise;
+                }]
+            }
+        })
+        .when('/:uv/org/:id/survey/add', {
+            templateUrl : 'purchased_survey.html',
+            controller : 'PurchasedSurveyAddCtrl',
+            resolve: {
+                org: ['Organisation', '$route',
+                        function(Organisation, $route) {
+                    return Organisation.get($route.current.params).$promise;
+                }],
+                program: ['Program', '$route',
+                        function(Program, $route) {
+                    if (!$route.current.params.program)
+                        return null;
+                    return Program.get({
+                        id: $route.current.params.program
+                    }).$promise;
+                }],
+                surveys: ['Survey', '$route',
+                        function(Survey, $route) {
+                    if (!$route.current.params.program)
+                        return null;
+                    return Survey.query({
+                        programId: $route.current.params.program
+                    }).$promise;
+                }]
+            }
+        })
+    ;
+})
+
+
 .factory('Organisation', ['$resource', 'paged', function($resource, paged) {
     return $resource('/organisation/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },

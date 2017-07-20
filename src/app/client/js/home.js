@@ -5,6 +5,16 @@ angular.module('upmark.home', [
     'upmark.user'])
 
 
+.config(function($routeProvider) {
+    $routeProvider
+        .when('/:uv/', {
+            templateUrl : 'home.html',
+            controller : 'HomeCtrl'
+        })
+    ;
+})
+
+
 .factory('Activity', ['$resource', function($resource) {
     return $resource('/activity/:id.json', {}, {
         get: { method: 'GET', cache: false },

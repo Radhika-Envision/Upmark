@@ -1,7 +1,32 @@
 'use strict'
 
 angular.module('upmark.user', [
-    'ngResource', 'upmark.notifications', 'vpac.utils.requests'])
+    'ngResource', 'upmark.notifications', 'vpac.utils.requests',
+    'upmark.chain'])
+
+
+.config(function($routeProvider, chainProvider) {
+    $routeProvider
+        .when('/:uv/users', {
+            templateUrl : 'user_list.html',
+            controller : 'UserListCtrl'
+        })
+        .when('/:uv/user/new', {
+            templateUrl : 'user.html',
+            controller : 'UserCtrl',
+            resolve: {routeData: chainProvider({})},
+        })
+        .when('/:uv/user/:id', {
+            templateUrl : 'user.html',
+            controller : 'UserCtrl',
+            resolve: {routeData: chainProvider({
+                user: ['User', '$route', function(User, $route) {
+                    return User.get($route.current.params).$promise;
+                }]
+            })}
+        })
+    ;
+})
 
 
 .factory('User', ['$resource', 'paged', function($resource, paged) {

@@ -4,6 +4,15 @@ angular.module('upmark.subscription', [
     'ngResource', 'upmark.admin.settings', 'upmark.user'])
 
 
+.config(function($routeProvider) {
+    $routeProvider
+        .when('/:uv/subscription/:type', {
+            templateUrl : 'subscription.html',
+            controller : 'SubscriptionCtrl'
+        })
+    ;
+})
+
 .factory('Subscription', ['$resource', function($resource) {
     return $resource('/subscription/:id.json', {}, {
         get: { method: 'GET', cache: false },

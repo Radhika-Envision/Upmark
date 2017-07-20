@@ -3,6 +3,16 @@
 angular.module('upmark.root', [])
 
 
+.config(function($routeProvider, chainProvider) {
+    $routeProvider
+        .when('/:uv/legal', {
+            templateUrl : 'legal.html',
+            controller : 'EmptyCtrl'
+        })
+    ;
+})
+
+
 .controller('RootCtrl', ['$scope', 'hotkeys', '$cookies', 'User',
         'Notifications', '$window', 'aqVersion',
         function($scope, hotkeys, $cookies, User, Notifications, $window,
