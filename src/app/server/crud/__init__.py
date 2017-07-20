@@ -3,7 +3,6 @@ __all__ = (
     'attachment',
     'config',
     'custom',
-    'group',
     'image',
     'measure',
     'org',
@@ -14,6 +13,7 @@ __all__ = (
     'rnode',
     'submission',
     'survey',
+    'surveygroup',
     'user',
 )
 
@@ -21,7 +21,7 @@ from . import config
 from . import custom
 from . import image
 
-from . import group
+from . import surveygroup
 
 from . import org
 from . import user

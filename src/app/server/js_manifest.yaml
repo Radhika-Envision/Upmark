@@ -72,7 +72,6 @@
         - /js/cache-bust.js
         - /js/custom.js
         - /js/diff.js
-        - /js/group.js
         - /js/home.js
         - /js/location.js
         - /js/notifications.js
@@ -95,6 +94,7 @@
         - /js/survey/measure.js
         - /js/survey/program.js
         - /js/survey/qnode.js
+        - /js/surveygroup.js
         - /js/structure.js
         - /js/survey/survey.js
         - /js/system.js

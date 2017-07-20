@@ -198,8 +198,8 @@ def get_mappings():
         (r"/geo/(.*).json",
             crud.org.LocationSearchHandler, {}),
 
-        (r"/group/?([^/]*).json",
-            crud.group.GroupHandler, {}),
+        (r"/surveygroup/?([^/]*).json",
+            crud.surveygroup.SurveyGroupHandler, {}),
 
         (r"/organisation/?([^/]*).json",
             crud.org.OrgHandler, {}),

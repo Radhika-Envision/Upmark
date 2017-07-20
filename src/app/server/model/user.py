@@ -8,7 +8,7 @@ __all__ = [
 from datetime import datetime
 
 from sqlalchemy import Boolean, Column, DateTime, Enum, Float, \
-    ForeignKey, Index, Integer, Text
+    ForeignKey, Index, Integer, Table, Text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import CheckConstraint
@@ -18,6 +18,7 @@ from .base import Base
 from .guid import GUID
 from .observe import Observable
 from .password import Password
+from .surveygroup import SurveyGroup
 
 
 class Organisation(Observable, Base):
@@ -193,3 +194,25 @@ Organisation.users = relationship(
     AppUser, back_populates="organisation", passive_deletes=True,
     primaryjoin=(Organisation.id == AppUser.organisation_id) &
                 (AppUser.deleted == False))
+
+
+organisation_surveygroup = Table(
+    'organisation_surveygroup', Base.metadata,
+    Column('organisation_id', GUID, ForeignKey('organisation.id')),
+    Column('surveygroup_id', GUID, ForeignKey('surveygroup.id'))
+)
+
+
+Organisation.surveygroups = relationship(
+    SurveyGroup, backref='organisations', secondary=organisation_surveygroup)
+
+
+user_surveygroup = Table(
+    'user_surveygroup', Base.metadata,
+    Column('user_id', GUID, ForeignKey('appuser.id')),
+    Column('surveygroup_id', GUID, ForeignKey('surveygroup.id'))
+)
+
+
+AppUser.surveygroups = relationship(
+    SurveyGroup, backref='users', secondary=user_surveygroup)

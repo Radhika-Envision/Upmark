@@ -13,7 +13,7 @@ from datetime import datetime
 from itertools import chain, zip_longest
 
 from sqlalchemy import Boolean, Column, DateTime, Float, \
-    ForeignKey, Index, Integer, JSON, Text
+    ForeignKey, Index, Integer, JSON, Table, Text
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import backref, foreign, relationship, remote, \
@@ -27,6 +27,7 @@ import response_type
 from .observe import Observable
 from .base import Base, to_id
 from .guid import GUID
+from .surveygroup import SurveyGroup
 from .user import Organisation
 
 
@@ -706,3 +707,14 @@ ResponseType.measures = relationship(
     primaryjoin=(
         (foreign(Measure.response_type_id) == ResponseType.id) &
         (ResponseType.program_id == Measure.program_id)))
+
+
+program_surveygroup = Table(
+    'program_surveygroup', Base.metadata,
+    Column('program_id', GUID, ForeignKey('program.id')),
+    Column('surveygroup_id', GUID, ForeignKey('surveygroup.id'))
+)
+
+
+Program.surveygroups = relationship(
+    SurveyGroup, backref='programs', secondary=program_surveygroup)

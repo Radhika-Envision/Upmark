@@ -1,5 +1,5 @@
 __all__ = [
-    'Group',
+    'SurveyGroup',
 ]
 
 from datetime import datetime
@@ -11,8 +11,8 @@ from .guid import GUID
 from .observe import Observable
 
 
-class Group(Observable, Base):
-    __tablename__ = 'survey_group'
+class SurveyGroup(Observable, Base):
+    __tablename__ = 'surveygroup'
     id = Column(GUID, default=GUID.gen, primary_key=True)
     title = Column(Text, nullable=False)
     description = Column(Text)
@@ -20,12 +20,12 @@ class Group(Observable, Base):
     deleted = Column(Boolean, default=False, nullable=False)
 
     __table_args__ = (
-        Index('group_title_key', func.lower(title), unique=True),
+        Index('surveygroup_title_key', func.lower(title), unique=True),
     )
 
     @property
     def ob_type(self):
-        return 'group'
+        return 'surveygroup'
 
     @property
     def ob_ids(self):
@@ -36,4 +36,4 @@ class Group(Observable, Base):
         return [self]
 
     def __repr__(self):
-        return "Group(title={})".format(self.title)
+        return "SurveyGroup(title={})".format(self.title)

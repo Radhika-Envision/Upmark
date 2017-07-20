@@ -40,7 +40,7 @@ class Activity(Base):
     # columns are for looking up the target object (e.g. to create a
     # hyperlink).
     ob_type = Column(Enum(
-        'group',
+        'surveygroup',
         'organisation', 'user',
         'program', 'survey', 'qnode', 'measure', 'response_type',
         'submission', 'rnode', 'response',
@@ -102,7 +102,7 @@ class Subscription(Base):
     # http://www.postgresql.org/docs/9.4/static/gin-intro.html
     # http://stackoverflow.com/questions/19959735/postgresql-gin-index-on-array-of-uuid
     ob_type = Column(Enum(
-        'group',
+        'surveygroup',
         'organisation', 'user',
         'program', 'survey', 'qnode', 'measure', 'response_type',
         'submission', 'rnode', 'response',
