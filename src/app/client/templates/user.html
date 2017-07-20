@@ -168,6 +168,15 @@
         </dd>
         <dd ng-if="user.emailInterval <= 0">Email notifications are disabled.</dd>
     </dl>
+    <dl ng-if="checkRole('surveygroup_browse')">
+        <dt>Survey groups</dt>
+        <dd class="commasep"
+            ><span ng-repeat="surveygroup in user.surveygroups"
+                ><a ng-href="#/2/surveygroup/{{surveygroup.id}}"
+                    >{{surveygroup.title}}</a></span
+        ></dd>
+        <dd ng-if="user.emailInterval <= 0">Email notifications are disabled.</dd>
+    </dl>
 
     <docs ng-if="user.deleted || user.organisation.deleted">
         <i class="fa-li fa fa-trash fa-border"></i>

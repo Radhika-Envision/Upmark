@@ -61,17 +61,21 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             to_son = ToSon(
                 r'/id$',
                 r'/name$',
+                r'/title$',
                 r'/email$',
                 r'/email_interval$',
                 r'/role$',
                 r'/deleted$',
                 # Descend into nested objects
                 r'/organisation$',
+                r'/[0-9+]$',
                 # Exclude password from response. Not really necessary because
                 # 1. it's hashed and 2. it's not in the list above. But just to
                 # be safe.
                 r'!password',
             )
+            if policy.check('surveygroup_browse'):
+                to_son.add(r'/surveygroups$')
             son = to_son(user)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))

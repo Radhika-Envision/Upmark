@@ -90,7 +90,7 @@
 
 # Group
 
- -  name: _own_group
+ -  name: _own_surveygroup
     description: "you belong to the survey group"
     failure: "you are not a memeber of that survey group"
     expression:
@@ -105,7 +105,7 @@
  -  name: surveygroup_browse
     description: "permission to browse groups"
     failure: "you can't browse groups"
-    expression: '@super_admin'
+    expression: '@author or @admin'
 
  -  name: surveygroup_del
     description: "permission to delete a group"
@@ -120,7 +120,7 @@
  -  name: surveygroup_view
     description: "permission to view a group"
     failure: "you can't view that group"
-    expression: '@super_admin'
+    expression: '@super_admin or (@author and @_own_surveygroup)'
 
 
 # User
