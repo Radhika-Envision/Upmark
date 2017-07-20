@@ -712,7 +712,9 @@ ResponseType.measures = relationship(
 program_surveygroup = Table(
     'program_surveygroup', Base.metadata,
     Column('program_id', GUID, ForeignKey('program.id')),
-    Column('surveygroup_id', GUID, ForeignKey('surveygroup.id'))
+    Column('surveygroup_id', GUID, ForeignKey('surveygroup.id')),
+    Index('program_surveygroup_program_id_index', 'program_id'),
+    Index('program_surveygroup_surveygroup_id_index', 'surveygroup_id'),
 )
 
 

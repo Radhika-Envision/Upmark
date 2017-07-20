@@ -16,7 +16,7 @@ import datetime
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import column, ForeignKey, func
+from sqlalchemy import column, ForeignKey, func, Index
 from sqlalchemy.dialects.postgresql import array, TEXT
 from sqlalchemy.sql.expression import cast
 
@@ -41,19 +41,29 @@ def upgrade():
     op.create_table(
         'organisation_surveygroup',
         sa.Column('organisation_id', GUID, ForeignKey('organisation.id')),
-        sa.Column('surveygroup_id', GUID, ForeignKey('surveygroup.id'))
+        sa.Column('surveygroup_id', GUID, ForeignKey('surveygroup.id')),
+        Index(
+            'organisation_surveygroup_organisation_id_index',
+            'organisation_id'),
+        Index(
+            'organisation_surveygroup_surveygroup_id_index',
+            'surveygroup_id'),
     )
 
     op.create_table(
         'user_surveygroup',
         sa.Column('user_id', GUID, ForeignKey('appuser.id')),
-        sa.Column('surveygroup_id', GUID, ForeignKey('surveygroup.id'))
+        sa.Column('surveygroup_id', GUID, ForeignKey('surveygroup.id')),
+        Index('user_surveygroup_organisation_id_index', 'user_id'),
+        Index('user_surveygroup_surveygroup_id_index', 'surveygroup_id'),
     )
 
     op.create_table(
         'program_surveygroup',
         sa.Column('program_id', GUID, ForeignKey('program.id')),
-        sa.Column('surveygroup_id', GUID, ForeignKey('surveygroup.id'))
+        sa.Column('surveygroup_id', GUID, ForeignKey('surveygroup.id')),
+        Index('program_surveygroup_program_id_index', 'program_id'),
+        Index('program_surveygroup_surveygroup_id_index', 'surveygroup_id'),
     )
 
     ob_types = array([

@@ -199,7 +199,9 @@ Organisation.users = relationship(
 organisation_surveygroup = Table(
     'organisation_surveygroup', Base.metadata,
     Column('organisation_id', GUID, ForeignKey('organisation.id')),
-    Column('surveygroup_id', GUID, ForeignKey('surveygroup.id'))
+    Column('surveygroup_id', GUID, ForeignKey('surveygroup.id')),
+    Index('organisation_surveygroup_organisation_id_index', 'organisation_id'),
+    Index('organisation_surveygroup_surveygroup_id_index', 'surveygroup_id'),
 )
 
 
@@ -210,7 +212,9 @@ Organisation.surveygroups = relationship(
 user_surveygroup = Table(
     'user_surveygroup', Base.metadata,
     Column('user_id', GUID, ForeignKey('appuser.id')),
-    Column('surveygroup_id', GUID, ForeignKey('surveygroup.id'))
+    Column('surveygroup_id', GUID, ForeignKey('surveygroup.id')),
+    Index('user_surveygroup_organisation_id_index', 'user_id'),
+    Index('user_surveygroup_surveygroup_id_index', 'surveygroup_id'),
 )
 
 
