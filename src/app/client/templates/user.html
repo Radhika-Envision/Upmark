@@ -133,6 +133,41 @@
                 </li>
             </ul>
         </div>
+
+        <!-- Survey groups -->
+        <div class="section">
+            <div class="toolbar">
+                <a class="btn btn-default btn-round" title="Add survey group"
+                        ng-click="edit.model.surveygroups.push(null)">
+                    <i class="fa fa-fw fa-plus"></i>
+                </a>
+            </div>
+            <h2>
+                Survey groups
+            </h2>
+        </div>
+        <table class="table" ng-if="edit.model.surveygroups.length">
+            <tr class="form-row" ng-repeat="(i, loc) in edit.model.surveygroups track by $index">
+                <td>
+                    <input type="text" class="form-control"
+                        id="surveygroup-search-{{$index}}"
+                        name="surveygroup-search-{{$index}}"
+                        ng-model="edit.model.surveygroups[i]"
+                        uib-typeahead="g as g.title for g in searchSurveygroup($viewValue)"
+                        autocomplete="off" >
+                </td>
+                <td class="shrink">
+                    <button class="btn btn-default btn-round"
+                            title="Remove"
+                            ng-click="deleteSurveygroup($index)">
+                        <i class="fa fa-fw fa-trash-o"></i></button>
+                </td>
+            </tr>
+        </table>
+        <p ng-if="!edit.model.surveygroups.length" class="text-muted">
+            No survey groups have been selected. Press the
+            <i class="fa fa-plus"></i> button to add one.
+        </p>
     </form>
 </div>
 

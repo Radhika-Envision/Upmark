@@ -2,7 +2,7 @@
 
 angular.module('upmark.user', [
     'ngResource', 'upmark.notifications', 'vpac.utils.requests',
-    'upmark.chain'])
+    'upmark.chain', 'upmark.surveygroup'])
 
 
 .config(function($routeProvider, chainProvider) {
@@ -86,8 +86,8 @@ angular.module('upmark.user', [
 
 .controller('UserCtrl', function(
         $scope, User, routeData, Editor, Organisation, Authz,
-        $window, $location, log, Notifications, currentUser, $q,
-        Password, format, roles) {
+        $window, $location, Notifications, currentUser, $q,
+        Password, format, roles, SurveyGroup) {
 
     $scope.edit = Editor('user', $scope);
     if (routeData.user) {
@@ -162,6 +162,14 @@ angular.module('upmark.user', [
             }
         );
     });
+
+    $scope.deleteSurveygroup = function(i) {
+        $scope.edit.model.surveygroups.splice(i, 1);
+    };
+
+    $scope.searchSurveygroup = function(term) {
+        return SurveyGroup.query({term: term}).$promise;
+    };
 })
 
 

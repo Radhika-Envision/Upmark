@@ -239,8 +239,8 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
                 self.check_password(self.request_son.password)
 
             verbs = []
-            oid = self.request_son.get('organisation', {}).get('id')
-            if oid and oid != str(user.organisation_id):
+            oid = self.request_son.organisation.id
+            if oid != str(user.organisation_id):
                 policy.verify('user_change_org')
                 verbs.append('relation')
 
@@ -311,13 +311,12 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
         update('role', son)
         update('password', son)
 
-        if son.get('organisation', '') != '':
-            org = (
-                session.query(model.Organisation)
-                .get(self.request_son['organisation']['id']))
-            if org is None:
-                raise errors.ModelError("No such organisation")
-            user.organisation = org
+        org = (
+            session.query(model.Organisation)
+            .get(son.organisation.id))
+        if not org:
+            raise errors.ModelError("No such organisation")
+        user.organisation = org
 
 
 class PasswordHandler(base_handler.BaseHandler):
