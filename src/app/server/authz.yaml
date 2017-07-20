@@ -6,54 +6,68 @@
 # Roles
 
  -  name: super_admin
+    human_name: Super administrator
+    tags: [role]
     description: >-
         Super administrators can create and manage survey groups, and do
         everything that administrators can do.
     failure: "you are not a super administrator"
-    expression: 's.has_role("super_admin")'
+    expression: 's.user.role == "super_admin"'
 
  -  name: admin
+    human_name: Administrator
+    tags: [role]
     description: >-
         Administrators can create organisations in their own survey groups,
         and do everything that authorities, authors and organisation
         administrators can do.
     failure: "you are not an administrator"
-    expression: 's.has_role("admin")'
+    expression: 's.user.role == "admin" or @super_admin'
 
  -  name: author
+    human_name: Author
+    tags: [role]
     description: >-
         Authors can create surveys in their own survey groups.
     failure: "you are not an author"
-    expression: 's.has_role("author")'
+    expression: 's.user.role == "author" or @admin'
 
  -  name: authority
+    human_name: Authority
+    tags: [role]
     description: >-
         Authorities can mark responses and submissions in their own survey
         groups as "Approved", and do everything that consultants can do.
     failure: "you are not an authority"
-    expression: 's.has_role("authority")'
-
- -  name: clerk
-    description: >-
-        Clerks can respond to surveys in their own survey groups on behalf of
-        their own organisation, and mark responses and submissions as "Final".
-    failure: "you are not a clerk"
-    expression: 's.has_role("clerk")'
+    expression: 's.user.role == "authority" or @admin'
 
  -  name: consultant
+    human_name: Consultant
+    tags: [role]
     description: >-
         Consultants can respond to surveys in their own survey groups on behalf
         of other organisations, and mark submissions and responses as
         "Reviewed".
     failure: "you are not a consultant"
-    expression: 's.has_role("consultant")'
+    expression: 's.user.role == "consultant" or @authority'
 
  -  name: org_admin
+    human_name: Organisation administrator
+    tags: [role]
     description: >-
         Organisation administrators can create new users in their own
         organisation, and do everything that clerks can do.
     failure: "you are not an organisation administrator"
-    expression: 's.has_role("org_admin")'
+    expression: 's.user.role == "org_admin" or @admin'
+
+ -  name: clerk
+    human_name: Clerk
+    tags: [role]
+    description: >-
+        Clerks can respond to surveys in their own survey groups on behalf of
+        their own organisation, and mark responses and submissions as "Final".
+    failure: "you are not a clerk"
+    expression: 's.user.role == "clerk" or @org_admin'
 
 
 # Admin

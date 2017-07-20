@@ -8,7 +8,9 @@ from sqlalchemy.sql.expression import cast
 from sqlalchemy.types import VARCHAR
 
 from function_asfrom import ColumnFunction
+
 import model
+from session import UserSession
 
 
 __all__ = 'Activities'
@@ -124,9 +126,11 @@ class Activities:
         if not user:
             raise ActivityError("No such user")
 
+        user_session = UserSession(user, None)
+
         oid = user.organisation_id
-        filter_purchased = not model.has_privillege(
-            user.role, 'author', 'consultant')
+        filter_purchased = not user_session.policy.check(
+            'author', 'consultant')
 
         time_filter = ((model.Activity.created > from_date) &
                        (model.Activity.created <= until_date))

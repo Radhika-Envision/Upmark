@@ -56,7 +56,7 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
                 r'/has_quality$',
                 r'/hide_aggregate$',
             )
-            if not user_session.has_role('author'):
+            if not policy.check('author'):
                 to_son.exclude(
                     r'/response_types.*score$',
                     r'/response_types.*formula$',

@@ -565,7 +565,7 @@ class CardHandler(base_handler.BaseHandler):
                 'ob_ids': [org.id],
             }))
 
-            if user_session.has_role('author', 'consultant'):
+            if user_session.policy.check('author', 'consultant'):
                 programs = (
                     session.query(model.Program)
                     .filter(model.Program.finalised_date == None)
@@ -579,7 +579,7 @@ class CardHandler(base_handler.BaseHandler):
                     'ob_ids': [s.id],
                 } for s in programs])
 
-            if user_session.has_role('clerk'):
+            if user_session.policy.check('clerk'):
                 submissions = (
                     session.query(model.Submission)
                     .filter(model.Submission.organisation_id == org.id)

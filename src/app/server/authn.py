@@ -9,6 +9,7 @@ import tornado.web
 import base_handler
 import errors
 import model
+from session import UserSession
 import template
 import theme
 
@@ -71,7 +72,9 @@ class LoginHandler(template.TemplateHandler):
             self.set_secure_cookie(
                 "user", str(user.id).encode('utf8'),
                 expires=self.session_expires)
-            if model.has_privillege(user.role, 'admin'):
+
+            user_session = UserSession(user, None)
+            if user_session.policy.check('admin'):
                 self.set_secure_cookie(
                     "superuser", str(user.id).encode('utf8'),
                     expires=self.session_expires)
@@ -101,7 +104,8 @@ class LoginHandler(template.TemplateHandler):
         superuser_id = self.get_secure_cookie('superuser')
 
         if not superuser_id:
-            raise errors.AuthzError("Not authorised: you are not a superuser")
+            raise errors.AuthzError(
+                "Not authorised: you are not an administrator")
         superuser_id = superuser_id.decode('utf8')
 
         with model.session_scope() as session:

@@ -22,9 +22,6 @@ class UserSession:
         policy.context.update({'s': self})
         return policy
 
-    def has_role(self, *names):
-        return model.has_privillege(self.user.role, *names)
-
     def in_group(self, group):
         # FIXME: Implement this when the group relations are in place.
         return True

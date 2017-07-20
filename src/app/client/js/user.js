@@ -25,35 +25,25 @@ angular.module('upmark.user', [
 }])
 
 
-.factory('Roles', ['$resource', function($resource) {
-    var Roles = $resource('/roles.json', {}, {
-        get: { method: 'GET', isArray: true, cache: false }
+.factory('roles', function(authz_rules) {
+    var roles = authz_rules.filter(function(rule) {
+        return rule.tags && rule.tags.indexOf('role') >= 0;
+    }).map(function(rule) {
+        return {
+            id: rule.name,
+            name: rule.human_name,
+            description: rule.description,
+        };
     });
-
-    Roles.hierarchy = {
-        'super_admin': [
-            'admin', 'author', 'authority', 'consultant', 'org_admin',
-            'clerk'],
-        'admin': ['author', 'authority', 'consultant', 'org_admin', 'clerk'],
-        'author': [],
-        'authority': ['consultant'],
-        'consultant': [],
-        'org_admin': ['clerk'],
-        'clerk': []
+    roles.$find = function(id) {
+        return roles.filter(
+            function(role) {
+                return role.id == id;
+            }
+        )[0];
     };
-
-    Roles.hasPermission = function(currentRole, targetRole) {
-        if (!currentRole)
-            return false;
-        if (targetRole == currentRole)
-            return true;
-        if (Roles.hierarchy[currentRole].indexOf(targetRole) >= 0)
-            return true;
-        return false;
-    };
-
-    return Roles;
-}])
+    return roles;
+})
 
 
 .factory('checkLogin', ['$q', 'User', '$cookies', '$http',
@@ -72,7 +62,7 @@ angular.module('upmark.user', [
 .controller('UserCtrl', function(
         $scope, User, routeData, Editor, Organisation, Authz,
         $window, $location, log, Notifications, currentUser, $q,
-        Password, format) {
+        Password, format, roles) {
 
     $scope.edit = Editor('user', $scope);
     if (routeData.user) {
@@ -105,7 +95,7 @@ angular.module('upmark.user', [
             '/2/org/{}', model.organisation.id));
     });
 
-    $scope.roles = routeData.roles;
+    $scope.roles = roles;
     $scope.roleDict = {};
     for (var i in $scope.roles) {
         var role = $scope.roles[i];

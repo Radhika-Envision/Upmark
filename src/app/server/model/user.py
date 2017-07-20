@@ -3,7 +3,6 @@ __all__ = [
     'Organisation',
     'OrgLocation',
     'OrgMeta',
-    'has_privillege',
 ]
 
 from datetime import datetime
@@ -187,33 +186,6 @@ class AppUser(Observable, Base):
 
 
 Password.instrument(AppUser.password)
-
-
-ROLE_HIERARCHY = {
-    'super_admin': {
-        'admin', 'author', 'authority', 'consultant', 'org_admin', 'clerk'},
-    'admin': {'author', 'authority', 'consultant', 'org_admin', 'clerk'},
-    'author': set(),
-    'authority': {'consultant'},
-    'consultant': set(),
-    'org_admin': {'clerk'},
-    'clerk': set()
-}
-
-
-def has_privillege(current_role, *target_roles):
-    '''
-    Checks whether one role has the privilleges of another role. For example,
-        has_privillege('org_admin', 'clerk') -> True
-        has_privillege('clerk', 'org_admin') -> False
-        has_privillege('clerk', 'consultant', 'clerk') -> True
-    '''
-    for target_role in target_roles:
-        if target_role == current_role:
-            return True
-        if target_role in ROLE_HIERARCHY[current_role]:
-            return True
-    return False
 
 
 AppUser.organisation = relationship(Organisation)

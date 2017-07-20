@@ -61,8 +61,16 @@ class Policy:
         success = self._check(rule_name, context)
         return Permission(rule_name, success, context['_failures'])
 
-    def check(self, rule_name):
-        return bool(self.permission(rule_name))
+    def check(self, *rule_names, match='ANY'):
+        checks = (self.permission(rule_name) for rule_name in rule_names)
+        if match == 'ANY':
+            return any(checks)
+        elif match == 'ALL':
+            return all(checks)
+        elif match == 'NONE':
+            return not any(checks)
+        else:
+            raise ValueError("Unknown match type %s" % match)
 
     def verify(self, rule_name):
         permission = self.permission(rule_name)

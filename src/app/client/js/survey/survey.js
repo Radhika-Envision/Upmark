@@ -113,7 +113,7 @@ angular.module('upmark.survey.survey', [
 
 .controller('SurveyChoiceCtrl', function(
         $scope, routeData, Structure, Authz, currentUser,
-        Survey, layout, $location, Roles) {
+        Survey, layout, $location) {
 
     $scope.layout = layout;
     $scope.program = routeData.program;

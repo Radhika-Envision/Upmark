@@ -67,9 +67,22 @@ angular.module('upmark.authz', [])
         }
         return new Permission(ruleName, success, context.$failures);
     };
-    Policy.prototype.check = function(ruleName) {
-        var permission = this.permission(ruleName)
-        return permission.valueOf();
+    Policy.prototype.check = function() {
+        var args = Array.prototype.slice.call(arguments);
+        var ruleNames = args.filter(angular.isString);
+        var options = args.filter(angular.isObject)[0];
+        var match = options ? options.match || 'ANY' : 'ANY';
+        var checks = ruleNames.filter(function(ruleName) {
+            return this.permission(ruleName).valueOf();
+        }, this);
+        if (match == 'ANY')
+            return checks.length > 0;
+        else if (match == 'ALL')
+            return checks.length >= ruleNames.length;
+        else if (match == 'NONE')
+            return checks.length <= 0;
+        else
+            throw new AuthzConfigError("Unknown match type " + match);
     };
     Policy.prototype.verify = function(ruleName) {
         var permission = this.permission(ruleName)

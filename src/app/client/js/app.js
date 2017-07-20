@@ -218,19 +218,12 @@ angular.module('upmark', [
             .when('/:uv/user/new', {
                 templateUrl : 'user.html',
                 controller : 'UserCtrl',
-                resolve: {routeData: chain({
-                    roles: ['Roles', function(Roles) {
-                        return Roles.get().$promise;
-                    }]
-                })}
+                resolve: {routeData: chain({})},
             })
             .when('/:uv/user/:id', {
                 templateUrl : 'user.html',
                 controller : 'UserCtrl',
                 resolve: {routeData: chain({
-                    roles: ['Roles', function(Roles) {
-                        return Roles.get().$promise;
-                    }],
                     user: ['User', '$route', function(User, $route) {
                         return User.get($route.current.params).$promise;
                     }]
@@ -1140,7 +1133,7 @@ angular.module('upmark', [
 })
 
 
-.factory('Authz', function(AuthzPolicy, currentUser, Roles, $cookies) {
+.factory('Authz', function(AuthzPolicy, currentUser, $cookies) {
     var policyFactory = function(context) {
         var localPolicy = policyFactory.rootPolicy.derive(context);
         return function(ruleName) {
@@ -1153,9 +1146,6 @@ angular.module('upmark', [
         user: currentUser,
         org: currentUser.organisation,
         superuser: !!$cookies.get('superuser'),
-        has_role: function(role) {
-            return Roles.hasPermission(currentUser.role, role);
-        },
     };
 
     return policyFactory;
