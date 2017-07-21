@@ -61,6 +61,11 @@ class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
             policy = user_session.policy.derive({})
             policy.verify('surveygroup_browse')
 
+            if not policy.check('surveygroup_browse_all'):
+                query = query.filter(
+                    model.SurveyGroup.users.any(
+                        model.AppUser.id == user_session.user.id))
+
             deleted = self.get_argument('deleted', '')
             if deleted != '':
                 deleted = truthy(deleted)
