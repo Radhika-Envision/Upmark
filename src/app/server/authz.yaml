@@ -94,7 +94,7 @@
     description: "you belong to the survey group"
     failure: "you are not a memeber of that survey group"
     expression:
-        server: 's.in_group(group)'
+        server: 's.member_of_any(surveygroups)'
         client: 'True'
 
  -  name: surveygroup_add
@@ -126,6 +126,21 @@
     description: "permission to view a survey group"
     failure: "you can't view that survey group"
     expression: '@super_admin or @_own_surveygroup'
+
+ -  name: surveygroup_interact
+    description: "permission to view an entity based on its survey groups"
+    failure: "you are not a member of any of that entity's survey groups"
+    expression: '@surveygroup_interact_all or @_own_surveygroup'
+
+ -  name: surveygroup_interact_all
+    description: "permission to view any entity regardless of survey group"
+    failure: "you can only view entities in your own survey groups"
+    expression: '@super_admin'
+
+ -  name: surveygroup_delegate
+    description: "permission to add or remove an entity from survey groups"
+    failure: "you can not add or remove entities from that survey group"
+    expression: '@super_admin or (@admin and @_own_surveygroup)'
 
 
 # User

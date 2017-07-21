@@ -1,8 +1,10 @@
 __all__ = [
     'AppUser',
     'Organisation',
+    'organisation_surveygroup',
     'OrgLocation',
     'OrgMeta',
+    'user_surveygroup',
 ]
 
 from datetime import datetime
@@ -206,7 +208,8 @@ organisation_surveygroup = Table(
 
 
 Organisation.surveygroups = relationship(
-    SurveyGroup, backref='organisations', secondary=organisation_surveygroup)
+    SurveyGroup, backref='organisations', secondary=organisation_surveygroup,
+    collection_class=set)
 
 
 user_surveygroup = Table(
@@ -219,4 +222,5 @@ user_surveygroup = Table(
 
 
 AppUser.surveygroups = relationship(
-    SurveyGroup, backref='users', secondary=user_surveygroup)
+    SurveyGroup, backref='users', secondary=user_surveygroup,
+    collection_class=set)

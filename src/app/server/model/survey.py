@@ -2,6 +2,7 @@ __all__ = [
     'Measure',
     'MeasureVariable',
     'Program',
+    'program_surveygroup',
     'PurchasedSurvey',
     'ResponseType',
     'Survey',
@@ -719,4 +720,5 @@ program_surveygroup = Table(
 
 
 Program.surveygroups = relationship(
-    SurveyGroup, backref='programs', secondary=program_surveygroup)
+    SurveyGroup, backref='programs', secondary=program_surveygroup,
+    collection_class=set)

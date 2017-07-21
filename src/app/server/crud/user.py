@@ -1,7 +1,7 @@
 import passwordmeter
 from tornado.escape import json_encode
 import tornado.web
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import aliased, joinedload
 import voluptuous
 from voluptuous import Extra, All, Required, Schema
 
@@ -11,6 +11,7 @@ import config
 import errors
 import model
 from utils import ToSon, truthy, updater
+from .surveygroup import assign_surveygroups
 
 
 def test_password(text):
@@ -49,13 +50,20 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             user_id = str(self.current_user.id)
 
         with model.session_scope() as session:
-            user = session.query(model.AppUser).\
-                options(joinedload('organisation')).get(user_id)
+            user = (
+                session.query(model.AppUser)
+                .options(joinedload(model.AppUser.organisation))
+                .options(joinedload(model.AppUser.surveygroups))
+                .get(user_id))
             if not user:
                 raise errors.MissingDocError("No such user")
 
             user_session = self.get_user_session(session)
-            policy = user_session.policy.derive({'user': user})
+            policy = user_session.policy.derive({
+                'user': user,
+                'surveygroups': user.surveygroups,
+            })
+            policy.verify('surveygroup_interact')
             policy.verify('user_view')
 
             to_son = ToSon(
@@ -75,7 +83,7 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
                 r'!password',
             )
             if policy.check('surveygroup_browse'):
-                to_son.add(r'/surveygroups$')
+                to_son.add(r'^/surveygroups$')
             son = to_son(user)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -95,16 +103,31 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
                 org = None
 
             user_session = self.get_user_session(session)
-            policy = user_session.policy.derive({'org': org})
+            policy = user_session.policy.derive({
+                'org': org,
+            })
             policy.verify('user_browse')
 
             query = (
                 session.query(model.AppUser)
-                .join(
-                    model.Organisation,
-                    model.Organisation.id == model.AppUser.organisation_id))
+                .join(model.Organisation))
 
-            if organisation_id is not None:
+            if not policy.check('surveygroup_interact_all'):
+                usg_a = model.user_surveygroup
+                # usg_a = aliased(model.user_surveygroup, name='usg_a')
+                usg_b = aliased(model.user_surveygroup, name='usg_b')
+                query = (
+                    query
+                    .join(usg_a)
+                    .join(
+                        usg_b,
+                        usg_a.columns.surveygroup_id ==
+                        usg_b.columns.surveygroup_id)
+                    .filter(
+                        usg_b.columns.user_id ==
+                        user_session.user.id))
+
+            if organisation_id:
                 query = query.filter(model.Organisation.id == organisation_id)
 
             term = self.get_argument('term', None)
@@ -167,6 +190,8 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             raise errors.ModelError.from_voluptuous(e)
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             org = (
                 session.query(model.Organisation)
                 .get(self.request_son['organisation']['id']))
@@ -175,12 +200,18 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             user = model.AppUser(organisation=org)
 
-            user_session = self.get_user_session(session)
+            try:
+                assign_surveygroups(user_session, user, self.request_son)
+            except ValueError as e:
+                raise errors.ModelError(str(e))
+
             policy = user_session.policy.derive({
                 'org': user.organisation,
                 'user': user,
                 'target': self.request_son,
+                'surveygroups': user.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('user_add')
             policy.verify('user_change_role')
             self.check_password(self.request_son.password)
@@ -216,16 +247,25 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             raise errors.ModelError.from_voluptuous(e)
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             user = session.query(model.AppUser).get(user_id)
             if not user:
                 raise errors.MissingDocError("No such user")
 
-            user_session = self.get_user_session(session)
+            try:
+                groups_changed = assign_surveygroups(
+                    user_session, user, self.request_son)
+            except ValueError as e:
+                raise errors.ModelError(str(e))
+
             policy = user_session.policy.derive({
                 'org': user.organisation,
                 'user': user,
                 'target': self.request_son,
+                'surveygroups': user.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('user_edit')
 
             if self.request_son.role and self.request_son.role != user.role:
@@ -247,7 +287,7 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             self._update(user, self.request_son, session)
 
             act = Activities(session)
-            if session.is_modified(user):
+            if session.is_modified(user) or groups_changed:
                 verbs.append('update')
 
             if user.deleted:
@@ -280,7 +320,9 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'org': user.organisation,
                 'user': user,
+                'surveygroups': user.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('user_del')
 
             act = Activities(session)

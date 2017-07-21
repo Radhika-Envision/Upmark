@@ -22,9 +22,11 @@ class UserSession:
         policy.context.update({'s': self})
         return policy
 
-    def in_group(self, group):
-        # FIXME: Implement this when the group relations are in place.
-        return True
+    def member_of_any(self, surveygroups):
+        surveygroups = {
+            sg for sg in surveygroups
+            if not sg.deleted}
+        return not self.user.surveygroups.isdisjoint(surveygroups)
 
     def purchased_survey(self, survey):
         session = object_session(survey)

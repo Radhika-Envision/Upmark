@@ -1,5 +1,6 @@
 from tornado.escape import json_encode
 import tornado.web
+from sqlalchemy.orm import object_session
 
 from activity import Activities
 import base_handler
@@ -24,7 +25,7 @@ class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
                 raise errors.MissingDocError("No such survey group")
 
             policy = user_session.policy.derive({
-                'surveygroup': surveygroup,
+                'surveygroups': {surveygroup},
             })
             policy.verify('surveygroup_view')
 
@@ -62,9 +63,12 @@ class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
             policy.verify('surveygroup_browse')
 
             if not policy.check('surveygroup_browse_all'):
-                query = query.filter(
-                    model.SurveyGroup.users.any(
-                        model.AppUser.id == user_session.user.id))
+                query = (
+                    query
+                    .join(model.user_surveygroup)
+                    .filter(
+                        model.user_surveygroup.columns.user_id ==
+                        user_session.user.id))
 
             deleted = self.get_argument('deleted', '')
             if deleted != '':
@@ -103,7 +107,7 @@ class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
             session.flush()
 
             policy = user_session.policy.derive({
-                'surveygroup': surveygroup,
+                'surveygroups': {surveygroup},
             })
             policy.verify('surveygroup_add')
 
@@ -140,7 +144,7 @@ class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
                 verbs.append('undelete')
 
             policy = user_session.policy.derive({
-                'surveygroup': surveygroup,
+                'surveygroups': {surveygroup},
             })
             policy.verify('surveygroup_edit')
 
@@ -168,7 +172,7 @@ class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
                 raise errors.MissingDocError("No such survey group")
 
             policy = user_session.policy.derive({
-                'surveygroup': surveygroup,
+                'surveygroups': {surveygroup},
             })
             policy.verify('surveygroup_del')
 
@@ -187,3 +191,43 @@ class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
         update = updater(surveygroup, error_factory=errors.ModelError)
         update('title', son)
         update('description', son, sanitise=True)
+
+
+def assign_surveygroups(user_session, target_entity, source_entity):
+    '''
+    Assigns `source_entity.surveygroups` to `target_entity.surveygroups`.
+    `target_entity` must be a real database entity.
+    `source_entity` may be a real entity or not. The actual groups will be
+    fetched from the database.
+
+    Returns True iff `target_entity`'s groups are materially changed.
+
+    May raise an authorisation exception according to the
+    `surveygroup_delegate` rule.
+
+    Raises `ValueError` if one of the new surveygroups can't be found.
+    '''
+    old_ids = {str(sg.id) for sg in target_entity.surveygroups}
+    new_ids = {str(sg.id) for sg in source_entity.surveygroups}
+    if old_ids == new_ids:
+        return False
+
+    session = object_session(target_entity)
+    new_surveygroups = set(
+        session.query(model.SurveyGroup)
+        .filter(model.SurveyGroup.id.in_(new_ids))
+        .all())
+    if len(new_surveygroups) != len(new_ids):
+        raise ValueError("Specified survey group not found")
+
+    changed_surveygroups = target_entity.surveygroups.symmetric_difference(
+        new_surveygroups)
+
+    policy = user_session.policy.derive({
+        'surveygroups': changed_surveygroups,
+    })
+    policy.verify('surveygroup_delegate')
+
+    target_entity.surveygroups = new_surveygroups
+
+    return True
