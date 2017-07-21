@@ -50,6 +50,8 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             user_id = str(self.current_user.id)
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             user = (
                 session.query(model.AppUser)
                 .options(joinedload(model.AppUser.organisation))
@@ -58,7 +60,6 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             if not user:
                 raise errors.MissingDocError("No such user")
 
-            user_session = self.get_user_session(session)
             policy = user_session.policy.derive({
                 'user': user,
                 'surveygroups': user.surveygroups,
@@ -96,13 +97,14 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
 
         sons = []
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             organisation_id = self.get_argument("organisationId", None)
             if organisation_id:
                 org = session.query(model.Organisation).get(organisation_id)
             else:
                 org = None
 
-            user_session = self.get_user_session(session)
             policy = user_session.policy.derive({
                 'org': org,
             })
@@ -312,11 +314,12 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             raise errors.MethodError("User ID required")
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             user = session.query(model.AppUser).get(user_id)
             if not user:
                 raise errors.MissingDocError("No such user")
 
-            user_session = self.get_user_session(session)
             policy = user_session.policy.derive({
                 'org': user.organisation,
                 'user': user,

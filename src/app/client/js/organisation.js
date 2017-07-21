@@ -92,7 +92,7 @@ angular.module('upmark.organisation', [
 
 .controller('OrganisationCtrl',
         function($scope, Organisation, org, Editor, Authz, User,
-            $location, LocationSearch) {
+            $location, LocationSearch, SurveyGroup) {
 
     $scope.edit = Editor('org', $scope);
     if (org) {
@@ -100,9 +100,11 @@ angular.module('upmark.organisation', [
         $scope.org = org;
     } else {
         // Creating new
-        $scope.org = new Organisation({});
-        $scope.org.locations = [];
-        $scope.org.meta = {};
+        $scope.org = new Organisation({
+            locations: [],
+            meta: {},
+            surveygroups: [],
+        });
         $scope.edit.edit();
     }
     $scope.attributions = [];
@@ -182,6 +184,14 @@ angular.module('upmark.organisation', [
         name: 'none',
         desc: "None",
     }];
+
+    $scope.deleteSurveygroup = function(i) {
+        $scope.edit.model.surveygroups.splice(i, 1);
+    };
+
+    $scope.searchSurveygroup = function(term) {
+        return SurveyGroup.query({term: term}).$promise;
+    };
 
     $scope.checkRole = Authz({org: $scope.org});
 })

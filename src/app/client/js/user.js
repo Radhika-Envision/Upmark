@@ -108,6 +108,7 @@ angular.module('upmark.user', [
             role: 'clerk',
             organisation: org,
             emailInterval: 86400,
+            surveygroups: [],
         });
         $scope.edit.edit();
     }
