@@ -1,8 +1,8 @@
 import logging
-import re
 
 from py_expression_eval import Parser
-from voluptuous import All, Any, Coerce, Length, Match, Optional, Required, Schema
+from voluptuous import All, Any, Coerce, Length, Match, Optional, Required, \
+    Schema
 
 
 log = logging.getLogger('app.response_type')
@@ -278,7 +278,7 @@ class Numerical(ResponsePart):
         variables = {}
         if self.id_:
             variables[self.id_] = part_r['value']
-        return variables;
+        return variables
 
     def lower(self, scope):
         if not self.lower_exp:

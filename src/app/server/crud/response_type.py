@@ -43,7 +43,9 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             policy = user_session.policy.derive({
                 'program': response_type.program,
+                'surveygroups': response_type.program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('response_type_view')
 
             to_son = ToSon(
@@ -77,7 +79,9 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
                 .get(program_id))
             policy = user_session.policy.derive({
                 'program': program,
+                'surveygroups': program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('response_type_view')
 
             query = (
@@ -133,7 +137,9 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             policy = user_session.policy.derive({
                 'program': program,
+                'surveygroups': program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('response_type_add')
 
             rt_by_name = (
@@ -186,7 +192,9 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             policy = user_session.policy.derive({
                 'program': response_type.program,
+                'surveygroups': response_type.program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('response_type_del')
 
             session.delete(response_type)
@@ -218,7 +226,9 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             policy = user_session.policy.derive({
                 'program': response_type.program,
+                'surveygroups': response_type.program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('response_type_edit')
 
             if 'name' in self.request_son:
