@@ -207,8 +207,8 @@ def assign_surveygroups(user_session, target_entity, source_entity):
 
     Raises `ValueError` if one of the new surveygroups can't be found.
     '''
-    old_ids = {str(sg.id) for sg in target_entity.surveygroups}
-    new_ids = {str(sg.id) for sg in source_entity.surveygroups}
+    old_ids = {str(sg.id) for sg in target_entity.surveygroups if sg}
+    new_ids = {str(sg.id) for sg in source_entity.surveygroups if sg}
     if old_ids == new_ids:
         return False
 
