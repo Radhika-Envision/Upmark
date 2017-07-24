@@ -6,6 +6,7 @@ from tornado import gen
 from tornado.concurrent import run_on_executor
 from tornado.escape import json_encode
 import tornado.web
+from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import make_transient
 
 from activity import Activities
@@ -14,6 +15,7 @@ import errors
 import model
 from score import Calculator
 from utils import ToSon, truthy, updater
+from .surveygroup import assign_surveygroups
 
 
 log = logging.getLogger('app.crud.program')
@@ -36,11 +38,17 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
-            program = session.query(model.Program).get(program_id)
+            program = (
+                session.query(model.Program)
+                .options(joinedload(model.Program.surveygroups))
+                .get(program_id))
             if not program:
                 raise errors.MissingDocError("No such program")
 
-            policy = user_session.policy.derive({})
+            policy = user_session.policy.derive({
+                'surveygroups': program.surveygroups,
+            })
+            policy.verify('surveygroup_interact')
             policy.verify('program_view')
 
             to_son = ToSon(
@@ -76,7 +84,23 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
 
         sons = []
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             query = session.query(model.Program)
+
+            policy = user_session.policy.derive({})
+            if not policy.check('surveygroup_interact_all'):
+                query = (
+                    query
+                    .join(model.program_surveygroup)
+                    .join(
+                        model.user_surveygroup,
+                        model.user_surveygroup.columns.surveygroup_id ==
+                        model.program_surveygroup.columns.surveygroup_id)
+                    .filter(
+                        model.user_surveygroup.columns.user_id ==
+                        user_session.user.id))
+
             if term != '':
                 query = query.filter(
                     model.Program.title.ilike(r'%{}%'.format(term)))
@@ -124,14 +148,20 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
             self._update(program, self.request_son)
             session.add(program)
 
-            # Need to flush so object has an ID to record action against.
-            session.flush()
-            program_id = str(program.id)
+            try:
+                assign_surveygroups(user_session, program, self.request_son)
+            except ValueError as e:
+                raise errors.ModelError(str(e))
 
             policy = user_session.policy.derive({
                 'program': program,
+                'surveygroups': program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('program_add')
+
+            # Need to flush so object has an ID to record action against.
+            session.flush()
 
             act = Activities(session)
 
@@ -145,7 +175,9 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
 
                 policy = user_session.policy.derive({
                     'program': source_program,
+                    'surveygroups': source_program.surveygroups,
                 })
+                policy.verify('surveygroup_interact')
                 policy.verify('program_view')
 
                 yield self.duplicate_structure(
@@ -157,6 +189,8 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
             if not act.has_subscription(user_session.user, program):
                 act.subscribe(user_session.user, program)
                 self.reason("Subscribed to program")
+
+            program_id = program.id
 
         self.get(program_id)
 
@@ -258,7 +292,9 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             policy = user_session.policy.derive({
                 'program': program,
+                'surveygroups': program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('program_del')
 
             act = Activities(session)
@@ -293,9 +329,17 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
             if not program:
                 raise errors.MissingDocError("No such program")
 
+            try:
+                groups_changed = assign_surveygroups(
+                    user_session, program, self.request_son)
+            except ValueError as e:
+                raise errors.ModelError(str(e))
+
             policy = user_session.policy.derive({
                 'program': program,
+                'surveygroups': program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('program_edit')
 
             if not program.is_editable:
@@ -314,7 +358,7 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
             calculator.execute()
 
             verbs = []
-            if session.is_modified(program):
+            if session.is_modified(program) or groups_changed:
                 verbs.append('update')
 
             if program.deleted:
@@ -388,13 +432,27 @@ class ProgramTrackingHandler(base_handler.BaseHandler):
 
             policy = user_session.policy.derive({
                 'program': program,
+                'surveygroups': program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('program_view')
 
             query = (
                 session.query(model.Program)
                 .filter(model.Program.tracking_id == program.tracking_id)
                 .order_by(model.Program.created))
+
+            if not policy.check('surveygroup_interact_all'):
+                query = (
+                    query
+                    .join(model.program_surveygroup)
+                    .join(
+                        model.user_surveygroup,
+                        model.user_surveygroup.columns.surveygroup_id ==
+                        model.program_surveygroup.columns.surveygroup_id)
+                    .filter(
+                        model.user_surveygroup.columns.user_id ==
+                        user_session.user.id))
 
             deleted = self.get_argument('deleted', '')
             if deleted != '':
@@ -434,6 +492,19 @@ class ProgramHistoryHandler(base_handler.BaseHandler):
                 .join(self.mapper)
                 .filter(self.mapper.id == entity_id)
                 .order_by(model.Program.created))
+
+            policy = user_session.policy.derive({})
+            if not policy.check('surveygroup_interact_all'):
+                query = (
+                    query
+                    .join(model.program_surveygroup)
+                    .join(
+                        model.user_surveygroup,
+                        model.user_surveygroup.columns.surveygroup_id ==
+                        model.program_surveygroup.columns.surveygroup_id)
+                    .filter(
+                        model.user_surveygroup.columns.user_id ==
+                        user_session.user.id))
 
             deleted = self.get_argument('deleted', '')
             if deleted != '':
