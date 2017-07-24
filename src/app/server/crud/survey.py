@@ -1,5 +1,6 @@
 from tornado.escape import json_encode
 import tornado.web
+from sqlalchemy.orm import joinedload
 
 from activity import Activities
 import base_handler
@@ -29,13 +30,17 @@ class SurveyHandler(base_handler.BaseHandler):
 
             survey = (
                 session.query(model.Survey)
+                .options(joinedload(model.Survey.program))
+                .options(joinedload(model.Program.surveygroups))
                 .get((survey_id, program_id)))
             if not survey:
                 raise errors.MissingDocError("No such survey")
 
             policy = user_session.policy.derive({
                 'survey': survey,
+                'surveygroups': survey.program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('survey_view')
 
             to_son = ToSon(
@@ -66,17 +71,22 @@ class SurveyHandler(base_handler.BaseHandler):
         '''Get a list.'''
 
         program_id = self.get_argument('programId', '')
+        if not program_id:
+            raise errors.ModelError("Program ID required")
 
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
             program = (
                 session.query(model.Program)
+                .options(joinedload(model.Program.surveygroups))
                 .get(program_id))
 
             policy = user_session.policy.derive({
                 'program': program,
+                'surveygroups': program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('program_view')
 
             query = (
@@ -117,6 +127,7 @@ class SurveyHandler(base_handler.BaseHandler):
 
             program = (
                 session.query(model.Program)
+                .options(joinedload(model.Program.surveygroups))
                 .get(program_id))
             if not program:
                 raise errors.ModelError("No such program")
@@ -131,7 +142,9 @@ class SurveyHandler(base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'program': program,
                 'survey': survey,
+                'surveygroups': program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('survey_add')
 
             act = Activities(session)
@@ -157,6 +170,8 @@ class SurveyHandler(base_handler.BaseHandler):
 
             survey = (
                 session.query(model.Survey)
+                .options(joinedload(model.Survey.program))
+                .options(joinedload(model.Program.surveygroups))
                 .get((survey_id, program_id)))
             if not survey:
                 raise errors.MissingDocError("No such survey")
@@ -165,7 +180,9 @@ class SurveyHandler(base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'program': survey.program,
                 'survey': survey,
+                'surveygroups': survey.program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('survey_edit')
 
             verbs = []
@@ -196,6 +213,8 @@ class SurveyHandler(base_handler.BaseHandler):
 
             survey = (
                 session.query(model.Survey)
+                .options(joinedload(model.Survey.program))
+                .options(joinedload(model.Program.surveygroups))
                 .get((survey_id, program_id)))
             if not survey:
                 raise errors.MissingDocError("No such survey")
@@ -203,7 +222,9 @@ class SurveyHandler(base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'program': survey.program,
                 'survey': survey,
+                'surveygroups': survey.program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('survey_del')
 
             act = Activities(session)
