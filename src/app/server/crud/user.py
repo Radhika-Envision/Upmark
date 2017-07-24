@@ -54,8 +54,8 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             user = (
                 session.query(model.AppUser)
-                .options(joinedload(model.AppUser.organisation))
-                .options(joinedload(model.AppUser.surveygroups))
+                .options(joinedload('organisation'))
+                .options(joinedload('surveygroups'))
                 .get(user_id))
             if not user:
                 raise errors.MissingDocError("No such user")

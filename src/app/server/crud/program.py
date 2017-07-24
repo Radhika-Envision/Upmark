@@ -40,7 +40,7 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             program = (
                 session.query(model.Program)
-                .options(joinedload(model.Program.surveygroups))
+                .options(joinedload('surveygroups'))
                 .get(program_id))
             if not program:
                 raise errors.MissingDocError("No such program")

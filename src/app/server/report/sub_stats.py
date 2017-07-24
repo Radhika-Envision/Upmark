@@ -40,7 +40,7 @@ class StatisticsHandler(base_handler.Paginate, base_handler.BaseHandler):
                 session.query(model.ResponseNode)
                 .join(model.ResponseNode.qnode)
                 .join(model.ResponseNode.submission)
-                .options(joinedload(model.ResponseNode.qnode))
+                .options(joinedload('qnode'))
                 .filter(
                     model.ResponseNode.program_id == program_id,
                     model.QuestionNode.survey_id == survey_id,

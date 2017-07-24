@@ -30,8 +30,7 @@ class SurveyHandler(base_handler.BaseHandler):
 
             survey = (
                 session.query(model.Survey)
-                .options(joinedload(model.Survey.program))
-                .options(joinedload(model.Program.surveygroups))
+                .options(joinedload('program.surveygroups'))
                 .get((survey_id, program_id)))
             if not survey:
                 raise errors.MissingDocError("No such survey")
@@ -79,7 +78,7 @@ class SurveyHandler(base_handler.BaseHandler):
 
             program = (
                 session.query(model.Program)
-                .options(joinedload(model.Program.surveygroups))
+                .options(joinedload('surveygroups'))
                 .get(program_id))
 
             policy = user_session.policy.derive({
@@ -127,7 +126,7 @@ class SurveyHandler(base_handler.BaseHandler):
 
             program = (
                 session.query(model.Program)
-                .options(joinedload(model.Program.surveygroups))
+                .options(joinedload('surveygroups'))
                 .get(program_id))
             if not program:
                 raise errors.ModelError("No such program")
@@ -170,8 +169,8 @@ class SurveyHandler(base_handler.BaseHandler):
 
             survey = (
                 session.query(model.Survey)
-                .options(joinedload(model.Survey.program))
-                .options(joinedload(model.Program.surveygroups))
+                .options(joinedload('program'))
+                .options(joinedload('program.surveygroups'))
                 .get((survey_id, program_id)))
             if not survey:
                 raise errors.MissingDocError("No such survey")
@@ -213,8 +212,8 @@ class SurveyHandler(base_handler.BaseHandler):
 
             survey = (
                 session.query(model.Survey)
-                .options(joinedload(model.Survey.program))
-                .options(joinedload(model.Program.surveygroups))
+                .options(joinedload('program'))
+                .options(joinedload('program.surveygroups'))
                 .get((survey_id, program_id)))
             if not survey:
                 raise errors.MissingDocError("No such survey")

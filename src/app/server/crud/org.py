@@ -29,7 +29,7 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             org = (
                 session.query(model.Organisation)
-                .options(joinedload(model.Organisation.surveygroups))
+                .options(joinedload('surveygroups'))
                 .get(organisation_id))
             if not org:
                 raise errors.MissingDocError("No such organisation")

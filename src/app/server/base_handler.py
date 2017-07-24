@@ -66,8 +66,8 @@ class BaseHandler(tornado.web.RequestHandler):
         user_id = user_id.decode('utf8')
         query = (
             db_session.query(model.AppUser)
-            .options(joinedload(model.AppUser.organisation))
-            .options(joinedload(model.AppUser.surveygroups))
+            .options(joinedload('organisation'))
+            .options(joinedload('surveygroups'))
             .join(model.Organisation)
             .filter(model.AppUser.id == user_id))
         if not superuser:
