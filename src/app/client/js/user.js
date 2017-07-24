@@ -14,7 +14,14 @@ angular.module('upmark.user', [
         .when('/:uv/user/new', {
             templateUrl : 'user.html',
             controller : 'UserCtrl',
-            resolve: {routeData: chainProvider({})},
+            resolve: {routeData: chainProvider({
+                org: ['Organisation', '$location', 'currentUser', function(
+                        Organisation, $location, currentUser) {
+                    var orgId = $location.search().organisationId ||
+                        currentUser.organisation.id;
+                    return Organisation.get({id: orgId}).$promise;
+                }],
+            })},
         })
         .when('/:uv/user/:id', {
             templateUrl : 'user.html',
@@ -95,20 +102,16 @@ angular.module('upmark.user', [
         $scope.user = routeData.user;
     } else {
         // Creating new
-        var org;
-        if ($location.search().organisationId) {
-            org = {
-                id: $location.search().organisationId,
-                name: $location.search().orgName
-            };
-        } else {
-            org = currentUser.organisation;
-        }
+        var ownSurveygroupIds = currentUser.surveygroups.map(function(surveygroup) {
+            return surveygroup.id;
+        });
         $scope.user = new User({
             role: 'clerk',
-            organisation: org,
+            organisation: routeData.org,
             emailInterval: 86400,
-            surveygroups: [],
+            surveygroups: routeData.org.surveygroups.filter(function(surveygroup) {
+                return ownSurveygroupIds.indexOf(surveygroup.id) >= 0;
+            }),
         });
         $scope.edit.edit();
     }

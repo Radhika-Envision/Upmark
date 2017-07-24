@@ -90,6 +90,42 @@
             </p>
         </docs>
 
+        <!-- Survey groups -->
+        <div ng-if="checkRole('surveygroup_delegate')">
+            <div class="section">
+                <div class="toolbar">
+                    <a class="btn btn-default btn-round" title="Add survey group"
+                            ng-click="edit.model.surveygroups.push(null)">
+                        <i class="fa fa-fw fa-plus"></i>
+                    </a>
+                </div>
+                <h2>
+                    Survey groups
+                </h2>
+            </div>
+            <table class="table" ng-if="edit.model.surveygroups.length">
+                <tr class="form-row" ng-repeat="(i, loc) in edit.model.surveygroups track by $index">
+                    <td>
+                        <input type="text" class="form-control"
+                            id="surveygroup-search-{{$index}}"
+                            name="surveygroup-search-{{$index}}"
+                            ng-model="edit.model.surveygroups[i]"
+                            uib-typeahead="g as g.title for g in searchSurveygroup($viewValue)"
+                            autocomplete="off" >
+                    </td>
+                    <td class="shrink">
+                        <button class="btn btn-default btn-round"
+                                title="Remove"
+                                ng-click="deleteSurveygroup($index)">
+                            <i class="fa fa-fw fa-trash-o"></i></button>
+                    </td>
+                </tr>
+            </table>
+            <p ng-if="!edit.model.surveygroups.length" class="text-muted">
+                No survey groups have been selected. Press the
+                <i class="fa fa-plus"></i> button to add one.
+            </p>
+        </div>
     </form>
 
     <p class="text-muted">
@@ -200,6 +236,18 @@
 </div>
 
 
+<div class="container">
+    <div ng-if="checkRole('surveygroup_browse')">
+        <h2>Survey groups</h2>
+        <p class="commasep"
+            ><span ng-repeat="surveygroup in program.surveygroups"
+                ><a ng-href="#/2/surveygroup/{{surveygroup.id}}"
+                    >{{surveygroup.title}}</a></span
+        ></p>
+    </div>
+</div>
+
+
 <docs ng-if="program.deleted">
     <i class="fa-li fa fa-trash fa-border"></i>
     <h3>Deleted</h3>
@@ -209,3 +257,13 @@
 </docs>
 
 </div><!-- !edit.model -->
+
+<docs>
+    <i class="fa-li fa fa-users fa-border"></i>
+    <h3>Survey groups</h3>
+    <p>
+        Survey groups control which entities a user can see. A
+        user will only be able to see this program, and its surveys and
+        submissions, if they share at least one group with it.
+    </p>
+</docs>

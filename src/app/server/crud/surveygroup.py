@@ -212,7 +212,7 @@ def assign_surveygroups(user_session, target_entity, source_entity):
     if old_ids == new_ids:
         return False
 
-    session = object_session(target_entity)
+    session = object_session(user_session.user)
     new_surveygroups = set(
         session.query(model.SurveyGroup)
         .filter(model.SurveyGroup.id.in_(new_ids))

@@ -105,7 +105,8 @@ class TemplateParams:
             link_order.reverse()
 
         for sdef in declarations:
-            # Convert dictionary to ordered list of tuples (based on precedence)
+            # Convert dictionary to ordered list of tuples (based on
+            # precedence)
             rs = ((k, sdef[k]) for k in link_order if k in sdef)
             try:
                 k, hrefs = next(rs)
@@ -115,8 +116,8 @@ class TemplateParams:
             if isinstance(hrefs, str):
                 hrefs = [hrefs]
 
-            # Add a resource deployment version number to bust the cache, except
-            # for CDN links.
+            # Add a resource deployment version number to bust the cache,
+            # except for CDN links.
             if k != 'cdn':
                 hrefs = [
                     '%s?v=%s' % (href, self.version(
@@ -155,11 +156,14 @@ class TemplateHandler(base_handler.BaseHandler):
             to_son = ToSon(
                 r'/id$',
                 r'/name$',
+                r'/title$',
                 r'/email$',
                 r'/role$',
                 r'/deleted$',
                 r'/organisation$',
                 r'!password',
+                r'^/surveygroups$',
+                r'/[0-9+]$',
             )
             user_son = json_encode(to_son(user_session.user))
 

@@ -92,7 +92,7 @@ angular.module('upmark.organisation', [
 
 .controller('OrganisationCtrl',
         function($scope, Organisation, org, Editor, Authz, User,
-            $location, LocationSearch, SurveyGroup) {
+            $location, LocationSearch, SurveyGroup, currentUser) {
 
     $scope.edit = Editor('org', $scope);
     if (org) {
@@ -103,7 +103,7 @@ angular.module('upmark.organisation', [
         $scope.org = new Organisation({
             locations: [],
             meta: {},
-            surveygroups: [],
+            surveygroups: angular.copy(currentUser.surveygroups),
         });
         $scope.edit.edit();
     }

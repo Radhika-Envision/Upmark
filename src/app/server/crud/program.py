@@ -63,7 +63,10 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
                 r'^/error$',
                 r'/has_quality$',
                 r'/hide_aggregate$',
+                r'/[0-9+]$',
             )
+            if policy.check('surveygroup_browse'):
+                to_son.add(r'^/surveygroups$')
             if not policy.check('author'):
                 to_son.exclude(
                     r'/response_types.*score$',

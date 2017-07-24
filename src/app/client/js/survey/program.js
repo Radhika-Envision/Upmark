@@ -61,7 +61,7 @@ angular.module('upmark.survey.program',[
 .controller('ProgramCtrl', function(
         $scope, Program, routeData, Editor, Authz, hotkeys,
         $location, Notifications, Survey, layout, format,
-        Organisation, Submission) {
+        Organisation, Submission, currentUser, SurveyGroup) {
 
     $scope.layout = layout;
     if (routeData.program) {
@@ -85,7 +85,8 @@ angular.module('upmark.survey.program',[
         $scope.edit = Editor('program', $scope);
         $scope.program = new Program({
             obType: 'program',
-            responseTypes: []
+            responseTypes: [],
+            surveygroups: angular.copy(currentUser.surveygroups),
         });
         $scope.surveys = null;
         $scope.edit.edit();
@@ -129,6 +130,14 @@ angular.module('upmark.survey.program',[
                     "Could not get list of surveys: " + details.statusText);
         });
     });
+
+    $scope.deleteSurveygroup = function(i) {
+        $scope.edit.model.surveygroups.splice(i, 1);
+    };
+
+    $scope.searchSurveygroup = function(term) {
+        return SurveyGroup.query({term: term}).$promise;
+    };
 
     $scope.Program = Program;
 
