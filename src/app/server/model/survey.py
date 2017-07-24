@@ -721,4 +721,7 @@ program_surveygroup = Table(
 
 Program.surveygroups = relationship(
     SurveyGroup, backref='programs', secondary=program_surveygroup,
-    collection_class=set)
+    collection_class=set,
+    secondaryjoin=(
+        (SurveyGroup.id == program_surveygroup.columns.surveygroup_id) &
+        (SurveyGroup.deleted == False)))

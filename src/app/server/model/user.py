@@ -209,7 +209,10 @@ organisation_surveygroup = Table(
 
 Organisation.surveygroups = relationship(
     SurveyGroup, backref='organisations', secondary=organisation_surveygroup,
-    collection_class=set)
+    collection_class=set,
+    secondaryjoin=(
+        (SurveyGroup.id == organisation_surveygroup.columns.surveygroup_id) &
+        (SurveyGroup.deleted == False)))
 
 
 user_surveygroup = Table(
@@ -223,4 +226,7 @@ user_surveygroup = Table(
 
 AppUser.surveygroups = relationship(
     SurveyGroup, backref='users', secondary=user_surveygroup,
-    collection_class=set)
+    collection_class=set,
+    secondaryjoin=(
+        (SurveyGroup.id == user_surveygroup.columns.surveygroup_id) &
+        (SurveyGroup.deleted == False)))
