@@ -50,7 +50,7 @@ self-hosted database (no RDS or S3).
 
     ```
     make version
-    sudo docker-compose run -d web alembic upgrade head
+    sudo docker-compose run --rm web alembic upgrade head
     sudo docker-compose up -d web recalc notify
     ```
 
