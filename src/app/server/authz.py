@@ -1,10 +1,14 @@
 # IMPORTANT: Make sure this module matches the functionality of authz.py.
 
+import logging
 import re
 
 from munch import DefaultMunch
 
 from undefined import undefined
+
+
+log = logging.getLogger('app.authz')
 
 
 class Policy:
@@ -59,29 +63,36 @@ class Policy:
         context['len'] = lambda xs: len(xs)
         context['_failures'] = []
         success = self._check(rule_name, context)
-        return Permission(rule_name, success, context['_failures'])
+        return Permission(rule_name, success, context, context['_failures'])
 
     def check(self, *rule_names, match='ANY'):
-        checks = (self.permission(rule_name) for rule_name in rule_names)
+        permissions = [self.permission(rule_name) for rule_name in rule_names]
+        if log.isEnabledFor(logging.DEBUG):
+            for permission in permissions:
+                log.debug("%s: %s", permission.rule_name, permission)
         if match == 'ANY':
-            return any(checks)
+            return any(permissions)
         elif match == 'ALL':
-            return all(checks)
+            return all(permissions)
         elif match == 'NONE':
-            return not any(checks)
+            return not any(permissions)
         else:
             raise ValueError("Unknown match type %s" % match)
 
     def verify(self, rule_name):
         permission = self.permission(rule_name)
+        log.debug(
+            "%s: %s\n\t%s", permission.rule_name, permission,
+            permission.context)
         if not permission:
             raise self.error_factory(str(permission))
 
 
 class Permission:
-    def __init__(self, rule_name, success, failures):
+    def __init__(self, rule_name, success, context, failures):
         self.rule_name = rule_name
         self.success = success
+        self.context = context
         self.failures = failures
 
     def __bool__(self):
@@ -127,6 +138,10 @@ class Rule:
 
     def __str__(self):
         return self.name
+
+    def __repr__(self):
+        return "Rule(%r, %r, %r, %r)" % (
+            self.name, self.expression, self.description, self.failure)
 
 
 class AccessDenied(Exception):

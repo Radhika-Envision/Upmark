@@ -46,6 +46,7 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
                 raise errors.MissingDocError("No such program")
 
             policy = user_session.policy.derive({
+                'program': program,
                 'surveygroups': program.surveygroups,
             })
             policy.verify('surveygroup_interact')

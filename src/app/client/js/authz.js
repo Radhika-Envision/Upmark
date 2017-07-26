@@ -65,7 +65,7 @@ angular.module('upmark.authz', [])
         } finally {
             that = null;
         }
-        return new Permission(ruleName, success, context.$failures);
+        return new Permission(ruleName, success, context, context.$failures);
     };
     Policy.prototype.check = function() {
         var args = Array.prototype.slice.call(arguments);
@@ -73,7 +73,11 @@ angular.module('upmark.authz', [])
         var options = args.filter(angular.isObject)[0];
         var match = options ? options.match || 'ANY' : 'ANY';
         var checks = ruleNames.filter(function(ruleName) {
-            return this.permission(ruleName).valueOf();
+            var permission = this.permission(ruleName);
+            // console.log(
+            //     '' + permission.ruleName + ": " + permission.toString(),
+            //     permission.context);
+            return permission.valueOf();
         }, this);
         if (match == 'ANY')
             return checks.length > 0;
@@ -86,24 +90,28 @@ angular.module('upmark.authz', [])
     };
     Policy.prototype.verify = function(ruleName) {
         var permission = this.permission(ruleName)
+        // console.log(
+        //     '' + permission.ruleName + ": " + permission.toString(),
+        //     permission.context);
         if (!permission.valueOf())
             throw this.error_factory(permission.toString());
     };
 
 
-    function Permission(ruleName, success, failures) {
+    function Permission(ruleName, success, context, failures) {
         this.ruleName = ruleName;
         this.success = success;
+        this.context = context;
         this.failures = failures;
     };
     Permission.prototype.valueOf = function() {
         return this.success;
     };
     Permission.prototype.toString = function() {
-        if (!!this)
-            return "Success"
+        if (this.valueOf())
+            return "Granted";
 
-        return "Failure: " + this.failures.filter(function(rule) {
+        return "Denied: " + this.failures.filter(function(rule) {
             return !!rule.failure;
         }).map(function(rule) {
             return rule.failure;

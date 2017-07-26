@@ -213,6 +213,7 @@ angular.module('upmark.submission.submission', [
     });
 
     $scope.checkRole = Authz({
+        org: $scope.submission.organisation,
         program: $scope.program,
         submission: $scope.submission,
     });

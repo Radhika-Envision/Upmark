@@ -63,6 +63,10 @@ class Submission(Observable, Base):
     organisation = relationship(Organisation)
 
     @property
+    def surveygroups(self):
+        return self.program.surveygroups & self.organisation.surveygroups
+
+    @property
     def ordered_responses(self):
         '''Returns all responses in depth-first order'''
         for qnode_measure in self.survey.ordered_qnode_measures:
