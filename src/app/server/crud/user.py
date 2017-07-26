@@ -1,7 +1,7 @@
 import passwordmeter
 from tornado.escape import json_encode
 import tornado.web
-from sqlalchemy.orm import aliased, joinedload
+from sqlalchemy.orm import joinedload
 import voluptuous
 from voluptuous import Extra, All, Required, Schema
 
@@ -11,7 +11,7 @@ import config
 import errors
 import model
 from utils import ToSon, truthy, updater
-from .surveygroup import assign_surveygroups
+from .surveygroup import assign_surveygroups, filter_surveygroups
 
 
 def test_password(text):
@@ -115,19 +115,9 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
                 .join(model.Organisation))
 
             if not policy.check('surveygroup_interact_all'):
-                usg_a = model.user_surveygroup
-                # usg_a = aliased(model.user_surveygroup, name='usg_a')
-                usg_b = aliased(model.user_surveygroup, name='usg_b')
-                query = (
-                    query
-                    .join(usg_a)
-                    .join(
-                        usg_b,
-                        usg_a.columns.surveygroup_id ==
-                        usg_b.columns.surveygroup_id)
-                    .filter(
-                        usg_b.columns.user_id ==
-                        user_session.user.id))
+                query = filter_surveygroups(
+                    session, query, user_session.user.id,
+                    [], [model.user_surveygroup])
 
             if organisation_id:
                 query = query.filter(model.Organisation.id == organisation_id)

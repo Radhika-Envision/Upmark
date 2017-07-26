@@ -14,7 +14,7 @@ import model
 
 from cache import LruCache
 from utils import ToSon, truthy, updater
-from .surveygroup import assign_surveygroups
+from .surveygroup import assign_surveygroups, filter_surveygroups
 
 
 class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
@@ -75,16 +75,9 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
             query = session.query(model.Organisation)
 
             if not policy.check('surveygroup_interact_all'):
-                query = (
-                    query
-                    .join(model.organisation_surveygroup)
-                    .join(
-                        model.user_surveygroup,
-                        model.user_surveygroup.columns.surveygroup_id ==
-                        model.organisation_surveygroup.columns.surveygroup_id)
-                    .filter(
-                        model.user_surveygroup.columns.user_id ==
-                        user_session.user.id))
+                query = filter_surveygroups(
+                    session, query, user_session.user.id,
+                    [], [model.organisation_surveygroup])
 
             term = self.get_argument('term', None)
             if term is not None:

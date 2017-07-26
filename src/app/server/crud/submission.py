@@ -14,6 +14,7 @@ import model
 from score import Calculator
 from utils import ToSon, truthy, updater
 from .approval import APPROVAL_STATES
+from .surveygroup import filter_surveygroups
 
 
 log = logging.getLogger('app.crud.submission')
@@ -137,22 +138,11 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
                 query = query.filter(model.Submission.deleted == deleted)
 
             if not policy.check('surveygroup_interact_all'):
-                user_sg = model.user_surveygroup
-                org_sg = model.organisation_surveygroup
-                prog_sg = model.program_surveygroup
-                query = (
-                    query
-                    .from_self()
-                    .join(model.Organisation)
-                    .join(org_sg)
-                    .join(model.Program)
-                    .join(prog_sg)
-                    .join(user_sg, (
-                        user_sg.columns.surveygroup_id ==
-                        org_sg.columns.surveygroup_id) & (
-                        user_sg.columns.surveygroup_id ==
-                        prog_sg.columns.surveygroup_id))
-                    .filter(user_sg.columns.user_id == user_session.user.id))
+                query = filter_surveygroups(
+                    session, query, user_session.user.id,
+                    [model.Organisation, model.Program], [
+                        model.organisation_surveygroup,
+                        model.program_surveygroup])
 
             query = query.order_by(model.Submission.created.desc())
             query = self.paginate(query)

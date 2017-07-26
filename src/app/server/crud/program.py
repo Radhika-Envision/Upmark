@@ -15,7 +15,7 @@ import errors
 import model
 from score import Calculator
 from utils import ToSon, truthy, updater
-from .surveygroup import assign_surveygroups
+from .surveygroup import assign_surveygroups, filter_surveygroups
 
 
 log = logging.getLogger('app.crud.program')
@@ -94,16 +94,9 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             policy = user_session.policy.derive({})
             if not policy.check('surveygroup_interact_all'):
-                query = (
-                    query
-                    .join(model.program_surveygroup)
-                    .join(
-                        model.user_surveygroup,
-                        model.user_surveygroup.columns.surveygroup_id ==
-                        model.program_surveygroup.columns.surveygroup_id)
-                    .filter(
-                        model.user_surveygroup.columns.user_id ==
-                        user_session.user.id))
+                query = filter_surveygroups(
+                    session, query, user_session.user.id,
+                    [], [model.program_surveygroup])
 
             if term != '':
                 query = query.filter(
@@ -447,16 +440,9 @@ class ProgramTrackingHandler(base_handler.BaseHandler):
                 .order_by(model.Program.created))
 
             if not policy.check('surveygroup_interact_all'):
-                query = (
-                    query
-                    .join(model.program_surveygroup)
-                    .join(
-                        model.user_surveygroup,
-                        model.user_surveygroup.columns.surveygroup_id ==
-                        model.program_surveygroup.columns.surveygroup_id)
-                    .filter(
-                        model.user_surveygroup.columns.user_id ==
-                        user_session.user.id))
+                query = filter_surveygroups(
+                    session, query, user_session.user.id,
+                    [], [model.program_surveygroup])
 
             deleted = self.get_argument('deleted', '')
             if deleted != '':
@@ -499,16 +485,9 @@ class ProgramHistoryHandler(base_handler.BaseHandler):
 
             policy = user_session.policy.derive({})
             if not policy.check('surveygroup_interact_all'):
-                query = (
-                    query
-                    .join(model.program_surveygroup)
-                    .join(
-                        model.user_surveygroup,
-                        model.user_surveygroup.columns.surveygroup_id ==
-                        model.program_surveygroup.columns.surveygroup_id)
-                    .filter(
-                        model.user_surveygroup.columns.user_id ==
-                        user_session.user.id))
+                query = filter_surveygroups(
+                    session, query, user_session.user.id,
+                    [], [model.program_surveygroup])
 
             deleted = self.get_argument('deleted', '')
             if deleted != '':
