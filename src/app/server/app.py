@@ -149,9 +149,14 @@ def default_settings():
             session.add(org)
             session.flush()
             user = model.AppUser(
-                email="admin", name="DEFAULT USER", role="admin",
+                email="admin", name="DEFAULT USER", role="super_admin",
                 organisation=org, password="admin")
             session.add(user)
+
+            surveygroup = model.SurveyGroup(title="Upmark")
+            org.surveygroups.add(surveygroup)
+            user.surveygroups.add(surveygroup)
+            session.add(surveygroup)
 
 
 def get_mappings():
