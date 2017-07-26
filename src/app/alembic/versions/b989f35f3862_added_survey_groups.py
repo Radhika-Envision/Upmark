@@ -119,8 +119,16 @@ def upgrade():
         FROM program AS p
     """ % group_id)
 
+    op.execute("GRANT SELECT ON organisation_surveygroup TO analyst")
+    op.execute("GRANT SELECT ON user_surveygroup TO analyst")
+    op.execute("GRANT SELECT ON program_surveygroup TO analyst")
+
 
 def downgrade():
+    op.execute("REVOKE SELECT ON program_surveygroup FROM analyst")
+    op.execute("REVOKE SELECT ON user_surveygroup FROM analyst")
+    op.execute("REVOKE SELECT ON organisation_surveygroup FROM analyst")
+
     op.drop_table('program_surveygroup')
     op.drop_table('user_surveygroup')
     op.drop_table('organisation_surveygroup')
