@@ -151,6 +151,8 @@ class Paginate:
         if page < 0:
             raise errors.ModelError("Page must be non-negative")
 
+        query.distinct()
+
         num_items = query.count()
         self.set_header('Page-Count', "%d" % ceil(num_items / page_size))
         self.set_header('Page-Index', "%d" % page)
