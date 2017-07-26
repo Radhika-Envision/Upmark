@@ -32,7 +32,7 @@ class TemplateParams:
 
     @property
     def dev_mode(self):
-        return truthy(tornado.options.options.dev) and 'true' or 'false'
+        return truthy(tornado.options.options.dev)
 
     @property
     def is_training(self):
@@ -98,10 +98,9 @@ class TemplateParams:
         development or release mode.
         '''
         resources = []
-        dev_mode = truthy(tornado.options.options.dev)
 
         link_order = ['cdn', 'min-href', 'href', 'hrefs']
-        if dev_mode:
+        if self.dev_mode:
             link_order.reverse()
 
         for sdef in declarations:
@@ -124,9 +123,9 @@ class TemplateParams:
                         rel='semi-volatile', dev='non-volatile'))
                     for href in hrefs]
 
-            if dev_mode and k in {'cdn', 'min-href'}:
+            if self.dev_mode and k in {'cdn', 'min-href'}:
                 print('Warning: using release resource in dev mode')
-            elif not dev_mode and k in {'href', 'hrefs'}:
+            elif not self.dev_mode and k in {'href', 'hrefs'}:
                 print('Warning: using dev resource in release')
 
             resources.extend(hrefs)

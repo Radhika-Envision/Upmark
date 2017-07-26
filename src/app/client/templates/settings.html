@@ -45,11 +45,10 @@ angular.module('upmark.settings', [])
     },
 ])
 
-{% if params.aq_version is not None %}
-.constant('aqVersion', '{{params.aq_version}}')
-{% else %}
-.constant('aqVersion', null)
-{% end %}
+.constant('deployInfo', {
+    devMode: {{'true' if params.dev_mode else 'false' }},
+    version: {% raw "\'%s\'" % params.aq_version if params.aq_version else 'null' %},
+})
 
 .constant('pageTitleSuffix', ' - {{theme.app_name_short}}')
 

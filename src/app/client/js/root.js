@@ -13,11 +13,9 @@ angular.module('upmark.root', [])
 })
 
 
-.controller('RootCtrl', ['$scope', 'hotkeys', '$cookies', 'User',
-        'Notifications', '$window', 'aqVersion',
-        function($scope, hotkeys, $cookies, User, Notifications, $window,
-            aqVersion) {
-    $scope.aqVersion = aqVersion;
+.controller('RootCtrl', function(
+        $scope, hotkeys, $cookies, User, Notifications, $window, deployInfo) {
+    $scope.deployInfo = deployInfo;
     $scope.hotkeyHelp = hotkeys.toggleCheatSheet;
 
     try {
@@ -49,7 +47,7 @@ angular.module('upmark.root', [])
         + " main site. Sometimes, information is copied from the"
         + " main site to this one. When that happens, changes you have"
         + " made here will be overwritten.";
-}])
+})
 
 
 .controller('HeaderCtrl', function($scope, Authz) {
