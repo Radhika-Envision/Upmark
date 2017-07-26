@@ -75,6 +75,13 @@
                             <span class="when-collapsed">Organisations</span>
                         </a>
                     </li>
+                    <li ng-if="deployInfo.devMode">
+                        <a href title="Refresh"
+                              ng-click="refresh()">
+                            <i class="fa fa-fw fa-refresh"></i>
+                            <span class="when-collapsed">Refresh</span>
+                        </a>
+                    </li>
                     <li ng-if="pastUsers.length" uib-dropdown dropdown-append-to-body>
                         <a href title="Impersonate" uib-dropdown-toggle>
                             <i class="fa fa-fw fa-paw"></i>
