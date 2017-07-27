@@ -41,7 +41,7 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             policy = user_session.policy.derive({
                 'org': submission.organisation,
-                'surveygroups': submission.program.surveygroups,
+                'surveygroups': submission.surveygroups,
             })
             policy.verify('surveygroup_interact')
             policy.verify('submission_view')
