@@ -256,8 +256,8 @@
     expression: '@admin'
 
  -  name: post_pin
-    description: "permission to edit a post"
-    failure: "you can't modify that post"
+    description: "permission to pin a post"
+    failure: "you can't pin that post"
     expression: '@admin or (@org_admin and @_own_org)'
 
  -  name: post_edit
@@ -266,8 +266,8 @@
     expression: '@post_add'
 
  -  name: post_del
-    description: "permission to edit a post"
-    failure: "you can't modify that post"
+    description: "permission to delete a post"
+    failure: "you can't delete that post"
     expression: '@post_add'
 
  -  name: post_edit_try

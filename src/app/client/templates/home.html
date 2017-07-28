@@ -18,24 +18,25 @@
         </button>
         <button class="btn btn-default btn-round" title="Print"
                 onclick="print()"
-                ng-if="!showPost">
+                ng-if="!post">
             <i class="fa fa-print"></i>
         </button>
         <button class="btn btn-default btn-round"
-                title="{{showPost ?
-                           'Cancel post' :
-                           'Post a new message'}}"
-                ng-click="togglePost()"
-                ng-if="checkRole('post_add')">
-            <i class="fa fa-envelope-o"
-                ng-if="!showPost"></i>
-            <i class="fa fa-times"
-                ng-if="showPost"></i>
+                title="Post a new message"
+                ng-click="newPost()"
+                ng-if="!post && checkRole('post_add')">
+            <i class="fa fa-envelope-o"></i>
+        </button>
+        <button class="btn btn-default btn-round"
+                title="Cancel post"
+                ng-click="cancelEdit()"
+                ng-if="post">
+            <i class="fa fa-times"></i>
         </button>
         <button class="btn btn-default btn-round"
                 title="Submit"
                 ng-click="postMessage()"
-                ng-if="showPost">
+                ng-if="post">
             <i class="fa fa-check"></i>
         </button>
     </div>
@@ -47,7 +48,7 @@
 </div>
 </div>
 
-<div class="container container-fluid" ng-if="!showPost"><div class="row">
+<div class="container container-fluid" ng-if="!post"><div class="row">
 
 <div class="col-sm-8">
     <ul class="list-results fa-ul fa-ul-big timeline">
@@ -164,7 +165,7 @@
 </div> <!-- container-fluid -->
 
 
-<div class="container" ng-if="showPost">
+<div class="container" ng-if="post">
     <form novalidate name="form" id="post" class="hidden-print">
         <h3>Broadcast Message</h3>
         <div class="form-group">
@@ -202,6 +203,43 @@
                 </button>
             </div>
         </div>
+
+        <!-- Survey groups -->
+        <div ng-if="checkRole('surveygroup_delegate')">
+            <div class="section">
+                <div class="toolbar">
+                    <a class="btn btn-default btn-round" title="Add survey group"
+                            ng-click="post.surveygroups.push(null)">
+                        <i class="fa fa-fw fa-plus"></i>
+                    </a>
+                </div>
+                <h2>
+                    Survey groups
+                </h2>
+            </div>
+            <table class="table" ng-if="post.surveygroups.length">
+                <tr class="form-row" ng-repeat="(i, loc) in post.surveygroups track by $index">
+                    <td>
+                        <input type="text" class="form-control"
+                            id="surveygroup-search-{{$index}}"
+                            name="surveygroup-search-{{$index}}"
+                            ng-model="post.surveygroups[i]"
+                            uib-typeahead="g as g.title for g in searchSurveygroup($viewValue)"
+                            autocomplete="off" >
+                    </td>
+                    <td class="shrink">
+                        <button class="btn btn-default btn-round"
+                                title="Remove"
+                                ng-click="deleteSurveygroup($index)">
+                            <i class="fa fa-fw fa-trash-o"></i></button>
+                    </td>
+                </tr>
+            </table>
+            <p ng-if="!post.surveygroups.length" class="text-muted">
+                No survey groups have been selected. Press the
+                <i class="fa fa-plus"></i> button to add one.
+            </p>
+        </div>
     </form>
 
     <docs>
@@ -227,7 +265,7 @@
     </docs>
 </div>
 
-<docs ng-if="!showPost">
+<docs ng-if="!post">
     <i class="fa-li fa fa-keyboard-o fa-border"></i>
     <h3>Keyboard Shortcuts</h3>
     <p>

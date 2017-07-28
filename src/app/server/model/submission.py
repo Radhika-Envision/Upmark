@@ -219,6 +219,10 @@ class ResponseNode(Observable, Base):
         return ActionDescriptor(
             self.ob_title, self.ob_type, self.ob_ids, lineage)
 
+    @property
+    def surveygroups(self):
+        return self.submission.surveygroups
+
     def __repr__(self):
         org = getattr(self.submission, 'organisation', None)
         return "ResponseNode(path={}, submission={}, org={})".format(
@@ -327,6 +331,10 @@ class Response(Observable, Versioned, Base):
                    [self.measure_id])
         return ActionDescriptor(
             self.ob_title, self.ob_type, self.ob_ids, lineage)
+
+    @property
+    def surveygroups(self):
+        return self.submission.surveygroups
 
     def __repr__(self):
         org = getattr(self.submission, 'organisation', None)

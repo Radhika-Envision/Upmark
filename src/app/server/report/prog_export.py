@@ -40,6 +40,7 @@ class ExportProgramHandler(base_handler.BaseHandler):
                 'survey': survey,
             })
             policy.verify('survey_export')
+            role = user_session.user.role
 
         output_file = 'program_{0}_survey_{1}_{2}.xlsx'.format(
             program_id, survey_id, fmt)
@@ -50,12 +51,10 @@ class ExportProgramHandler(base_handler.BaseHandler):
             output_path = os.path.join(tmpdirname, output_file)
             if fmt == 'tabular':
                 yield self.export_tabular(
-                    output_path, program_id, survey_id,
-                    self.current_user.role, base_url)
+                    output_path, program_id, survey_id, role, base_url)
             else:
                 yield self.export_nested(
-                    output_path, program_id, survey_id,
-                    self.current_user.role, base_url)
+                    output_path, program_id, survey_id, role, base_url)
             self.set_header('Content-Type', 'application/octet-stream')
             self.set_header('Content-Disposition', 'attachment')
 

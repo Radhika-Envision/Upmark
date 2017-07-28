@@ -13,8 +13,8 @@ import errors
 import model
 
 from cache import LruCache
+from surveygroup_actions import assign_surveygroups, filter_surveygroups
 from utils import ToSon, truthy, updater
-from .surveygroup import assign_surveygroups, filter_surveygroups
 
 
 class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):

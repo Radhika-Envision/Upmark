@@ -184,6 +184,10 @@ class Survey(Observable, Base):
     def action_lineage(self):
         return [self.program, self]
 
+    @property
+    def surveygroups(self):
+        return self.program.surveygroups
+
     def closest_deleted_ancestor(self):
         if self.deleted:
             return self
@@ -284,6 +288,10 @@ class QuestionNode(Observable, Base):
     def action_lineage(self):
         return [self.program, self.survey] + self.lineage()
 
+    @property
+    def surveygroups(self):
+        return self.program.surveygroups
+
     def __repr__(self):
         return "QuestionNode(path={}, title={}, program={})".format(
             self.get_path(), self.title,
@@ -358,6 +366,10 @@ class Measure(Observable, Base):
     def action_lineage(self):
         hs = [qm.survey for qm in self.qnode_measures]
         return [self.program] + hs + self.lineage()
+
+    @property
+    def surveygroups(self):
+        return self.program.surveygroups
 
     def __repr__(self):
         return "Measure(title={}, program={})".format(
@@ -487,6 +499,10 @@ class ResponseType(Observable, Base):
     @property
     def action_lineage(self):
         return [self.program, self]
+
+    @property
+    def surveygroups(self):
+        return self.program.surveygroups
 
     def __repr__(self):
         return "ResponseType(name={}, program={})".format(

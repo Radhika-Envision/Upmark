@@ -66,6 +66,14 @@ def upgrade():
         Index('program_surveygroup_surveygroup_id_index', 'surveygroup_id'),
     )
 
+    op.create_table(
+        'activity_surveygroup',
+        sa.Column('activity_id', GUID, ForeignKey('activity.id')),
+        sa.Column('surveygroup_id', GUID, ForeignKey('surveygroup.id')),
+        Index('activity_surveygroup_program_id_index', 'activity_id'),
+        Index('activity_surveygroup_surveygroup_id_index', 'surveygroup_id'),
+    )
+
     ob_types = array([
         'surveygroup',
         'organisation', 'user',
@@ -103,23 +111,30 @@ def upgrade():
     op.execute("""
         INSERT INTO organisation_surveygroup
         (organisation_id, surveygroup_id)
-        SELECT o.id, '%s'
-        FROM organisation AS o
+        SELECT organisation.id, '%s'
+        FROM organisation
     """ % group_id)
     op.execute("""
         INSERT INTO user_surveygroup
         (user_id, surveygroup_id)
-        SELECT u.id, '%s'
-        FROM appuser AS u
+        SELECT appuser.id, '%s'
+        FROM appuser
     """ % group_id)
     op.execute("""
         INSERT INTO program_surveygroup
         (program_id, surveygroup_id)
-        SELECT p.id, '%s'
-        FROM program AS p
+        SELECT program.id, '%s'
+        FROM program
+    """ % group_id)
+    op.execute("""
+        INSERT INTO activity_surveygroup
+        (activity_id, surveygroup_id)
+        SELECT activity.id, '%s'
+        FROM activity
     """ % group_id)
 
     op.execute("GRANT SELECT ON organisation_surveygroup TO analyst")
+    op.execute("GRANT SELECT ON activity_surveygroup TO analyst")
     op.execute("GRANT SELECT ON user_surveygroup TO analyst")
     op.execute("GRANT SELECT ON program_surveygroup TO analyst")
 
@@ -128,10 +143,12 @@ def downgrade():
     op.execute("REVOKE SELECT ON program_surveygroup FROM analyst")
     op.execute("REVOKE SELECT ON user_surveygroup FROM analyst")
     op.execute("REVOKE SELECT ON organisation_surveygroup FROM analyst")
+    op.execute("REVOKE SELECT ON activity_surveygroup FROM analyst")
 
     op.drop_table('program_surveygroup')
     op.drop_table('user_surveygroup')
     op.drop_table('organisation_surveygroup')
+    op.drop_table('activity_surveygroup')
     op.drop_table('surveygroup')
 
     op.execute('''

@@ -35,5 +35,9 @@ class SurveyGroup(Observable, Base):
     def action_lineage(self):
         return [self]
 
+    @property
+    def surveygroups(self):
+        return set()
+
     def __repr__(self):
         return "SurveyGroup(title={})".format(self.title)

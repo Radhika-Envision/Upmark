@@ -14,8 +14,8 @@ import base_handler
 import errors
 import model
 from score import Calculator
+from surveygroup_actions import assign_surveygroups, filter_surveygroups
 from utils import ToSon, truthy, updater
-from .surveygroup import assign_surveygroups, filter_surveygroups
 
 
 log = logging.getLogger('app.crud.program')

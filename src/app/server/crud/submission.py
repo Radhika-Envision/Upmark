@@ -14,7 +14,7 @@ import model
 from score import Calculator
 from utils import ToSon, truthy, updater
 from .approval import APPROVAL_STATES
-from .surveygroup import filter_surveygroups
+from surveygroup_actions import filter_surveygroups
 
 
 log = logging.getLogger('app.crud.submission')
@@ -243,9 +243,9 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
                     self.duplicate, submission, source_submission, session)
 
             act = Activities(session)
-            act.record(self.current_user, submission, ['create'])
-            if not act.has_subscription(self.current_user, submission):
-                act.subscribe(self.current_user, submission.organisation)
+            act.record(user_session.user, submission, ['create'])
+            if not act.has_subscription(user_session.user, submission):
+                act.subscribe(user_session.user, submission.organisation)
                 self.reason("Subscribed to organisation")
 
         self.get(submission_id)
@@ -357,9 +357,9 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
                 verbs.append('undelete')
 
             act = Activities(session)
-            act.record(self.current_user, submission, verbs)
-            if not act.has_subscription(self.current_user, submission):
-                act.subscribe(self.current_user, submission.organisation)
+            act.record(user_session.user, submission, verbs)
+            if not act.has_subscription(user_session.user, submission):
+                act.subscribe(user_session.user, submission.organisation)
                 self.reason("Subscribed to organisation")
 
         self.get(submission_id)
@@ -387,9 +387,9 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             if not submission.deleted:
-                act.record(self.current_user, submission, ['delete'])
-            if not act.has_subscription(self.current_user, submission):
-                act.subscribe(self.current_user, submission.organisation)
+                act.record(user_session.user, submission, ['delete'])
+            if not act.has_subscription(user_session.user, submission):
+                act.subscribe(user_session.user, submission.organisation)
                 self.reason("Subscribed to organisation")
 
             submission.deleted = True

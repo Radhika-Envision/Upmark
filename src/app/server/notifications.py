@@ -122,7 +122,7 @@ def get_activities(session, user, until_date, messages, limit, date_template):
             date_template.format(from_date)))
 
     activity_query = activities.timeline_query(
-        user.id, from_date, until_date, {'at_top'})
+        user, from_date, until_date, {'at_top'})
 
     activity_query = activity_query.limit(limit)
     activities = list(activity_query.all())

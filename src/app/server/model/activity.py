@@ -1,8 +1,9 @@
-__all__ = ['Activity', 'Subscription']
+__all__ = ['Activity', 'activity_surveygroup', 'Subscription']
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Index, Text
+from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Index, \
+    Table, Text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import CheckConstraint, UniqueConstraint
@@ -10,6 +11,7 @@ from sqlalchemy.schema import CheckConstraint, UniqueConstraint
 from .base import Base
 from .guid import GUID
 from .user import AppUser
+from .surveygroup import SurveyGroup
 
 
 class Activity(Base):
@@ -122,3 +124,19 @@ class Subscription(Base):
     )
 
     user = relationship(AppUser, backref='subscriptions')
+
+
+activity_surveygroup = Table(
+    'activity_surveygroup', Base.metadata,
+    Column('activity_id', GUID, ForeignKey('activity.id')),
+    Column('surveygroup_id', GUID, ForeignKey('surveygroup.id')),
+    Index('activity_surveygroup_organisation_id_index', 'activity_id'),
+    Index('activity_surveygroup_surveygroup_id_index', 'surveygroup_id'),
+)
+
+
+Activity.surveygroups = relationship(
+    SurveyGroup, secondary=activity_surveygroup,
+    collection_class=set, secondaryjoin=(
+        (SurveyGroup.id == activity_surveygroup.columns.surveygroup_id) &
+        (SurveyGroup.deleted == False)))

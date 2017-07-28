@@ -12,6 +12,7 @@ from activity import Activities
 import base_handler
 import errors
 import model
+from surveygroup_actions import assign_surveygroups
 from utils import ToSon, updater
 
 
@@ -60,7 +61,7 @@ class ActivityHandler(base_handler.BaseHandler):
     @tornado.web.authenticated
     @gen.coroutine
     def get(self, activity_id):
-        if activity_id == '':
+        if not activity_id:
             yield self.query()
 
         raise errors.MethodError("GET for single activity is not implemented")
@@ -68,13 +69,13 @@ class ActivityHandler(base_handler.BaseHandler):
     @gen.coroutine
     def query(self):
         until_date = self.get_argument('until', '')
-        if until_date != '':
+        if until_date:
             until_date = datetime.datetime.fromtimestamp(float(until_date))
         else:
             until_date = datetime.datetime.utcnow()
 
         period = self.get_argument('period', '')
-        if period != '':
+        if period:
             period = datetime.timedelta(seconds=float(period))
         else:
             period = datetime.timedelta(days=7)
@@ -112,7 +113,7 @@ class ActivityHandler(base_handler.BaseHandler):
 
             start = perf()
             query = act.timeline_query(
-                user_session.user.id, from_date, until_date,
+                user_session.user, from_date, until_date,
                 sticky_flags=sticky_flags)
             duration = perf() - start
             timing.append("Query construction took %gs" % duration)
@@ -172,33 +173,42 @@ class ActivityHandler(base_handler.BaseHandler):
         if activity_id:
             raise errors.ModelError("Can't specify ID for new activity")
 
-        if len(self.request_son['message']) < 3:
+        if len(self.request_son.message) < 3:
             raise errors.ModelError("Message is too short")
 
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
-            if self.request_son['to'] == 'org':
-                ob = user_session.org
-                if not ob:
+            if self.request_son.to == 'org':
+                org = user_session.org
+                if not org:
                     raise errors.ModelError('No such organisation')
-            elif self.request_son['to'] == 'all':
-                ob = None
+            elif self.request_son.to == 'all':
+                org = None
             else:
                 raise errors.ModelError('Unrecognised recipient')
 
             activity = model.Activity(
-                subject_id=user_session.user.id,
+                subject=user_session.user,
                 verbs=['broadcast'],
-                message=self.request_son['message'],
-                sticky=self.request_son['sticky']
+                message=self.request_son.message,
+                sticky=self.request_son.sticky,
             )
 
-            if ob:
-                desc = ob.action_descriptor
+            try:
+                assign_surveygroups(user_session, activity, self.request_son)
+            except ValueError as e:
+                raise errors.ModelError(str(e))
+
+            if org:
+                desc = org.action_descriptor
                 activity.ob_type = desc.ob_type
                 activity.ob_ids = desc.ob_ids
                 activity.ob_refs = desc.ob_refs
+                policy = user_session.policy.derive({
+                    'surveygroups': org.surveygroups,
+                })
+                policy.verify('surveygroup_interact')
             else:
                 activity.ob_type = None
                 activity.ob_ids = []
@@ -209,16 +219,16 @@ class ActivityHandler(base_handler.BaseHandler):
 
             policy = user_session.policy.derive({
                 'activity': activity,
-                'org': activity.subject.organisation,
+                'org': org,
             })
             policy.verify('post_add')
 
             son = ActivityHandler.TO_SON(activity)
 
             act = Activities(session)
-            if ob and not act.has_subscription(user_session.user, ob):
-                act.subscribe(user_session.user, ob)
-                self.reason("Subscribed to " + ob.ob_type)
+            if org and not act.has_subscription(user_session.user, org):
+                act.subscribe(user_session.user, org)
+                self.reason("Subscribed to organisation")
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -227,17 +237,37 @@ class ActivityHandler(base_handler.BaseHandler):
     @tornado.web.authenticated
     def put(self, activity_id):
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             activity = (
                 session.query(model.Activity)
                 .get(activity_id))
             if not activity:
                 raise errors.MissingDocError("No such activity")
 
-            user_session = self.get_user_session(session)
-            policy = user_session.policy.derive({
-                'activity': activity,
-                'org': activity.subject.organisation,
-            })
+            if 'surveygroups' in self.request_son:
+                try:
+                    assign_surveygroups(
+                        user_session, activity, self.request_son)
+                except ValueError as e:
+                    raise errors.ModelError(str(e))
+
+            if activity.ob_type == 'organisation':
+                org = get_ob(activity.ob_type, activity.ob_ids)
+                policy = user_session.policy.derive({
+                    'activity': activity,
+                    'org': org,
+                    'surveygroups': org.surveygroups,
+                })
+            elif not activity.ob_type:
+                policy = user_session.policy.derive({
+                    'activity': activity,
+                    'surveygroups': activity.surveygroups,
+                })
+            else:
+                raise errors.ModelError("That activity can't be modified")
+
+            policy.verify('surveygroup_interact')
 
             if 'sticky' in self.request_son:
                 if self.request_son.sticky != activity.sticky:
@@ -268,7 +298,9 @@ class ActivityHandler(base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'activity': activity,
                 'org': activity.subject.organisation,
+                'surveygroups': activity.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('post_del')
 
             session.delete(activity)
@@ -315,7 +347,7 @@ class SubscriptionHandler(base_handler.BaseHandler):
 
     def query(self, ob_type, object_ids):
         with model.session_scope() as session:
-            ob = self.get_ob(session, ob_type, object_ids)
+            ob = get_ob(session, ob_type, object_ids)
             if not ob:
                 raise errors.MissingDocError("No such object")
 
@@ -353,7 +385,6 @@ class SubscriptionHandler(base_handler.BaseHandler):
     @tornado.web.authenticated
     def post(self, ob_type, object_ids):
         object_ids = object_ids.split(',')
-        log.error("%s", object_ids)
 
         if not ob_type:
             raise errors.ModelError(
@@ -362,7 +393,7 @@ class SubscriptionHandler(base_handler.BaseHandler):
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
-            ob = self.get_ob(session, ob_type, object_ids)
+            ob = get_ob(session, ob_type, object_ids)
             if not ob:
                 raise errors.MissingDocError("No such object")
 
@@ -401,8 +432,7 @@ class SubscriptionHandler(base_handler.BaseHandler):
 
             subscription.subscribed = self.request_son.get('subscribed', False)
 
-            ob = self.get_ob(
-                session, subscription.ob_type, subscription.ob_refs)
+            ob = get_ob(session, subscription.ob_type, subscription.ob_refs)
             policy = user_session.policy.derive({
                 'user': subscription.user,
                 'survey': self.get_survey(ob),
@@ -439,91 +469,6 @@ class SubscriptionHandler(base_handler.BaseHandler):
 
         self.finish()
 
-    def get_ob(self, session, ob_type, ob_refs):
-        def arglen(n, min_, max_=None):
-            if max_ is None:
-                max_ = min_
-            if len(ob_refs) < min_ or len(ob_refs) > max_:
-                raise errors.ModelError(
-                    "Wrong number of IDs for %s" % ob_type)
-
-        if ob_type == 'custom_query':
-            arglen(len(ob_refs), 1)
-            query = (
-                session.query(model.CustomQuery)
-                .filter(model.CustomQuery.id == ob_refs[0]))
-
-        elif ob_type == 'organisation':
-            arglen(len(ob_refs), 1)
-            query = (
-                session.query(model.Organisation)
-                .filter(model.Organisation.id == ob_refs[0]))
-
-        elif ob_type == 'user':
-            arglen(len(ob_refs), 1)
-            query = (
-                session.query(model.AppUser)
-                .filter(model.AppUser.id == ob_refs[0]))
-
-        elif ob_type == 'program':
-            arglen(len(ob_refs), 1)
-            query = (
-                session.query(model.Program)
-                .filter(model.Program.id == ob_refs[0]))
-
-        elif ob_type == 'survey':
-            arglen(len(ob_refs), 2, 2)
-            query = (
-                session.query(model.Survey)
-                .filter(model.Survey.id == ob_refs[0],
-                        model.Survey.program_id == ob_refs[1]))
-
-        elif ob_type == 'qnode':
-            arglen(len(ob_refs), 2, 2)
-            query = (
-                session.query(model.QuestionNode)
-                .filter(model.QuestionNode.id == ob_refs[0],
-                        model.QuestionNode.program_id == ob_refs[1]))
-
-        elif ob_type == 'measure':
-            arglen(len(ob_refs), 2, 2)
-            query = (
-                session.query(model.Measure)
-                .filter(model.Measure.id == ob_refs[0],
-                        model.Measure.program_id == ob_refs[1]))
-
-        elif ob_type == 'response_type':
-            arglen(len(ob_refs), 2, 2)
-            query = (
-                session.query(model.ResponseType)
-                .filter(model.ResponseType.id == ob_refs[0],
-                        model.ResponseType.program_id == ob_refs[1]))
-
-        elif ob_type == 'submission':
-            arglen(len(ob_refs), 1)
-            query = (
-                session.query(model.Submission)
-                .filter(model.Submission.id == ob_refs[0]))
-
-        elif ob_type == 'rnode':
-            arglen(len(ob_refs), 2, 2)
-            query = (
-                session.query(model.ResponseNode)
-                .filter(model.ResponseNode.qnode_id == ob_refs[0],
-                        model.ResponseNode.submission_id == ob_refs[1]))
-
-        elif ob_type == 'response':
-            arglen(len(ob_refs), 2, 2)
-            query = (
-                session.query(model.Response)
-                .filter(model.Response.measure_id == ob_refs[0],
-                        model.Response.submission_id == ob_refs[1]))
-
-        else:
-            raise errors.ModelError("Can't subscribe to '%s' type" % ob_type)
-
-        return query.first()
-
     def get_survey(self, ob):
         if ob.ob_type not in {'survey', 'qnode', 'measure'}:
             return None
@@ -544,6 +489,76 @@ class SubscriptionHandler(base_handler.BaseHandler):
         '''
         update = updater(subscription, error_factory=errors.ModelError)
         update('subscribed', son)
+
+
+def get_ob(session, ob_type, ob_ids):
+    '''
+    Generic way to dereference objects based on a type and a sequence of IDs.
+    This is generally not the preferred way to access objects!
+
+    @param ob_type: The object's type (str)
+    @param ob_ids: A seqence of IDs that would be returned by the object's
+        `ob_ids` property.
+    '''
+
+    def arglen(n, min_, max_=None):
+        if max_ is None:
+            max_ = min_
+        if len(ob_ids) < min_ or len(ob_ids) > max_:
+            raise errors.ModelError(
+                "Wrong number of IDs for %s" % ob_type)
+
+    if not ob_type:
+        arglen(len(ob_ids), 0, 0)
+        return None
+
+    elif ob_type == 'custom_query':
+        arglen(len(ob_ids), 1)
+        return session.query(model.CustomQuery).get(ob_ids[:1])
+
+    elif ob_type == 'organisation':
+        arglen(len(ob_ids), 1)
+        return session.query(model.Organisation).get(ob_ids[:1])
+
+    elif ob_type == 'user':
+        arglen(len(ob_ids), 1)
+        return session.query(model.AppUser).get(ob_ids[:1])
+
+    elif ob_type == 'program':
+        arglen(len(ob_ids), 1)
+        return session.query(model.Program).get(ob_ids[:1])
+
+    elif ob_type == 'survey':
+        arglen(len(ob_ids), 2, 2)
+        return session.query(model.Survey).get(ob_ids[:2])
+
+    elif ob_type == 'qnode':
+        arglen(len(ob_ids), 2, 2)
+        return session.query(model.QuestionNode).get(ob_ids[:2])
+
+    elif ob_type == 'measure':
+        arglen(len(ob_ids), 2, 2)
+        return session.query(model.Measure).get(ob_ids[:2])
+
+    elif ob_type == 'response_type':
+        arglen(len(ob_ids), 2, 2)
+        return session.query(model.ResponseType).get(ob_ids[:2])
+
+    elif ob_type == 'submission':
+        arglen(len(ob_ids), 1)
+        return session.query(model.Submission).get(ob_ids[:1])
+
+    elif ob_type == 'rnode':
+        arglen(len(ob_ids), 2, 2)
+        return session.query(model.ResponseNode).get(ob_ids[:2])
+
+    elif ob_type == 'response':
+        arglen(len(ob_ids), 2, 2)
+        # Response primary keys are backwards compared to Response.ob_ids.
+        return session.query(model.Response).get(reversed(ob_ids[:2]))
+
+    else:
+        raise errors.ModelError("Can't subscribe to '%s' type" % ob_type)
 
 
 class CardHandler(base_handler.BaseHandler):

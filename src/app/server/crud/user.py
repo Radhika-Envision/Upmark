@@ -10,8 +10,8 @@ import base_handler
 import config
 import errors
 import model
+from surveygroup_actions import assign_surveygroups, filter_surveygroups
 from utils import ToSon, truthy, updater
-from .surveygroup import assign_surveygroups, filter_surveygroups
 
 
 def test_password(text):
@@ -46,19 +46,19 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             self.query()
             return
 
-        if user_id == 'current':
-            user_id = str(self.current_user.id)
-
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
-            user = (
-                session.query(model.AppUser)
-                .options(joinedload('organisation'))
-                .options(joinedload('surveygroups'))
-                .get(user_id))
-            if not user:
-                raise errors.MissingDocError("No such user")
+            if user_id == 'current':
+                user = user_session.user
+            else:
+                user = (
+                    session.query(model.AppUser)
+                    .options(joinedload('organisation'))
+                    .options(joinedload('surveygroups'))
+                    .get(user_id))
+                if not user:
+                    raise errors.MissingDocError("No such user")
 
             policy = user_session.policy.derive({
                 'user': user,
@@ -215,9 +215,9 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             session.flush()
 
             act = Activities(session)
-            act.record(self.current_user, user, ['create'])
-            if not act.has_subscription(self.current_user, user):
-                act.subscribe(self.current_user, user.organisation)
+            act.record(user_session.user, user, ['create'])
+            if not act.has_subscription(user_session.user, user):
+                act.subscribe(user_session.user, user.organisation)
                 self.reason("Subscribed to organisation")
             act.subscribe(user, user.organisation)
             self.reason("New user subscribed to organisation")
@@ -288,9 +288,9 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             session.flush()
             if len(verbs) > 0:
-                act.record(self.current_user, user, verbs)
-                if not act.has_subscription(self.current_user, user):
-                    act.subscribe(self.current_user, user.organisation)
+                act.record(user_session.user, user, verbs)
+                if not act.has_subscription(user_session.user, user):
+                    act.subscribe(user_session.user, user.organisation)
                     self.reason("Subscribed to organisation")
                 if not act.has_subscription(user, user):
                     act.subscribe(user, user.organisation)
@@ -320,9 +320,9 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             if not user.deleted:
-                act.record(self.current_user, user, ['delete'])
-            if not act.has_subscription(self.current_user, user):
-                act.subscribe(self.current_user, user.organisation)
+                act.record(user_session.user, user, ['delete'])
+            if not act.has_subscription(user_session.user, user):
+                act.subscribe(user_session.user, user.organisation)
                 self.reason("Subscribed to organisation")
 
             user.deleted = True
