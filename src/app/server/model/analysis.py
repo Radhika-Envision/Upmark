@@ -52,6 +52,10 @@ class CustomQuery(Observable, Versioned, Base):
     def action_lineage(self):
         return [self]
 
+    @property
+    def surveygroups(self):
+        return set()
+
     __table_args__ = (
         ForeignKeyConstraint(
             ['user_id'],
