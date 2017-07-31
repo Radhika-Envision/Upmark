@@ -117,6 +117,7 @@ class LoginHandler(template.TemplateHandler):
 
             policy = user_session.policy.derive({
                 'user': user,
+                'surveygroups': user.surveygroups,
             })
             policy.verify('user_impersonate')
 

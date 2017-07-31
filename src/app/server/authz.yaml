@@ -97,6 +97,13 @@
         server: 's.member_of_any(surveygroups)'
         client: 'True'
 
+ -  name: _super_surveygroup
+    description: "your true user belongs to the survey group"
+    failure: "your true user is not a memeber of that survey group"
+    expression:
+        server: 's.super_is_member_of_any(surveygroups)'
+        client: 'True'
+
  -  name: surveygroup_add
     description: "permission to add a new survey group"
     failure: "you can't add that survey group"
@@ -195,10 +202,20 @@
     failure: "you can't enable that user"
     expression: '@user_add'
 
+ -  name: _super_ensure_rank
+    description: "your true role is greater or equal in rank"
+    failure: "your true role is less in rank than that role"
+    expression: >-
+        s.superuser.role == 'super_admin' or
+        s.superuser.role == 'admin' and user.role != 'super_admin'
+
  -  name: user_impersonate
     description: "permission to impersonate another user"
     failure: "you can't impersonate that user"
-    expression: 'not @_own_user and s.superuser'
+    expression: >-
+        (not @_own_user and s.superuser) and (
+            @super_admin or (
+                @_super_surveygroup and @_super_ensure_rank))
 
 
 # Organisation
