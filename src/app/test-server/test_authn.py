@@ -97,12 +97,67 @@ class AuthNTest(base.AqHttpTestBase):
                 user_id = user.id
             with base.mock_user(user_email, super_email):
                 response = self.fetch(
-                    "/impersonate/{}".format(user_id), method='PUT', body='')
+                    "/impersonate/{}".format(user_id), method='PUT',
+                    body='')
                 self.assertIn(
                     reason, response.reason,
                     "{} failed to impersonate {}".format(
                         super_email, user_email))
                 self.assertEqual(code, response.code)
+
+    def test_impersonate_expired(self):
+        '''
+        Ensure superusers can't keep impersonating after jurisdiction
+        changes.
+        '''
+        with model.session_scope() as session:
+            admin = (
+                session.query(model.AppUser)
+                .filter(model.AppUser.email == 'admin')
+                .first())
+            clerk = (
+                session.query(model.AppUser)
+                .filter(model.AppUser.email == 'clerk')
+                .first())
+
+            with base.mock_user(user_email='clerk', super_email='admin'):
+                # Wrong group; fails
+                self.set_groups(clerk, 'banana')
+                session.commit()
+                response = self.fetch(
+                    "/program.json".format(), method='GET',
+                    follow_redirects=False, expected=403)
+                self.assertIn(
+                    "not a memeber of that survey group", response.reason)
+
+                # Right group; works
+                self.set_groups(clerk, 'apple')
+                session.commit()
+                response = self.fetch(
+                    "/program.json".format(), method='GET',
+                    follow_redirects=False, expected=200)
+                self.assertIn(
+                    "OK", response.reason)
+
+                # Impersonated user disabled; fails
+                clerk.deleted = True
+                admin.deleted = False
+                session.commit()
+                response = self.fetch(
+                    "/program.json".format(), method='GET',
+                    follow_redirects=False, expected=403)
+                self.assertIn(
+                    "account has been disabled", response.reason)
+
+                # Superuser (true user) disabled; fails
+                clerk.deleted = False
+                admin.deleted = True
+                session.commit()
+                response = self.fetch(
+                    "/program.json".format(), method='GET',
+                    follow_redirects=False, expected=403)
+                self.assertIn(
+                    "account has been disabled", response.reason)
 
 
 class UserTest(base.AqHttpTestBase):

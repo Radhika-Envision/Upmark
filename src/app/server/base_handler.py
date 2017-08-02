@@ -60,35 +60,26 @@ class BaseHandler(tornado.web.RequestHandler):
         if superuser_id:
             superuser = (
                 db_session.query(model.AppUser)
-                .join(model.Organisation)
+                .options(joinedload('organisation'))
                 .options(joinedload('surveygroups'))
-                .filter(model.AppUser.id == superuser_id)
-                .filter(~model.AppUser.deleted)
-                .filter(~model.Organisation.deleted)
-                .first())
+                .get(superuser_id))
             if not superuser:
-                # True user's session has expired: the superuser either no
-                # longer exists or has been deleted.
+                # True user's session has expired.
                 return None
+            if superuser.deleted or superuser.organisation.deleted:
+                raise errors.AuthzError("Your account has been disabled")
         else:
             superuser = None
 
-        query = (
+        user = (
             db_session.query(model.AppUser)
             .options(joinedload('organisation'))
             .options(joinedload('surveygroups'))
-            .join(model.Organisation)
-            .filter(model.AppUser.id == user_id))
-        if not superuser:
-            # Only superusers can log in as deleted users (for impersonation
-            # purposes).
-            query = (
-                query
-                .filter(~model.AppUser.deleted)
-                .filter(~model.Organisation.deleted))
-        user = query.first()
+            .get(user_id))
         if not user:
             return None
+        if user.deleted or user.organisation.deleted:
+            raise errors.AuthzError("Your account has been disabled")
 
         # When impersonating, make sure the user is still under the superuser's
         # jurisdiction.

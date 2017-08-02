@@ -129,6 +129,8 @@ class ImpersonateHandler(SessionMixin, base_handler.BaseHandler):
             user = session.query(model.AppUser).get(user_id)
             if not user:
                 raise errors.MissingDocError("No such user")
+            if user.deleted:
+                raise errors.ModelError("That user has been deactivated")
 
             policy = user_session.policy.derive({
                 'user': user,

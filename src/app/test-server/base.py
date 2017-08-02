@@ -158,7 +158,7 @@ class AqModelTestBase(LoggingTestCase):
             group2 = model.SurveyGroup(title="banana")
             session.add(group2)
 
-    def delegate(self, entity, *group_names):
+    def set_groups(self, entity, *group_names):
         '''
         Assign an entity to survey groups by name.
         '''
@@ -167,7 +167,7 @@ class AqModelTestBase(LoggingTestCase):
             session.query(model.SurveyGroup)
             .filter(model.SurveyGroup.title.in_(group_names))
             .all())
-        entity.surveygroups = entity.surveygroups.union(groups)
+        entity.surveygroups = set(groups)
 
     def create_org_structure(self):
         def fast_password_hash():
@@ -182,7 +182,7 @@ class AqModelTestBase(LoggingTestCase):
                     description="Nowhere", region="Nowhere")],
                 meta=model.OrgMeta(asset_types=['water wholesale']))
             session.add(org1)
-            self.delegate(org1, 'apple', 'banana')
+            self.set_groups(org1, 'apple', 'banana')
 
             user = model.AppUser(
                 name='Super Admin', email='super_admin', role='super_admin',
@@ -193,25 +193,25 @@ class AqModelTestBase(LoggingTestCase):
                 name='Admin', email='admin', role='admin',
                 organisation=org1, password='foo')
             session.add(user)
-            self.delegate(user, 'apple')
+            self.set_groups(user, 'apple')
 
             user = model.AppUser(
                 name='Author', email='author', role='author',
                 organisation=org1, password='bar')
             session.add(user)
-            self.delegate(user, 'apple')
+            self.set_groups(user, 'apple')
 
             user = model.AppUser(
                 name='Authority', email='authority', role='authority',
                 organisation=org1, password='bar')
             session.add(user)
-            self.delegate(user, 'apple')
+            self.set_groups(user, 'apple')
 
             user = model.AppUser(
                 name='Consultant', email='consultant', role='consultant',
                 organisation=org1, password='bar')
             session.add(user)
-            self.delegate(user, 'apple')
+            self.set_groups(user, 'apple')
 
             # An organisation in the Apple survey group.
             org2 = model.Organisation(
@@ -221,19 +221,19 @@ class AqModelTestBase(LoggingTestCase):
                     description="Somewhere", region="Somewhere")],
                 meta=model.OrgMeta(asset_types=['water local']))
             session.add(org2)
-            self.delegate(org2, 'apple')
+            self.set_groups(org2, 'apple')
 
             user = model.AppUser(
                 name='Org Admin', email='org_admin', role='org_admin',
                 organisation=org2, password='bar')
             session.add(user)
-            self.delegate(user, 'apple')
+            self.set_groups(user, 'apple')
 
             user = model.AppUser(
                 name='Clerk', email='clerk', role='clerk',
                 organisation=org2, password='bar')
             session.add(user)
-            self.delegate(user, 'apple')
+            self.set_groups(user, 'apple')
 
             # Another organisation in the Banana survey group.
             org3 = model.Organisation(
@@ -243,13 +243,13 @@ class AqModelTestBase(LoggingTestCase):
                     description="Somewhere", region="Somewhere")],
                 meta=model.OrgMeta(asset_types=['water local']))
             session.add(org3)
-            self.delegate(org3, 'banana')
+            self.set_groups(org3, 'banana')
 
             user = model.AppUser(
                 name='Banana Clerk', email='clerk_b', role='clerk',
                 organisation=org3, password='bar')
             session.add(user)
-            self.delegate(user, 'banana')
+            self.set_groups(user, 'banana')
 
     def create_program_structure(self):
         proj_dir = os.path.join(
