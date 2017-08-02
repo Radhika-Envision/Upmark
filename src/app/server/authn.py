@@ -17,7 +17,7 @@ import theme
 log = logging.getLogger('app.auth')
 
 
-class LoginHandler(template.TemplateHandler):
+class SessionMixin:
     SESSION_LENGTH = datetime.timedelta(days=30)
 
     def prepare(self):
@@ -25,7 +25,21 @@ class LoginHandler(template.TemplateHandler):
             datetime.datetime.utcnow() +
             type(self).SESSION_LENGTH)
 
-    def get(self, user_id):
+    @property
+    def xsrf_token(self):
+        # Workaround for XSRF cookie that expires too soon: because
+        # _current_user is not defined yet, the default implementation of
+        # xsrf_token does not set the cookie's expiration. The mismatch
+        # between the _xsrf and user cookie expiration causes POST requests
+        # to fail even when the user thinks they are still logged in.
+        token = super().xsrf_token
+        self.set_cookie('_xsrf', token, expires=self.session_expires)
+        return token
+
+
+class LoginHandler(SessionMixin, template.TemplateHandler):
+
+    def get(self):
         '''
         Log in page (form).
         '''
@@ -40,7 +54,7 @@ class LoginHandler(template.TemplateHandler):
                 params=params, theme=theme_params, next=next_page,
                 error=errormessage)
 
-    def post(self, user_id):
+    def post(self):
         '''
         Method for user to provide credentials and log in.
         '''
@@ -69,31 +83,39 @@ class LoginHandler(template.TemplateHandler):
                 self.redirect("/login/" + error_msg)
                 return
 
-            self.set_secure_cookie(
-                "user", str(user.id).encode('utf8'),
-                expires=self.session_expires)
+            user_cookie = "user={}".format(user.id)
 
             user_session = UserSession(user, None)
-            if user_session.policy.check('admin'):
-                self.set_secure_cookie(
-                    "superuser", str(user.id).encode('utf8'),
-                    expires=self.session_expires)
+            if user_session.policy.check('user_try_impersonate'):
+                user_cookie = self.set_superuser(user_cookie, user)
+            else:
+                self.clear_cookie("superuser")
+
+            self.set_secure_cookie(
+                "user", user_cookie.encode('utf8'),
+                expires=self.session_expires)
 
         # Make sure the XSRF token expires at the same time
         self.xsrf_token
 
         self.redirect('/' + self.get_argument("next", "#/2/"))
 
-    @property
-    def xsrf_token(self):
-        # Workaround for XSRF cookie that expires too soon: because
-        # _current_user is not defined yet, the default implementation of
-        # xsrf_token does not set the cookie's expiration. The mismatch
-        # between the _xsrf and user cookie expiration causes POST requests
-        # to fail even when the user thinks they are still logged in.
-        token = super().xsrf_token
-        self.set_cookie('_xsrf', token, expires=self.session_expires)
-        return token
+    def set_superuser(self, cookie, user):
+        # Store both user and superuser ("true user") IDs in a single
+        # secure cookie. This is more secure than using two separate
+        # cookies: it prevents a superuser from continuing to impersonate
+        # another user after the superuser's own account has been
+        # deactivated.
+        # Also store a flag in a separate cookie just to let the client know
+        # that the user is a superuser - because it's hard to decode the
+        # `user` cookie.
+        self.set_cookie(
+            "superuser", 'yes'.encode('utf8'),
+            expires=self.session_expires)
+        return cookie + ", superuser={}".format(user.id)
+
+
+class ImpersonateHandler(SessionMixin, base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def put(self, user_id):
@@ -101,13 +123,6 @@ class LoginHandler(template.TemplateHandler):
         Allows an admin to impersonate any other user without needing to know
         their password.
         '''
-        superuser_id = self.get_secure_cookie('superuser')
-
-        if not superuser_id:
-            raise errors.AuthzError(
-                "Not authorised: you are not an administrator")
-        superuser_id = superuser_id.decode('utf8')
-
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
@@ -121,14 +136,17 @@ class LoginHandler(template.TemplateHandler):
             })
             policy.verify('user_impersonate')
 
-            self._store_last_user(session)
+            self.store_last_user(session, user_session.user.id)
 
             name = user.name
-            log.warn(
+            log.warning(
                 'User %s is impersonating %s',
-                policy.context.s.user.email, user.email)
+                user_session.superuser.email, user.email)
+
+            user_ids = "user={}, superuser={}".format(
+                user.id, user_session.superuser.id)
             self.set_secure_cookie(
-                "user", str(user.id).encode('utf8'),
+                "user", user_ids.encode('utf8'),
                 expires=self.session_expires)
 
             # Make sure the XSRF token expires at the same time
@@ -138,35 +156,32 @@ class LoginHandler(template.TemplateHandler):
         self.write("Impersonating %s" % name)
         self.finish()
 
-    def _store_last_user(self, session):
-        user_id = self.get_secure_cookie('user')
-        if user_id is None:
-            return
-        user_id = user_id.decode('utf8')
+    def store_last_user(self, session, user_id):
+        user_id = str(user_id)
 
-        try:
-            past_users = self.get_cookie('past-users')
-            past_users = json_decode(url_unescape(past_users, plus=False))
-            log.warn('Past users: %s', past_users)
-        except Exception as e:
-            log.warn('Failed to decode past users: %s', e)
+        past_users = self.get_cookie('past-users')
+        if not past_users:
             past_users = []
+        else:
+            try:
+                past_users = json_decode(url_unescape(past_users, plus=False))
+                log.warning('Past users: %s', past_users)
+            except Exception as e:
+                log.warning('Failed to decode past users: %s', e)
+                past_users = []
 
-        if not user_id:
-            return
         try:
             past_users = list(filter(lambda x: x['id'] != user_id, past_users))
         except KeyError:
             past_users = []
 
-        log.warn('%s', user_id)
         user = session.query(model.AppUser).get(user_id)
         if not user:
             return
 
         past_users.insert(0, {'id': user_id, 'name': user.name})
         past_users = past_users[:10]
-        log.warn('%s', past_users)
+        log.debug('%s', past_users)
         self.set_cookie('past-users', url_escape(
             json_encode(past_users), plus=False))
 

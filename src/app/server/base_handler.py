@@ -33,38 +33,46 @@ class BaseHandler(tornado.web.RequestHandler):
             return
 
     def get_current_user(self):
-        user_id = self.get_secure_cookie('user')
-        if not user_id:
-            return None
-        user_id = user_id.decode('utf8')
         with model.session_scope() as session:
-            user = session.query(model.AppUser).get(user_id)
-            if not user:
-                return None
-            session.expunge(user)
-        return user
+            return self.get_user_session(session)
+
+    USER_IDS_PATTERN = re.compile(r'^user=([-\w]*)(?:, ?superuser=([-\w]*))?$')
 
     def get_user_session(self, db_session):
-        user_id = self.get_secure_cookie('user')
+        # TODO: Currently, this is done twice: once for authentication, and
+        # again for authorisation. Because the database session is closed in
+        # get_current_user, the user session object can't be used in the
+        # request handler methods. Is there some way to do it without closing
+        # the session?
+        user_ids = self.get_secure_cookie('user')
+        if not user_ids:
+            return None
+        user_ids = user_ids.decode('utf8')
+
+        match = self.USER_IDS_PATTERN.match(user_ids)
+        if not match:
+            return None
+        user_id, superuser_id = match.groups()
+
         if not user_id:
             return None
 
-        superuser_id = self.get_secure_cookie('superuser')
         if superuser_id:
-            superuser_id = superuser_id.decode('utf8')
             superuser = (
                 db_session.query(model.AppUser)
                 .join(model.Organisation)
+                .options(joinedload('surveygroups'))
                 .filter(model.AppUser.id == superuser_id)
                 .filter(~model.AppUser.deleted)
                 .filter(~model.Organisation.deleted)
                 .first())
             if not superuser:
+                # True user's session has expired: the superuser either no
+                # longer exists or has been deleted.
                 return None
         else:
             superuser = None
 
-        user_id = user_id.decode('utf8')
         query = (
             db_session.query(model.AppUser)
             .options(joinedload('organisation'))
@@ -82,7 +90,17 @@ class BaseHandler(tornado.web.RequestHandler):
         if not user:
             return None
 
-        return UserSession(user, superuser)
+        # When impersonating, make sure the user is still under the superuser's
+        # jurisdiction.
+        user_session = UserSession(user, superuser)
+        if superuser and superuser != user:
+            policy = user_session.policy.derive({
+                'user': user,
+                'surveygroups': user.surveygroups,
+            })
+            policy.verify('user_impersonate')
+
+        return user_session
 
     @property
     def request_son(self):

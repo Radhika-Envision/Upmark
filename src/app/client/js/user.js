@@ -45,7 +45,7 @@ angular.module('upmark.user', [
             interceptor: {response: paged}
         },
         create: { method: 'POST', cache: false },
-        impersonate: { method: 'PUT', url: '/login/:id', cache: false }
+        impersonate: { method: 'PUT', url: '/impersonate/:id', cache: false }
     });
 }])
 

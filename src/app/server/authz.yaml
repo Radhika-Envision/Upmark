@@ -203,19 +203,26 @@
     expression: '@user_add'
 
  -  name: _super_ensure_rank
-    description: "your true role is greater or equal in rank"
-    failure: "your true role is less in rank than that role"
-    expression: >-
-        s.superuser.role == 'super_admin' or
-        s.superuser.role == 'admin' and user.role != 'super_admin'
+    description: "your rank is high enough"
+    failure: "your rank is too low"
+    expression:
+        server: >-
+            s.superuser.role == 'super_admin' or
+            s.superuser.role == 'admin' and user.role != 'super_admin'
+        client: 's.superuser'
+
+ -  name: user_try_impersonate
+    description: "in-principle permission to impersonate"
+    failure: "you can't attempt to impersonate"
+    expression: '@admin'
 
  -  name: user_impersonate
     description: "permission to impersonate another user"
     failure: "you can't impersonate that user"
     expression: >-
-        (not @_own_user and s.superuser) and (
-            @super_admin or (
-                @_super_surveygroup and @_super_ensure_rank))
+        s.superuser and (
+            (s.superuser.role == 'super_admin') or (
+                @_super_ensure_rank and @_super_surveygroup))
 
 
 # Organisation
@@ -232,7 +239,7 @@
 
  -  name: org_view
     description: "permission to view an organisation"
-    failure: "you can't view an organisation"
+    failure: "you can't view that organisation"
     expression: 'True'
 
  -  name: org_add
@@ -242,12 +249,12 @@
 
  -  name: org_del
     description: "permission to delete an organisation"
-    failure: "you can't delete an organisation"
+    failure: "you can't delete that organisation"
     expression: '@org_add and not @_own_org'
 
  -  name: org_edit
     description: "permission to edit an organisation"
-    failure: "you can't modify an organisation"
+    failure: "you can't modify that organisation"
     expression: '@org_add or (@org_admin and @_own_org)'
 
 

@@ -162,9 +162,11 @@ def default_settings():
 def get_mappings():
     package_dir = get_package_dir()
     return [
-        (r"/login/?(.*)",
+        (r"/login/?",
             authn.LoginHandler, {
                 'path': os.path.join(package_dir, "..", "client")}),
+        (r"/impersonate/(.*)",
+            authn.ImpersonateHandler, {}),
         (r"/logout/?",
             authn.LogoutHandler),
         (r"/()",
@@ -364,7 +366,7 @@ def signal_handler(signum, frame):
 
 
 def stop_web_server():
-    log.warn("Server shutdown due to signal")
+    log.warning("Server shutdown due to signal")
     tornado.ioloop.IOLoop.instance().stop()
 
 

@@ -82,9 +82,11 @@ else:
     try:
         # BUILD_TIME.txt should be created by build process. It contains a
         # version string that is unique to this build.
-        with open(os.path.join(get_package_dir(), '..', 'BUILD_TIME.txt')) as f:
+        metadata_path = os.path.join(get_package_dir(), '..', 'BUILD_TIME.txt')
+        with open(metadata_path) as f:
             semi_volatile_stamp = f.readline().strip()
     except IOError as e:
-        log.warn(
-            "Could not open BUILD_TIME.txt: %s. Generating temporary stamp.", e)
+        log.warning(
+            "Could not open BUILD_TIME.txt: %s. "
+            "Generating temporary stamp.", e)
         semi_volatile_stamp = random_stamp()
