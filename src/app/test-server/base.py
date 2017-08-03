@@ -469,6 +469,7 @@ class AqModelTestBase(LoggingTestCase):
                 title='Test Program 1',
                 description="This is a test program")
             session.add(program)
+            self.set_groups(program, 'apple')
 
             # Create response types
             rts = {}
