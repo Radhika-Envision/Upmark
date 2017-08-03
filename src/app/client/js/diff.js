@@ -70,6 +70,22 @@ angular.module('upmark.diff', [
             surveyId: $scope.survey1.id,
             ignoreTag: $scope.ignoreTags
         });
+
+        $scope.diff.$promise.then(
+            function success(report) {
+                var message = "Report finished";
+                if (response.headers('Operation-Details'))
+                    message += ': ' + response.headers('Operation-Details');
+                Notifications.set('diff', 'success', message, 5000);
+                return report;
+            },
+            function failure(details) {
+                Notifications.set('diff', 'error',
+                    "Could not get report: " + details.statusText);
+                return $q.reject(details);
+            }
+        );
+
         $timeout(function() {
             $scope.longRunning = true;
         }, 5000);

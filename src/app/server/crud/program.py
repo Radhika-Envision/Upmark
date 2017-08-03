@@ -496,7 +496,9 @@ class ProgramHistoryHandler(base_handler.BaseHandler):
 
             programs = [
                 program for program in query.all()
-                if user_session.policy.derive({'program': program}).check()]
+                if user_session.policy.derive({
+                    'program': program,
+                }).check('program_view')]
 
             to_son = ToSon(
                 r'/id$',

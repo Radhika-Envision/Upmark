@@ -85,7 +85,9 @@ class DiffHandler(base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'survey_a': survey_a,
                 'survey_b': survey_b,
+                'surveygroups': survey_a.surveygroups & survey_b.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('report_diff_view')
 
             diff_engine = DiffEngine(
