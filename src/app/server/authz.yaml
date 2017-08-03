@@ -80,12 +80,12 @@
  -  name: conf_edit
     description: "permission to edit system config"
     failure: "you can't edit system config"
-    expression: '@admin'
+    expression: '@super_admin'
 
  -  name: conf_del
     description: "permission to edit system config"
     failure: "you can't edit system config"
-    expression: '@admin'
+    expression: '@super_admin'
 
 
 # Group
@@ -580,37 +580,37 @@
  -  name: custom_query_browse
     description: "permission to browse custom queries"
     failure: "you can't browse custom queries"
-    expression: '@admin'
+    expression: '@super_admin'
 
  -  name: custom_query_view
     description: "permission to view custom queries"
     failure: "you can't view custom queries"
-    expression: '@admin'
+    expression: '@super_admin'
 
  -  name: custom_query_add
     description: "permission to create custom queries"
     failure: "you can't create custom queries"
-    expression: '@admin'
+    expression: '@super_admin'
 
  -  name: custom_query_edit
     description: "permission to edit custom queries"
     failure: "you can't edit custom queries"
-    expression: '@admin'
+    expression: '@super_admin'
 
  -  name: custom_query_del
     description: "permission to delete custom queries"
     failure: "you can't delete custom queries"
-    expression: '@admin'
+    expression: '@super_admin'
 
  -  name: custom_query_preview
     description: "permission to preview a custom report"
     failure: "you can't preview that custom report"
-    expression: '@admin'
+    expression: '@super_admin'
 
  -  name: custom_query_execute
     description: "permission to run a saved custom report"
     failure: "you can't run that saved custom report"
-    expression: '@admin'
+    expression: '@super_admin'
 
  -  name: report_chart
     description: "permission to view a chart"

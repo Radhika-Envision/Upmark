@@ -8,6 +8,7 @@ import model
 
 log = logging.getLogger('app.protocol')
 
+
 class PingHandler(base_handler.BaseHandler):
     '''
     Handler for load balancer health checks. For configuring AWS ELB, see:
