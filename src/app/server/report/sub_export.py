@@ -32,8 +32,9 @@ class ExportSubmissionHandler(base_handler.BaseHandler):
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
-            submission = (session.query(model.Submission)
-                          .get(submission_id))
+            submission = (
+                session.query(model.Submission)
+                .get(submission_id))
             if not submission:
                 raise errors.MissingDocError("No such submission")
             elif submission.deleted:
@@ -43,7 +44,9 @@ class ExportSubmissionHandler(base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'org': submission.organisation,
                 'survey': submission.survey,
+                'surveygroups': submission.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('report_sub_export')
 
             survey_id = submission.survey_id

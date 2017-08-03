@@ -345,28 +345,27 @@
  -  name: measure_add
     description: "permission to add a new measure"
     failure: "you can't add that measure"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: measure_del
     description: "permission to delete a measure"
     failure: "you can't delete that measure"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: measure_edit
     description: "permission to edit a measure"
     failure: "you can't modify that measure"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: measure_view
     description: "permission to view a measure"
     failure: "you can't view that measure"
-    expression: '@program_view'
+    expression: '@author or @survey_view'
 
  -  name: program_view
     description: "permission to view a program"
     failure: "you can't view that program"
-    expression: >-
-        @author or @consultant or @_purchased_survey
+    expression: 'True'
 
  -  name: program_add
     description: "permission to add a new program"
@@ -376,7 +375,7 @@
  -  name: program_del
     description: "permission to delete a program"
     failure: "you can't delete that program"
-    expression: '@program_add'
+    expression: '@author'
 
  -  name: program_dup
     description: "permission to duplicate a program"
@@ -393,7 +392,7 @@
  -  name: program_node_edit
     description: "permission to edit a program node"
     failure: "you can't edit that program node"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: program_state
     description: "permission to change a program's state"
@@ -403,57 +402,58 @@
  -  name: qnode_add
     description: "permission to add a new category"
     failure: "you can't add that category"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: qnode_del
     description: "permission to delete a category"
     failure: "you can't delete that category"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: qnode_edit
     description: "permission to edit a category"
     failure: "you can't edit that category"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: qnode_view
     description: "permission to edit a category"
     failure: "you can't edit that category"
-    expression: '@program_view'
+    expression: '@survey_view'
 
  -  name: response_type_add
     description: "permission to add a new response type"
     failure: "you can't add that response type"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: response_type_del
     description: "permission to delete a response type"
     failure: "you can't delete that response type"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: response_type_edit
     description: "permission to edit a response type"
     failure: "you can't edit that response type"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: response_type_view
     description: "permission to view a response type"
     failure: "you can't view that response type"
-    expression: '@program_view'
+    expression: >-
+        (@author and @program_view) or @survey_view
 
  -  name: survey_add
     description: "permission to create a survey"
     failure: "you can't create that survey"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: survey_del
     description: "permission to delete a survey"
     failure: "you can't delete that survey"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: survey_edit
     description: "permission to edit a survey"
     failure: "you can't edit that survey"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: survey_purchase
     description: "permission to give access to a survey"
@@ -463,12 +463,7 @@
  -  name: survey_view
     description: "permission to view a survey"
     failure: "you can't view that survey"
-    expression: '@program_view'
-
- -  name: survey_export
-    description: "permission to export a survey"
-    failure: "you can't export that survey"
-    expression: '@survey_view'
+    expression: '@author or @consultant or @_purchased_survey'
 
 
 # Submission
@@ -612,12 +607,18 @@
     failure: "you can't run that saved custom report"
     expression: '@super_admin'
 
+ -  name: _min_approval
+    description: "the approval level is high enough"
+    failure: "the approval level is not high enough"
+    expression:
+        server: 'index(approval) >= index(survey.min_stats_approval)'
+        client: 'True'
+
  -  name: report_chart
     description: "permission to view a chart"
     failure: "you can't view that chart"
     expression: >-
-        (@consultant or @_purchased_survey) and
-        (index(approval) >= index(survey.min_stats_approval))
+        (@consultant or @_purchased_survey) and @_min_approval
 
  -  name: report_temporal
     description: "permission to view a temporal report"
@@ -636,12 +637,12 @@
     expression: '@consultant'
 
  -  name: report_diff_view
-    description: "permission to view the difference between two survey_purchase"
+    description: "permission to view the difference between two surveys"
     failure: "you can't view the difference between those two surveys"
     expression: '@author'
 
  -  name: report_survey_export
-    description: "permission to export a surveyId"
+    description: "permission to export a survey"
     failure: "you can't export that survey"
     expression: '@survey_view'
 

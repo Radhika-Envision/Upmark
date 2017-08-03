@@ -155,6 +155,7 @@ angular.module('upmark.survey.qnode', [
 
         $scope.checkRole = Authz({
             program: $scope.program,
+            survey: $scope.structure.survey,
             submission: $scope.submission,
         });
         $scope.editable = ($scope.program.isEditable &&
@@ -459,7 +460,10 @@ angular.module('upmark.survey.qnode', [
         });
     }, true);
 
-    $scope.checkRole = Authz({program: $scope.program});
+    $scope.checkRole = Authz({
+        program: $scope.program,
+        survey: $scope.structure.survey,
+    });
     $scope.QuestionNode = QuestionNode;
 })
 

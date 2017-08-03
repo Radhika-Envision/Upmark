@@ -38,8 +38,10 @@ class ExportProgramHandler(base_handler.BaseHandler):
                 raise errors.MissingDocError("No such survey")
             policy = user_session.policy.derive({
                 'survey': survey,
+                'surveygroups': survey.surveygroups,
             })
-            policy.verify('survey_export')
+            policy.verify('surveygroup_interact')
+            policy.verify('report_survey_export')
             role = user_session.user.role
 
         output_file = 'program_{0}_survey_{1}_{2}.xlsx'.format(

@@ -33,7 +33,9 @@ class StatisticsHandler(base_handler.Paginate, base_handler.BaseHandler):
                 'survey': survey,
                 'index': APPROVAL_STATES.index,
                 'approval': approval,
+                'surveygroups': survey.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('report_chart')
 
             responseNodes = (
