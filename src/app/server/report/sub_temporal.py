@@ -7,7 +7,6 @@ from numbers import Number
 import os
 import tempfile
 
-from munch import DefaultMunch
 import numpy as np
 from sqlalchemy import true, false
 from sqlalchemy.orm import joinedload
@@ -21,7 +20,6 @@ from crud.approval import APPROVAL_STATES
 import errors
 import model
 from utils import keydefaultdict
-from undefined import undefined
 
 
 BUF_SIZE = 4096
@@ -38,8 +36,8 @@ class TemporalReportHandler(base_handler.BaseHandler):
     @gen.coroutine
     def post(self, survey_id, extension):
 
-        parameters = self.request_son
-        organisation_id = parameters.get('organisation_id')
+        parameters = self.get_parameters()
+        organisation_id = parameters.organisation_id
 
         try:
             parameters['min_constituents'] = int(
@@ -55,7 +53,13 @@ class TemporalReportHandler(base_handler.BaseHandler):
             if organisation_id:
                 org = session.query(model.Organisation).get(organisation_id)
             else:
-                None
+                org = None
+
+            if org:
+                policy = user_session.policy.derive({
+                    'surveygroups': org.surveygroups,
+                })
+                policy.verify('surveygroup_interact')
 
             policy = user_session.policy.derive({
                 'org': org,
@@ -64,9 +68,19 @@ class TemporalReportHandler(base_handler.BaseHandler):
             })
             policy.verify('report_temporal')
 
+            if not policy.check('surveygroup_interact_all'):
+                surveygroup_ids = [
+                    surveygroup.id
+                    for surveygroup in user_session.user.surveygroups]
+            else:
+                surveygroup_ids = None
+
         with tempfile.TemporaryDirectory() as tmpdir:
-            outpath, outfile = yield self.process_temporal(
-                parameters, survey_id, tmpdir, extension)
+            outpath, outfile, info = yield self.process_temporal(
+                parameters, survey_id, tmpdir, extension, surveygroup_ids)
+
+            for message in info:
+                self.reason(message)
 
             self.set_header('Content-Type', 'application/octet-stream')
             self.set_header(
@@ -81,12 +95,49 @@ class TemporalReportHandler(base_handler.BaseHandler):
 
         self.finish()
 
+    def get_parameters(self):
+        parameters = self.request_son.copy()
+
+        try:
+            parameters['min_constituents'] = int(
+                parameters.get('min_constituents', MIN_CONSITUENTS))
+        except ValueError:
+            raise errors.ModelError("Invalid minimum number of constituents")
+
+        if 'approval' not in parameters:
+            raise errors.ModelError("Approval status required")
+
+        interval = Interval.from_parameters(parameters)
+        parameters.min_date = interval.lower_bound(
+            datetime.datetime.utcfromtimestamp(parameters.get('min_date')))
+        parameters.max_date = interval.upper_bound(
+            datetime.datetime.utcfromtimestamp(parameters.get('max_date')))
+
+        self.reason("Date range: %s - %s" % (
+            parameters.min_date.strftime('%d %b %Y'),
+            parameters.max_date.strftime('%d %b %Y')))
+
+        return parameters
+
     @run_on_executor
-    def process_temporal(self, parameters, survey_id, tmpdir, extension):
+    def process_temporal(
+            self, parameters, survey_id, tmpdir, extension, surveygroup_ids):
         with model.session_scope() as session:
             query = self.build_query(session, parameters, survey_id)
             responses = query.all()
-            responses = self.filter_deleted_structure(responses)
+
+            info = []
+            if surveygroup_ids is not None:
+                surveygroups = (
+                    session.query(model.SurveyGroup)
+                    .filter(model.SurveyGroup.id.in_(surveygroup_ids)))
+                responses, filter_info = self.filter_by_surveygroup(
+                    responses, surveygroups)
+                info.extend(filter_info)
+
+            responses, filter_info = self.filter_deleted_structure(responses)
+            info.extend(filter_info)
+
             interval = Interval.from_parameters(parameters)
             bucketer = TemporalResponseBucketer(interval)
             for response in responses:
@@ -94,14 +145,14 @@ class TemporalReportHandler(base_handler.BaseHandler):
             table_meta = bucketer.to_table_meta()
             rows = self.create_detail_rows(table_meta)
 
-            if parameters.get('type') == 'summary':
+            if parameters.type == 'summary':
                 report_type = 'summary'
                 organisation = (
                     session
                     .query(model.Organisation)
-                    .get(parameters['organisation_id']))
+                    .get(parameters.organisation_id))
                 rows = self.convert_to_stats(
-                    rows, organisation, parameters['min_constituents'])
+                    rows, organisation, parameters.min_constituents)
             else:
                 report_type = 'detail'
 
@@ -114,9 +165,10 @@ class TemporalReportHandler(base_handler.BaseHandler):
         else:
             raise errors.MissingDocError(
                 "File type not supported: %s" % extension)
-        writer.write(cols, rows)
 
-        return outpath, outfile
+        writer.write(cols, rows, parameters, info)
+
+        return outpath, outfile, info
 
     def build_query(self, session, parameters, survey_id):
         # All responses to current survey
@@ -137,40 +189,27 @@ class TemporalReportHandler(base_handler.BaseHandler):
                 model.Submission.created))
 
         def date_filter(query):
-            interval = Interval.from_parameters(parameters)
-            min_date = interval.lower_bound(
-                datetime.datetime.utcfromtimestamp(parameters.get('min_date')))
-            max_date = interval.upper_bound(
-                datetime.datetime.utcfromtimestamp(parameters.get('max_date')))
-
-            self.reason("Date range: %s - %s" % (
-                min_date.strftime('%d %b %Y'),
-                max_date.strftime('%d %b %Y')))
-
             return (
                 query
-                .filter(model.Submission.created >= min_date)
-                .filter(model.Submission.created < max_date))
+                .filter(model.Submission.created >= parameters.min_date)
+                .filter(model.Submission.created < parameters.max_date))
 
         def quality_filter(query):
-            quality = parameters.get('quality')
+            quality = parameters.quality
             return query.filter(model.Response.quality >= quality)
 
         def approval_filter(query):
-            approval = parameters['approval']
+            approval = parameters.approval
             approval_index = APPROVAL_STATES.index(approval)
             included_approval_states = APPROVAL_STATES[approval_index:]
             return query.filter(
                 model.Submission.approval.in_(included_approval_states))
 
         def location_filter(query):
-            locations = DefaultMunch.fromDict(
-                parameters.get('locations'), default=undefined)
-
             query = query.join(model.OrgLocation)
             union_loc_filter = false()
 
-            for loc in locations:
+            for loc in parameters.locations:
                 loc_filter = true()
                 if loc.country:
                     loc_filter &= model.OrgLocation.country == loc.country
@@ -192,41 +231,41 @@ class TemporalReportHandler(base_handler.BaseHandler):
         def size_filter(query):
             query = query.join(model.OrgMeta)
 
-            if parameters.get('min_internal_ftes'):
-                min_ftes = parameters.get('min_internal_ftes')
+            if parameters.min_internal_ftes:
+                min_ftes = parameters.min_internal_ftes
                 query = query.filter(
                     model.OrgMeta.number_fte >= min_ftes)
-            if parameters.get('max_internal_ftes'):
-                max_ftes = parameters.get('max_internal_ftes')
+            if parameters.max_internal_ftes:
+                max_ftes = parameters.max_internal_ftes
                 query = query.filter(
                     model.OrgMeta.number_fte <= max_ftes)
 
-            if parameters.get('min_external_ftes'):
-                min_ftes = parameters.get('min_external_ftes')
+            if parameters.min_external_ftes:
+                min_ftes = parameters.min_external_ftes
                 query = query.filter(
                     model.OrgMeta.number_fte_ext >= min_ftes)
-            if parameters.get('max_external_ftes'):
-                max_ftes = parameters.get('max_external_ftes')
+            if parameters.max_external_ftes:
+                max_ftes = parameters.max_external_ftes
                 query = query.filter(
                     model.OrgMeta.number_fte_ext <= max_ftes)
 
-            if parameters.get('min_employees'):
-                min_employees = parameters.get('min_employees')
+            if parameters.min_employees:
+                min_employees = parameters.min_employees
                 query = query.filter(
                     (model.OrgMeta.number_fte +
                         model.OrgMeta.number_fte_ext) >= min_employees)
-            if parameters.get('max_employees'):
-                max_employees = parameters.get('max_employees')
+            if parameters.max_employees:
+                max_employees = parameters.max_employees
                 query = query.filter(
                     (model.OrgMeta.number_fte +
                         model.OrgMeta.number_fte_ext) <= max_employees)
 
-            if parameters.get('min_population'):
-                min_population = parameters.get('min_population')
+            if parameters.min_population:
+                min_population = parameters.min_population
                 query = query.filter(
                     model.OrgMeta.population_served >= min_population)
-            if parameters.get('max_population'):
-                max_population = parameters.get('max_population')
+            if parameters.max_population:
+                max_population = parameters.max_population
                 query = query.filter(
                     model.OrgMeta.population_served <= max_population)
 
@@ -234,18 +273,53 @@ class TemporalReportHandler(base_handler.BaseHandler):
 
         query = date_filter(query)
         query = approval_filter(query)
-        if parameters.get('quality'):
+        if parameters.quality:
             query = quality_filter(query)
-        if parameters.get('locations'):
+        if parameters.locations:
             query = location_filter(query)
-        if parameters.get('filter_size'):
+        if parameters.filter_size:
             query = size_filter(query)
         return query
+
+    def filter_by_surveygroup(self, responses, surveygroups):
+        excluded_orgs = set()
+        excluded_programs = set()
+        filtered_responses = []
+        for r in responses:
+            org = r.submission.organisation
+            program = r.submission.program
+            assert r.surveygroups == (org.surveygroups & program.surveygroups)
+            if org in excluded_orgs:
+                continue
+            elif org.surveygroups.isdisjoint(surveygroups):
+                excluded_orgs.add(org)
+                continue
+
+            if program in excluded_programs:
+                continue
+            elif program.surveygroups.isdisjoint(surveygroups):
+                excluded_programs.add(program)
+                continue
+            filtered_responses.append(r)
+
+        info = []
+        if excluded_orgs:
+            info.append(
+                "Excluded %d organisation(s) that are not in your survey "
+                "groups" % len(excluded_orgs))
+        if excluded_programs:
+            info.append(
+                "Excluded %d program(s) that are not in your survey "
+                "groups" % len(excluded_programs))
+        return filtered_responses, info
 
     def filter_deleted_structure(self, responses):
         deleted_things = keydefaultdict(
             lambda t: t.closest_deleted_ancestor() is not None)
-        return [r for r in responses if not deleted_things[r.qnode_measure]]
+        filtered_responses = [
+            r for r in responses
+            if not deleted_things[r.qnode_measure]]
+        return filtered_responses, []
 
     def create_detail_rows(self, table_meta):
         '''
@@ -372,18 +446,18 @@ class XlWriter:
     def __init__(self, outpath):
         self.outpath = outpath
 
-    def write(self, cols, rows):
+    def write(self, cols, rows, parameters, info):
         with xlsxwriter.Workbook(self.outpath) as workbook:
-            self.write_(cols, rows, workbook)
+            cell_formats = self.make_formats(workbook)
+            self.write_meta(parameters, info, workbook, cell_formats)
+            self.write_data(cols, rows, workbook, cell_formats)
 
-    def write_(self, cols, rows, workbook):
-        worksheet = workbook.add_worksheet("Data")
-        worksheet.freeze_panes(1, 0)
-
+    def make_formats(self, workbook):
         cell_formats = {
             'text_header': workbook.add_format({'bold': 1}),
             'date_header': workbook.add_format(
                 {'num_format': 'dd/mm/yyyy', 'bold': 1}),
+            'date': workbook.add_format({'num_format': 'dd/mm/yyyy'}),
             'text': workbook.add_format({}),
             'link': workbook.add_format(
                 {'font_color': 'blue', 'underline':  1}),
@@ -392,6 +466,39 @@ class XlWriter:
             'int': workbook.add_format(
                 {'num_format': '0', 'align': 'right'}),
         }
+        return cell_formats
+
+    def write_meta(self, parameters, info, workbook, cell_formats):
+        worksheet = workbook.add_worksheet("Parameters")
+        worksheet.set_column(0, 0, 25, cell_formats['text_header'])
+        worksheet.set_column(1, 1, 12)
+
+        row_gen = itertools.count()
+        for name in sorted(parameters):
+            value = parameters[name]
+            if name in {'min_date', 'max_date'}:
+                value_format = cell_formats['date']
+            else:
+                value_format = None
+
+            if name == 'locations':
+                for item in value:
+                    row = next(row_gen)
+                    worksheet.write(row, 0, 'location')
+                    worksheet.write(row, 1, item.description, value_format)
+            else:
+                row = next(row_gen)
+                worksheet.write(row, 0, name)
+                worksheet.write(row, 1, value, value_format)
+
+        for message in info:
+            row = next(row_gen)
+            worksheet.write(row, 0, 'Info')
+            worksheet.write(row, 1, message)
+
+    def write_data(self, cols, rows, workbook, cell_formats):
+        worksheet = workbook.add_worksheet("Data")
+        worksheet.freeze_panes(1, 0)
 
         # Write column headings
         for i, col in enumerate(cols):
@@ -559,7 +666,10 @@ class QnodeMeasureRow:
         assert(qm.measure_id == self.qm.measure_id)
         rt = qm.measure.response_type
         if rt != self.response_type and len(rt.parts) > self.part_i:
-            self.part_name = rt.parts[self.part_i]['name']
+            if 'name' in rt.parts[self.part_i]:
+                self.part_name = rt.parts[self.part_i]['name']
+            else:
+                self.part_name = 'Part %d' % (self.part_i + 1)
 
     def headers(self):
         path = self.path(False)
