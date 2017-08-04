@@ -21,7 +21,8 @@ import configure_logging  # noqa: F401
 import authn
 import compile_handlers
 import crud
-import import_handlers
+from importer.prog_import import ImportStructureHandler
+from importer.sub_import import ImportSubmissionHandler
 import model
 import protocol
 import report.custom
@@ -282,9 +283,9 @@ def get_mappings():
             report.custom.CustomQueryReportHandler, {}),
 
         (r"/import/structure.json",
-            import_handlers.ImportStructureHandler, {}),
+            ImportStructureHandler, {}),
         (r"/import/submission.json",
-            import_handlers.ImportSubmissionHandler, {}),
+            ImportSubmissionHandler, {}),
         (r"/redirect", protocol.RedirectHandler),
 
         (r"/(.*)", tornado.web.StaticFileHandler, {

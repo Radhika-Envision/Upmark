@@ -5,16 +5,10 @@ import os
 import re
 import sqlalchemy
 import string
-import tempfile
 import xlrd
 
 import bleach
-import tornado
-from tornado import gen
-from tornado.concurrent import run_on_executor
-from concurrent.futures import ThreadPoolExecutor
 
-import base_handler
 import errors
 import model
 from score import Calculator
@@ -22,101 +16,11 @@ from score import Calculator
 
 MAX_WORKERS = 4
 
-log = logging.getLogger('app.import_handler')
+log = logging.getLogger('app.importer.importer')
 
 
 class ImportError(Exception):
     pass
-
-
-class ImportStructureHandler(base_handler.BaseHandler):
-    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
-
-    @tornado.web.authenticated
-    @gen.coroutine
-    def post(self):
-        with model.session_scope() as session:
-            user_session = self.get_user_session(session)
-            policy = user_session.policy.derive({
-                'user': user_session.user,
-            })
-            policy.verify('program_add')
-
-        fileinfo = self.request.files['file'][0]
-        fd = tempfile.NamedTemporaryFile()
-        try:
-            fd.write(fileinfo['body'])
-            program_id = yield self.background_task(fd.name)
-        finally:
-            fd.close()
-        self.set_header("Content-Type", "text/plain")
-        self.write(program_id)
-        self.finish()
-
-    @run_on_executor
-    def background_task(self, file_path):
-        i = Importer()
-        title = self.get_argument('title')
-        description = self.get_argument('description')
-        program_id = i.process_structure_file(file_path, title, description)
-        return program_id
-
-
-class ImportSubmissionHandler(base_handler.BaseHandler):
-    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
-
-    @tornado.web.authenticated
-    @gen.coroutine
-    def post(self):
-        org_id = self.get_argument('organisation')
-        if not org_id:
-            raise errors.ModelError("Missing organisation ID")
-
-        program_id = self.get_argument('program')
-        if not program_id:
-            raise errors.ModelError("Missing program ID")
-
-        survey_id = self.get_argument('survey')
-        if not survey_id:
-            raise errors.ModelError("Missing survey ID")
-
-        with model.session_scope() as session:
-            user_session = self.get_user_session(session)
-            org = session.query(model.Organisation).get(org_id)
-            survey = (
-                session.query(model.Survey)
-                .get((survey_id, program_id)))
-
-            policy = user_session.policy.derive({
-                'user': user_session.user,
-                'org': org,
-                'survey': survey,
-            })
-            policy.verify('submission_add')
-
-            user_id = user_session.user.id
-
-        fileinfo = self.request.files['file'][0]
-        fd = tempfile.NamedTemporaryFile()
-        try:
-            fd.write(fileinfo['body'])
-            program_id = yield self.background_task(user_id, fd.name)
-        finally:
-            fd.close()
-
-        self.set_header("Content-Type", "text/plain")
-        self.write(program_id)
-        self.finish()
-
-    @run_on_executor
-    def background_task(self, user_id, file_path):
-        i = Importer()
-        program_id = self.get_argument('program')
-        organisation_id = self.get_argument('organisation')
-        survey_id = self.get_argument("survey")
-        title = self.get_argument('title')
-        program_id = i.process_submission_file(file_path, program_id, survey_id, organisation_id, title, user_id)
-        return program_id
 
 
 class Importer():
@@ -149,25 +53,27 @@ class Importer():
             program.description = bleach.clean(description, strip=True)
             session.add(program)
             response_types = {}
-            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                'aquamark_response_types.json')) as file:
-                program.response_types = json.load(file)
-                for rt_def in response_types:
+            with open(os.path.join(
+                    os.path.dirname(os.path.abspath(__file__)),
+                    'aquamark_response_types.json')) as file:
+                rt_defs = json.load(file)
+                for rt_def in rt_defs:
                     response_type = model.ResponseType(
                         program=program,
                         name=rt_def['name'],
                         parts=rt_def['parts'],
                         formula=rt_def.get('formula'))
                     session.add(response_type)
+                    log.info("Added RT %s", rt_def['id'])
                     response_types[rt_def['id']] = response_type
-            program_id = str(program.id)
 
             survey = model.Survey()
-            survey.program_id = program.id
-            survey.title = "Imported Survey"
+            survey.program = program
+            survey.title = title
             survey.description = None
-            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                'aquamark_hierarchy.json')) as data_file:
+            with open(os.path.join(
+                    os.path.dirname(os.path.abspath(__file__)),
+                    'aquamark_hierarchy.json')) as data_file:
                 survey.structure = json.load(data_file)
             session.add(survey)
             session.flush()
@@ -203,8 +109,8 @@ class Importer():
                     all_rows, function['row_num'])
 
                 qnode_function = model.QuestionNode()
-                qnode_function.program_id = program.id
-                qnode_function.survey_id = survey.id
+                qnode_function.program = program
+                qnode_function.survey = survey
                 qnode_function.seq = function_order - 1
                 qnode_function.title = function_title
                 qnode_function.description = bleach.clean(
@@ -213,12 +119,14 @@ class Importer():
                 session.add(qnode_function)
                 session.flush()
 
-                process_row = [row for row in process_title_row if "{}.".format(function_order) in row['title']]
+                process_row = [
+                    row for row in process_title_row
+                    if "{}.".format(function_order) in row['title']]
 
                 for process in process_row:
                     process_order = int(process['order'])
-                    process_title = process['title'].replace("{}.{} - ".format(
-                                                            function_order, process_order), "")
+                    process_title = process['title'].replace(
+                        "{}.{} - ".format(function_order, process_order), "")
 
                     # print("process order:", process_order)
                     # print("process title:", process_title)
@@ -226,9 +134,9 @@ class Importer():
                         all_rows, process['row_num'], "")
 
                     qnode_process = model.QuestionNode()
-                    qnode_process.program_id = program.id
-                    qnode_process.survey_id = survey.id
-                    qnode_process.parent_id = qnode_function.id
+                    qnode_process.program = program
+                    qnode_process.survey = survey
+                    qnode_process.parent = qnode_function
                     qnode_process.seq = process_order - 1
                     qnode_process.title = process_title
                     qnode_process.description = bleach.clean(
@@ -237,12 +145,17 @@ class Importer():
                     session.add(qnode_process)
                     session.flush()
 
-                    subprocess_row = [row for row in subprocess_title_row if "{}.{}.".format(
-                        function_order, process_order) in row['title']]
+                    subprocess_row = [
+                        row for row in subprocess_title_row
+                        if "{}.{}.".format(
+                            function_order, process_order) in row['title']]
                     for subprocess in subprocess_row:
                         subprocess_order = int(subprocess['order'])
-                        subprocess_title = subprocess['title'].replace("{}.{}.{} - ".format(
-                                                                        function_order, process_order, subprocess_order), "")
+                        subprocess_title = subprocess['title'].replace(
+                            "{}.{}.{} - ".format(
+                                function_order, process_order,
+                                subprocess_order),
+                            "")
 
                         # print("subprocess order:", subprocess_order)
                         # print("subprocess title:", subprocess_title)
@@ -250,9 +163,9 @@ class Importer():
                             all_rows, subprocess['row_num'], "")
 
                         qnode_subprocess = model.QuestionNode()
-                        qnode_subprocess.program_id = program.id
-                        qnode_subprocess.survey_id = survey.id
-                        qnode_subprocess.parent_id = qnode_process.id
+                        qnode_subprocess.program = program
+                        qnode_subprocess.survey = survey
+                        qnode_subprocess.parent = qnode_process
                         qnode_subprocess.seq = subprocess_order - 1
                         qnode_subprocess.title = subprocess_title
                         qnode_subprocess.description = bleach.clean(
@@ -261,59 +174,65 @@ class Importer():
                         session.add(qnode_subprocess)
                         session.flush()
 
-                        measure_title_row = [{"title": row[self.col2num("k")], "row_num": all_rows.index(row), "order": row[self.col2num("F")], "weight": row[self.col2num("L")], "resp_num": row[self.col2num("F")]}
-                                             for row in all_rows
-                                             if function_order == row[self.col2num("C")] and
-                                             process_order == row[self.col2num("D")] and
-                                             subprocess_order == row[self.col2num("E")] and
-                                             row[self.col2num("F")] != 0 and
-                                             row[self.col2num("G")] == 1]
+                        measure_title_row = [
+                            {
+                                "title": row[self.col2num("k")],
+                                "row_num": all_rows.index(row),
+                                "order": row[self.col2num("F")],
+                                "weight": row[self.col2num("L")],
+                                "resp_num": row[self.col2num("F")]
+                            }
+                            for row in all_rows
+                            if function_order == row[self.col2num("C")] and
+                            process_order == row[self.col2num("D")] and
+                            subprocess_order == row[self.col2num("E")] and
+                            row[self.col2num("F")] != 0 and
+                            row[self.col2num("G")] == 1]
 
                         for measure in measure_title_row:
                             measure_order = int(measure["order"])
-                            measure_title = measure['title'].replace("{}.{}.{}.{} - ".format(
-                                            function_order, process_order, subprocess_order, measure_order), "")
+                            measure_title = measure['title'].replace(
+                                "{}.{}.{}.{} - ".format(
+                                    function_order, process_order,
+                                    subprocess_order, measure_order),
+                                "")
 
                             measure_description = self.parse_description(
                                 all_rows, measure['row_num'], "Description")
-                            # Comments are part of the response, so ignore that row
+                            # Comments are part of the response, so ignore that
+                            # row
                             measure_weight = measure['weight']
 
                             m = model.Measure()
-                            m.program_id = program.id
+                            m.program = program
                             m.title = measure_title
                             m.weight = measure_weight
-                            m.description = bleach.clean(measure_description, strip=True)
+                            m.description = bleach.clean(
+                                measure_description, strip=True)
                             rt_id = "standard"
                             if function_order == 7:
-                                rt_id = "business-support-%s" % int(measure['resp_num'])
+                                rt_id = "business-support-%s" % int(
+                                    measure['resp_num'])
                             # log.info("response_type: %s", rt_id)
                             m.response_type = response_types[rt_id]
                             session.add(m)
                             session.flush()
-                            qnode_measure = QnodeMeasure(
+                            qnode_measure = model.QnodeMeasure(
                                 program=program, survey=survey,
-                                parent=qnode_subprocess, measure=m)
+                                qnode=qnode_subprocess, measure=m)
                             qnode_subprocess.qnode_measures.reorder()
+                            session.add(qnode_measure)
                             session.flush()
 
             calculator = Calculator.structural()
             calculator.mark_entire_survey_dirty(survey)
             calculator.execute()
 
-            return program_id
+            return program.id
 
-    def process_response_file(self, path, program_id):
-        """
-        Open and read an Excel file
-        """
-        book = xlrd.open_workbook(path)
-        scoring_sheet = book.sheet_by_name("Scoring")
-        '''
-        TODO : process response
-        '''
-
-    def process_submission_file(self, path, program_id, survey_id, organisation_id, title, user_id):
+    def process_submission_file(
+            self, path, program_id, survey_id, organisation_id, title,
+            user_id):
         """
         Open and read an Excel file
         """
@@ -330,13 +249,14 @@ class Importer():
 
         with model.session_scope() as session:
             program = session.query(model.Program).get(program_id)
-            if program is None:
+            if not program:
                 raise Exception("There is no program.")
 
-            survey = (session.query(model.Survey)
+            survey = (
+                session.query(model.Survey)
                 .filter_by(id=survey_id, program_id=program.id)
                 .one())
-            if survey is None:
+            if not survey:
                 raise Exception("There is no survey.")
 
             submission = model.Submission()
@@ -353,48 +273,49 @@ class Importer():
                 cell = sheet.row_values(row_num)
                 all_rows.append(cell)
 
-            function_col_num = self.col2num("A")
-            process_col_num = self.col2num("B")
-            subprocess_col_num = self.col2num("C")
-            measure_col_num = self.col2num("D")
-
-            program_qnodes = (session.query(model.QuestionNode)
+            program_qnodes = (
+                session.query(model.QuestionNode)
                 .filter_by(program_id=program_id))
-
-            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'aquamark_response_types.json')) as file:
-                response_types = json.load(file)
-            # session.expunge_all()
 
             try:
                 # for row_num in range(0, 1):
                 order = title = ''
-                for row_num in range(0, len(all_rows)-1):
-                    order, title = self.parse_order_title(all_rows, row_num, "A")
-                    function = program_qnodes.filter_by(parent_id=None, title=title).one()
+                for row_num in range(0, len(all_rows) - 1):
+                    order, title = self.parse_order_title(
+                        all_rows, row_num, "A")
+                    function = program_qnodes.filter_by(
+                        parent_id=None, title=title).one()
                     log.debug("function: %s", function)
                     function_order = order
 
-                    order, title = self.parse_order_title(all_rows, row_num, "B")
-                    process = program_qnodes.filter_by(parent_id=function.id, title=title).one()
+                    order, title = self.parse_order_title(
+                        all_rows, row_num, "B")
+                    process = program_qnodes.filter_by(
+                        parent_id=function.id, title=title).one()
                     log.debug("process: %s", process)
 
-                    order, title = self.parse_order_title(all_rows, row_num, "C")
-                    subprocess = program_qnodes.filter_by(parent_id=process.id, title=title).one()
+                    order, title = self.parse_order_title(
+                        all_rows, row_num, "C")
+                    subprocess = program_qnodes.filter_by(
+                        parent_id=process.id, title=title).one()
                     log.debug("subprocess: %s", subprocess)
 
-                    order, title = self.parse_order_title(all_rows, row_num, "D")
+                    order, title = self.parse_order_title(
+                        all_rows, row_num, "D")
                     measure = [
                         qm.measure for qm in subprocess.qnode_measures
-                        if qm.measure.title == title]
+                        if qm.measure.title.split('\n')[0] == title]
 
                     if len(measure) == 1:
                         measure = measure[0]
                     else:
-                        raise Exception("This survey does not match the target survey. ")
+                        raise Exception(
+                            "This survey does not match the target survey.")
                     log.debug("measure: %s", measure)
 
-
-                    log.debug("measure response_type: %s", measure.response_type.name)
+                    log.debug(
+                        "measure response_type: %s",
+                        measure.response_type.name)
 
                     response = model.Response()
                     response.program_id = program_id
@@ -403,17 +324,22 @@ class Importer():
                     response.submission_id = submission.id
                     response.user_id = user_id
                     response.comment = all_rows[row_num][self.col2num("K")]
-                    response.not_relevant = False # Need to fix this hard coding
+                    # FIXME: Hard-coded; should be read from file
+                    response.not_relevant = False
                     response.modified = datetime.datetime.utcnow()
                     response.approval = 'draft'
                     response_part = []
 
-                    response_part.append(self.parse_response_type(all_rows, row_num, measure.response_type, "E"))
+                    response_part.append(self.parse_response_type(
+                        all_rows, row_num, measure.response_type, "E"))
                     if function_order != "7":
-                        response_part.append(self.parse_response_type(all_rows, row_num, measure.response_type, "F"))
-                        response_part.append(self.parse_response_type(all_rows, row_num, measure.response_type, "G"))
-                        response_part.append(self.parse_response_type(all_rows, row_num, measure.response_type, "H"))
-                    response.response_parts  = response_part
+                        response_part.append(self.parse_response_type(
+                            all_rows, row_num, measure.response_type, "F"))
+                        response_part.append(self.parse_response_type(
+                            all_rows, row_num, measure.response_type, "G"))
+                        response_part.append(self.parse_response_type(
+                            all_rows, row_num, measure.response_type, "H"))
+                    response.response_parts = response_part
                     response.audit_reason = "Import"
                     session.add(response)
             except sqlalchemy.orm.exc.NoResultFound:
@@ -437,7 +363,7 @@ class Importer():
 
     def parse_response_type(self, all_rows, row_num, response_type, col_chr):
         response_text = all_rows[row_num][self.col2num(col_chr)]
-        index =  ord(col_chr) - ord("E")
+        index = ord(col_chr) - ord("E")
 
         try:
             response_options = [
@@ -449,7 +375,8 @@ class Importer():
                 len(response_type.parts))
 
         try:
-            response_index = response_options.index(response_text.replace(" ", "").lower())
+            response_index = response_options.index(
+                response_text.replace(" ", "").lower())
         except (AttributeError, ValueError) as e:
             raise ImportError(
                 "Response %d: '%s' is not a valid option" %
@@ -457,9 +384,9 @@ class Importer():
 
         return {"index": response_index, "note": response_text}
 
-    CHOICE_PATTERN = re.compile(r'(?P<order>[\s+]) (?P<title>.+)')
+    CHOICE_PATTERN = re.compile(r'(?P<order>[\d.]+) (?P<title>.+)')
 
-    def parse_order_title(self, all_rows, row_num, col_chr, pattern):
+    def parse_order_title(self, all_rows, row_num, col_chr):
         col_num = self.col2num(col_chr)
         cell = all_rows[row_num][col_num]
         match = Importer.CHOICE_PATTERN.match(cell)
@@ -469,8 +396,9 @@ class Importer():
         title = match.group('title').replace("\n", chr(10))
         return order, title
 
-
-    def parse_description(self, all_rows, starting_row_num, prev_column = None, paragraph=None):
+    def parse_description(
+            self, all_rows, starting_row_num, prev_column=None,
+            paragraph=None):
         # print("starting_row_num", starting_row_num, "sheet", sheet.nrows)
         if starting_row_num + 1 >= len(all_rows):
             return ""
@@ -479,24 +407,29 @@ class Importer():
             header_cell = all_rows[starting_row_num + 1][self.col2num("J")]
 
             if prev_column == header_cell:
-                description_cell = all_rows[starting_row_num + 1][self.col2num("K")]
+                description_cell = all_rows[starting_row_num + 1][
+                    self.col2num("K")]
                 desc = description_cell
-                desc += self.parse_description(all_rows, starting_row_num + 1, prev_column)
+                desc += self.parse_description(
+                    all_rows, starting_row_num + 1, prev_column)
                 return desc
             else:
                 return ""
         else:
             para = all_rows[starting_row_num + 1][self.col2num("I")]
-            description_cell = all_rows[starting_row_num + 1][self.col2num("K")]
+            description_cell = all_rows[starting_row_num + 1][
+                self.col2num("K")]
 
             if paragraph:
                 if para == paragraph:
                     desc = chr(10) + chr(10) + description_cell
-                    desc += self.parse_description(all_rows, starting_row_num + 1, None, paragraph=para)
+                    desc += self.parse_description(
+                        all_rows, starting_row_num + 1, None, paragraph=para)
                     return desc
                 else:
                     return ""
             else:
                 desc = description_cell
-                desc += self.parse_description(all_rows, starting_row_num + 1, None, paragraph=para)
+                desc += self.parse_description(
+                    all_rows, starting_row_num + 1, None, paragraph=para)
                 return desc
