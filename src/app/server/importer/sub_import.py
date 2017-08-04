@@ -4,11 +4,12 @@ import tempfile
 import tornado
 from tornado import gen
 from tornado.concurrent import run_on_executor
+from tornado.escape import json_decode
 from concurrent.futures import ThreadPoolExecutor
 
 import base_handler
-import errors
 import model
+from utils import denormalise
 from .importer import Importer
 
 
@@ -23,21 +24,15 @@ class ImportSubmissionHandler(base_handler.BaseHandler):
     @tornado.web.authenticated
     @gen.coroutine
     def post(self):
-        org_id = self.get_argument('organisation')
-        if not org_id:
-            raise errors.ModelError("Missing organisation ID")
-
-        program_id = self.get_argument('program')
-        if not program_id:
-            raise errors.ModelError("Missing program ID")
-
-        survey_id = self.get_argument('survey')
-        if not survey_id:
-            raise errors.ModelError("Missing survey ID")
+        request_son = denormalise(json_decode(self.get_argument('submission')))
+        program_id = request_son.program.id
+        survey_id = request_son.survey.id
+        organisation_id = request_son.organisation.id
+        title = request_son.title
 
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
-            org = session.query(model.Organisation).get(org_id)
+            org = session.query(model.Organisation).get(organisation_id)
             survey = (
                 session.query(model.Survey)
                 .get((survey_id, program_id)))
@@ -51,23 +46,21 @@ class ImportSubmissionHandler(base_handler.BaseHandler):
 
             user_id = user_session.user.id
 
-        program_id = yield self.background_task(user_id)
+        program_id = yield self.background_task(
+            user_id, program_id, survey_id, organisation_id, title)
 
         self.set_header("Content-Type", "text/plain")
         self.write(program_id)
         self.finish()
 
     @run_on_executor
-    def background_task(self, user_id):
+    def background_task(
+            self, user_id, program_id, survey_id, organisation_id, title):
         with tempfile.NamedTemporaryFile() as fd:
             fileinfo = self.request.files['file'][0]
             fd.write(fileinfo['body'])
 
             i = Importer()
-            program_id = self.get_argument('program')
-            organisation_id = self.get_argument('organisation')
-            survey_id = self.get_argument("survey")
-            title = self.get_argument('title')
             program_id = i.process_submission_file(
                 fd.name, program_id, survey_id, organisation_id, title,
                 user_id)

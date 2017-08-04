@@ -344,10 +344,7 @@ angular.module('upmark.submission.submission', [
     }
 
     dropzone.on('sending', function(file, xhr, formData) {
-        formData.append('program', $scope.program.id);
-        formData.append('organisation', $scope.submission.organisation.id);
-        formData.append('survey', $scope.submission.survey.id);
-        formData.append('title', $scope.submission.title);
+        formData.append('submission', angular.toJson($scope.submission));
     });
 
     dropzone.on('uploadprogress', function(file, progress) {
