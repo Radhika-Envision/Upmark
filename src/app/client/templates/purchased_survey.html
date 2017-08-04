@@ -55,6 +55,14 @@
     <ul class="list-results">
         <li ng-repeat="survey in surveys">
             <a href ng-click="addSurvey(survey)">
+                <span class="pull-right" ng-if="!survey.purchased"
+                      title="This survey has not been purchased">
+                    <i class="fa fa-fw fa-lock"></i>
+                </span>
+                <span class="pull-right text-muted" ng-if="survey.purchased"
+                      title="This survey has been purchased">
+                    <i class="fa fa-fw fa-unlock"></i>
+                </span>
                 <h4>{{survey.title}}</h4>
                 <p class="truncate">{{survey.nMeasures}} measures</p>
             </a>

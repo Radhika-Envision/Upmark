@@ -224,6 +224,11 @@
                     {{survey.title}}
                     <i ng-if="survey.error"
                         class="fa fa-exclamation-triangle text-muted"></i>
+                    <span class="pull-right"
+                          ng-if="!checkRole('submission_browse_any') && !survey.purchased"
+                          title="This survey has not been purchased">
+                        <i class="fa fa-fw fa-lock"></i>
+                    </span>
                 </h4>
                 <p class="truncate">{{survey.nMeasures}} measures</p>
             </a>
@@ -233,11 +238,23 @@
     <p ng-if="!surveys.length">
         There are no <span ng-if="search.deleted">deleted</span> surveys.
     </p>
+
+    <p ng-if="!checkRole('submission_browse_any') && nLocked > 0"
+            class="text-muted">
+        <i class="fa fa-lock"></i>
+        <ng-pluralize count="nLocked" when="{
+            '1': 'One survey has not been purchased. You can\'t ' +
+                'create submissions against that survey.',
+            'other': '{} surveys have not been purchased. You can\'t ' +
+                'create submissions against those surveys.'}">
+         </ng-pluralize>
+         To gain access, contact the survey manager.
+    </p>
 </div>
 
 
 <div class="container">
-    <div ng-if="checkRole('surveygroup_browse')">
+    <div ng-if="checkRole('surveygroup_browse')" class="spaced">
         <h2>Survey groups</h2>
         <p class="commasep"
             ><span ng-repeat="surveygroup in program.surveygroups"

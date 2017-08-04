@@ -255,6 +255,7 @@ angular.module('upmark.organisation', [
         Survey.query({
             programId: $scope.program.id,
             deleted: false,
+            organisationId: $scope.org.id,
         }).$promise.then(
             function success(surveys) {
                 $scope.surveys = surveys;

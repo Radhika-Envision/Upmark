@@ -122,13 +122,25 @@ angular.module('upmark.survey.program',[
             return;
         Survey.query({
             programId: $scope.program.id,
-            deleted: $scope.search.deleted
+            deleted: $scope.search.deleted,
+            organisationId: currentUser.organisation.id,
         }, function success(surveys) {
             $scope.surveys = surveys
         }, function failure(details) {
                 Notifications.set('edit', 'error',
                     "Could not get list of surveys: " + details.statusText);
         });
+    });
+
+    $scope.$watch('surveys', function(surveys) {
+        if (!surveys) {
+            $scope.nLocked = 0;
+            return;
+        }
+        $scope.nLocked = surveys.filter(function(survey) {
+            return !survey.purchased;
+        }).length;
+        console.log($scope.nLocked)
     });
 
     $scope.deleteSurveygroup = function(i) {
