@@ -193,11 +193,9 @@ angular.module('upmark.survey.program',[
 })
 
 
-.controller('ProgramImportCtrl', [
-        '$scope', 'Program', 'hotkeys', '$location', '$timeout',
-        'Notifications', 'layout', 'format', '$http', '$cookies',
-        function($scope, Program, hotkeys, $location, $timeout,
-                 Notifications, layout, format, $http, $cookies) {
+.controller('ProgramImportCtrl', function(
+        $scope, Program, hotkeys, $location, $timeout, Authz, currentUser,
+        Notifications, layout, format, $http, $cookies, SurveyGroup) {
 
     $scope.progress = {
         isWorking: false,
@@ -207,12 +205,23 @@ angular.module('upmark.survey.program',[
     Notifications.remove('import');
     $scope.program = {
         title: "Imported Program",
-        description: ""
+        description: "",
+        surveygroups: angular.copy(currentUser.surveygroups),
     };
+
+    $scope.checkRole = Authz({});
 
     var headers = {};
     var xsrfName = $http.defaults.xsrfHeaderName;
     headers[xsrfName] = $cookies.get($http.defaults.xsrfCookieName);
+
+    $scope.deleteSurveygroup = function(i) {
+        $scope.program.surveygroups.splice(i, 1);
+    };
+
+    $scope.searchSurveygroup = function(term) {
+        return SurveyGroup.query({term: term}).$promise;
+    };
 
     var config = {
         url: '/import/structure.json',
@@ -237,8 +246,7 @@ angular.module('upmark.survey.program',[
     };
 
     dropzone.on('sending', function(file, xhr, formData) {
-        formData.append('title', $scope.program.title);
-        formData.append('description', $scope.program.description);
+        formData.append('program', angular.toJson($scope.program));
     });
 
     dropzone.on('uploadprogress', function(file, progress) {
@@ -275,7 +283,7 @@ angular.module('upmark.survey.program',[
         $scope.$apply();
     });
 
-}])
+})
 
 
 /**

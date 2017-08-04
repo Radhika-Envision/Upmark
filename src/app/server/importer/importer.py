@@ -32,7 +32,8 @@ class Importer():
                 num = num * 26 + (ord(c.upper()) - ord('A'))
         return num
 
-    def process_structure_file(self, path, title, description):
+    def process_structure_file(
+            self, path, title, description, surveygroup_ids):
         """
         Open and read an Excel file
         """
@@ -67,9 +68,18 @@ class Importer():
                     log.info("Added RT %s", rt_def['id'])
                     response_types[rt_def['id']] = response_type
 
+            surveygroups = (
+                session.query(model.SurveyGroup)
+                .filter(model.SurveyGroup.id.in_(surveygroup_ids))
+                .all())
+            if not len(surveygroups) == len(surveygroup_ids):
+                raise errors.InternalModelError(
+                    "Some surveygroups could not be found")
+            program.surveygroups = set(surveygroups)
+
             survey = model.Survey()
             survey.program = program
-            survey.title = title
+            survey.title = "Imported Survey"
             survey.description = None
             with open(os.path.join(
                     os.path.dirname(os.path.abspath(__file__)),
