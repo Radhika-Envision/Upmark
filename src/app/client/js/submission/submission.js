@@ -358,7 +358,7 @@ angular.module('upmark.submission.submission', [
             $scope.progress.isFinished = true;
         }, 1000);
         $timeout(function() {
-            $location.url('/2/program/' + response);
+            $location.url('/2/submission/' + response);
         }, 5000);
     });
 
