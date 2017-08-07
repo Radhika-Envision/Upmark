@@ -90,6 +90,9 @@ class OrgAuthzTest(base.AqHttpTestBase):
             ('admin', 200, 'OK')
         ]
 
+        with model.session_scope() as session:
+            surveygroups_son = self.get_groups_son(session, 'apple')
+
         for i, (user, code, reason) in enumerate(users):
             post_data = {
                 "name": "Foo %d" % i,
@@ -100,32 +103,33 @@ class OrgAuthzTest(base.AqHttpTestBase):
                 }],
                 'meta': {
                     'numberOfCustomers': 0,
-                }
+                },
+                'surveygroups': surveygroups_son,
             }
             with base.mock_user(user):
                 response = self.fetch(
                     "/organisation.json", method='POST',
                     body=json_encode(post_data), expected=code)
-                self.assertIn(reason, response.reason)
+                self.assertIn(reason, response.reason, "%s" % (user))
 
     def test_modify_org(self):
         users_own = [
-            ('clerk', 'Utility', 403, "can't modify an organisation"),
+            ('clerk', 'Utility', 403, "can't modify that organisation"),
             ('org_admin', 'Utility', 200, 'OK'),
-            ('consultant', 'Primary', 403, "can't modify an organisation"),
-            ('authority', 'Primary', 403, "can't modify an organisation"),
-            ('author', 'Primary', 403, "can't modify an organisation"),
+            ('consultant', 'Primary', 403, "can't modify that organisation"),
+            ('authority', 'Primary', 403, "can't modify that organisation"),
+            ('author', 'Primary', 403, "can't modify that organisation"),
             ('admin', 'Primary', 200, 'OK')
         ]
         for user, org_name, code, reason in users_own:
             self.modify_org(user, org_name, code, reason)
 
         users_other = [
-            ('clerk', 'Primary', 403, "can't modify an organisation"),
+            ('clerk', 'Primary', 403, "can't modify that organisation"),
             ('org_admin', 'Primary', 403, "not a member of the organisation"),
-            ('consultant', 'Utility', 403, "can't modify an organisation"),
-            ('authority', 'Utility', 403, "can't modify an organisation"),
-            ('author', 'Utility', 403, "can't modify an organisation"),
+            ('consultant', 'Utility', 403, "can't modify that organisation"),
+            ('authority', 'Utility', 403, "can't modify that organisation"),
+            ('author', 'Utility', 403, "can't modify that organisation"),
             ('admin', 'Utility', 200, 'OK')
         ]
         for user, org_name, code, reason in users_other:
@@ -140,8 +144,11 @@ class OrgAuthzTest(base.AqHttpTestBase):
             to_son = ToSon(
                 r'/id$',
                 r'/name$',
+                r'/title$',
                 r'/locations.*$',
                 r'/meta.*$',
+                r'/surveygroups$',
+                r'/[0-9]+$',
             )
             to_son.exclude(
                 r'/locations/[0-9]+/id$',
@@ -152,12 +159,13 @@ class OrgAuthzTest(base.AqHttpTestBase):
             org_son = to_son(org)
 
         with base.mock_user(user_email):
-
             post_data = org_son.copy()
             response = self.fetch(
                 "/organisation/%s.json" % org_son['id'], method='PUT',
                 body=json_encode(post_data), expected=code)
-        self.assertIn(reason, response.reason)
+        self.assertIn(
+            reason, response.reason,
+            "%s operating on %s" % (user_email, org_name))
 
 
 class UserAuthzTest(base.AqHttpTestBase):
@@ -165,10 +173,10 @@ class UserAuthzTest(base.AqHttpTestBase):
     def test_missing_field(self):
         self.create_user(
             '', 'fail', 'admin', 'utility', 'clerk', 403,
-            "'email' is empty", {'email': None})
+            "'email' is empty", ['apple'], {'email': None})
         self.create_user(
             '', 'fail', 'admin', 'utility', 'clerk', 403,
-            "'name' is empty", {'name': None})
+            "'name' is empty", ['apple'], {'name': None})
 
     def test_create_user(self):
         users_own = [
@@ -182,7 +190,8 @@ class UserAuthzTest(base.AqHttpTestBase):
 
         for i, (user_email, org_name, code, reason) in enumerate(users_own):
             self.create_user(
-                i, 'own', user_email, org_name, 'clerk', code, reason)
+                i, 'own', user_email, org_name, 'clerk', code, reason,
+                ['apple'])
 
         users_other = [
             ('clerk', 'Primary', 403, "can't add that user"),
@@ -195,7 +204,8 @@ class UserAuthzTest(base.AqHttpTestBase):
 
         for i, (user_email, org_name, code, reason) in enumerate(users_other):
             self.create_user(
-                i, 'other', user_email, org_name, 'clerk', code, reason)
+                i, 'other', user_email, org_name, 'clerk', code, reason,
+                ['apple'])
 
     def test_create_user_role(self):
         admin_role = [
@@ -210,7 +220,8 @@ class UserAuthzTest(base.AqHttpTestBase):
         for i, (user_email, role, org_name, code, reason) in enumerate(
                 admin_role):
             self.create_user(
-                i, 'admin', user_email, org_name, role, code, reason)
+                i, 'admin', user_email, org_name, role, code, reason,
+                ['apple'])
 
         org_admin_role = [
             ('org_admin', 'clerk', 'Utility', 200, 'OK'),
@@ -224,7 +235,8 @@ class UserAuthzTest(base.AqHttpTestBase):
         for i, (user_email, role, org_name, code, reason) in enumerate(
                 org_admin_role):
             self.create_user(
-                i, 'org_admin', user_email, org_name, role, code, reason)
+                i, 'org_admin', user_email, org_name, role, code, reason,
+                ['apple'])
 
     def org_id(self, name):
         with model.session_scope() as session:
@@ -235,13 +247,17 @@ class UserAuthzTest(base.AqHttpTestBase):
 
     def create_user(
             self, prefix, i, user_email, org_name, role, code, reason,
-            custom_data=None):
+            surveygroup_names, custom_data=None):
+        with model.session_scope() as session:
+            surveygroups_son = self.get_groups_son(session, *surveygroup_names)
+
         post_data = {
             'email': 'user%s%s' % (prefix, i),
             'name': 'foo',
             'password': 'bar',
             'role': role,
-            'organisation': {'id': str(self.org_id(org_name))}
+            'organisation': {'id': str(self.org_id(org_name))},
+            'surveygroups': surveygroups_son,
         }
         if custom_data:
             post_data.update(custom_data)
@@ -255,12 +271,16 @@ class UserAuthzTest(base.AqHttpTestBase):
             self.assertIn(reason, response.reason, msg=user_email)
 
     def test_set_password(self):
+        with model.session_scope() as session:
+            surveygroups_son = self.get_groups_son(session, 'apple')
+
         post_data = {
             'email': 'passwordTest',
             'name': 'ptest',
             'password': 'bar',
             'role': 'clerk',
-            'organisation': {'id': str(self.org_id('utility'))}
+            'organisation': {'id': str(self.org_id('utility'))},
+            'surveygroups': surveygroups_son,
         }
 
         with base.mock_user('admin'):
@@ -279,10 +299,13 @@ class UserAuthzTest(base.AqHttpTestBase):
 
             to_son = ToSon(
                 r'/id$',
-                # Root-only: include everything
-                r'^/[^/]+$',
+                r'/title$',
+                r'/name$',
+                r'/surveygroups$',
+                r'/organisation$',
+                r'/[0-9]+$',
                 # Exclude password
-                r'!/password$'
+                r'!/password$',
             )
             user_son = to_son(user)
 
@@ -343,17 +366,24 @@ class UserAuthzTest(base.AqHttpTestBase):
     def modify_org_in_user(
             self, user_email, old_org_name, new_org_name, code, reason):
         with model.session_scope() as session:
-            org = session.query(model.Organisation).\
-                filter(func.lower(model.Organisation.name) ==
-                       func.lower(new_org_name)).one()
+            org = (
+                session.query(model.Organisation)
+                .filter(func.lower(model.Organisation.name) ==
+                        func.lower(new_org_name))
+                .one())
 
-            to_son = ToSon(r'/id$', r'/name$')
+            to_son = ToSon(
+                r'/id$',
+                r'/name$',
+                r'/surveygroups$',
+                r'/[0-9]+$',
+            )
             org_son = to_son(org)
 
             user = (
                 session.query(model.AppUser)
-                .filter(
-                    func.lower(model.AppUser.email) == func.lower(user_email))
+                .filter(func.lower(model.AppUser.email) ==
+                        func.lower(user_email))
                 .one())
 
             user_son = to_son(user)

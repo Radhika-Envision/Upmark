@@ -203,7 +203,7 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             if duplicate_id:
                 source_submission = (
-                    session.query(model.submission)
+                    session.query(model.Submission)
                     .get(duplicate_id))
                 if not source_submission:
                     raise errors.MissingDocError(

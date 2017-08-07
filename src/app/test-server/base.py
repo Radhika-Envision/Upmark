@@ -14,7 +14,7 @@ from tornado.web import Application
 import app
 import model
 from score import Calculator
-from utils import denormalise
+from utils import denormalise, ToSon
 
 
 app.parse_options()
@@ -168,6 +168,18 @@ class AqModelTestBase(LoggingTestCase):
             .filter(model.SurveyGroup.title.in_(group_names))
             .all())
         entity.surveygroups = set(groups)
+
+    def get_groups_son(self, session, *group_names):
+        surveygroups = (
+            session.query(model.SurveyGroup)
+            .filter(model.SurveyGroup.title.in_(group_names))
+            .all())
+        to_son = ToSon(
+            r'/id$',
+            r'/title$',
+            r'/[0-9]+$',
+        )
+        return to_son(surveygroups)
 
     def create_org_structure(self):
         def fast_password_hash():

@@ -131,7 +131,8 @@ class ResponseTypeTest(base.LoggingTestCase):
             ]
 
         with open(os.path.join(
-                proj_dir, 'server', 'aquamark_response_types.json')) as file:
+                proj_dir, 'server', 'importer',
+                'aquamark_response_types.json')) as file:
             [
                 ResponseType(t.get('name'), t['parts'], t.get('formula'))
                 for t in json.load(file)

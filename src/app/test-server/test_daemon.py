@@ -78,21 +78,23 @@ class DaemonTest(base.AqHttpTestBase):
                 method='GET', expected=200, decode=True)
             self.assertEqual(len(a_son['actions']), 1)
 
-        with base.mock_user('admin'):
+        config = utils.get_config("notification.yaml")
+        messages = None
+
+        def send(config, msg, to):
+            messages[to] = msg
+
+        # Send message to everyone in 'apple' group
+        with base.mock_user('admin'), model.session_scope() as session:
             self.fetch(
                 "/activity.json",
                 method='POST', expected=200, decode=True,
                 body=json_encode({
                     'to': 'all',
                     'sticky': True,
-                    'message': "Foo"
+                    'message': "Foo",
+                    'surveygroups': self.get_groups_son(session, 'apple'),
                 }))
-
-        config = utils.get_config("notification.yaml")
-        messages = None
-
-        def send(config, msg, to):
-            messages[to] = msg
 
         messages = {}
         with mock.patch('notifications.send', send):
@@ -100,6 +102,7 @@ class DaemonTest(base.AqHttpTestBase):
             self.assertEqual(n_sent, 6)
             self.assertEqual(len(messages), 6)
 
+        # Check message URLs
         with model.session_scope() as session:
             app_base_url = app_config.get_setting(session, 'app_base_url')
 
@@ -160,6 +163,60 @@ class DaemonTest(base.AqHttpTestBase):
                 log.info("Notification email: %s", str(m))
                 author_checked = True
         self.assertTrue(author_checked)
+
+    def test_timeline_groups(self):
+        config = utils.get_config("notification.yaml")
+        messages = None
+
+        def send(config, msg, to):
+            messages[to] = msg
+
+        def clear_timeline():
+            with model.session_scope() as session:
+                for activity in session.query(model.Activity).all():
+                    activity.surveygroups = set()
+                    session.delete(activity)
+                for user in session.query(model.AppUser).all():
+                    user.email_time = None
+
+        # Send message to everyone in 'banana' group
+        clear_timeline()
+        with base.mock_user('super_admin'), model.session_scope() as session:
+            self.fetch(
+                "/activity.json",
+                method='POST', expected=200, decode=True,
+                body=json_encode({
+                    'to': 'all',
+                    'sticky': True,
+                    'message': "Foo",
+                    'surveygroups': self.get_groups_son(session, 'banana'),
+                }))
+
+        messages = {}
+        with mock.patch('notifications.send', send):
+            n_sent = notifications.process_once(config)
+            self.assertEqual(n_sent, 1)
+            self.assertEqual(len(messages), 1)
+
+        # Send message to everyone
+        clear_timeline()
+        with base.mock_user('super_admin'), model.session_scope() as session:
+            self.fetch(
+                "/activity.json",
+                method='POST', expected=200, decode=True,
+                body=json_encode({
+                    'to': 'all',
+                    'sticky': True,
+                    'message': "Foo",
+                    'surveygroups': self.get_groups_son(
+                        session, 'apple', 'banana'),
+                }))
+
+        messages = {}
+        with mock.patch('notifications.send', send):
+            n_sent = notifications.process_once(config)
+            self.assertEqual(n_sent, 7)
+            self.assertEqual(len(messages), 7)
 
     def test_timeline_failure(self):
         messages = None

@@ -113,7 +113,7 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
         '''
         Create a new organisation.
         '''
-        if organisation_id != '':
+        if organisation_id:
             raise errors.MethodError(
                 "Can't use POST for existing organisation.")
 
@@ -154,7 +154,7 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
         '''
         Update an existing organisation.
         '''
-        if organisation_id == '':
+        if not organisation_id:
             raise errors.MethodError(
                 "Can't use PUT for new organisations (no ID).")
 

@@ -172,10 +172,9 @@ class Activities:
 
         # Filter out activities that are unrelated to current user's survey
         # groups.
-        if not policy.check('surveygroup_interact_all'):
-            query = filter_surveygroups(
-                self.session, query, user_session.user.id,
-                [], [model.activity_surveygroup])
+        query = filter_surveygroups(
+            self.session, query, user_session.user.id,
+            [], [model.activity_surveygroup])
 
         # Filter out activities that involve surveys that have not been
         # purchased.
