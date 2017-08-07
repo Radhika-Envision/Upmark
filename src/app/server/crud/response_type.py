@@ -170,9 +170,9 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, response_type, ['create'])
-            if not act.has_subscription(user_session.user, response_type):
-                act.subscribe(user_session.user, response_type.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, response_type, response_type.program,
+                self.reason)
         self.get(response_type_id)
 
     @tornado.web.authenticated
@@ -203,9 +203,10 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, response_type, ['delete'])
-            if not act.has_subscription(user_session.user, response_type):
-                act.subscribe(user_session.user, response_type.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, response_type, response_type.program,
+                self.reason)
+
         self.set_header("Content-Type", "text/plain")
         self.finish()
 
@@ -260,9 +261,9 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, response_type, verbs)
-            if not act.has_subscription(user_session.user, response_type):
-                act.subscribe(user_session.user, response_type.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, response_type, response_type.program,
+                self.reason)
 
         self.get(response_type_id)
 

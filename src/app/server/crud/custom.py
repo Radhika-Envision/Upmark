@@ -152,9 +152,8 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             session.flush()
             act = Activities(session)
             act.record(user_session.user, custom_query, ['create'])
-            if not act.has_subscription(user_session.user, custom_query):
-                act.subscribe(user_session.user, custom_query)
-                self.reason("Subscribed to query")
+            act.ensure_subscription(
+                user_session.user, custom_query, custom_query, self.reason)
 
             query_id = str(custom_query.id)
 
@@ -197,9 +196,8 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             session.flush()
             act = Activities(session)
             act.record(user_session.user, custom_query, verbs)
-            if not act.has_subscription(user_session.user, custom_query):
-                act.subscribe(user_session.user, custom_query)
-                self.reason("Subscribed to query")
+            act.ensure_subscription(
+                user_session.user, custom_query, custom_query, self.reason)
 
             query_id = str(custom_query.id)
 
@@ -240,9 +238,8 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             act = Activities(session)
             if not custom_query.deleted:
                 act.record(user_session.user, custom_query, ['delete'])
-            if not act.has_subscription(user_session.user, custom_query):
-                act.subscribe(user_session.user, custom_query)
-                self.reason("Subscribed to query")
+            act.ensure_subscription(
+                user_session.user, custom_query, custom_query, self.reason)
 
             custom_query.deleted = True
 

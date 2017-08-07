@@ -216,9 +216,8 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, user, ['create'])
-            if not act.has_subscription(user_session.user, user):
-                act.subscribe(user_session.user, user.organisation)
-                self.reason("Subscribed to organisation")
+            act.ensure_subscription(
+                user_session.user, user, user.organisation, self.reason)
             act.subscribe(user, user.organisation)
             self.reason("New user subscribed to organisation")
 
@@ -289,9 +288,8 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             session.flush()
             if len(verbs) > 0:
                 act.record(user_session.user, user, verbs)
-                if not act.has_subscription(user_session.user, user):
-                    act.subscribe(user_session.user, user.organisation)
-                    self.reason("Subscribed to organisation")
+                act.ensure_subscription(
+                    user_session.user, user, user.organisation, self.reason)
                 if not act.has_subscription(user, user):
                     act.subscribe(user, user.organisation)
                     self.reason("User subscribed to organisation")
@@ -321,9 +319,8 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             act = Activities(session)
             if not user.deleted:
                 act.record(user_session.user, user, ['delete'])
-            if not act.has_subscription(user_session.user, user):
-                act.subscribe(user_session.user, user.organisation)
-                self.reason("Subscribed to organisation")
+            act.ensure_subscription(
+                user_session.user, user, user.organisation, self.reason)
 
             user.deleted = True
 

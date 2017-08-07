@@ -166,9 +166,8 @@ class SurveyHandler(base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, survey, ['create'])
-            if not act.has_subscription(user_session.user, survey):
-                act.subscribe(user_session.user, survey.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, survey, survey.program, self.reason)
 
             survey_id = str(survey.id)
 
@@ -212,9 +211,8 @@ class SurveyHandler(base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, survey, verbs)
-            if not act.has_subscription(user_session.user, survey):
-                act.subscribe(user_session.user, survey.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, survey, survey.program, self.reason)
 
         self.get(survey_id)
 
@@ -247,9 +245,8 @@ class SurveyHandler(base_handler.BaseHandler):
             act = Activities(session)
             if not survey.deleted:
                 act.record(user_session.user, survey, ['delete'])
-            if not act.has_subscription(user_session.user, survey):
-                act.subscribe(user_session.user, survey.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, survey, survey.program, self.reason)
 
             survey.deleted = True
 

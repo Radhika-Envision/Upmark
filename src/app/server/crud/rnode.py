@@ -266,9 +266,9 @@ class ResponseNodeHandler(base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, rnode, verbs)
-            if not act.has_subscription(user_session.user, rnode):
-                act.subscribe(user_session.user, rnode.submission)
-                self.reason("Subscribed to submission")
+            act.ensure_subscription(
+                user_session.user, rnode, rnode.submission,
+                self.reason)
 
         self.get(submission_id, qnode_id)
 

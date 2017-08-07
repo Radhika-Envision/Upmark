@@ -95,6 +95,15 @@ class Activities:
             .count())
         return count > 0
 
+    def ensure_subscription(self, observer, ob, target_ob, message_cb):
+        if not self.has_subscription(observer, ob):
+            self.subscribe(observer, target_ob)
+            message_cb("Subscribed to %s" % target_ob.ob_type)
+            if target_ob.surveygroups.isdisjoint(observer.surveygroups):
+                message_cb(
+                    "However you won't see it in your timeline because "
+                    "you are not part of its survey groups")
+
     def subscriptions(self, observer, ob):
         '''
         Get a list of subscriptions that are active for the given object, in

@@ -142,9 +142,7 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, org, ['create'])
-            if not act.has_subscription(user_session.user, org):
-                act.subscribe(user_session.user, org)
-                self.reason("Subscribed to organisation")
+            act.ensure_subscription(user_session.user, org, org, self.reason)
 
             organisation_id = str(org.id)
         self.get(organisation_id)
@@ -194,9 +192,7 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, org, verbs)
-            if not act.has_subscription(user_session.user, org):
-                act.subscribe(user_session.user, org)
-                self.reason("Subscribed to organisation")
+            act.ensure_subscription(user_session.user, org, org, self.reason)
 
         self.get(organisation_id)
 
@@ -222,9 +218,7 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
             act = Activities(session)
             if not org.deleted:
                 act.record(user_session.user, org, ['delete'])
-            if not act.has_subscription(user_session.user, org):
-                act.subscribe(user_session.user, org)
-                self.reason("Subscribed to organisation")
+            act.ensure_subscription(user_session.user, org, org, self.reason)
 
             org.deleted = True
 

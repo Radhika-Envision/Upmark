@@ -244,9 +244,9 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, submission, ['create'])
-            if not act.has_subscription(user_session.user, submission):
-                act.subscribe(user_session.user, submission.organisation)
-                self.reason("Subscribed to organisation")
+            act.ensure_subscription(
+                user_session.user, submission, submission.organisation,
+                self.reason)
 
         self.get(submission_id)
 
@@ -358,9 +358,9 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, submission, verbs)
-            if not act.has_subscription(user_session.user, submission):
-                act.subscribe(user_session.user, submission.organisation)
-                self.reason("Subscribed to organisation")
+            act.ensure_subscription(
+                user_session.user, submission, submission.organisation,
+                self.reason)
 
         self.get(submission_id)
 
@@ -388,9 +388,9 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
             act = Activities(session)
             if not submission.deleted:
                 act.record(user_session.user, submission, ['delete'])
-            if not act.has_subscription(user_session.user, submission):
-                act.subscribe(user_session.user, submission.organisation)
-                self.reason("Subscribed to organisation")
+            act.ensure_subscription(
+                user_session.user, submission, submission.organisation,
+                self.reason)
 
             submission.deleted = True
 

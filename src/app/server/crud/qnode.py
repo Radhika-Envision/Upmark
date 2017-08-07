@@ -410,9 +410,8 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, qnode, ['create'])
-            if not act.has_subscription(user_session.user, qnode):
-                act.subscribe(user_session.user, qnode.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, qnode, qnode.program, self.reason)
 
         self.get(qnode_id)
 
@@ -452,9 +451,8 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
             act = Activities(session)
             if not qnode.deleted:
                 act.record(user_session.user, qnode, ['delete'])
-            if not act.has_subscription(user_session.user, qnode):
-                act.subscribe(user_session.user, program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, qnode, qnode.program, self.reason)
 
             qnode.deleted = True
 
@@ -546,10 +544,8 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, qnode, verbs)
-
-            if not act.has_subscription(user_session.user, qnode):
-                act.subscribe(user_session.user, qnode.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, qnode, qnode.program, self.reason)
 
         self.get(qnode_id)
 
@@ -597,9 +593,8 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
                 log.debug("Reordering children of: %s", parent)
                 reorder(parent.children, son)
                 act.record(user_session.user, parent, ['reorder_children'])
-                if not act.has_subscription(user_session.user, parent):
-                    act.subscribe(user_session.user, parent.program)
-                    self.reason("Subscribed to program")
+                act.ensure_subscription(
+                    user_session.user, parent, parent.program, self.reason)
 
             elif root is not None:
                 survey = (
@@ -611,9 +606,8 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
                 reorder(survey.qnodes, son)
                 act.record(
                     user_session.user, survey, ['reorder_children'])
-                if not act.has_subscription(user_session.user, survey):
-                    act.subscribe(user_session.user, survey.program)
-                    self.reason("Subscribed to program")
+                act.ensure_subscription(
+                    user_session.user, survey, survey.program, self.reason)
 
             else:
                 raise errors.ModelError(

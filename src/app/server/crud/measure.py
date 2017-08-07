@@ -425,9 +425,8 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, measure, verbs)
-            if not act.has_subscription(user_session.user, measure):
-                act.subscribe(user_session.user, measure.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, measure, measure.program, self.reason)
 
             log.info("Created measure %s", measure_id)
 
@@ -486,9 +485,8 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
             calculator.execute()
 
             act.record(user_session.user, measure, ['delete'])
-            if not act.has_subscription(user_session.user, measure):
-                act.subscribe(user_session.user, measure.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, measure, measure.program, self.reason)
 
         self.finish()
 
@@ -606,9 +604,8 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, measure, verbs)
-            if not act.has_subscription(user_session.user, measure):
-                act.subscribe(user_session.user, measure.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, measure, measure.program, self.reason)
 
         self.get(measure_id)
 
@@ -638,9 +635,8 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, qnode, ['reorder_children'])
-            if not act.has_subscription(user_session.user, qnode):
-                act.subscribe(user_session.user, qnode.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, qnode, qnode.program, self.reason)
 
         self.query()
 

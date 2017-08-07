@@ -183,9 +183,8 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
                 act.record(user_session.user, source_program, ['state'])
 
             act.record(user_session.user, program, ['create'])
-            if not act.has_subscription(user_session.user, program):
-                act.subscribe(user_session.user, program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, program, program, self.reason)
 
             program_id = program.id
 
@@ -297,9 +296,8 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
             act = Activities(session)
             if not program.deleted:
                 act.record(user_session.user, program, ['delete'])
-            if not act.has_subscription(user_session.user, program):
-                act.subscribe(user_session.user, program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, program, program, self.reason)
 
             program.deleted = True
 
@@ -364,9 +362,8 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, program, verbs)
-            if not act.has_subscription(user_session.user, program):
-                act.subscribe(user_session.user, program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, program, program, self.reason)
         self.get(program_id)
 
     def _update_state(self, program_id, editable):
@@ -394,9 +391,8 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
             act = Activities(session)
             if session.is_modified(program):
                 act.record(user_session.user, program, ['state'])
-            if not act.has_subscription(user_session.user, program):
-                act.subscribe(user_session.user, program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, program, program, self.reason)
         self.get(program_id)
 
     def _update(self, program, son):

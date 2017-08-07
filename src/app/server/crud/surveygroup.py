@@ -112,9 +112,8 @@ class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, surveygroup, ['create'])
-            if not act.has_subscription(user_session.user, surveygroup):
-                act.subscribe(user_session.user, surveygroup)
-                self.reason("Subscribed to survey group")
+            act.ensure_subscription(
+                user_session.user, surveygroup, surveygroup, self.reason)
 
             surveygroup_id = str(surveygroup.id)
 
@@ -150,9 +149,8 @@ class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
             session.flush()
             act = Activities(session)
             act.record(user_session.user, surveygroup, verbs)
-            if not act.has_subscription(user_session.user, surveygroup):
-                act.subscribe(user_session.user, surveygroup)
-                self.reason("Subscribed to survey group")
+            act.ensure_subscription(
+                user_session.user, surveygroup, surveygroup, self.reason)
 
             surveygroup_id = str(surveygroup.id)
 
@@ -178,9 +176,8 @@ class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
             act = Activities(session)
             if not surveygroup.deleted:
                 act.record(user_session.user, surveygroup, ['delete'])
-            if not act.has_subscription(user_session.user, surveygroup):
-                act.subscribe(user_session.user, surveygroup)
-                self.reason("Subscribed to survey group")
+            act.ensure_subscription(
+                user_session.user, surveygroup, surveygroup, self.reason)
 
             surveygroup.deleted = True
 

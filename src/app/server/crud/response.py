@@ -333,9 +333,9 @@ class ResponseHandler(base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, response, verbs)
-            if not act.has_subscription(user_session.user, response):
-                act.subscribe(user_session.user, response.submission)
-                self.reason("Subscribed to submission")
+            act.ensure_subscription(
+                user_session.user, response, response.submission,
+                self.reason)
 
         self.get(submission_id, measure_id)
 
