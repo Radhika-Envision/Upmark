@@ -3,7 +3,7 @@ import logging
 from tornado.escape import json_decode, json_encode
 import tornado.web
 from sqlalchemy.dialects.postgresql import array
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, joinedload
 from sqlalchemy.sql.expression import literal
 
 from activity import Activities
@@ -31,13 +31,17 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
             user_session = self.get_user_session(session)
             qnode = (
                 session.query(model.QuestionNode)
+                .options(joinedload('program'))
+                .options(joinedload('program.surveygroups'))
                 .get((qnode_id, program_id)))
             if not qnode:
                 raise errors.MissingDocError("No such category")
 
             policy = user_session.policy.derive({
                 'survey': qnode.survey,
+                'surveygroups': qnode.program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('qnode_view')
 
             to_son = ToSon(
@@ -120,6 +124,9 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
             if parent_id:
                 parent = (
                     session.query(model.QuestionNode)
+                    .options(joinedload('survey'))
+                    .options(joinedload('program'))
+                    .options(joinedload('program.surveygroups'))
                     .get((parent_id, program_id)))
                 if not parent:
                     raise errors.MissingDocError("No such parent category")
@@ -129,6 +136,8 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
             elif survey_id:
                 survey = (
                     session.query(model.Survey)
+                    .options(joinedload('program'))
+                    .options(joinedload('program.surveygroups'))
                     .get((survey_id, program_id)))
                 if not survey:
                     raise errors.MissingDocError("No such survey")
@@ -138,7 +147,9 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'program': survey.program,
                 'survey': survey,
+                'surveygroups': survey.program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('qnode_view')
 
             query = (
@@ -212,11 +223,15 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             survey = (
                 session.query(model.Survey)
+                .options(joinedload('program'))
+                .options(joinedload('program.surveygroups'))
                 .get((survey_id, program_id)))
             policy = user_session.policy.derive({
                 'program': survey.program,
                 'survey': survey,
+                'surveygroups': survey.program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('qnode_view')
 
             # Use Postgres' WITH statement
@@ -326,7 +341,10 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
-            program = session.query(model.Program).get(program_id)
+            program = (
+                session.query(model.Program)
+                .options(joinedload('surveygroups'))
+                .get(program_id))
             if not program:
                 raise errors.ModelError("No such program")
 
@@ -334,7 +352,7 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
             self._update(session, qnode, self.request_son)
             log.debug("new: %s", qnode)
 
-            if survey_id != '':
+            if survey_id:
                 survey = (
                     session.query(model.Survey)
                     .get((survey_id, program_id)))
@@ -377,9 +395,11 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
             session.flush()
 
             policy = user_session.policy.derive({
-                'program': survey.program,
-                'survey': survey,
+                'program': qnode.program,
+                'survey': qnode.survey,
+                'surveygroups': qnode.program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('qnode_add')
 
             calculator = Calculator.structural()
@@ -390,9 +410,8 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, qnode, ['create'])
-            if not act.has_subscription(user_session.user, qnode):
-                act.subscribe(user_session.user, qnode.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, qnode, qnode.program, self.reason)
 
         self.get(qnode_id)
 
@@ -410,6 +429,8 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             qnode = (
                 session.query(model.QuestionNode)
+                .options(joinedload('program'))
+                .options(joinedload('program.surveygroups'))
                 .get((qnode_id, program_id)))
             if not qnode:
                 raise errors.MissingDocError("No such question node")
@@ -422,15 +443,16 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'program': program,
                 'survey': survey,
+                'surveygroups': program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('qnode_del')
 
             act = Activities(session)
             if not qnode.deleted:
                 act.record(user_session.user, qnode, ['delete'])
-            if not act.has_subscription(user_session.user, qnode):
-                act.subscribe(user_session.user, program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, qnode, qnode.program, self.reason)
 
             qnode.deleted = True
 
@@ -461,6 +483,8 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             qnode = (
                 session.query(model.QuestionNode)
+                .options(joinedload('program'))
+                .options(joinedload('program.surveygroups'))
                 .get((qnode_id, program_id)))
             if not qnode:
                 raise errors.MissingDocError("No such question node")
@@ -468,7 +492,9 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'program': qnode.program,
                 'survey': qnode.survey,
+                'surveygroups': qnode.program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('qnode_edit')
 
             self._update(session, qnode, self.request_son)
@@ -518,10 +544,8 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, qnode, verbs)
-
-            if not act.has_subscription(user_session.user, qnode):
-                act.subscribe(user_session.user, qnode.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, qnode, qnode.program, self.reason)
 
         self.get(qnode_id)
 
@@ -569,9 +593,8 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
                 log.debug("Reordering children of: %s", parent)
                 reorder(parent.children, son)
                 act.record(user_session.user, parent, ['reorder_children'])
-                if not act.has_subscription(user_session.user, parent):
-                    act.subscribe(user_session.user, parent.program)
-                    self.reason("Subscribed to program")
+                act.ensure_subscription(
+                    user_session.user, parent, parent.program, self.reason)
 
             elif root is not None:
                 survey = (
@@ -583,9 +606,8 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
                 reorder(survey.qnodes, son)
                 act.record(
                     user_session.user, survey, ['reorder_children'])
-                if not act.has_subscription(user_session.user, survey):
-                    act.subscribe(user_session.user, survey.program)
-                    self.reason("Subscribed to program")
+                act.ensure_subscription(
+                    user_session.user, survey, survey.program, self.reason)
 
             else:
                 raise errors.ModelError(
@@ -594,7 +616,9 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'program': survey.program,
                 'survey': survey,
+                'surveygroups': survey.program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('qnode_edit')
 
         self.query()

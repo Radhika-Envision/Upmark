@@ -1,8 +1,99 @@
 'use strict';
 
 angular.module('upmark.survey.qnode', [
-  'ngResource', 'ngSanitize', 'ui.select', 'ui.sortable',
-  'upmark.admin.settings', 'upmark.user'])
+    'ngResource', 'ngSanitize', 'ui.select', 'ui.sortable',
+    'upmark.admin.settings', 'upmark.user', 'upmark.chain'])
+
+
+.config(function($routeProvider, chainProvider) {
+    $routeProvider
+        .when('/:uv/qnode/new', {
+            templateUrl : 'qnode.html',
+            controller : 'QuestionNodeCtrl',
+            resolve: {routeData: chainProvider({
+                survey: ['Survey', '$route',
+                        function(Survey, $route) {
+                    var surveyId = $route.current.params.survey;
+                    if (!surveyId)
+                        return null
+                    return Survey.get({
+                        id: surveyId,
+                        programId: $route.current.params.program
+                    }).$promise;
+                }],
+                parent: ['QuestionNode', '$route',
+                        function(QuestionNode, $route) {
+                    var parentId = $route.current.params.parent;
+                    if (!parentId)
+                        return null;
+                    return QuestionNode.get({
+                        id: parentId,
+                        programId: $route.current.params.program
+                    }).$promise;
+                }]
+            })}
+        })
+        .when('/:uv/qnode/:qnode', {
+            templateUrl : 'qnode.html',
+            controller : 'QuestionNodeCtrl',
+            resolve: {routeData: chainProvider({
+                submission: ['Submission', '$route',
+                        function(Submission, $route) {
+                    if (!$route.current.params.submission)
+                        return null;
+                    return Submission.get({
+                        id: $route.current.params.submission
+                    }).$promise;
+                }],
+                qnode: ['QuestionNode', '$route', 'submission',
+                        function(QuestionNode, $route, submission) {
+                    return QuestionNode.get({
+                        id: $route.current.params.qnode,
+                        programId: submission ? submission.program.id :
+                            $route.current.params.program,
+                    }).$promise;
+                }],
+                measures: ['Measure', '$route', 'submission',
+                        function(Measure, $route, submission) {
+                    return Measure.query({
+                        qnodeId: $route.current.params.qnode,
+                        programId: submission ? submission.program.id :
+                            $route.current.params.program,
+                    }).$promise;
+                }]
+            })}
+        })
+        .when('/:uv/qnode-link', {
+            templateUrl : 'qnode_link.html',
+            controller : 'QnodeLinkCtrl',
+            resolve: {routeData: chainProvider({
+                survey: ['Survey', '$route',
+                        function(Survey, $route) {
+                    if (!$route.current.params.survey)
+                        return null;
+                    return Survey.get({
+                        id: $route.current.params.survey,
+                        programId: $route.current.params.program
+                    }).$promise;
+                }],
+                parent: ['QuestionNode', '$route',
+                        function(QuestionNode, $route) {
+                    if (!$route.current.params.parent)
+                        return null;
+                    return QuestionNode.get({
+                        id: $route.current.params.parent,
+                        programId: $route.current.params.program
+                    }).$promise;
+                }],
+                program: ['Program', '$route', function(Program, $route) {
+                    return Program.get({
+                        id: $route.current.params.program
+                    }).$promise;
+                }],
+            })}
+        })
+    ;
+})
 
 
 .factory('QuestionNode', ['$resource', 'paged', function($resource, paged) {
@@ -64,6 +155,7 @@ angular.module('upmark.survey.qnode', [
 
         $scope.checkRole = Authz({
             program: $scope.program,
+            survey: $scope.structure.survey,
             submission: $scope.submission,
         });
         $scope.editable = ($scope.program.isEditable &&
@@ -368,7 +460,10 @@ angular.module('upmark.survey.qnode', [
         });
     }, true);
 
-    $scope.checkRole = Authz({program: $scope.program});
+    $scope.checkRole = Authz({
+        program: $scope.program,
+        survey: $scope.structure.survey,
+    });
     $scope.QuestionNode = QuestionNode;
 })
 

@@ -3,6 +3,7 @@ from math import ceil
 import re
 
 from expiringdict import ExpiringDict
+import sqlalchemy.exc
 from sqlalchemy.orm import joinedload
 from tornado.escape import json_decode
 import tornado.options
@@ -32,55 +33,65 @@ class BaseHandler(tornado.web.RequestHandler):
             return
 
     def get_current_user(self):
-        user_id = self.get_secure_cookie('user')
-        if not user_id:
-            return None
-        user_id = user_id.decode('utf8')
         with model.session_scope() as session:
-            user = session.query(model.AppUser).get(user_id)
-            if not user:
-                return None
-            session.expunge(user)
-        return user
+            return self.get_user_session(session)
+
+    USER_IDS_PATTERN = re.compile(r'^user=([-\w]*)(?:, ?superuser=([-\w]*))?$')
 
     def get_user_session(self, db_session):
-        user_id = self.get_secure_cookie('user')
+        # TODO: Currently, this is done twice: once for authentication, and
+        # again for authorisation. Because the database session is closed in
+        # get_current_user, the user session object can't be used in the
+        # request handler methods. Is there some way to do it without closing
+        # the session?
+        user_ids = self.get_secure_cookie('user')
+        if not user_ids:
+            return None
+        user_ids = user_ids.decode('utf8')
+
+        match = self.USER_IDS_PATTERN.match(user_ids)
+        if not match:
+            return None
+        user_id, superuser_id = match.groups()
+
         if not user_id:
             return None
 
-        superuser_id = self.get_secure_cookie('superuser')
         if superuser_id:
-            superuser_id = superuser_id.decode('utf8')
             superuser = (
                 db_session.query(model.AppUser)
-                .join(model.Organisation)
-                .filter(model.AppUser.id == superuser_id)
-                .filter(~model.AppUser.deleted)
-                .filter(~model.Organisation.deleted)
-                .first())
+                .options(joinedload('organisation'))
+                .options(joinedload('surveygroups'))
+                .get(superuser_id))
             if not superuser:
+                # True user's session has expired.
                 return None
+            if superuser.deleted or superuser.organisation.deleted:
+                raise errors.AuthzError("Your account has been disabled")
         else:
             superuser = None
 
-        user_id = user_id.decode('utf8')
-        query = (
+        user = (
             db_session.query(model.AppUser)
             .options(joinedload('organisation'))
-            .join(model.Organisation)
-            .filter(model.AppUser.id == user_id))
-        if not superuser:
-            # Only superusers can log in as deleted users (for impersonation
-            # purposes).
-            query = (
-                query
-                .filter(~model.AppUser.deleted)
-                .filter(~model.Organisation.deleted))
-        user = query.first()
+            .options(joinedload('surveygroups'))
+            .get(user_id))
         if not user:
             return None
+        if user.deleted or user.organisation.deleted:
+            raise errors.AuthzError("Your account has been disabled")
 
-        return UserSession(user, superuser)
+        # When impersonating, make sure the user is still under the superuser's
+        # jurisdiction.
+        user_session = UserSession(user, superuser)
+        if superuser and superuser != user:
+            policy = user_session.policy.derive({
+                'user': user,
+                'surveygroups': user.surveygroups,
+            })
+            policy.verify('user_impersonate')
+
+        return user_session
 
     @property
     def request_son(self):
@@ -122,6 +133,44 @@ class BaseHandler(tornado.web.RequestHandler):
                 exc_info=(typ, value, tb))
         super().log_exception(typ, value, tb)
 
+    def send_error(self, status_code=500, exc_info=None, **kwargs):
+        if not self._headers_written and exc_info:
+            exc_cls, e, trace = exc_info
+            if isinstance(e, sqlalchemy.exc.SQLAlchemyError):
+                try:
+                    if self.handle_sa_exception(e):
+                        return
+                except Exception:
+                    log.error(
+                        "Uncaught exception in handle_sa_exception",
+                        exc_info=True)
+
+        super().send_error(
+            status_code=status_code, exc_info=exc_info, **kwargs)
+
+    INTEGRITY_PATTERN = re.compile(
+        r'duplicate key.*?"(\w+)".*?DETAIL:\s+Key (.*?) already exists.')
+
+    def handle_sa_exception(self, e):
+        if isinstance(e, sqlalchemy.exc.IntegrityError):
+            match = self.INTEGRITY_PATTERN.search(str(e).replace('\n', ''))
+            if not match:
+                return False
+            if match.group(1) in errors.integrity_error_lut:
+                reason = errors.integrity_error_lut.get(match.group(1))
+            else:
+                reason = "Another entity already has that value: {}".format(
+                    match.group(2))
+            self.set_status(400, reason=reason)
+        else:
+            return False
+
+        try:
+            self.write_error(400)
+        except Exception:
+            log.error("Uncaught exception in write_error", exc_info=True)
+        return True
+
 
 class Paginate:
     '''
@@ -149,6 +198,8 @@ class Paginate:
             raise errors.ModelError("Invalid page")
         if page < 0:
             raise errors.ModelError("Page must be non-negative")
+
+        query.distinct()
 
         num_items = query.count()
         self.set_header('Page-Count', "%d" % ceil(num_items / page_size))

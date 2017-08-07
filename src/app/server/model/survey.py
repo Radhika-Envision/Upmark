@@ -2,6 +2,7 @@ __all__ = [
     'Measure',
     'MeasureVariable',
     'Program',
+    'program_surveygroup',
     'PurchasedSurvey',
     'ResponseType',
     'Survey',
@@ -13,7 +14,7 @@ from datetime import datetime
 from itertools import chain, zip_longest
 
 from sqlalchemy import Boolean, Column, DateTime, Float, \
-    ForeignKey, Index, Integer, JSON, Text
+    ForeignKey, Index, Integer, JSON, Table, Text
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import backref, foreign, relationship, remote, \
@@ -27,6 +28,7 @@ import response_type
 from .observe import Observable
 from .base import Base, to_id
 from .guid import GUID
+from .surveygroup import SurveyGroup
 from .user import Organisation
 
 
@@ -182,6 +184,10 @@ class Survey(Observable, Base):
     def action_lineage(self):
         return [self.program, self]
 
+    @property
+    def surveygroups(self):
+        return self.program.surveygroups
+
     def closest_deleted_ancestor(self):
         if self.deleted:
             return self
@@ -282,6 +288,10 @@ class QuestionNode(Observable, Base):
     def action_lineage(self):
         return [self.program, self.survey] + self.lineage()
 
+    @property
+    def surveygroups(self):
+        return self.program.surveygroups
+
     def __repr__(self):
         return "QuestionNode(path={}, title={}, program={})".format(
             self.get_path(), self.title,
@@ -356,6 +366,10 @@ class Measure(Observable, Base):
     def action_lineage(self):
         hs = [qm.survey for qm in self.qnode_measures]
         return [self.program] + hs + self.lineage()
+
+    @property
+    def surveygroups(self):
+        return self.program.surveygroups
 
     def __repr__(self):
         return "Measure(title={}, program={})".format(
@@ -485,6 +499,10 @@ class ResponseType(Observable, Base):
     @property
     def action_lineage(self):
         return [self.program, self]
+
+    @property
+    def surveygroups(self):
+        return self.program.surveygroups
 
     def __repr__(self):
         return "ResponseType(name={}, program={})".format(
@@ -706,3 +724,20 @@ ResponseType.measures = relationship(
     primaryjoin=(
         (foreign(Measure.response_type_id) == ResponseType.id) &
         (ResponseType.program_id == Measure.program_id)))
+
+
+program_surveygroup = Table(
+    'program_surveygroup', Base.metadata,
+    Column('program_id', GUID, ForeignKey('program.id')),
+    Column('surveygroup_id', GUID, ForeignKey('surveygroup.id')),
+    Index('program_surveygroup_program_id_index', 'program_id'),
+    Index('program_surveygroup_surveygroup_id_index', 'surveygroup_id'),
+)
+
+
+Program.surveygroups = relationship(
+    SurveyGroup, backref='programs', secondary=program_surveygroup,
+    collection_class=set,
+    secondaryjoin=(
+        (SurveyGroup.id == program_surveygroup.columns.surveygroup_id) &
+        (SurveyGroup.deleted == False)))

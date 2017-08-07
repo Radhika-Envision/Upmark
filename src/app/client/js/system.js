@@ -5,6 +5,21 @@ angular.module('upmark.system', [
     'upmark.notifications', 'upmark.user'])
 
 
+.config(function($routeProvider) {
+    $routeProvider
+        .when('/:uv/admin', {
+            templateUrl : 'systemconfig.html',
+            controller : 'SystemConfigCtrl',
+            resolve: {
+                systemConfig: ['SystemConfig', function(SystemConfig) {
+                    return SystemConfig.get().$promise;
+                }]
+            }
+        })
+    ;
+})
+
+
 .factory('SystemConfig', ['$resource', function($resource) {
     return $resource('/systemconfig.json', {}, {
         get: { method: 'GET', cache: false },

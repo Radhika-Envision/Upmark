@@ -65,6 +65,14 @@ class UtilException(Exception):
 
 
 class ToSon:
+    '''
+    Serialiser for Python and database entities. You provide a list of fields
+    that you want to have serialised, as regular expressions. ToSon then
+    converts the object recursively into dictionaries, lists, and primitives.
+
+    Field names are converted from snake case to camel case.
+    '''
+
     def __init__(self, *expressions, omit=False):
         self._include = []
         self._exclude = []

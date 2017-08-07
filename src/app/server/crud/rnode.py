@@ -10,8 +10,6 @@ import tornado.web
 
 from activity import Activities
 import base_handler
-import crud.response
-import crud.program
 import errors
 import model
 from response_type import ResponseTypeError
@@ -73,7 +71,9 @@ class ResponseNodeHandler(base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'org': submission.organisation,
                 'submission': submission,
+                'surveygroups': submission.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('rnode_view')
 
             to_son = ToSon(
@@ -136,7 +136,9 @@ class ResponseNodeHandler(base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'org': submission.organisation,
                 'submission': submission,
+                'surveygroups': submission.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('rnode_view')
 
             if root is not None:
@@ -208,7 +210,9 @@ class ResponseNodeHandler(base_handler.BaseHandler):
                 'submission': submission,
                 'approval': approval,
                 'index': APPROVAL_STATES.index,
+                'surveygroups': submission.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('rnode_edit')
 
             rnode = (
@@ -262,9 +266,9 @@ class ResponseNodeHandler(base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, rnode, verbs)
-            if not act.has_subscription(user_session.user, rnode):
-                act.subscribe(user_session.user, rnode.submission)
-                self.reason("Subscribed to submission")
+            act.ensure_subscription(
+                user_session.user, rnode, rnode.submission,
+                self.reason)
 
         self.get(submission_id, qnode_id)
 
@@ -305,7 +309,9 @@ class ResponseNodeHandler(base_handler.BaseHandler):
                 'submission': response.submission,
                 'approval': response.approval,
                 'index': APPROVAL_STATES.index,
+                'surveygroups': response.submission.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             try:
                 policy.verify('response_edit')
             except errors.AuthzError as e:

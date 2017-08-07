@@ -32,8 +32,9 @@ class ExportSubmissionHandler(base_handler.BaseHandler):
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
-            submission = (session.query(model.Submission)
-                          .get(submission_id))
+            submission = (
+                session.query(model.Submission)
+                .get(submission_id))
             if not submission:
                 raise errors.MissingDocError("No such submission")
             elif submission.deleted:
@@ -43,11 +44,14 @@ class ExportSubmissionHandler(base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'org': submission.organisation,
                 'survey': submission.survey,
+                'surveygroups': submission.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('report_sub_export')
 
             survey_id = submission.survey_id
             program_id = submission.program_id
+            role = user_session.user.role
 
         output_file = 'submission_{0}_{1}.xlsx'.format(submission_id, fmt)
         base_url = ("%s://%s" % (
@@ -58,11 +62,11 @@ class ExportSubmissionHandler(base_handler.BaseHandler):
             if fmt == 'tabular':
                 yield self.export_tabular(
                     output_path, program_id, survey_id, submission_id,
-                    self.current_user.role, base_url)
+                    role, base_url)
             else:
                 yield self.export_nested(
                     output_path, program_id, survey_id, submission_id,
-                    self.current_user.role, base_url)
+                    role, base_url)
             self.set_header('Content-Type', 'application/octet-stream')
             self.set_header('Content-Disposition', 'attachment')
 

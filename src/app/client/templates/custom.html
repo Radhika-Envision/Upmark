@@ -428,6 +428,53 @@
             </dd>
         </dl>
     </docs>
+    <docs>
+        <i class="fa-li fa fa-object-ungroup fa-border"></i>
+        <h3>Survey Group Tables</h3>
+        <p>
+            Survey groups are stored in the <code>surveygroup</code> table,
+            and linked to organisations, users, programs and activities via
+            many-to-many relationship tables. Other entities also have survey
+            groups, which are inherited from further up the hierarchy. For
+            example, a measure has the same survey groups as its program,
+            while a submission has the <em>intersection</em> of the survey
+            groups of its program and its organisation.
+        </p>
+        <img src="images/design-tables-surveygroup.svg" class="img-responsive">
+        <dl>
+            <dt>surveygroup</dt>
+            <dd>
+                <p>PK: <code>id</code>.</p>
+                <p>
+                Defines survey groups.
+                </p>
+            </dd>
+            <dt>organisation_surveygroup</dt>
+            <dd>
+                <p>
+                Links organisations to survey groups.
+                </p>
+            </dd>
+            <dt>user_surveygroup</dt>
+            <dd>
+                <p>
+                Links users to survey groups.
+                </p>
+            </dd>
+            <dt>program_surveygroup</dt>
+            <dd>
+                <p>
+                Links programs to survey groups.
+                </p>
+            </dd>
+            <dt>activity_surveygroup</dt>
+            <dd>
+                <p>
+                Links activities to survey groups.
+                </p>
+            </dd>
+        </dl>
+    </docs>
 </form>
 
 <div ng-if="!edit.model">

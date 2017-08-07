@@ -70,13 +70,13 @@ def verbs(action):
         elif verb == 'reorder_children':
             verb = 'reordered the children of'
 
-        expr += verb;
+        expr += verb
 
-    return expr;
+    return expr
 
 
-def send_email(config, user, activities, messages, app_name_short,
-        app_base_url):
+def send_email(
+        config, user, activities, messages, app_name_short, app_base_url):
     template = config['MESSAGE_CONTENT']
     params = {
         'user_id': user.id,
@@ -106,7 +106,8 @@ def get_activities(session, user, until_date, messages, limit, date_template):
     earliest_from_date = until_date - datetime.timedelta(days=15)
 
     if from_date is None:
-        from_date = until_date - datetime.timedelta(seconds=user.email_interval)
+        from_date = until_date - datetime.timedelta(
+            seconds=user.email_interval)
 
     if not from_date.tzinfo:
         from_date = from_date.replace(tzinfo=until_date.tzinfo)
@@ -122,14 +123,14 @@ def get_activities(session, user, until_date, messages, limit, date_template):
             date_template.format(from_date)))
 
     activity_query = activities.timeline_query(
-        user.id, from_date, until_date, {'at_top'})
+        user, from_date, until_date, {'at_top'})
 
     activity_query = activity_query.limit(limit)
     activities = list(activity_query.all())
     if len(activities) >= limit:
         messages.append(
-            "Notification limit reached. There may be more activities; to see\n"
-            "them, log in to the web app.")
+            "Notification limit reached. There may be more activities; "
+            "to see them, log in to the web app.")
 
     return activities
 
@@ -139,7 +140,8 @@ def process_once(config):
     n_sent = 0
     with model.session_scope() as session:
         interval = extract('epoch', func.now() - model.AppUser.email_time)
-        user_list = (session.query(model.AppUser, func.now())
+        user_list = (
+            session.query(model.AppUser, func.now())
             .join(model.Organisation)
             .filter(model.AppUser.deleted != True,
                     model.Organisation.deleted != True,
@@ -181,9 +183,9 @@ def process_loop():
             log.info("Sleeping for %ds", config['JOB_INTERVAL_SECONDS'])
             time.sleep(config['JOB_INTERVAL_SECONDS'])
     except Exception as e:
-        send_error(config,
-             "FATAL ERROR. Daemon will need to be fixed.\n%s" %
-             str(e))
+        send_error(
+            config,
+            "FATAL ERROR. Daemon will need to be fixed.\n%s" % str(e))
         raise
 
 
@@ -195,7 +197,7 @@ if __name__ == "__main__":
     try:
         log.info("Starting service")
         connect_db()
-        if not '--no-delay' in sys.argv:
+        if '--no-delay' not in sys.argv:
             log.info("Sleeping for %ds", STARTUP_DELAY)
             time.sleep(STARTUP_DELAY)
         process_loop()

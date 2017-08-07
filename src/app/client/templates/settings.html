@@ -45,17 +45,17 @@ angular.module('upmark.settings', [])
     },
 ])
 
-{% if params.aq_version is not None %}
-.constant('aqVersion', '{{params.aq_version}}')
-{% else %}
-.constant('aqVersion', null)
-{% end %}
+.constant('deployInfo', {
+    devMode: {{'true' if params.dev_mode else 'false' }},
+    version: {% raw "\'%s\'" % params.aq_version if params.aq_version else 'null' %},
+})
 
 .constant('pageTitleSuffix', ' - {{theme.app_name_short}}')
 
-.run(function(Authz) {
-    var decls = {% raw params.authz_declarations %};
-    decls.forEach(function(decl) {
+.constant('authz_rules', {% raw params.authz_declarations %})
+
+.run(function(Authz, authz_rules) {
+    authz_rules.forEach(function(decl) {
         Authz.rootPolicy.declare(decl);
     });
 })

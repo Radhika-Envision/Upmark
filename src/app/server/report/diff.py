@@ -56,10 +56,8 @@ class DiffHandler(base_handler.BaseHandler):
         if not survey_id:
             raise errors.ModelError("Survey ID required")
 
-        include_scores = self.current_user.role != 'clerk'
-
         son, details = yield self.background_task(
-            program_id_a, program_id_b, survey_id, ignore_tags, include_scores)
+            program_id_a, program_id_b, survey_id, ignore_tags)
 
         for i, message in enumerate(details):
             self.add_header('Profiling', "%d %s" % (i, message))
@@ -70,11 +68,14 @@ class DiffHandler(base_handler.BaseHandler):
 
     @run_on_executor
     def background_task(
-            self, program_id_a, program_id_b, survey_id, ignore_tags,
-            include_scores):
+            self, program_id_a, program_id_b, survey_id, ignore_tags):
 
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
+
+            policy = user_session.policy.derive({})
+            include_scores = policy.check('submission_view_single_score')
+
             survey_a = (
                 session.query(model.Survey)
                 .get((survey_id, program_id_a)))
@@ -84,7 +85,9 @@ class DiffHandler(base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'survey_a': survey_a,
                 'survey_b': survey_b,
+                'surveygroups': survey_a.surveygroups & survey_b.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('report_diff_view')
 
             diff_engine = DiffEngine(

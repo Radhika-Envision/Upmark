@@ -82,7 +82,7 @@
         </li>
     </ul>
 
-    <p ng-if="!submissions.length">
+    <p ng-if="aSearch.organisation.id && !submissions.length">
         <i>{{aSearch.organisation.name}}</i> has no
         <span ng-if="search.term">
             matching
@@ -97,9 +97,18 @@
         <span ng-if="search.programId && !search.surveyId">
             for this program.
         </span>
-
-        <span ng-if="!purchasedSurvey && showEdit">
-            The survey must be purchased before a submission can be created.
+    </p>
+    <p ng-if="aSearch.organisation.id && !purchasedSurvey && showEdit">
+        <i class="fa fa-lock"></i>
+        The survey must be purchased before a submission can be created.
+        <span ng-if="!checkRole('survey_purchase')">
+            Please contact the survey manager.
+        </span>
+        <span ng-if="checkRole('survey_purchase')">
+            You can grant access to the survey on the
+            <a ng-href="#/2/org/{{aSearch.organisation.id}}/survey/add?program={{program.id}}"
+              >{{aSearch.organisation.name}} » Add Survey</a>
+            screen.
         </span>
     </p>
     <div class="text-center hidden-print">

@@ -5,6 +5,16 @@ angular.module('upmark.home', [
     'upmark.user'])
 
 
+.config(function($routeProvider) {
+    $routeProvider
+        .when('/:uv/', {
+            templateUrl : 'home.html',
+            controller : 'HomeCtrl'
+        })
+    ;
+})
+
+
 .factory('Activity', ['$resource', function($resource) {
     return $resource('/activity/:id.json', {}, {
         get: { method: 'GET', cache: false },
@@ -198,7 +208,8 @@ angular.module('upmark.home', [
 
 .controller('HomeCtrl',
         function($scope, Activity, Notifications, $q, format,
-            Authz, Card, hotkeys, ActivityTransform, Enqueue) {
+            Authz, Card, hotkeys, ActivityTransform, Enqueue,
+            currentUser, SurveyGroup) {
 
     $scope.acts = ActivityTransform;
     $scope.activity = null;
@@ -298,25 +309,30 @@ angular.module('upmark.home', [
 
     $scope.checkRole = Authz({});
 
-    $scope.showPost = false;
-    $scope.togglePost = function() {
-        $scope.showPost = !$scope.showPost;
-        $scope.resetPost();
-    };
-    $scope.resetPost = function() {
-        $scope.post = {
+    $scope.post = null;
+    $scope.newPost = function() {
+        $scope.post = new Activity({
             to: $scope.checkRole('post_to_all') ? 'all' : 'org',
             sticky: true,
-            message: ''
-        };
+            message: '',
+            surveygroups: currentUser.surveygroups,
+        });
+    };
+    $scope.cancelEdit = function() {
+        $scope.post = null;
+    };
+    $scope.deleteSurveygroup = function(i) {
+        $scope.post.surveygroups.splice(i, 1);
+    };
+    $scope.searchSurveygroup = function(term) {
+        return SurveyGroup.query({term: term}).$promise;
     };
 
     $scope.postMessage = function() {
-        Activity.create($scope.post).$promise.then(
+        $scope.post.$create().then(
             function success(action) {
                 $scope.goToNow();
-                $scope.showPost = false;
-                $scope.resetPost();
+                $scope.post = null;
                 Notifications.set('activity', 'success', "Posted", 5000);
             },
             function failure(details) {

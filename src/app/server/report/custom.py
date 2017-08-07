@@ -56,7 +56,9 @@ class CustomQueryReportHandler(base_handler.BaseHandler):
                 raise errors.MissingDocError("No such query")
 
             user_session = self.get_user_session(session)
-            policy = user_session.policy.derive({'custom_query': custom_query})
+            policy = user_session.policy.derive({
+                'custom_query': custom_query,
+            })
             policy.verify('custom_query_execute')
 
             if not custom_query.text:

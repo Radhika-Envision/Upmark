@@ -131,9 +131,13 @@ angular.module('upmark.submission.select', ['ui.select', 'upmark.user'])
                 }
             };
 
-            $scope.checkRole = Authz({
-                program: $scope.program,
-                org: $scope.org,
+            $scope.$watchGroup(['aSearch.organisation', 'program'], function(vals) {
+                var org = vals[0];
+                var program = vals[1];
+                $scope.checkRole = Authz({
+                    program: program,
+                    org: org,
+                });
             });
         }
     }

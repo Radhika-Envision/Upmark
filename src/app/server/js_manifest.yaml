@@ -69,6 +69,7 @@
         - /js/app.js
         - /js/admin-settings.js
         - /js/authz.js
+        - /js/cache-bust.js
         - /js/custom.js
         - /js/diff.js
         - /js/home.js
@@ -76,6 +77,8 @@
         - /js/notifications.js
         - /js/organisation.js
         - /js/response-type.js
+        - /js/root.js
+        - /js/route-version.js
         - /js/statistics.js
         - /js/subscription.js
         - /js/submission/approval.js
@@ -91,11 +94,13 @@
         - /js/survey/measure.js
         - /js/survey/program.js
         - /js/survey/qnode.js
+        - /js/surveygroup.js
         - /js/structure.js
         - /js/survey/survey.js
         - /js/system.js
         - /js/user.js
         - /js/utils/arrays.js
+        - /js/utils/chain.js
         - /js/utils/events.js
         - /js/utils/logging.js
         - /js/utils/math.js

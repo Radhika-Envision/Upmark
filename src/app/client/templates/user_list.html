@@ -2,7 +2,7 @@
     <div class="container">
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="Add new"
-                    ng-href="#/2/user/new{{org.id ? '?organisationId=' + org.id + '&orgName=' + org.name : ''}}"
+                    ng-href="#/2/user/new{{org.id ? '?organisationId=' + org.id : ''}}"
                     ng-if="checkRole('user_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
         </div>
@@ -29,7 +29,7 @@
     <tbody>
       <tr ng-repeat="user in users"
             ng-class="{strike: user.deleted || user.organisation.deleted}"
-            any-href='/2/user/{{user.id}}'">
+            any-href="/2/user/{{user.id}}">
         <td>{{user.name}}</td>
         <td ng-if="!hideOrg">{{user.organisation.name}}</td>
       </tr>

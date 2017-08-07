@@ -1,17 +1,17 @@
-__all__ = ['Activity', 'Subscription']
+__all__ = ['Activity', 'activity_surveygroup', 'Subscription']
 
 from datetime import datetime
-import logging
-import time
 
-from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Index, Text
+from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Index, \
+    Table, Text
 from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.orm import backref, relationship
-from sqlalchemy.schema import CheckConstraint, Index, UniqueConstraint
+from sqlalchemy.orm import relationship
+from sqlalchemy.schema import CheckConstraint, UniqueConstraint
 
 from .base import Base
 from .guid import GUID
 from .user import AppUser
+from .surveygroup import SurveyGroup
 
 
 class Activity(Base):
@@ -39,8 +39,10 @@ class Activity(Base):
     sticky = Column(Boolean, nullable=False, default=False)
 
     # Object reference (the entity being acted upon). The ob_type and ob_id_*
-    # columns are for looking up the target object (e.g. to create a hyperlink).
+    # columns are for looking up the target object (e.g. to create a
+    # hyperlink).
     ob_type = Column(Enum(
+        'surveygroup',
         'organisation', 'user',
         'program', 'survey', 'qnode', 'measure', 'response_type',
         'submission', 'rnode', 'response',
@@ -102,6 +104,7 @@ class Subscription(Base):
     # http://www.postgresql.org/docs/9.4/static/gin-intro.html
     # http://stackoverflow.com/questions/19959735/postgresql-gin-index-on-array-of-uuid
     ob_type = Column(Enum(
+        'surveygroup',
         'organisation', 'user',
         'program', 'survey', 'qnode', 'measure', 'response_type',
         'submission', 'rnode', 'response',
@@ -121,3 +124,19 @@ class Subscription(Base):
     )
 
     user = relationship(AppUser, backref='subscriptions')
+
+
+activity_surveygroup = Table(
+    'activity_surveygroup', Base.metadata,
+    Column('activity_id', GUID, ForeignKey('activity.id')),
+    Column('surveygroup_id', GUID, ForeignKey('surveygroup.id')),
+    Index('activity_surveygroup_organisation_id_index', 'activity_id'),
+    Index('activity_surveygroup_surveygroup_id_index', 'surveygroup_id'),
+)
+
+
+Activity.surveygroups = relationship(
+    SurveyGroup, secondary=activity_surveygroup,
+    collection_class=set, secondaryjoin=(
+        (SurveyGroup.id == activity_surveygroup.columns.surveygroup_id) &
+        (SurveyGroup.deleted == False)))

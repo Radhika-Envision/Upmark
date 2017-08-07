@@ -14,6 +14,7 @@ import model
 from score import Calculator
 from utils import ToSon, truthy, updater
 from .approval import APPROVAL_STATES
+from surveygroup_actions import filter_surveygroups
 
 
 log = logging.getLogger('app.crud.submission')
@@ -40,7 +41,9 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             policy = user_session.policy.derive({
                 'org': submission.organisation,
+                'surveygroups': submission.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('submission_view')
 
             to_son = ToSon(
@@ -90,16 +93,18 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             if organisation_id:
                 org = session.query(model.Organisation).get(organisation_id)
-            else:
-                org = None
+                if not org:
+                    raise errors.MissingDocError("No such organisation")
 
-            policy = user_session.policy.derive({
-                'org': org,
-            })
-
-            if org:
+                policy = user_session.policy.derive({
+                    'org': org,
+                    'surveygroups': org.surveygroups,
+                })
+                policy.verify('surveygroup_interact')
                 policy.verify('submission_browse')
+
             else:
+                policy = user_session.policy.derive({})
                 policy.verify('submission_browse_any')
 
             query = session.query(model.Submission)
@@ -109,10 +114,10 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
                     model.Submission.title.ilike(r'%{}%'.format(term)))
 
             if program_id:
-                query = query.filter_by(program_id=program_id)
+                query = query.filter(model.Submission.program_id == program_id)
 
             if survey_id:
-                query = query.filter_by(survey_id=survey_id)
+                query = query.filter(model.Submission.survey_id == survey_id)
 
             if approval:
                 approval_set = self.approval_set(approval)
@@ -121,7 +126,8 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
                     model.Submission.approval.in_(approval_set))
 
             if organisation_id:
-                query = query.filter_by(organisation_id=organisation_id)
+                query = query.filter(
+                    model.Submission.organisation_id == organisation_id)
 
             if tracking_id:
                 query = query.join(model.Program)
@@ -130,6 +136,13 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
             if deleted:
                 deleted = truthy(deleted)
                 query = query.filter(model.Submission.deleted == deleted)
+
+            if not policy.check('surveygroup_interact_all'):
+                query = filter_surveygroups(
+                    session, query, user_session.user.id,
+                    [model.Organisation, model.Program], [
+                        model.organisation_surveygroup,
+                        model.program_surveygroup])
 
             query = query.order_by(model.Submission.created.desc())
             query = self.paginate(query)
@@ -188,47 +201,56 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
             if not survey:
                 raise errors.ModelError("No such survey")
 
+            if duplicate_id:
+                source_submission = (
+                    session.query(model.Submission)
+                    .get(duplicate_id))
+                if not source_submission:
+                    raise errors.MissingDocError(
+                        "Source submission (for duplication) not found")
+                if source_submission.organisation != org:
+                    raise errors.ModelError(
+                        "Can't duplicate a submission across two "
+                        "organisations: '%s' and '%s'" % (
+                            source_submission.organisation.name,
+                            org.name))
+            else:
+                source_submission = None
+
+            submission = model.Submission(
+                program=survey.program, survey=survey,
+                organisation=org, approval='draft')
+            self._update(submission, self.request_son)
+            session.add(submission)
+
+            surveygroups = submission.surveygroups
+            if source_submission:
+                surveygroups &= source_submission.surveygroups
+
             policy = user_session.policy.derive({
                 'org': org,
                 'survey': survey,
+                'surveygroups': surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('submission_add')
 
-            submission = model.Submission(
-                program_id=program_id, survey_id=survey_id,
-                organisation_id=organisation_id, approval='draft')
-            self._update(submission, self.request_son)
-            session.add(submission)
             session.flush()
             submission_id = str(submission.id)
 
-            if duplicate_id:
+            if source_submission:
                 yield SubmissionHandler.executor.submit(
-                    self.duplicate, submission, duplicate_id, session)
+                    self.duplicate, submission, source_submission, session)
 
             act = Activities(session)
-            act.record(self.current_user, submission, ['create'])
-            if not act.has_subscription(self.current_user, submission):
-                act.subscribe(self.current_user, submission.organisation)
-                self.reason("Subscribed to organisation")
+            act.record(user_session.user, submission, ['create'])
+            act.ensure_subscription(
+                user_session.user, submission, submission.organisation,
+                self.reason)
 
         self.get(submission_id)
 
-    def duplicate(self, submission, duplicate_id, session):
-        s_submission = session.query(model.Submission).get(duplicate_id)
-        if s_submission is None:
-            raise errors.MissingDocError(
-                "Source submission (for duplication) not found")
-
-        s_org_id = str(s_submission.organisation_id)
-        org_id = str(submission.organisation_id)
-        if s_org_id != org_id:
-            raise errors.ModelError(
-                "Can't duplicate a submission across two organisations: "
-                "'%s' and '%s'" % (
-                    s_submission.organisation.name,
-                    submission.organisation.name))
-
+    def duplicate(self, submission, s_submission, session):
         measure_ids = {
             str(qm.measure_id)
             for qm in submission.survey.ordered_qnode_measures}
@@ -315,7 +337,9 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'org': submission.organisation,
                 'approval': approval,
+                'surveygroups': submission.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('submission_edit')
 
             verbs = []
@@ -333,10 +357,10 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
                 verbs.append('undelete')
 
             act = Activities(session)
-            act.record(self.current_user, submission, verbs)
-            if not act.has_subscription(self.current_user, submission):
-                act.subscribe(self.current_user, submission.organisation)
-                self.reason("Subscribed to organisation")
+            act.record(user_session.user, submission, verbs)
+            act.ensure_subscription(
+                user_session.user, submission, submission.organisation,
+                self.reason)
 
         self.get(submission_id)
 
@@ -348,22 +372,25 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
-            submission = session.query(model.Submission)\
-                .get(submission_id)
+            submission = (
+                session.query(model.Submission)
+                .get(submission_id))
             if not submission:
                 raise errors.MissingDocError("No such submission")
 
             policy = user_session.policy.derive({
                 'org': submission.organisation,
+                'surveygroups': submission.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('submission_del')
 
             act = Activities(session)
             if not submission.deleted:
-                act.record(self.current_user, submission, ['delete'])
-            if not act.has_subscription(self.current_user, submission):
-                act.subscribe(self.current_user, submission.organisation)
-                self.reason("Subscribed to organisation")
+                act.record(user_session.user, submission, ['delete'])
+            act.ensure_subscription(
+                user_session.user, submission, submission.organisation,
+                self.reason)
 
             submission.deleted = True
 

@@ -1,7 +1,39 @@
 'use strict'
 
 angular.module('upmark.user', [
-    'ngResource', 'upmark.notifications', 'vpac.utils.requests'])
+    'ngResource', 'upmark.notifications', 'vpac.utils.requests',
+    'upmark.chain', 'upmark.surveygroup'])
+
+
+.config(function($routeProvider, chainProvider) {
+    $routeProvider
+        .when('/:uv/users', {
+            templateUrl : 'user_list.html',
+            controller : 'UserListCtrl'
+        })
+        .when('/:uv/user/new', {
+            templateUrl : 'user.html',
+            controller : 'UserCtrl',
+            resolve: {routeData: chainProvider({
+                org: ['Organisation', '$location', 'currentUser', function(
+                        Organisation, $location, currentUser) {
+                    var orgId = $location.search().organisationId ||
+                        currentUser.organisation.id;
+                    return Organisation.get({id: orgId}).$promise;
+                }],
+            })},
+        })
+        .when('/:uv/user/:id', {
+            templateUrl : 'user.html',
+            controller : 'UserCtrl',
+            resolve: {routeData: chainProvider({
+                user: ['User', '$route', function(User, $route) {
+                    return User.get($route.current.params).$promise;
+                }]
+            })}
+        })
+    ;
+})
 
 
 .factory('User', ['$resource', 'paged', function($resource, paged) {
@@ -13,7 +45,7 @@ angular.module('upmark.user', [
             interceptor: {response: paged}
         },
         create: { method: 'POST', cache: false },
-        impersonate: { method: 'PUT', url: '/login/:id', cache: false }
+        impersonate: { method: 'PUT', url: '/impersonate/:id', cache: false }
     });
 }])
 
@@ -25,32 +57,25 @@ angular.module('upmark.user', [
 }])
 
 
-.factory('Roles', ['$resource', function($resource) {
-    var Roles = $resource('/roles.json', {}, {
-        get: { method: 'GET', isArray: true, cache: false }
+.factory('roles', function(authz_rules) {
+    var roles = authz_rules.filter(function(rule) {
+        return rule.tags && rule.tags.indexOf('role') >= 0;
+    }).map(function(rule) {
+        return {
+            id: rule.name,
+            name: rule.human_name,
+            description: rule.description,
+        };
     });
-
-    Roles.hierarchy = {
-        'admin': ['author', 'authority', 'consultant', 'org_admin', 'clerk'],
-        'author': [],
-        'authority': ['consultant'],
-        'consultant': [],
-        'org_admin': ['clerk'],
-        'clerk': []
+    roles.$find = function(id) {
+        return roles.filter(
+            function(role) {
+                return role.id == id;
+            }
+        )[0];
     };
-
-    Roles.hasPermission = function(currentRole, targetRole) {
-        if (!currentRole)
-            return false;
-        if (targetRole == currentRole)
-            return true;
-        if (Roles.hierarchy[currentRole].indexOf(targetRole) >= 0)
-            return true;
-        return false;
-    };
-
-    return Roles;
-}])
+    return roles;
+})
 
 
 .factory('checkLogin', ['$q', 'User', '$cookies', '$http',
@@ -68,8 +93,8 @@ angular.module('upmark.user', [
 
 .controller('UserCtrl', function(
         $scope, User, routeData, Editor, Organisation, Authz,
-        $window, $location, log, Notifications, currentUser, $q,
-        Password, format) {
+        $window, $location, Notifications, currentUser, $q,
+        Password, format, roles, SurveyGroup) {
 
     $scope.edit = Editor('user', $scope);
     if (routeData.user) {
@@ -77,19 +102,16 @@ angular.module('upmark.user', [
         $scope.user = routeData.user;
     } else {
         // Creating new
-        var org;
-        if ($location.search().organisationId) {
-            org = {
-                id: $location.search().organisationId,
-                name: $location.search().orgName
-            };
-        } else {
-            org = currentUser.organisation;
-        }
+        var ownSurveygroupIds = currentUser.surveygroups.map(function(surveygroup) {
+            return surveygroup.id;
+        });
         $scope.user = new User({
             role: 'clerk',
-            organisation: org,
+            organisation: routeData.org,
             emailInterval: 86400,
+            surveygroups: routeData.org.surveygroups.filter(function(surveygroup) {
+                return ownSurveygroupIds.indexOf(surveygroup.id) >= 0;
+            }),
         });
         $scope.edit.edit();
     }
@@ -102,7 +124,7 @@ angular.module('upmark.user', [
             '/2/org/{}', model.organisation.id));
     });
 
-    $scope.roles = routeData.roles;
+    $scope.roles = roles;
     $scope.roleDict = {};
     for (var i in $scope.roles) {
         var role = $scope.roles[i];
@@ -144,6 +166,14 @@ angular.module('upmark.user', [
             }
         );
     });
+
+    $scope.deleteSurveygroup = function(i) {
+        $scope.edit.model.surveygroups.splice(i, 1);
+    };
+
+    $scope.searchSurveygroup = function(term) {
+        return SurveyGroup.query({term: term}).$promise;
+    };
 })
 
 

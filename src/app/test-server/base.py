@@ -5,6 +5,7 @@ import os
 import unittest
 from unittest import mock
 
+from sqlalchemy.orm import object_session
 from sqlalchemy.sql import func
 from tornado.escape import json_decode, json_encode
 from tornado.testing import AsyncHTTPTestCase
@@ -13,7 +14,7 @@ from tornado.web import Application
 import app
 import model
 from score import Calculator
-from utils import denormalise
+from utils import denormalise, ToSon
 
 
 app.parse_options()
@@ -24,28 +25,36 @@ log = logging.getLogger('app.test.test_model')
 
 def get_secure_cookie(user_email=None, super_email=None):
     def _get_secure_cookie(self, name):
-        if name == 'user' and user_email is not None:
+        if name == 'user':
             with model.session_scope() as session:
-                user = session.query(model.AppUser).\
+                if not user_email:
+                    return None
+
+                user = (
+                    session.query(model.AppUser).
                     filter(func.lower(model.AppUser.email) ==
-                           func.lower(user_email)).one()
-                return str(user.id).encode('utf8')
-        elif name == 'superuser' and super_email is not None:
-            with model.session_scope() as session:
-                user = session.query(model.AppUser).\
-                    filter(func.lower(model.AppUser.email) ==
-                           func.lower(super_email)).one()
-                return str(user.id).encode('utf8')
+                           func.lower(user_email)).one())
+                user_cookie = 'user={}'.format(user.id)
+
+                if super_email is not None:
+                    superuser = (
+                        session.query(model.AppUser).
+                        filter(func.lower(model.AppUser.email) ==
+                               func.lower(super_email)).one())
+                    user_cookie += ', superuser={}'.format(superuser.id)
+
+                return user_cookie.encode('utf8')
+
         else:
             return None
 
     return _get_secure_cookie
 
 
-def mock_user(email):
+def mock_user(user_email=None, super_email=None):
     return mock.patch(
         'tornado.web.RequestHandler.get_secure_cookie',
-        get_secure_cookie(user_email=email))
+        get_secure_cookie(user_email=user_email, super_email=super_email))
 
 
 def print_survey(survey):
@@ -113,6 +122,7 @@ class AqModelTestBase(LoggingTestCase):
         model.drop_analyst_user()
         model.create_analyst_user()
         model.connect_db_ro(os.environ.get('DATABASE_URL'))
+        self.create_survey_groups()
         self.create_org_structure()
         self.create_program_structure()
         self.assign_access()
@@ -140,59 +150,118 @@ class AqModelTestBase(LoggingTestCase):
             for table in tables:
                 session.execute("TRUNCATE TABLE %s CASCADE" % table)
 
+    def create_survey_groups(self):
+        with model.session_scope() as session:
+            group1 = model.SurveyGroup(title="apple")
+            session.add(group1)
+
+            group2 = model.SurveyGroup(title="banana")
+            session.add(group2)
+
+    def set_groups(self, entity, *group_names):
+        '''
+        Assign an entity to survey groups by name.
+        '''
+        session = object_session(entity)
+        groups = (
+            session.query(model.SurveyGroup)
+            .filter(model.SurveyGroup.title.in_(group_names))
+            .all())
+        entity.surveygroups = set(groups)
+
+    def get_groups_son(self, session, *group_names):
+        surveygroups = (
+            session.query(model.SurveyGroup)
+            .filter(model.SurveyGroup.title.in_(group_names))
+            .all())
+        to_son = ToSon(
+            r'/id$',
+            r'/title$',
+            r'/[0-9]+$',
+        )
+        return to_son(surveygroups)
+
     def create_org_structure(self):
         def fast_password_hash():
-            return mock.patch(
-                'model.password.HASH_ROUNDS',
-                1000)
+            return mock.patch('model.password.HASH_ROUNDS', 1000)
 
-        # with model.session_scope() as session:
         with model.session_scope() as session, fast_password_hash():
+            # The host organisation, in all survey groups.
             org1 = model.Organisation(
                 name='Primary',
-                url='http://primary.org',
+                url='http://primary.example',
                 locations=[model.OrgLocation(
                     description="Nowhere", region="Nowhere")],
                 meta=model.OrgMeta(asset_types=['water wholesale']))
             session.add(org1)
+            self.set_groups(org1, 'apple', 'banana')
 
-            org2 = model.Organisation(
-                name='Utility',
-                url='http://utility.org',
-                locations=[model.OrgLocation(
-                    description="Somewhere", region="Somewhere")],
-                meta=model.OrgMeta(asset_types=['water local']))
-            session.add(org2)
+            user = model.AppUser(
+                name='Super Admin', email='super_admin', role='super_admin',
+                organisation=org1, password='foo')
+            session.add(user)
 
             user = model.AppUser(
                 name='Admin', email='admin', role='admin',
                 organisation=org1, password='foo')
             session.add(user)
+            self.set_groups(user, 'apple')
 
             user = model.AppUser(
                 name='Author', email='author', role='author',
                 organisation=org1, password='bar')
             session.add(user)
+            self.set_groups(user, 'apple')
 
             user = model.AppUser(
                 name='Authority', email='authority', role='authority',
                 organisation=org1, password='bar')
             session.add(user)
+            self.set_groups(user, 'apple')
 
             user = model.AppUser(
                 name='Consultant', email='consultant', role='consultant',
                 organisation=org1, password='bar')
             session.add(user)
+            self.set_groups(user, 'apple')
+
+            # An organisation in the Apple survey group.
+            org2 = model.Organisation(
+                name='Utility',
+                url='http://utility.example',
+                locations=[model.OrgLocation(
+                    description="Somewhere", region="Somewhere")],
+                meta=model.OrgMeta(asset_types=['water local']))
+            session.add(org2)
+            self.set_groups(org2, 'apple')
 
             user = model.AppUser(
                 name='Org Admin', email='org_admin', role='org_admin',
                 organisation=org2, password='bar')
             session.add(user)
+            self.set_groups(user, 'apple')
 
             user = model.AppUser(
                 name='Clerk', email='clerk', role='clerk',
                 organisation=org2, password='bar')
             session.add(user)
+            self.set_groups(user, 'apple')
+
+            # Another organisation in the Banana survey group.
+            org3 = model.Organisation(
+                name='Banana Utility',
+                url='http://banana.example',
+                locations=[model.OrgLocation(
+                    description="Somewhere", region="Somewhere")],
+                meta=model.OrgMeta(asset_types=['water local']))
+            session.add(org3)
+            self.set_groups(org3, 'banana')
+
+            user = model.AppUser(
+                name='Banana Clerk', email='clerk_b', role='clerk',
+                organisation=org3, password='bar')
+            session.add(user)
+            self.set_groups(user, 'banana')
 
     def create_program_structure(self):
         proj_dir = os.path.join(
@@ -412,6 +481,7 @@ class AqModelTestBase(LoggingTestCase):
                 title='Test Program 1',
                 description="This is a test program")
             session.add(program)
+            self.set_groups(program, 'apple')
 
             # Create response types
             rts = {}

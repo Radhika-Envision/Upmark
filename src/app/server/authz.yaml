@@ -5,35 +5,69 @@
 
 # Roles
 
+ -  name: super_admin
+    human_name: Super administrator
+    tags: [role]
+    description: >-
+        Super administrators can create and manage survey groups, and do
+        everything that administrators can do.
+    failure: "you are not a super administrator"
+    expression: 's.user.role == "super_admin"'
+
  -  name: admin
-    description: "the administrator role"
+    human_name: Administrator
+    tags: [role]
+    description: >-
+        Administrators can create organisations in their own survey groups,
+        and do everything that authorities, authors and organisation
+        administrators can do.
     failure: "you are not an administrator"
-    expression: 's.has_role("admin")'
+    expression: 's.user.role == "admin" or @super_admin'
 
  -  name: author
-    description: "the author role"
+    human_name: Author
+    tags: [role]
+    description: >-
+        Authors can create surveys in their own survey groups.
     failure: "you are not an author"
-    expression: 's.has_role("author")'
+    expression: 's.user.role == "author" or @admin'
 
  -  name: authority
-    description: "authority role"
+    human_name: Authority
+    tags: [role]
+    description: >-
+        Authorities can mark responses and submissions in their own survey
+        groups as "Approved", and do everything that consultants can do.
     failure: "you are not an authority"
-    expression: 's.has_role("authority")'
-
- -  name: clerk
-    description: "the clerk role"
-    failure: "you are not a clerk"
-    expression: 's.has_role("clerk")'
+    expression: 's.user.role == "authority" or @admin'
 
  -  name: consultant
-    description: "the consultant role"
+    human_name: Consultant
+    tags: [role]
+    description: >-
+        Consultants can respond to surveys in their own survey groups on behalf
+        of other organisations, and mark submissions and responses as
+        "Reviewed".
     failure: "you are not a consultant"
-    expression: 's.has_role("consultant")'
+    expression: 's.user.role == "consultant" or @authority'
 
  -  name: org_admin
-    description: "the organisation admin role"
+    human_name: Organisation administrator
+    tags: [role]
+    description: >-
+        Organisation administrators can create new users in their own
+        organisation, and do everything that clerks can do.
     failure: "you are not an organisation administrator"
-    expression: 's.has_role("org_admin")'
+    expression: 's.user.role == "org_admin" or @admin'
+
+ -  name: clerk
+    human_name: Clerk
+    tags: [role]
+    description: >-
+        Clerks can respond to surveys in their own survey groups on behalf of
+        their own organisation, and mark responses and submissions as "Final".
+    failure: "you are not a clerk"
+    expression: 's.user.role == "clerk" or @org_admin'
 
 
 # Admin
@@ -46,12 +80,74 @@
  -  name: conf_edit
     description: "permission to edit system config"
     failure: "you can't edit system config"
-    expression: '@admin'
+    expression: '@super_admin'
 
  -  name: conf_del
     description: "permission to edit system config"
     failure: "you can't edit system config"
-    expression: '@admin'
+    expression: '@super_admin'
+
+
+# Group
+
+ -  name: _own_surveygroup
+    description: "you belong to the survey group"
+    failure: "you are not a memeber of that survey group"
+    expression:
+        server: 's.member_of_any(surveygroups)'
+        client: 'True'
+
+ -  name: _super_surveygroup
+    description: "your true user belongs to the survey group"
+    failure: "your true user is not a memeber of that survey group"
+    expression:
+        server: 's.super_is_member_of_any(surveygroups)'
+        client: 'True'
+
+ -  name: surveygroup_add
+    description: "permission to add a new survey group"
+    failure: "you can't add that survey group"
+    expression: '@super_admin'
+
+ -  name: surveygroup_browse
+    description: "permission to browse survey groups"
+    failure: "you can't browse survey groups"
+    expression: 'True'
+
+ -  name: surveygroup_browse_all
+    description: "permission to browse all survey groups"
+    failure: "you can only browse your own survey groups"
+    expression: '@super_admin'
+
+ -  name: surveygroup_del
+    description: "permission to delete a survey group"
+    failure: "you can't delete that survey group"
+    expression: '@super_admin'
+
+ -  name: surveygroup_edit
+    description: "permission to edit a survey group"
+    failure: "you can't edit that survey group"
+    expression: '@super_admin'
+
+ -  name: surveygroup_view
+    description: "permission to view a survey group"
+    failure: "you can't view that survey group"
+    expression: '@super_admin or @_own_surveygroup'
+
+ -  name: surveygroup_interact
+    description: "permission to view an entity based on its survey groups"
+    failure: "you are not a member of any of that entity's survey groups"
+    expression: '@surveygroup_interact_all or @_own_surveygroup'
+
+ -  name: surveygroup_interact_all
+    description: "permission to view any entity regardless of survey group"
+    failure: "you can only view entities in your own survey groups"
+    expression: '@super_admin'
+
+ -  name: surveygroup_delegate
+    description: "permission to add or remove an entity from survey groups"
+    failure: "you can't add or remove entities from that survey group"
+    expression: '@super_admin or @_own_surveygroup'
 
 
 # User
@@ -106,10 +202,27 @@
     failure: "you can't enable that user"
     expression: '@user_add'
 
+ -  name: _super_ensure_rank
+    description: "your rank is high enough"
+    failure: "your rank is too low"
+    expression:
+        server: >-
+            s.superuser.role == 'super_admin' or
+            s.superuser.role == 'admin' and user.role != 'super_admin'
+        client: 's.superuser'
+
+ -  name: user_try_impersonate
+    description: "in-principle permission to impersonate"
+    failure: "you can't attempt to impersonate"
+    expression: '@admin'
+
  -  name: user_impersonate
     description: "permission to impersonate another user"
     failure: "you can't impersonate that user"
-    expression: 'not @_own_user and s.superuser'
+    expression: >-
+        s.superuser and (
+            (s.superuser.role == 'super_admin') or (
+                @_super_ensure_rank and @_super_surveygroup))
 
 
 # Organisation
@@ -126,7 +239,7 @@
 
  -  name: org_view
     description: "permission to view an organisation"
-    failure: "you can't view an organisation"
+    failure: "you can't view that organisation"
     expression: 'True'
 
  -  name: org_add
@@ -136,12 +249,12 @@
 
  -  name: org_del
     description: "permission to delete an organisation"
-    failure: "you can't delete an organisation"
+    failure: "you can't delete that organisation"
     expression: '@org_add and not @_own_org'
 
  -  name: org_edit
     description: "permission to edit an organisation"
-    failure: "you can't modify an organisation"
+    failure: "you can't modify that organisation"
     expression: '@org_add or (@org_admin and @_own_org)'
 
 
@@ -167,8 +280,8 @@
     expression: '@admin'
 
  -  name: post_pin
-    description: "permission to edit a post"
-    failure: "you can't modify that post"
+    description: "permission to pin a post"
+    failure: "you can't pin that post"
     expression: '@admin or (@org_admin and @_own_org)'
 
  -  name: post_edit
@@ -177,8 +290,8 @@
     expression: '@post_add'
 
  -  name: post_del
-    description: "permission to edit a post"
-    failure: "you can't modify that post"
+    description: "permission to delete a post"
+    failure: "you can't delete that post"
     expression: '@post_add'
 
  -  name: post_edit_try
@@ -232,28 +345,27 @@
  -  name: measure_add
     description: "permission to add a new measure"
     failure: "you can't add that measure"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: measure_del
     description: "permission to delete a measure"
     failure: "you can't delete that measure"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: measure_edit
     description: "permission to edit a measure"
     failure: "you can't modify that measure"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: measure_view
     description: "permission to view a measure"
     failure: "you can't view that measure"
-    expression: '@program_view'
+    expression: '@author or @survey_view'
 
  -  name: program_view
     description: "permission to view a program"
     failure: "you can't view that program"
-    expression: >-
-        @author or @consultant or @_purchased_survey
+    expression: 'True'
 
  -  name: program_add
     description: "permission to add a new program"
@@ -263,7 +375,7 @@
  -  name: program_del
     description: "permission to delete a program"
     failure: "you can't delete that program"
-    expression: '@program_add'
+    expression: '@author'
 
  -  name: program_dup
     description: "permission to duplicate a program"
@@ -280,7 +392,7 @@
  -  name: program_node_edit
     description: "permission to edit a program node"
     failure: "you can't edit that program node"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: program_state
     description: "permission to change a program's state"
@@ -290,57 +402,58 @@
  -  name: qnode_add
     description: "permission to add a new category"
     failure: "you can't add that category"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: qnode_del
     description: "permission to delete a category"
     failure: "you can't delete that category"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: qnode_edit
     description: "permission to edit a category"
     failure: "you can't edit that category"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: qnode_view
     description: "permission to edit a category"
     failure: "you can't edit that category"
-    expression: '@program_view'
+    expression: '@survey_view'
 
  -  name: response_type_add
     description: "permission to add a new response type"
     failure: "you can't add that response type"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: response_type_del
     description: "permission to delete a response type"
     failure: "you can't delete that response type"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: response_type_edit
     description: "permission to edit a response type"
     failure: "you can't edit that response type"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: response_type_view
     description: "permission to view a response type"
     failure: "you can't view that response type"
-    expression: '@program_view'
+    expression: >-
+        (@author and @program_view) or @survey_view
 
  -  name: survey_add
     description: "permission to create a survey"
     failure: "you can't create that survey"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: survey_del
     description: "permission to delete a survey"
     failure: "you can't delete that survey"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: survey_edit
     description: "permission to edit a survey"
     failure: "you can't edit that survey"
-    expression: '@program_edit'
+    expression: '@author'
 
  -  name: survey_purchase
     description: "permission to give access to a survey"
@@ -350,12 +463,7 @@
  -  name: survey_view
     description: "permission to view a survey"
     failure: "you can't view that survey"
-    expression: '@program_view'
-
- -  name: survey_export
-    description: "permission to export a survey"
-    failure: "you can't export that survey"
-    expression: '@survey_view'
+    expression: '@author or @consultant or @_purchased_survey'
 
 
 # Submission
@@ -467,44 +575,50 @@
  -  name: custom_query_browse
     description: "permission to browse custom queries"
     failure: "you can't browse custom queries"
-    expression: '@admin'
+    expression: '@super_admin'
 
  -  name: custom_query_view
     description: "permission to view custom queries"
     failure: "you can't view custom queries"
-    expression: '@admin'
+    expression: '@super_admin'
 
  -  name: custom_query_add
     description: "permission to create custom queries"
     failure: "you can't create custom queries"
-    expression: '@admin'
+    expression: '@super_admin'
 
  -  name: custom_query_edit
     description: "permission to edit custom queries"
     failure: "you can't edit custom queries"
-    expression: '@admin'
+    expression: '@super_admin'
 
  -  name: custom_query_del
     description: "permission to delete custom queries"
     failure: "you can't delete custom queries"
-    expression: '@admin'
+    expression: '@super_admin'
 
  -  name: custom_query_preview
     description: "permission to preview a custom report"
     failure: "you can't preview that custom report"
-    expression: '@admin'
+    expression: '@super_admin'
 
  -  name: custom_query_execute
     description: "permission to run a saved custom report"
     failure: "you can't run that saved custom report"
-    expression: '@admin'
+    expression: '@super_admin'
+
+ -  name: _min_approval
+    description: "the approval level is high enough"
+    failure: "the approval level is not high enough"
+    expression:
+        server: 'index(approval) >= index(survey.min_stats_approval)'
+        client: 'True'
 
  -  name: report_chart
     description: "permission to view a chart"
     failure: "you can't view that chart"
     expression: >-
-        (@consultant or @_purchased_survey) and
-        (index(approval) >= index(survey.min_stats_approval))
+        (@consultant or @_purchased_survey) and @_min_approval
 
  -  name: report_temporal
     description: "permission to view a temporal report"
@@ -523,12 +637,12 @@
     expression: '@consultant'
 
  -  name: report_diff_view
-    description: "permission to view the difference between two survey_purchase"
+    description: "permission to view the difference between two surveys"
     failure: "you can't view the difference between those two surveys"
     expression: '@author'
 
  -  name: report_survey_export
-    description: "permission to export a surveyId"
+    description: "permission to export a survey"
     failure: "you can't export that survey"
     expression: '@survey_view'
 

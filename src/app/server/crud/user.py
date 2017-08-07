@@ -10,6 +10,7 @@ import base_handler
 import config
 import errors
 import model
+from surveygroup_actions import assign_surveygroups, filter_surveygroups
 from utils import ToSon, truthy, updater
 
 
@@ -45,33 +46,45 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             self.query()
             return
 
-        if user_id == 'current':
-            user_id = str(self.current_user.id)
-
         with model.session_scope() as session:
-            user = session.query(model.AppUser).\
-                options(joinedload('organisation')).get(user_id)
-            if not user:
-                raise errors.MissingDocError("No such user")
-
             user_session = self.get_user_session(session)
-            policy = user_session.policy.derive({'user': user})
+
+            if user_id == 'current':
+                user = user_session.user
+            else:
+                user = (
+                    session.query(model.AppUser)
+                    .options(joinedload('organisation'))
+                    .options(joinedload('surveygroups'))
+                    .get(user_id))
+                if not user:
+                    raise errors.MissingDocError("No such user")
+
+            policy = user_session.policy.derive({
+                'user': user,
+                'surveygroups': user.surveygroups,
+            })
+            policy.verify('surveygroup_interact')
             policy.verify('user_view')
 
             to_son = ToSon(
                 r'/id$',
                 r'/name$',
+                r'/title$',
                 r'/email$',
                 r'/email_interval$',
                 r'/role$',
                 r'/deleted$',
                 # Descend into nested objects
                 r'/organisation$',
+                r'/[0-9+]$',
                 # Exclude password from response. Not really necessary because
                 # 1. it's hashed and 2. it's not in the list above. But just to
                 # be safe.
                 r'!password',
             )
+            if policy.check('surveygroup_browse'):
+                to_son.add(r'^/surveygroups$')
             son = to_son(user)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -84,23 +97,29 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
 
         sons = []
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             organisation_id = self.get_argument("organisationId", None)
             if organisation_id:
                 org = session.query(model.Organisation).get(organisation_id)
             else:
                 org = None
 
-            user_session = self.get_user_session(session)
-            policy = user_session.policy.derive({'org': org})
+            policy = user_session.policy.derive({
+                'org': org,
+            })
             policy.verify('user_browse')
 
             query = (
                 session.query(model.AppUser)
-                .join(
-                    model.Organisation,
-                    model.Organisation.id == model.AppUser.organisation_id))
+                .join(model.Organisation))
 
-            if organisation_id is not None:
+            if not policy.check('surveygroup_interact_all'):
+                query = filter_surveygroups(
+                    session, query, user_session.user.id,
+                    [], [model.user_surveygroup])
+
+            if organisation_id:
                 query = query.filter(model.Organisation.id == organisation_id)
 
             term = self.get_argument('term', None)
@@ -163,6 +182,8 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             raise errors.ModelError.from_voluptuous(e)
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             org = (
                 session.query(model.Organisation)
                 .get(self.request_son['organisation']['id']))
@@ -171,12 +192,18 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             user = model.AppUser(organisation=org)
 
-            user_session = self.get_user_session(session)
+            try:
+                assign_surveygroups(user_session, user, self.request_son)
+            except ValueError as e:
+                raise errors.ModelError(str(e))
+
             policy = user_session.policy.derive({
                 'org': user.organisation,
                 'user': user,
                 'target': self.request_son,
+                'surveygroups': user.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('user_add')
             policy.verify('user_change_role')
             self.check_password(self.request_son.password)
@@ -188,10 +215,9 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             session.flush()
 
             act = Activities(session)
-            act.record(self.current_user, user, ['create'])
-            if not act.has_subscription(self.current_user, user):
-                act.subscribe(self.current_user, user.organisation)
-                self.reason("Subscribed to organisation")
+            act.record(user_session.user, user, ['create'])
+            act.ensure_subscription(
+                user_session.user, user, user.organisation, self.reason)
             act.subscribe(user, user.organisation)
             self.reason("New user subscribed to organisation")
 
@@ -212,16 +238,25 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             raise errors.ModelError.from_voluptuous(e)
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             user = session.query(model.AppUser).get(user_id)
             if not user:
                 raise errors.MissingDocError("No such user")
 
-            user_session = self.get_user_session(session)
+            try:
+                groups_changed = assign_surveygroups(
+                    user_session, user, self.request_son)
+            except ValueError as e:
+                raise errors.ModelError(str(e))
+
             policy = user_session.policy.derive({
                 'org': user.organisation,
                 'user': user,
                 'target': self.request_son,
+                'surveygroups': user.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('user_edit')
 
             if self.request_son.role and self.request_son.role != user.role:
@@ -235,15 +270,15 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
                 self.check_password(self.request_son.password)
 
             verbs = []
-            oid = self.request_son.get('organisation', {}).get('id')
-            if oid and oid != str(user.organisation_id):
+            oid = self.request_son.organisation.id
+            if oid != str(user.organisation_id):
                 policy.verify('user_change_org')
                 verbs.append('relation')
 
             self._update(user, self.request_son, session)
 
             act = Activities(session)
-            if session.is_modified(user):
+            if session.is_modified(user) or groups_changed:
                 verbs.append('update')
 
             if user.deleted:
@@ -252,10 +287,9 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             session.flush()
             if len(verbs) > 0:
-                act.record(self.current_user, user, verbs)
-                if not act.has_subscription(self.current_user, user):
-                    act.subscribe(self.current_user, user.organisation)
-                    self.reason("Subscribed to organisation")
+                act.record(user_session.user, user, verbs)
+                act.ensure_subscription(
+                    user_session.user, user, user.organisation, self.reason)
                 if not act.has_subscription(user, user):
                     act.subscribe(user, user.organisation)
                     self.reason("User subscribed to organisation")
@@ -268,23 +302,25 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
             raise errors.MethodError("User ID required")
 
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             user = session.query(model.AppUser).get(user_id)
             if not user:
                 raise errors.MissingDocError("No such user")
 
-            user_session = self.get_user_session(session)
             policy = user_session.policy.derive({
                 'org': user.organisation,
                 'user': user,
+                'surveygroups': user.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('user_del')
 
             act = Activities(session)
             if not user.deleted:
-                act.record(self.current_user, user, ['delete'])
-            if not act.has_subscription(self.current_user, user):
-                act.subscribe(self.current_user, user.organisation)
-                self.reason("Subscribed to organisation")
+                act.record(user_session.user, user, ['delete'])
+            act.ensure_subscription(
+                user_session.user, user, user.organisation, self.reason)
 
             user.deleted = True
 
@@ -307,13 +343,12 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
         update('role', son)
         update('password', son)
 
-        if son.get('organisation', '') != '':
-            org = (
-                session.query(model.Organisation)
-                .get(self.request_son['organisation']['id']))
-            if org is None:
-                raise errors.ModelError("No such organisation")
-            user.organisation = org
+        org = (
+            session.query(model.Organisation)
+            .get(son.organisation.id))
+        if not org:
+            raise errors.ModelError("No such organisation")
+        user.organisation = org
 
 
 class PasswordHandler(base_handler.BaseHandler):

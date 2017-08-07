@@ -20,16 +20,17 @@ import old_deps.guid as guid
 
 
 def upgrade():
-    op.create_table('activity',
+    op.create_table(
+        'activity',
         sa.Column('id', guid.GUID(), nullable=False),
         sa.Column('created', sa.DateTime(), nullable=False),
         sa.Column('subject_id', guid.GUID(), nullable=False),
         sa.Column(
             'verbs', postgresql.ARRAY(sa.Enum(
-                'boradcast',
+                'broadcast',
                 'create', 'update', 'state', 'delete',
                 'relation', 'reorder_children',
-                native_enum=False)),
+                native_enum=False, create_constraint=False)),
             nullable=False),
         sa.Column('message', sa.Text(), nullable=True),
         sa.Column('sticky', sa.Boolean(), nullable=False),
@@ -41,16 +42,16 @@ def upgrade():
         sa.Column('ob_ids', postgresql.ARRAY(guid.GUID()), nullable=False),
         sa.Column('ob_refs', postgresql.ARRAY(guid.GUID()), nullable=False),
         sa.CheckConstraint(
-            "(verbs @> ARRAY['broadcast']::varchar[] or ob_type != null)",
+            "(verbs @> ARRAY['broadcast']::varchar[] OR ob_type != null)",
             name='activity_broadcast_constraint'),
         sa.CheckConstraint(
-            'ob_type = null or array_length(verbs, 1) > 0',
+            'ob_type = null OR array_length(verbs, 1) > 0',
             name='activity_verbs_length_constraint'),
         sa.CheckConstraint(
-            'ob_type = null or array_length(ob_ids, 1) > 0',
+            'ob_type = null OR array_length(ob_ids, 1) > 0',
             name='activity_ob_ids_length_constraint'),
         sa.CheckConstraint(
-            'ob_type = null or array_length(ob_refs, 1) > 0',
+            'ob_type = null OR array_length(ob_refs, 1) > 0',
             name='activity_ob_refs_length_constraint'),
         sa.ForeignKeyConstraint(
             ['subject_id'],
@@ -72,7 +73,8 @@ def upgrade():
         ['subject_id', 'created'],
         unique=False)
 
-    op.create_table('subscription',
+    op.create_table(
+        'subscription',
         sa.Column('id', guid.GUID(), nullable=False),
         sa.Column('created', sa.DateTime(), nullable=False),
         sa.Column('user_id', guid.GUID(), nullable=False),
@@ -84,7 +86,7 @@ def upgrade():
                 'submission', native_enum=False)),
         sa.Column('ob_refs', postgresql.ARRAY(guid.GUID()), nullable=False),
         sa.CheckConstraint(
-            'ob_type = null or array_length(ob_refs, 1) > 0',
+            'ob_type = null OR array_length(ob_refs, 1) > 0',
             name='subscription_ob_refs_length_constraint'),
         sa.ForeignKeyConstraint(
             ['user_id'],

@@ -25,7 +25,7 @@ class ResponseHandler(base_handler.BaseHandler):
     def get(self, submission_id, measure_id):
         '''Get a single response.'''
 
-        if measure_id == '':
+        if not measure_id:
             self.query(submission_id)
             return
 
@@ -77,7 +77,9 @@ class ResponseHandler(base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'org': submission.organisation,
                 'submission': submission,
+                'surveygroups': submission.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('response_view')
 
             to_son = ToSon(
@@ -214,7 +216,9 @@ class ResponseHandler(base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'org': submission.organisation,
                 'submission': submission,
+                'surveygroups': submission.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('response_view')
 
             rnode = (
@@ -310,7 +314,9 @@ class ResponseHandler(base_handler.BaseHandler):
                 'submission': submission,
                 'approval': response.approval,
                 'index': APPROVAL_STATES.index,
+                'surveygroups': submission.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('response_edit')
 
             session.flush()
@@ -327,9 +333,9 @@ class ResponseHandler(base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, response, verbs)
-            if not act.has_subscription(user_session.user, response):
-                act.subscribe(user_session.user, response.submission)
-                self.reason("Subscribed to submission")
+            act.ensure_subscription(
+                user_session.user, response, response.submission,
+                self.reason)
 
         self.get(submission_id, measure_id)
 
@@ -372,7 +378,9 @@ class ResponseHistoryHandler(base_handler.Paginate, base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'org': submission.organisation,
                 'submission': submission,
+                'surveygroups': submission.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('response_view')
 
             # Current version

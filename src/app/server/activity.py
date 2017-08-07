@@ -8,7 +8,10 @@ from sqlalchemy.sql.expression import cast
 from sqlalchemy.types import VARCHAR
 
 from function_asfrom import ColumnFunction
+
 import model
+from session import UserSession
+from surveygroup_actions import filter_surveygroups
 
 
 __all__ = 'Activities'
@@ -66,14 +69,17 @@ class Activities:
             action.verbs = new_vs
         else:
             action = model.Activity(
-                subject_id=subject.id, verbs=verbs, **desc._asdict())
+                subject=subject, verbs=verbs, **desc._asdict())
             self.session.add(action)
+
+        action.surveygroups = set(ob.surveygroups)
+
         return action
 
     def subscribe(self, observer, ob):
         desc = ob.action_descriptor
         sub = model.Subscription(
-            user_id=observer.id,
+            user=observer,
             ob_type=desc.ob_type,
             ob_refs=desc.ob_ids,
             subscribed=True)
@@ -88,6 +94,15 @@ class Activities:
                     model.Subscription.ob_refs.contained_by(desc.ob_refs))
             .count())
         return count > 0
+
+    def ensure_subscription(self, observer, ob, target_ob, message_cb):
+        if not self.has_subscription(observer, ob):
+            self.subscribe(observer, target_ob)
+            message_cb("Subscribed to %s" % target_ob.ob_type)
+            if target_ob.surveygroups.isdisjoint(observer.surveygroups):
+                message_cb(
+                    "However you won't see it in your timeline because "
+                    "you are not part of its survey groups")
 
     def subscriptions(self, observer, ob):
         '''
@@ -105,8 +120,7 @@ class Activities:
         subs.sort(key=lambda sub: ob_refs.index(str(sub.ob_refs[-1])))
         return subs
 
-    def timeline_query(
-            self, user_id, from_date, until_date, sticky_flags=None):
+    def timeline_query(self, user, from_date, until_date, sticky_flags=None):
         '''
         Construct a query that filters the activity stream based on the
         subscriptions of a user.
@@ -120,13 +134,9 @@ class Activities:
         if sticky_flags is None:
             sticky_flags = {'filter', 'include', 'at_top'}
 
-        user = self.session.query(model.AppUser).get(user_id)
-        if not user:
-            raise ActivityError("No such user")
+        user_session = UserSession(user, None)
 
-        oid = user.organisation_id
-        filter_purchased = not model.has_privillege(
-            user.role, 'author', 'consultant')
+        policy = user_session.policy.derive({})
 
         time_filter = ((model.Activity.created > from_date) &
                        (model.Activity.created <= until_date))
@@ -164,16 +174,24 @@ class Activities:
                 model.Subscription.ob_refs[1] == act_ref.c.unnest)
             .filter(
                 ((model.Subscription.id != None) &
-                 (model.Subscription.user_id == user_id)) |
+                 (model.Subscription.user_id == user.id)) |
                 ((model.Activity.verbs == broadcast) &
                  (model.Activity.ob_type == None)))
             .order_by(act_ref.c.ordinality.desc()))
+
+        # Filter out activities that are unrelated to current user's survey
+        # groups.
+        query = filter_surveygroups(
+            self.session, query, user_session.user.id,
+            [], [model.activity_surveygroup])
 
         # Filter out activities that involve surveys that have not been
         # purchased.
         # Join with survey and purchased_survey tables using ob_refs
         # field
+        filter_purchased = not policy.check('author', 'consultant')
         if filter_purchased:
+            oid = user_session.org.id
             query = (
                 query
                 .add_columns(

@@ -1,7 +1,26 @@
 'use strict';
 
 angular.module('upmark.response.type', [
-    'ngResource', 'upmark.admin.settings', 'upmark.user'])
+    'ngResource', 'upmark.admin.settings', 'upmark.user', 'upmark.chain'])
+
+
+.config(function($routeProvider, chainProvider) {
+    $routeProvider
+        .when('/:uv/response-type/:responseType', {
+            templateUrl : 'response_type.html',
+            controller : 'ResponseTypeCtrl',
+            resolve: {routeData: chainProvider({
+                responseType: ['ResponseType', '$route',
+                        function(ResponseType, $route) {
+                    return ResponseType.get({
+                        id: $route.current.params.responseType,
+                        programId: $route.current.params.program
+                    }).$promise;
+                }]
+            })}
+        })
+    ;
+})
 
 
 .factory('responseTypes', function() {

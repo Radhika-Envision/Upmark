@@ -21,7 +21,8 @@ import configure_logging  # noqa: F401
 import authn
 import compile_handlers
 import crud
-import import_handlers
+from importer.prog_import import ImportStructureHandler
+from importer.sub_import import ImportSubmissionHandler
 import model
 import protocol
 import report.custom
@@ -149,17 +150,24 @@ def default_settings():
             session.add(org)
             session.flush()
             user = model.AppUser(
-                email="admin", name="DEFAULT USER", role="admin",
+                email="admin", name="DEFAULT USER", role="super_admin",
                 organisation=org, password="admin")
             session.add(user)
+
+            surveygroup = model.SurveyGroup(title="Upmark")
+            org.surveygroups.add(surveygroup)
+            user.surveygroups.add(surveygroup)
+            session.add(surveygroup)
 
 
 def get_mappings():
     package_dir = get_package_dir()
     return [
-        (r"/login/?(.*)",
+        (r"/login/?",
             authn.LoginHandler, {
                 'path': os.path.join(package_dir, "..", "client")}),
+        (r"/impersonate/(.*)",
+            authn.ImpersonateHandler, {}),
         (r"/logout/?",
             authn.LogoutHandler),
         (r"/()",
@@ -195,12 +203,16 @@ def get_mappings():
             crud.custom.CustomQueryHandler, {}),
         (r"/custom_query/?([^/]*)/history.json",
             crud.custom.CustomQueryHistoryHandler, {}),
+        (r"/geo/(.*).json",
+            crud.org.LocationSearchHandler, {}),
+
+        (r"/surveygroup/?([^/]*).json",
+            crud.surveygroup.SurveyGroupHandler, {}),
+
         (r"/organisation/?([^/]*).json",
             crud.org.OrgHandler, {}),
         (r"/organisation/?([^/]*)/survey/?([^/]*).json",
             crud.org.PurchasedSurveyHandler, {}),
-        (r"/geo/(.*).json",
-            crud.org.LocationSearchHandler, {}),
         (r"/user/?([^/]*).json",
             crud.user.UserHandler, {}),
         (r"/subscription/()([^/]*).json",
@@ -271,9 +283,9 @@ def get_mappings():
             report.custom.CustomQueryReportHandler, {}),
 
         (r"/import/structure.json",
-            import_handlers.ImportStructureHandler, {}),
+            ImportStructureHandler, {}),
         (r"/import/submission.json",
-            import_handlers.ImportSubmissionHandler, {}),
+            ImportSubmissionHandler, {}),
         (r"/redirect", protocol.RedirectHandler),
 
         (r"/(.*)", tornado.web.StaticFileHandler, {
@@ -355,7 +367,7 @@ def signal_handler(signum, frame):
 
 
 def stop_web_server():
-    log.warn("Server shutdown due to signal")
+    log.warning("Server shutdown due to signal")
     tornado.ioloop.IOLoop.instance().stop()
 
 

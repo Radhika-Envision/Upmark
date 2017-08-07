@@ -70,10 +70,10 @@ def upgrade():
         sa.Column('structure', sa.Enum(
             'internal', 'corporation',
             native_enum=False)),
-        sa.Column('asset_types', postgresql.ARRAY(Enum(
+        sa.Column('asset_types', postgresql.ARRAY(sa.Enum(
             'water wholesale', 'water local',
             'wastewater wholesale', 'wastewater local',
-            native_enum=False))),
+            native_enum=False, create_constraint=False))),
         sa.Column('regulation_level', sa.Enum(
             'extensive', 'partial', 'none',
             native_enum=False)),

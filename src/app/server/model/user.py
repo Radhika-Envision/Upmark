@@ -1,15 +1,16 @@
 __all__ = [
     'AppUser',
     'Organisation',
+    'organisation_surveygroup',
     'OrgLocation',
     'OrgMeta',
-    'has_privillege',
+    'user_surveygroup',
 ]
 
 from datetime import datetime
 
 from sqlalchemy import Boolean, Column, DateTime, Enum, Float, \
-    ForeignKey, Index, Integer, Text
+    ForeignKey, Index, Integer, Table, Text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import CheckConstraint
@@ -19,6 +20,7 @@ from .base import Base
 from .guid import GUID
 from .observe import Observable
 from .password import Password
+from .surveygroup import SurveyGroup
 
 
 class Organisation(Observable, Base):
@@ -143,7 +145,8 @@ class AppUser(Observable, Base):
     name = Column(Text, nullable=False)
     password = Column(Password, nullable=False)
     role = Column(Enum(
-        'admin', 'author', 'authority', 'consultant', 'org_admin', 'clerk',
+        'super_admin', 'admin', 'author', 'authority', 'consultant',
+        'org_admin', 'clerk',
         native_enum=False), nullable=False)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
     deleted = Column(Boolean, default=False, nullable=False)
@@ -188,33 +191,42 @@ class AppUser(Observable, Base):
 Password.instrument(AppUser.password)
 
 
-ROLE_HIERARCHY = {
-    'admin': {'author', 'authority', 'consultant', 'org_admin', 'clerk'},
-    'author': set(),
-    'authority': {'consultant'},
-    'consultant': set(),
-    'org_admin': {'clerk'},
-    'clerk': set()
-}
-
-
-def has_privillege(current_role, *target_roles):
-    '''
-    Checks whether one role has the privilleges of another role. For example,
-        has_privillege('org_admin', 'clerk') -> True
-        has_privillege('clerk', 'org_admin') -> False
-        has_privillege('clerk', 'consultant', 'clerk') -> True
-    '''
-    for target_role in target_roles:
-        if target_role == current_role:
-            return True
-        if target_role in ROLE_HIERARCHY[current_role]:
-            return True
-    return False
-
-
 AppUser.organisation = relationship(Organisation)
 Organisation.users = relationship(
     AppUser, back_populates="organisation", passive_deletes=True,
     primaryjoin=(Organisation.id == AppUser.organisation_id) &
                 (AppUser.deleted == False))
+
+
+organisation_surveygroup = Table(
+    'organisation_surveygroup', Base.metadata,
+    Column('organisation_id', GUID, ForeignKey('organisation.id')),
+    Column('surveygroup_id', GUID, ForeignKey('surveygroup.id')),
+    Index('organisation_surveygroup_organisation_id_index', 'organisation_id'),
+    Index('organisation_surveygroup_surveygroup_id_index', 'surveygroup_id'),
+)
+
+
+Organisation.surveygroups = relationship(
+    SurveyGroup, backref='organisations', secondary=organisation_surveygroup,
+    collection_class=set,
+    secondaryjoin=(
+        (SurveyGroup.id == organisation_surveygroup.columns.surveygroup_id) &
+        (SurveyGroup.deleted == False)))
+
+
+user_surveygroup = Table(
+    'user_surveygroup', Base.metadata,
+    Column('user_id', GUID, ForeignKey('appuser.id')),
+    Column('surveygroup_id', GUID, ForeignKey('surveygroup.id')),
+    Index('user_surveygroup_organisation_id_index', 'user_id'),
+    Index('user_surveygroup_surveygroup_id_index', 'surveygroup_id'),
+)
+
+
+AppUser.surveygroups = relationship(
+    SurveyGroup, backref='users', secondary=user_surveygroup,
+    collection_class=set,
+    secondaryjoin=(
+        (SurveyGroup.id == user_surveygroup.columns.surveygroup_id) &
+        (SurveyGroup.deleted == False)))

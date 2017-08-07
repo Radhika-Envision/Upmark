@@ -1,7 +1,107 @@
 'use strict';
 
 angular.module('upmark.submission.submission', [
-    'ngResource', 'ui.select', 'upmark.admin.settings', 'upmark.user'])
+    'ngResource', 'ui.select', 'upmark.admin.settings', 'upmark.user',
+    'upmark.chain'])
+
+
+.config(function($routeProvider, chainProvider) {
+    $routeProvider
+        .when('/:uv/submission/new', {
+            templateUrl : 'submission.html',
+            controller : 'SubmissionCtrl',
+            resolve: {routeData: chainProvider({
+                program: ['Program', '$route', function(Program, $route) {
+                    return Program.get({
+                        id: $route.current.params.program
+                    }).$promise;
+                }],
+                organisation: ['Organisation', '$route',
+                        function(Organisation, $route) {
+                    if (!$route.current.params.organisation)
+                        return null;
+                    return Organisation.get({
+                        id: $route.current.params.organisation
+                    }).$promise;
+                }],
+                surveys: ['Survey', 'program',
+                        function(Survey, program) {
+                    return Survey.query({
+                        programId: program.id,
+                        deleted: false,
+                    }).$promise;
+                }],
+                duplicate: ['Submission', '$route',
+                        function(Submission, $route) {
+                    if (!$route.current.params.duplicate)
+                        return null;
+                    return Submission.get({
+                        id: $route.current.params.duplicate
+                    }).$promise;
+                }]
+            })}
+        })
+        .when('/:uv/submission/duplicate', {
+            templateUrl : 'submission_dup.html',
+            controller : 'SubmissionDuplicateCtrl',
+            resolve: {routeData: chainProvider({
+                program: ['Program', '$route', function(Program, $route) {
+                    return Program.get({
+                        id: $route.current.params.program
+                    }).$promise;
+                }],
+                organisation: ['Organisation', '$route',
+                        function(Organisation, $route) {
+                    if (!$route.current.params.organisation)
+                        return null;
+                    return Organisation.get({
+                        id: $route.current.params.organisation
+                    }).$promise;
+                }]
+            })}
+        })
+        .when('/:uv/submission/import', {
+            templateUrl : 'submission_import.html',
+            controller : 'SubmissionImportCtrl',
+            resolve: {routeData: chainProvider({
+                program: ['Program', '$route', function(Program, $route) {
+                    return Program.get({
+                        id: $route.current.params.program
+                    }).$promise;
+                }],
+                organisation: ['Organisation', '$route',
+                        function(Organisation, $route) {
+                    if (!$route.current.params.organisation)
+                        return null;
+                    return Organisation.get({
+                        id: $route.current.params.organisation
+                    }).$promise;
+                }],
+                surveys: ['Survey', 'program',
+                        function(Survey, program) {
+                    return Survey.query({
+                        programId: program.id
+                    }).$promise;
+                }]
+            })}
+        })
+        .when('/:uv/submission/:submission', {
+            templateUrl : 'submission.html',
+            controller : 'SubmissionCtrl',
+            resolve: {routeData: chainProvider({
+                submission: ['Submission', '$route',
+                        function(Submission, $route) {
+                    return Submission.get({
+                        id: $route.current.params.submission
+                    }).$promise;
+                }],
+                program: ['submission', function(submission) {
+                    return submission.program;
+                }]
+            })}
+        })
+    ;
+})
 
 
 .factory('Submission', ['$resource', 'paged', function($resource, paged) {
@@ -113,6 +213,7 @@ angular.module('upmark.submission.submission', [
     });
 
     $scope.checkRole = Authz({
+        org: $scope.submission.organisation,
         program: $scope.program,
         submission: $scope.submission,
     });
@@ -243,10 +344,7 @@ angular.module('upmark.submission.submission', [
     }
 
     dropzone.on('sending', function(file, xhr, formData) {
-        formData.append('program', $scope.program.id);
-        formData.append('organisation', $scope.submission.organisation.id);
-        formData.append('survey', $scope.submission.survey.id);
-        formData.append('title', $scope.submission.title);
+        formData.append('submission', angular.toJson($scope.submission));
     });
 
     dropzone.on('uploadprogress', function(file, progress) {
@@ -260,7 +358,7 @@ angular.module('upmark.submission.submission', [
             $scope.progress.isFinished = true;
         }, 1000);
         $timeout(function() {
-            $location.url('/2/program/' + response);
+            $location.url('/2/submission/' + response);
         }, 5000);
     });
 

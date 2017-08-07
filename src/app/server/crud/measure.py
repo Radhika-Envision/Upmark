@@ -36,7 +36,13 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
-            program = session.query(model.Program).get(program_id)
+            program = (
+                session.query(model.Program)
+                .options(joinedload('surveygroups'))
+                .get(program_id))
+            if not program:
+                raise errors.MissingDocError("No such program")
+
             if survey_id:
                 survey = session.query(model.Survey).get(
                     (survey_id, program_id))
@@ -60,7 +66,9 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'program': program,
                 'survey': survey,
+                'surveygroups': program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('measure_view')
 
             to_son = ToSon(
@@ -193,7 +201,11 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             program = (
                 session.query(model.Program)
+                .options(joinedload('surveygroups'))
                 .get(program_id))
+            if not program:
+                raise errors.MissingDocError("No such program")
+
             if survey_id:
                 survey = (
                     session.query(model.Survey)
@@ -204,24 +216,29 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'survey': survey,
                 'program': program,
+                'surveygroups': program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('measure_view')
 
             if orphan != '' and truthy(orphan):
                 # Orphans only
-                query = session.query(model.Measure)\
-                    .outerjoin(model.QnodeMeasure)\
-                    .filter(model.Measure.program_id == program_id)\
-                    .filter(model.QnodeMeasure.qnode_id == None)
+                query = (
+                    session.query(model.Measure)
+                    .outerjoin(model.QnodeMeasure)
+                    .filter(model.Measure.program_id == program_id)
+                    .filter(model.QnodeMeasure.qnode_id == None))
             elif orphan != '' and falsy(orphan):
                 # Non-orphans only
-                query = session.query(model.Measure)\
-                    .join(model.QnodeMeasure)\
-                    .filter(model.Measure.program_id == program_id)
+                query = (
+                    session.query(model.Measure)
+                    .join(model.QnodeMeasure)
+                    .filter(model.Measure.program_id == program_id))
             else:
                 # All measures
-                query = session.query(model.Measure)\
-                    .filter_by(program_id=program_id)
+                query = (
+                    session.query(model.Measure)
+                    .filter_by(program_id=program_id))
 
             rt_term = None
             if term:
@@ -302,9 +319,26 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
     def query_children_of(self, qnode_id):
         program_id = self.get_argument('programId', '')
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             # Only children of a certain qnode
-            qnode = session.query(model.QuestionNode)\
-                .get((qnode_id, program_id))
+            qnode = (
+                session.query(model.QuestionNode)
+                .options(joinedload('survey'))
+                .options(joinedload('program'))
+                .options(joinedload('program.surveygroups'))
+                .get((qnode_id, program_id)))
+
+            if not qnode:
+                raise errors.MissingDocError("No such category")
+
+            policy = user_session.policy.derive({
+                'survey': qnode.survey,
+                'program': qnode.program,
+                'surveygroups': qnode.program.surveygroups,
+            })
+            policy.verify('surveygroup_interact')
+            policy.verify('measure_view')
 
             to_son = ToSon(
                 # Fields to match from any visited object
@@ -344,7 +378,10 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             program = (
                 session.query(model.Program)
+                .options(joinedload('surveygroups'))
                 .get(program_id))
+            if not program:
+                raise errors.MissingDocError("No such program")
 
             measure = model.Measure(program=program)
             session.add(measure)
@@ -373,7 +410,9 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'program': program,
                 'survey': survey,
+                'surveygroups': program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('measure_add')
 
             calculator.execute()
@@ -386,9 +425,8 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, measure, verbs)
-            if not act.has_subscription(user_session.user, measure):
-                act.subscribe(user_session.user, measure.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, measure, measure.program, self.reason)
 
             log.info("Created measure %s", measure_id)
 
@@ -439,15 +477,16 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'program': qnode.program,
                 'survey': qnode.survey,
+                'surveygroups': qnode.program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('measure_del')
 
             calculator.execute()
 
             act.record(user_session.user, measure, ['delete'])
-            if not act.has_subscription(user_session.user, measure):
-                act.subscribe(user_session.user, measure.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, measure, measure.program, self.reason)
 
         self.finish()
 
@@ -465,6 +504,18 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
 
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
+
+            program = (
+                session.query(model.Program)
+                .options(joinedload('surveygroups'))
+                .get(program_id))
+            if not program:
+                raise errors.MissingDocError("No such program")
+
+            policy = user_session.policy.derive({
+                'surveygroups': program.surveygroups,
+            })
+            policy.verify('surveygroup_interact')
 
             measure = (
                 session.query(model.Measure)
@@ -553,9 +604,8 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, measure, verbs)
-            if not act.has_subscription(user_session.user, measure):
-                act.subscribe(user_session.user, measure.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, measure, measure.program, self.reason)
 
         self.get(measure_id)
 
@@ -575,7 +625,9 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'program': qnode.program,
                 'survey': qnode.survey,
+                'surveygroups': qnode.program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('measure_edit')
             reorder(
                 qnode.qnode_measures, self.request_son,
@@ -583,9 +635,8 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, qnode, ['reorder_children'])
-            if not act.has_subscription(user_session.user, qnode):
-                act.subscribe(user_session.user, qnode.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, qnode, qnode.program, self.reason)
 
         self.query()
 

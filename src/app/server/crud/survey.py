@@ -1,5 +1,6 @@
 from tornado.escape import json_encode
 import tornado.web
+from sqlalchemy.orm import joinedload
 
 from activity import Activities
 import base_handler
@@ -29,13 +30,16 @@ class SurveyHandler(base_handler.BaseHandler):
 
             survey = (
                 session.query(model.Survey)
+                .options(joinedload('program.surveygroups'))
                 .get((survey_id, program_id)))
             if not survey:
                 raise errors.MissingDocError("No such survey")
 
             policy = user_session.policy.derive({
                 'survey': survey,
+                'surveygroups': survey.program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('survey_view')
 
             to_son = ToSon(
@@ -66,17 +70,24 @@ class SurveyHandler(base_handler.BaseHandler):
         '''Get a list.'''
 
         program_id = self.get_argument('programId', '')
+        if not program_id:
+            raise errors.ModelError("Program ID required")
+
+        organisation_id = self.get_argument('organisationId', '')
 
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
             program = (
                 session.query(model.Program)
+                .options(joinedload('surveygroups'))
                 .get(program_id))
 
             policy = user_session.policy.derive({
                 'program': program,
+                'surveygroups': program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('program_view')
 
             query = (
@@ -89,6 +100,7 @@ class SurveyHandler(base_handler.BaseHandler):
                 deleted = truthy(deleted)
                 query = query.filter(model.Survey.deleted == deleted)
 
+            surveys = query.all()
             to_son = ToSon(
                 r'/id$',
                 r'/title$',
@@ -98,7 +110,22 @@ class SurveyHandler(base_handler.BaseHandler):
                 # Descend
                 r'/[0-9]+$'
             )
-            sons = to_son(query.all())
+            sons = to_son(surveys)
+
+            # Add `purchased` metadata for nominated organisation
+            if organisation_id:
+                org = (
+                    session.query(model.Organisation)
+                    .get(organisation_id))
+                policy = user_session.policy.derive({
+                    'org': org,
+                    'surveygroups': org.surveygroups,
+                })
+                policy.verify('surveygroup_interact')
+                policy.verify('org_view')
+
+                for son, survey in zip(sons, surveys):
+                    son.purchased = survey in org.surveys
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
@@ -117,6 +144,7 @@ class SurveyHandler(base_handler.BaseHandler):
 
             program = (
                 session.query(model.Program)
+                .options(joinedload('surveygroups'))
                 .get(program_id))
             if not program:
                 raise errors.ModelError("No such program")
@@ -131,14 +159,15 @@ class SurveyHandler(base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'program': program,
                 'survey': survey,
+                'surveygroups': program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('survey_add')
 
             act = Activities(session)
             act.record(user_session.user, survey, ['create'])
-            if not act.has_subscription(user_session.user, survey):
-                act.subscribe(user_session.user, survey.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, survey, survey.program, self.reason)
 
             survey_id = str(survey.id)
 
@@ -157,6 +186,8 @@ class SurveyHandler(base_handler.BaseHandler):
 
             survey = (
                 session.query(model.Survey)
+                .options(joinedload('program'))
+                .options(joinedload('program.surveygroups'))
                 .get((survey_id, program_id)))
             if not survey:
                 raise errors.MissingDocError("No such survey")
@@ -165,7 +196,9 @@ class SurveyHandler(base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'program': survey.program,
                 'survey': survey,
+                'surveygroups': survey.program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('survey_edit')
 
             verbs = []
@@ -178,9 +211,8 @@ class SurveyHandler(base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, survey, verbs)
-            if not act.has_subscription(user_session.user, survey):
-                act.subscribe(user_session.user, survey.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, survey, survey.program, self.reason)
 
         self.get(survey_id)
 
@@ -196,6 +228,8 @@ class SurveyHandler(base_handler.BaseHandler):
 
             survey = (
                 session.query(model.Survey)
+                .options(joinedload('program'))
+                .options(joinedload('program.surveygroups'))
                 .get((survey_id, program_id)))
             if not survey:
                 raise errors.MissingDocError("No such survey")
@@ -203,15 +237,16 @@ class SurveyHandler(base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'program': survey.program,
                 'survey': survey,
+                'surveygroups': survey.program.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('survey_del')
 
             act = Activities(session)
             if not survey.deleted:
                 act.record(user_session.user, survey, ['delete'])
-            if not act.has_subscription(user_session.user, survey):
-                act.subscribe(user_session.user, survey.program)
-                self.reason("Subscribed to program")
+            act.ensure_subscription(
+                user_session.user, survey, survey.program, self.reason)
 
             survey.deleted = True
 

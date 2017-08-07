@@ -7,6 +7,7 @@ from .config import *
 from .connection import *
 from .submission import *
 from .survey import *
+from .surveygroup import *
 from .user import *
 
 

@@ -5,6 +5,7 @@ from tornado.httpclient import AsyncHTTPClient
 import tornado.gen
 import tornado.web
 import sqlalchemy
+from sqlalchemy.orm import joinedload
 
 from activity import Activities
 import base_handler
@@ -12,6 +13,7 @@ import errors
 import model
 
 from cache import LruCache
+from surveygroup_actions import assign_surveygroups, filter_surveygroups
 from utils import ToSon, truthy, updater
 
 
@@ -25,20 +27,29 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
 
-            org = session.query(model.Organisation).get(organisation_id)
+            org = (
+                session.query(model.Organisation)
+                .options(joinedload('surveygroups'))
+                .get(organisation_id))
             if not org:
                 raise errors.MissingDocError("No such organisation")
 
-            policy = user_session.policy.derive({'org': org})
+            policy = user_session.policy.derive({
+                'org': org,
+                'surveygroups': org.surveygroups,
+            })
+            policy.verify('surveygroup_interact')
             policy.verify('org_view')
 
             to_son = ToSon(
                 r'/id$',
                 r'/name$',
+                r'/title$',
                 r'/deleted$',
                 r'/url$',
                 r'/locations.*$',
                 r'/meta.*$',
+                r'/[0-9+]$',
             )
             to_son.exclude(
                 r'/locations/.*/organisation(_id)?$',
@@ -46,6 +57,8 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
                 r'/meta/organisation(_id)?$',
                 r'/meta/id$',
             )
+            if policy.check('surveygroup_browse'):
+                to_son.add(r'^/surveygroups$')
             son = to_son(org)
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -55,10 +68,17 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
         sons = []
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
+
             policy = user_session.policy.derive({})
             policy.verify('org_browse')
 
             query = session.query(model.Organisation)
+
+            if not policy.check('surveygroup_interact_all'):
+                query = filter_surveygroups(
+                    session, query, user_session.user.id,
+                    [], [model.organisation_surveygroup])
+
             term = self.get_argument('term', None)
             if term is not None:
                 query = query.filter(
@@ -93,7 +113,7 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
         '''
         Create a new organisation.
         '''
-        if organisation_id != '':
+        if organisation_id:
             raise errors.MethodError(
                 "Can't use POST for existing organisation.")
 
@@ -101,6 +121,12 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
             user_session = self.get_user_session(session)
 
             org = model.Organisation()
+
+            try:
+                assign_surveygroups(user_session, org, self.request_son)
+            except ValueError as e:
+                raise errors.ModelError(str(e))
+
             self._update(org, self.request_son)
             session.add(org)
 
@@ -109,14 +135,14 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             policy = user_session.policy.derive({
                 'org': org,
+                'surveygroups': org.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('org_add')
 
             act = Activities(session)
             act.record(user_session.user, org, ['create'])
-            if not act.has_subscription(user_session.user, org):
-                act.subscribe(user_session.user, org)
-                self.reason("Subscribed to organisation")
+            act.ensure_subscription(user_session.user, org, org, self.reason)
 
             organisation_id = str(org.id)
         self.get(organisation_id)
@@ -126,7 +152,7 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
         '''
         Update an existing organisation.
         '''
-        if organisation_id == '':
+        if not organisation_id:
             raise errors.MethodError(
                 "Can't use PUT for new organisations (no ID).")
 
@@ -137,7 +163,17 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
             if not org:
                 raise errors.MissingDocError("No such organisation")
 
-            policy = user_session.policy.derive({'org': org})
+            try:
+                groups_changed = assign_surveygroups(
+                    user_session, org, self.request_son)
+            except ValueError as e:
+                raise errors.ModelError(str(e))
+
+            policy = user_session.policy.derive({
+                'org': org,
+                'surveygroups': org.surveygroups,
+            })
+            policy.verify('surveygroup_interact')
             policy.verify('org_edit')
 
             old_locations = list(org.locations)
@@ -146,6 +182,7 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
             verbs = []
             if (session.is_modified(org) or
                     org.locations != old_locations or
+                    groups_changed or
                     session.is_modified(org.meta)):
                 verbs.append('update')
 
@@ -155,9 +192,7 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             act = Activities(session)
             act.record(user_session.user, org, verbs)
-            if not act.has_subscription(user_session.user, org):
-                act.subscribe(user_session.user, org)
-                self.reason("Subscribed to organisation")
+            act.ensure_subscription(user_session.user, org, org, self.reason)
 
         self.get(organisation_id)
 
@@ -173,15 +208,17 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
             if not org:
                 raise errors.MissingDocError("No such organisation")
 
-            policy = user_session.policy.derive({'org': org})
+            policy = user_session.policy.derive({
+                'org': org,
+                'surveygroups': org.surveygroups,
+            })
+            policy.verify('surveygroup_interact')
             policy.verify('org_del')
 
             act = Activities(session)
             if not org.deleted:
                 act.record(user_session.user, org, ['delete'])
-            if not act.has_subscription(user_session.user, org):
-                act.subscribe(user_session.user, org)
-                self.reason("Subscribed to organisation")
+            act.ensure_subscription(user_session.user, org, org, self.reason)
 
             org.deleted = True
 

@@ -32,7 +32,7 @@ class TemplateParams:
 
     @property
     def dev_mode(self):
-        return truthy(tornado.options.options.dev) and 'true' or 'false'
+        return truthy(tornado.options.options.dev)
 
     @property
     def is_training(self):
@@ -98,14 +98,14 @@ class TemplateParams:
         development or release mode.
         '''
         resources = []
-        dev_mode = truthy(tornado.options.options.dev)
 
         link_order = ['cdn', 'min-href', 'href', 'hrefs']
-        if dev_mode:
+        if self.dev_mode:
             link_order.reverse()
 
         for sdef in declarations:
-            # Convert dictionary to ordered list of tuples (based on precedence)
+            # Convert dictionary to ordered list of tuples (based on
+            # precedence)
             rs = ((k, sdef[k]) for k in link_order if k in sdef)
             try:
                 k, hrefs = next(rs)
@@ -115,17 +115,17 @@ class TemplateParams:
             if isinstance(hrefs, str):
                 hrefs = [hrefs]
 
-            # Add a resource deployment version number to bust the cache, except
-            # for CDN links.
+            # Add a resource deployment version number to bust the cache,
+            # except for CDN links.
             if k != 'cdn':
                 hrefs = [
                     '%s?v=%s' % (href, self.version(
                         rel='semi-volatile', dev='non-volatile'))
                     for href in hrefs]
 
-            if dev_mode and k in {'cdn', 'min-href'}:
+            if self.dev_mode and k in {'cdn', 'min-href'}:
                 print('Warning: using release resource in dev mode')
-            elif not dev_mode and k in {'href', 'hrefs'}:
+            elif not self.dev_mode and k in {'href', 'hrefs'}:
                 print('Warning: using dev resource in release')
 
             resources.extend(hrefs)
@@ -155,11 +155,14 @@ class TemplateHandler(base_handler.BaseHandler):
             to_son = ToSon(
                 r'/id$',
                 r'/name$',
+                r'/title$',
                 r'/email$',
                 r'/role$',
                 r'/deleted$',
                 r'/organisation$',
                 r'!password',
+                r'^/surveygroups$',
+                r'/[0-9+]$',
             )
             user_son = json_encode(to_son(user_session.user))
 

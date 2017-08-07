@@ -26,7 +26,9 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
                 raise errors.MissingDocError("No such query")
 
             user_session = self.get_user_session(session)
-            policy = user_session.policy.derive({'custom_query': custom_query})
+            policy = user_session.policy.derive({
+                'custom_query': custom_query,
+            })
             policy.verify('custom_query_view')
 
             old_version = self.get_version(session, custom_query, version)
@@ -142,15 +144,16 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             self.update_auto(custom_query, user_session.user)
             session.add(custom_query)
 
-            policy = user_session.policy.derive({'custom_query': custom_query})
+            policy = user_session.policy.derive({
+                'custom_query': custom_query,
+            })
             policy.verify('custom_query_add')
 
             session.flush()
             act = Activities(session)
             act.record(user_session.user, custom_query, ['create'])
-            if not act.has_subscription(user_session.user, custom_query):
-                act.subscribe(user_session.user, custom_query)
-                self.reason("Subscribed to query")
+            act.ensure_subscription(
+                user_session.user, custom_query, custom_query, self.reason)
 
             query_id = str(custom_query.id)
 
@@ -167,7 +170,9 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
                 raise errors.MissingDocError("No such query")
 
             user_session = self.get_user_session(session)
-            policy = user_session.policy.derive({'custom_query': custom_query})
+            policy = user_session.policy.derive({
+                'custom_query': custom_query,
+            })
             policy.verify('custom_query_edit')
 
             self.check_concurrent_write(custom_query)
@@ -191,9 +196,8 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
             session.flush()
             act = Activities(session)
             act.record(user_session.user, custom_query, verbs)
-            if not act.has_subscription(user_session.user, custom_query):
-                act.subscribe(user_session.user, custom_query)
-                self.reason("Subscribed to query")
+            act.ensure_subscription(
+                user_session.user, custom_query, custom_query, self.reason)
 
             query_id = str(custom_query.id)
 
@@ -226,15 +230,16 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
                 raise errors.MissingDocError("No such query")
 
             user_session = self.get_user_session(session)
-            policy = user_session.policy.derive({'custom_query': custom_query})
+            policy = user_session.policy.derive({
+                'custom_query': custom_query,
+            })
             policy.verify('custom_query_del')
 
             act = Activities(session)
             if not custom_query.deleted:
                 act.record(user_session.user, custom_query, ['delete'])
-            if not act.has_subscription(user_session.user, custom_query):
-                act.subscribe(user_session.user, custom_query)
-                self.reason("Subscribed to query")
+            act.ensure_subscription(
+                user_session.user, custom_query, custom_query, self.reason)
 
             custom_query.deleted = True
 

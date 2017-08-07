@@ -55,3 +55,10 @@ class Observable:
             self.ob_type,
             self.ob_ids,
             [item.id for item in self.action_lineage])
+
+    @property
+    def surveygroups(self):
+        '''
+        @return a collection of surveygroups that the object belongs to.
+        '''
+        raise NotImplementedError()

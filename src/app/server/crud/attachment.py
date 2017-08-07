@@ -35,7 +35,9 @@ class AttachmentHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             policy = user_session.policy.derive({
                 'org': attachment.organisation,
+                'surveygroups': attachment.organisation.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('attachment_view')
 
             if attachment.storage == "aws":
@@ -68,7 +70,9 @@ class AttachmentHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             policy = user_session.policy.derive({
                 'org': attachment.organisation,
+                'surveygroups': attachment.organisation.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('attachment_del')
 
             session.delete(attachment)
@@ -96,7 +100,11 @@ class ResponseAttachmentsHandler(
                 raise errors.MissingDocError("No such response")
 
             org = response.submission.organisation
-            policy = user_session.policy.derive({'org': org})
+            policy = user_session.policy.derive({
+                'org': org,
+                'surveygroups': org.surveygroups,
+            })
+            policy.verify('surveygroup_interact')
             policy.verify('attachment_add')
 
             for external in externals:
@@ -133,7 +141,11 @@ class ResponseAttachmentsHandler(
                 raise errors.MissingDocError("No such response")
 
             org = response.submission.organisation
-            policy = user_session.policy.derive({'org': org})
+            policy = user_session.policy.derive({
+                'org': org,
+                'surveygroups': org.surveygroups,
+            })
+            policy.verify('surveygroup_interact')
             policy.verify('attachment_add')
 
             if aws.session is not None:
@@ -199,7 +211,11 @@ class ResponseAttachmentsHandler(
                 raise errors.MissingDocError("No such response")
 
             org = response.submission.organisation
-            policy = user_session.policy.derive({'org': org})
+            policy = user_session.policy.derive({
+                'org': org,
+                'surveygroups': org.surveygroups,
+            })
+            policy.verify('surveygroup_interact')
             policy.verify('attachment_view')
 
             query = (

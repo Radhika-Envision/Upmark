@@ -11,17 +11,17 @@ class CustomQueryTest(base.AqHttpTestBase):
             'description': "Foo bar baz",
             'text': "SELECT * FROM organisation",
         }
-        with base.mock_user('admin'):
+        with base.mock_user('super_admin'):
             response_son = self.fetch(
                 "/custom_query.json", method='POST',
-                body=json_encode(son), decode=True)
+                body=json_encode(son), expected=200, decode=True)
 
         for k in son:
             self.assertIn(k, response_son)
             self.assertEqual(son[k], response_son[k])
 
         qid = response_son['id']
-        with base.mock_user('admin'):
+        with base.mock_user('super_admin'):
             response_son = self.fetch(
                 "/custom_query/%s.json" % qid, method='GET',
                 decode=True)

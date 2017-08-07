@@ -33,14 +33,16 @@ class StatisticsHandler(base_handler.Paginate, base_handler.BaseHandler):
                 'survey': survey,
                 'index': APPROVAL_STATES.index,
                 'approval': approval,
+                'surveygroups': survey.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('report_chart')
 
             responseNodes = (
                 session.query(model.ResponseNode)
                 .join(model.ResponseNode.qnode)
                 .join(model.ResponseNode.submission)
-                .options(joinedload(model.ResponseNode.qnode))
+                .options(joinedload('qnode'))
                 .filter(
                     model.ResponseNode.program_id == program_id,
                     model.QuestionNode.survey_id == survey_id,

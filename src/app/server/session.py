@@ -22,8 +22,17 @@ class UserSession:
         policy.context.update({'s': self})
         return policy
 
-    def has_role(self, *names):
-        return model.has_privillege(self.user.role, *names)
+    def member_of_any(self, surveygroups):
+        surveygroups = {
+            sg for sg in surveygroups
+            if not sg.deleted}
+        return not self.user.surveygroups.isdisjoint(surveygroups)
+
+    def super_is_member_of_any(self, surveygroups):
+        surveygroups = {
+            sg for sg in surveygroups
+            if not sg.deleted}
+        return not self.superuser.surveygroups.isdisjoint(surveygroups)
 
     def purchased_survey(self, survey):
         session = object_session(survey)
