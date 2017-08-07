@@ -1,8 +1,38 @@
 # Database Administration
 
+## Taking manual backups from RDS
+
+If you are using [AWS RDS][aws] for your database, you can usually use its
+automated backup facility. In that case, you can ignore the following
+instructions.
+
+Fire up a `postgres` container into a bash shell. Set some environment
+variables so you can connect to the RDS instance.
+
+```
+mkdir -p backup
+sudo docker run --rm -it -v $PWD/backup:/backup postgres:9 bash
+```
+
+In the container:
+
+```
+export PGHOST=<host>
+export PGUSER=postgres
+export PGDATABASE=postgres
+export PGPASSWORD=<password>
+
+TODAY=$(date '+%F')
+pg_dump --format custom --blobs --file "upmark_dump-${TODAY}.psql"
+exit
+```
+
+The backup should now be in the `backup` directory.
+
+## Docker-managed PostgreSQL
+
 These instructions are for working with backups for your Docker-based Postgres
-database. If you are using [AWS RDS][aws] for your database, you can use its
-automated backup facility.
+database.
 
 To work with the local database, use the `dbadmin` service. The `../backup`
 directory gets mapped as a volume, and is used as the default working directory.
