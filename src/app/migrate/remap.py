@@ -51,10 +51,52 @@ class Remapper:
         self.dup_ids = set()
 
     def run(self):
+        self.delete_default_user()
         self.remap_users_and_orgs()
         self.transfer()
         self.rw_staging.rollback()
         self.ro_upstream.commit()
+
+    def delete_default_user(self):
+        user = (
+            self.rw_staging.query(model.AppUser)
+            .filter(model.AppUser.name == 'DEFAULT USER')
+            .first())
+        if user:
+            activities = list(
+                self.rw_staging.query(model.Activity)
+                .filter(model.Activity.subject_id == user.id)
+                .all())
+            if len(activities) > 5:
+                raise ValueError(
+                    "Default user has too many activities. "
+                    "Are they really inactive?")
+            for activity in activities:
+                self.rw_staging.delete(activity)
+
+            subscriptions = list(
+                self.rw_staging.query(model.Subscription)
+                .filter(model.Subscription.user_id == user.id)
+                .all())
+            if len(subscriptions) > 2:
+                raise ValueError(
+                    "Default user has too many subscriptions. "
+                    "Are they really inactive?")
+            for subscription in subscriptions:
+                self.rw_staging.delete(subscription)
+
+            self.rw_staging.delete(user)
+
+        self.rw_staging.flush()
+
+        org = (
+            self.rw_staging.query(model.Organisation)
+            .filter(model.Organisation.name == 'DEFAULT ORGANISATION')
+            .first())
+        if org:
+            self.rw_staging.delete(org)
+
+        self.rw_staging.flush()
 
     def get_duplicate_users(self):
         duplicates = []
