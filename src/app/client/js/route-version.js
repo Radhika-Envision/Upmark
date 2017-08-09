@@ -4,12 +4,12 @@ angular.module('upmark.route_version', [])
 
 
 .run(function($rootScope, $window, $location, Notifications, log,
-        $route, checkLogin, $q, QuestionNode) {
+        $route, checkLogin, $q, QuestionNode, IdMapper) {
 
     // Upgrade route version
     // The route version should be a number in the range 0-z
     $rootScope.$on('$routeChangeStart', function(event, next, current) {
-        var CURRENT_VERSION = 2;
+        var CURRENT_VERSION = 3;
         // Initialise from $location because it is aware of the hash. This
         // should probably work with HTML5 mode URLs too.
         var createUrl = function(urlOrStr) {
@@ -111,6 +111,33 @@ angular.module('upmark.route_version', [])
             });
         }
 
+        if (version < 3) {
+            promise = promise.then(function(oldUrl) {
+                // Version 3: Some UUIDs have changed; look up new IDs.
+                var url = oldUrl.toString();
+                var uuid_expr = /(\w{8}-\w{4}-\w{4}-\w{4}-\w{12})/g;
+                var match;
+                var oldIds = [];
+                do {
+                    match = uuid_expr.exec(url);
+                    if (match)
+                        oldIds.push(match[1]);
+                } while (match);
+
+                return IdMapper.get({ids: oldIds}).$promise.then(
+                    function(newIds) {
+                        url = url.replace(/(\w{8}-\w{4}-\w{4}-\w{4}-\w{12})/g,
+                            function(oldId) {
+                                return newIds[oldId];
+                            }
+                        );
+                        url = url.replace(/^\/\d+\//, '/3/');
+                        return url;
+                    }
+                );
+            });
+        }
+
         promise.then(function(newUrl) {
             console.log('Upgraded route to v' + CURRENT_VERSION +
                 ':\n' + originalUrl + '\n' + newUrl);
@@ -148,5 +175,12 @@ angular.module('upmark.route_version', [])
         $window.ga('send', 'pageview', '/' + $route.current.loadedTemplateUrl);
     });
 })
+
+
+.factory('IdMapper', ['$resource', function($resource) {
+    return $resource('/remap.json', {}, {
+        get: { method: 'GET', cache: false },
+    });
+}])
 
 ;

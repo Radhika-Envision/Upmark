@@ -36,7 +36,7 @@ def upgrade():
     op.create_index(
         'surveygroup_title_key',
         'surveygroup',
-        ['title'], unique=False)
+        ['title'], unique=True)
 
     op.create_table(
         'organisation_surveygroup',
@@ -70,8 +70,14 @@ def upgrade():
         'activity_surveygroup',
         sa.Column('activity_id', GUID, ForeignKey('activity.id')),
         sa.Column('surveygroup_id', GUID, ForeignKey('surveygroup.id')),
-        Index('activity_surveygroup_program_id_index', 'activity_id'),
+        Index('activity_surveygroup_activity_id_index', 'activity_id'),
         Index('activity_surveygroup_surveygroup_id_index', 'surveygroup_id'),
+    )
+
+    op.create_table(
+        'id_map',
+        sa.Column('old_id', GUID, nullable=False, primary_key=True),
+        sa.Column('new_id', GUID, nullable=False),
     )
 
     ob_types = array([
@@ -137,14 +143,17 @@ def upgrade():
     op.execute("GRANT SELECT ON activity_surveygroup TO analyst")
     op.execute("GRANT SELECT ON user_surveygroup TO analyst")
     op.execute("GRANT SELECT ON program_surveygroup TO analyst")
+    op.execute("GRANT SELECT ON id_map TO analyst")
 
 
 def downgrade():
+    op.execute("REVOKE SELECT ON id_map FROM analyst")
     op.execute("REVOKE SELECT ON program_surveygroup FROM analyst")
     op.execute("REVOKE SELECT ON user_surveygroup FROM analyst")
     op.execute("REVOKE SELECT ON organisation_surveygroup FROM analyst")
     op.execute("REVOKE SELECT ON activity_surveygroup FROM analyst")
 
+    op.drop_table('id_map')
     op.drop_table('program_surveygroup')
     op.drop_table('user_surveygroup')
     op.drop_table('organisation_surveygroup')

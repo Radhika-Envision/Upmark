@@ -11,6 +11,7 @@ __all__ = (
     'response',
     'response_type',
     'rnode',
+    'remap',
     'submission',
     'survey',
     'surveygroup',
@@ -20,6 +21,7 @@ __all__ = (
 from . import config
 from . import custom
 from . import image
+from . import remap
 
 from . import surveygroup
 
