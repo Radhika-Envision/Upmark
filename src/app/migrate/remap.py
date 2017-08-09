@@ -105,8 +105,6 @@ class Remapper:
             user_ro = (
                 self.ro_upstream.query(model.AppUser)
                 .filter(
-                    (func.lower(model.AppUser.name) ==
-                     func.lower(user_s.name)) |
                     (func.lower(model.AppUser.email) ==
                      func.lower(user_s.email)))
                 .first())
