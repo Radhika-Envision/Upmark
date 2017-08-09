@@ -1,4 +1,5 @@
 from sqlalchemy import func
+from tqdm import tqdm
 
 import model
 
@@ -7,9 +8,53 @@ from .connection import scope
 
 class Remapper:
 
+    TABLES = [
+        model.SurveyGroup.__table__,
+        model.Organisation.__table__,
+        model.OrgLocation.__table__,
+        model.OrgMeta.__table__,
+        model.AppUser.__table__,
+
+        model.CustomQuery.__table__,
+        model.CustomQuery.__history_mapper__.local_table,
+
+        model.Program.__table__,
+        model.Survey.__table__,
+        model.QuestionNode.__table__,
+        model.ResponseType.__table__,
+        model.Measure.__table__,
+        model.QnodeMeasure.__table__,
+        model.MeasureVariable.__table__,
+
+        model.PurchasedSurvey.__table__,
+
+        model.Submission.__table__,
+        model.ResponseNode.__table__,
+        model.Response.__table__,
+        model.Response.__history_mapper__.local_table,
+        model.Attachment.__table__,
+
+        model.Activity.__table__,
+        model.Subscription.__table__,
+
+        model.IdMap.__table__,
+
+        model.organisation_surveygroup,
+        model.program_surveygroup,
+        model.activity_surveygroup,
+        model.user_surveygroup,
+    ]
+
     def __init__(self, rw_staging, ro_upstream):
         self.rw_staging = rw_staging
         self.ro_upstream = ro_upstream
+        self.dup_ids = set()
+
+    def run(self):
+        self.remap_users_and_orgs()
+        self.transfer()
+        self.rw_staging.rollback()
+        self.ro_upstream.commit()
 
     def get_duplicate_users(self):
         duplicates = []
@@ -41,7 +86,7 @@ class Remapper:
                 duplicates.append((org_s, org_ro))
         return duplicates
 
-    CONSTRAINTS = [
+    USER_CONSTRAINTS = [
         (
             'activity', 'appuser',
             'activity_subject_id_fkey',
@@ -70,7 +115,9 @@ class Remapper:
             'user_surveygroup', 'appuser',
             'user_surveygroup_user_id_fkey',
             ['user_id'], ['id']),
+    ]
 
+    ORG_CONSTRAINTS = [
         (
             'appuser', 'organisation',
             'appuser_organisation_id_fkey',
@@ -100,34 +147,41 @@ class Remapper:
             'submission_organisation_id_fkey',
             ['organisation_id'], ['id']),
     ]
+
     DEFUNCT_CONSTRAINTS = [
-        ('response', 'response_user_id_fkey1'),
-        ('submission', 'assessment_organisation_id_fkey1'),
+        (
+            'response', 'appuser',
+            'response_user_id_fkey1'),
+        (
+            'submission', 'organisation',
+            'assessment_organisation_id_fkey1'),
     ]
 
-    def drop_constraints(self):
-        for constraint in self.CONSTRAINTS:
+    OTHER_CONSTRAINTS = [
+        (
+            'qnode', 'qnode',
+            'qnode_parent_id_fkey',
+            ['parent_id', 'program_id'], ['id', 'program_id']),
+    ]
+
+    def drop_constraints(self, session, constraints, if_exists=False):
+        if if_exists:
+            if_exists_clause = 'IF EXISTS'
+        else:
+            if_exists_clause = ''
+
+        for constraint in constraints:
             alter_statment = """
                 ALTER TABLE {}
-                DROP CONSTRAINT {}
+                DROP CONSTRAINT {} {}
             """.format(
-                constraint[0], constraint[2])
+                constraint[0], if_exists_clause, constraint[2])
 
             print("Dropping constraint %s" % constraint[2])
-            self.rw_staging.execute(alter_statment)
+            session.execute(alter_statment)
 
-        for constraint in self.DEFUNCT_CONSTRAINTS:
-            alter_statment = """
-                ALTER TABLE {}
-                DROP CONSTRAINT IF EXISTS {}
-            """.format(
-                constraint[0], constraint[1])
-
-            print("Dropping defunct constraint %s" % constraint[1])
-            self.rw_staging.execute(alter_statment)
-
-    def create_constraints(self):
-        for constraint in self.CONSTRAINTS:
+    def create_constraints(self, session, constraints):
+        for constraint in constraints:
             alter_statment = """
                 ALTER TABLE {}
                 ADD CONSTRAINT {}
@@ -139,7 +193,7 @@ class Remapper:
                 ', '.join(constraint[4]))
 
             print("Creating constraint %s" % constraint[2])
-            self.rw_staging.execute(alter_statment)
+            session.execute(alter_statment)
 
     def remap_users(self):
         duplicates = self.get_duplicate_users()
@@ -191,6 +245,7 @@ class Remapper:
             self.rw_staging.add(model.IdMap(
                 old_id=user_s.id, new_id=user_ro.id))
             user_s.id = user_ro.id
+            self.dup_ids.add(user_ro.id)
 
         self.rw_staging.flush()
 
@@ -249,16 +304,51 @@ class Remapper:
             self.rw_staging.add(model.IdMap(
                 old_id=org_s.id, new_id=org_ro.id))
             org_s.id = org_ro.id
+            self.dup_ids.add(org_ro.id)
 
         self.rw_staging.flush()
+
+    def remap_users_and_orgs(self):
+        self.drop_constraints(self.rw_staging, self.USER_CONSTRAINTS)
+        self.drop_constraints(self.rw_staging, self.DEFUNCT_CONSTRAINTS, True)
+        self.drop_constraints(self.rw_staging, self.ORG_CONSTRAINTS)
+        self.remap_users()
+        self.remap_orgs()
+        self.create_constraints(self.rw_staging, self.ORG_CONSTRAINTS)
+        self.create_constraints(self.rw_staging, self.USER_CONSTRAINTS)
+        self.rw_staging.flush()
+
+    def transfer(self):
+        self.drop_constraints(self.ro_upstream, self.OTHER_CONSTRAINTS)
+
+        for table in tqdm(self.TABLES):
+            query = self.rw_staging.query(table)
+
+            if self.dup_ids:
+                if str(table) in {'appuser', 'organisation'}:
+                    query = query.filter(~table.c.id.in_(self.dup_ids))
+                elif str(table) == 'subscription':
+                    query = (
+                        query
+                        .filter(~table.c.user_id.in_(self.dup_ids))
+                        .filter(~table.c.ob_refs.overlap(self.dup_ids)))
+
+            count = query.count()
+            rows = query.all()
+
+            tqdm.write("Transferring %s" % table)
+
+            for row in tqdm(rows, total=count):
+                self.ro_upstream.execute(
+                    table.insert()
+                    .values(row))
+
+        print()
+        self.create_constraints(self.ro_upstream, self.OTHER_CONSTRAINTS)
 
 
 def remap():
     with scope('rw_staging') as rw_staging, \
             scope('ro_upstream') as ro_upstream:
         remapper = Remapper(rw_staging, ro_upstream)
-        remapper.drop_constraints()
-        remapper.remap_users()
-        remapper.remap_orgs()
-        remapper.create_constraints()
-        rw_staging.flush()
+        remapper.run()
