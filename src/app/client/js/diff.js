@@ -111,14 +111,14 @@ angular.module('upmark.diff', [
 
     $scope.getItemUrl = function(item, entity, program) {
         if (item.type == 'qnode')
-            return format("/2/qnode/{}?program={}", entity.id, program.id);
+            return format("/3/qnode/{}?program={}", entity.id, program.id);
         else if (item.type == 'measure')
-            return format("/2/measure/{}?program={}&survey={}",
+            return format("/3/measure/{}?program={}&survey={}",
                 entity.id, program.id, entity.surveyId);
         else if (item.type == 'program')
-            return format("/2/program/{}", program.id);
+            return format("/3/program/{}", program.id);
         else if (item.type == 'survey')
-            return format("/2/survey/{}?program={}", entity.id, program.id);
+            return format("/3/survey/{}?program={}", entity.id, program.id);
     };
 
     $scope.chooser = false;

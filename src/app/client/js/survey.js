@@ -42,7 +42,7 @@ angular.module('upmark.survey', [
                         return url;
                 }
 
-                var path = format("#/2/{}/{}", item.path, key);
+                var path = format("#/3/{}/{}", item.path, key);
                 var query = [];
                 if (item.path == 'program' || item.path == 'submission') {
                 } else if (item.path == 'survey') {
@@ -68,7 +68,7 @@ angular.module('upmark.survey', [
                     callback: function(event, hotkey) {
                         var url = $scope.itemUrl($scope.upItem);
                         if (!url)
-                            url = '/2/programs';
+                            url = '/3/programs';
                         $location.url(url.substring(1));
                     }
                 })

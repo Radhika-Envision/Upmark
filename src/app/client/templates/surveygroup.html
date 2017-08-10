@@ -19,13 +19,13 @@
                 ng-if="!edit.model && checkRole('surveygroup_edit')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/2/subscription/surveygroup?id={{surveygroup.id}}"
+                ng-href="#/3/subscription/surveygroup?id={{surveygroup.id}}"
                 ng-if="!edit.model">
             <i class="fa fa-envelope"></i></a>
     </div>
     <h2 page-title>
         <i class="fa fa-fw fa-university"></i>
-        <a href="#/2/surveygroups">Survey groups</a> &raquo;
+        <a href="#/3/surveygroups">Survey groups</a> &raquo;
         <span ng-if="surveygroup.title"
                 ng-class="{strike: surveygroup.deleted}">
             {{surveygroup.title}}</span>

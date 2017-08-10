@@ -2,13 +2,13 @@
     <div class="container">
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="Add new"
-                    ng-href="#/2/measure/new?program={{program.id}}"
+                    ng-href="#/3/measure/new?program={{program.id}}"
                     ng-if="checkRole('measure_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
         </div>
         <div class="stacked-header">
             <h2 label="S">
-                <a ng-href="#/2/program/{{program.id}}">{{program.title}}</a>
+                <a ng-href="#/3/program/{{program.id}}">{{program.title}}</a>
             </h2>
             <h2 label="M">
                 Measures
@@ -42,7 +42,7 @@
     <tbody>
       <tr ng-repeat="measure in measures"
             ng-class="{strike: measure.orphan}"
-            any-href="/2/measure/{{measure.id}}?program={{program.id}}">
+            any-href="/3/measure/{{measure.id}}?program={{program.id}}">
         <td class="truncate">{{measure.title}}
             <span class="text-muted" ng-if="measure.description">
                 - {{measure.description}}</span>

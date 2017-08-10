@@ -105,32 +105,32 @@ angular.module('upmark.home', [
 
         switch (action.obType) {
         case 'custom_query':
-            return format("/2/custom/{}", action.obIds[0]);
+            return format("/3/custom/{}", action.obIds[0]);
         case 'organisation':
-            return format("/2/org/{}", action.obIds[0]);
+            return format("/3/org/{}", action.obIds[0]);
         case 'user':
-            return format("/2/user/{}", action.obIds[0]);
+            return format("/3/user/{}", action.obIds[0]);
         case 'program':
-            return format("/2/program/{}", action.obIds[0]);
+            return format("/3/program/{}", action.obIds[0]);
         case 'survey':
-            return format("/2/survey/{}?program={}",
+            return format("/3/survey/{}?program={}",
                 action.obIds[0], action.obIds[1]);
         case 'qnode':
-            return format("/2/qnode/{}?program={}",
+            return format("/3/qnode/{}?program={}",
                 action.obIds[0], action.obIds[1]);
         case 'measure':
-            return format("/2/measure/{}?program={}",
+            return format("/3/measure/{}?program={}",
                 action.obIds[0], action.obIds[1]);
         case 'response_type':
-            return format("/2/response-type/{}?program={}",
+            return format("/3/response-type/{}?program={}",
                 action.obIds[0], action.obIds[1]);
         case 'submission':
-            return format("/2/submission/{}", action.obIds[0]);
+            return format("/3/submission/{}", action.obIds[0]);
         case 'rnode':
-            return format("/2/qnode/{}?submission={}",
+            return format("/3/qnode/{}?submission={}",
                 action.obIds[0], action.obIds[1]);
         case 'response':
-            return format("/2/measure/{}?submission={}",
+            return format("/3/measure/{}?submission={}",
                 action.obIds[0], action.obIds[1]);
         default:
             return '';
@@ -296,7 +296,7 @@ angular.module('upmark.home', [
     };
 
     $scope.subscriptionUrl = function(action) {
-        var url = '/2/subscription/' + action.obType;
+        var url = '/3/subscription/' + action.obType;
         for (var i = 0; i < action.obIds.length; i++) {
             if (i == 0)
                 url += '?';

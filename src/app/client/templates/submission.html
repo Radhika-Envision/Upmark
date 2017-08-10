@@ -37,7 +37,7 @@
             </ul>
         </span>
         <a class="btn btn-default btn-round" title="Statistics"
-                ng-href="#/2/statistics?submission1={{submission.id}}"
+                ng-href="#/3/statistics?submission1={{submission.id}}"
                 ng-if="!structure.deletedItem && !edit.model &&
                        checkRole('report_chart')">
             <i class="fa fa-sml fa-bar-chart-o"></i></a>
@@ -60,7 +60,7 @@
                 ng-if="edit.model && edit.model.id">
             <i class="fa fa-times"></i></button>
         <a class="btn btn-default btn-round" title="Cancel"
-                ng-href="#/2/program/{{program.id}}"
+                ng-href="#/3/program/{{program.id}}"
                 ng-if="edit.model && !edit.model.id">
             <i class="fa fa-times"></i></a>
         <button class="btn btn-default btn-round" title="Save"
@@ -75,7 +75,7 @@
                        checkRole('submission_edit')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/2/subscription/submission?id={{submission.id}}"
+                ng-href="#/3/subscription/submission?id={{submission.id}}"
                 ng-if="!edit.model">
             <i class="fa fa-envelope"></i></a>
     </div>
@@ -464,7 +464,7 @@
     <!-- Don't wrap the contents of this tag! -->
     <p>
         Submission against
-        <a ng-href="#/2/survey/{{structure.survey.id}}?program={{structure.program.id}}"
+        <a ng-href="#/3/survey/{{structure.survey.id}}?program={{structure.program.id}}"
             >{{structure.survey.title}}</a>,
         {{submission.created * 1000 | date:'mediumDate':'UTC'}}.
     </p>

@@ -692,7 +692,7 @@ class QnodeMeasureRow:
     def link(self, base_url):
         return Link(
             "Measure",
-            "{}/#/2/measure/{}?program={}&survey={}".format(
+            "{}/#/3/measure/{}?program={}&survey={}".format(
                 base_url, self.qm.measure_id, self.qm.program_id,
                 self.qm.survey_id))
 
@@ -738,7 +738,7 @@ class OrganisationRow:
         if self.latest_response is not None:
             return Link(
                 "Response",
-                "{}/#/2/measure/{}?submission={}".format(
+                "{}/#/3/measure/{}?submission={}".format(
                     base_url, self.latest_response.measure_id,
                     self.latest_response.submission.id))
         else:

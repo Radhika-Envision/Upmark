@@ -105,7 +105,7 @@ angular.module('upmark.custom', [
         $scope.edit.edit();
 
     $scope.$on('EditSaved', function(event, model) {
-        $location.url('/2/custom/' + model.id);
+        $location.url('/3/custom/' + model.id);
     });
 
     $scope.activeModel = null;

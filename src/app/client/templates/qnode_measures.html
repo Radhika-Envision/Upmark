@@ -14,12 +14,12 @@
                        checkRole('qnode_edit')">
             <i class="fa fa-fw fa-unsorted"></i></button>
         <a class="btn btn-default btn-round" title="Add new"
-                ng-href="#/2/measure/new?program={{program.id}}&parent={{qnode.id}}"
+                ng-href="#/3/measure/new?program={{program.id}}&parent={{qnode.id}}"
                 ng-if="editable && !edit.model &&
                        checkRole('measure_add') && checkRole('qnode_edit')">
             <i class="fa fa-fw fa-plus"></i></a>
         <a class="btn btn-default btn-round" title="Link to existing"
-                ng-href="#/2/measure-link?program={{program.id}}&parent={{qnode.id}}"
+                ng-href="#/3/measure-link?program={{program.id}}&parent={{qnode.id}}"
                 ng-if="editable && !edit.model && checkRole('qnode_edit')">
             <i class="fa fa-fw fa-link"></i></a>
     </div>
@@ -29,7 +29,7 @@
 <table class="table table-hover">
     <tbody ui-sortable="dragOpts" ng-model="edit.model">
         <tr ng-repeat="item in edit.model || model"
-                any-href="/2/measure/{{item.id}}?{{query}}"
+                any-href="/3/measure/{{item.id}}?{{query}}"
                 ng-disabled="edit.model"
                 ng-class="{
                     'strike-black': getStats(item.id).notRelevant,

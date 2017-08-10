@@ -124,9 +124,9 @@ angular.module('upmark.submission.select', ['ui.select', 'upmark.user'])
                     return $scope.formatUrl(submission)
 
                 if (submission) {
-                    return format('/2/submission/{}', submission.id);
+                    return format('/3/submission/{}', submission.id);
                 } else {
-                    return format('/2/survey/{}?program={}',
+                    return format('/3/survey/{}?program={}',
                         $scope.survey.id, $scope.program.id);
                 }
             };

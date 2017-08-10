@@ -94,10 +94,10 @@ angular.module('upmark.survey.program',[
     }
 
     $scope.$on('EditSaved', function(event, model) {
-        $location.url('/2/program/' + model.id);
+        $location.url('/3/program/' + model.id);
     });
     $scope.$on('EditDeleted', function(event, model) {
-        $location.url('/2/programs');
+        $location.url('/3/programs');
     });
 
     $scope.checkRole = Authz({program: $scope.program});
@@ -159,7 +159,7 @@ angular.module('upmark.survey.program',[
             description: "Add a new question set",
             callback: function(event, hotkey) {
                 $location.url(
-                    format("/2/survey/new?program={{}}", $scope.program.id));
+                    format("/3/survey/new?program={{}}", $scope.program.id));
             }
         })
         .add({
@@ -167,7 +167,7 @@ angular.module('upmark.survey.program',[
             description: "Search for measures",
             callback: function(event, hotkey) {
                 $location.url(
-                    format("/2/measures?program={{}}", $scope.program.id));
+                    format("/3/measures?program={{}}", $scope.program.id));
             }
         });
 })
@@ -260,7 +260,7 @@ angular.module('upmark.survey.program',[
             $scope.progress.isFinished = true;
         }, 1000);
         $timeout(function() {
-            $location.url('/2/program/' + response);
+            $location.url('/3/program/' + response);
         }, 5000);
     });
 
@@ -315,13 +315,13 @@ angular.module('upmark.survey.program',[
 
             $scope.navigate = function(program) {
                 if ($scope.entity == $scope.structure.program)
-                    $location.url('/2/program/' + program.id);
+                    $location.url('/3/program/' + program.id);
                 else
                     $location.search('program', program.id);
             };
             $scope.isActive = function(program) {
                 if ($scope.entity == $scope.structure.program)
-                    return $location.url().indexOf('/2/program/' + program.id) >= 0;
+                    return $location.url().indexOf('/3/program/' + program.id) >= 0;
                 else
                     return $location.search().program == program.id;
             };
@@ -336,7 +336,7 @@ angular.module('upmark.survey.program',[
                     s2 = program;
                 }
                 var url = format(
-                    '/2/diff/{}/{}/{}?ignoreTags=list+index',
+                    '/3/diff/{}/{}/{}?ignoreTags=list+index',
                     s1.id,
                     s2.id,
                     $scope.structure.survey.id);

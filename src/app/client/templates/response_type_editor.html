@@ -18,7 +18,7 @@
         </div>
         <p class="text-muted" ng-if="rt.nMeasures">
             This response type is used by
-            <a ng-href="#/2/measures?program={{rt.programId}}&initialTerm=rt:{{rt.id}}"
+            <a ng-href="#/3/measures?program={{rt.programId}}&initialTerm=rt:{{rt.id}}"
                 ><ng-pluralize count="rt.nMeasures" when="{
                     '1': '1 measure',
                     'other': '{} measures',
@@ -345,7 +345,7 @@
         </span>
         <span ng-if="rt.nMeasures">
             This response type is used by
-            <a ng-href="#/2/measures?program={{rt.programId}}&initialTerm=rt:{{rt.id}}"
+            <a ng-href="#/3/measures?program={{rt.programId}}&initialTerm=rt:{{rt.id}}"
                 ><ng-pluralize count="rt.nMeasures" when="{
                     '1': '1 measure',
                     'other': '{} measures',

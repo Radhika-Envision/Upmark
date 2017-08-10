@@ -2,7 +2,7 @@
     <div class="container">
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="Add new"
-                    href="#/2/surveygroup/new" ng-if="checkRole('surveygroup_add')">
+                    href="#/3/surveygroup/new" ng-if="checkRole('surveygroup_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
         </div>
         <h2 page-title>
@@ -19,7 +19,7 @@
     <ul class="list-results">
         <li ng-repeat="surveygroup in surveygroups"
                 ng-class="{strike: surveygroup.deleted}">
-            <a ng-href="#/2/surveygroup/{{surveygroup.id}}">
+            <a ng-href="#/3/surveygroup/{{surveygroup.id}}">
                 <h4>{{surveygroup.title}}</h4>
                 <p class="truncate" ng-if="surveygroup.description">
                     {{surveygroup.description}}

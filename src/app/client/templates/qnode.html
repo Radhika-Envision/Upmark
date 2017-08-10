@@ -32,11 +32,11 @@
                 ng-if="editable && !edit.model && checkRole('qnode_edit')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/2/subscription/qnode?id={{qnode.id}}&id={{program.id}}"
+                ng-href="#/3/subscription/qnode?id={{qnode.id}}&id={{program.id}}"
                 ng-if="!edit.model && !submission">
             <i class="fa fa-envelope"></i></a>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/2/subscription/rnode?id={{qnode.id}}&id={{submission.id}}"
+                ng-href="#/3/subscription/rnode?id={{qnode.id}}&id={{submission.id}}"
                 ng-if="!edit.model && submission">
             <i class="fa fa-envelope"></i></a>
         <program-history entity="qnode" service="QuestionNode"

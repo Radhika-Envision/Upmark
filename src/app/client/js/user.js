@@ -117,11 +117,11 @@ angular.module('upmark.user', [
     }
 
     $scope.$on('EditSaved', function(event, model) {
-        $location.url('/2/user/' + model.id);
+        $location.url('/3/user/' + model.id);
     });
     $scope.$on('EditDeleted', function(event, model) {
         $location.url(format(
-            '/2/org/{}', model.organisation.id));
+            '/3/org/{}', model.organisation.id));
     });
 
     $scope.roles = roles;

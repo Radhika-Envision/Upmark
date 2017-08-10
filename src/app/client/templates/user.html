@@ -23,17 +23,17 @@
                 ng-if="!edit.model && checkRole('user_edit')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/2/subscription/user?id={{user.id}}"
+                ng-href="#/3/subscription/user?id={{user.id}}"
                 ng-if="!edit.model">
             <i class="fa fa-envelope"></i></a>
     </div>
     <h2 page-title>
         <i class="fa fa-fw fa-user"></i>
-        <a href="#/2/org/{{user.organisation.id}}"
+        <a href="#/3/org/{{user.organisation.id}}"
                 ng-if="user.organisation"
                 ng-class="{strike: user.organisation.deleted}">
             {{user.organisation.name}}</a>
-        <a href="#/2/org/{{user.organisation.id}}"
+        <a href="#/3/org/{{user.organisation.id}}"
                 ng-if="!user.organisation">
             Users</a>
         &raquo;
@@ -97,7 +97,7 @@
             <h3>Email notifications</h3>
             <p>
                 Notifications can be sent to your email address when activity
-                in <a href="/#/2/">your timeline</a> changes. To opt out, set the
+                in <a href="/#/3/">your timeline</a> changes. To opt out, set the
                 email frequency to zero. The maximum interval is two weeks.
             </p>
         </docs>
@@ -177,7 +177,7 @@
     <dl>
         <dt>Organisation</dt>
         <dd>
-            <a ng-href="#/2/org/{{user.organisation.id}}">
+            <a ng-href="#/3/org/{{user.organisation.id}}">
                 {{user.organisation.name}}</a>
         </dd>
     </dl>
@@ -209,7 +209,7 @@
         <dt>Survey groups</dt>
         <dd class="commasep"
             ><span ng-repeat="surveygroup in user.surveygroups"
-                ><a ng-href="#/2/surveygroup/{{surveygroup.id}}"
+                ><a ng-href="#/3/surveygroup/{{surveygroup.id}}"
                     >{{surveygroup.title}}</a></span
         ></dd>
     </dl>

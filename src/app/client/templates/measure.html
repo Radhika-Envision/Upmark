@@ -33,11 +33,11 @@
                 ng-if="editable && !edit.model && checkRole('measure_edit')">
             <i class="fa fa-pencil"></i></button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/2/subscription/measure?id={{measure.id}}&id={{program.id}}"
+                ng-href="#/3/subscription/measure?id={{measure.id}}&id={{program.id}}"
                 ng-if="!edit.model && !submission">
             <i class="fa fa-envelope"></i></a>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/2/subscription/response?id={{measure.id}}&id={{submission.id}}"
+                ng-href="#/3/subscription/response?id={{measure.id}}&id={{submission.id}}"
                 ng-if="!edit.model && submission">
             <i class="fa fa-envelope"></i></a>
         <program-history entity="measure" service="Measure"
@@ -61,7 +61,7 @@
         </p>
         <ul ng-if="measure.parents.length">
             <li ng-repeat="parent in measure.parents">
-                <a ng-href="#/2/measure/{{measure.id}}?program={{structure.program.id}}&survey={{parent.survey.id}}">
+                <a ng-href="#/3/measure/{{measure.id}}?program={{structure.program.id}}&survey={{parent.survey.id}}">
                     <span ng-class="{strike: parent.survey.deleted}">
                         {{parent.survey.title}}
                     </span>
@@ -162,7 +162,7 @@
     </span>
     <ul ng-if="measure.parents.length">
         <li ng-repeat="parent in measure.parents">
-            <a ng-href="#/2/measure/{{measure.id}}?program={{structure.program.id}}&survey={{parent.survey.id}}">
+            <a ng-href="#/3/measure/{{measure.id}}?program={{structure.program.id}}&survey={{parent.survey.id}}">
                 <span ng-class="{strike: parent.survey.deleted}">
                     {{parent.survey.title}}
                 </span>
@@ -170,7 +170,7 @@
         </li>
     </ul>
     This measure can be
-    <a ng-href="#/2/measure/{{measure.id}}?program={{program.id}}">
+    <a ng-href="#/3/measure/{{measure.id}}?program={{program.id}}">
         viewed without a survey</a>,
     but it can not be responded to like that.
 </docs>

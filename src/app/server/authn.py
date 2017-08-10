@@ -98,7 +98,7 @@ class LoginHandler(SessionMixin, template.TemplateHandler):
         # Make sure the XSRF token expires at the same time
         self.xsrf_token
 
-        self.redirect('/' + self.get_argument("next", "#/2/"))
+        self.redirect('/' + self.get_argument("next", "#/3/"))
 
     def set_superuser(self, cookie, user):
         # Store both user and superuser ("true user") IDs in a single
