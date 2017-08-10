@@ -1,7 +1,7 @@
 version: '2.0'
 
 services:
-  web_standalone:
+  web-standalone:
     build: ./src/app
     ports:
      - "80:80"
@@ -15,13 +15,11 @@ services:
      - ./scratch:/root/scratch
     restart: always
 
-  dbadmin_standalone:
+  dbadmin-standalone:
     image: postgres:9
+    env_file:
+     - ../u-conf/upmark.conf
     environment:
-      PGHOST: postgres
-      PGUSER: postgres
-      PGDATABASE: postgres
-      PGPASSWORD: postgres
       PSQLRC: /root/scratch/psqlrc
       PSQL_HISTORY: /root/scratch/psql_history
       HISTFILE: /root/scratch/bash_history
@@ -35,7 +33,7 @@ services:
 
   web:
     extends:
-      service: web_standalone
+      service: web-standalone
     volumes:
      - ./src/app:/usr/share/aquamark/app
     links:
@@ -94,12 +92,12 @@ services:
 
   dbadmin:
     extends:
-      service: dbadmin_standalone
+      service: dbadmin-standalone
     links:
       - postgres
 
   dbadmin-test:
     extends:
-      service: dbadmin_standalone
+      service: dbadmin-standalone
     links:
       - postgres-test:postgres
