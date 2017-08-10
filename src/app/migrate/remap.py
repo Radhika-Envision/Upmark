@@ -100,8 +100,9 @@ class Remapper:
 
     def get_duplicate_users(self):
         duplicates = []
-        users_s = self.rw_staging.query(model.AppUser).all()
-        for user_s in users_s:
+        users_s = list(self.rw_staging.query(model.AppUser).all())
+        for user_s in tqdm(users_s):
+            tqdm.write("Checking %s" % user_s.name)
             user_ro = (
                 self.ro_upstream.query(model.AppUser)
                 .filter(
@@ -114,8 +115,9 @@ class Remapper:
 
     def get_duplicate_orgs(self):
         duplicates = []
-        orgs_s = self.rw_staging.query(model.Organisation).all()
-        for org_s in orgs_s:
+        orgs_s = list(self.rw_staging.query(model.Organisation).all())
+        for org_s in tqdm(orgs_s):
+            tqdm.write("Checking %s" % org_s.name)
             org_ro = (
                 self.ro_upstream.query(model.Organisation)
                 .filter(
@@ -236,9 +238,10 @@ class Remapper:
             session.execute(alter_statment)
 
     def remap_users(self):
+        print("Remapping users")
         duplicates = self.get_duplicate_users()
-        for user_s, user_ro in duplicates:
-            print("Duplicate user %s: %s -> %s" % (
+        for user_s, user_ro in tqdm(duplicates):
+            tqdm.write("Duplicate user %s: %s -> %s" % (
                 user_s.name, user_s.id, user_ro.id))
             self.rw_staging.execute(
                 model.Activity.__table__.update()
@@ -290,9 +293,10 @@ class Remapper:
         self.rw_staging.flush()
 
     def remap_orgs(self):
+        print("Remapping organisations")
         duplicates = self.get_duplicate_orgs()
-        for org_s, org_ro in duplicates:
-            print("Duplicate organisation %s: %s -> %s" % (
+        for org_s, org_ro in tqdm(duplicates):
+            tqdm.write("Duplicate organisation %s: %s -> %s" % (
                 org_s.name, org_s.id, org_ro.id))
             self.rw_staging.execute(
                 model.AppUser.__table__.update()
@@ -359,6 +363,7 @@ class Remapper:
         self.rw_staging.flush()
 
     def transfer(self):
+        print("Transferring data to target database")
         self.drop_constraints(self.ro_upstream, self.OTHER_CONSTRAINTS)
 
         for table in tqdm(self.TABLES):
