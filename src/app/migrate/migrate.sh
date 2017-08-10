@@ -20,6 +20,9 @@ if sudo docker ps -a | grep -q "${OLD_UPMARK}_postgres_1"; then
 fi
 
 echo "Ensuring databases are running"
+if ! sudo docker ps -a | grep -q "${NEW_UPMARK}_postgres_1"; then
+    blank_target='yes'
+fi
 sudo docker-compose -p ${OLD_UPMARK} up -d postgres
 sudo docker-compose -p ${NEW_UPMARK} up -d postgres
 sleep 5
@@ -33,6 +36,14 @@ sudo docker-compose -p ${OLD_UPMARK} run --rm dbadmin \
 echo "Upgrading schemas"
 sudo docker-compose -p ${OLD_UPMARK} run --rm web alembic upgrade head
 sudo docker-compose -p ${NEW_UPMARK} run --rm web alembic upgrade head
+
+if [ "$blank_target"x != x ]; then
+    echo "Fresh target database; deleting default user and group"
+    sudo docker-compose -p ${NEW_UPMARK} run --rm dbadmin \
+        psql -c "TRUNCATE appuser CASCADE; \
+            TRUNCATE organisation CASCADE; \
+            TRUNCATE surveygroup CASCADE;"
+fi
 
 echo "Renaming survey group to '${OLD_UPMARK}'"
 sudo docker-compose -p ${OLD_UPMARK} run --rm dbadmin \
