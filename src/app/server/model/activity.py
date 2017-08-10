@@ -130,7 +130,7 @@ activity_surveygroup = Table(
     'activity_surveygroup', Base.metadata,
     Column('activity_id', GUID, ForeignKey('activity.id')),
     Column('surveygroup_id', GUID, ForeignKey('surveygroup.id')),
-    Index('activity_surveygroup_organisation_id_index', 'activity_id'),
+    Index('activity_surveygroup_activity_id_index', 'activity_id'),
     Index('activity_surveygroup_surveygroup_id_index', 'surveygroup_id'),
 )
 

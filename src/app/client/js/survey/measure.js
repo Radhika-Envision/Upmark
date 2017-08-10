@@ -436,10 +436,10 @@ angular.module('upmark.survey.measure', [
     $scope.$on('EditDeleted', function(event, model) {
         if (model.parent) {
             $location.url(format(
-                '/2/qnode/{}?program={}', model.parent.id, model.programId));
+                '/3/qnode/{}?program={}', model.parent.id, model.programId));
         } else {
             $location.url(format(
-                '/2/measures?program={}', model.programId));
+                '/3/measures?program={}', model.programId));
         }
     });
 
@@ -465,10 +465,10 @@ angular.module('upmark.survey.measure', [
 
     $scope.getUrl = function(measure) {
         if ($scope.structure.submission) {
-            return format('/2/measure/{}?submission={}',
+            return format('/3/measure/{}?submission={}',
                 measure.id, $scope.structure.submission.id);
         } else {
-            return format('/2/measure/{}?program={}&survey={}',
+            return format('/3/measure/{}?program={}&survey={}',
                 measure.id, $scope.structure.program.id,
                 $scope.structure.survey && $scope.structure.survey.id || '');
         }
@@ -476,11 +476,11 @@ angular.module('upmark.survey.measure', [
 
     $scope.getSubmissionUrl = function(submission) {
         if (submission) {
-            return format('/2/measure/{}?submission={}',
+            return format('/3/measure/{}?submission={}',
                 $scope.measure.id, submission.id,
                 $scope.parent && $scope.parent.id || '');
         } else {
-            return format('/2/measure/{}?program={}&survey={}',
+            return format('/3/measure/{}?program={}&survey={}',
                 $scope.measure.id, $scope.structure.program.id,
                 $scope.structure.survey && $scope.structure.survey.id || '');
         }
@@ -517,7 +517,7 @@ angular.module('upmark.survey.measure', [
                     message += ': ' + headers('Operation-Details');
                 Notifications.set('edit', 'success', message);
                 $location.url(format(
-                    '/2/qnode/{}?program={}', $scope.qnode.id, $scope.program.id));
+                    '/3/qnode/{}?program={}', $scope.qnode.id, $scope.program.id));
             },
             function failure(details) {
                 Notifications.set('edit', 'error',

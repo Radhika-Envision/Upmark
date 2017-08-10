@@ -2,7 +2,7 @@
     <div class="container">
         <div class="toolbar">
             <a class="btn btn-default btn-round" title="Add new"
-                    ng-href="#/2/custom/new"
+                    ng-href="#/3/custom/new"
                     ng-if="checkRole('custom_query_add')">
                 <i class="fa fa-fw fa-plus"></i></a>
         </div>
@@ -24,7 +24,7 @@
                     'strike': customQuery.deleted,
                     'bg-warning': customQuery.error,
                 }">
-            <a ng-href="#/2/custom/{{customQuery.id}}">
+            <a ng-href="#/3/custom/{{customQuery.id}}">
                 <h4>
                     {{customQuery.title}}
                 </h4>

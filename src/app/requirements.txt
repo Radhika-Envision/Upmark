@@ -31,3 +31,4 @@ XlsxWriter~=0.9.6
 
 # Non-functional requirements (dev tools)
 pudb
+tqdm

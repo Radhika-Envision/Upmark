@@ -287,6 +287,7 @@ def get_mappings():
         (r"/import/submission.json",
             ImportSubmissionHandler, {}),
         (r"/redirect", protocol.RedirectHandler),
+        (r"/remap.json", crud.remap.IdMapperHandler),
 
         (r"/(.*)", tornado.web.StaticFileHandler, {
             'path': os.path.join(package_dir, "..", "client")}),

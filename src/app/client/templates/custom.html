@@ -22,7 +22,7 @@
             <i class="fa fa-check"></i>
             <span class="sr-only">Save</span>
         </button>
-        <a ng-href="#/2/custom/new?duplicate={{query.id}}"
+        <a ng-href="#/3/custom/new?duplicate={{query.id}}"
                 class="btn btn-default btn-round"
                 title="Duplicate as a new query (and detach from current history)"
                 ng-if="!edit.model">
@@ -80,7 +80,7 @@
                 ng-if="edit.model && edit.model.id">
             <i class="fa fa-times"></i></button>
         <a class="btn btn-default btn-round" title="Cancel"
-                ng-href="#/2/custom"
+                ng-href="#/3/custom"
                 ng-if="edit.model && !edit.model.id">
             <i class="fa fa-times"></i></a>
         <button class="btn btn-default btn-round" title="Edit"
@@ -90,12 +90,12 @@
             <i class="fa fa-pencil"></i>
         </button>
         <a class="btn btn-default btn-round" title="Subscriptions"
-                ng-href="#/2/subscription/custom_query?id={{query.id}}"
+                ng-href="#/3/subscription/custom_query?id={{query.id}}"
                 ng-if="!edit.model">
             <i class="fa fa-envelope"></i></a>
         </div>
     <h2 page-title>
-        <a href="#/2/custom">Custom Queries</a> &raquo;
+        <a href="#/3/custom">Custom Queries</a> &raquo;
         <span ng-class="{strike: query.deleted}" ng-if="query.id">
             {{query.title}}
         </span>
@@ -339,7 +339,7 @@
         <i class="fa-li fa fa-envelope-o fa-border"></i>
         <h3>Activity stream tables</h3>
         <p>
-            The information for the <a href="#/2/">timeline</a> is stored in
+            The information for the <a href="#/3/">timeline</a> is stored in
             two tables:
         </p>
         <img src="images/design-tables-activity.svg" class="img-responsive">
@@ -484,7 +484,7 @@
     <div>
         <p class="small text-muted">
             Version {{query.version}} saved by
-            <a ng-href="#/2/user/{{query.user.id}}">{{query.user.name}}</a>,
+            <a ng-href="#/3/user/{{query.user.id}}">{{query.user.name}}</a>,
             <span print-friendly-timeago="query.modified"></span>
         </p>
     </div>

@@ -489,7 +489,7 @@ angular.module('upmark.statistics', [
             query = format('submission1={}',
                 $scope.submission2 ? $scope.submission2.id : '');
         }
-        return format('/2/statistics?{}&qnode={}&approval={}',
+        return format('/3/statistics?{}&qnode={}&approval={}',
             query, $location.search()['qnode'] || '', $scope.approval);
     };
     $scope.getSubmissionUrl2 = function(submission) {
@@ -502,7 +502,7 @@ angular.module('upmark.statistics', [
             query = format('submission1={}',
                 $scope.submission1 ? $scope.submission1.id : '');
         }
-        return format('/2/statistics?{}&qnode={}&approval={}',
+        return format('/3/statistics?{}&qnode={}&approval={}',
             query, $location.search()['qnode'] || '', $scope.approval);
     };
 
@@ -511,11 +511,11 @@ angular.module('upmark.statistics', [
         var aid2 = $scope.submission2 ? $scope.submission2.id : ''
         if (item.path == 'qnode') {
             return format(
-                '#/2/statistics?submission1={}&submission2={}&qnode={}&approval={}',
+                '#/3/statistics?submission1={}&submission2={}&qnode={}&approval={}',
                 aid1, aid2, key, $scope.approval);
         } else if (item.path == 'submission') {
             return format(
-                '#/2/statistics?submission1={}&submission2={}&approval={}',
+                '#/3/statistics?submission1={}&submission2={}&approval={}',
                 aid1, aid2, $scope.approval);
         }
         return null;

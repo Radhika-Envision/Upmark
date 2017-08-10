@@ -110,10 +110,10 @@ angular.module('upmark.organisation', [
     $scope.attributions = [];
 
     $scope.$on('EditSaved', function(event, model) {
-        $location.url('/2/org/' + model.id);
+        $location.url('/3/org/' + model.id);
     });
     $scope.$on('EditDeleted', function(event, model) {
-        $location.url('/2/orgs');
+        $location.url('/3/orgs');
     });
 
     $scope.$watch('org.locations', function(locations) {
@@ -275,7 +275,7 @@ angular.module('upmark.organisation', [
             surveyId: survey.id
         }).$promise.then(
             function success() {
-                $location.url('/2/org/' + $scope.org.id);
+                $location.url('/3/org/' + $scope.org.id);
             },
             function failure(details) {
                 Notifications.set('edit', 'error',

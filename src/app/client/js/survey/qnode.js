@@ -165,16 +165,16 @@ angular.module('upmark.survey.qnode', [
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
-            '/2/qnode/{}?program={}', model.id, $scope.program.id));
+            '/3/qnode/{}?program={}', model.id, $scope.program.id));
     });
     $scope.$on('EditDeleted', function(event, model) {
         if (model.parent) {
             $location.url(format(
-                '/2/qnode/{}?program={}', model.parent.id,
+                '/3/qnode/{}?program={}', model.parent.id,
                 $scope.program.id));
         } else {
             $location.url(format(
-                '/2/survey/{}?program={}', model.survey.id,
+                '/3/survey/{}?program={}', model.survey.id,
                 $scope.program.id));
         }
     });
@@ -392,10 +392,10 @@ angular.module('upmark.survey.qnode', [
 
     $scope.getSubmissionUrl = function(submission) {
         if (submission) {
-            return format('/2/qnode/{}?submission={}',
+            return format('/3/qnode/{}?submission={}',
                 $scope.qnode.id, submission.id);
         } else {
-            return format('/2/qnode/{}?program={}',
+            return format('/3/qnode/{}?program={}',
                 $scope.qnode.id, $scope.program.id);
         }
     };
@@ -434,7 +434,7 @@ angular.module('upmark.survey.qnode', [
                     message += ': ' + headers('Operation-Details');
                 Notifications.set('edit', 'success', message);
                 $location.url(format(
-                    '/2/qnode/{}?program={}', $scope.parent.id, $scope.program.id));
+                    '/3/qnode/{}?program={}', $scope.parent.id, $scope.program.id));
             },
             function failure(details) {
                 Notifications.set('edit', 'error',

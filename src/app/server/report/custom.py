@@ -294,7 +294,7 @@ class ExcelWriter:
             worksheet_q.write(2, 0, "Date")
             worksheet_q.write(2, 1, datetime.now(), format_date)
             worksheet_q.write(3, 0, "URL")
-            worksheet_q.write_url(3, 1, "%s/#/2/custom/%s" % (
+            worksheet_q.write_url(3, 1, "%s/#/3/custom/%s" % (
                 self.base_url, query.id))
 
             worksheet_r = workbook.add_worksheet('result')

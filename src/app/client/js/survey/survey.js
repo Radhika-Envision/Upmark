@@ -114,11 +114,11 @@ angular.module('upmark.survey.survey', [
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
-            '/2/survey/{}?program={}', model.id, $scope.program.id));
+            '/3/survey/{}?program={}', model.id, $scope.program.id));
     });
     $scope.$on('EditDeleted', function(event, model) {
         $location.url(format(
-            '/2/program/{}', $scope.program.id));
+            '/3/program/{}', $scope.program.id));
     });
 
     $scope.addLevel = function(model) {
@@ -177,7 +177,7 @@ angular.module('upmark.survey.survey', [
     $scope.structure = Structure($scope.survey);
 
     if (currentUser.role == 'author')
-        $location.path('/2/survey/' + $scope.survey.id);
+        $location.path('/3/survey/' + $scope.survey.id);
 
     $scope.Survey = Survey;
     $scope.checkRole = Authz({program: $scope.program});

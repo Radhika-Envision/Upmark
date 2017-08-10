@@ -62,10 +62,10 @@ angular.module('upmark.surveygroup', [
     }
 
     $scope.$on('EditSaved', function(event, model) {
-        $location.url('/2/surveygroup/' + model.id);
+        $location.url('/3/surveygroup/' + model.id);
     });
     $scope.$on('EditDeleted', function(event, model) {
-        $location.url('/2/surveygroups');
+        $location.url('/3/surveygroups');
     });
 
     $scope.checkRole = Authz({surveygroup: $scope.surveygroup});

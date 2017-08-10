@@ -205,11 +205,11 @@ angular.module('upmark.submission.submission', [
 
     $scope.$on('EditSaved', function(event, model) {
         $location.url(format(
-            '/2/submission/{}', model.id, $scope.program.id));
+            '/3/submission/{}', model.id, $scope.program.id));
     });
     $scope.$on('EditDeleted', function(event, model) {
         $location.url(format(
-            '/2/program/{}', $scope.program.id));
+            '/3/program/{}', $scope.program.id));
     });
 
     $scope.checkRole = Authz({
@@ -358,7 +358,7 @@ angular.module('upmark.submission.submission', [
             $scope.progress.isFinished = true;
         }, 1000);
         $timeout(function() {
-            $location.url('/2/submission/' + response);
+            $location.url('/3/submission/' + response);
         }, 5000);
     });
 
