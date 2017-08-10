@@ -3,8 +3,6 @@ version: '2.0'
 services:
   web:
     build: ./src/app/
-    ports:
-     - "8000:8000"
     env_file:
      - ../aq_conf/aq.conf
     environment:
@@ -18,18 +16,16 @@ services:
      - postgres:postgres
     restart: always
 
-  webssl:
-    build: ./src/app/
+  web_standalone:
+    build: ./src/app
     ports:
-     - "443:8000"
-    env_file:
-     - ../aq_conf/aq.conf
+     - "80:80"
+    environment:
+      HISTFILE: /root/scratch/bash_history
+      XDG_CONFIG_HOME: /root/scratch
+      TERM: xterm-color
     volumes:
-     - ./src/app:/usr/share/aquamark/app
-     - ../aq_conf:/usr/share/aquamark/app/config
-    links:
-     - postgres
-     - redirect
+     - ./scratch:/root/scratch
     restart: always
 
   recalc:
