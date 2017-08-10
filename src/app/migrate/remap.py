@@ -54,6 +54,7 @@ class Remapper:
         self.delete_default_user()
         self.remap_users_and_orgs()
         self.transfer()
+        self.clean_up()
         self.rw_staging.rollback()
         self.ro_upstream.commit()
 
@@ -390,6 +391,40 @@ class Remapper:
 
         print()
         self.create_constraints(self.ro_upstream, self.OTHER_CONSTRAINTS)
+
+    def clean_up(self):
+        print("Removing duplicates")
+        org_meta_map = {}
+        org_metas = list(self.ro_upstream.query(model.OrgMeta).all())
+        for org_meta in org_metas:
+            org_meta_map[org_meta.organisation_id] = org_meta
+
+        fields = [
+            'ownership',
+            'structure',
+            'asset_types',
+            'regulation_level',
+            'value_water_ws',
+            'value_water_l',
+            'value_wastewater_ws',
+            'value_wastewater_l',
+            'operating_cost',
+            'revenue',
+            'number_fte',
+            'number_fte_ext',
+            'population_served',
+            'number_of_customers',
+            'volume_supplied',
+            'volume_collected',
+        ]
+        for org_meta in org_metas:
+            canonical = org_meta_map[org_meta.organisation_id]
+            for field in fields:
+                value = getattr(org_meta, field)
+                if value is not None:
+                    setattr(canonical, field, value)
+            if org_meta != canonical:
+                self.ro_upstream.delete(org_meta)
 
 
 def remap():
