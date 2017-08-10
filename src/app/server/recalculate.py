@@ -89,7 +89,8 @@ def process_loop():
 
 
 def connect_db():
-    model.connect_db(os.environ.get('DATABASE_URL'))
+    url = model.get_database_url()
+    model.connect_db(url)
 
 
 if __name__ == "__main__":

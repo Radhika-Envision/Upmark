@@ -1,25 +1,12 @@
 version: '2.0'
 
 services:
-  web:
-    build: ./src/app/
-    env_file:
-     - ../aq_conf/aq.conf
-    environment:
-      HISTFILE: /root/scratch/bash_history
-      XDG_CONFIG_HOME: /root/scratch
-      TERM: xterm-color
-    volumes:
-     - ./src/app:/usr/share/aquamark/app
-     - ./scratch:/root/scratch
-    links:
-     - postgres:postgres
-    restart: always
-
   web_standalone:
     build: ./src/app
     ports:
      - "80:80"
+    env_file:
+     - ../u-conf/upmark.conf
     environment:
       HISTFILE: /root/scratch/bash_history
       XDG_CONFIG_HOME: /root/scratch
@@ -28,24 +15,46 @@ services:
      - ./scratch:/root/scratch
     restart: always
 
+  dbadmin_standalone:
+    image: postgres:9
+    environment:
+      PGHOST: postgres
+      PGUSER: postgres
+      PGDATABASE: postgres
+      PGPASSWORD: postgres
+      PSQLRC: /root/scratch/psqlrc
+      PSQL_HISTORY: /root/scratch/psql_history
+      HISTFILE: /root/scratch/bash_history
+      XDG_CONFIG_HOME: /root/scratch
+      TERM: xterm-color
+    volumes:
+      - ../backup:/backup
+      - ./scratch:/root/scratch
+    working_dir: /backup
+    command: ['psql']
+
+  web:
+    extends:
+      service: web_standalone
+    volumes:
+     - ./src/app:/usr/share/aquamark/app
+    links:
+     - postgres:postgres
+
   recalc:
     build: ./src/app/
     env_file:
-      - ../aq_conf/aq.conf
+     - ../u-conf/upmark.conf
     volumes:
-      - ../aq_conf:/usr/share/aquamark/app/config
-    links:
-      - postgres:postgres
+      - ../u-conf:/usr/share/aquamark/app/config
     command: ['python3', './server/recalculate.py']
 
   notify:
     build: ./src/app/
     env_file:
-      - ../aq_conf/aq.conf
+     - ../u-conf/upmark.conf
     volumes:
-      - ../aq_conf:/usr/share/aquamark/app/config
-    links:
-      - postgres:postgres
+      - ../u-conf:/usr/share/aquamark/app/config
     command: ['python3', './server/notifications.py']
 
   redirect:
@@ -56,6 +65,8 @@ services:
 
   test:
     build: ./src/app/
+    env_file:
+     - ../u-conf/upmark.conf
     environment:
       HISTFILE: /root/scratch/bash_history
       XDG_CONFIG_HOME: /root/scratch
@@ -75,49 +86,20 @@ services:
       POSTGRES_PASSWORD: postgres
     restart: always
 
-  dbadmin:
-    image: postgres:9
-    links:
-      - postgres
-    environment:
-      PGHOST: postgres
-      PGUSER: postgres
-      PGDATABASE: postgres
-      PGPASSWORD: postgres
-      PSQLRC: /root/scratch/psqlrc
-      PSQL_HISTORY: /root/scratch/psql_history
-      HISTFILE: /root/scratch/bash_history
-      XDG_CONFIG_HOME: /root/scratch
-      TERM: xterm-color
-    volumes:
-      - ../backup:/backup
-      - ./scratch:/root/scratch
-    working_dir: /backup
-    command: ['psql']
-
-  dbadmin-test:
-    image: postgres:9
-    links:
-      - postgres-test:postgres
-    environment:
-      PGHOST: postgres
-      PGUSER: postgres
-      PGDATABASE: postgres
-      PGPASSWORD: postgres
-      PSQLRC: /root/scratch/psqlrc
-      PSQL_HISTORY: /root/scratch/psql_history
-      HISTFILE: /root/scratch/bash_history
-      XDG_CONFIG_HOME: /root/scratch
-      TERM: xterm-color
-    volumes:
-      - ../backup:/backup
-      - ./scratch:/root/scratch
-    working_dir: /backup
-    command: ['psql']
-
   postgres-test:
-    image: postgres:9
+    extends:
+      service: postgres
     tmpfs:
      - /var/lib/postgresql/data
-    environment:
-      POSTGRES_PASSWORD: postgres
+
+  dbadmin:
+    extends:
+      service: dbadmin_standalone
+    links:
+      - postgres
+
+  dbadmin-test:
+    extends:
+      service: dbadmin_standalone
+    links:
+      - postgres-test:postgres

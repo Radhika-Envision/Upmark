@@ -54,13 +54,12 @@ Docker image.
 1. Copy the config files to a new directory, and edit them to suit your needs:
 
     ```
-    cp -a src/app/config ~/aq_conf
-    nano ~/aq_conf/aq.conf
+    cp -a src/app/config ~/u-conf
+    nano ~/u-conf/upmark.conf
     ```
 
     - `ANALYTICS_ID` is your Google Analytics ID (if you have one).
-    - `DATABASE_URL` should be updated to use the RDS endpoint. It should be
-      something like `postgresql://postgres:PASSWORD@postgres.foo.ap-southeast-2.rds.amazonaws.com:5432/postgres`
+    - `PG*` should be updated to use the RDS endpoint.
     - `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are the credentials of
       the AWS IAM user who has access to the aquamark bucket.
 
@@ -79,7 +78,7 @@ a new instance from the AMI it will start automatically.
 ```bash
 sudo docker run -d --name aquamark \
     --restart=always \
-    --env-file=/home/ubuntu/aq_conf/aq.conf \
+    --env-file=/home/ubuntu/u-conf/upmark.conf \
     -p 80:8000 \
     vpac/aquamark
 ```
@@ -206,10 +205,10 @@ First, copy [the config file][recalc] and edit it to contain your preferred mail
 settings:
 
 ```bash
-mkdir -p ~/aq_conf
-cp src/app/config/recalculate.yaml ~/aq_conf/
-nano ~/aq_conf/recalculate.yaml
-echo DATABASE_URL="<DATABASE_URL>" > ~/aq_conf/aq.conf
+mkdir -p ~/u-conf
+cp src/app/config/recalculate.yaml ~/u-conf/
+nano ~/u-conf/recalculate.yaml
+nano ~/u-conf/upmark.conf
 ```
 
 Important: If you are using Amazon SES, don't use port 25 for SMTP, because it's
@@ -220,8 +219,8 @@ Make sure the image has been built, and launch the script in a container:
 ```bash
 make
 sudo docker run -d --name recalc \
-    --env-file=$HOME/aq_conf/aq.conf \
-    -v $HOME/aq_conf:/usr/share/aquamark/app/config \
+    --env-file=$HOME/u-conf/upmark.conf \
+    -v $HOME/u-conf:/usr/share/aquamark/app/config \
     --restart=always \
     vpac/aquamark:latest python3 ./server/recalculate.py
 ```
@@ -246,10 +245,10 @@ First, copy [the config file][noti] and edit it to contain your preferred mail
 settings:
 
 ```bash
-mkdir -p ~/aq_conf
-cp src/app/config/notification.yaml ~/aq_conf/
-nano ~/aq_conf/notification.yaml
-echo DATABASE_URL="<DATABASE_URL>" > ~/aq_conf/aq.conf
+mkdir -p ~/u-conf
+cp src/app/config/notification.yaml ~/u-conf/
+nano ~/u-conf/notification.yaml
+nano ~/u-conf/upmark.conf
 ```
 
 Important: If you are using Amazon SES, don't use port 25 for SMTP, because it's
@@ -260,8 +259,8 @@ Now make sure the image has been built, and launch the script in a container:
 ```bash
 make
 sudo docker run -d --name notify \
-    --env-file=$HOME/aq_conf/aq.conf \
-    -v $HOME/aq_conf:/usr/share/aquamark/app/config \
+    --env-file=$HOME/u-conf/upmark.conf \
+    -v $HOME/u-conf:/usr/share/aquamark/app/config \
     --restart=always \
     vpac/aquamark:latest python3 ./server/notifications.py
 ```

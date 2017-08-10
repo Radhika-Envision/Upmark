@@ -10,6 +10,7 @@ from sqlalchemy import engine_from_config, pool
 
 # Current model for 'autogenerate' support
 from model.base import metadata as target_metadata
+from model.connection import get_database_url
 
 
 def extend_path():
@@ -35,7 +36,7 @@ config = context.config
 # This line sets up loggers basically.
 fileConfig(config.config_file_name)
 
-config.set_main_option("sqlalchemy.url", os.environ['DATABASE_URL'])
+config.set_main_option("sqlalchemy.url", get_database_url())
 
 
 def run_migrations_offline():

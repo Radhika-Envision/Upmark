@@ -61,7 +61,11 @@ RUN mv /tmp/bower_components /usr/share/aquamark/.bower_components
 
 ENV PORT=80 \
     DEV_MODE=False \
-    DATABASE_URL=postgresql://postgres:postgres@postgres/postgres \
+    PGHOST=postgres \
+    PGPORT=5432 \
+    PGUSER=postgres \
+    PGDATABASE=postgres \
+    PGPASSWORD=postgres \
     ANALYTICS_ID= \
     AWS_REGION_NAME=ap-southeast-2 \
     AWS_BUCKET=aquamark \

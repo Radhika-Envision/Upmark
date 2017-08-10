@@ -11,11 +11,12 @@ try:
 except ImportError:
     print('Failed to load sqlalchemy. Do you need to enter a virtual environment?')
 
-from model import AppUser, connect_db, session_scope, Organisation
+from model import AppUser, connect_db, get_database_url, session_scope, \
+    Organisation
 
 
 def modify_user(args):
-    connect_db(os.environ.get('DATABASE_URL'))
+    connect_db(get_database_url())
 
     password = getpass.getpass(prompt='Enter new password: ')
     password2 = getpass.getpass(prompt='Re-enter password: ')
@@ -69,7 +70,7 @@ def modify_user(args):
 
 
 def modify_org(args):
-    connect_db(os.environ.get('DATABASE_URL'))
+    connect_db(get_database_url())
 
     try:
         with session_scope() as session:

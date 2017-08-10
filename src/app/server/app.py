@@ -123,7 +123,7 @@ def get_settings():
 
 
 def connect_db():
-    db_url = os.environ['DATABASE_URL']
+    db_url = model.get_database_url()
     model.connect_db(db_url)
     try:
         model.connect_db_ro(db_url)

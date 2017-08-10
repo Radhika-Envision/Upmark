@@ -1,6 +1,7 @@
 __all__ = [
     'connect_db',
     'connect_db_ro',
+    'get_database_url',
     'MissingUser',
     'session_scope',
     'WrongPassword',
@@ -9,6 +10,7 @@ __all__ = [
 from contextlib import contextmanager
 from itertools import count
 import logging
+import os
 import time
 
 from sqlalchemy import create_engine
@@ -46,6 +48,21 @@ def session_scope(version=False, readonly=False):
         raise
     finally:
         session.close()
+
+
+def get_database_url():
+    host = os.environ['PGHOST']
+    port = os.environ['PGPORT']
+    username = os.environ['PGUSER']
+    database = os.environ['PGDATABASE']
+    password = os.environ['PGPASSWORD']
+    return sqlalchemy.engine.url.URL(
+        'postgresql',
+        username=username,
+        password=password,
+        host=host,
+        port=port,
+        database=database)
 
 
 def connect_db(url, max_attempts=5):

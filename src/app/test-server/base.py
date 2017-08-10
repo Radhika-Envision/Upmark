@@ -111,7 +111,8 @@ class AqModelTestBase(LoggingTestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls._engine = model.connect_db(os.environ.get('DATABASE_URL'))
+        url = model.get_database_url()
+        cls._engine = model.connect_db(url)
         cls.destroy_schema()
         model.drop_analyst_user()
         model.Base.metadata.create_all(cls._engine)
@@ -121,7 +122,8 @@ class AqModelTestBase(LoggingTestCase):
         self.remove_all_data(type(self)._engine)
         model.drop_analyst_user()
         model.create_analyst_user()
-        model.connect_db_ro(os.environ.get('DATABASE_URL'))
+        url = model.get_database_url()
+        model.connect_db_ro(url)
         self.create_survey_groups()
         self.create_org_structure()
         self.create_program_structure()

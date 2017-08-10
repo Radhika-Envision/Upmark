@@ -12,8 +12,8 @@ The easiest way to run during development is to use Docker Compose. First copy
 the config files to be out of the source tree and initialise the database:
 
 ```
-cp -r src/app/config ../aq_conf
-echo 'DEV_MODE=True' >> ../aq_conf/aq.conf
+cp -r src/app/config ../u-conf
+echo 'DEV_MODE=True' >> ../u-conf/upmark.conf
 sudo docker-compose run --rm web alembic upgrade head
 ```
 
@@ -66,14 +66,14 @@ See also:
 ## Dependencies
 
 Client-side scripts are managed with Bower, which will automatically download
-them when building with Docker. When not running in dev mode (see [aq.conf]),
+them when building with Docker. When not running in dev mode (see [upmark.conf]),
 the application will automatically use CDNs for some scripts and CSS
 files, and will minify the others. If you add a dependency or change its
 version number, you **must** make sure the versions specified in `bower.json`
 and in `server/handlers.py` are the same.
 
 
-[aq.conf]: src/app/config/aq.conf
+[upmark.conf]: src/app/config/upmark.conf
 
 
 ## Debugging

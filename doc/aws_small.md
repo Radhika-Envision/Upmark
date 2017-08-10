@@ -40,10 +40,10 @@ self-hosted database (no RDS or S3).
  1. Configure the app.
 
     ```
-    cp -a src/app/config ../aq_conf
-    nano ../aq_conf/aq.conf
-    nano ../aq_conf/recalculate.yaml
-    nano ../aq_conf/notification.yaml
+    cp -a src/app/config ../u-conf
+    nano ../u-conf/upmark.conf
+    nano ../u-conf/recalculate.yaml
+    nano ../u-conf/notification.yaml
     ```
 
  1. Build and run the app.
