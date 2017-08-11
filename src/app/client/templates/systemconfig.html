@@ -101,6 +101,20 @@
         <div class="container-fluid text-center">
           <div class="row">
             <div class="form-group col-md-12">
+                <label for="appRedirect">Redirect</label>
+                <p>
+                    Redirect the user to {{edit.model.appBaseUrl.value}} if
+                    they have requested a different URL. This is useful when
+                    migrating to a new domain.
+                </p>
+                <boolean-setting setting="edit.model.appRedirect"></boolean-setting>
+            </div>
+          </div>
+        </div>
+
+        <div class="container-fluid text-center">
+          <div class="row">
+            <div class="form-group col-md-12">
                 <label for="isTraining">Training Mode</label>
                 <p>
                     Displays an icon to show that this instance doesn't contain live
@@ -260,6 +274,15 @@
     <h4>Application URL</h4>
     <p>
         {{systemConfig.appBaseUrl.value}}
+    </p>
+
+    <h4>Redirect</h4>
+    <p ng-if="systemConfig.appRedirect.value">
+        Users visiting other URLs will be redirected to
+        {{systemConfig.appBaseUrl.value}}.
+    </p>
+    <p ng-if="!systemConfig.appRedirect.value">
+        Users visiting other URLs will not be redirected.
     </p>
 
     <h3>User</h3>

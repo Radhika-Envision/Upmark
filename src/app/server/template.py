@@ -141,7 +141,12 @@ class RedirectMixin:
     def uses_old_url(self, session):
         if truthy(tornado.options.options.dev):
             return False
+        if not config.get_setting(session, 'app_redirect'):
+            return False
         base_url = config.get_setting(session, 'app_base_url')
+        default_url = config.get_setting(session, 'app_base_url', True)
+        if base_url == default_url:
+            return False
         return not self.request.full_url().startswith(base_url)
 
     def redirect_to_canonical(self, session):

@@ -47,6 +47,10 @@ SCHEMA = {
         'type': 'string',
         'default_value': "https://upmark.example",
     },
+    'app_redirect': {
+        'type': 'boolean',
+        'default_value': False,
+    },
 
     'theme_logo': {
         'type': 'image',
