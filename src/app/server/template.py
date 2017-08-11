@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 
@@ -12,6 +13,9 @@ import config
 import model
 import theme
 from utils import ToSon, truthy
+
+
+log = logging.getLogger('app.template')
 
 # A string to break through caches. This changes each time the app is deployed.
 DEPLOY_ID = str(time.time())
@@ -133,7 +137,22 @@ class TemplateParams:
         return resources
 
 
-class TemplateHandler(base_handler.BaseHandler):
+class RedirectMixin:
+    def uses_old_url(self, session):
+        if truthy(tornado.options.options.dev):
+            return False
+        base_url = config.get_setting(session, 'app_base_url')
+        return not self.request.full_url().startswith(base_url)
+
+    def redirect_to_canonical(self, session):
+        base_url = config.get_setting(session, 'app_base_url')
+        target_url = base_url + self.request.uri
+        log.info(
+            "Redirecting from %s to %s", self.request.full_url(), target_url)
+        self.redirect(target_url)
+
+
+class TemplateHandler(RedirectMixin, base_handler.BaseHandler):
     '''
     Renders content from templates (e.g. index.html).
     '''
@@ -148,6 +167,10 @@ class TemplateHandler(base_handler.BaseHandler):
         template = os.path.join(self.path, path)
 
         with model.session_scope() as session:
+            if self.uses_old_url(session):
+                self.redirect_to_canonical(session)
+                return
+
             user_session = self.get_user_session(session)
             params = TemplateParams(session)
             theme_params = theme.ThemeParams(session)
@@ -172,7 +195,7 @@ class TemplateHandler(base_handler.BaseHandler):
                 user_son=user_son)
 
 
-class UnauthenticatedTemplateHandler(base_handler.BaseHandler):
+class UnauthenticatedTemplateHandler(RedirectMixin, base_handler.BaseHandler):
     def initialize(self, path):
         self.path = path
 
@@ -183,6 +206,10 @@ class UnauthenticatedTemplateHandler(base_handler.BaseHandler):
             self.set_header('Content-Type', 'text/css')
 
         with model.session_scope() as session:
+            if self.uses_old_url(session):
+                self.redirect_to_canonical(session)
+                return
+
             params = TemplateParams(session)
             theme_params = theme.ThemeParams(session)
             self.render(template, params=params, theme=theme_params)

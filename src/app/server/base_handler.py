@@ -28,6 +28,8 @@ class BaseHandler(tornado.web.RequestHandler):
         if (truthy(tornado.options.options.force_https) and
                 'X-Forwarded-Proto' in self.request.headers and
                 self.request.headers['X-Forwarded-Proto'] != 'https'):
+            # Redirect from HTTP to HTTPS when behind a load balancer on AWS.
+            # http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/x-forwarded-headers.html#x-forwarded-proto
             self.redirect(
                 re.sub(r'^([^:]+)', 'https', self.request.full_url()))
             return

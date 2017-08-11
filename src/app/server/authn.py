@@ -10,7 +10,7 @@ import base_handler
 import errors
 import model
 from session import UserSession
-import template
+from template import TemplateHandler, TemplateParams
 import theme
 
 
@@ -37,7 +37,7 @@ class SessionMixin:
         return token
 
 
-class LoginHandler(SessionMixin, template.TemplateHandler):
+class LoginHandler(SessionMixin, TemplateHandler):
 
     def get(self):
         '''
@@ -47,7 +47,11 @@ class LoginHandler(SessionMixin, template.TemplateHandler):
         next_page = self.get_argument("next", "/")
 
         with model.session_scope() as session:
-            params = template.TemplateParams(session)
+            if self.uses_old_url(session):
+                self.redirect_to_canonical(session)
+                return
+
+            params = TemplateParams(session)
             theme_params = theme.ThemeParams(session)
             self.render(
                 "../client/templates/login.html",
