@@ -64,7 +64,7 @@ class Submission(Observable, Base):
 
     @property
     def surveygroups(self):
-        return self.program.surveygroups & self.organisation.surveygroups
+        return self.survey.surveygroups & self.organisation.surveygroups
 
     @property
     def ordered_responses(self):

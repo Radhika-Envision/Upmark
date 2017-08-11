@@ -283,8 +283,18 @@ class PurchasedSurveyHandler(base_handler.BaseHandler):
             if not org:
                 raise errors.MissingDocError("No such organisation")
 
+            survey = (
+                session.query(model.Survey)
+                .get((survey_id, program_id)))
+            if not survey:
+                raise errors.MissingDocError("No such survey")
+
             user_session = self.get_user_session(session)
-            policy = user_session.policy.derive({'org': org})
+            policy = user_session.policy.derive({
+                'org': org,
+                'surveygroups': survey.surveygroups & org.surveygroups,
+            })
+            policy.verify('surveygroup_interact')
             policy.verify('submission_browse')
 
             purchased_survey = (
@@ -306,12 +316,17 @@ class PurchasedSurveyHandler(base_handler.BaseHandler):
     def query(self, organisation_id):
         deleted = self.get_argument('deleted', '')
         with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+
             org = session.query(model.Organisation).get(organisation_id)
             if not org:
                 raise errors.MissingDocError("No such organisation")
 
-            user_session = self.get_user_session(session)
-            policy = user_session.policy.derive({'org': org})
+            policy = user_session.policy.derive({
+                'org': org,
+                'surveygroups': org.surveygroups,
+            })
+            policy.verify('surveygroup_interact')
             policy.verify('submission_browse')
 
             query = (
@@ -329,6 +344,11 @@ class PurchasedSurveyHandler(base_handler.BaseHandler):
                     del_filter = ((model.Survey.deleted == False) &
                                   (model.Program.deleted == False))
                 query = query.join(model.Program).filter(del_filter)
+
+            if not policy.check('surveygroup_interact_all'):
+                query = filter_surveygroups(
+                    session, query, user_session.user.id,
+                    [model.Program], [model.program_surveygroup])
 
             surveys = query.all()
 
@@ -367,7 +387,9 @@ class PurchasedSurveyHandler(base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'org': org,
                 'survey': survey,
+                'surveygroups': survey.surveygroups & org.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('survey_purchase')
 
             purchased_survey = (
@@ -395,7 +417,9 @@ class PurchasedSurveyHandler(base_handler.BaseHandler):
             policy = user_session.policy.derive({
                 'org': org,
                 'survey': survey,
+                'surveygroups': survey.surveygroups & org.surveygroups,
             })
+            policy.verify('surveygroup_interact')
             policy.verify('survey_purchase')
 
             org.programs.remove(survey)

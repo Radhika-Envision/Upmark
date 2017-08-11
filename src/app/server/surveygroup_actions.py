@@ -19,7 +19,8 @@ def filter_surveygroups(session, query, user_id, mappers, relationship_tables):
     @return A derived query.
     '''
     for mapper in mappers:
-        query = query.join(mapper)
+        if mapper not in [m.class_ for m in query._join_entities]:
+            query = query.join(mapper)
 
     relationship_tables = [aliased(mapper) for mapper in relationship_tables]
     for table in relationship_tables:
