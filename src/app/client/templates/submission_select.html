@@ -20,7 +20,7 @@
             <a ng-href="#{{getSubmissionUrl(null)}}"
                     class="btn btn-default btn-round"
                     ng-if="!disallowNone && (showEdit || submission)"
-                    title="View without a submission">
+                    title="View questions only">
                 <i class="fa fa-ban"></i></a>
         </div>
         <h2 label="Sb">
@@ -98,9 +98,11 @@
             for this program.
         </span>
     </p>
-    <p ng-if="aSearch.organisation.id && !purchasedSurvey && showEdit">
+    <div ng-if="aSearch.organisation.id && !purchasedSurvey && showEdit">
+      <p>
         <i class="fa fa-lock"></i>
-        The survey must be purchased before a submission can be created.
+        The survey must be purchased before a submission can be created
+        for {{aSearch.organisation.name}}.
         <span ng-if="!checkRole('survey_purchase')">
             Please contact the survey manager.
         </span>
@@ -110,7 +112,16 @@
               >{{aSearch.organisation.name}} » Add Survey</a>
             screen.
         </span>
-    </p>
+      </p>
+      <p>
+        <span ng-if="checkRole('submission_browse_any')">
+            You can act on behalf of other organisations that <em>have</em>
+            purchased the survey. Try changing the
+            organisation by typing in the <i class="fa fa-university"></i> box
+            above.
+        </span>
+      </p>
+    </div>
     <div class="text-center hidden-print">
         <a ng-href="#/3/submission/new?program={{program.id}}&organisation={{aSearch.organisation.id}}"
                 class="btn btn-link btn-lg"
@@ -122,7 +133,7 @@
                 class="btn btn-link btn-lg"
                 ng-if="!disallowNone && (showEdit || submission)">
             <i class="fa fa-ban"></i>
-            View without a submission
+            View questions only
         </a>
     </div>
     <p class="text-muted text-center">
