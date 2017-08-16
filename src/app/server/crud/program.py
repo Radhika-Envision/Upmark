@@ -98,6 +98,13 @@ class ProgramHandler(base_handler.Paginate, base_handler.BaseHandler):
                     session, query, user_session.user.id,
                     [], [model.program_surveygroup])
 
+            # Get all programs for a survey group
+            surveygroup_id = self.get_argument("surveyGroupId", None)
+            if surveygroup_id:
+                query = (
+                    query.join(model.SurveyGroup, model.Program.surveygroups)
+                    .filter(model.SurveyGroup.id == surveygroup_id))
+
             if term != '':
                 query = query.filter(
                     model.Program.title.ilike(r'%{}%'.format(term)))

@@ -185,6 +185,7 @@ angular.module('upmark.user', [
     $scope.search = {
         term: "",
         organisationId: $scope.org && $scope.org.id,
+        surveyGroupId: $scope.sg && $scope.sg.id,
         deleted: $scope.org && $scope.org.deleted ? null : false,
         page: 0,
         pageSize: 10
@@ -209,7 +210,8 @@ angular.module('upmark.user', [
         restrict: 'E',
         templateUrl: 'user_list.html',
         scope: {
-            org: '='
+            org: '=',
+            sg: '='
         },
         controller: 'UserListCtrl',
         link: function(scope, elem, attrs) {

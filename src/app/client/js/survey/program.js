@@ -180,6 +180,7 @@ angular.module('upmark.survey.program',[
 
     $scope.search = {
         term: "",
+        surveyGroupId: $scope.sg && $scope.sg.id,
         editable: null,
         deleted: false,
         page: 0,
@@ -283,6 +284,18 @@ angular.module('upmark.survey.program',[
         $scope.$apply();
     });
 
+})
+
+
+.directive('programList', function() {
+    return {
+        restrict: 'E',
+        templateUrl: 'program_list.html',
+        scope: {
+            sg: '='
+        },
+        controller: 'ProgramListCtrl'
+    }
 })
 
 

@@ -34,6 +34,10 @@
 </div>
 </div>
 
+<program-list class="nested" ng-if="!edit.model" sg="surveygroup"></program-list>
+<user-list class="nested" ng-if="!edit.model" org="org" sg="surveygroup" hide-org></user-list>
+<organisation-list class="nested" ng-if="!edit.model" sg="surveygroup"></organisation-list>
+
 <div ng-if="edit.model" class="container">
     <form novalidate name="form" id="editor" form-nav-warn>
         <div class="form-group" show-errors>

@@ -79,6 +79,13 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
                     session, query, user_session.user.id,
                     [], [model.organisation_surveygroup])
 
+            # Get all organisations for a survey group
+            surveygroup_id = self.get_argument("surveyGroupId", None)
+            if surveygroup_id:
+                query = (
+                    query.join(model.SurveyGroup, model.Organisation.surveygroups)
+                    .filter(model.SurveyGroup.id == surveygroup_id))
+
             term = self.get_argument('term', None)
             if term is not None:
                 query = query.filter(

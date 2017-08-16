@@ -119,8 +119,16 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
                     session, query, user_session.user.id,
                     [], [model.user_surveygroup])
 
+            # Get all users for an organisation
             if organisation_id:
                 query = query.filter(model.Organisation.id == organisation_id)
+
+            # Get all users for a survey group
+            surveygroup_id = self.get_argument("surveyGroupId", None)
+            if surveygroup_id:
+                query = (
+                    query.join(model.SurveyGroup, model.AppUser.surveygroups)
+                    .filter(model.SurveyGroup.id == surveygroup_id))
 
             term = self.get_argument('term', None)
             if term is not None:
