@@ -1,12 +1,93 @@
+from concurrent.futures import ThreadPoolExecutor
+import os
+
+from tornado import gen
+from tornado.concurrent import run_on_executor
 from tornado.escape import json_encode
 import tornado.web
 
 from activity import Activities
 import base_handler
 import errors
+import image
 import model
-from utils import ToSon, truthy, updater
+from utils import ToSon, truthy, updater, get_package_dir, to_camel_case
 
+
+MAX_WORKERS = 4
+SCHEMA = {
+    'group_logo': {
+        'type': 'image',
+        'accept': '.svg',
+        'default_file_path': "../client/images/logo.svg",
+    }
+}
+
+
+class SurveyGroupIconHandler(base_handler.BaseHandler):
+
+    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
+
+    @tornado.web.authenticated
+    def get(self, surveygroup_id):
+        # TODO: Check validity of survey group id
+        forceDefault = self.get_argument('default', None) != None
+
+        with model.session_scope() as session:
+            # Verify user can view this survey group
+            user_session = self.get_user_session(session)
+            user_session.policy.verify('surveygroup_view')
+
+            icon, = (
+                session.query(model.SurveyGroup.logo)
+                .filter_by(id=surveygroup_id)
+                .first())
+
+            if not icon or forceDefault:
+                path = os.path.join(
+                    get_package_dir(), SCHEMA['group_logo']['default_file_path'])
+                with open(path, 'rb') as f:
+                    icon = f.read()
+
+            self.set_header('Content-Type', 'image/svg+xml')
+            self.write(icon)
+
+        self.finish()
+
+    @tornado.web.authenticated
+    @gen.coroutine
+    def post(self, surveygroup_id):
+        with model.session_scope() as session:
+            # Verify user can edit this survey group
+            user_session = self.get_user_session(session)
+            user_session.policy.verify('surveygroup_edit')
+
+            fileinfo = self.request.files['file'][0]
+            body = fileinfo['body']
+            body = yield self.clean_svg(body)
+
+            sg = session.query(model.SurveyGroup).get(surveygroup_id)
+            sg.logo = body.encode('utf-8')
+
+        self.finish()
+
+    @tornado.web.authenticated
+    def delete(self, surveygroup_id):
+        with model.session_scope() as session:
+            # Verify user can edit this survey group
+            user_session = self.get_user_session(session)
+            user_session.policy.verify('surveygroup_edit')
+
+            # Set logo column to null
+            sg = session.query(model.SurveyGroup).get(surveygroup_id)
+            if sg and sg.logo:
+                sg.logo = None;
+
+        self.finish()
+
+    @run_on_executor
+    def clean_svg(self, svg):
+        return image.clean_svg(svg)
 
 class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
 
@@ -42,6 +123,20 @@ class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
             )
 
             son = to_son(surveygroup)
+
+            for name, schema in SCHEMA.items():
+                s = schema.copy()
+                s['name'] = to_camel_case(name)
+
+                if surveygroup.logo is not None:
+                    s['value'] = surveygroup.logo
+                else:
+                    path = os.path.join(get_package_dir(), s['default_file_path'])
+                    with open(path, 'rb') as f:
+                        s['value'] = f.read()
+
+                del s['default_file_path']
+                son[to_camel_case(name)] = ToSon()(s)
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))

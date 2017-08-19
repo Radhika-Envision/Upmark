@@ -4,7 +4,7 @@ __all__ = [
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, func, Index, Text
+from sqlalchemy import Boolean, Column, DateTime, func, Index, LargeBinary, Text
 
 from .base import Base
 from .guid import GUID
@@ -16,6 +16,7 @@ class SurveyGroup(Observable, Base):
     id = Column(GUID, default=GUID.gen, primary_key=True)
     title = Column(Text, nullable=False)
     description = Column(Text)
+    logo = Column(LargeBinary)
     created = Column(DateTime, default=datetime.utcnow, nullable=False)
     deleted = Column(Boolean, default=False, nullable=False)
 

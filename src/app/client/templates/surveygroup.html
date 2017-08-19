@@ -9,7 +9,7 @@
                 ng-if="edit.model && edit.model.id">
             <i class="fa fa-times"></i></button>
         <button class="btn btn-default btn-round" title="Save"
-                ng-click="edit.save()"
+                ng-click="save()"
                 ng-if="edit.model"
                 form="editor"
                 form-save-button="editor">
@@ -34,12 +34,23 @@
 </div>
 </div>
 
-<program-list class="nested" ng-if="!edit.model" sg="surveygroup"></program-list>
-<user-list class="nested" ng-if="!edit.model" org="org" sg="surveygroup" hide-org></user-list>
-<organisation-list class="nested" ng-if="!edit.model" sg="surveygroup"></organisation-list>
+<program-list
+    class="nested" ng-if="!edit.model" sg="surveygroup"></program-list>
+<user-list
+    class="nested" ng-if="!edit.model" sg="surveygroup"></user-list>
+<organisation-list
+    class="nested" ng-if="!edit.model" sg="surveygroup"></organisation-list>
 
 <div ng-if="edit.model" class="container">
     <form novalidate name="form" id="editor" form-nav-warn>
+      <div class="form-group">
+          <label for="themeLogo">Survey Group Logo</label>
+          <file-setting url="/surveygroup/icon/{{surveygroup.id}}"
+              setting="surveygroup.groupLogo"></file-setting>
+          <p>
+              Logo to display in the title bar
+          </p>
+      </div>
         <div class="form-group" show-errors>
             <label for="title">Name</label>
             <span class="help-label" ng-if="form.title.$error.required">

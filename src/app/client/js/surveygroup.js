@@ -49,7 +49,7 @@ angular.module('upmark.surveygroup', [
 
 
 .controller('SurveyGroupCtrl', function(
-        $scope, SurveyGroup, surveygroup, Editor, Authz, $location) {
+        $scope, SurveyGroup, surveygroup, Editor, Authz, $location, $q) {
 
     $scope.edit = Editor('surveygroup', $scope);
     if (surveygroup) {
@@ -59,6 +59,19 @@ angular.module('upmark.surveygroup', [
         // Creating new
         $scope.surveygroup = new SurveyGroup({});
         $scope.edit.edit();
+    }
+
+    $scope.save = function() {
+        var async_task_promises = [];
+        $scope.$broadcast('prepareFormSubmit', async_task_promises);
+        var promise = $q.all(async_task_promises).then(
+            function success(async_tasks) {
+                return $scope.edit.save();
+            },
+            function failure(reason) {
+                return $q.reject(reason);
+            }
+        );
     }
 
     $scope.$on('EditSaved', function(event, model) {
