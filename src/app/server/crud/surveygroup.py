@@ -1,3 +1,4 @@
+import cairosvg
 from concurrent.futures import ThreadPoolExecutor
 import os
 
@@ -19,7 +20,7 @@ SCHEMA = {
     'group_logo': {
         'type': 'image',
         'accept': '.svg',
-        'default_file_path': "../client/images/logo.svg",
+        'default_file_path': "../client/images/icon-sm.svg",
     }
 }
 
@@ -30,19 +31,20 @@ class SurveyGroupIconHandler(base_handler.BaseHandler):
 
     @tornado.web.authenticated
     def get(self, surveygroup_id):
-        # TODO: Check validity of survey group id
         forceDefault = self.get_argument('default', None) != None
 
         with model.session_scope() as session:
+            # Verify requested survey group exists
+            surveygroup = session.query(model.SurveyGroup).get(surveygroup_id)
+            if not surveygroup:
+                raise errors.MissingDocError("No such survey group")
+
             # Verify user can view this survey group
             user_session = self.get_user_session(session)
             user_session.policy.verify('surveygroup_view')
 
-            icon, = (
-                session.query(model.SurveyGroup.logo)
-                .filter_by(id=surveygroup_id)
-                .first())
-
+            # Retrieve raw svg file
+            icon = surveygroup.logo
             if not icon or forceDefault:
                 path = os.path.join(
                     get_package_dir(), SCHEMA['group_logo']['default_file_path'])
@@ -50,8 +52,17 @@ class SurveyGroupIconHandler(base_handler.BaseHandler):
                     icon = f.read()
 
             self.set_header('Content-Type', 'image/svg+xml')
-            self.write(icon)
 
+            size = self.get_argument('size', None)
+            if size is not None:
+                # Convert to png of specified size
+                size = int(size)
+                data = image.clean_svg(icon).encode('utf-8')
+                icon = cairosvg.svg2png(
+                    data, parent_width=size, parent_height=size)
+                self.set_header('Content-Type', 'image/png')
+
+        self.write(icon)
         self.finish()
 
     @tornado.web.authenticated
@@ -66,8 +77,8 @@ class SurveyGroupIconHandler(base_handler.BaseHandler):
             body = fileinfo['body']
             body = yield self.clean_svg(body)
 
-            sg = session.query(model.SurveyGroup).get(surveygroup_id)
-            sg.logo = body.encode('utf-8')
+            surveygroup = session.query(model.SurveyGroup).get(surveygroup_id)
+            surveygroup.logo = body.encode('utf-8')
 
         self.finish()
 
@@ -124,19 +135,19 @@ class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             son = to_son(surveygroup)
 
-            for name, schema in SCHEMA.items():
-                s = schema.copy()
-                s['name'] = to_camel_case(name)
+            # Get group logo
+            name = 'group_logo'
+            s = SCHEMA.get(name).copy()
+            s['name'] = to_camel_case(name)
 
-                if surveygroup.logo is not None:
-                    s['value'] = surveygroup.logo
-                else:
-                    path = os.path.join(get_package_dir(), s['default_file_path'])
-                    with open(path, 'rb') as f:
-                        s['value'] = f.read()
+            s['value'] = surveygroup.logo
+            if s['value'] is None:
+                path = os.path.join(get_package_dir(), s['default_file_path'])
+                with open(path, 'rb') as f:
+                    s['value'] = f.read()
 
-                del s['default_file_path']
-                son[to_camel_case(name)] = ToSon()(s)
+            del s['default_file_path']
+            son[to_camel_case(name)] = ToSon()(s)
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))

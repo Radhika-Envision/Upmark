@@ -34,13 +34,6 @@
 </div>
 </div>
 
-<program-list
-    class="nested" ng-if="!edit.model" sg="surveygroup"></program-list>
-<user-list
-    class="nested" ng-if="!edit.model" sg="surveygroup"></user-list>
-<organisation-list
-    class="nested" ng-if="!edit.model" sg="surveygroup"></organisation-list>
-
 <div ng-if="edit.model" class="container">
     <form novalidate name="form" id="editor" form-nav-warn>
       <div class="form-group">
@@ -71,6 +64,13 @@
     <div class="container" ng-if="surveygroup.description">
         <div ng-bind-html="surveygroup.description | markdown"></div>
     </div>
+
+    <program-list
+        class="nested" ng-if="!edit.model" sg="surveygroup"></program-list>
+    <user-list
+        class="nested" ng-if="!edit.model" sg="surveygroup"></user-list>
+    <organisation-list
+        class="nested" ng-if="!edit.model" sg="surveygroup"></organisation-list>
 
     <docs ng-if="surveygroup.deleted">
         <i class="fa-li fa fa-trash fa-border"></i>
