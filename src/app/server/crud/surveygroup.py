@@ -32,20 +32,24 @@ class SurveyGroupIconHandler(base_handler.BaseHandler):
     @tornado.web.authenticated
     @gen.coroutine
     def get(self, surveygroup_id):
-        if not surveygroup_id:
-            raise errors.MethodError("SurveyGroup ID required")
-
-        force_default = self.get_argument('default', None) != None
+        surveygroup = None
+        force_default = (
+            self.get_argument('default', None) != None  or not surveygroup_id)
 
         with model.session_scope() as session:
-            # Verify requested survey group exists
-            surveygroup = session.query(model.SurveyGroup).get(surveygroup_id)
-            if not surveygroup:
-                raise errors.MissingDocError("No such survey group")
+            if not force_default:
+                # Verify requested survey group exists
+                surveygroup = (
+                    session.query(model.SurveyGroup).get(surveygroup_id))
+                if not surveygroup:
+                    raise errors.MissingDocError("No such survey group")
 
-            # Verify user can view this survey group
-            user_session = self.get_user_session(session)
-            user_session.policy.verify('surveygroup_view')
+                # Verify user can view this survey group
+                user_session = self.get_user_session(session)
+                policy = user_session.policy.derive({
+                    'surveygroups': {surveygroup},
+                })
+                user_session.policy.verify('surveygroup_view')
 
             # Retrieve raw svg file
             self.set_header('Content-Type', 'image/svg+xml')
@@ -105,8 +109,11 @@ class SurveyGroupIconHandler(base_handler.BaseHandler):
         self.finish()
 
     def get_icon(self, surveygroup, force_default):
-        icon = surveygroup.logo
-        if not icon or force_default:
+        icon = None
+        if surveygroup:
+            icon = surveygroup.logo
+
+        if force_default or not icon:
             path = os.path.join(
                 get_package_dir(), SCHEMA['group_logo']['default_file_path'])
             with open(path, 'rb') as f:

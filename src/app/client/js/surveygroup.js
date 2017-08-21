@@ -89,6 +89,10 @@ angular.module('upmark.surveygroup', [
     } else {
         // Creating new
         $scope.surveygroup = new SurveyGroup({});
+        $scope.surveygroup.groupLogo = {
+            'type': 'image',
+            'accept': '.svg',
+        };
         $scope.edit.edit();
     }
 
