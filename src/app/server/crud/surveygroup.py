@@ -173,19 +173,8 @@ class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             son = to_son(surveygroup)
 
-            # Get group logo
-            name = 'group_logo'
-            s = SCHEMA.get(name).copy()
-            s['name'] = to_camel_case(name)
-
-            s['value'] = surveygroup.logo
-            if s['value'] is None:
-                path = os.path.join(get_package_dir(), s['default_file_path'])
-                with open(path, 'rb') as f:
-                    s['value'] = f.read()
-
-            del s['default_file_path']
-            son[to_camel_case(name)] = ToSon()(s)
+            # Add survey group logo to response
+            son['groupLogo'] = self.get_logo(surveygroup)
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -230,6 +219,11 @@ class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
                 r'/[0-9]+$',
             )
             sons = to_son(query.all())
+            for son in sons:
+                surveygroup = (
+                    session.query(model.SurveyGroup).get(son.id))
+                son['groupLogo'] = self.get_logo(surveygroup)
+
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
         self.finish()
@@ -326,6 +320,20 @@ class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
             surveygroup.deleted = True
 
         self.get(surveygroup_id)
+
+    def get_logo(self, surveygroup):
+        name = 'group_logo'
+        s = SCHEMA.get(name).copy()
+        s['name'] = to_camel_case(name)
+
+        s['value'] = surveygroup.logo
+        if s['value'] is None:
+            path = os.path.join(get_package_dir(), s['default_file_path'])
+            with open(path, 'rb') as f:
+                s['value'] = f.read()
+
+        del s['default_file_path']
+        return ToSon()(s)
 
     def update(self, surveygroup, son):
         update = updater(surveygroup, error_factory=errors.ModelError)
