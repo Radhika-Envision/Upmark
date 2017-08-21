@@ -49,7 +49,38 @@ angular.module('upmark.surveygroup', [
 
 
 .controller('SurveyGroupCtrl', function(
-        $scope, SurveyGroup, surveygroup, Editor, Authz, $location, $q) {
+        $scope, $timeout, SurveyGroup, surveygroup, Editor, Authz, $location, $q, $window) {
+
+    var window = angular.element($window);
+
+    $scope.ellipsize = function(surveygroup) {
+        /**
+         * Truncate string and replace last overflowing word with ellipsis
+         * http://stackoverflow.com/a/3880955
+        */
+        let container = angular.element($('.surveygroup-desc'));
+        let content = angular.element($('.desc-content'));
+        let containerHeight = container.height()
+
+        // Truncate description if it's very long to avoid a lot of
+        // replace operations
+        if (surveygroup.description.length > 300) {
+            content.text(surveygroup.description.substr(0, 300));
+        } else {
+            content.text(surveygroup.description);
+        };
+
+        while (content.outerHeight() > containerHeight) {
+            content.text(function (index, text) {
+                return text.replace(/\W*\s(\S)*$/, '...');
+            });
+        };
+    };
+
+    $scope.$watch('surveygroup', function(surveygroup) {
+        if (surveygroup && surveygroup.description)
+            $timeout(function() { $scope.ellipsize(surveygroup) }, 500)
+    })
 
     $scope.edit = Editor('surveygroup', $scope);
     if (surveygroup) {
@@ -82,6 +113,12 @@ angular.module('upmark.surveygroup', [
     });
 
     $scope.checkRole = Authz({surveygroup: $scope.surveygroup});
+
+    window.bind('resize', function() {
+        let sg = $scope.surveygroup;
+        if (sg && sg.description)
+            $scope.ellipsize(sg)
+    })
 })
 
 
