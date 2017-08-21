@@ -30,8 +30,12 @@ class SurveyGroupIconHandler(base_handler.BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.web.authenticated
+    @gen.coroutine
     def get(self, surveygroup_id):
-        forceDefault = self.get_argument('default', None) != None
+        if not surveygroup_id:
+            raise errors.MethodError("SurveyGroup ID required")
+
+        force_default = self.get_argument('default', None) != None
 
         with model.session_scope() as session:
             # Verify requested survey group exists
@@ -44,23 +48,17 @@ class SurveyGroupIconHandler(base_handler.BaseHandler):
             user_session.policy.verify('surveygroup_view')
 
             # Retrieve raw svg file
-            icon = surveygroup.logo
-            if not icon or forceDefault:
-                path = os.path.join(
-                    get_package_dir(), SCHEMA['group_logo']['default_file_path'])
-                with open(path, 'rb') as f:
-                    icon = f.read()
-
             self.set_header('Content-Type', 'image/svg+xml')
+            icon = self.get_icon(surveygroup, force_default)
 
-            size = self.get_argument('size', None)
-            if size is not None:
+            try:
+                size = int(self.get_argument('size', None))
+            except TypeError:
+                pass
+            else:
                 # Convert to png of specified size
-                size = int(size)
-                data = image.clean_svg(icon).encode('utf-8')
-                icon = cairosvg.svg2png(
-                    data, parent_width=size, parent_height=size)
                 self.set_header('Content-Type', 'image/png')
+                icon = yield self.svg2png(icon, size)
 
         self.write(icon)
         self.finish()
@@ -68,37 +66,70 @@ class SurveyGroupIconHandler(base_handler.BaseHandler):
     @tornado.web.authenticated
     @gen.coroutine
     def post(self, surveygroup_id):
+        if not surveygroup_id:
+            raise errors.MethodError("SurveyGroup ID required")
+
         with model.session_scope() as session:
             # Verify user can edit this survey group
             user_session = self.get_user_session(session)
             user_session.policy.verify('surveygroup_edit')
 
+            surveygroup = session.query(model.SurveyGroup).get(surveygroup_id)
+            if not surveygroup:
+                raise errors.MissingDocError("No such survey group")
+
             fileinfo = self.request.files['file'][0]
             body = fileinfo['body']
             body = yield self.clean_svg(body)
-
-            surveygroup = session.query(model.SurveyGroup).get(surveygroup_id)
             surveygroup.logo = body.encode('utf-8')
 
         self.finish()
 
     @tornado.web.authenticated
     def delete(self, surveygroup_id):
+        if not surveygroup_id:
+            raise errors.MethodError("SurveyGroup ID required")
+
         with model.session_scope() as session:
             # Verify user can edit this survey group
             user_session = self.get_user_session(session)
             user_session.policy.verify('surveygroup_edit')
 
             # Set logo column to null
-            sg = session.query(model.SurveyGroup).get(surveygroup_id)
-            if sg and sg.logo:
-                sg.logo = None;
+            surveygroup = session.query(model.SurveyGroup).get(surveygroup_id)
+            if not surveygroup:
+                raise errors.MissingDocError("No such survey group")
+
+            surveygroup.logo = None;
 
         self.finish()
+
+    def get_icon(self, surveygroup, force_default):
+        icon = surveygroup.logo
+        if not icon or force_default:
+            path = os.path.join(
+                get_package_dir(), SCHEMA['group_logo']['default_file_path'])
+            with open(path, 'rb') as f:
+                icon = f.read()
+
+        return icon
+
+    @gen.coroutine
+    def svg2png(self, svg_icon, size):
+        if size < 8:
+            raise errors.MissingDocError("Icon size is too small")
+        if size > 256:
+            raise errors.MissingDocError("Icon size is too big")
+
+        data = yield self.clean_svg(svg_icon)
+        data = data.encode('utf-8')
+        bitmap = cairosvg.svg2png(data, parent_width=size, parent_height=size)
+        return bitmap
 
     @run_on_executor
     def clean_svg(self, svg):
         return image.clean_svg(svg)
+
 
 class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
 
