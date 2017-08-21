@@ -26,6 +26,7 @@
     <h2 page-title>
         <i class="fa fa-fw fa-university"></i>
         <a href="#/3/surveygroups">Survey groups</a> &raquo;
+        <img ng-src='/surveygroup/icon/{{surveygroup.id}}?size=30'></img>
         <span ng-if="surveygroup.title"
                 ng-class="{strike: surveygroup.deleted}">
             {{surveygroup.title}}</span>
