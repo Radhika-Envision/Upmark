@@ -16,6 +16,9 @@
             title="Next">
         <i class="fa fa-fw fa-angle-right"></i></a>
 </div>
+<img ng-if="currentSurveyGroup" class="surveygroup-header-icon"
+    title="{{currentSurveyGroup.title}}"
+    ng-src="/surveygroup/icon/{{currentSurveyGroup.id}}?size=25"></img>
 <h2 ng-repeat="item in structure.hstack"
         label="{{item.label}}"
         ng-class="['program-' + item.level, item.entity.deleted ? 'strike' : null]"

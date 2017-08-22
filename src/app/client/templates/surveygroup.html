@@ -26,7 +26,8 @@
     <h2 page-title>
         <i class="fa fa-fw fa-university"></i>
         <a href="#/3/surveygroups">Survey groups</a> &raquo;
-        <img ng-src='/surveygroup/icon/{{surveygroup.id}}?size=30'></img>
+        <img class="surveygroup-header-icon"
+            ng-src='/surveygroup/icon/{{surveygroup.id}}?size=25'></img>
         <span ng-if="surveygroup.title"
                 ng-class="{strike: surveygroup.deleted}">
             {{surveygroup.title}}</span>
@@ -38,7 +39,7 @@
 <div ng-if="edit.model" class="container">
     <form novalidate name="form" id="editor" form-nav-warn>
       <div class="form-group">
-          <label for="themeLogo">Survey Group Logo</label>
+          <label for="groupLogo">Survey Group Logo</label>
           <file-setting url="/surveygroup/icon/{{surveygroup.id}}"
               setting="surveygroup.groupLogo"></file-setting>
           <p>
