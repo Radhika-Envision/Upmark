@@ -48,8 +48,9 @@ angular.module('upmark.surveygroup', [
 }])
 
 
-.controller('SurveyGroupCtrl', function(
-        $scope, $timeout, SurveyGroup, surveygroup, Editor, Authz, $location, $q, $window) {
+.controller('SurveyGroupCtrl',
+        function($location, $q, $scope, $timeout, $window,
+            Authz, Editor, SurveyGroup, surveygroup) {
 
     var window = angular.element($window);
 
@@ -101,6 +102,7 @@ angular.module('upmark.surveygroup', [
         $scope.$broadcast('prepareFormSubmit', async_task_promises);
         var promise = $q.all(async_task_promises).then(
             function success(async_tasks) {
+                $window.location.reload();
                 return $scope.edit.save();
             },
             function failure(reason) {
