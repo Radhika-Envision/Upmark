@@ -31,8 +31,11 @@ angular.module('upmark.survey', [
                 if (!$scope.structure)
                     return
 
-                let program = $scope.structure.hstack[0];
-                Program.get({id: program.entity.id}).$promise.then(
+                let program = $scope.structure.hstack[0].entity;
+                if (!program.obType) {
+                    program = program.program;
+                }
+                Program.get({id: program.id}).$promise.then(
                     function(program) {
                         for (let i = 0, nPsg = program.surveygroups.length; i < nPsg; i++) {
                             let psg_id = program.surveygroups[i].id;

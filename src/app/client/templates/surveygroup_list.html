@@ -17,19 +17,24 @@
     </search-box>
 
     <ul class="list-results">
-        <li ng-repeat="surveygroup in surveygroups"
+        <li ng-repeat="surveygroup in surveygroups" class="surveygroup;"
                 ng-class="{strike: surveygroup.deleted}">
-            <a ng-href="#/3/surveygroup/{{surveygroup.id}}">
-                <h4>
-                    <img style="padding: 0px 5px;"
-                        ng-src='/surveygroup/icon/{{surveygroup.id}}?size=30'>
-                    </img>
-                    {{surveygroup.title}}
-                </h4>
-                <div style="padding-left: 45px; position: relative; top: -8px;">
-                    <p class="truncate" ng-if="surveygroup.description">
-                        {{surveygroup.description}}
-                    </p>
+            <a class="surveygroup-tile"
+                ng-href="#/3/surveygroup/{{surveygroup.id}}">
+                <img class="surveygroup-icon"
+                    ng-src='/surveygroup/icon/{{surveygroup.id}}?size=30'>
+                </img>
+                <!-- Need to make top style dependent on if a description exists -->
+                <div class="text-elmt-container">
+                    <div class="surveygroup-title"
+                        ng-class="{ 'surveygroup-center-title' : !surveygroup.description}">
+                        {{surveygroup.title}}
+                    </div>
+                    <div class="surveygroup-desc">
+                        <p class="truncate" ng-if="surveygroup.description">
+                            {{surveygroup.description}}
+                        </p>
+                    </div>
                 </div>
             </a>
         </li>
