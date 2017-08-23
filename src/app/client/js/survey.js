@@ -35,6 +35,11 @@ angular.module('upmark.survey', [
                 if (!program.obType) {
                     program = program.program;
                 }
+
+                if(!program.id)
+                    // Creating new program, id, surveygroups not assigned yet
+                    return
+
                 Program.get({id: program.id}).$promise.then(
                     function(program) {
                         for (let i = 0, nPsg = program.surveygroups.length; i < nPsg; i++) {
