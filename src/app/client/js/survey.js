@@ -41,13 +41,15 @@ angular.module('upmark.survey', [
                     return
 
                 Program.get({id: program.id}).$promise.then(
-                    function(program) {
-                        for (let i = 0, nPsg = program.surveygroups.length; i < nPsg; i++) {
-                            let psg_id = program.surveygroups[i].id;
-                            for (let j = 0, nUsg = currentUser.surveygroups.length; j < nUsg; j++) {
-                                let usg_id = currentUser.surveygroups[j].id;
+                    function success(program) {
+                        let progGroups = program.surveygroups;
+                        let userGroups = currentUser.surveygroups;
+                        for (let i = 0; i < progGroups.length; i++) {
+                            let psg_id = progGroups[i].id;
+                            for (let j = 0; j < userGroups.length; j++) {
+                                let usg_id = userGroups[j].id;
                                 if (usg_id == psg_id) {
-                                    $scope.currentSurveyGroup = program.surveygroups[i];
+                                    $scope.currentSurveyGroup = progGroups[i];
                                     break
                                 }
                             }
