@@ -2,8 +2,20 @@
 @import '_defines.scss';
 
 .header {
+    .icon-container {
+        display: inline-block;
+    }
+    .icon-container-expanded {
+        position: relative;
+        left: -45px;
+    }
     .surveygroup-icon {
         padding: 0px 5px 5px;
+    }
+    .surveygroup-title {
+        display: inline-block;
+        position: relative;
+        left: 6px;
     }
 }
 
