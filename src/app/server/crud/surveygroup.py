@@ -38,18 +38,18 @@ class SurveyGroupIconHandler(base_handler.BaseHandler):
 
         with model.session_scope() as session:
             if not force_default:
+                user_session = self.get_user_session(session)
+
                 # Verify requested survey group exists
                 surveygroup = (
                     session.query(model.SurveyGroup).get(surveygroup_id))
                 if not surveygroup:
                     raise errors.MissingDocError("No such survey group")
 
-                # Verify user can view this survey group
-                user_session = self.get_user_session(session)
                 policy = user_session.policy.derive({
                     'surveygroups': {surveygroup},
                 })
-                user_session.policy.verify('surveygroup_view')
+                policy.verify('surveygroup_view')
 
             # Retrieve raw svg file
             self.set_header('Content-Type', 'image/svg+xml')
