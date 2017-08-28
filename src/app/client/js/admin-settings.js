@@ -65,13 +65,14 @@ angular.module('upmark.admin.settings', [
     return {
         restrict: 'E',
         scope: {
+            url: '@',
             setting: '='
         },
         templateUrl: 'setting-image.html',
         require: '^form',
         link: function(scope, elem, attrs, formCtrl) {
             var getParams = function() {
-                var url = '/systemconfig/' + scope.setting.name;
+                var url = scope.url;
                 var xsrfName = $http.defaults.xsrfHeaderName;
                 var headers = {};
                 headers[xsrfName] = $cookies.get($http.defaults.xsrfCookieName);

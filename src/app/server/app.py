@@ -208,6 +208,8 @@ def get_mappings():
 
         (r"/surveygroup/?([^/]*).json",
             crud.surveygroup.SurveyGroupHandler, {}),
+        (r"/surveygroup/icon/([^/]*)",
+            crud.surveygroup.SurveyGroupIconHandler, {}),
 
         (r"/organisation/?([^/]*).json",
             crud.org.OrgHandler, {}),

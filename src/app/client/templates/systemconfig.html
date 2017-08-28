@@ -29,21 +29,24 @@
           <div class="row">
             <div class="form-group col-md-5">
                 <label for="themeLogo">Application Logo</label>
-                <file-setting setting="edit.model.themeLogo"></file-setting>
+                <file-setting url="/systemconfig/{{edit.model.themeLogo.name}}"
+                    setting="edit.model.themeLogo"></file-setting>
                 <p>
                     Wide logo to display in the title bar
                 </p>
             </div>
             <div class="form-group col-md-4">
                 <label for="themeIconLg">Big Icon</label>
-                <file-setting setting="edit.model.themeIconLg"></file-setting>
+                <file-setting url="/systemconfig/{{edit.model.themeIconLg.name}}"
+                    setting="edit.model.themeIconLg"></file-setting>
                 <p>
                     Square icon to use on a phone
                 </p>
             </div>
             <div class="form-group col-md-3">
                 <label for="themeIconSm">Small Icon</label>
-                <file-setting setting="edit.model.themeIconSm"></file-setting>
+                <file-setting url="/systemconfig/{{edit.model.themeIconSm.name}}"
+                    setting="edit.model.themeIconSm"></file-setting>
                 <p>
                     Icon for browser tabs
                 </p>

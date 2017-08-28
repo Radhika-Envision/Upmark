@@ -205,6 +205,7 @@ angular.module('upmark.organisation', [
 
     $scope.search = {
         term: "",
+        surveyGroupId: $scope.sg && $scope.sg.id,
         deleted: false,
         page: 0,
         pageSize: 10
@@ -305,6 +306,18 @@ angular.module('upmark.organisation', [
     $scope.$on('$destroy', function() {
         $scope = null;
     });
+})
+
+
+.directive('organisationList', function() {
+    return {
+        restrict: 'E',
+        templateUrl: 'organisation_list.html',
+        scope: {
+            sg: '='
+        },
+        controller: 'OrganisationListCtrl'
+    }
 })
 
 

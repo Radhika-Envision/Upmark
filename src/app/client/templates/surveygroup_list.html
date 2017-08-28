@@ -17,13 +17,24 @@
     </search-box>
 
     <ul class="list-results">
-        <li ng-repeat="surveygroup in surveygroups"
+        <li ng-repeat="surveygroup in surveygroups" class="surveygroup;"
                 ng-class="{strike: surveygroup.deleted}">
-            <a ng-href="#/3/surveygroup/{{surveygroup.id}}">
-                <h4>{{surveygroup.title}}</h4>
-                <p class="truncate" ng-if="surveygroup.description">
-                    {{surveygroup.description}}
-                </p>
+            <a class="surveygroup-tile"
+                ng-href="#/3/surveygroup/{{surveygroup.id}}">
+                <img class="surveygroup-icon"
+                    ng-src='/surveygroup/icon/{{surveygroup.id}}?size=30'>
+                </img>
+                <div class="text-elmt-container">
+                    <div class="surveygroup-title"
+                        ng-class="{ 'surveygroup-center-title' : !surveygroup.description}">
+                        {{surveygroup.title}}
+                    </div>
+                    <div class="surveygroup-desc">
+                        <p class="truncate" ng-if="surveygroup.description">
+                            {{surveygroup.description}}
+                        </p>
+                    </div>
+                </div>
             </a>
         </li>
     </ul>

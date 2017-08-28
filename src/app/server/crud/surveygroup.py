@@ -1,11 +1,141 @@
+import cairosvg
+from concurrent.futures import ThreadPoolExecutor
+import os
+
+from tornado import gen
+from tornado.concurrent import run_on_executor
 from tornado.escape import json_encode
 import tornado.web
 
 from activity import Activities
 import base_handler
 import errors
+import image
 import model
-from utils import ToSon, truthy, updater
+from utils import ToSon, truthy, updater, get_package_dir, to_camel_case
+
+
+MAX_WORKERS = 4
+SCHEMA = {
+    'group_logo': {
+        'type': 'image',
+        'accept': '.svg',
+        'default_file_path': "../client/images/icon-sm.svg",
+    }
+}
+
+
+class SurveyGroupIconHandler(base_handler.BaseHandler):
+
+    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
+
+    @tornado.web.authenticated
+    @gen.coroutine
+    def get(self, surveygroup_id):
+        surveygroup = None
+        force_default = (
+            self.get_argument('default', None) != None  or not surveygroup_id)
+
+        with model.session_scope() as session:
+            if not force_default:
+                user_session = self.get_user_session(session)
+
+                # Verify requested survey group exists
+                surveygroup = (
+                    session.query(model.SurveyGroup).get(surveygroup_id))
+                if not surveygroup:
+                    raise errors.MissingDocError("No such survey group")
+
+                policy = user_session.policy.derive({
+                    'surveygroups': {surveygroup},
+                })
+                policy.verify('surveygroup_view')
+
+            # Retrieve raw svg file
+            self.set_header('Content-Type', 'image/svg+xml')
+            icon = self.get_icon(surveygroup, force_default)
+
+            try:
+                size = int(self.get_argument('size', None))
+            except TypeError:
+                pass
+            else:
+                # Convert to png of specified size
+                self.set_header('Content-Type', 'image/png')
+                icon = yield self.svg2png(icon, size)
+
+        self.write(icon)
+        self.finish()
+
+    @tornado.web.authenticated
+    @gen.coroutine
+    def post(self, surveygroup_id):
+        if not surveygroup_id:
+            raise errors.MethodError("SurveyGroup ID required")
+
+        with model.session_scope() as session:
+            # Verify user can edit this survey group
+            user_session = self.get_user_session(session)
+            user_session.policy.verify('surveygroup_edit')
+
+            surveygroup = session.query(model.SurveyGroup).get(surveygroup_id)
+            if not surveygroup:
+                raise errors.MissingDocError("No such survey group")
+
+            fileinfo = self.request.files['file'][0]
+            body = fileinfo['body']
+            body = yield self.clean_svg(body)
+            surveygroup.logo = body.encode('utf-8')
+
+        self.finish()
+
+    @tornado.web.authenticated
+    def delete(self, surveygroup_id):
+        if not surveygroup_id:
+            raise errors.MethodError("SurveyGroup ID required")
+
+        with model.session_scope() as session:
+            # Verify user can edit this survey group
+            user_session = self.get_user_session(session)
+            user_session.policy.verify('surveygroup_edit')
+
+            # Set logo column to null
+            surveygroup = session.query(model.SurveyGroup).get(surveygroup_id)
+            if not surveygroup:
+                raise errors.MissingDocError("No such survey group")
+
+            surveygroup.logo = None;
+
+        self.finish()
+
+    def get_icon(self, surveygroup, force_default):
+        icon = None
+        if surveygroup:
+            icon = surveygroup.logo
+
+        if force_default or not icon:
+            path = os.path.join(
+                get_package_dir(), SCHEMA['group_logo']['default_file_path'])
+            with open(path, 'rb') as f:
+                icon = f.read()
+
+        return icon
+
+    @gen.coroutine
+    def svg2png(self, svg_icon, size):
+        if size < 8:
+            raise errors.MissingDocError("Icon size is too small")
+        if size > 256:
+            raise errors.MissingDocError("Icon size is too big")
+
+        data = yield self.clean_svg(svg_icon)
+        data = data.encode('utf-8')
+        bitmap = cairosvg.svg2png(data, parent_width=size, parent_height=size)
+        return bitmap
+
+    @run_on_executor
+    def clean_svg(self, svg):
+        return image.clean_svg(svg)
 
 
 class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
@@ -42,6 +172,9 @@ class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
             )
 
             son = to_son(surveygroup)
+
+            # Add survey group logo to response
+            son['groupLogo'] = self.get_logo(surveygroup)
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -86,6 +219,11 @@ class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
                 r'/[0-9]+$',
             )
             sons = to_son(query.all())
+            for son in sons:
+                surveygroup = (
+                    session.query(model.SurveyGroup).get(son.id))
+                son['groupLogo'] = self.get_logo(surveygroup)
+
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
         self.finish()
@@ -182,6 +320,20 @@ class SurveyGroupHandler(base_handler.Paginate, base_handler.BaseHandler):
             surveygroup.deleted = True
 
         self.get(surveygroup_id)
+
+    def get_logo(self, surveygroup):
+        name = 'group_logo'
+        s = SCHEMA.get(name).copy()
+        s['name'] = to_camel_case(name)
+
+        s['value'] = surveygroup.logo
+        if s['value'] is None:
+            path = os.path.join(get_package_dir(), s['default_file_path'])
+            with open(path, 'rb') as f:
+                s['value'] = f.read()
+
+        del s['default_file_path']
+        return ToSon()(s)
 
     def update(self, surveygroup, son):
         update = updater(surveygroup, error_factory=errors.ModelError)

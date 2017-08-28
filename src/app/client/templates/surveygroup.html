@@ -9,7 +9,7 @@
                 ng-if="edit.model && edit.model.id">
             <i class="fa fa-times"></i></button>
         <button class="btn btn-default btn-round" title="Save"
-                ng-click="edit.save()"
+                ng-click="save()"
                 ng-if="edit.model"
                 form="editor"
                 form-save-button="editor">
@@ -26,6 +26,8 @@
     <h2 page-title>
         <i class="fa fa-fw fa-university"></i>
         <a href="#/3/surveygroups">Survey groups</a> &raquo;
+        <img class="surveygroup-icon"
+            ng-src='/surveygroup/icon/{{surveygroup.id}}?size=25'></img>
         <span ng-if="surveygroup.title"
                 ng-class="{strike: surveygroup.deleted}">
             {{surveygroup.title}}</span>
@@ -36,6 +38,14 @@
 
 <div ng-if="edit.model" class="container">
     <form novalidate name="form" id="editor" form-nav-warn>
+      <div class="form-group">
+          <label for="groupLogo">Survey Group Logo</label>
+          <file-setting url="/surveygroup/icon/{{surveygroup.id}}"
+              setting="surveygroup.groupLogo"></file-setting>
+          <p>
+              Logo to display in the title bar
+          </p>
+      </div>
         <div class="form-group" show-errors>
             <label for="title">Name</label>
             <span class="help-label" ng-if="form.title.$error.required">
@@ -53,9 +63,23 @@
 </div>
 
 <div ng-if="!edit.model">
-    <div class="container" ng-if="surveygroup.description">
-        <div ng-bind-html="surveygroup.description | markdown"></div>
+    <div class="container surveygroup-tile">
+        <img ng-src='/surveygroup/icon/{{surveygroup.id}}?size=150'></img>
+        <div class="text-elmt-container">
+            <div class="surveygroup-title">
+                {{surveygroup.title}}
+            </div>
+            <div ng-if="surveygroup.description" class="surveygroup-desc">
+                <p class="desc-content">{{surveygroup.description}}</p>
+            </div>
+        </div>
     </div>
+    <program-list
+        class="nested" ng-if="!edit.model" sg="surveygroup"></program-list>
+    <organisation-list
+        class="nested" ng-if="!edit.model" sg="surveygroup"></organisation-list>
+    <user-list
+        class="nested" ng-if="!edit.model" sg="surveygroup"></user-list>
 
     <docs ng-if="surveygroup.deleted">
         <i class="fa-li fa fa-trash fa-border"></i>

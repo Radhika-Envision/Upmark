@@ -1,0 +1,83 @@
+@import '_utils.scss';
+@import '_defines.scss';
+
+.header {
+    .icon-container {
+        display: inline-block;
+    }
+    .icon-container-expanded {
+        position: relative;
+        left: -45px;
+    }
+    .surveygroup-icon {
+        padding: 0px 5px 5px;
+    }
+    .surveygroup-title {
+        display: inline-block;
+        position: relative;
+        left: 6px;
+    }
+}
+
+.container.surveygroup-tile {
+    position: relative;
+    padding-bottom: 40px;
+    .surveygroup-title {
+        text-align: left;
+        font-size: 40px;
+        max-height: 1.3em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .text-elmt-container {
+        position: absolute;
+        padding-left: 175px;
+        padding-right: 15px;
+        padding-top: 50px;
+        height: 196px;
+        top: 0px;
+        width: 98%;
+        color: black;
+    }
+    .surveygroup-desc {
+        font-size: 18px;
+        line-height: 1.2em;
+        max-height: 2.4em;
+        overflow: hidden;
+        .desc-content {
+            padding-left: 0;
+            padding-right: 0;
+        }
+    }
+}
+
+.list-results {
+    li.surveygroup {
+        height: 55px;
+    }
+    .surveygroup-tile {
+        position: relative;
+        height: 100%;
+    }
+    .surveygroup-icon {
+        padding: 5px 5px;
+    }
+    .text-elmt-container {
+        position: absolute;
+        padding-left: 45px;
+        top: 7px;
+        width: 99%;
+    }
+    .surveygroup-title {
+        font-size: 16px;
+        font-weight: bold;
+    }
+    .surveygroup-center-title {
+        position: relative;
+        top: 10px;
+    }
+    .surveygroup-desc {
+        top: -8px;
+    }
+}
