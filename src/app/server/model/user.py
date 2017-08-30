@@ -62,6 +62,7 @@ class OrgMeta(Base):
     organisation_id = Column(
         GUID, ForeignKey("organisation.id"), nullable=False)
 
+    size = Column(Enum('small', 'medium', 'large', native_enum=False))
     ownership = Column(Enum(
         'government run', 'government owned', 'private', 'shareholder',
         native_enum=False))

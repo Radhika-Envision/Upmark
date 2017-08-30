@@ -166,6 +166,15 @@
             </select>
         </div>
         <div class="form-group" show-errors>
+            <label for="org_ownership">Size</label>
+            <select type="text" class="form-control"
+                id="org_size" name="org_size"
+                ng-model="edit.model.meta.size"
+                ng-options="a.name as a.desc for a in sizeTypes">
+                <option value="">(unspecified)</option>
+            </select>
+        </div>
+        <div class="form-group" show-errors>
             <label for="org_structure">Operational Structure</label>
             <select type="text" class="form-control"
                 id="org_structure" name="org_structure"
@@ -351,6 +360,11 @@
             Ownership</dt>
         <dd ng-if="org.meta.ownership">
             {{getDesc(ownershipTypes, org.meta.ownership)}}</dd>
+
+        <dt ng-if="org.meta.size">
+            Size</dt>
+        <dd ng-if="org.meta.size">
+            {{getDesc(sizeTypes, org.meta.size)}}</dd>
 
         <dt ng-if="org.meta.structure">
             Operational Structure</dt>

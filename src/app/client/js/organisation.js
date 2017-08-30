@@ -148,6 +148,16 @@ angular.module('upmark.organisation', [
             .filter(function(ot) {return ot.name == name})
             [0].desc;
     };
+    $scope.sizeTypes = [{
+        name: 'small',
+        desc: 'Small'
+    }, {
+        name: 'medium',
+        desc: 'Medium'
+    }, {
+        name: 'large',
+        desc: 'Large'
+    }];
     $scope.structureTypes = [{
         name: 'internal',
         desc: "Internal department - department of a larger organisation,"
