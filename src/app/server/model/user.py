@@ -69,7 +69,8 @@ class OrgMeta(Base):
     structure = Column(Enum('internal', 'corporation', native_enum=False))
     asset_types = Column(ARRAY(Enum(
         'water wholesale', 'water local',
-        'wastewater wholesale', 'wastewater local',
+        'wastewater wholesale', 'wastewater local', 'stormwater',
+        'highway bridge', 'roads', 'rail', 'ports', 'airports',
         native_enum=False, create_constraint=False)))
     regulation_level = Column(Enum(
         'extensive', 'partial', 'none', native_enum=False))
@@ -97,7 +98,8 @@ class OrgMeta(Base):
         CheckConstraint(
             """asset_types <@ ARRAY[
                 'water wholesale', 'water local',
-                'wastewater wholesale', 'wastewater local'
+                'wastewater wholesale', 'wastewater local', 'stormwater',
+                'highway bridge', 'roads', 'rail', 'ports', 'airports'
             ]::varchar[]""",
             name='org_meta_asset_types_check'),
     )

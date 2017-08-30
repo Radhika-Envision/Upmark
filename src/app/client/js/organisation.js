@@ -178,6 +178,24 @@ angular.module('upmark.organisation', [
     }, {
         name: 'wastewater local',
         desc: "Wastewater, local collection",
+    }, {
+        name: 'stormwater',
+        desc: "Stormwater",
+    }, {
+        name: 'highway bridge',
+        desc: "Highway Bridge",
+    }, {
+        name: 'roads',
+        desc: "Roads",
+    }, {
+        name: 'rail',
+        desc: "Rail",
+    }, {
+        name: 'ports',
+        desc: "Ports",
+    }, {
+        name: 'airports',
+        desc: "Airports",
     }];
     $scope.regulationLevels = [{
         name: 'extensive',
