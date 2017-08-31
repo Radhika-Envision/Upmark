@@ -296,8 +296,8 @@ angular.module('upmark.statistics', [
                         .attr("x", (dataIndex==0 ? 0: width/2) + 0.5)
                         .attr("y", Math.round(yAxis(data.quartile[2])) + 0.5)
                         .attr("width", lineWidth)
-                        .attr("height", Math.round(yAxis(data.quartile[0])
-                                - yAxis(data.quartile[2])) - 1);
+                        .attr("height", Math.max(Math.round(yAxis(data.quartile[0])
+                                - yAxis(data.quartile[2])) - 1, 0));
 
                     // Update whisker ticks. These are handled separately from the box
                     // ticks because they may or may not exist, and we want don't want
@@ -592,7 +592,7 @@ angular.module('upmark.statistics', [
                              'data': [], 'title' : stat.title };
                     item['data'].push({
                                         'current': node.score,
-                                        'max': node.qnode.totalWeight,
+                                        'max': Math.max(node.qnode.totalWeight, stat.max),
                                         'min': 0,
                                         'survey_max': stat.max,
                                         'survey_min': stat.min,

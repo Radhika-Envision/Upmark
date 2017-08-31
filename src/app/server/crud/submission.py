@@ -410,7 +410,8 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
             .filter(model.QuestionNode.survey_id == submission.survey_id,
                     model.QuestionNode.program_id == submission.program_id,
                     model.QnodeMeasure.program_id == submission.program_id,
-                    model.QnodeMeasure.qnode_id == model.QuestionNode.id)
+                    model.QnodeMeasure.qnode_id == model.QuestionNode.id,
+                    model.QuestionNode.deleted == False)
             .distinct()
             .count())
 
