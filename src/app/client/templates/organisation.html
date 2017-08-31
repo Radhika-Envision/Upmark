@@ -195,10 +195,13 @@
 
         <div class="form-group" mt-to="edit.model.meta.assetTypes">
             <label>Asset Types</label>
-            <div class="checkbox" ng-repeat="a in assetTypes"><label>
-                <input type="checkbox" mt-checkbox="a.name" />
-                {{a.desc}}
-            </label></div>
+            <div class="asset-type-container">
+                <div id="asset-type-{{assetTypes.indexOf(a)}}"
+                    class="checkbox" ng-repeat="a in assetTypes"><label>
+                    <input type="checkbox" mt-checkbox="a.name" />
+                    {{a.desc}}
+                </label></div>
+            </div>
         </div>
         <div class="form-group" show-errors
                 ng-if="edit.model.meta.assetTypes
@@ -400,7 +403,7 @@ suburb: {{loc.suburb}}">
             Asset Types</dt>
         <dd ng-if="org.meta.assetTypes.length">
             <ul class="list-unstyled">
-                <li ng-repeat="a in org.meta.assetTypes">
+                <li class="foo" ng-repeat="a in org.meta.assetTypes">
                     {{getDesc(assetTypes, a)}}
                 </li>
             </ul>
