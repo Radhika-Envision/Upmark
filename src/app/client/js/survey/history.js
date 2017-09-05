@@ -90,7 +90,7 @@ angular.module('upmark.survey.history', [
                 return version.version == $scope.model.version;
             };
         },
-        link(scope, elem, attrs) {
+        link: function(scope, elem, attrs) {
             scope.$watch('model', function(model) {
                 elem.css('display', model ? '' : 'none');
             });
