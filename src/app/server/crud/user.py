@@ -64,8 +64,13 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
                 'user': user,
                 'surveygroups': user.surveygroups,
             })
-            policy.verify('surveygroup_interact')
             policy.verify('user_view')
+
+            # Check that user shares a common surveygroup with the requesting
+            # user.
+            # Allow admins to access users outside their surveygroups though.
+            if not policy.check('admin'):
+                policy.verify('surveygroup_interact')
 
             to_son = ToSon(
                 r'/id$',
@@ -114,7 +119,10 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
                 session.query(model.AppUser)
                 .join(model.Organisation))
 
-            if not policy.check('surveygroup_interact_all'):
+            # Filter out users that don't share a surveygroup with the
+            # requesting user.
+            # Allow admins to access users outside their surveygroups though.
+            if not policy.check('admin'):
                 query = filter_surveygroups(
                     session, query, user_session.user.id,
                     [], [model.user_surveygroup])
@@ -264,8 +272,13 @@ class UserHandler(base_handler.Paginate, base_handler.BaseHandler):
                 'target': self.request_son,
                 'surveygroups': user.surveygroups,
             })
-            policy.verify('surveygroup_interact')
             policy.verify('user_edit')
+
+            # Check that user shares a common surveygroup with the requesting
+            # user.
+            # Allow admins to edit users outside their surveygroups though.
+            if not policy.check('admin'):
+                policy.verify('surveygroup_interact')
 
             if self.request_son.role and self.request_son.role != user.role:
                 policy.verify('user_change_role')

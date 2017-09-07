@@ -38,8 +38,12 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
                 'org': org,
                 'surveygroups': org.surveygroups,
             })
-            policy.verify('surveygroup_interact')
             policy.verify('org_view')
+
+            # Check that user shares a common surveygroup with this org.
+            # Admins need access to orgs outside their surveygroups though.
+            if not policy.check('admin'):
+                policy.verify('surveygroup_interact')
 
             to_son = ToSon(
                 r'/id$',
@@ -74,12 +78,14 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             query = session.query(model.Organisation)
 
-            if not policy.check('surveygroup_interact_all'):
+            # Filter out orgs that don't share a surveygroup with this user.
+            # Admins need access to orgs outside their surveygroups though.
+            if not policy.check('admin'):
                 query = filter_surveygroups(
                     session, query, user_session.user.id,
                     [], [model.organisation_surveygroup])
 
-            # Get all organisations for a survey group
+            # Filter down to just organisations in a particular survey group
             surveygroup_id = self.get_argument("surveyGroupId", None)
             if surveygroup_id:
                 query = (
@@ -180,8 +186,13 @@ class OrgHandler(base_handler.Paginate, base_handler.BaseHandler):
                 'org': org,
                 'surveygroups': org.surveygroups,
             })
-            policy.verify('surveygroup_interact')
             policy.verify('org_edit')
+
+            # Check that user shares a common surveygroup with this org.
+            # Admins need permission to edit orgs outside their surveygroups
+            # though.
+            if not policy.check('admin'):
+                policy.verify('surveygroup_interact')
 
             old_locations = list(org.locations)
             self._update(org, self.request_son)

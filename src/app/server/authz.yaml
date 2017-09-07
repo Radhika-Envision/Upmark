@@ -415,8 +415,8 @@
     expression: '@author'
 
  -  name: qnode_view
-    description: "permission to edit a category"
-    failure: "you can't edit that category"
+    description: "permission to view a category"
+    failure: "you can't view that category"
     expression: '@survey_view'
 
  -  name: response_type_add
