@@ -11,7 +11,7 @@ from utils import ToSon
 class OrgTest(base.AqHttpTestBase):
 
     def test_list_org(self):
-        with base.mock_user('admin'):
+        with base.mock_user('authority'):
             response = self.fetch(
                 "/organisation.json", method='GET', expected=200)
 
