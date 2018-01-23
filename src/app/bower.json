@@ -21,6 +21,7 @@
     "angular-sanitize": "~1.6.4",
 
     "angular-bootstrap": "~2.5.0",
+    "angular-bootstrap-multiselect": "https://github.com/bentorfs/angular-bootstrap-multiselect.git",
     "angular-bootstrap-show-errors": "~2.3.0",
     "angular-checkboxes": "https://github.com/msieurtoph/angular-checkboxes.git#1.0.2",
     "angular-diff-match-patch": "~0.6.1",
