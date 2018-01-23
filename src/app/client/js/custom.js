@@ -68,15 +68,87 @@ angular.module('upmark.custom', [
     return {
         autorun: true,
         limit: 20,
-        wall_time: 0.5,
+        wall_time: 2.0,
     };
 })
 
 
 .controller('CustomCtrl',
             function($scope, $http, Notifications, hotkeys, routeData,
-                download, CustomQuery, $q, Editor, Authz,
-                $location, CustomQuerySettings, Enqueue) {
+                download, CustomQuery, $q, Editor, Authz, SurveyGroup,
+                Organisation, $location, CustomQuerySettings, Enqueue) {
+
+    // Get list of all available surveygroups
+    // (Repeating a lot of stuff from SurveyGroupListCtrl)
+    $scope.surveygroups = null;
+    $scope.parameters = {
+        surveygroup: null,
+        organisation: null,
+    };
+    $scope.checkRole = Authz({});
+
+    $scope.surveygroupSearch = {
+        term: "",
+        deleted: false,
+    };
+    $scope.$watch('surveygroupSearch', function(search) {
+        SurveyGroup.query(search).$promise.then(
+            function success(surveygroups) {
+                $scope.surveygroups = surveygroups
+            },
+            function failure(details) {
+                Notifications.set('get', 'error',
+                    "Could not get list: " + details.statusText);
+                return $q.reject(details);
+            }
+        );
+    }, true);
+
+    $scope.$watch('parameters.surveygroup', function(group) {
+        if (!group) {
+            return
+        }
+        $scope.orgSearch.surveyGroupId = group.id;
+    }, true);
+
+    // Get list of all available organisations
+    $scope.orgSearch = {
+        term: "",
+        deleted: false,
+        surveyGroupId: $scope.parameters.surveygroup && $scope.parameters.urveygroup.id,
+    }
+    $scope.$watch('orgSearch', function(search) {
+        Organisation.query(search).$promise.then(
+            function success(organisations) {
+                $scope.organisations = organisations;
+            },
+            function failure(details) {
+                Notifications.set('get', 'error',
+                    "Could not get list: " + details.statusText, 10000);
+                return $q.reject(details);
+            }
+        );
+    }, true);
+    $scope.$watch('parameters.organisation', function(org) {
+        $scope.autorun();
+    }, true);
+
+    $scope.interpolate = function(text) {
+        var lookupParameter = function(match) {
+            let parameter = match.slice(2,-2);
+            let object = $scope.parameters[parameter];
+            if (!object) {
+                return match;
+            }
+
+            let value = "('" + object.id + "')";
+            return value
+        }
+        let newText = text.replace(/{{\w+}}/g, lookupParameter)
+
+        return newText;
+    }
+
     $scope.config = routeData.config;
     if (routeData.query) {
         $scope.query = routeData.query;
@@ -131,6 +203,7 @@ angular.module('upmark.custom', [
                 wall_time: $scope.settings.wall_time,
             },
         };
+        text = $scope.interpolate(text);
         return $http.post(url, text, config).then(
             function success(response) {
                 $scope.result = angular.fromJson(response.data);
