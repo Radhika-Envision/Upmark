@@ -83,7 +83,7 @@ angular.module('upmark.custom', [
     $scope.surveygroups = null;
     $scope.parameters = {
         surveygroup: null,
-        organisation: null,
+        organisations: null,
     };
     $scope.checkRole = Authz({});
 
@@ -129,25 +129,9 @@ angular.module('upmark.custom', [
             }
         );
     }, true);
-    $scope.$watch('parameters.organisation', function(org) {
+    $scope.$watch('parameters.organisations', function(org) {
         $scope.autorun();
     }, true);
-
-    $scope.interpolate = function(text) {
-        var lookupParameter = function(match) {
-            let parameter = match.slice(2,-2);
-            let object = $scope.parameters[parameter];
-            if (!object) {
-                return match;
-            }
-
-            let value = "('" + object.id + "')";
-            return value
-        }
-        let newText = text.replace(/{{\w+}}/g, lookupParameter)
-
-        return newText;
-    }
 
     $scope.config = routeData.config;
     if (routeData.query) {
@@ -194,6 +178,28 @@ angular.module('upmark.custom', [
             return;
         $scope.execute($scope.activeModel.text);
     }, 1000);
+
+    $scope.interpolate = function(text) {
+        var lookupParameter = function(match) {
+            let parameter = match.slice(2,-2);
+            let objects = $scope.parameters[parameter];
+
+            if (!objects) {
+                objects = $scope[parameter];
+            }
+
+            // Make a copy so we don't modify parameter objects stored elsewhere
+            objects = objects.slice();
+            objects.forEach(function(object, index, objectArray) {
+                objectArray[index] = object.id;
+            })
+
+            let paramValues = "'" + objects.join("','") + "'";
+            return "(" + paramValues + ")";
+        }
+
+        return text.replace(/{{\w+}}/g, lookupParameter);
+    }
 
     $scope.execute = function(text) {
         var url = '/report/custom_query/preview.json'
