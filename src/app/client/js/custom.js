@@ -115,7 +115,7 @@ angular.module('upmark.custom', [
     $scope.orgSearch = {
         term: "",
         deleted: false,
-        surveyGroupId: $scope.parameters.surveygroup && $scope.parameters.urveygroup.id,
+        surveyGroupId: $scope.parameters.surveygroup && $scope.parameters.surveygroup.id,
     }
     $scope.$watch('orgSearch', function(search) {
         Organisation.query(search).$promise.then(
