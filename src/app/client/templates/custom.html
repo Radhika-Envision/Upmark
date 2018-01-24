@@ -136,16 +136,15 @@
             select:invalid { color: #999; }
             select:invalid.form-control:hover:not([disabled]) {color: #999;}
         </style>
-        <select type="text" class="form-control" style="padding-left: 7px;"
-            ng-model="parameters.surveygroup"
-            ng-options="sg as sg.title for sg in surveygroups" required>
-            <option value="" disabled selected hidden>Survey Group</option>
-        </select>
-        <select type="text" class="form-control" style="padding-left: 7px;"
-            multiple ng-model="parameters.organisations"
-            ng-options="org.name for org in organisations" required>
-            <option value="" disabled selected hidden>Organisation</option>
-        </select>
+        <multiselect placeholder="Survey Group" selection-limit="1"
+            ng-model="parameters.surveygroup" show-search="true"
+            options="surveygroups" display-prop="title" id-prop="id">
+        </multiselect>
+        <multiselect placeholder="Organisations"
+            ng-model="parameters.organisations" search-limit="5"
+            show-search="true" show-unselect-all="true"
+            options="organisations" display-prop="name" id-prop="id">
+        </multiselect>
     </div>
     <div class="form-group embedded-toolbar"
             textarea-label="{{!edit.model.text ? 'Enter SQL query' : ''}}">
