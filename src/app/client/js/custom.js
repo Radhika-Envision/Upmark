@@ -242,9 +242,14 @@ angular.module('upmark.custom', [
     };
 
     $scope.download = function(query, file_type) {
+        var query_data = {};
+        if (query.isParameterised) {
+            query_data.text = $scope.interpolate(query.text)
+        }
+
         var fileName = 'custom_query.' + file_type;
         var url = '/report/custom_query/' + query.id + '/' + fileName;
-        return download(fileName, url, {}).then(
+        return download(fileName, url, query_data).then(
             function success(response) {
                 var message = "Query finished";
                 if (response.headers('Operation-Details'))

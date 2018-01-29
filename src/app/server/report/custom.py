@@ -50,6 +50,8 @@ class CustomQueryReportHandler(base_handler.BaseHandler):
     @tornado.web.authenticated
     @gen.coroutine
     def post(self, query_id, file_type):
+        parameters = self.request_son.copy()
+
         with model.session_scope() as session:
             custom_query = session.query(model.CustomQuery).get(query_id)
             if not custom_query:
@@ -61,11 +63,16 @@ class CustomQueryReportHandler(base_handler.BaseHandler):
             })
             policy.verify('custom_query_execute')
 
+
             if not custom_query.text:
                 raise errors.ModelError("Query is empty")
 
             conf = self.get_config(session)
             session.expunge(custom_query)
+
+        # Overwrite stored query text if query is parameterised
+        if parameters.text:
+            custom_query.text = parameters.text
 
         yield self.export(custom_query, conf, file_type)
         self.finish()
