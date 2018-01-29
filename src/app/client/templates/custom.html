@@ -109,6 +109,9 @@
 <div class="container">
 <form ng-if="edit.model" name="form" id="editor">
     <label>Query Info</label>
+    <button ng-click="parameterised(edit.model)">
+        <i class="fa fa-magic"></i>
+    </button>
     <div class="form-group embedded-toolbar"
           ng-class="{'hidden-print': !edit.model.title}">
         <div class="toolbar">
@@ -130,22 +133,6 @@
         <markdown-editor id="description"
             ng-model="edit.model.description" title="Description"></markdown-editor>
     </div>
-    <div class="form-group">
-        <label>Query Parameters</label>
-        <style>
-            select:invalid { color: #999; }
-            select:invalid.form-control:hover:not([disabled]) {color: #999;}
-        </style>
-        <multiselect placeholder="Survey Group" selection-limit="1"
-            ng-model="parameters.surveygroup" show-search="true"
-            options="surveygroups" display-prop="title" id-prop="id">
-        </multiselect>
-        <multiselect placeholder="Organisations"
-            ng-model="parameters.organisations" search-limit="5"
-            show-search="true" show-unselect-all="true"
-            options="organisations" display-prop="name" id-prop="id">
-        </multiselect>
-    </div>
     <div class="form-group embedded-toolbar"
             textarea-label="{{!edit.model.text ? 'Enter SQL query' : ''}}">
         <label>Query</label>
@@ -162,7 +149,18 @@
             title="Query text as SQL">
         </textarea>
     </div>
-
+    <div ng-if="edit.model.isParameterised" class="form-group">
+        <label>Query Parameters</label>
+        <multiselect placeholder="Survey Group" selection-limit="1"
+            ng-model="parameters.surveygroup" show-search="true"
+            options="surveygroups" display-prop="title" id-prop="id">
+        </multiselect>
+        <multiselect placeholder="Organisations"
+            ng-model="parameters.organisations" search-limit="5"
+            show-search="true" show-unselect-all="true"
+            options="organisations" display-prop="name" id-prop="id">
+        </multiselect>
+    </div>
     <docs>
         <i class="fa-li fa fa-database fa-border"></i>
         <p>

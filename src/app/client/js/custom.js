@@ -130,6 +130,8 @@ angular.module('upmark.custom', [
         );
     }, true);
     $scope.$watch('parameters.organisations', function(org) {
+        if (!$scope.settings.autorun)
+            return;
         $scope.autorun();
     }, true);
 
@@ -209,7 +211,11 @@ angular.module('upmark.custom', [
                 wall_time: $scope.settings.wall_time,
             },
         };
-        text = $scope.interpolate(text);
+
+        if ($scope.edit.model.isParameterised) {
+            text = $scope.interpolate(text);
+        }
+
         return $http.post(url, text, config).then(
             function success(response) {
                 $scope.result = angular.fromJson(response.data);
@@ -251,6 +257,16 @@ angular.module('upmark.custom', [
             }
         );
     };
+
+    $scope.$watch('edit.model.isParameterised', function() {
+        if (!$scope.settings.autorun)
+            return;
+        $scope.autorun();
+    })
+
+    $scope.parameterised = function(query) {
+        query.isParameterised = !query.isParameterised;
+    }
 
     $scope.format = function(query) {
         return $http.post('/report/custom_query/reformat.sql', query.text).then(
