@@ -149,19 +149,6 @@
             title="Query text as SQL">
         </textarea>
     </div>
-    <div ng-if="edit.model.isParameterised" class="form-group">
-        <label>Query Parameters</label>
-        <multiselect ng-if="surveygroups"
-            placeholder="Survey Group" ng-model="parameters.surveygroup"
-            selection-limit="1" show-search="true"
-            options="surveygroups" display-prop="title" id-prop="id">
-        </multiselect>
-        <multiselect ng-if="organisations"
-            placeholder="Organisations" ng-model="parameters.organisations"
-            search-limit="5" show-search="true" show-unselect-all="true"
-            options="organisations" display-prop="name" id-prop="id">
-        </multiselect>
-    </div>
     <docs>
         <i class="fa-li fa fa-database fa-border"></i>
         <p>
@@ -505,8 +492,18 @@
             <span print-friendly-timeago="query.modified"></span>
         </p>
     </div>
-    <div ng-if="query.isParameterised" class="form-group">
-        <label>Query Parameters</label>
+</div>
+
+<p ng-if="error" class="text-warning text-center">
+    <small>
+        <i class="fa fa-bug"></i>
+        Error: {{error}}
+    </small>
+</p>
+
+<div ng-if="result.cols" class="spaced">
+    <div ng-if="activeModel.isParameterised" class="form-group">
+        <label>Parameters</label>
         <multiselect ng-if="surveygroups"
             placeholder="Survey Group" ng-model="parameters.surveygroup"
             show-search="true" selection-limit="1"
@@ -518,16 +515,6 @@
             options="organisations" display-prop="name" id-prop="id">
         </multiselect>
     </div>
-</div>
-
-<p ng-if="error" class="text-warning text-center">
-    <small>
-        <i class="fa fa-bug"></i>
-        Error: {{error}}
-    </small>
-</p>
-
-<div ng-if="result.cols" class="spaced">
     <div class="scroll-x">
     <table class="table">
         <thead>
