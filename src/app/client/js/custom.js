@@ -78,15 +78,16 @@ angular.module('upmark.custom', [
                 download, CustomQuery, $q, Editor, Authz, SurveyGroup,
                 Organisation, $location, CustomQuerySettings, Enqueue) {
 
-    // Get list of all available surveygroups
-    // (Repeating a lot of stuff from SurveyGroupListCtrl)
-    $scope.surveygroups = null;
+    // Parameterised query stuff
+    $scope.checkRole = Authz({});
     $scope.parameters = {
         surveygroup: null,
         organisations: null,
     };
-    $scope.checkRole = Authz({});
 
+    // Get list of all available surveygroups
+    // (Repeating a lot of stuff from SurveyGroupListCtrl)
+    $scope.surveygroups = null;
     $scope.surveygroupSearch = {
         term: "",
         deleted: false,
@@ -103,7 +104,6 @@ angular.module('upmark.custom', [
             }
         );
     }, true);
-
     $scope.$watch('parameters.surveygroup', function(group) {
         if (!group) {
             return
@@ -212,7 +212,7 @@ angular.module('upmark.custom', [
             },
         };
 
-        if ($scope.edit.model.isParameterised) {
+        if ($scope.activeModel.isParameterised) {
             text = $scope.interpolate(text);
         }
 
