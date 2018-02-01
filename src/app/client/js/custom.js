@@ -76,18 +76,18 @@ angular.module('upmark.custom', [
 .controller('CustomCtrl',
             function($scope, $http, Notifications, hotkeys, routeData,
                 download, CustomQuery, $q, Editor, Authz, SurveyGroup,
-                Organisation, $location, CustomQuerySettings, Enqueue) {
+                Organisation, User, $location, CustomQuerySettings, Enqueue) {
 
     // Parameterised query stuff
     $scope.checkRole = Authz({});
     $scope.parameters = {
         surveygroup: null,
         organisations: null,
+        users: null,
     };
 
     // Get list of all available surveygroups
     // (Repeating a lot of stuff from SurveyGroupListCtrl)
-    $scope.surveygroups = null;
     $scope.surveygroupSearch = {
         term: "",
         deleted: false,
@@ -108,7 +108,9 @@ angular.module('upmark.custom', [
         if (!group) {
             return
         }
-        $scope.orgSearch.surveyGroupId = group.id;
+        let newGroupId = group.length > 0 ? group[0].id : null;
+        $scope.orgSearch.surveyGroupId = newGroupId;
+        $scope.userSearch.surveyGroupId = newGroupId;
     }, true);
 
     // Get list of all available organisations
@@ -130,6 +132,30 @@ angular.module('upmark.custom', [
         );
     }, true);
     $scope.$watch('parameters.organisations', function(org) {
+        if (!$scope.settings.autorun)
+            return;
+        $scope.autorun();
+    }, true);
+
+    // Get list of all available users
+    $scope.userSearch = {
+        term: "",
+        deleted: false,
+        surveyGroupId: $scope.parameters.surveygroup && $scope.parameters.surveygroup.id,
+    }
+    $scope.$watch('userSearch', function(search) {
+        User.query(search).$promise.then(
+            function success(users) {
+                $scope.users = users;
+            },
+            function failure(details) {
+                Notifications.set('get', 'error',
+                    "Could not get list: " + details.statusText, 10000);
+                return $q.reject(details);
+            }
+        );
+    }, true);
+    $scope.$watch('parameters.users', function(user) {
         if (!$scope.settings.autorun)
             return;
         $scope.autorun();

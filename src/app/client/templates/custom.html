@@ -516,6 +516,11 @@
             search-limit="5" show-search="true" show-unselect-all="true"
             options="organisations" display-prop="name" id-prop="id">
         </multiselect>
+        <multiselect ng-if="users"
+            placeholder="Users" ng-model="parameters.users"
+            search-limit="5" show-search="true" show-unselect-all="true"
+            options="users" display-prop="name" id-prop="id">
+        </multiselect>
     </div>
     <div class="scroll-x">
     <table class="table">
