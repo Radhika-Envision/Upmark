@@ -431,16 +431,6 @@ angular.module('upmark.custom', [
         );
     };
 
-    $scope.$watch('edit.model.isParameterised', function() {
-        if (!$scope.settings.autorun)
-            return;
-        $scope.autorun();
-    })
-
-    $scope.parameterised = function(query) {
-        query.isParameterised = !query.isParameterised;
-    }
-
     $scope.format = function(query) {
         return $http.post('/report/custom_query/reformat.sql', query.text).then(
             function success(response) {
