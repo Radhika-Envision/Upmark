@@ -506,17 +506,17 @@
 <div ng-if="result.cols" class="spaced">
     <div ng-if="activeModel.isParameterised" class="form-group">
         <label>Parameters</label>
-        <multiselect ng-if="surveygroups"
+        <multiselect ng-if="activeParameters.has('surveygroups')"
             placeholder="Survey Group" ng-model="parameters.surveygroup"
             show-search="true" selection-limit="1"
             options="surveygroups" display-prop="title" id-prop="id">
         </multiselect>
-        <multiselect ng-if="organisations"
+        <multiselect ng-if="activeParameters.has('organisations')"
             placeholder="Organisations" ng-model="parameters.organisations"
             search-limit="5" show-search="true" show-unselect-all="true"
             options="organisations" display-prop="name" id-prop="id">
         </multiselect>
-        <multiselect ng-if="users"
+        <multiselect ng-if="activeParameters.has('users')"
             placeholder="Users" ng-model="parameters.users"
             search-limit="5" show-search="true" show-unselect-all="true"
             options="users" display-prop="name" id-prop="id">

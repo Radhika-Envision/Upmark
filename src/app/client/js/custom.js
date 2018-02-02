@@ -80,19 +80,117 @@ angular.module('upmark.custom', [
 
     // Parameterised query stuff
     $scope.checkRole = Authz({});
+    $scope.defaults = {};
     $scope.parameters = {
-        surveygroup: null,
-        organisations: null,
-        users: null,
+        surveygroup: [],
+        organisations: [],
+        users: [],
     };
+    $scope.deleteParameter = {
+        surveygroups: function() {
+            $scope.surveygroupSearch = null;
+            $scope.surveygroups = null;
+            $scope.parameters.surveygroup = [];
+            $scope.activeParameters.delete('surveygroups')
+        },
+        organisations: function() {
+            $scope.orgSearch = null;
+            $scope.organisations = null;
+            $scope.parameters.organisations = [];
+            $scope.activeParameters.delete('organisations')
+        },
+        users: function() {
+            $scope.userSearch = null;
+            $scope.users = null;
+            $scope.parameters.users = [];
+            $scope.activeParameters.delete('users')
+        }
+    };
+    $scope.addParameter = {
+        surveygroups: function() {
+            if ($scope.activeParameters.has('surveygroups')) {
+                return
+            }
+
+            $scope.surveygroupSearch = {
+                term: "",
+                deleted: false,
+            };
+            $scope.activeParameters.add('surveygroups')
+        }
+    }
+    $scope.addParameter.organisations = function() {
+        this.surveygroups()
+        if (!$scope.activeParameters.has('organisations')) {
+            let surveygroup = $scope.parameters.surveygroup;
+            surveygroup = surveygroup.length > 0 ? surveygroup[0].id : null;
+
+            $scope.orgSearch = {
+                term: "",
+                deleted: false,
+                surveyGroupId: surveygroup,
+            };
+
+            let search = {
+                term: "",
+                deleted: false,
+                surveyGroupId: null,
+            };
+            Organisation.query(search).$promise.then(
+                function success(organisations) {
+                    $scope.defaults.organisations = organisations;
+                },
+                function failure(details) {
+                    Notifications.set('get', 'error',
+                        "Could not get list: " + details.statusText, 10000);
+                    return $q.reject(details);
+                }
+            );
+            $scope.activeParameters.add('organisations')
+        }
+
+        return ['surveygroups']
+    },
+    $scope.addParameter.users = function() {
+        this.surveygroups()
+        if (!$scope.activeParameters.has('users')) {
+            let surveygroup = $scope.parameters.surveygroup;
+            surveygroup = surveygroup.length > 0 ? surveygroup[0].id : null;
+
+            $scope.userSearch = {
+                term: "",
+                deleted: false,
+                surveyGroupId: surveygroup,
+            };
+
+            let search = {
+                term: "",
+                deleted: false,
+                surveyGroupId: null,
+            };
+            User.query(search).$promise.then(
+                function success(users) {
+                    $scope.defaults.users = users;
+                },
+                function failure(details) {
+                    Notifications.set('get', 'error',
+                        "Could not get list: " + details.statusText, 10000);
+                    return $q.reject(details);
+                }
+            );
+            $scope.activeParameters.add('users')
+        }
+
+        return ['surveygroups']
+    }
 
     // Get list of all available surveygroups
     // (Repeating a lot of stuff from SurveyGroupListCtrl)
-    $scope.surveygroupSearch = {
-        term: "",
-        deleted: false,
-    };
+    $scope.surveygroupSearch = null;
     $scope.$watch('surveygroupSearch', function(search) {
+        if (!search) {
+            return
+        }
         SurveyGroup.query(search).$promise.then(
             function success(surveygroups) {
                 $scope.surveygroups = surveygroups
@@ -109,17 +207,22 @@ angular.module('upmark.custom', [
             return
         }
         let newGroupId = group.length > 0 ? group[0].id : null;
-        $scope.orgSearch.surveyGroupId = newGroupId;
-        $scope.userSearch.surveyGroupId = newGroupId;
+
+        if ($scope.orgSearch) {
+            $scope.orgSearch.surveyGroupId = newGroupId;
+        }
+
+        if ($scope.userSearch) {
+            $scope.userSearch.surveyGroupId = newGroupId;
+        }
     }, true);
 
     // Get list of all available organisations
-    $scope.orgSearch = {
-        term: "",
-        deleted: false,
-        surveyGroupId: $scope.parameters.surveygroup && $scope.parameters.surveygroup.id,
-    }
+    $scope.orgSearch = null;
     $scope.$watch('orgSearch', function(search) {
+        if (!search) {
+            return
+        }
         Organisation.query(search).$promise.then(
             function success(organisations) {
                 $scope.organisations = organisations;
@@ -131,19 +234,19 @@ angular.module('upmark.custom', [
             }
         );
     }, true);
-    $scope.$watch('parameters.organisations', function(org) {
+    $scope.$watch('parameters.organisations', function(orgs) {
         if (!$scope.settings.autorun)
             return;
+
         $scope.autorun();
     }, true);
 
     // Get list of all available users
-    $scope.userSearch = {
-        term: "",
-        deleted: false,
-        surveyGroupId: $scope.parameters.surveygroup && $scope.parameters.surveygroup.id,
-    }
+    $scope.userSearch = null;
     $scope.$watch('userSearch', function(search) {
+        if (!search) {
+            return
+        }
         User.query(search).$promise.then(
             function success(users) {
                 $scope.users = users;
@@ -196,39 +299,78 @@ angular.module('upmark.custom', [
     $scope.$watch('edit.model', function(model) {
         $scope.activeModel = model || $scope.query;
     });
+
+    $scope.activeParameters = new Set();
+    var hasParameters = function() {
+        if ($scope.activeModel) {
+            // Search query text for parameters
+            var re = /{{\w+}}/g;
+            var match;
+            var currentParameters = new Set();
+            do {
+                match = re.exec($scope.activeModel.text)
+                if (match) {
+                    let parameter = match[0].slice(2, -2);
+                    if ($scope.addParameter.hasOwnProperty(parameter)) {
+                        let dependencies = $scope.addParameter[parameter]()
+                        currentParameters.add(parameter)
+                        dependencies.forEach(function(dependency) {
+                            currentParameters.add(dependency)
+                        })
+                    } else {
+                        $scope.result = null;
+                        $scope.error = parameter + " is not a valid parameter";
+                        return false
+                    }
+                }
+            } while (match);
+        }
+
+        // Deactivate parameters no longer in text
+        $scope.activeParameters.forEach(function(param) {
+            if (!currentParameters.has(param)) {
+                // Parameter should no longer be active.
+                $scope.deleteParameter[param]()
+            }
+        })
+
+        return $scope.activeParameters.size > 0;
+    };
+
     $scope.$watchGroup(['activeModel.text', 'settings.autorun'], function() {
+        $scope.error = null;
+        $scope.activeModel.isParameterised = hasParameters();
         if (!$scope.settings.autorun)
             return;
         $scope.autorun();
     });
-    $scope.autorun = Enqueue(function() {
-        if (!$scope.activeModel || !$scope.settings.autorun)
-            return;
-        $scope.execute($scope.activeModel.text);
-    }, 1000);
 
-    $scope.interpolate = function(text) {
-        var lookupParameter = function(match) {
+    $scope.setParameters = function(text) {
+        return text.replace(/{{\w+}}/g, function(match) {
             let parameter = match.slice(2,-2);
             let objects = $scope.parameters[parameter];
 
-            if (!objects) {
-                objects = $scope[parameter];
+            if (!objects || objects.length < 1) {
+              objects = $scope.defaults[parameter];
             }
 
             // Make a copy so we don't modify parameter objects stored elsewhere
             objects = objects.slice();
             objects.forEach(function(object, index, objectArray) {
-                objectArray[index] = object.id;
+              objectArray[index] = object.id;
             })
 
             let paramValues = "'" + objects.join("','") + "'";
             return "(" + paramValues + ")";
+        });
+    }
+    $scope.autorun = Enqueue(function() {
+        if (!$scope.activeModel || !$scope.settings.autorun || $scope.error) {
+            return;
         }
 
-        return text.replace(/{{\w+}}/g, lookupParameter);
-    }
-
+        $scope.execute($scope.activeModel.text);
+    }, 1000);
     $scope.execute = function(text) {
         var url = '/report/custom_query/preview.json'
         var config = {
@@ -239,7 +381,7 @@ angular.module('upmark.custom', [
         };
 
         if ($scope.activeModel.isParameterised) {
-            text = $scope.interpolate(text);
+            text = $scope.setParameters(text);
         }
 
         return $http.post(url, text, config).then(
