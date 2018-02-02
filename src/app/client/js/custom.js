@@ -75,7 +75,7 @@ angular.module('upmark.custom', [
 
 .controller('CustomCtrl',
             function($scope, $http, Notifications, hotkeys, routeData,
-                download, CustomQuery, $q, Editor, Authz, SurveyGroup,
+                download, CustomQuery, $q, Editor, Authz, SurveyGroup, Program,
                 Organisation, User, $location, CustomQuerySettings, Enqueue) {
 
     // Parameterised query stuff
@@ -83,6 +83,7 @@ angular.module('upmark.custom', [
     $scope.defaults = {};
     $scope.parameters = {
         surveygroup: [],
+        program: [],
         organisations: [],
         users: [],
     };
@@ -92,6 +93,12 @@ angular.module('upmark.custom', [
             $scope.surveygroups = null;
             $scope.parameters.surveygroup = [];
             $scope.activeParameters.delete('surveygroups')
+        },
+        programs: function() {
+            $scope.programSearch = null;
+            $scope.programs = null;
+            $scope.parameters.programs = [];
+            $scope.activeParameters.delete('programs')
         },
         organisations: function() {
             $scope.orgSearch = null;
@@ -119,6 +126,38 @@ angular.module('upmark.custom', [
             $scope.activeParameters.add('surveygroups')
         }
     }
+    $scope.addParameter.programs = function() {
+        this.surveygroups()
+        if (!$scope.activeParameters.has('programs')) {
+            let surveygroup = $scope.parameters.surveygroup;
+            surveygroup = surveygroup.length > 0 ? surveygroup[0].id : null;
+
+            $scope.programSearch = {
+                term: "",
+                deleted: false,
+                surveyGroupId: surveygroup,
+            };
+
+            let search = {
+                term: "",
+                deleted: false,
+                surveyGroupId: null,
+            };
+            Program.query(search).$promise.then(
+                function success(programs) {
+                    $scope.defaults.programs = programs;
+                },
+                function failure(details) {
+                    Notifications.set('get', 'error',
+                        "Could not get list: " + details.statusText, 10000);
+                    return $q.reject(details);
+                }
+            );
+            $scope.activeParameters.add('programs')
+        }
+
+        return ['surveygroups']
+    };
     $scope.addParameter.organisations = function() {
         this.surveygroups()
         if (!$scope.activeParameters.has('organisations')) {
@@ -208,6 +247,10 @@ angular.module('upmark.custom', [
         }
         let newGroupId = group.length > 0 ? group[0].id : null;
 
+        if ($scope.programSearch) {
+            $scope.programSearch.surveyGroupId = newGroupId;
+        }
+
         if ($scope.orgSearch) {
             $scope.orgSearch.surveyGroupId = newGroupId;
         }
@@ -215,6 +258,29 @@ angular.module('upmark.custom', [
         if ($scope.userSearch) {
             $scope.userSearch.surveyGroupId = newGroupId;
         }
+    }, true);
+
+    $scope.programSearch = null;
+    $scope.$watch('programSearch', function(search) {
+        if (!search) {
+            return
+        }
+        Program.query(search).$promise.then(
+            function sucess(programs) {
+                $scope.programs = programs;
+            },
+            function failure(details) {
+                Notifications.set('get', 'error',
+                    "Could not get list:" + details.statusText, 10000);
+                return $q.reject(details);
+            }
+        );
+    }, true);
+    $scope.$watch('parameters.programs', function(programs) {
+        if (!$scope.settings.autorun)
+            return;
+
+        $scope.autorun();
     }, true);
 
     // Get list of all available organisations

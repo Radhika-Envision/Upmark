@@ -506,6 +506,11 @@
             show-search="true" selection-limit="1"
             options="surveygroups" display-prop="title" id-prop="id">
         </multiselect>
+        <multiselect ng-if="activeParameters.has('programs')"
+            placeholder="Programs" ng-model="parameters.programs"
+            search-limit="5" show-search="true" show-unselect-all="true"
+            options="programs" display-prop="title" id-prop="id">
+        </multiselect>
         <multiselect ng-if="activeParameters.has('organisations')"
             placeholder="Organisations" ng-model="parameters.organisations"
             search-limit="5" show-search="true" show-unselect-all="true"
