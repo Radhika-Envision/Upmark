@@ -208,8 +208,7 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             if survey_id:
                 survey = (
-                    session.query(model.Survey)
-                    .get(survey_id))
+                    session.query(model.Survey).get([survey_id, program_id]))
             else:
                 survey = None
 
