@@ -83,6 +83,7 @@ angular.module('upmark.custom', [
     $scope.checkRole = Authz({});
     $scope.parameterDefaults = {};
     $scope.parameters = {};
+    $scope.labels = {};
     var parameterPattern = /in {{\w+}}/gi;
 
     $scope.deleteParameter = {
@@ -130,6 +131,10 @@ angular.module('upmark.custom', [
             if ($scope.activeParameters.has('surveygroups'))
                 return addedParameters;
 
+            $scope.labels.surveygroups = {
+                "itemsSelected": "surveygroups Selected",
+            }
+
             $scope.selectedSurveyGroupId = function() {
                 if ($scope.parameters && $scope.parameters.surveygroup) {
                     let surveygroup = $scope.parameters.surveygroup;
@@ -159,6 +164,10 @@ angular.module('upmark.custom', [
 
         if ($scope.activeParameters.has('organisations'))
             return addedParameters;
+
+        $scope.labels.organisations = {
+            "itemsSelected": "Organisations Selected",
+        }
 
         $scope.orgSearch = {
             term: "",
@@ -195,6 +204,10 @@ angular.module('upmark.custom', [
         if ($scope.activeParameters.has('users'))
             return addedParameters;
 
+        $scope.labels.users = {
+            "itemsSelected": "Users Selected",
+        }
+
         $scope.userSearch = {
             term: "",
             deleted: false,
@@ -229,6 +242,10 @@ angular.module('upmark.custom', [
 
         if ($scope.activeParameters.has('programs'))
             return addedParameters;
+
+        $scope.labels.programs = {
+            "itemsSelected": "Programs Selected",
+        }
 
         $scope.selectedProgramId = function() {
             if ($scope.parameters && $scope.parameters.programs) {
@@ -278,6 +295,10 @@ angular.module('upmark.custom', [
         if ($scope.activeParameters.has('surveys'))
             return addedParameters;
 
+        $scope.labels.surveys = {
+            "itemsSelected": "Surveys Selected",
+        };
+
         $scope.surveySearch = {
             term: "",
             deleted: false,
@@ -298,6 +319,10 @@ angular.module('upmark.custom', [
 
         if ($scope.activeParameters.has('submissions'))
             return addedParameters;
+
+        $scope.labels.submissions = {
+            "itemsSelected": "Submissions Selected",
+        };
 
         $scope.submissionSearch = {
             term: "",
