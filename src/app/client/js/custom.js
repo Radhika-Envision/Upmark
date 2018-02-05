@@ -640,7 +640,12 @@ angular.module('upmark.custom', [
     $scope.download = function(query, file_type) {
         var query_data = {};
         if (query.isParameterised) {
-            query_data.text = $scope.interpolate(query.text)
+            query_data = $scope.setParameters(query.text)
+            if (!query_data.runnable) {
+                Notifications.set('query', 'error',
+                    "Error: Query has parameters that are not set.")
+                return;
+            }
         }
 
         var fileName = 'custom_query.' + file_type;
