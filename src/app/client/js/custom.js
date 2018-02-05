@@ -76,25 +76,33 @@ angular.module('upmark.custom', [
 .controller('CustomCtrl',
             function($scope, $http, Notifications, hotkeys, routeData,
                 download, CustomQuery, $q, Editor, Authz, SurveyGroup, Program,
-                Survey, Organisation, User, $location, CustomQuerySettings,
-                Enqueue) {
+                Survey, Organisation, User, Submission, $location,
+                CustomQuerySettings, Enqueue) {
 
     // Parameterised query stuff
     $scope.checkRole = Authz({});
-    $scope.defaults = {};
-    $scope.parameters = {
-        surveygroup: [],
-        programs: [],
-        surveys: [],
-        organisations: [],
-        users: [],
-    };
+    $scope.parameterDefaults = {};
+    $scope.parameters = {};
+    var parameterPattern = /in {{\w+}}/gi;
+
     $scope.deleteParameter = {
         surveygroups: function() {
             $scope.surveygroupSearch = null;
             $scope.surveygroups = null;
             $scope.parameters.surveygroup = [];
             $scope.activeParameters.delete('surveygroups')
+        },
+        organisations: function() {
+          $scope.orgSearch = null;
+          $scope.organisations = null;
+          $scope.parameters.organisations = [];
+          $scope.activeParameters.delete('organisations')
+        },
+        users: function() {
+          $scope.userSearch = null;
+          $scope.users = null;
+          $scope.parameters.users = [];
+          $scope.activeParameters.delete('users')
         },
         programs: function() {
             $scope.programSearch = null;
@@ -108,153 +116,215 @@ angular.module('upmark.custom', [
             $scope.parameters.surveys = [];
             $scope.activeParameters.delete('surveys')
         },
-        organisations: function() {
-            $scope.orgSearch = null;
-            $scope.organisations = null;
-            $scope.parameters.organisations = [];
-            $scope.activeParameters.delete('organisations')
+        submissions: function() {
+            $scope.submissionSearch = null;
+            $scope.submissions = null;
+            $scope.parameters.submissions = [];
+            $scope.activeParameters.delete('submissions')
         },
-        users: function() {
-            $scope.userSearch = null;
-            $scope.users = null;
-            $scope.parameters.users = [];
-            $scope.activeParameters.delete('users')
-        }
     };
     $scope.addParameter = {
         surveygroups: function() {
-            if ($scope.activeParameters.has('surveygroups')) {
-                return
-            }
+            let addedParameters = new Set();
+            addedParameters.add('surveygroups');
+            if ($scope.activeParameters.has('surveygroups'))
+                return addedParameters;
+
+            $scope.selectedSurveyGroupId = function() {
+                if ($scope.parameters && $scope.parameters.surveygroup) {
+                    let surveygroup = $scope.parameters.surveygroup;
+                    if (surveygroup.length > 0)
+                        return surveygroup[0].id;
+                }
+
+                return null;
+            };
 
             $scope.surveygroupSearch = {
                 term: "",
                 deleted: false,
             };
+            $scope.parameterDefaults.surveygroups = [];
             $scope.activeParameters.add('surveygroups')
+
+            return addedParameters;
         }
+    }
+    $scope.addParameter.organisations = function() {
+        let addedParameters = new Set();
+        addedParameters.add('organisations');
+        this.surveygroups().forEach(function(dependency) {
+            addedParameters.add(dependency)
+        });
+
+        if ($scope.activeParameters.has('organisations'))
+            return addedParameters;
+
+        $scope.orgSearch = {
+            term: "",
+            deleted: false,
+            surveyGroupId: $scope.selectedSurveyGroupId(),
+        };
+
+        let search = {
+            term: "",
+            deleted: false,
+            surveyGroupId: null,
+        };
+        Organisation.query(search).$promise.then(
+            function success(organisations) {
+                $scope.parameterDefaults.organisations = organisations;
+            },
+            function failure(details) {
+                Notifications.set('get', 'error',
+                    "Could not get list: " + details.statusText, 10000);
+                return $q.reject(details);
+            }
+        );
+        $scope.activeParameters.add('organisations')
+
+        return addedParameters;
+    }
+    $scope.addParameter.users = function() {
+        let addedParameters = new Set();
+        addedParameters.add('users');
+        this.surveygroups().forEach(function(dependency) {
+            addedParameters.add(dependency)
+        });
+
+        if ($scope.activeParameters.has('users'))
+            return addedParameters;
+
+        $scope.userSearch = {
+            term: "",
+            deleted: false,
+            surveyGroupId: $scope.selectedSurveyGroupId(),
+        };
+
+        let search = {
+            term: "",
+            deleted: false,
+            surveyGroupId: null,
+        };
+        User.query(search).$promise.then(
+            function success(users) {
+                $scope.parameterDefaults.users = users;
+            },
+            function failure(details) {
+                Notifications.set('get', 'error',
+                    "Could not get list: " + details.statusText, 10000);
+                return $q.reject(details);
+            }
+        );
+        $scope.activeParameters.add('users')
+
+        return addedParameters;
     }
     $scope.addParameter.programs = function() {
-        this.surveygroups()
-        if (!$scope.activeParameters.has('programs')) {
-            let surveygroup = $scope.parameters.surveygroup;
-            let surveyGroupId = surveygroup.length > 0 ? surveygroup[0].id : null;
+        let addedParameters = new Set();
+        addedParameters.add('programs');
+        this.surveygroups().forEach(function(dependency) {
+            addedParameters.add(dependency)
+        });
 
-            $scope.programSearch = {
-                term: "",
-                deleted: false,
-                surveyGroupId: surveyGroupId,
-            };
+        if ($scope.activeParameters.has('programs'))
+            return addedParameters;
 
-            let search = {
-                term: "",
-                deleted: false,
-                surveyGroupId: null,
-            };
-            Program.query(search).$promise.then(
-                function success(programs) {
-                    $scope.defaults.programs = programs;
-                },
-                function failure(details) {
-                    Notifications.set('get', 'error',
-                        "Could not get list: " + details.statusText, 10000);
-                    return $q.reject(details);
-                }
-            );
-            $scope.activeParameters.add('programs')
-        }
+        $scope.selectedProgramId = function() {
+            if ($scope.parameters && $scope.parameters.programs) {
+                let programs = $scope.parameters.programs;
+                if (programs.length == 1)
+                    return programs[0].id;
+            }
 
-        return ['surveygroups']
+            return null;
+        };
+
+        $scope.programSearch = {
+            term: "",
+            deleted: false,
+            surveyGroupId: $scope.selectedSurveyGroupId(),
+        };
+
+        let search = {
+            term: "",
+            deleted: false,
+            surveyGroupId: null,
+        };
+        Program.query(search).$promise.then(
+            function success(programs) {
+                $scope.parameterDefaults.programs = programs;
+            },
+            function failure(details) {
+                Notifications.set('get', 'error',
+                    "Could not get list: " + details.statusText, 10000);
+                return $q.reject(details);
+            }
+        );
+        $scope.activeParameters.add('programs')
+
+        return addedParameters;
     };
     $scope.addParameter.surveys = function() {
-        this.surveygroups()
-        this.programs()
-        if (!$scope.activeParameters.has('surveys')) {
-            let surveygroup = $scope.parameters.surveygroup;
-            let surveyGroupId = surveygroup.length > 0 ? surveygroup[0].id : null;
+        let addedParameters = new Set();
+        addedParameters.add('surveys');
+        this.surveygroups().forEach(function(dependency) {
+            addedParameters.add(dependency)
+        });
+        this.programs().forEach(function(dependency) {
+            addedParameters.add(dependency)
+        });
 
-            let programs = $scope.parameters.programs;
-            let programId = programs.length == 1 ? programs[0].id : null;
+        if ($scope.activeParameters.has('surveys'))
+            return addedParameters;
 
-            $scope.surveySearch = {
-                term: "",
-                deleted: false,
-                surveyGroupId: surveyGroupId,
-                programId: programId,
-            };
-            $scope.defaults.surveys = [];
-            $scope.activeParameters.add('surveys')
-        }
+        $scope.surveySearch = {
+            term: "",
+            deleted: false,
+            surveyGroupId: $scope.selectedSurveyGroupId(),
+            programId: $scope.selectedProgramId(),
+        };
+        $scope.parameterDefaults.surveys = [];
+        $scope.activeParameters.add('surveys')
 
-        return ['surveygroups', 'programs']
+        return addedParameters;
     };
-    $scope.addParameter.organisations = function() {
-        this.surveygroups()
-        if (!$scope.activeParameters.has('organisations')) {
-            let surveygroup = $scope.parameters.surveygroup;
-            let surveyGroupId = surveygroup.length > 0 ? surveygroup[0].id : null;
+    $scope.addParameter.submissions = function() {
+        let addedParameters = new Set();
+        addedParameters.add('submissions');
+        this.surveygroups().forEach(function(dependency) {
+            addedParameters.add(dependency)
+        });
 
-            $scope.orgSearch = {
-                term: "",
-                deleted: false,
-                surveyGroupId: surveyGroupId,
-            };
+        if ($scope.activeParameters.has('submissions'))
+            return addedParameters;
 
-            let search = {
-                term: "",
-                deleted: false,
-                surveyGroupId: null,
-            };
-            Organisation.query(search).$promise.then(
-                function success(organisations) {
-                    $scope.defaults.organisations = organisations;
-                },
-                function failure(details) {
-                    Notifications.set('get', 'error',
-                        "Could not get list: " + details.statusText, 10000);
-                    return $q.reject(details);
-                }
-            );
-            $scope.activeParameters.add('organisations')
-        }
+        $scope.submissionSearch = {
+            term: "",
+            deleted: false,
+            surveyGroupId: $scope.selectedSurveyGroupId(),
+        };
 
-        return ['surveygroups']
-    },
-    $scope.addParameter.users = function() {
-        this.surveygroups()
-        if (!$scope.activeParameters.has('users')) {
-            let surveygroup = $scope.parameters.surveygroup;
-            let surveyGroupId = surveygroup.length > 0 ? surveygroup[0].id : null;
+        let search = {
+            term: "",
+            deleted: false,
+            surveyGroupId: null,
+        };
+        Submission.query(search).$promise.then(
+            function success(submissions) {
+                $scope.parameterDefaults.submissions = submissions;
+            },
+            function failure(details) {
+                Notifications.set('get', 'error',
+                    "Could not get list: " + details.statusText, 10000);
+                return $q.reject(details);
+            }
+        );
+        $scope.activeParameters.add('submissions')
 
-            $scope.userSearch = {
-                term: "",
-                deleted: false,
-                surveyGroupId: surveyGroupId,
-            };
+        return addedParameters;
+    };
 
-            let search = {
-                term: "",
-                deleted: false,
-                surveyGroupId: null,
-            };
-            User.query(search).$promise.then(
-                function success(users) {
-                    $scope.defaults.users = users;
-                },
-                function failure(details) {
-                    Notifications.set('get', 'error',
-                        "Could not get list: " + details.statusText, 10000);
-                    return $q.reject(details);
-                }
-            );
-            $scope.activeParameters.add('users')
-        }
-
-        return ['surveygroups']
-    }
-
-    // Get list of all available surveygroups
-    // (Repeating a lot of stuff from SurveyGroupListCtrl)
     $scope.surveygroupSearch = null;
     $scope.$watch('surveygroupSearch', function(search) {
         if (!search) {
@@ -294,6 +364,40 @@ angular.module('upmark.custom', [
         }
     }, true);
 
+    $scope.orgSearch = null;
+    $scope.$watch('orgSearch', function(search) {
+        if (!search) {
+            return
+        }
+        Organisation.query(search).$promise.then(
+            function success(organisations) {
+                $scope.organisations = organisations;
+            },
+            function failure(details) {
+                Notifications.set('get', 'error',
+                    "Could not get list: " + details.statusText, 10000);
+                return $q.reject(details);
+            }
+        );
+    }, true);
+
+    $scope.userSearch = null;
+    $scope.$watch('userSearch', function(search) {
+        if (!search) {
+            return
+        }
+        User.query(search).$promise.then(
+            function success(users) {
+                $scope.users = users;
+            },
+            function failure(details) {
+                Notifications.set('get', 'error',
+                    "Could not get list: " + details.statusText, 10000);
+                return $q.reject(details);
+            }
+        );
+    }, true);
+
     $scope.programSearch = null;
     $scope.$watch('programSearch', function(search) {
         if (!search) {
@@ -311,7 +415,7 @@ angular.module('upmark.custom', [
         );
     }, true);
     $scope.$watch('parameters.programs', function(programs) {
-        if (!$scope.settings.autorun)
+        if (!$scope.settings.autorun || !programs)
             return;
 
         if ($scope.surveySearch && programs.length == 1) {
@@ -330,7 +434,7 @@ angular.module('upmark.custom', [
         }
 
         if (!search.programId) {
-            $scope.surveys = $scope.defaults.surveys;
+            $scope.surveys = $scope.parameterDefaults.surveys;
             return
         }
 
@@ -346,48 +450,32 @@ angular.module('upmark.custom', [
         );
     }, true);
 
-    // Get list of all available organisations
-    $scope.orgSearch = null;
-    $scope.$watch('orgSearch', function(search) {
+    $scope.submissionSearch = null;
+    $scope.$watch('submissionSearch', function(search) {
         if (!search) {
             return
         }
-        Organisation.query(search).$promise.then(
-            function success(organisations) {
-                $scope.organisations = organisations;
+
+        Submission.query(search).$promise.then(
+            function sucess(submissions) {
+                $scope.submissions = submissions;
             },
             function failure(details) {
                 Notifications.set('get', 'error',
-                    "Could not get list: " + details.statusText, 10000);
+                    "Could not get list:" + details.statusText, 10000);
                 return $q.reject(details);
             }
         );
     }, true);
 
-    // Get list of all available users
-    $scope.userSearch = null;
-    $scope.$watch('userSearch', function(search) {
-        if (!search) {
-            return
-        }
-        User.query(search).$promise.then(
-            function success(users) {
-                $scope.users = users;
-            },
-            function failure(details) {
-                Notifications.set('get', 'error',
-                    "Could not get list: " + details.statusText, 10000);
-                return $q.reject(details);
-            }
-        );
-    }, true);
     $scope.$watchGroup(
-        ['parameters.users', 'parameters.organisations', 'parameters.surveys'],
-        function() {
-        if (!$scope.settings.autorun)
-            return;
-        $scope.autorun();
-    }, true);
+        ['parameters.users', 'parameters.organisations', 'parameters.surveys',
+        'parameters.submissions'],
+        function(parameter) {
+            if (!$scope.settings.autorun || !parameter)
+                return;
+            $scope.autorun();
+        },true);
 
     $scope.config = routeData.config;
     if (routeData.query) {
@@ -429,13 +517,13 @@ angular.module('upmark.custom', [
     var hasParameters = function() {
         if ($scope.activeModel) {
             // Search query text for parameters
-            var re = /{{\w+}}/g;
             var match;
             var currentParameters = new Set();
+            parameterPattern.lastIndex = 0;
             do {
-                match = re.exec($scope.activeModel.text)
+                match = parameterPattern.exec($scope.activeModel.text)
                 if (match) {
-                    let parameter = match[0].slice(2, -2);
+                    let parameter = match[0].slice(5, -2).toLowerCase();
                     if ($scope.addParameter.hasOwnProperty(parameter)) {
                         let dependencies = $scope.addParameter[parameter]()
                         currentParameters.add(parameter)
@@ -473,24 +561,28 @@ angular.module('upmark.custom', [
     $scope.setParameters = function(text) {
         let runnable = true;
 
-        text = text.replace(/{{\w+}}/g, function(match) {
-            let parameter = match.slice(2,-2);
-            let objects = $scope.parameters[parameter];
+        text = text.replace(parameterPattern, function(match) {
+            let parameter = match.slice(5,-2).toLowerCase();
+            let selectedObjects = $scope.parameters[parameter];
 
-            if (!objects || objects.length < 1)
-                objects = $scope.defaults[parameter];
+            // If nothing has been selected yet or everything has just been
+            // de-selected, try the default selection which is usually all.
+            if (!selectedObjects || selectedObjects.length < 1)
+                selectedObjects = $scope.parameterDefaults[parameter];
 
-            if (objects.length < 1)
+            // If no default or default is empty selection, make sure execute
+            // won't try to run the query.
+            if (!selectedObjects || selectedObjects.length < 1)
                 runnable = false;
 
             // Make a copy so we don't modify parameter objects stored elsewhere
-            objects = objects.slice();
-            objects.forEach(function(object, index, objectArray) {
+            selectedObjects = selectedObjects.slice();
+            selectedObjects.forEach(function(object, index, objectArray) {
                 objectArray[index] = object.id;
             })
 
-            let paramValues = "'" + objects.join("','") + "'";
-            return "(" + paramValues + ")";
+            let paramValues = "'" + selectedObjects.join("','") + "'";
+            return "IN (" + paramValues + ")";
         });
 
         return {text: text, runnable: runnable}

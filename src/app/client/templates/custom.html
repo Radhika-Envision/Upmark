@@ -506,16 +506,6 @@
             show-search="true" selection-limit="1"
             options="surveygroups" display-prop="title" id-prop="id">
         </multiselect>
-        <multiselect ng-if="activeParameters.has('programs')"
-            placeholder="Programs" ng-model="parameters.programs"
-            search-limit="5" show-search="true" show-unselect-all="true"
-            options="programs" display-prop="title" id-prop="id">
-        </multiselect>
-        <multiselect ng-if="activeParameters.has('surveys')"
-            placeholder="Surveys (requires a program)" ng-model="parameters.surveys"
-            search-limit="5" show-search="true" show-unselect-all="true"
-            options="surveys" display-prop="title" id-prop="id">
-        </multiselect>
         <multiselect ng-if="activeParameters.has('organisations')"
             placeholder="Organisations" ng-model="parameters.organisations"
             search-limit="5" show-search="true" show-unselect-all="true"
@@ -525,6 +515,21 @@
             placeholder="Users" ng-model="parameters.users"
             search-limit="5" show-search="true" show-unselect-all="true"
             options="users" display-prop="name" id-prop="id">
+        </multiselect>
+        <multiselect ng-if="activeParameters.has('programs')"
+            placeholder="Programs" ng-model="parameters.programs"
+            search-limit="5" show-search="true" show-unselect-all="true"
+            options="programs" display-prop="title" id-prop="id">
+        </multiselect>
+        <multiselect ng-if="activeParameters.has('surveys')"
+            placeholder="Surveys" ng-model="parameters.surveys"
+            search-limit="5" show-search="true" show-unselect-all="true"
+            options="surveys" display-prop="title" id-prop="id">
+        </multiselect>
+        <multiselect ng-if="activeParameters.has('submissions')"
+            placeholder="Submissions" ng-model="parameters.submissions"
+            search-limit="5" show-search="true" show-unselect-all="true"
+            options="submissions" display-prop="title" id-prop="id">
         </multiselect>
     </div>
     <div class="scroll-x">
