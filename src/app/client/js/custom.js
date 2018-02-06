@@ -76,8 +76,8 @@ angular.module('upmark.custom', [
 .controller('CustomCtrl',
             function($scope, $http, Notifications, hotkeys, routeData,
                 download, CustomQuery, $q, Editor, Authz, SurveyGroup, Program,
-                Survey, Organisation, User, Submission, $location,
-                CustomQuerySettings, Enqueue) {
+                Survey, Organisation, User, Submission, QuestionNode, Measure,
+                $location, CustomQuerySettings, Enqueue, Structure) {
 
     // Parameterised query stuff
     $scope.checkRole = Authz({});
@@ -122,6 +122,12 @@ angular.module('upmark.custom', [
             $scope.submissions = null;
             $scope.parameters.submissions = [];
             $scope.activeParameters.delete('submissions')
+        },
+        measures: function() {
+            $scope.measureSearch = null;
+            $scope.measures = null;
+            $scope.parameters.measures = [];
+            $scope.activeParameters.delete('measures')
         },
     };
     $scope.addParameter = {
@@ -295,6 +301,16 @@ angular.module('upmark.custom', [
         if ($scope.activeParameters.has('surveys'))
             return addedParameters;
 
+        $scope.selectedSurveyId = function() {
+            if ($scope.parameters && $scope.parameters.surveys) {
+                let surveys = $scope.parameters.surveys;
+                if (surveys.length == 1)
+                    return surveys[0].id;
+            }
+
+            return null;
+        };
+
         $scope.labels.surveys = {
             "itemsSelected": "Surveys Selected",
         };
@@ -349,6 +365,35 @@ angular.module('upmark.custom', [
 
         return addedParameters;
     };
+    $scope.addParameter.measures = function() {
+        let addedParameters = new Set();
+        addedParameters.add('measures');
+        this.programs().forEach(function(dependency) {
+            addedParameters.add(dependency)
+        });
+        this.surveys().forEach(function(dependency) {
+            addedParameters.add(dependency)
+        });
+
+        if ($scope.activeParameters.has('measures'))
+            return addedParameters;
+
+        $scope.labels.measures = {
+            "itemsSelected": "Measures Selected",
+        };
+
+        $scope.measureSearch = {
+            term: "",
+            deleted: false,
+            programId: $scope.selectedProgramId(),
+            surveyId: $scope.selectedSurveyId(),
+            noPage: true,
+        };
+        $scope.parameterDefaults.measures = [];
+        $scope.activeParameters.add('measures')
+
+        return addedParameters;
+    };
 
     $scope.surveygroupSearch = null;
     $scope.$watch('surveygroupSearch', function(search) {
@@ -372,6 +417,14 @@ angular.module('upmark.custom', [
         }
         let newGroupId = group.length > 0 ? group[0].id : null;
 
+        if ($scope.orgSearch) {
+            $scope.orgSearch.surveyGroupId = newGroupId;
+        }
+
+        if ($scope.userSearch) {
+            $scope.userSearch.surveyGroupId = newGroupId;
+        }
+
         if ($scope.programSearch) {
             $scope.programSearch.surveyGroupId = newGroupId;
         }
@@ -380,13 +433,10 @@ angular.module('upmark.custom', [
             $scope.surveySearch.surveyGroupId = newGroupId;
         }
 
-        if ($scope.orgSearch) {
-            $scope.orgSearch.surveyGroupId = newGroupId;
+        if ($scope.submissionSearch) {
+            $scope.submissionSearch.surveyGroupId = newGroupId;
         }
 
-        if ($scope.userSearch) {
-            $scope.userSearch.surveyGroupId = newGroupId;
-        }
     }, true);
 
     $scope.orgSearch = null;
@@ -449,6 +499,12 @@ angular.module('upmark.custom', [
             $scope.surveySearch.programId = null;
         }
 
+        if ($scope.measureSearch && programs.length == 1) {
+            $scope.measureSearch.programId = programs[0].id;
+        } else if ($scope.measureSearch) {
+            $scope.measureSearch.programId = null;
+        }
+
         $scope.autorun();
     }, true);
 
@@ -474,6 +530,18 @@ angular.module('upmark.custom', [
             }
         );
     }, true);
+    $scope.$watch('parameters.surveys', function(surveys) {
+        if (!$scope.settings.autorun || !surveys)
+            return;
+
+        if ($scope.measureSearch && surveys.length == 1) {
+            $scope.measureSearch.surveyId = surveys[0].id;
+        } else if ($scope.measureSearch) {
+            $scope.measureSearch.surveyId = null;
+        }
+
+        $scope.autorun();
+    }, true);
 
     $scope.submissionSearch = null;
     $scope.$watch('submissionSearch', function(search) {
@@ -493,14 +561,86 @@ angular.module('upmark.custom', [
         );
     }, true);
 
+    $scope.measureSearch = null;
+    var getLineage = function(measure) {
+        let hstack = Structure(measure).hstack;
+        let lineage = hstack[hstack.length - 1].lineage;
+
+        if (lineage[lineage.length - 1] == '.')
+            lineage = lineage.slice(0, -1);
+
+        return lineage
+    }
+    var getDisplayProp = function(measure) {
+        return measure.lineage + ' ' + measure.title;
+    }
+    var zeroPad = function(number, width) {
+        number = number + '';
+        let padded = number.width >= width ?
+          number : new Array(width - number.length + 1).join('0') + number;
+
+        return padded;
+    }
+    var padLineage = function(lineage, padWidth) {
+        let splitted = lineage.split('.');
+
+        let pad = function(n) {
+            return zeroPad(n, padWidth);
+        }
+
+        return splitted.map(pad).join('.')
+    }
+    var sortByLineage = function(measure1, measure2) {
+        let padWidth = 5; // Assume a lineage number is never > 10000
+        let lineage1 = padLineage(measure1.lineage.slice(), padWidth);
+        let lineage2 = padLineage(measure2.lineage.slice(), padWidth);
+
+        if (lineage1 < lineage2)
+            return -1;
+
+        if (lineage1 > lineage2)
+            return 1;
+
+        return 0;
+    }
+    $scope.$watch('measureSearch', function(search) {
+        if (!search) {
+            return
+        }
+
+        if (!search.programId || !search.surveyId) {
+            $scope.measures = $scope.parameterDefaults.measures;
+            return
+        }
+
+        Measure.query(search).$promise.then(
+            function sucess(measures) {
+                measures.forEach(function(measure, measureIndex, measureArray) {
+                    measure.lineage = getLineage(measure);
+                    measure.displayProp = getDisplayProp(measure);
+                    measureArray[measureIndex] = measure;
+                })
+                measures.sort(sortByLineage)
+
+                let lineages = measures.map(m => m.lineage);
+                $scope.measures = measures;
+            },
+            function failure(details) {
+                Notifications.set('get', 'error',
+                    "Could not get list:" + details.statusText, 10000);
+                return $q.reject(details);
+            }
+        );
+    }, true);
+
     $scope.$watchGroup(
-        ['parameters.users', 'parameters.organisations', 'parameters.surveys',
+        ['parameters.users', 'parameters.organisations', 'parameters.measures',
         'parameters.submissions'],
         function(parameter) {
             if (!$scope.settings.autorun || !parameter)
                 return;
             $scope.autorun();
-        },true);
+        }, true);
 
     $scope.config = routeData.config;
     if (routeData.query) {
