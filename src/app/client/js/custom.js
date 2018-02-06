@@ -76,7 +76,7 @@ angular.module('upmark.custom', [
 .controller('CustomCtrl',
             function($scope, $http, Notifications, hotkeys, routeData,
                 download, CustomQuery, $q, Editor, Authz, SurveyGroup, Program,
-                Survey, Organisation, User, Submission, QuestionNode, Measure,
+                Organisation, User, Survey, QuestionNode, Measure, Submission,
                 $location, CustomQuerySettings, Enqueue, Structure) {
 
     // Parameterised query stuff
@@ -122,6 +122,12 @@ angular.module('upmark.custom', [
             $scope.submissions = null;
             $scope.parameters.submissions = [];
             $scope.activeParameters.delete('submissions')
+        },
+        categories: function() {
+            $scope.categorySearch = null;
+            $scope.categories = null;
+            $scope.parameters.categories = [];
+            $scope.activeParameters.delete('categories')
         },
         measures: function() {
             $scope.measureSearch = null;
@@ -365,6 +371,35 @@ angular.module('upmark.custom', [
 
         return addedParameters;
     };
+    $scope.addParameter.categories = function() {
+        let addedParameters = new Set();
+        addedParameters.add('categories');
+        this.programs().forEach(function(dependency) {
+            addedParameters.add(dependency)
+        });
+        this.surveys().forEach(function(dependency) {
+            addedParameters.add(dependency)
+        });
+
+        if ($scope.activeParameters.has('categories'))
+            return addedParameters;
+
+        $scope.labels.categories = {
+            "itemsSelected": "Categories Selected",
+        };
+
+        $scope.categorySearch = {
+            term: "",
+            deleted: false,
+            programId: $scope.selectedProgramId(),
+            surveyId: $scope.selectedSurveyId(),
+            noPage: true,
+        };
+        $scope.parameterDefaults.categories = [];
+        $scope.activeParameters.add('categories')
+
+        return addedParameters;
+    };
     $scope.addParameter.measures = function() {
         let addedParameters = new Set();
         addedParameters.add('measures');
@@ -505,6 +540,12 @@ angular.module('upmark.custom', [
             $scope.measureSearch.programId = null;
         }
 
+        if ($scope.categorySearch && programs.length == 1) {
+            $scope.categorySearch.programId = programs[0].id;
+        } else if ($scope.categorySearch) {
+            $scope.categorySearch.programId = null;
+        }
+
         $scope.autorun();
     }, true);
 
@@ -534,10 +575,17 @@ angular.module('upmark.custom', [
         if (!$scope.settings.autorun || !surveys)
             return;
 
+        // TODO: What a mess!
         if ($scope.measureSearch && surveys.length == 1) {
             $scope.measureSearch.surveyId = surveys[0].id;
         } else if ($scope.measureSearch) {
             $scope.measureSearch.surveyId = null;
+        }
+
+        if ($scope.categorySearch && surveys.length == 1) {
+            $scope.categorySearch.surveyId = surveys[0].id;
+        } else if ($scope.categorySearch) {
+            $scope.categorySearch.surveyId = null;
         }
 
         $scope.autorun();
@@ -552,6 +600,34 @@ angular.module('upmark.custom', [
         Submission.query(search).$promise.then(
             function sucess(submissions) {
                 $scope.submissions = submissions;
+            },
+            function failure(details) {
+                Notifications.set('get', 'error',
+                    "Could not get list:" + details.statusText, 10000);
+                return $q.reject(details);
+            }
+        );
+    }, true);
+
+    $scope.categorySearch = null;
+    $scope.$watch('categorySearch', function(search) {
+        if (!search) {
+            return
+        }
+
+        if (!search.programId || !search.surveyId) {
+            $scope.categories = $scope.parameterDefaults.categories;
+            return
+        }
+
+        QuestionNode.query(search).$promise.then(
+            function sucess(categories) {
+                categories.forEach(function(category, categoryIndex, categoryArray) {
+                    category.lineage = getLineage(category);
+                    category.displayProp = getDisplayProp(category);
+                    categoryArray[categoryIndex] = category;
+                })
+                $scope.categories = categories.sort(sortByLineage);
             },
             function failure(details) {
                 Notifications.set('get', 'error',
@@ -620,10 +696,7 @@ angular.module('upmark.custom', [
                     measure.displayProp = getDisplayProp(measure);
                     measureArray[measureIndex] = measure;
                 })
-                measures.sort(sortByLineage)
-
-                let lineages = measures.map(m => m.lineage);
-                $scope.measures = measures;
+                $scope.measures = measures.sort(sortByLineage);
             },
             function failure(details) {
                 Notifications.set('get', 'error',
@@ -635,7 +708,7 @@ angular.module('upmark.custom', [
 
     $scope.$watchGroup(
         ['parameters.users', 'parameters.organisations', 'parameters.measures',
-        'parameters.submissions'],
+         'parameters.categories', 'parameters.submissions'],
         function(parameter) {
             if (!$scope.settings.autorun || !parameter)
                 return;

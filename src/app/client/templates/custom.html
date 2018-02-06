@@ -537,6 +537,12 @@
             search-limit="5" show-search="true" show-unselect-all="true"
             display-prop="title" id-prop="id">
         </multiselect>
+        <multiselect ng-if="activeParameters.has('categories')"
+            placeholder="Categories" labels="labels.categories"
+            ng-model="parameters.categories" options="categories"
+            search-limit="10" show-search="true" show-unselect-all="true"
+            display-prop="displayProp" id-prop="id">
+        </multiselect>
         <multiselect ng-if="activeParameters.has('measures')"
             placeholder="Measures" labels="labels.measures"
             ng-model="parameters.measures" options="measures"
