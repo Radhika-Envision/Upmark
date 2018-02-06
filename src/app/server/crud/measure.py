@@ -185,9 +185,9 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
 
         to_son = ToSon(
             # Fields to match from any visited object
+            r'/ob_type$',
             r'/id$',
             r'/title$',
-            r'/ob_type$',
             r'/parent$',
             r'/parents$',
             r'/parents/[0-9]+$',
@@ -284,8 +284,8 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
             sons = to_son(measures)
 
             to_son = ToSon(
-                r'/id$',
                 r'/ob_type$',
+                r'/id$',
                 r'/seq$',
                 r'/title$',
                 r'^/error$',
@@ -367,9 +367,14 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             to_son = ToSon(
                 # Fields to match from any visited object
+                r'/ob_type$',
                 r'/id$',
                 r'/title$',
                 r'^/error$',
+                r'/qnode$',
+                r'/parent$',
+                r'/parents$',
+                r'/parents/[0-9]+$',
                 r'/seq$',
                 r'/weight$',
                 r'/deleted$',
@@ -377,11 +382,16 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/program$',
+                r'/survey$',
+                r'/survey/structure.*$',
+                r'/survey/program$',
             )
             sons = []
             for qm in qnode.qnode_measures:
                 mson = to_son(qm.measure)
                 mson.update(to_son(qm))
+                mson['parent'] = mson['qnode']
+                del mson['qnode']
                 sons.append(mson)
 
         self.set_header("Content-Type", "application/json")

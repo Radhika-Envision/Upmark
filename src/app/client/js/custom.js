@@ -636,6 +636,18 @@ angular.module('upmark.custom', [
             }
         );
     }, true);
+    $scope.$watch('parameters.categories', function(categories) {
+        if (!$scope.settings.autorun || !categories)
+            return;
+
+        if ($scope.measureSearch && categories.length == 1) {
+            $scope.measureSearch.qnodeId = categories[0].id;
+        } else if ($scope.measureSearch) {
+            $scope.measureSearch.qnodeId = null;
+        }
+
+        $scope.autorun();
+    });
 
     $scope.measureSearch = null;
     $scope.$watch('measureSearch', function(search) {
@@ -663,6 +675,14 @@ angular.module('upmark.custom', [
                 return $q.reject(details);
             }
         );
+    }, true);
+
+    $scope.$watchGroup(['parameters.submissions', 'parameters.organisations',
+        'parameters.measures', 'parameters.users'],
+    function(parameter) {
+        if (!$scope.settings.autorun || !parameter)
+            return;
+        $scope.autorun();
     }, true);
 
     // Functions for dealing with entities with lineage properties.
@@ -707,15 +727,6 @@ angular.module('upmark.custom', [
 
         return 0;
     }
-
-    $scope.$watchGroup(
-        ['parameters.users', 'parameters.organisations', 'parameters.measures',
-         'parameters.categories', 'parameters.submissions'],
-        function(parameter) {
-            if (!$scope.settings.autorun || !parameter)
-                return;
-            $scope.autorun();
-        }, true);
 
     $scope.config = routeData.config;
     if (routeData.query) {
