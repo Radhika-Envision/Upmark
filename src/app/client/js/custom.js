@@ -638,47 +638,6 @@ angular.module('upmark.custom', [
     }, true);
 
     $scope.measureSearch = null;
-    var getLineage = function(measure) {
-        let hstack = Structure(measure).hstack;
-        let lineage = hstack[hstack.length - 1].lineage;
-
-        if (lineage[lineage.length - 1] == '.')
-            lineage = lineage.slice(0, -1);
-
-        return lineage
-    }
-    var getDisplayProp = function(measure) {
-        return measure.lineage + ' ' + measure.title;
-    }
-    var zeroPad = function(number, width) {
-        number = number + '';
-        let padded = number.width >= width ?
-          number : new Array(width - number.length + 1).join('0') + number;
-
-        return padded;
-    }
-    var padLineage = function(lineage, padWidth) {
-        let splitted = lineage.split('.');
-
-        let pad = function(n) {
-            return zeroPad(n, padWidth);
-        }
-
-        return splitted.map(pad).join('.')
-    }
-    var sortByLineage = function(measure1, measure2) {
-        let padWidth = 5; // Assume a lineage number is never > 10000
-        let lineage1 = padLineage(measure1.lineage.slice(), padWidth);
-        let lineage2 = padLineage(measure2.lineage.slice(), padWidth);
-
-        if (lineage1 < lineage2)
-            return -1;
-
-        if (lineage1 > lineage2)
-            return 1;
-
-        return 0;
-    }
     $scope.$watch('measureSearch', function(search) {
         if (!search) {
             return
@@ -705,6 +664,49 @@ angular.module('upmark.custom', [
             }
         );
     }, true);
+
+    // Functions for dealing with entities with lineage properties.
+    var getLineage = function(entity) {
+        let hstack = Structure(entity).hstack;
+        let lineage = hstack[hstack.length - 1].lineage;
+
+        if (lineage[lineage.length - 1] == '.')
+            lineage = lineage.slice(0, -1);
+
+        return lineage
+    }
+    var getDisplayProp = function(entity) {
+        return entity.lineage + ' ' + entity.title;
+    }
+    var zeroPad = function(number, width) {
+        number = number + '';
+        let padded = number.width >= width ?
+          number : new Array(width - number.length + 1).join('0') + number;
+
+        return padded;
+    }
+    var padLineage = function(lineage, padWidth) {
+        let splitted = lineage.split('.');
+
+        let pad = function(n) {
+            return zeroPad(n, padWidth);
+        }
+
+        return splitted.map(pad).join('.')
+    }
+    var sortByLineage = function(entity1, entity2) {
+        let padWidth = 5; // Assume a lineage number is never > 10000
+        let lineage1 = padLineage(entity1.lineage.slice(), padWidth);
+        let lineage2 = padLineage(entity2.lineage.slice(), padWidth);
+
+        if (lineage1 < lineage2)
+            return -1;
+
+        if (lineage1 > lineage2)
+            return 1;
+
+        return 0;
+    }
 
     $scope.$watchGroup(
         ['parameters.users', 'parameters.organisations', 'parameters.measures',
