@@ -85,11 +85,78 @@ angular.module('upmark.custom', [
     $scope.labels = {};
     var parameterPattern = /in {{\w+}}/gi;
 
+    function NullDependencies() {
+        this.dependencies = new Set();
+    }
+    NullDependencies.prototype.update = function(selections, paramName) {};
+
+    function SingleSelectionIdDependencies(parameterName) {
+        this.parameterName = parameterName;
+        this.dependencies = new Set();
+    }
+    SingleSelectionIdDependencies.prototype = new NullDependencies();
+    SingleSelectionIdDependencies.prototype.update = function(selections, paramName) {
+          if (!selections)
+              return
+
+          let searchName = paramName + 'Search';
+          let selectionId = selections.length == 1 ? selections[0].id : null;
+
+          let searchConfig = $scope[searchName];
+          if (searchConfig) {
+              let oldId = searchConfig[this.parameterName];
+
+              if (selectionId != oldId)
+                  searchConfig[this.parameterName] = selectionId;
+          }
+    }
+
+    function DependencyRegister() {
+        this.surveygroups = new SingleSelectionIdDependencies('surveyGroupId');
+        this.organisations = new NullDependencies();
+        this.users = new NullDependencies();
+        this.programs = new SingleSelectionIdDependencies('programId');
+        this.surveys = new SingleSelectionIdDependencies('surveyId');
+        this.submissions = new NullDependencies();
+        this.categories = new SingleSelectionIdDependencies('qnodeId');
+        this.measures = new NullDependencies();
+    };
+    DependencyRegister.prototype.register = function(paramName, dependency) {
+        this[dependency].dependencies.add(paramName)
+    }
+    DependencyRegister.prototype.unregister = function(paramName, dependency) {
+        if (!dependency) {
+            for (var param in this) {
+                if (this.hasOwnProperty(param)) {
+                    this[param].dependencies.delete(paramName)
+                }
+            }
+            return
+        }
+        this[dependency].delete(paramName)
+    }
+    $scope.dependencyRegister = new DependencyRegister();
+
+    $scope.$watch('parameters', function(newParams, oldParams) {
+        for (var param in newParams) {
+            if (newParams.hasOwnProperty(param)) {
+                let newParam = newParams[param];
+                let dependencyManager = $scope.dependencyRegister[param];
+                dependencyManager.dependencies.forEach(function(dependency) {
+                    dependencyManager.update(newParam, dependency)
+                })
+            }
+        }
+        if ($scope.settings.autorun)
+            $scope.autorun()
+    }, true);
+
     $scope.deleteParameter = function(paramName) {
         let searchName = paramName + 'Search';
         $scope[paramName] = null;
         $scope[searchName] = null;
         $scope.parameters[paramName] = [];
+        $scope.dependencyRegister.unregister(paramName)
         $scope.activeParameters.delete(paramName)
     }
 
@@ -127,9 +194,11 @@ angular.module('upmark.custom', [
     $scope.addParameter.organisations = function() {
         let addedParameters = new Set();
         addedParameters.add('organisations');
+
         this.surveygroups().forEach(function(dependency) {
             addedParameters.add(dependency)
         });
+        $scope.dependencyRegister.register('organisations', 'surveygroups');
 
         if ($scope.activeParameters.has('organisations'))
             return addedParameters;
@@ -166,9 +235,11 @@ angular.module('upmark.custom', [
     $scope.addParameter.users = function() {
         let addedParameters = new Set();
         addedParameters.add('users');
+
         this.surveygroups().forEach(function(dependency) {
             addedParameters.add(dependency)
         });
+        $scope.dependencyRegister.register('users', 'surveygroups');
 
         if ($scope.activeParameters.has('users'))
             return addedParameters;
@@ -205,9 +276,11 @@ angular.module('upmark.custom', [
     $scope.addParameter.programs = function() {
         let addedParameters = new Set();
         addedParameters.add('programs');
+
         this.surveygroups().forEach(function(dependency) {
             addedParameters.add(dependency)
         });
+        $scope.dependencyRegister.register('programs', 'surveygroups');
 
         if ($scope.activeParameters.has('programs'))
             return addedParameters;
@@ -254,12 +327,15 @@ angular.module('upmark.custom', [
     $scope.addParameter.surveys = function() {
         let addedParameters = new Set();
         addedParameters.add('surveys');
+
         this.surveygroups().forEach(function(dependency) {
             addedParameters.add(dependency)
         });
+        $scope.dependencyRegister.register('surveys', 'surveygroups');
         this.programs().forEach(function(dependency) {
             addedParameters.add(dependency)
         });
+        $scope.dependencyRegister.register('surveys', 'programs');
 
         if ($scope.activeParameters.has('surveys'))
             return addedParameters;
@@ -292,9 +368,11 @@ angular.module('upmark.custom', [
     $scope.addParameter.submissions = function() {
         let addedParameters = new Set();
         addedParameters.add('submissions');
+
         this.surveygroups().forEach(function(dependency) {
             addedParameters.add(dependency)
         });
+        $scope.dependencyRegister.register('submissions', 'surveygroups');
 
         if ($scope.activeParameters.has('submissions'))
             return addedParameters;
@@ -331,12 +409,15 @@ angular.module('upmark.custom', [
     $scope.addParameter.categories = function() {
         let addedParameters = new Set();
         addedParameters.add('categories');
+
         this.programs().forEach(function(dependency) {
             addedParameters.add(dependency)
         });
+        $scope.dependencyRegister.register('categories', 'programs');
         this.surveys().forEach(function(dependency) {
             addedParameters.add(dependency)
         });
+        $scope.dependencyRegister.register('categories', 'surveys');
 
         if ($scope.activeParameters.has('categories'))
             return addedParameters;
@@ -360,12 +441,15 @@ angular.module('upmark.custom', [
     $scope.addParameter.measures = function() {
         let addedParameters = new Set();
         addedParameters.add('measures');
+
         this.programs().forEach(function(dependency) {
             addedParameters.add(dependency)
         });
+        $scope.dependencyRegister.register('measures', 'programs');
         this.surveys().forEach(function(dependency) {
             addedParameters.add(dependency)
         });
+        $scope.dependencyRegister.register('measures', 'surveys');
 
         if ($scope.activeParameters.has('measures'))
             return addedParameters;
@@ -389,9 +473,9 @@ angular.module('upmark.custom', [
 
     $scope.surveygroupsSearch = null;
     $scope.$watch('surveygroupsSearch', function(search) {
-        if (!search) {
+        if (!search)
             return
-        }
+
         SurveyGroup.query(search).$promise.then(
             function success(surveygroups) {
                 $scope.surveygroups = surveygroups
@@ -403,39 +487,12 @@ angular.module('upmark.custom', [
             }
         );
     }, true);
-    $scope.$watch('parameters.surveygroups', function(groups) {
-        if (!groups) {
-            return
-        }
-        let newGroupId = groups.length > 0 ? groups[0].id : null;
-
-        if ($scope.organisationsSearch) {
-            $scope.organisationsSearch.surveyGroupId = newGroupId;
-        }
-
-        if ($scope.usersSearch) {
-            $scope.usersSearch.surveyGroupId = newGroupId;
-        }
-
-        if ($scope.programsSearch) {
-            $scope.programsSearch.surveyGroupId = newGroupId;
-        }
-
-        if ($scope.surveysSearch) {
-            $scope.surveysSearch.surveyGroupId = newGroupId;
-        }
-
-        if ($scope.submissionsSearch) {
-            $scope.submissionsSearch.surveyGroupId = newGroupId;
-        }
-
-    }, true);
 
     $scope.organisationsSearch = null;
     $scope.$watch('organisationsSearch', function(search) {
-        if (!search) {
+        if (!search)
             return
-        }
+
         Organisation.query(search).$promise.then(
             function success(organisations) {
                 $scope.organisations = organisations;
@@ -450,9 +507,9 @@ angular.module('upmark.custom', [
 
     $scope.usersSearch = null;
     $scope.$watch('usersSearch', function(search) {
-        if (!search) {
+        if (!search)
             return
-        }
+
         User.query(search).$promise.then(
             function success(users) {
                 $scope.users = users;
@@ -467,9 +524,9 @@ angular.module('upmark.custom', [
 
     $scope.programsSearch = null;
     $scope.$watch('programsSearch', function(search) {
-        if (!search) {
+        if (!search)
             return
-        }
+
         Program.query(search).$promise.then(
             function sucess(programs) {
                 $scope.programs = programs;
@@ -481,36 +538,11 @@ angular.module('upmark.custom', [
             }
         );
     }, true);
-    $scope.$watch('parameters.programs', function(programs) {
-        if (!$scope.settings.autorun || !programs)
-            return;
-
-        if ($scope.surveysSearch && programs.length == 1) {
-            $scope.surveysSearch.programId = programs[0].id;
-        } else if ($scope.surveysSearch) {
-            $scope.surveysSearch.programId = null;
-        }
-
-        if ($scope.measuresSearch && programs.length == 1) {
-            $scope.measuresSearch.programId = programs[0].id;
-        } else if ($scope.measuresSearch) {
-            $scope.measuresSearch.programId = null;
-        }
-
-        if ($scope.categoriesSearch && programs.length == 1) {
-            $scope.categoriesSearch.programId = programs[0].id;
-        } else if ($scope.categoriesSearch) {
-            $scope.categoriesSearch.programId = null;
-        }
-
-        $scope.autorun();
-    }, true);
 
     $scope.surveysSearch = null;
     $scope.$watch('surveysSearch', function(search) {
-        if (!search) {
+        if (!search)
             return
-        }
 
         if (!search.programId) {
             $scope.surveys = $scope.parameterDefaults.surveys;
@@ -528,31 +560,11 @@ angular.module('upmark.custom', [
             }
         );
     }, true);
-    $scope.$watch('parameters.surveys', function(surveys) {
-        if (!$scope.settings.autorun || !surveys)
-            return;
-
-        // TODO: What a mess!
-        if ($scope.measuresSearch && surveys.length == 1) {
-            $scope.measuresSearch.surveyId = surveys[0].id;
-        } else if ($scope.measuresSearch) {
-            $scope.measuresSearch.surveyId = null;
-        }
-
-        if ($scope.categoriesSearch && surveys.length == 1) {
-            $scope.categoriesSearch.surveyId = surveys[0].id;
-        } else if ($scope.categoriesSearch) {
-            $scope.categoriesSearch.surveyId = null;
-        }
-
-        $scope.autorun();
-    }, true);
 
     $scope.submissionsSearch = null;
     $scope.$watch('submissionsSearch', function(search) {
-        if (!search) {
+        if (!search)
             return
-        }
 
         Submission.query(search).$promise.then(
             function sucess(submissions) {
@@ -568,9 +580,8 @@ angular.module('upmark.custom', [
 
     $scope.categoriesSearch = null;
     $scope.$watch('categoriesSearch', function(search) {
-        if (!search) {
+        if (!search)
             return
-        }
 
         if (!search.programId || !search.surveyId) {
             $scope.categories = $scope.parameterDefaults.categories;
@@ -593,24 +604,11 @@ angular.module('upmark.custom', [
             }
         );
     }, true);
-    $scope.$watch('parameters.categories', function(categories) {
-        if (!$scope.settings.autorun || !categories)
-            return;
-
-        if ($scope.measureSearch && categories.length == 1) {
-            $scope.measureSearch.qnodeId = categories[0].id;
-        } else if ($scope.measureSearch) {
-            $scope.measureSearch.qnodeId = null;
-        }
-
-        $scope.autorun();
-    });
 
     $scope.measureSearch = null;
-    $scope.$watch('measureSearch', function(search) {
-        if (!search) {
+    $scope.$watch('measuresSearch', function(search) {
+        if (!search)
             return
-        }
 
         if (!search.programId || !search.surveyId) {
             $scope.measures = $scope.parameterDefaults.measures;
@@ -634,15 +632,7 @@ angular.module('upmark.custom', [
         );
     }, true);
 
-    $scope.$watchGroup(['parameters.submissions', 'parameters.organisations',
-        'parameters.measures', 'parameters.users'],
-    function(parameter) {
-        if (!$scope.settings.autorun || !parameter)
-            return;
-        $scope.autorun();
-    }, true);
-
-    // Functions for dealing with entities with lineage properties.
+    // Functions for dealing with entities' lineage properties.
     var getLineage = function(entity) {
         let hstack = Structure(entity).hstack;
         let lineage = hstack[hstack.length - 1].lineage;
