@@ -100,7 +100,8 @@ angular.module('upmark.custom', [
               return
 
           let searchName = paramName + 'Search';
-          let selectionId = paramSelections.length == 1 ? paramSelections[0].id : null;
+          let selectionId =
+              paramSelections.length == 1 ? paramSelections[0].id : null;
 
           let searchConfig = $scope[searchName];
           if (searchConfig) {
@@ -495,6 +496,28 @@ angular.module('upmark.custom', [
         );
     }, true);
 
+
+    var selectionTestFactory = function(selection) {
+        var isSelected = function(entity) {
+            return entity.id == selection.id;
+        }
+
+        return isSelected;
+    }
+
+    var maintainSelections = function(entityName, newEntities) {
+        let currentSelections = $scope.selections[entityName];
+        if (currentSelections && currentSelections.length > 0) {
+            let selectionsToKeep = [];
+            currentSelections.forEach(function(selection) {
+                let selectionTest = selectionTestFactory(selection);
+                if (newEntities.some(selectionTest))
+                    selectionsToKeep.push(selection)
+            })
+            $scope.selections[entityName] = selectionsToKeep.slice();
+        }
+    }
+
     $scope.organisationsSearch = null;
     $scope.$watch('organisationsSearch', function(search) {
         if (!search)
@@ -502,6 +525,7 @@ angular.module('upmark.custom', [
 
         Organisation.query(search).$promise.then(
             function success(organisations) {
+                maintainSelections('organisations', organisations)
                 $scope.organisations = organisations;
             },
             function failure(details) {
@@ -519,6 +543,7 @@ angular.module('upmark.custom', [
 
         User.query(search).$promise.then(
             function success(users) {
+                maintainSelections('users', users)
                 $scope.users = users;
             },
             function failure(details) {
@@ -536,6 +561,7 @@ angular.module('upmark.custom', [
 
         Program.query(search).$promise.then(
             function sucess(programs) {
+                maintainSelections('programs', programs)
                 $scope.programs = programs;
             },
             function failure(details) {
@@ -553,11 +579,13 @@ angular.module('upmark.custom', [
 
         if (!search.programId) {
             $scope.surveys = $scope.parameterDefaults.surveys;
+            maintainSelections('surveys', $scope.surveys);
             return
         }
 
         Survey.query(search).$promise.then(
             function sucess(surveys) {
+                maintainSelections('surveys', surveys)
                 $scope.surveys = surveys;
             },
             function failure(details) {
@@ -575,6 +603,7 @@ angular.module('upmark.custom', [
 
         Submission.query(search).$promise.then(
             function sucess(submissions) {
+                maintainSelections('submissions', submissions)
                 $scope.submissions = submissions;
             },
             function failure(details) {
@@ -592,6 +621,7 @@ angular.module('upmark.custom', [
 
         if (!search.programId || !search.surveyId) {
             $scope.categories = $scope.parameterDefaults.categories;
+            maintainSelections('categories', $scope.categories);
             return
         }
 
@@ -602,6 +632,7 @@ angular.module('upmark.custom', [
                     category.displayProp = getDisplayProp(category);
                     categoryArray[categoryIndex] = category;
                 })
+                maintainSelections('categories', categories)
                 $scope.categories = categories.sort(sortByLineage);
             },
             function failure(details) {
@@ -619,6 +650,7 @@ angular.module('upmark.custom', [
 
         if (!search.programId || !search.surveyId) {
             $scope.measures = $scope.parameterDefaults.measures;
+            maintainSelections('measures', $scope.measures);
             return
         }
 
@@ -629,6 +661,7 @@ angular.module('upmark.custom', [
                     measure.displayProp = getDisplayProp(measure);
                     measureArray[measureIndex] = measure;
                 })
+                maintainSelections('measures', measures)
                 $scope.measures = measures.sort(sortByLineage);
             },
             function failure(details) {
