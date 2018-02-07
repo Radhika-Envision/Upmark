@@ -503,49 +503,49 @@
         <label>Parameters</label>
         <multiselect ng-if="activeParameters.has('surveygroups')"
             placeholder="Survey Group" labels="labels.surveygroups"
-            ng-model="parameters.surveygroups" options="surveygroups"
+            ng-model="selections.surveygroups" options="surveygroups"
             show-search="true" selection-limit="1" display-prop="title"
             id-prop="id">
         </multiselect>
         <multiselect ng-if="activeParameters.has('organisations')"
             placeholder="Organisations" labels="labels.organisations"
-            ng-model="parameters.organisations" options="organisations"
+            ng-model="selections.organisations" options="organisations"
             search-limit="5" show-search="true" show-unselect-all="true"
             display-prop="name" id-prop="id">
         </multiselect>
         <multiselect ng-if="activeParameters.has('users')"
             placeholder="Users" labels="labels.users"
-            ng-model="parameters.users" options="users"
+            ng-model="selections.users" options="users"
             search-limit="5" show-search="true" show-unselect-all="true"
             display-prop="name" id-prop="id">
         </multiselect>
         <multiselect ng-if="activeParameters.has('programs')"
             placeholder="Programs" labels="labels.programs"
-            ng-model="parameters.programs" options="programs"
+            ng-model="selections.programs" options="programs"
             search-limit="5" show-search="true" show-unselect-all="true"
             display-prop="title" id-prop="id">
         </multiselect>
         <multiselect ng-if="activeParameters.has('surveys')"
             placeholder="Surveys" labels="labels.surveys"
-            ng-model="parameters.surveys" options="surveys"
+            ng-model="selections.surveys" options="surveys"
             search-limit="5" show-search="true" show-unselect-all="true"
             display-prop="title" id-prop="id">
         </multiselect>
         <multiselect ng-if="activeParameters.has('submissions')"
             placeholder="Submissions" labels="labels.submissions"
-            ng-model="parameters.submissions" options="submissions"
+            ng-model="selections.submissions" options="submissions"
             search-limit="5" show-search="true" show-unselect-all="true"
             display-prop="title" id-prop="id">
         </multiselect>
         <multiselect ng-if="activeParameters.has('categories')"
             placeholder="Categories" labels="labels.categories"
-            ng-model="parameters.categories" options="categories"
+            ng-model="selections.categories" options="categories"
             search-limit="10" show-search="true" show-unselect-all="true"
             display-prop="displayProp" id-prop="id">
         </multiselect>
         <multiselect ng-if="activeParameters.has('measures')"
             placeholder="Measures" labels="labels.measures"
-            ng-model="parameters.measures" options="measures"
+            ng-model="selections.measures" options="measures"
             search-limit="10" show-search="true" show-unselect-all="true"
             display-prop="displayProp" id-prop="id">
         </multiselect>
