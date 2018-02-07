@@ -80,62 +80,19 @@ angular.module('upmark.custom', [
                 $location, CustomQuerySettings, Enqueue, Structure) {
 
     // Parameterised query stuff
-    $scope.checkRole = Authz({});
     $scope.parameterDefaults = {};
     $scope.parameters = {};
     $scope.labels = {};
     var parameterPattern = /in {{\w+}}/gi;
 
-    $scope.deleteParameter = {
-        surveygroups: function() {
-            $scope.surveygroupSearch = null;
-            $scope.surveygroups = null;
-            $scope.parameters.surveygroup = [];
-            $scope.activeParameters.delete('surveygroups')
-        },
-        organisations: function() {
-          $scope.orgSearch = null;
-          $scope.organisations = null;
-          $scope.parameters.organisations = [];
-          $scope.activeParameters.delete('organisations')
-        },
-        users: function() {
-          $scope.userSearch = null;
-          $scope.users = null;
-          $scope.parameters.users = [];
-          $scope.activeParameters.delete('users')
-        },
-        programs: function() {
-            $scope.programSearch = null;
-            $scope.programs = null;
-            $scope.parameters.programs = [];
-            $scope.activeParameters.delete('programs')
-        },
-        surveys: function() {
-            $scope.surveySearch = null;
-            $scope.surveys = null;
-            $scope.parameters.surveys = [];
-            $scope.activeParameters.delete('surveys')
-        },
-        submissions: function() {
-            $scope.submissionSearch = null;
-            $scope.submissions = null;
-            $scope.parameters.submissions = [];
-            $scope.activeParameters.delete('submissions')
-        },
-        categories: function() {
-            $scope.categorySearch = null;
-            $scope.categories = null;
-            $scope.parameters.categories = [];
-            $scope.activeParameters.delete('categories')
-        },
-        measures: function() {
-            $scope.measureSearch = null;
-            $scope.measures = null;
-            $scope.parameters.measures = [];
-            $scope.activeParameters.delete('measures')
-        },
-    };
+    $scope.deleteParameter = function(paramName) {
+        let searchName = paramName + 'Search';
+        $scope[paramName] = null;
+        $scope[searchName] = null;
+        $scope.parameters[paramName] = [];
+        $scope.activeParameters.delete(paramName)
+    }
+
     $scope.addParameter = {
         surveygroups: function() {
             let addedParameters = new Set();
@@ -148,16 +105,16 @@ angular.module('upmark.custom', [
             }
 
             $scope.selectedSurveyGroupId = function() {
-                if ($scope.parameters && $scope.parameters.surveygroup) {
-                    let surveygroup = $scope.parameters.surveygroup;
-                    if (surveygroup.length > 0)
-                        return surveygroup[0].id;
+                if ($scope.parameters && $scope.parameters.surveygroups) {
+                    let surveygroups = $scope.parameters.surveygroups;
+                    if (surveygroups.length > 0)
+                        return surveygroups[0].id;
                 }
 
                 return null;
             };
 
-            $scope.surveygroupSearch = {
+            $scope.surveygroupsSearch = {
                 term: "",
                 deleted: false,
             };
@@ -181,7 +138,7 @@ angular.module('upmark.custom', [
             "itemsSelected": "Organisations Selected",
         }
 
-        $scope.orgSearch = {
+        $scope.organisationsSearch = {
             term: "",
             deleted: false,
             surveyGroupId: $scope.selectedSurveyGroupId(),
@@ -220,7 +177,7 @@ angular.module('upmark.custom', [
             "itemsSelected": "Users Selected",
         }
 
-        $scope.userSearch = {
+        $scope.usersSearch = {
             term: "",
             deleted: false,
             surveyGroupId: $scope.selectedSurveyGroupId(),
@@ -269,7 +226,7 @@ angular.module('upmark.custom', [
             return null;
         };
 
-        $scope.programSearch = {
+        $scope.programsSearch = {
             term: "",
             deleted: false,
             surveyGroupId: $scope.selectedSurveyGroupId(),
@@ -321,7 +278,7 @@ angular.module('upmark.custom', [
             "itemsSelected": "Surveys Selected",
         };
 
-        $scope.surveySearch = {
+        $scope.surveysSearch = {
             term: "",
             deleted: false,
             surveyGroupId: $scope.selectedSurveyGroupId(),
@@ -346,7 +303,7 @@ angular.module('upmark.custom', [
             "itemsSelected": "Submissions Selected",
         };
 
-        $scope.submissionSearch = {
+        $scope.submissionsSearch = {
             term: "",
             deleted: false,
             surveyGroupId: $scope.selectedSurveyGroupId(),
@@ -388,7 +345,7 @@ angular.module('upmark.custom', [
             "itemsSelected": "Categories Selected",
         };
 
-        $scope.categorySearch = {
+        $scope.categoriesSearch = {
             term: "",
             deleted: false,
             programId: $scope.selectedProgramId(),
@@ -417,7 +374,7 @@ angular.module('upmark.custom', [
             "itemsSelected": "Measures Selected",
         };
 
-        $scope.measureSearch = {
+        $scope.measuresSearch = {
             term: "",
             deleted: false,
             programId: $scope.selectedProgramId(),
@@ -430,8 +387,8 @@ angular.module('upmark.custom', [
         return addedParameters;
     };
 
-    $scope.surveygroupSearch = null;
-    $scope.$watch('surveygroupSearch', function(search) {
+    $scope.surveygroupsSearch = null;
+    $scope.$watch('surveygroupsSearch', function(search) {
         if (!search) {
             return
         }
@@ -446,36 +403,36 @@ angular.module('upmark.custom', [
             }
         );
     }, true);
-    $scope.$watch('parameters.surveygroup', function(group) {
-        if (!group) {
+    $scope.$watch('parameters.surveygroups', function(groups) {
+        if (!groups) {
             return
         }
-        let newGroupId = group.length > 0 ? group[0].id : null;
+        let newGroupId = groups.length > 0 ? groups[0].id : null;
 
-        if ($scope.orgSearch) {
-            $scope.orgSearch.surveyGroupId = newGroupId;
+        if ($scope.organisationsSearch) {
+            $scope.organisationsSearch.surveyGroupId = newGroupId;
         }
 
-        if ($scope.userSearch) {
-            $scope.userSearch.surveyGroupId = newGroupId;
+        if ($scope.usersSearch) {
+            $scope.usersSearch.surveyGroupId = newGroupId;
         }
 
-        if ($scope.programSearch) {
-            $scope.programSearch.surveyGroupId = newGroupId;
+        if ($scope.programsSearch) {
+            $scope.programsSearch.surveyGroupId = newGroupId;
         }
 
-        if ($scope.surveySearch) {
-            $scope.surveySearch.surveyGroupId = newGroupId;
+        if ($scope.surveysSearch) {
+            $scope.surveysSearch.surveyGroupId = newGroupId;
         }
 
-        if ($scope.submissionSearch) {
-            $scope.submissionSearch.surveyGroupId = newGroupId;
+        if ($scope.submissionsSearch) {
+            $scope.submissionsSearch.surveyGroupId = newGroupId;
         }
 
     }, true);
 
-    $scope.orgSearch = null;
-    $scope.$watch('orgSearch', function(search) {
+    $scope.organisationsSearch = null;
+    $scope.$watch('organisationsSearch', function(search) {
         if (!search) {
             return
         }
@@ -491,8 +448,8 @@ angular.module('upmark.custom', [
         );
     }, true);
 
-    $scope.userSearch = null;
-    $scope.$watch('userSearch', function(search) {
+    $scope.usersSearch = null;
+    $scope.$watch('usersSearch', function(search) {
         if (!search) {
             return
         }
@@ -508,8 +465,8 @@ angular.module('upmark.custom', [
         );
     }, true);
 
-    $scope.programSearch = null;
-    $scope.$watch('programSearch', function(search) {
+    $scope.programsSearch = null;
+    $scope.$watch('programsSearch', function(search) {
         if (!search) {
             return
         }
@@ -528,29 +485,29 @@ angular.module('upmark.custom', [
         if (!$scope.settings.autorun || !programs)
             return;
 
-        if ($scope.surveySearch && programs.length == 1) {
-            $scope.surveySearch.programId = programs[0].id;
-        } else if ($scope.surveySearch) {
-            $scope.surveySearch.programId = null;
+        if ($scope.surveysSearch && programs.length == 1) {
+            $scope.surveysSearch.programId = programs[0].id;
+        } else if ($scope.surveysSearch) {
+            $scope.surveysSearch.programId = null;
         }
 
-        if ($scope.measureSearch && programs.length == 1) {
-            $scope.measureSearch.programId = programs[0].id;
-        } else if ($scope.measureSearch) {
-            $scope.measureSearch.programId = null;
+        if ($scope.measuresSearch && programs.length == 1) {
+            $scope.measuresSearch.programId = programs[0].id;
+        } else if ($scope.measuresSearch) {
+            $scope.measuresSearch.programId = null;
         }
 
-        if ($scope.categorySearch && programs.length == 1) {
-            $scope.categorySearch.programId = programs[0].id;
-        } else if ($scope.categorySearch) {
-            $scope.categorySearch.programId = null;
+        if ($scope.categoriesSearch && programs.length == 1) {
+            $scope.categoriesSearch.programId = programs[0].id;
+        } else if ($scope.categoriesSearch) {
+            $scope.categoriesSearch.programId = null;
         }
 
         $scope.autorun();
     }, true);
 
-    $scope.surveySearch = null;
-    $scope.$watch('surveySearch', function(search) {
+    $scope.surveysSearch = null;
+    $scope.$watch('surveysSearch', function(search) {
         if (!search) {
             return
         }
@@ -576,23 +533,23 @@ angular.module('upmark.custom', [
             return;
 
         // TODO: What a mess!
-        if ($scope.measureSearch && surveys.length == 1) {
-            $scope.measureSearch.surveyId = surveys[0].id;
-        } else if ($scope.measureSearch) {
-            $scope.measureSearch.surveyId = null;
+        if ($scope.measuresSearch && surveys.length == 1) {
+            $scope.measuresSearch.surveyId = surveys[0].id;
+        } else if ($scope.measuresSearch) {
+            $scope.measuresSearch.surveyId = null;
         }
 
-        if ($scope.categorySearch && surveys.length == 1) {
-            $scope.categorySearch.surveyId = surveys[0].id;
-        } else if ($scope.categorySearch) {
-            $scope.categorySearch.surveyId = null;
+        if ($scope.categoriesSearch && surveys.length == 1) {
+            $scope.categoriesSearch.surveyId = surveys[0].id;
+        } else if ($scope.categoriesSearch) {
+            $scope.categoriesSearch.surveyId = null;
         }
 
         $scope.autorun();
     }, true);
 
-    $scope.submissionSearch = null;
-    $scope.$watch('submissionSearch', function(search) {
+    $scope.submissionsSearch = null;
+    $scope.$watch('submissionsSearch', function(search) {
         if (!search) {
             return
         }
@@ -609,8 +566,8 @@ angular.module('upmark.custom', [
         );
     }, true);
 
-    $scope.categorySearch = null;
-    $scope.$watch('categorySearch', function(search) {
+    $scope.categoriesSearch = null;
+    $scope.$watch('categoriesSearch', function(search) {
         if (!search) {
             return
         }
@@ -794,7 +751,7 @@ angular.module('upmark.custom', [
         $scope.activeParameters.forEach(function(param) {
             if (!currentParameters.has(param)) {
                 // Parameter should no longer be active.
-                $scope.deleteParameter[param]()
+                $scope.deleteParameter(param)
             }
         })
 
