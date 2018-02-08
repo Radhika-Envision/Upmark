@@ -119,7 +119,7 @@ angular.module('upmark.custom', [
         this.programs = new SingleSelectionIdDependencies('programId');
         this.surveys = new SingleSelectionIdDependencies('surveyId');
         this.submissions = new NullDependencies();
-        this.categories = new SingleSelectionIdDependencies('qnodeId');
+        this.qnodes = new SingleSelectionIdDependencies('qnodeId');
         this.measures = new NullDependencies();
     };
     DependencyRegister.prototype.register = function(paramName, dependency) {
@@ -424,34 +424,34 @@ angular.module('upmark.custom', [
         return addedParameters;
     };
 
-    $scope.addParameter.categories = function() {
+    $scope.addParameter.qnodes = function() {
         let dependencies = ['programs', 'surveys'];
         let addedParameters = new Set();
-        addedParameters.add('categories');
+        addedParameters.add('qnodes');
 
         dependencies.forEach(function(dependency) {
             this[dependency]().forEach(function(addedDependency) {
                 addedParameters.add(addedDependency)
             })
-            dependencyRegister.register('categories', dependency)
+            dependencyRegister.register('qnodes', dependency)
         }, this)
 
-        if ($scope.activeParameters.has('categories'))
+        if ($scope.activeParameters.has('qnodes'))
             return addedParameters;
 
-        $scope.labels.categories = {
-            "itemsSelected": "Categories Selected",
+        $scope.labels.qnodes = {
+            "itemsSelected": "qnodes Selected",
         };
 
-        $scope.categoriesSearch = {
+        $scope.qnodesSearch = {
             term: "",
             deleted: false,
             programId: $scope.selectedProgramId(),
             surveyId: $scope.selectedSurveyId(),
             noPage: true,
         };
-        $scope.parameterDefaults.categories = [];
-        $scope.activeParameters.add('categories')
+        $scope.parameterDefaults.qnodes = [];
+        $scope.activeParameters.add('qnodes')
 
         return addedParameters;
     };
@@ -630,31 +630,31 @@ angular.module('upmark.custom', [
         );
     }, true);
 
-    $scope.categoriesSearch = null;
-    $scope.$watch('categoriesSearch', function(search) {
+    $scope.qnodesSearch = null;
+    $scope.$watch('qnodesSearch', function(search) {
         if (!search)
             return;
 
         if (!search.programId || !search.surveyId) {
-            $scope.categories = $scope.parameterDefaults.categories;
-            maintainSelections('categories', $scope.categories);
+            $scope.qnodes = $scope.parameterDefaults.qnodes;
+            maintainSelections('qnodes', $scope.qnodes);
             let message = "Please select a single program and survey first";
-            $scope.labels.categories = {
+            $scope.labels.qnodes = {
                 "select": "Categories: " + message,
             };
             return;
         }
 
         QuestionNode.query(search).$promise.then(
-            function sucess(categories) {
-                categories.forEach(function(category, categoryIndex, categoryArray) {
-                    category.lineage = getLineage(category);
-                    category.displayProp = getDisplayProp(category);
-                    categoryArray[categoryIndex] = category;
+            function sucess(qnodes) {
+                qnodes.forEach(function(qnode, qnodeIndex, qnodeArray) {
+                    qnode.lineage = getLineage(qnode);
+                    qnode.displayProp = getDisplayProp(qnode);
+                    qnodeArray[qnodeIndex] = qnode;
                 })
-                maintainSelections('categories', categories)
-                $scope.categories = categories.sort(sortByLineage);
-                $scope.labels.categories = {
+                maintainSelections('qnodes', qnodes)
+                $scope.qnodes = qnodes.sort(sortByLineage);
+                $scope.labels.qnodes = {
                     "select": "Categories",
                 };
             },
