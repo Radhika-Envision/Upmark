@@ -143,6 +143,10 @@ angular.module('upmark.custom', [
             if (selections.hasOwnProperty(parameter)) {
                 let parameterSelections = selections[parameter];
                 let parameterDependencies = dependencyRegister[parameter];
+
+                if (!parameterDependencies)
+                    continue
+
                 parameterDependencies.dependencies.forEach(function(dependency) {
                     parameterDependencies.update(parameterSelections, dependency)
                 })
