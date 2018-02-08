@@ -502,7 +502,8 @@
     <div ng-if="activeModel.isParameterised" class="form-group">
         <label>Parameters</label>
         <multiselect ng-if="activeParameters.has('surveygroups')"
-            placeholder="Survey Group" labels="labels.surveygroups"
+            placeholder="Filter Options By Survey Group"
+            labels="labels.surveygroups"
             ng-model="selections.surveygroups" options="surveygroups"
             show-search="true" selection-limit="1" display-prop="title"
             id-prop="id">

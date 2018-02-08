@@ -521,7 +521,7 @@ angular.module('upmark.custom', [
     $scope.organisationsSearch = null;
     $scope.$watch('organisationsSearch', function(search) {
         if (!search)
-            return
+            return;
 
         Organisation.query(search).$promise.then(
             function success(organisations) {
@@ -539,7 +539,7 @@ angular.module('upmark.custom', [
     $scope.usersSearch = null;
     $scope.$watch('usersSearch', function(search) {
         if (!search)
-            return
+            return;
 
         User.query(search).$promise.then(
             function success(users) {
@@ -557,7 +557,7 @@ angular.module('upmark.custom', [
     $scope.programsSearch = null;
     $scope.$watch('programsSearch', function(search) {
         if (!search)
-            return
+            return;
 
         Program.query(search).$promise.then(
             function sucess(programs) {
@@ -575,18 +575,25 @@ angular.module('upmark.custom', [
     $scope.surveysSearch = null;
     $scope.$watch('surveysSearch', function(search) {
         if (!search)
-            return
+            return;
 
         if (!search.programId) {
             $scope.surveys = $scope.parameterDefaults.surveys;
             maintainSelections('surveys', $scope.surveys);
-            return
+            let message = "Please select a single program first";
+            $scope.labels.surveys = {
+                "select": "Surveys: " + message,
+            };
+            return;
         }
 
         Survey.query(search).$promise.then(
             function sucess(surveys) {
                 maintainSelections('surveys', surveys)
                 $scope.surveys = surveys;
+                $scope.labels.surveys = {
+                    "select": "Surveys",
+                };
             },
             function failure(details) {
                 Notifications.set('get', 'error',
@@ -599,7 +606,7 @@ angular.module('upmark.custom', [
     $scope.submissionsSearch = null;
     $scope.$watch('submissionsSearch', function(search) {
         if (!search)
-            return
+            return;
 
         Submission.query(search).$promise.then(
             function sucess(submissions) {
@@ -617,12 +624,16 @@ angular.module('upmark.custom', [
     $scope.categoriesSearch = null;
     $scope.$watch('categoriesSearch', function(search) {
         if (!search)
-            return
+            return;
 
         if (!search.programId || !search.surveyId) {
             $scope.categories = $scope.parameterDefaults.categories;
             maintainSelections('categories', $scope.categories);
-            return
+            let message = "Please select a single program and survey first";
+            $scope.labels.categories = {
+                "select": "Categories: " + message,
+            };
+            return;
         }
 
         QuestionNode.query(search).$promise.then(
@@ -634,6 +645,9 @@ angular.module('upmark.custom', [
                 })
                 maintainSelections('categories', categories)
                 $scope.categories = categories.sort(sortByLineage);
+                $scope.labels.categories = {
+                    "select": "Categories",
+                };
             },
             function failure(details) {
                 Notifications.set('get', 'error',
@@ -646,12 +660,16 @@ angular.module('upmark.custom', [
     $scope.measureSearch = null;
     $scope.$watch('measuresSearch', function(search) {
         if (!search)
-            return
+            return;
 
         if (!search.programId || !search.surveyId) {
             $scope.measures = $scope.parameterDefaults.measures;
             maintainSelections('measures', $scope.measures);
-            return
+            let message = "Please select a single program and survey first";
+            $scope.labels.measures = {
+                "select": "Measures: " + message,
+            };
+            return;
         }
 
         Measure.query(search).$promise.then(
@@ -663,6 +681,9 @@ angular.module('upmark.custom', [
                 })
                 maintainSelections('measures', measures)
                 $scope.measures = measures.sort(sortByLineage);
+                $scope.labels.measures = {
+                    "select": "Measures",
+                };
             },
             function failure(details) {
                 Notifications.set('get', 'error',
