@@ -148,8 +148,7 @@ angular.module('upmark.custom', [
                 })
             }
         }
-        if ($scope.settings.autorun)
-            $scope.autorun()
+        $scope.autorun()
     }, true);
 
     $scope.deleteParameter = function(paramName) {
@@ -226,6 +225,7 @@ angular.module('upmark.custom', [
         Organisation.query(search).$promise.then(
             function success(organisations) {
                 $scope.parameterDefaults.organisations = organisations;
+                $scope.autorun()
             },
             function failure(details) {
                 Notifications.set('get', 'error',
@@ -271,6 +271,7 @@ angular.module('upmark.custom', [
         User.query(search).$promise.then(
             function success(users) {
                 $scope.parameterDefaults.users = users;
+                $scope.autorun()
             },
             function failure(details) {
                 Notifications.set('get', 'error',
@@ -326,6 +327,7 @@ angular.module('upmark.custom', [
         Program.query(search).$promise.then(
             function success(programs) {
                 $scope.parameterDefaults.programs = programs;
+                $scope.autorun()
             },
             function failure(details) {
                 Notifications.set('get', 'error',
@@ -412,6 +414,7 @@ angular.module('upmark.custom', [
         Submission.query(search).$promise.then(
             function success(submissions) {
                 $scope.parameterDefaults.submissions = submissions;
+                $scope.autorun()
             },
             function failure(details) {
                 Notifications.set('get', 'error',
@@ -824,8 +827,6 @@ angular.module('upmark.custom', [
     $scope.$watchGroup(['activeModel.text', 'settings.autorun'], function() {
         $scope.error = null;
         $scope.activeModel.isParameterised = hasParameters();
-        if (!$scope.settings.autorun)
-            return;
         $scope.autorun();
     });
 
