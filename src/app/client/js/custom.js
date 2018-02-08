@@ -589,9 +589,8 @@ angular.module('upmark.custom', [
         if (!search.programId) {
             $scope.surveys = $scope.parameterDefaults.surveys;
             maintainSelections('surveys', $scope.surveys);
-            let message = "Please select a single program first";
             $scope.labels.surveys = {
-                "select": "Surveys: " + message,
+                "select": "Surveys: Please select a single program first",
             };
             return;
         }
@@ -638,9 +637,8 @@ angular.module('upmark.custom', [
         if (!search.programId || !search.surveyId) {
             $scope.qnodes = $scope.parameterDefaults.qnodes;
             maintainSelections('qnodes', $scope.qnodes);
-            let message = "Please select a single program and survey first";
             $scope.labels.qnodes = {
-                "select": "Categories: " + message,
+                "select": "Categories: Please select a single program and survey first",
             };
             return;
         }
@@ -674,24 +672,29 @@ angular.module('upmark.custom', [
         if (!search.programId || !search.surveyId) {
             $scope.measures = $scope.parameterDefaults.measures;
             maintainSelections('measures', $scope.measures);
-            let message = "Please select a single program and survey first";
             $scope.labels.measures = {
-                "select": "Measures: " + message,
+                "select": "Measures: Please select a single program and survey first",
             };
             return;
         }
 
         Measure.query(search).$promise.then(
             function sucess(measures) {
-                measures.forEach(function(measure, measureIndex, measureArray) {
-                    measure.lineage = getLineage(measure);
-                    measure.displayProp = getDisplayProp(measure);
-                    measureArray[measureIndex] = measure;
-                })
+                let helpMessage = '';
+                if (search.qnodeId && measures.length < 1) {
+                    helpMessage =
+                        ": Selected category has no measures but a subcategory might";
+                } else {
+                    measures.forEach(function(measure, measureIndex, measureArray) {
+                        measure.lineage = getLineage(measure);
+                        measure.displayProp = getDisplayProp(measure);
+                        measureArray[measureIndex] = measure;
+                    })
+                }
                 maintainSelections('measures', measures)
                 $scope.measures = measures.sort(sortByLineage);
                 $scope.labels.measures = {
-                    "select": "Measures",
+                    "select": "Measures" + helpMessage,
                 };
             },
             function failure(details) {
