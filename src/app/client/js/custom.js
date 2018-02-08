@@ -457,7 +457,7 @@ angular.module('upmark.custom', [
     };
 
     $scope.addParameter.measures = function() {
-        let dependencies = ['programs', 'surveys'];
+        let dependencies = ['programs', 'surveys', 'qnodes'];
         let addedParameters = new Set();
         addedParameters.add('measures');
 
