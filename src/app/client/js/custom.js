@@ -76,8 +76,9 @@ angular.module('upmark.custom', [
 .controller('CustomCtrl',
             function($scope, $http, Notifications, hotkeys, routeData,
                 download, CustomQuery, $q, Editor, Authz, SurveyGroup, Program,
-                Organisation, User, Survey, QuestionNode, Measure, Submission,
-                $location, CustomQuerySettings, Enqueue, Structure) {
+                Organisation, OrgMetaOptions, User, Survey, QuestionNode,
+                Measure, Submission, $location, CustomQuerySettings, Enqueue,
+                Structure) {
 
     // Parameterised query stuff
     $scope.parameterDefaults = {};
@@ -116,6 +117,8 @@ angular.module('upmark.custom', [
         this.surveygroups = new SingleSelectionIdDependencies('surveyGroupId');
         this.organisations = new NullDependencies();
         this.users = new NullDependencies();
+        this.sizes = new NullDependencies();
+        this.assettypes = new NullDependencies();
         this.programs = new SingleSelectionIdDependencies('programId');
         this.surveys = new SingleSelectionIdDependencies('surveyId');
         this.submissions = new NullDependencies();
@@ -189,11 +192,88 @@ angular.module('upmark.custom', [
                 term: "",
                 deleted: false,
             };
-            $scope.parameterDefaults.surveygroups = [];
+            $scope.parameterDefaults.surveygroups =
+                function(identifier, parameter) {
+                    return null;
+                };
             $scope.activeParameters.add('surveygroups')
 
             return addedParameters;
         }
+    }
+
+    $scope.addParameter.sizes = function() {
+        let dependencies = [];
+        let addedParameters = new Set();
+        addedParameters.add(['sizes']);
+
+        dependencies.forEach(function(dependency) {
+            this[dependency]().forEach(function(addedDependency) {
+                addedParameters.add(addedDependency)
+            })
+            dependencyRegister.register('sizes', dependency)
+        }, this)
+
+        if ($scope.activeParameters.has('sizes'))
+            return addedParameters;
+
+        $scope.labels.sizes = {
+            "itemsSelected": "Sizes selected",
+        };
+
+        $scope.sizes = OrgMetaOptions.sizeTypes.slice();
+
+        let sizes = $scope.sizes.slice();
+        sizes.forEach(function(object, index, objectArray) {
+            objectArray[index] = object.name;
+        })
+
+        $scope.parameterDefaults.sizes =
+            function(identifier, parameter) {
+                let text = '(' + identifier + " IN ('" + sizes.join("','") + "') OR " + identifier + " IS NULL)";
+                return text;
+            };
+
+        $scope.activeParameters.add('sizes')
+
+        return addedParameters;
+    }
+
+    $scope.addParameter.assettypes = function() {
+        let dependencies = [];
+        let addedParameters = new Set();
+        addedParameters.add(['assettypes']);
+
+        dependencies.forEach(function(dependency) {
+            this[dependency]().forEach(function(addedDependency) {
+                addedParameters.add(addedDependency)
+            })
+            dependencyRegister.register('assettypes', dependency)
+        }, this)
+
+        if ($scope.activeParameters.has('assettypes'))
+            return addedParameters;
+
+        $scope.labels.assettypes = {
+            "itemsSelected": "Asset Types selected",
+        };
+
+        $scope.assettypes = OrgMetaOptions.assetTypes.slice();
+
+        let assettypes = $scope.assettypes.slice();
+        assettypes.forEach(function(object, index, objectArray) {
+            objectArray[index] = object.name;
+        })
+
+        $scope.parameterDefaults.assettypes =
+            function(identifier, parameter) {
+                let text = '(' + identifier + " && ('{" + assettypes.join(",") + "}') OR " + identifier + " IS NULL OR " + identifier + " = '{}')";
+                return text;
+            };
+
+        $scope.activeParameters.add('assettypes')
+
+        return addedParameters;
     }
 
     $scope.addParameter.organisations = function() {
@@ -228,7 +308,16 @@ angular.module('upmark.custom', [
         };
         Organisation.query(search).$promise.then(
             function success(organisations) {
-                $scope.parameterDefaults.organisations = organisations;
+                organisations.forEach(function(org, index, objectArray) {
+                    objectArray[index] = org.id;
+                })
+
+                $scope.parameterDefaults.organisations =
+                    function(identifier, parameter) {
+                        let text = identifier + " IN ('" + organisations.join("','") + "')";
+                        return text;
+                    };
+
                 $scope.autorun()
             },
             function failure(details) {
@@ -274,7 +363,16 @@ angular.module('upmark.custom', [
         };
         User.query(search).$promise.then(
             function success(users) {
-                $scope.parameterDefaults.users = users;
+                users.forEach(function(user, index, objectArray) {
+                    objectArray[index] = user.id;
+                })
+
+                $scope.parameterDefaults.users =
+                    function(identifier, parameter) {
+                        let text = identifier + " IN ('" + users.join("','") + "')";
+                        return text;
+                    };
+
                 $scope.autorun()
             },
             function failure(details) {
@@ -330,7 +428,16 @@ angular.module('upmark.custom', [
         };
         Program.query(search).$promise.then(
             function success(programs) {
-                $scope.parameterDefaults.programs = programs;
+                programs.forEach(function(program, index, objectArray) {
+                    objectArray[index] = program.id;
+                })
+
+                $scope.parameterDefaults.programs =
+                    function(identifier, parameter) {
+                        let text = identifier + " IN ('" + programs.join("','") + "')";
+                        return text;
+                    };
+
                 $scope.autorun()
             },
             function failure(details) {
@@ -379,7 +486,11 @@ angular.module('upmark.custom', [
             surveyGroupId: $scope.selectedSurveyGroupId(),
             programId: $scope.selectedProgramId(),
         };
-        $scope.parameterDefaults.surveys = [];
+        $scope.parameterDefaults.surveys =
+            function(identifier, parameter) {
+                return null;
+            };
+
         $scope.activeParameters.add('surveys')
 
         return addedParameters;
@@ -417,7 +528,16 @@ angular.module('upmark.custom', [
         };
         Submission.query(search).$promise.then(
             function success(submissions) {
-                $scope.parameterDefaults.submissions = submissions;
+                submissions.forEach(function(submission, index, objectArray) {
+                    objectArray[index] = submission.id;
+                })
+
+                $scope.parameterDefaults.measures =
+                    function(identifier, parameter) {
+                        let text = identifier + " IN ('" + submissions.join("','") + "')";
+                        return text;
+                    };
+
                 $scope.autorun()
             },
             function failure(details) {
@@ -457,7 +577,11 @@ angular.module('upmark.custom', [
             surveyId: $scope.selectedSurveyId(),
             noPage: true,
         };
-        $scope.parameterDefaults.qnodes = [];
+        $scope.parameterDefaults.qnodes =
+            function(identifier, parameter) {
+                return null;
+            };
+
         $scope.activeParameters.add('qnodes')
 
         return addedParameters;
@@ -489,7 +613,10 @@ angular.module('upmark.custom', [
             surveyId: $scope.selectedSurveyId(),
             noPage: true,
         };
-        $scope.parameterDefaults.measures = [];
+        $scope.parameterDefaults.measures =
+            function(identifier, parameter) {
+                return null;
+            };
         $scope.activeParameters.add('measures')
 
         return addedParameters;
@@ -836,35 +963,54 @@ angular.module('upmark.custom', [
 
     $scope.setParameters = function(text) {
         let runnable = true;
+        var statementPattern = /\w+\.\w+ in {{\w+}}/gi;
 
-        text = text.replace(parameterPattern, function(match) {
-            let parameter = match.slice(5,-2).toLowerCase();
-            let selectedObjects = $scope.selections[parameter];
+        text = text.replace(statementPattern, function(match) {
+            let splitted = match.split(' ');
+            let parameterName = splitted[2].slice(2, -2).toLowerCase();
+            let identifier = splitted[0];
+            let selectedObjects = $scope.selections[parameterName];
 
             // If nothing has been selected yet or everything has just been
             // de-selected, try the default selection which is usually all.
-            if (!selectedObjects || selectedObjects.length < 1)
-                selectedObjects = $scope.parameterDefaults[parameter];
-
-            // If no default or default is empty selection, make sure execute
-            // won't try to run the query.
             if (!selectedObjects || selectedObjects.length < 1) {
-                runnable = false;
-                selectedObjects = [];
+                // Need to pass table name and column name to a function that
+                // generates defaultText...
+                let defaultFunction = $scope.parameterDefaults[parameterName];
+                let defaultText = defaultFunction(identifier, parameterName);
+
+                // If no default, make sure execute doesn't try to run the query.
+                if (!defaultText) {
+                    runnable = false;
+                    defaultText = match;
+                }
+
+                return defaultText;
             }
 
             // Make a copy so we don't modify parameter objects stored elsewhere
             selectedObjects = selectedObjects.slice();
             selectedObjects.forEach(function(object, index, objectArray) {
-                objectArray[index] = object.id;
+                if (object.id) {
+                    objectArray[index] = object.id;
+                } else {
+                    objectArray[index] = object.name;
+                }
             })
 
-            let paramValues = "'" + selectedObjects.join("','") + "'";
-            return "IN (" + paramValues + ")";
+            let paramValues;
+            if (parameterName != 'assettypes') {
+                paramValues = "'" + selectedObjects.join("','") + "'";
+                return identifier + " IN (" + paramValues + ")";
+            } else {
+                paramValues = "'{" + selectedObjects.join(",") + "}'";
+                return identifier + " && (" + paramValues + ")";
+            }
         });
 
         return {text: text, runnable: runnable}
     }
+
     $scope.autorun = Enqueue(function() {
         if (!$scope.activeModel || !$scope.settings.autorun || $scope.error) {
             return;
