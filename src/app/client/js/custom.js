@@ -812,6 +812,7 @@ angular.module('upmark.custom', [
             // won't try to run the query.
             if (!selectedObjects || selectedObjects.length < 1)
                 runnable = false;
+                selectedObjects = [];
 
             // Make a copy so we don't modify parameter objects stored elsewhere
             selectedObjects = selectedObjects.slice();
