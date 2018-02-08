@@ -62,6 +62,80 @@ angular.module('upmark.organisation', [
 })
 
 
+.service('OrgMetaOptions', function() {
+    this.ownershipTypes = [
+        {name: 'government run', desc: "Government owned and run"},
+        {name: 'government owned', desc: "Government owned"},
+        {name: 'private', desc: "Privately owned"},
+        {name: 'shareholder', desc: "Shareholder owned"},
+    ];
+    this.sizeTypes = [{
+        name: 'small',
+        desc: 'Small'
+    }, {
+        name: 'medium',
+        desc: 'Medium'
+    }, {
+        name: 'large',
+        desc: 'Large'
+    }];
+    this.structureTypes = [{
+        name: 'internal',
+        desc: "Internal department - department of a larger organisation,"
+              + " e.g. local government",
+    }, {
+        name: 'corporation',
+        desc: "Corporation - stand-alone corporation or statutory authority",
+    }];
+    this.assetTypes = [{
+        name: 'water wholesale',
+        desc: "Water, wholesale (catchments, storage, treament or transmission)",
+    }, {
+        name: 'water local',
+        desc: "Water, local distribution",
+    }, {
+        name: 'wastewater wholesale',
+        desc: "Wastewater, wholesale (trunks, treatment or disposal)",
+    }, {
+        name: 'wastewater local',
+        desc: "Wastewater, local collection",
+    }, {
+        name: 'stormwater',
+        desc: "Stormwater",
+    }, {
+        name: 'highway bridge',
+        desc: "Highway Bridge",
+    }, {
+        name: 'roads',
+        desc: "Roads",
+    }, {
+        name: 'rail',
+        desc: "Rail",
+    }, {
+        name: 'ports',
+        desc: "Ports",
+    }, {
+        name: 'airports',
+        desc: "Airports",
+    }];
+    this.regulationLevels = [{
+        name: 'extensive',
+        desc:
+            "Extensive - economic regulation of revenues and/or prices,"
+            + " and performance regulation of customer services, water"
+            + " quality and/or wastewater effluent/re-use quality",
+    }, {
+        name: 'partial',
+        desc:
+            "Regulation of service performance or standards but not"
+            + " economic regulation",
+    }, {
+        name: 'none',
+        desc: "None",
+    }];
+})
+
+
 .factory('Organisation', ['$resource', 'paged', function($resource, paged) {
     return $resource('/organisation/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
@@ -91,10 +165,11 @@ angular.module('upmark.organisation', [
 
 
 .controller('OrganisationCtrl',
-        function($scope, Organisation, org, Editor, Authz, User,
+        function($scope, Organisation, OrgMetaOptions, org, Editor, Authz, User,
             $location, LocationSearch, SurveyGroup, currentUser) {
 
     $scope.edit = Editor('org', $scope);
+    $scope.orgMetaOptions = OrgMetaOptions;
     if (org) {
         // Editing old
         $scope.org = org;
@@ -137,81 +212,11 @@ angular.module('upmark.organisation', [
         return LocationSearch.query({term: term}).$promise;
     };
 
-    $scope.ownershipTypes = [
-        {name: 'government run', desc: "Government owned and run"},
-        {name: 'government owned', desc: "Government owned"},
-        {name: 'private', desc: "Privately owned"},
-        {name: 'shareholder', desc: "Shareholder owned"},
-    ];
     $scope.getDesc = function(collection, name) {
         return collection
             .filter(function(ot) {return ot.name == name})
             [0].desc;
     };
-    $scope.sizeTypes = [{
-        name: 'small',
-        desc: 'Small'
-    }, {
-        name: 'medium',
-        desc: 'Medium'
-    }, {
-        name: 'large',
-        desc: 'Large'
-    }];
-    $scope.structureTypes = [{
-        name: 'internal',
-        desc: "Internal department - department of a larger organisation,"
-              + " e.g. local government",
-    }, {
-        name: 'corporation',
-        desc: "Corporation - stand-alone corporation or statutory authority",
-    }];
-    $scope.assetTypes = [{
-        name: 'water wholesale',
-        desc: "Water, wholesale (catchments, storage, treament or transmission)",
-    }, {
-        name: 'water local',
-        desc: "Water, local distribution",
-    }, {
-        name: 'wastewater wholesale',
-        desc: "Wastewater, wholesale (trunks, treatment or disposal)",
-    }, {
-        name: 'wastewater local',
-        desc: "Wastewater, local collection",
-    }, {
-        name: 'stormwater',
-        desc: "Stormwater",
-    }, {
-        name: 'highway bridge',
-        desc: "Highway Bridge",
-    }, {
-        name: 'roads',
-        desc: "Roads",
-    }, {
-        name: 'rail',
-        desc: "Rail",
-    }, {
-        name: 'ports',
-        desc: "Ports",
-    }, {
-        name: 'airports',
-        desc: "Airports",
-    }];
-    $scope.regulationLevels = [{
-        name: 'extensive',
-        desc:
-            "Extensive - economic regulation of revenues and/or prices,"
-            + " and performance regulation of customer services, water"
-            + " quality and/or wastewater effluent/re-use quality",
-    }, {
-        name: 'partial',
-        desc:
-            "Regulation of service performance or standards but not"
-            + " economic regulation",
-    }, {
-        name: 'none',
-        desc: "None",
-    }];
 
     $scope.deleteSurveygroup = function(i) {
         $scope.edit.model.surveygroups.splice(i, 1);

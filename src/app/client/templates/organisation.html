@@ -161,7 +161,7 @@
             <select type="text" class="form-control"
                 id="org_ownership" name="org_ownership"
                 ng-model="edit.model.meta.ownership"
-                ng-options="a.name as a.desc for a in ownershipTypes">
+                ng-options="a.name as a.desc for a in orgMetaOptions.ownershipTypes">
                 <option value="">(unspecified)</option>
             </select>
         </div>
@@ -170,7 +170,7 @@
             <select type="text" class="form-control"
                 id="org_size" name="org_size"
                 ng-model="edit.model.meta.size"
-                ng-options="a.name as a.desc for a in sizeTypes">
+                ng-options="a.name as a.desc for a in orgMetaOptions.sizeTypes">
                 <option value="">(unspecified)</option>
             </select>
         </div>
@@ -179,7 +179,7 @@
             <select type="text" class="form-control"
                 id="org_structure" name="org_structure"
                 ng-model="edit.model.meta.structure"
-                ng-options="a.name as a.desc for a in structureTypes">
+                ng-options="a.name as a.desc for a in orgMetaOptions.structureTypes">
                 <option value="">(unspecified)</option>
             </select>
         </div>
@@ -188,7 +188,7 @@
             <select type="text" class="form-control"
                 id="org_regulation" name="org_regulation"
                 ng-model="edit.model.meta.regulationLevel"
-                ng-options="a.name as a.desc for a in regulationLevels">
+                ng-options="a.name as a.desc for a in orgMetaOptions.regulationLevels">
                 <option value="">(unspecified)</option>
             </select>
         </div>
@@ -196,8 +196,8 @@
         <div class="form-group" mt-to="edit.model.meta.assetTypes">
             <label>Asset Types</label>
             <div class="asset-type-container">
-                <div id="asset-type-{{assetTypes.indexOf(a)}}"
-                    class="checkbox" ng-repeat="a in assetTypes"><label>
+                <div id="asset-type-{{orgMetaOptions.assetTypes.indexOf(a)}}"
+                    class="checkbox" ng-repeat="a in orgMetaOptions.assetTypes"><label>
                     <input type="checkbox" mt-checkbox="a.name" />
                     {{a.desc}}
                 </label></div>
@@ -362,17 +362,17 @@
         <dt ng-if="org.meta.ownership">
             Ownership</dt>
         <dd ng-if="org.meta.ownership">
-            {{getDesc(ownershipTypes, org.meta.ownership)}}</dd>
+            {{getDesc(orgMetaOptions.ownershipTypes, org.meta.ownership)}}</dd>
 
         <dt ng-if="org.meta.size">
             Size</dt>
         <dd ng-if="org.meta.size">
-            {{getDesc(sizeTypes, org.meta.size)}}</dd>
+            {{getDesc(orgMetaOptions.sizeTypes, org.meta.size)}}</dd>
 
         <dt ng-if="org.meta.structure">
             Operational Structure</dt>
         <dd ng-if="org.meta.structure">
-            {{getDesc(structureTypes, org.meta.structure)}}</dd>
+            {{getDesc(orgMetaOptions.structureTypes, org.meta.structure)}}</dd>
 
         <dt ng-if="org.locations.length">
             <ng-pluralize
@@ -397,14 +397,14 @@ suburb: {{loc.suburb}}">
         <dt ng-if="org.meta.regulationLevel">
             Regulation Level</dt>
         <dd ng-if="org.meta.regulationLevel">
-            {{getDesc(regulationLevels, org.meta.regulationLevel)}}</dd>
+            {{getDesc(orgMetaOptions.regulationLevels, org.meta.regulationLevel)}}</dd>
 
         <dt ng-if="org.meta.assetTypes.length">
             Asset Types</dt>
         <dd ng-if="org.meta.assetTypes.length">
             <ul class="list-unstyled">
                 <li class="foo" ng-repeat="a in org.meta.assetTypes">
-                    {{getDesc(assetTypes, a)}}
+                    {{getDesc(orgMetaOptions.assetTypes, a)}}
                 </li>
             </ul>
         </dd>
