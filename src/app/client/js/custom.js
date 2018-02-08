@@ -194,13 +194,16 @@ angular.module('upmark.custom', [
     }
 
     $scope.addParameter.organisations = function() {
+        let dependencies = ['surveygroups'];
         let addedParameters = new Set();
         addedParameters.add('organisations');
 
-        this.surveygroups().forEach(function(dependency) {
-            addedParameters.add(dependency)
-        });
-        dependencyRegister.register('organisations', 'surveygroups');
+        dependencies.forEach(function(dependency) {
+            this[dependency]().forEach(function(addedDependency) {
+                addedParameters.add(addedDependency)
+            })
+            dependencyRegister.register('organisations', dependency)
+        }, this)
 
         if ($scope.activeParameters.has('organisations'))
             return addedParameters;
@@ -236,13 +239,16 @@ angular.module('upmark.custom', [
     }
 
     $scope.addParameter.users = function() {
+        let dependencies = ['surveygroups'];
         let addedParameters = new Set();
         addedParameters.add('users');
 
-        this.surveygroups().forEach(function(dependency) {
-            addedParameters.add(dependency)
-        });
-        dependencyRegister.register('users', 'surveygroups');
+        dependencies.forEach(function(dependency) {
+            this[dependency]().forEach(function(addedDependency) {
+                addedParameters.add(addedDependency)
+            })
+            dependencyRegister.register('users', dependency)
+        }, this)
 
         if ($scope.activeParameters.has('users'))
             return addedParameters;
@@ -278,13 +284,16 @@ angular.module('upmark.custom', [
     }
 
     $scope.addParameter.programs = function() {
+        let dependencies = ['surveygroups'];
         let addedParameters = new Set();
         addedParameters.add('programs');
 
-        this.surveygroups().forEach(function(dependency) {
-            addedParameters.add(dependency)
-        });
-        dependencyRegister.register('programs', 'surveygroups');
+        dependencies.forEach(function(dependency) {
+            this[dependency]().forEach(function(addedDependency) {
+                addedParameters.add(addedDependency)
+            })
+            dependencyRegister.register('programs', dependency)
+        }, this)
 
         if ($scope.activeParameters.has('programs'))
             return addedParameters;
@@ -330,17 +339,16 @@ angular.module('upmark.custom', [
     };
 
     $scope.addParameter.surveys = function() {
+        let dependencies = ['surveygroups', 'programs'];
         let addedParameters = new Set();
         addedParameters.add('surveys');
 
-        this.surveygroups().forEach(function(dependency) {
-            addedParameters.add(dependency)
-        });
-        dependencyRegister.register('surveys', 'surveygroups');
-        this.programs().forEach(function(dependency) {
-            addedParameters.add(dependency)
-        });
-        dependencyRegister.register('surveys', 'programs');
+        dependencies.forEach(function(dependency) {
+            this[dependency]().forEach(function(addedDependency) {
+                addedParameters.add(addedDependency)
+            })
+            dependencyRegister.register('surveys', dependency)
+        }, this)
 
         if ($scope.activeParameters.has('surveys'))
             return addedParameters;
@@ -372,13 +380,16 @@ angular.module('upmark.custom', [
     };
 
     $scope.addParameter.submissions = function() {
+        let dependencies = ['surveygroups'];
         let addedParameters = new Set();
         addedParameters.add('submissions');
 
-        this.surveygroups().forEach(function(dependency) {
-            addedParameters.add(dependency)
-        });
-        dependencyRegister.register('submissions', 'surveygroups');
+        dependencies.forEach(function(dependency) {
+            this[dependency]().forEach(function(addedDependency) {
+                addedParameters.add(addedDependency)
+            })
+            dependencyRegister.register('submissions', dependency)
+        }, this)
 
         if ($scope.activeParameters.has('submissions'))
             return addedParameters;
@@ -414,17 +425,16 @@ angular.module('upmark.custom', [
     };
 
     $scope.addParameter.categories = function() {
+        let dependencies = ['programs', 'surveys'];
         let addedParameters = new Set();
         addedParameters.add('categories');
 
-        this.programs().forEach(function(dependency) {
-            addedParameters.add(dependency)
-        });
-        dependencyRegister.register('categories', 'programs');
-        this.surveys().forEach(function(dependency) {
-            addedParameters.add(dependency)
-        });
-        dependencyRegister.register('categories', 'surveys');
+        dependencies.forEach(function(dependency) {
+            this[dependency]().forEach(function(addedDependency) {
+                addedParameters.add(addedDependency)
+            })
+            dependencyRegister.register('categories', dependency)
+        }, this)
 
         if ($scope.activeParameters.has('categories'))
             return addedParameters;
@@ -447,17 +457,16 @@ angular.module('upmark.custom', [
     };
 
     $scope.addParameter.measures = function() {
+        let dependencies = ['programs', 'surveys'];
         let addedParameters = new Set();
         addedParameters.add('measures');
 
-        this.programs().forEach(function(dependency) {
-            addedParameters.add(dependency)
-        });
-        dependencyRegister.register('measures', 'programs');
-        this.surveys().forEach(function(dependency) {
-            addedParameters.add(dependency)
-        });
-        dependencyRegister.register('measures', 'surveys');
+        dependencies.forEach(function(dependency) {
+            this[dependency]().forEach(function(addedDependency) {
+                addedParameters.add(addedDependency)
+            })
+            dependencyRegister.register('measures', dependency)
+        }, this)
 
         if ($scope.activeParameters.has('measures'))
             return addedParameters;
