@@ -573,12 +573,10 @@ class ModifyProgramTest(base.AqHttpTestBase):
                     new_qnode_sons = self.fetch(
                         url2, method='GET', expected=200, decode=True)
 
-                    self.assertEqual(
-                        original_qnode_sons, new_qnode_sons,
-                        ("URL 1: %s\n" % url1) +
-                        ("URL 2: %s" % url2))
+                    log.info(("URL 1: %s\n" % url1) + ("URL 2: %s" % url2))
                     for q1, q2 in zip(original_qnode_sons, new_qnode_sons):
                         log.info("q1: %s, q2: %s", q1, q2)
+                        self.assertEqual(q1['id'], q2['id'])
                         self.assertEqual(q1['title'], q2['title'])
                         check_qnodes(survey_id, q1['id'])
                         check_measures(q1['id'])
