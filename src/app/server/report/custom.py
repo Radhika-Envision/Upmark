@@ -35,7 +35,8 @@ TYPES = {
     23:     ('int',     'int'),
     701:    ('float',   'float'),
     16:     ('bool',    'bool'),
-    114:    ('string',  'json')
+    114:    ('string',  'json'),
+    1015:   ('array',   'array'),
 }
 CHUNKSIZE = 100
 MAX_LIMIT = 2500
@@ -313,7 +314,7 @@ class ExcelWriter:
                     worksheet_r.set_column(c, c, 10, format_float)
                 elif col['rich_type'] == 'uuid':
                     worksheet_r.set_column(c, c, 10, format_str)
-                elif col['rich_type'] == 'text':
+                elif col['rich_type'] == 'text' or col['type'] == 'array':
                     worksheet_r.set_column(c, c, 40, format_str_wrap)
                 elif col['rich_type'] == 'datetime':
                     worksheet_r.set_column(c, c, 40, format_date)
@@ -327,6 +328,9 @@ class ExcelWriter:
                 for c, (cell, col) in enumerate(zip(row, cols)):
                     if col['type'] == 'string':
                         data = str(cell)
+                    elif col['type'] == 'array':
+                        cell = [str(entry) for entry in cell]
+                        data = ', '.join(cell)
                     else:
                         data = cell
                     worksheet_r.write(r, c, data)
