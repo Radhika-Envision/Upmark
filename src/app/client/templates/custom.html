@@ -491,13 +491,6 @@
     </div>
 </div>
 
-<p ng-if="error" class="text-warning text-center">
-    <small>
-        <i class="fa fa-bug"></i>
-        Error: {{error}}
-    </small>
-</p>
-
 <div ng-if="result.cols" class="spaced">
     <div ng-if="activeModel.isParameterised" class="form-group">
         <label>Parameters</label>
@@ -610,4 +603,13 @@
         </p>
     </div>
 </div>
+
+<p ng-if="error" class="text-warning text-center">
+    <small>
+        <i class="fa fa-bug"></i>
+        Error: {{error}}
+    </small>
+</p>
+
+
 </div>

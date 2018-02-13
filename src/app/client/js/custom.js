@@ -941,7 +941,10 @@ angular.module('upmark.custom', [
                     } else {
                         $scope.result = null;
                         $scope.error = parameter + " is not a valid parameter";
-                        return false
+                        return {
+                            isParameterised: true,
+                            isRunnable: false,
+                        };
                     }
                 }
             } while (match);
@@ -955,13 +958,19 @@ angular.module('upmark.custom', [
             }
         })
 
-        return $scope.activeParameters.size > 0;
+        return {
+            isParameterised: $scope.activeParameters.size > 0,
+            isRunnable: true,
+        };
     };
 
     $scope.$watchGroup(['activeModel.text', 'settings.autorun'], function() {
         $scope.error = null;
-        $scope.activeModel.isParameterised = hasParameters();
-        $scope.autorun();
+        let parameterisation = hasParameters();
+        $scope.activeModel.isParameterised = parameterisation.isParameterised;
+
+        if (parameterisation.isRunnable)
+            $scope.autorun();
     });
 
     $scope.setParameters = function(text) {
@@ -1015,7 +1024,7 @@ angular.module('upmark.custom', [
     }
 
     $scope.autorun = Enqueue(function() {
-        if (!$scope.activeModel || !$scope.settings.autorun || $scope.error) {
+        if (!$scope.activeModel || !$scope.settings.autorun) {
             return;
         }
 
@@ -1054,6 +1063,7 @@ angular.module('upmark.custom', [
                     var details = response.headers('Operation-Details');
                     if (/statement timeout/.exec(details)) {
                         $scope.error = "Query took too long to run.";
+                        $scope.result = {cols: [], rows: []};
                     } else {
                         $scope.error = details;
                     }
