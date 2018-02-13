@@ -44,12 +44,15 @@ angular.module('upmark.custom', [
 })
 
 
-.factory('CustomQuery', ['$resource', function($resource) {
+.factory('CustomQuery', ['$resource', 'paged', function($resource, paged) {
     return $resource('/custom_query/:id.json', {id: '@id'}, {
         get: { method: 'GET', cache: false },
         create: { method: 'POST' },
         save: { method: 'PUT' },
-        query: { method: 'GET', isArray: true, cache: false },
+        query: {
+            method: 'GET', isArray: true, cache: false,
+            interceptor: {response: paged}
+        },
         history: { method: 'GET', url: '/custom_query/:id/history.json',
             isArray: true, cache: false },
         remove: { method: 'DELETE', cache: false },
@@ -111,7 +114,7 @@ angular.module('upmark.custom', [
               if (selectionId != oldId)
                   searchConfig[this.parameterName] = selectionId;
           }
-    }
+    };
 
     function DependencyRegister() {
         this.surveygroups = new SingleSelectionIdDependencies('surveyGroupId');
@@ -127,7 +130,7 @@ angular.module('upmark.custom', [
     };
     DependencyRegister.prototype.register = function(paramName, dependency) {
         this[dependency].dependencies.add(paramName)
-    }
+    };
     DependencyRegister.prototype.unregister = function(paramName, dependency) {
         if (!dependency) {
             for (var param in this) {
@@ -138,7 +141,7 @@ angular.module('upmark.custom', [
             return
         }
         this[dependency].delete(paramName)
-    }
+    };
     var dependencyRegister = new DependencyRegister();
 
     $scope.$watch('selections', function(selections) {
