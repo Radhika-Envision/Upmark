@@ -37,7 +37,6 @@ class CustomQuery(Observable, Versioned, Base):
     text = Column(Text, nullable=False)
     description = Column(Text)
     deleted = Column(Boolean, default=False, nullable=False)
-    is_parameterised = Column(Boolean, default=False, nullable=False)
 
     user = relationship(AppUser)
 

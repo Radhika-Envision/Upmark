@@ -44,7 +44,6 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
                 r'/name$',
                 r'/text$',
                 r'/version$',
-                r'/is_parameterised$',
             )
 
             if not old_version:
@@ -250,7 +249,6 @@ class CustomQueryHandler(base_handler.Paginate, base_handler.BaseHandler):
         update = updater(custom_query, error_factory=errors.ModelError)
         update('title', son)
         update('text', son)
-        update('is_parameterised', son)
         update('description', son, sanitise=True)
 
     def update_auto(self, custom_query, user):
