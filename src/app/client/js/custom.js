@@ -118,7 +118,7 @@ angular.module('upmark.custom', [
 
     function DependencyRegister() {
         this.surveygroups = new SingleSelectionIdDependencies('surveyGroupId');
-        this.organisations = new NullDependencies();
+        this.organisations = new SingleSelectionIdDependencies('organisationId');
         this.users = new NullDependencies();
         this.sizes = new NullDependencies();
         this.assettypes = new NullDependencies();
@@ -298,6 +298,16 @@ angular.module('upmark.custom', [
             "itemsSelected": "Organisations Selected",
         }
 
+        $scope.selectedOrganisationId = function() {
+            if ($scope.selections && $scope.selections.organisations) {
+                let organisations = $scope.selections.organisations;
+                if (organisations.length == 1)
+                    return organisations[0].id;
+            }
+
+            return null;
+        };
+
         $scope.organisationsSearch = {
             term: "",
             deleted: false,
@@ -335,7 +345,7 @@ angular.module('upmark.custom', [
     }
 
     $scope.addParameter.users = function() {
-        let dependencies = ['surveygroups'];
+        let dependencies = ['surveygroups', 'organisations'];
         let addedParameters = new Set();
         addedParameters.add('users');
 
@@ -357,12 +367,14 @@ angular.module('upmark.custom', [
             term: "",
             deleted: false,
             surveyGroupId: $scope.selectedSurveyGroupId(),
+            organisationId: $scope.selectedOrganisationId(),
         };
 
         let search = {
             term: "",
             deleted: false,
             surveyGroupId: null,
+            organisationId: null,
         };
         User.query(search).$promise.then(
             function success(users) {
@@ -500,7 +512,7 @@ angular.module('upmark.custom', [
     };
 
     $scope.addParameter.submissions = function() {
-        let dependencies = ['surveygroups'];
+        let dependencies = ['organisations', 'programs', 'surveys'];
         let addedParameters = new Set();
         addedParameters.add('submissions');
 
@@ -521,13 +533,17 @@ angular.module('upmark.custom', [
         $scope.submissionsSearch = {
             term: "",
             deleted: false,
-            surveyGroupId: $scope.selectedSurveyGroupId(),
+            organisationId: $scope.selectedOrganisationId(),
+            programId: $scope.selectedProgramId(),
+            surveyId: $scope.selectedSurveyId(),
         };
 
         let search = {
             term: "",
             deleted: false,
-            surveyGroupId: null,
+            organisationId: null,
+            programId: null,
+            surveyId: null,
         };
         Submission.query(search).$promise.then(
             function success(submissions) {
@@ -535,7 +551,7 @@ angular.module('upmark.custom', [
                     objectArray[index] = submission.id;
                 })
 
-                $scope.parameterDefaults.measures =
+                $scope.parameterDefaults.submissions =
                     function(identifier, parameter) {
                         let text = identifier + " IN ('" + submissions.join("','") + "')";
                         return text;
@@ -950,10 +966,9 @@ angular.module('upmark.custom', [
             } while (match);
         }
 
-        // Deactivate parameters no longer in text
+        // De-activate parameters no longer in query text
         $scope.activeParameters.forEach(function(param) {
             if (!currentParameters.has(param)) {
-                // Parameter should no longer be active.
                 $scope.deleteParameter(param)
             }
         })
@@ -986,12 +1001,10 @@ angular.module('upmark.custom', [
             // If nothing has been selected yet or everything has just been
             // de-selected, try the default selection which is usually all.
             if (!selectedObjects || selectedObjects.length < 1) {
-                // Need to pass table name and column name to a function that
-                // generates defaultText...
                 let defaultFunction = $scope.parameterDefaults[parameterName];
                 let defaultText = defaultFunction(identifier, parameterName);
 
-                // If no default, make sure execute doesn't try to run the query.
+                // If no default, ensure execute doesn't try to run the query.
                 if (!defaultText) {
                     runnable = false;
                     defaultText = match;
