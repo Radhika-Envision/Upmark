@@ -177,6 +177,185 @@
     </docs>
 
     <docs>
+        <i class="fa-li fa fa-sliders fa-border"></i>
+        <h3>Parameterised Queries</h3>
+        <p>
+            To avoid having to manually enter lists of parameter values that may
+            be long and/or tedious to find values for
+            (e.g. <code>uuid</code>'s), queries can be parameterised to allow
+            values to be populated from lists of human readable names in
+            drop-down menus. Parameterisation is toggled by query statements of
+            the form
+            <code ng-non-bindable>
+                WHERE/AND table.attribute IN {{parameter}}.
+            </code> Internally, <code ng-non-bindable>{{parameter}}</code> will
+            be replaced by a list of attribute values taken from objects chosen
+            from a drop-down menu that appears when the statement is added to
+            the query.
+            </br></br>
+            For example:
+            </br></br>
+            <code ng-non-bindable>
+                WHERE organisation.id IN {{organisations}}
+            </code>
+            </br></br>
+            would be internally replaced by:
+            </br></br>
+            <code ng-non-bindable>
+                WHERE organisation.id IN (org1_uuid, org2_uuid)
+            </code>
+            </br></br>
+
+            if <code>org1</code> and <code>org2</code> were selected from the
+            drop-down menu that appears (<code>orgX_uuid</code> is just a
+            placeholder for the <code>uuid</code> of an organisation named
+            <code>orgX</code>).
+            </br></br>
+
+            Valid combinations of <code>table</code>, <code>attribute</code>,
+            and <code>parameter</code> are summarised below with the title of
+            the drop-down menu they provide and the default behaviour if nothing
+            is selected:
+            <table style="width: 100%;">
+                <tr>
+                    <th>Table</th>
+                    <th>Attribute</th>
+                    <th>Parameter</th>
+                    <th>Drop-down title</th>
+                    <th>Default behaviour</th>
+                </tr>
+                <tr>
+                    <td>surveygroup</td>
+                    <td>id</td>
+                    <td>surveygroups</td>
+                    <td>Survey Group</td>
+                    <td>None</td>
+                </tr>
+                <tr>
+                    <td>organisation</td>
+                    <td>id</td>
+                    <td>organisations</td>
+                    <td>Organisations</td>
+                    <td>Any organisation</td>
+                </tr>
+                <tr>
+                    <td>org_meta</td>
+                    <td>size</td>
+                    <td>sizes</td>
+                    <td>Organisation Sizes</td>
+                    <td>Any size</td>
+                </tr>
+                <tr>
+                    <td>org_meta</td>
+                    <td>asset_types</td>
+                    <td>assettypes</td>
+                    <td>Organisation Asset Types</td>
+                    <td>Any asset type</td>
+                </tr>
+                <tr>
+                    <td>appuser</td>
+                    <td>id</td>
+                    <td>users</td>
+                    <td>Users</td>
+                    <td>Any user</td>
+                </tr>
+                <tr>
+                    <td>program</td>
+                    <td>id</td>
+                    <td>programs</td>
+                    <td>Programs</td>
+                    <td>Any program</td>
+                </tr>
+                <tr>
+                    <td>survey</td>
+                    <td>id</td>
+                    <td>surveys</td>
+                    <td>Surveys</td>
+                    <td>Any survey/Exclude everything if full dependencies not met</td>
+                </tr>
+                <tr>
+                    <td>submission</td>
+                    <td>id</td>
+                    <td>submissions</td>
+                    <td>Submissions</td>
+                    <td>Any submission</td>
+                </tr>
+                <tr>
+                    <td>qnode</td>
+                    <td>id</td>
+                    <td>qnodes</td>
+                    <td>Categories</td>
+                    <td>Any category/Exclude everything if full dependencies not met</td>
+                </tr>
+                <tr>
+                    <td>measure</td>
+                    <td>id</td>
+                    <td>measures</td>
+                    <td>Measures</td>
+                    <td>Any measure/Exclude everything if full dependencies not met</td>
+                </tr>
+            </table>
+        </p>
+        </br>
+        <dl>
+            <dd>Parameters may have dependencies on other parameters. When such
+                a parameter is added to the query, drop-down menus for the
+                parameter and it's dependencies will appear. Selection options
+                for the parameter will then change in response to selections
+                made for it's dependencies.</br></br>
+
+                Dependencies may be optional (selection options will be
+                available for a parameter even if nothing has been selected for
+                it's dependencies) or full (selection options will not be
+                available for a parameter until a selection is made for one or
+                more of it's dependencies). Dependencies for parameters are
+                listed below.
+            </dd>
+
+            <dt> organisations </dt>
+            <dd>
+                <p>Optional dependencies: <code>surveygroups</code></p>
+            </dd>
+
+            <dt> users </dt>
+            <dd>
+                <p>Optional dependencies: <code>surveygroups</code>,
+                <code>organisations</code></p>
+            </dd>
+
+            <dt> programs </dt>
+            <dd>
+                <p>Optional dependencies: <code>surveygroups</code></p>
+            </dd>
+
+            <dt> surveys </dt>
+            <dd>
+                <p> Optional dependencies: <code>surveygroups</code></p>
+                <p> Full dependencies: <code>programs</code></p>
+            </dd>
+
+            <dt> submissions </dt>
+            <dd>
+                <p> Optional dependencies: <code>organisations</code>,
+                    <code>programs</code>, <code>surveys</code> </p>
+            </dd>
+
+            <dt> qnodes </dt>
+            <dd>
+                <p> Full dependencies: <code>programs</code>,
+                    <code>surveys</code></p>
+            </dd>
+
+            <dt> measures </dt>
+            <dd>
+                <p> Optional dependencies: <code>qnodes</code></p>
+                <p> Full dependencies: <code>programs</code>,
+                    <code>surveys</code></p>
+            </dd>
+        </dl>
+    </docs>
+
+    <docs>
         <i class="fa-li fa fa-user fa-border"></i>
         <h3>User tables</h3>
         <p>
