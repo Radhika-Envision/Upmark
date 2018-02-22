@@ -71,7 +71,7 @@ angular.module('upmark.custom', [
     return {
         autorun: true,
         limit: 20,
-        wall_time: 2.0,
+        wall_time: 10.0,
     };
 })
 
