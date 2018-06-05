@@ -294,6 +294,7 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
             # Customise
             response.submission_id = submission.id
             response.program_id = submission.program_id
+            response.survey_id = submission.survey_id
             response.approval = 'draft'
 
             session.add(response)
