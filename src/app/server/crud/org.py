@@ -444,6 +444,11 @@ class PurchasedSurveyHandler(base_handler.BaseHandler):
 
 
 class LocationSearchHandler(base_handler.BaseHandler):
+    search_headers = {
+        'headers': {
+            'accept-language': 'en-AU,en;q=0.9,en-GB;q=0.8,en-US;q=0.7'
+        }
+    }
     cache = LruCache()
 
     @tornado.gen.coroutine
@@ -464,7 +469,7 @@ class LocationSearchHandler(base_handler.BaseHandler):
                'format=json&addressdetails=1&limit=7'
                .format(search_parm))
         client = AsyncHTTPClient()
-        response = yield client.fetch(url)
+        response = yield client.fetch(url, **LocationSearchHandler.search_headers)
         nominatim = json_decode(response.body)
 
         locations = []
