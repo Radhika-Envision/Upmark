@@ -4,6 +4,7 @@ angular.module('upmark', [
     'angular-input-stars',
     'angular-medium-editor',
     'angular-select-text',
+    'btorfs.multiselect',
     'cfp.hotkeys',
     'diff-match-patch',
     'msieurtoph.ngCheckboxes',

@@ -35,7 +35,8 @@ TYPES = {
     23:     ('int',     'int'),
     701:    ('float',   'float'),
     16:     ('bool',    'bool'),
-    114:    ('string',  'json')
+    114:    ('string',  'json'),
+    1015:   ('array',   'array'),
 }
 CHUNKSIZE = 100
 MAX_LIMIT = 2500
@@ -50,6 +51,8 @@ class CustomQueryReportHandler(base_handler.BaseHandler):
     @tornado.web.authenticated
     @gen.coroutine
     def post(self, query_id, file_type):
+        parameters = self.request_son.copy()
+
         with model.session_scope() as session:
             custom_query = session.query(model.CustomQuery).get(query_id)
             if not custom_query:
@@ -61,11 +64,16 @@ class CustomQueryReportHandler(base_handler.BaseHandler):
             })
             policy.verify('custom_query_execute')
 
+
             if not custom_query.text:
                 raise errors.ModelError("Query is empty")
 
             conf = self.get_config(session)
             session.expunge(custom_query)
+
+        # Overwrite stored query text if query is parameterised
+        if parameters.text:
+            custom_query.text = parameters.text
 
         yield self.export(custom_query, conf, file_type)
         self.finish()
@@ -306,7 +314,7 @@ class ExcelWriter:
                     worksheet_r.set_column(c, c, 10, format_float)
                 elif col['rich_type'] == 'uuid':
                     worksheet_r.set_column(c, c, 10, format_str)
-                elif col['rich_type'] == 'text':
+                elif col['rich_type'] == 'text' or col['type'] == 'array':
                     worksheet_r.set_column(c, c, 40, format_str_wrap)
                 elif col['rich_type'] == 'datetime':
                     worksheet_r.set_column(c, c, 40, format_date)
@@ -320,6 +328,9 @@ class ExcelWriter:
                 for c, (cell, col) in enumerate(zip(row, cols)):
                     if col['type'] == 'string':
                         data = str(cell)
+                    elif col['type'] == 'array':
+                        cell = [str(entry) for entry in cell]
+                        data = ', '.join(cell)
                     else:
                         data = cell
                     worksheet_r.write(r, c, data)

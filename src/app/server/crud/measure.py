@@ -185,8 +185,12 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
 
         to_son = ToSon(
             # Fields to match from any visited object
+            r'/ob_type$',
             r'/id$',
             r'/title$',
+            r'/parent$',
+            r'/parents$',
+            r'/parents/[0-9]+$',
             r'/seq$',
             r'/weight$',
             r'/deleted$',
@@ -208,8 +212,7 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             if survey_id:
                 survey = (
-                    session.query(model.Survey)
-                    .get(survey_id))
+                    session.query(model.Survey).get([survey_id, program_id]))
             else:
                 survey = None
 
@@ -265,7 +268,7 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                     ))
 
             if with_declared_variables:
-                query = (query.options(joinedload('response_type')))
+                query = query.options(joinedload('response_type'))
 
             if survey_id:
                 query = (
@@ -274,16 +277,38 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                     .join(model.QnodeMeasure)
                     .filter(model.QnodeMeasure.survey_id == survey_id))
 
-            query = self.paginate(query)
+            if self.get_argument('noPage', None) is None:
+                query = self.paginate(query)
 
             measures = query.all()
             sons = to_son(measures)
+
+            to_son = ToSon(
+                r'/ob_type$',
+                r'/id$',
+                r'/seq$',
+                r'/title$',
+                r'^/error$',
+                r'/qnode$',
+                r'/parent$',
+                r'/survey$',
+                r'/survey/program$',
+                r'/is_editable$',
+                r'/survey/structure.*$',
+                r'/survey/program_id$',
+                r'/survey/program/tracking_id$',
+                r'/survey/program/created$',
+                r'/has_quality$',
+            )
 
             for mson, measure in zip(sons, measures):
                 mson['orphan'] = len(measure.qnode_measures) == 0
                 if survey_id:
                     qnode_measure = measure.get_qnode_measure(survey_id)
+                    mson.update(to_son(qnode_measure))
                     mson['error'] = qnode_measure.error
+                    mson['parent'] = mson['qnode']
+                    del mson['qnode']
                 if with_declared_variables:
                     mson['declaredVars'] = self.get_declared_vars(measure)
 
@@ -342,9 +367,14 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             to_son = ToSon(
                 # Fields to match from any visited object
+                r'/ob_type$',
                 r'/id$',
                 r'/title$',
                 r'^/error$',
+                r'/qnode$',
+                r'/parent$',
+                r'/parents$',
+                r'/parents/[0-9]+$',
                 r'/seq$',
                 r'/weight$',
                 r'/deleted$',
@@ -352,11 +382,16 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                 # Descend into nested objects
                 r'/[0-9]+$',
                 r'/program$',
+                r'/survey$',
+                r'/survey/structure.*$',
+                r'/survey/program$',
             )
             sons = []
             for qm in qnode.qnode_measures:
                 mson = to_son(qm.measure)
                 mson.update(to_son(qm))
+                mson['parent'] = mson['qnode']
+                del mson['qnode']
                 sons.append(mson)
 
         self.set_header("Content-Type", "application/json")

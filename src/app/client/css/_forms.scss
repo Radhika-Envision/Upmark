@@ -646,3 +646,39 @@ file-setting .dz-message img {
     font-size: 17px;
     text-align: center;
 }
+
+.asset-type-container {
+    width: 1140px;
+}
+
+[id^=asset-type] {
+    display: inline-block;
+    width: 45%;
+}
+
+.foo {
+    display: inline-block;
+    width: 48%;
+    padding-left: 0%;
+}
+
+@media (max-width: 1200px) {
+    .asset-type-container {
+        width: auto;
+    }
+
+    [id^=asset-type] {
+        display: block;
+        width: auto;
+    }
+}
+
+@media (max-width: 992px) {
+      .asset-type-container {
+          width: auto;
+      }
+    .foo {
+        display: block;
+        width: auto;
+    }
+}

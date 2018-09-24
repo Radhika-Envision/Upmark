@@ -182,6 +182,7 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             to_son = ToSon(
                 # Fields to match from any visited object
+                r'/ob_type$',
                 r'/id$',
                 r'/title$',
                 r'/seq$',
@@ -189,6 +190,10 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
                 r'/n_measures$',
                 r'/total_weight$',
                 r'^/[0-9]+/error$',
+                r'/parent$',
+                r'/survey$',
+                r'/survey/structure.*$',
+                r'/survey/program$',
                 # Descend into nested objects
                 r'/[0-9]+$',
             )
