@@ -1,5 +1,42 @@
+<script type="text/ng-template" id="/inline/measure_variable_list.html">
+    <h3 ng-if="measure.sourceVars.length || measure.targetVars.length">Links to Other Measures</h3>
+    <div ng-if="measure.sourceVars.length">
+        <p class="text-muted">
+            This measure gets some data from these other measures:
+        </p>
+        <ul class="list-unstyled">
+            <li ng-repeat="mv in measure.sourceVars">
+                <em>
+                    This measure • {{mv.targetField}} ←
+                </em>
+                <a ng-href="#{{getUrl(mv.sourceMeasure)}}"}}>
+                    <em>{{mv.sourceMeasure.title}}</em
+                    ><em> • {{mv.sourceField}}</em>
+                </a>
+            </li>
+        </ul>
+    </div>
+    <div ng-if="measure.targetVars.length">
+        <p class="text-muted">
+            These other measures use data from this measure:
+        </p>
+        <ul class="list-unstyled">
+            <li ng-repeat="mv in measure.targetVars">
+                <em>
+                    This measure • {{mv.sourceField}} →
+                </em>
+                <a ng-href="#{{getUrl(mv.targetMeasure)}}"}}>
+                    <em>{{mv.targetMeasure.title}}</em
+                    ><em> • {{mv.targetField}}</em>
+                </a>
+            </li>
+        </ul>
+    </div>
+</script>
 <div class="section">
-    <div class="toolbar" highlight="edit.model" highlight-half>
+    <div class="row no-margin-bottom">
+                
+    <div class="toolbar" highlight="edit.model" highlight-half ng-if="!submission">
         <button class="btn btn-default btn-round" title="Reset order"
                 ng-click="edit.cancel()"
                 ng-if="edit.model">
@@ -23,10 +60,26 @@
                 ng-if="editable && !edit.model && checkRole('qnode_edit')">
             <i class="fa fa-fw fa-link"></i></a>
     </div>
-    <h2 label="{{level.label}}" ng-class="'program-' + level.level">
+    <div class="toolbar col-md-6" ng-if="submission">
+            <div class="part" ng-class="structure.deletedItem ? 'ng-hide' : 'hidden-print'">   
+                    <!--<label>Approval</label> -->
+                    <approval-buttons model="model[0].response.approval"
+                            ng-if="!structure.deletedItem"></approval-buttons>
+            </div>
+                
+            <div ng-class="structure.deletedItem ? null : 'visible-print-block'">
+                    Quality: <span class="print-field">{{model[0].response.quality}}</span>
+                    Status: <span class="print-field">{{model[0].response.approval}}</span>
+            </div>
+     </div>
+    <div class="col-md-6">
+        <h2 label="{{level.label}}" ng-class="'program-' + level.level">
         {{level.title}}</h2>
+    </div>
+   </div>
 </div>
-<table class="table table-hover">
+
+<!--<table class="table table-hover">
     <tbody ui-sortable="dragOpts" ng-model="edit.model">
         <tr ng-repeat="item in edit.model || model"
                 any-href="/3/measure/{{item.id}}?{{query}}"
@@ -85,7 +138,141 @@
                <i class="fa fa-fw fa-unsorted"></i></span></td>
         </tr>
     </tbody>
-</table>
+</table>-->
+<!--<div class='scroll' style="height: 1000px; overflow-y: scroll;">
+<div id="cantainer1" style="height: 100%; width: 100%; overflow: hidden;">
+    <div id="cantainer2" style=" width: 100%;  height: 99%;  overflow: auto; padding-right: 15px;">-->
+
+
+
+<div class='containerMeasures' >      
+          
+   <!--<div class='container2'>       -->
+
+  <table class="table table-hover">
+    <tbody ui-sortable="dragOpts" ng-model="edit.model">
+         <!--   any-href="/3/measure/{{item.id}}?{{query}}"-->
+        <tr ng-repeat="item in edit.model || model"
+                ng-disabled="edit.model"
+                ng-class="{
+                    'strike-black': getStats(item.id).notRelevant,
+                    'warning': item.error || getStats(item.id).error,
+                }">
+            <td >
+                <table class="table table-hover">
+                  <tbody>
+                  <tr>
+                   <!--<td class="shrink numeric">{{item.seq + 1}}</td>-->
+                   <td class="shrink">{{item.parentSeq}}.{{item.seq + ((currentLevel && currentLevel.indexingFrom !== null && currentLevel.indexingFrom !== undefined) ? currentLevel.indexingFrom : 1)}}</td>                  
+                   <td any-href="/3/measure/{{item.id}}?{{query}}" ng-if="!submission">
+                        {{item.title}}
+                        <span ng-if="item.error || getStats(item.id).error"
+                             class="text-muted">
+                             <i class="fa fa-exclamation-triangle"></i>
+                        </span>
+                   </td>
+                   <td ng-if="submission">
+                       {{item.title}}
+                       <span ng-if="item.error || getStats(item.id).error"
+                             class="text-muted">
+                             <i class="fa fa-exclamation-triangle"></i>
+                        </span>
+                    </td>
+                <!--   <td class="shrink text-muted numeric"
+                    title="Score"
+                    ng-if="submission && checkRole('submission_view_aggregate_score')">
+                <span>{{getStats(item.id).score | number:0}}</span>
+                <span ng-if="!structure.program.hideAggregate"
+                    ><span class="text-muted hidden-sm hidden-xs">/</span
+                    ><br class="visible-sm visible-xs"
+                    ><span class="denominator-sm denominator-xs"
+                        >{{item.weight | number:0}}</span
+                    ></span
+                >
+                   </td>-->
+                   <td class="shrink text-muted numeric"
+                    title="Weight"
+                    ng-if="!submission && checkRole('submission_view_aggregate_score')">
+                {{item.weight | number:0}}
+                   </td>
+                  <!-- <td class="shrink" ng-if="submission">
+                <column-progress items="getStats(item.id).progressItems">
+                 </column-progress>
+                   </td>
+                   <td class="shrink text-muted numeric"
+                    title="Number of measures"
+                    ng-if="submission"
+                ><span>{{getStats(item.id).progressItems[0].value | number:0}}</span
+                ><span class="text-muted hidden-sm hidden-xs">/</span
+                ><br class="visible-sm visible-xs"
+                ><span class="denominator-sm denominator-xs"
+                    >1</span>
+                   </td>
+                   <td class="shrink text-muted numeric"
+                    title="Number of measures"
+                    ng-if="!submission">
+                1
+                   </td>
+                   <td class="shrink grab-handle" ng-if="edit.model"
+               ><span class="btn btn-default btn-round"
+                   title="Drag to reorder"
+                   highlight highlight-half>
+                       <i class="fa fa-fw fa-unsorted"></i></span></td>-->
+                   <td class="shrink grab-handle" ng-if="rnode">
+                <button class="btn-round btn btn-default"
+                    ng-click="toggleDropdown(item.showMeasureDetail)">
+                    <i class="fa fa-caret-up"
+                       ng-if="!item.showMeasureDetail"></i>
+                    <i class="fa fa-caret-down"
+                       ng-if="item.showMeasureDetail"></i>
+                </button>
+                   </td>
+                  </tr>
+                  
+                
+                <tr ng-if="rnode">
+                    <td colspan="9">
+                      <div ng-hide="item.showMeasureDetail" class="container" ng-controller='MeasuresCtrl'>
+                        <!--<div class="row no-margin-bottom" ng-if="submission && item.subMeasureList"-->
+                        <div class="row no-margin-bottom" ng-if="submission"
+                             ng-include="'measure_response_sub.html'">
+                        </div>
+                       
+                        <!--<div class="container-fluid" ng-if="!item.subMeasureList">
+                            <div class="row"> 
+                                 <div class="col-md-6">
+                                    <h2>Description</h2>
+                                    <div ng-bind-html="item.description | markdown"></div>
+                                    <p class="text-muted" ng-if="!item.description">
+                                        No description.
+                                    </p>
+                                </div>
+                    
+                                <div class="col-md-6" ng-if="!submission">
+                                    <response-form type="rt.responseType" is-dummy="true"
+                                            has-quality="structure.program.hasQuality"
+                                            class="sample-only" title="Sample only">
+                                    </response-form>
+                    
+                                    <div ng-include src="'/inline/measure_variable_list.html'"></div>
+                                </div>
+                    
+                                <div class="col-md-6" ng-if="submission"
+                                        ng-include="'measures_response.html'">
+                                </div>-->
+                    
+                             </div>
+                 
+                    </td>
+                </tr>
+                </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+  </table>
+ <!--</div>-->
+</div>
 <p ng-if="!edit.model && !model.length">
     There are no {{level.title}}.
 </p>

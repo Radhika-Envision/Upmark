@@ -108,6 +108,10 @@
                         <span class="visible-xs">Label</span>
                     </th>
                     <th class="shrink">
+                            <span class="hidden-xs">Indexing from</span>
+                            <span class="visible-xs">Index</span>
+                        </th>
+                    <th class="shrink">
                         <span class="hidden-xs">Has measures</span>
                         <span class="visible-xs">Measures</span>
                     </th>
@@ -131,6 +135,16 @@
                             ng-model="level.label" required maxlength="2" />
                     </td>
                     <td class="shrink">
+                            <label for="llabel{{$index}}" class="sr-only">
+                                    Indexing from</label>
+                                <input type="number" class="form-control"
+                                    id="lindex{{$index}}" name="lindex{{$index}}"
+                                    edit.model.structure.levels.length-2
+                                    ng-style="{visibility: $index == edit.model.structure.levels.length-1 ? null:'hidden' }"
+                                    ng-model="level.indexingFrom" required 
+                                    ng-init="level.indexingFrom=($index == edit.model.structure.levels.length-1 && (!level.indexingFrom) ? 1: level.indexingFrom)"/>
+                            </td>
+                            <td class="shrink">                       
                         <button title="{{level.hasMeasures ?
                                     'Has measures as children' :
                                     'Can not have measures as children'}}"
@@ -164,6 +178,8 @@
                             id="mlabel" name="mlabel"
                             ng-model="edit.model.structure.measure.label"
                             required maxlength="2" />
+                    </td>
+                    <td class="shrink text-muted">
                     </td>
                     <td class="shrink text-muted">
                         <span class="hidden-xs">Measure</span>

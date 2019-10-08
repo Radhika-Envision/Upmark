@@ -59,6 +59,8 @@ angular.module('upmark.survey.qnode', [
                         qnodeId: $route.current.params.qnode,
                         programId: submission ? submission.program.id :
                             $route.current.params.program,
+                        submissionId: submission ? submission.id :
+                            '',
                     }).$promise;
                 }]
             })}
@@ -115,10 +117,13 @@ angular.module('upmark.survey.qnode', [
 .controller('QuestionNodeCtrl', function(
         $scope, QuestionNode, routeData, Editor, Authz,
         $location, Notifications, format, Structure,
-        layout, Arrays, ResponseNode, $timeout, $route) {
+        layout, Arrays, ResponseNode, Response, $timeout, $route) {
 
     // routeData.parent and routeData.survey will only be defined when
     // creating a new qnode.
+    var totalQuestion=0;
+    var totalAnswer=0;  
+    var responseMeasure=[];  
 
     $scope.layout = layout;
     $scope.submission = routeData.submission;
@@ -181,6 +186,12 @@ angular.module('upmark.survey.qnode', [
 
     // Used to get history
     $scope.QuestionNode = QuestionNode;
+
+    // get first measure response for all measures response history
+
+    $scope.responseHistory={
+        Response: Response
+    };
 
     if ($scope.submission) {
         $scope.rnode = ResponseNode.get({
@@ -388,7 +399,95 @@ angular.module('upmark.survey.qnode', [
                 fraction: 6/12
             },
         ];
+     
+        $scope.questions={total:0, answer:0};
+        $scope.saveAllResponses = function() {
+            $scope.measureNum=0;
+            totalQuestion=0;
+            totalAnswer=0;
+            responseMeasure=[];
+            $scope.$broadcast('save-response', { state: $scope.measures[0].response.approval });
+            /*$scope.rnode = ResponseNode.get({
+                submissionId: $scope.submission.id,
+                qnodeId: $scope.qnode.id
+            });
+            $scope.rnode.$promise.then(
+                function success(rnode) {
+                    $scope.rnodeDup = angular.copy(rnode);
+                    $scope.updateStats(rnode);
+                },
+                function failure(details) {
+                    Notifications.set('edit', 'error',
+                        "Failed to get response details: " + details.statusText);
+                    return;
+                }
+            );*/
+
+        };
+
+        $scope.$on('response-saved-measures', function(events,args) {
+            $scope.measureNum=$scope.measureNum+1;
+            if ($scope.measureNum==$scope.qnode.nMeasures) {
+                //updateInformation
+                $scope.rnode = ResponseNode.get({
+                     submissionId: $scope.submission.id,
+                     qnodeId: $scope.qnode.id
+                });
+                $scope.rnode.$promise.then(
+                     function success(rnode) {
+                        $scope.rnodeDup = angular.copy(rnode);
+                        $scope.updateStats(rnode);
+                    },
+                    function failure(details) {
+                         Notifications.set('edit', 'error',
+                             "Failed to get response details: " + details.statusText);
+                         return;
+                     }
+                );
+            }
+            if (args==null)
+            {
+               totalQuestion=totalQuestion+1;
+               responseMeasure.push('error response');
+            
+               if (responseMeasure.length==$scope.qnode.nMeasures) {
+                   $scope.totalQuestion=totalQuestion;
+                   $scope.totalAnswer=totalAnswer;  
+                }
+            }
+            
+        });
+
+        $scope.$on('response-get-measures', function(events,args) {
+            if (!responseMeasure.includes(args.measureId)) {
+                if (args.questions)
+                  totalQuestion=totalQuestion+args.questions;
+                if (args.answerQuestions)
+                   totalAnswer=totalAnswer+args.answerQuestions;   
+                responseMeasure.push(args.measureId);   
+            } 
+            if (responseMeasure.length==$scope.qnode.nMeasures) {
+                $scope.totalQuestion=totalQuestion;
+                $scope.totalAnswer=totalAnswer;  
+            }
+        });
+ 
+        
+
+
+
+        $scope.resetAllResponses = function() {
+            $scope.$broadcast('reset-response');
+        };
+
+
+
     }
+
+
+    $scope.$on('get-history-fromQnode', function(event, version) {
+        $scope.$broadcast('get-history',  version)  
+    });
 
     $scope.getSubmissionUrl = function(submission) {
         if (submission) {
@@ -399,6 +498,11 @@ angular.module('upmark.survey.qnode', [
                 $scope.qnode.id, $scope.program.id);
         }
     };
+
+
+
+
+
 })
 
 
@@ -656,7 +760,10 @@ angular.module('upmark.survey.qnode', [
     }
 
     $scope.level = $scope.structure.survey.structure.measure;
-
+    $scope.$on('saveResponse', function () {
+        //args.state would have the state.
+        $scope.$broadcast('save-response');
+    });
     if ($scope.submission) {
         // Get the responses that are associated with this qnode and submission.
         Response.query({
@@ -741,4 +848,498 @@ angular.module('upmark.survey.qnode', [
         else
             return dummyStats;
     };
+
+    $scope.toggleDropdown = function(index) {
+        var type = 'showMeasureDetail';
+        if (this.item['showMeasureDetail'])
+           this.item['showMeasureDetail'] = !this.item['showMeasureDetail'];
+        else
+           this.item['showMeasureDetail'] = true;
+        
+    };
+
 }])
+
+.controller('MeasuresCtrl', function(
+    $scope, Measure, Editor, Authz,
+    $location, Notifications, currentUser, Program, format, layout,
+    Structure, Arrays, Response, hotkeys, $q, $timeout, $window,
+    responseTypes, ResponseType, Enqueue) {
+
+$scope.layout = layout;
+$scope.parent =$scope.item;
+$scope.submission = $scope.submission;
+$scope.Response = Response;
+$scope.model = {
+    response: null,
+    lastSavedResponse: null,
+};
+
+if ($scope.item) {
+    // Editing old
+    $scope.measure = $scope.item;
+} else {
+    // Creating new
+    $scope.measure = new Measure({
+        obType: 'measure',
+        parent: $scope.item,
+        programId: $scope.item.program.id,
+        weight: 100,
+        hasSubMeasures: false,
+        subMeasures: [],
+        responseTypeId: null,
+        sourceVars: [],
+    });
+}
+
+$scope.toggleHasSubMeasures = function(measure) {
+    measure.hasSubMeasures = !measure.hasSubMeasures;
+    if(measure.hasSubMeasures) {
+        if (!measure.subMeasures) measure.subMeasures = [];
+        if (measure.subMeasures.length <= 0) $scope.addSubMeasure(measure, $scope.rt);
+    }
+};
+$scope.addSubMeasure = function(measure,rt) {
+    if (!measure.subMeasures)  measure.subMeasures = [];
+     measure.subMeasures.push({
+        description: '',
+        responseTypeId: null,
+        sourceVars: [],
+        rt: rt || {
+            definition:  null,
+            responseType: null,
+            search: {
+                programId: $scope.measure.programId,
+                pageSize: 5,
+            }  
+        }     
+    });
+};
+
+$scope.newResponseType = function(type) {
+    var parts;
+    if (type == 'multiple_choice') {
+        parts = [{type: 'multiple_choice', id: 'a', options: [
+            {name: 'No', score: 0},
+            {name: 'Yes', score: 1}]
+        }];
+    } else if (type == 'numerical') {
+        parts = [{type: 'numerical', id: 'a'}];
+    }
+
+    return new ResponseType({
+        obType: 'response_type',
+        programId: $scope.edit.model.programId,
+        name: $scope.edit.model.title,
+        parts: parts,
+        formula: 'a',
+    });
+};
+$scope.cloneResponseType = function() {
+    var rtDef = angular.copy($scope.rt.definition)
+    rtDef.id = null;
+    rtDef.name = rtDef.name + ' (Copy)'
+    rtDef.nMeasures = 0;
+    return rtDef;
+};
+$scope.rt = {
+    definition: $scope.item.responseType || null,
+    responseType:  null,
+    search: {
+        programId: $scope.measure.programId,
+        pageSize: 5,
+    },
+};
+
+/*if ($scope.rt.definition) {
+    $scope.rt.responseType = new responseTypes.ResponseType(
+        $scope.rt.definition.name, $scope.rt.definition.parts, $scope.rt.definition.formula);
+};*/
+
+
+if ($scope.submission) {
+    // Get the response that is associated with this measure and submission.
+    // Create an empty one if it doesn't exist yet.
+    $scope.lastSavedResponse = null;
+    $scope.setResponse = function(response) {
+        /*//calculate the number of total questions and answer questions
+        var totalQuestions=0;
+        var answerQuestions=0;
+
+        if ($scope.model.response.subMeasures) {
+            totalQuestions=$scope.model.response.subMeasures.length;
+            if ($scope.model.response.error==null || $scope.model.response.error=="" )
+            {
+                answerQuestions=totalQuestions;
+            }
+        }
+        else
+        {
+            totalQuestions=1;
+            if ($scope.model.response.error==null || $scope.model.response.error=="" )
+            {
+                answerQuestions=1;
+            }
+        }*/
+
+
+
+        if (!response.responseParts)
+            response.responseParts = [];
+
+        if ($scope.measure.subMeasureList) {
+            response.subMeasures=$scope.measure.subMeasureList;
+
+            //calculate the number of total questions and answer questions  
+            response.questions=$scope.measure.subMeasureList.length;
+            if ($scope.measure.response.error==null || $scope.measure.response.error=="" )
+            {
+                response.answerQuestions=$scope.measure.subMeasureList.length;
+            }
+            else {
+                response.answerQuestions==0;
+            }
+        }
+        else
+        {
+            //calculate the number of total questions and answer questions
+            response.questions=1;
+            if (response.error==null || response.error=="" )
+            {
+                response.answerQuestions=1;
+            }
+            else {
+                response.answerQuestions==0;
+            }
+        }
+        //else {
+        //    if (response.measure) {
+        //       response.measure.description=$scope.measure.description;
+        //    }
+        //}
+        $scope.model.response = response;
+        $scope.lastSavedResponse = angular.copy(response);
+        $scope.$emit('response-get-measures', response);
+    };
+
+    var nullResponse = function(measure, submission) {
+        return new Response({
+            measureId: $scope.measure ? $scope.measure.id : null,
+            submissionId: $scope.submission ? $scope.submission.id : null,
+            responseParts: [],
+            comment: '',
+            notRelevant: false,
+            approval: 'draft'
+        });
+    };
+    $scope.setResponse(nullResponse());
+    Response.get({
+        measureId: $scope.measure.id,
+        submissionId: $scope.submission.id
+    }).$promise.then(
+        function success(response) {
+            $scope.setResponse(response);
+        },
+        function failure(details) {
+            if (details.status != 404) {
+                Notifications.set('edit', 'error',
+                    "Failed to get response details: " + details.statusText);
+                return;
+            }
+            $scope.setResponse(nullResponse(
+                $scope.measure, $scope.submission));
+        }
+    );
+
+    var interceptingLocation = false;
+    $scope.$on('$locationChangeStart', function(event, next, current) {
+        if (!$scope.model.response.$dirty || interceptingLocation)
+            return;
+        event.preventDefault();
+        interceptingLocation = true;
+        $scope.saveResponse().then(
+            function success() {
+                $window.location.href = next;
+                $timeout(function() {
+                    interceptingLocation = false;
+                });
+            },
+            function failure(details) {
+                var message = "Failed to save: " +
+                    details.statusText +
+                    ". Are you sure you want to leave this page?";
+                var answer = confirm(message);
+                if (answer)
+                    $window.location.href = next;
+                $timeout(function() {
+                    interceptingLocation = false;
+                });
+            }
+        );
+    });
+
+
+
+    $scope.saveResponse = function() {
+        return $scope.model.response.$save().then(
+            function success(response) {
+                $scope.$broadcast('response-saved');
+                $scope.$emit('response-saved-measures',response);
+                Notifications.set('edit', 'success', "Saved", 5000);
+                $scope.setResponse(response);
+                return response;
+            },
+            function failure(details) {
+                $scope.$emit('response-saved-measures',null);
+                Notifications.set('edit', 'error',
+                    "Could not save: " + details.statusText);
+                return $q.reject(details);
+            });
+    };
+    $scope.resetResponse = function() {
+        $scope.model.response = angular.copy($scope.lastSavedResponse);
+    };
+    $scope.toggleNotRelvant = function() {
+        var oldValue = $scope.model.response.notRelevant;
+        $scope.model.response.notRelevant = !oldValue;
+        $scope.model.response.$save().then(
+            function success(response) {
+                Notifications.set('edit', 'success', "Saved", 5000);
+                $scope.setResponse(response);
+            },
+            function failure(details) {
+                if (details.status == 403) {
+                    Notifications.set('edit', 'info',
+                        "Not saved yet: " + details.statusText);
+                    if (!$scope.model.response) {
+                        $scope.setResponse(nullResponse(
+                            $scope.measure, $scope.submission));
+                    }
+                } else {
+                    $scope.model.response.notRelevant = oldValue;
+                    Notifications.set('edit', 'error',
+                        "Could not save: " + details.statusText);
+                }
+            });
+    };
+    $scope.setState = function(state) {
+        $scope.model.response.$save({approval: state},
+            function success(response) {
+                Notifications.set('edit', 'success', "Saved", 5000);
+                $scope.setResponse(response);
+            },
+            function failure(details) {
+                Notifications.set('edit', 'error',
+                    "Could not save: " + details.statusText);
+            }
+        );
+    };
+    $scope.$watch('response', function() {
+        $scope.model.response.$dirty = !angular.equals(
+            $scope.model.response, $scope.lastSavedResponse);
+    }, true);
+}
+
+$scope.$on('save-response', function(args) { 
+    if (args.targetScope.measures[0].response.approval) {
+        $scope.model.response.approval=args.targetScope.measures[0].response.approval;
+    }
+    //$scope.$parent.question.total = $scope.$parent.question.total+$scope.response.questions;
+    //$scope.$parent.question.answer = $scope.$parent.question.total+$scope.response.answerQuestion;
+    $scope.saveResponse();
+
+});
+
+$scope.$on('reset-response', $scope.resetResponse);
+
+$scope.$watch('measure', function(measure) {
+    $scope.structure = Structure(measure, $scope.submission);
+    $scope.program = $scope.structure.program;
+    $scope.edit = Editor('measure', $scope, {
+        parentId: measure.parent && measure.parent.id,
+        surveyId: measure.parent && measure.parent.survey.id,
+        programId: $scope.program.id
+    });
+    if (!measure.id)
+        $scope.edit.edit();
+
+    if (measure.parents) {
+        var parents = [];
+        for (var i = 0; i < measure.parents.length; i++) {
+            parents.push(Structure(measure.parents[i]));
+        }
+        $scope.parents = parents;
+    }
+});
+$scope.$watch('structure.program', function(program) {
+    $scope.checkRole = Authz({
+        program: $scope.program,
+        submission: $scope.submission,
+    });
+    $scope.editable = ($scope.program.isEditable &&
+        !$scope.structure.deletedItem &&
+        !$scope.submission);
+});
+
+var rtDefChanged = Enqueue(function() {
+    var rtDef = $scope.rt.definition;
+    if (!rtDef) {
+        $scope.rt.responseType = null;
+        return;
+    }
+    $scope.rt.responseType = new responseTypes.ResponseType(
+        rtDef.name, rtDef.parts, rtDef.formula);
+}, 0, $scope);
+$scope.$watch('rt.definition', rtDefChanged);
+$scope.$watch('rt.definition', rtDefChanged, true);
+$scope.$watchGroup(['rt.responseType', 'edit.model'], function(vars) {
+    var responseType = vars[0],
+        measure = vars[1];
+    if (!responseType || !measure || !measure.sourceVars) {
+        // A measure only has source variables when viewed in the context
+        // of a survey.
+        return;
+    }
+    var measureVariables = measure.sourceVars.filter(
+        function(measureVariable) {
+            // Remove bindings that have not been set yet
+            return measureVariable.sourceMeasure;
+        }
+    );
+    measureVariables.forEach(function(measureVariable) {
+        measureVariable.$unused = true;
+    });
+    responseType.unboundVars.forEach(function(targetField) {
+        var measureVariable;
+        for (var i = 0; i < measureVariables.length; i++) {
+            var mv = measureVariables[i];
+            if (mv.targetField == targetField) {
+                mv.$unused = false;
+                return;
+            }
+        }
+        measureVariables.push({
+            targetField: targetField,
+            sourceMeasure: null,
+            sourceField: null,
+        });
+    });
+    measureVariables.sort(function(a, b) {
+        return a.targetField.localeCompare(b);
+    });
+    measure.sourceVars = measureVariables;
+});
+$scope.searchMeasuresToBind = function(term) {
+    return Measure.query({
+        term: term,
+        programId: $scope.structure.program.id,
+        surveyId: $scope.structure.survey.id,
+        withDeclaredVariables: true,
+    }).$promise;
+};
+
+var applyRtSearch = Enqueue(function() {
+    if (!$scope.rt.showSearch)
+        return;
+    ResponseType.query($scope.rt.search).$promise.then(
+        function success(rtDefs) {
+            $scope.rt.searchRts = rtDefs;
+        },
+        function failure(details) {
+            Notifications.set('measure', 'error',
+                "Could not get response type list: " + details.statusText);
+        }
+    );
+}, 100, $scope);
+$scope.$watch('rt.search', applyRtSearch, true);
+$scope.$watch('rt.showSearch', applyRtSearch, true);
+$scope.chooseResponseType = function(rtDef) {
+    ResponseType.get(rtDef, {
+        programId: $scope.structure.program.id
+    }).$promise.then(function(resolvedRtDef) {
+        $scope.rt.definition = resolvedRtDef;
+    });
+    $scope.rt.showSearch = false;
+};
+
+$scope.save = function() {
+    if (!$scope.edit.model)
+        return;
+    if (!$scope.rt.definition) {
+        Notifications.set('edit', 'error',
+            "Could not save: No repsonse type");
+        return;
+    }
+    $scope.rt.definition.$createOrSave().then(
+        function success(definition) {
+            var measure = $scope.edit.model;
+            if (measure.sourceVars) {
+                measure.sourceVars = measure.sourceVars.filter(function(mv) {
+                    return !mv.$unused;
+                });
+            }
+            measure.responseTypeId = definition.id;
+            return $scope.edit.save();
+        },
+        function failure(details) {
+            Notifications.set('edit', 'error',
+                "Could not save: " + details.statusText);
+        }
+    );
+};
+$scope.$on('EditSaved', function(event, model) {
+    $location.url($scope.getUrl(model));
+});
+$scope.$on('EditDeleted', function(event, model) {
+    if (model.parent) {
+        $location.url(format(
+            '/3/qnode/{}?program={}', model.parent.id, model.programId));
+    } else {
+        $location.url(format(
+            '/3/measures?program={}', model.programId));
+    }
+});
+
+$scope.Measure = Measure;
+
+if ($scope.submission) {
+    var t_approval;
+    if (currentUser.role == 'clerk' || currentUser.role == 'org_admin')
+        t_approval = 'final';
+    else if (currentUser.role == 'consultant')
+        t_approval = 'reviewed';
+    else
+        t_approval = 'approved';
+    hotkeys.bindTo($scope)
+        .add({
+            combo: ['ctrl+enter'],
+            description: "Save the response, and mark it as " + t_approval,
+            callback: function(event, hotkey) {
+                $scope.setState(t_approval);
+            }
+        });
+}
+
+$scope.getUrl = function(measure) {
+    if ($scope.structure.submission) {
+        return format('/3/measure/{}?submission={}',
+            measure.id, $scope.structure.submission.id);
+    } else {
+        return format('/3/measure/{}?program={}&survey={}',
+            measure.id, $scope.structure.program.id,
+            $scope.structure.survey && $scope.structure.survey.id || '');
+    }
+};
+
+$scope.getSubmissionUrl = function(submission) {
+    if (submission) {
+        return format('/3/measure/{}?submission={}',
+            $scope.measure.id, submission.id,
+            $scope.parent && $scope.parent.id || '');
+    } else {
+        return format('/3/measure/{}?program={}&survey={}',
+            $scope.measure.id, $scope.structure.program.id,
+            $scope.structure.survey && $scope.structure.survey.id || '');
+    }
+};
+})
