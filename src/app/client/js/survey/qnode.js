@@ -433,6 +433,9 @@ angular.module('upmark.survey.qnode', [
                      submissionId: $scope.submission.id,
                      qnodeId: $scope.qnode.id
                 });
+
+                disableUpdate = true;
+
                 $scope.rnode.$promise.then(
                      function success(rnode) {
                         $scope.rnodeDup = angular.copy(rnode);

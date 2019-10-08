@@ -162,8 +162,8 @@
                 <table class="table table-hover">
                   <tbody>
                   <tr>
-                   <!--<td class="shrink numeric">{{item.seq + 1}}</td>-->
-                   <td class="shrink">{{item.parentSeq}}.{{item.seq + ((currentLevel && currentLevel.indexingFrom !== null && currentLevel.indexingFrom !== undefined) ? currentLevel.indexingFrom : 1)}}</td>                  
+                   <!--<td class="shrink numeric">{{item.parentSeq}}.{{item.seq + 1}}</td>-->
+                   <td class="shrink">{{item.parent.seq+1}}.{{item.seq + ((currentLevel && currentLevel.indexingFrom !== null && currentLevel.indexingFrom !== undefined) ? currentLevel.indexingFrom : 1)}}</td>                  
                    <td any-href="/3/measure/{{item.id}}?{{query}}" ng-if="!submission">
                         {{item.title}}
                         <span ng-if="item.error || getStats(item.id).error"
@@ -178,23 +178,29 @@
                              <i class="fa fa-exclamation-triangle"></i>
                         </span>
                     </td>
-                <!--   <td class="shrink text-muted numeric"
-                    title="Score"
-                    ng-if="submission && checkRole('submission_view_aggregate_score')">
-                <span>{{getStats(item.id).score | number:0}}</span>
-                <span ng-if="!structure.program.hideAggregate"
-                    ><span class="text-muted hidden-sm hidden-xs">/</span
-                    ><br class="visible-sm visible-xs"
-                    ><span class="denominator-sm denominator-xs"
-                        >{{item.weight | number:0}}</span
-                    ></span
-                >
-                   </td>-->
-                   <td class="shrink text-muted numeric"
-                    title="Weight"
-                    ng-if="!submission && checkRole('submission_view_aggregate_score')">
-                {{item.weight | number:0}}
-                   </td>
+                        <!--<td class="shrink text-muted numeric"
+                             title="Score"
+                             ng-if="submission && checkRole('submission_view_aggregate_score')">
+                            <span>{{getStats(item.id).score | number:0}}</span>
+                            <span ng-if="!structure.program.hideAggregate">
+                            <span class="text-muted hidden-sm hidden-xs">/</span>
+                            <br class="visible-sm visible-xs">
+                            <span class="denominator-sm denominator-xs">
+                                {{item.weight | number:0}}</span>
+                            </span>
+                        </td>-->
+                        <td class="shrink text-muted numeric"
+                             title="Weight"
+                             ng-if="submission && checkRole('submission_view_aggregate_score')">
+                            <!--<span>{{getStats(item.id).score | number:0}}</span>
+                            <span ng-if="!structure.program.hideAggregate">
+                            <span class="text-muted hidden-sm hidden-xs">/</span>-->
+                            <br class="visible-sm visible-xs">
+                            <span class="denominator-sm denominator-xs">
+                                {{item.weight | number:0}}</span>
+                            </span>
+                        </td>
+
                   <!-- <td class="shrink" ng-if="submission">
                 <column-progress items="getStats(item.id).progressItems">
                  </column-progress>
@@ -218,18 +224,20 @@
                    title="Drag to reorder"
                    highlight highlight-half>
                        <i class="fa fa-fw fa-unsorted"></i></span></td>-->
-                   <td class="shrink grab-handle" ng-if="rnode">
-                <button class="btn-round btn btn-default"
-                    ng-click="toggleDropdown(item.showMeasureDetail)">
-                    <i class="fa fa-caret-up"
-                       ng-if="!item.showMeasureDetail"></i>
-                    <i class="fa fa-caret-down"
-                       ng-if="item.showMeasureDetail"></i>
-                </button>
-                   </td>
-                  </tr>
-                  
-                
+                       <td class="shrink grab-handle" ng-if="rnode">
+                            <button class="btn-round btn btn-default"
+                              ng-click="toggleDropdown(item.showMeasureDetail)">
+                              <i class="fa fa-caret-up"
+                              ng-if="!item.showMeasureDetail"></i>
+                              <i class="fa fa-caret-down"
+                              ng-if="item.showMeasureDetail"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>  
+            <table class="table table-hover"  ng-hide="item.showMeasureDetail"  ng-controller='MeasuresCtrl' >
+                    <tbody>    
                 <tr ng-if="rnode">
                     <td colspan="9">
                       <div ng-hide="item.showMeasureDetail" class="container" ng-controller='MeasuresCtrl'>
