@@ -47,30 +47,13 @@ class ResponseNodeHandler(base_handler.BaseHandler):
             else:
                 # Create an empty one, and roll back later (because GET
                 # shouldn't modify anything).
-
-                ## seperrate for fix issue by tang
-                ## qnode, submission = (
-                ##    session.query(model.QuestionNode, model.Submission)
-                ##    .join(model.Program)
-                ##    .join(model.Submission)
-                ##    .filter(model.QuestionNode.id == qnode_id,
-                ##            model.Submission.id == submission_id)
-                ##    .first())
-                qnode = (
-                    session.query(model.QuestionNode) #, model.Submission)
+                qnode, submission = (
+                    session.query(model.QuestionNode, model.Submission)
                     .join(model.Program)
                     .join(model.Submission)
                     .filter(model.QuestionNode.id == qnode_id,
                             model.Submission.id == submission_id)
                     .first())
-                    
-                submission = (
-                    session.query(model.Submission)
-                    .join(model.Program)
-                    .join(model.QuestionNode)
-                    .filter(model.QuestionNode.id == qnode_id,
-                            model.Submission.id == submission_id)
-                    .first())    
                 if not qnode:
                     raise errors.MissingDocError("No such category")
                 rnode = model.ResponseNode(

@@ -12,7 +12,6 @@ angular.module('upmark.survey.history', [
             service: '=service',
             queryParams: '=queryParams',
             itemTemplateUrl: '@itemTemplateUrl',
-            isQnode: '@',
         },
         templateUrl: '/history.html',
         controller: function($scope, Notifications) {
@@ -69,13 +68,6 @@ angular.module('upmark.survey.history', [
             };
 
             $scope.navigate = function(version) {
-                if ($scope.isQnode)
-                {
-                    //$scope.$broadcast('show-history',  version);
-                    $scope.$emit('get-history-fromQnode',  version);
-                }
-                else
-                {
                 var params = angular.merge(
                     angular.copy($scope.queryParams),
                     {version: version.version}
@@ -91,23 +83,7 @@ angular.module('upmark.survey.history', [
                             details.statusText;
                     }
                 );
-                }
             };
-
-            /*$scope.$on('show-history', function(event, version) {
-                if (!$scope.isQnode)
-                {
-                    $scope.navigate(version);
-                }
-            });*/
-
-            $scope.$on('get-history', function(event, version) {
-                if (!$scope.isQnode)
-                {
-                    $scope.navigate(version);
-                }
-            });
-
             $scope.isActive = function(version) {
                 if (!$scope.model)
                     return false;

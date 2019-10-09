@@ -1,4 +1,4 @@
-<responses-form type="rt.responseType" model="model.response"
+<response-form type="rt.responseType" model="model.response"
         weight="measure.weight"
         readonly="!!structure.deletedItem"
         has-quality="structure.program.hasQuality"
@@ -47,7 +47,7 @@
                       'btn-default'"
             ng-if="!structure.deletedItem">
         <i class="fa fa-check fa-fw"></i></button>
-</responses-form>
+</response-form>
 
 <div class="part" ng-class="structure.deletedItem ? 'ng-hide' : 'hidden-print'"
         ng-if="structure.program.hasQuality">
