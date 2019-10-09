@@ -1,4 +1,4 @@
-<responses-form type="rt.responseType" model="model.response"
+<response-sub-form type="rt.responseType" model="model.response"
         weight="measure.weight"
         readonly="!!structure.deletedItem"
         has-quality="structure.program.hasQuality"
@@ -20,7 +20,7 @@
         query-params="{measureId: measure.id, submissionId: submission.id}"
         item-template-url="/inline/response_history_item.html"></history>
 
-    <button class="btn btn-round btn-on-danger"
+    <!--<button class="btn btn-round btn-on-danger"
             title="Not relevant"
             ng-click="toggleNotRelvant()"
             ng-class="{active: model.response.notRelevant}">
@@ -46,8 +46,8 @@
                       'btn-primary btn-alert' :
                       'btn-default'"
             ng-if="!structure.deletedItem">
-        <i class="fa fa-check fa-fw"></i></button>
-</responses-form>
+        <i class="fa fa-check fa-fw"></i></button>-->
+</response-sub-form>
 
 <div class="part" ng-class="structure.deletedItem ? 'ng-hide' : 'hidden-print'"
         ng-if="structure.program.hasQuality">
@@ -65,11 +65,11 @@
     </ordered-buttons>
 </div>
 
-<div class="part" ng-class="structure.deletedItem ? 'ng-hide' : 'hidden-print'">
+<!--<div class="part" ng-class="structure.deletedItem ? 'ng-hide' : 'hidden-print'">
     <label>Approval</label>
     <approval-buttons model="model.response.approval"
             ng-if="!structure.deletedItem"></approval-buttons>
-</div>
+</div>-->
 
 <div ng-class="structure.deletedItem ? null : 'visible-print-block'">
     Quality: <span class="print-field">{{model.response.quality}}</span>
@@ -121,7 +121,7 @@
     </p>
 </docs>
 
-<div ng-controller="ResponseAttachmentCtrl">
+<!--<div ng-controller="ResponseAttachmentCtrl">
 <div class="section">
     <div class="toolbar" ng-if="!structure.deletedItem">
         <button class="btn btn-default btn-round"
@@ -323,7 +323,7 @@
         <i class="fa fa-history"></i>
         Response not submitted yet.
     </p>
-</div>
+</div>-->
 
 <div ng-include src="'/inline/measure_variable_list.html'"
     class="hidden-print"></div>

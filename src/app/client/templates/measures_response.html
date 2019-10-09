@@ -1,8 +1,8 @@
-<responses-form type="rt.responseType" model="model.response"
+<responses-form type="rt.responseType" model="item.response"  is-response="true"
         weight="measure.weight"
         readonly="!!structure.deletedItem"
         has-quality="structure.program.hasQuality"
-        externs="model.response.sourceVars">
+        externs="item.response.sourceVars">
 
     <script type="text/ng-template" id="/inline/response_history_item.html">
         <span class="field field-2">
@@ -16,16 +16,16 @@
         </span>
         <span print-friendly-timeago="version.modified"></span>
     </script>
-    <history model="model.response" service="Response"
+    <history model="item.response" service="Response"
         query-params="{measureId: measure.id, submissionId: submission.id}"
         item-template-url="/inline/response_history_item.html"></history>
 
     <button class="btn btn-round btn-on-danger"
             title="Not relevant"
             ng-click="toggleNotRelvant()"
-            ng-class="{active: model.response.notRelevant}">
+            ng-class="{active: item.response.notRelevant}">
         <i class="fa fa-ban fa-fw"></i></button>
-    <docs ng-if="model.response.notRelevant" class="printable">
+    <docs ng-if="item.response.notRelevant" class="printable">
         <i class="fa-li fa fa-ban fa-border"></i>
         <p>
             This response is marked as not relevant. It does not
@@ -42,7 +42,7 @@
     <button class="btn btn-round"
             title="Save response"
             ng-click="saveResponse()"
-            ng-class="model.response.$dirty ?
+            ng-class="item.response.$dirty ?
                       'btn-primary btn-alert' :
                       'btn-default'"
             ng-if="!structure.deletedItem">
@@ -52,7 +52,7 @@
 <div class="part" ng-class="structure.deletedItem ? 'ng-hide' : 'hidden-print'"
         ng-if="structure.program.hasQuality">
     <label>Quality</label>
-    <ordered-buttons ng-model="model.response.quality">
+    <ordered-buttons ng-model="item.response.quality">
         <ordered-button value="1">
             1 <span class="text-muted">Low</span>
         </ordered-button>
@@ -67,13 +67,13 @@
 
 <div class="part" ng-class="structure.deletedItem ? 'ng-hide' : 'hidden-print'">
     <label>Approval</label>
-    <approval-buttons model="model.response.approval"
+    <approval-buttons model="item.response.approval"
             ng-if="!structure.deletedItem"></approval-buttons>
 </div>
 
 <div ng-class="structure.deletedItem ? null : 'visible-print-block'">
-    Quality: <span class="print-field">{{model.response.quality}}</span>
-    Status: <span class="print-field">{{model.response.approval}}</span>
+    Quality: <span class="print-field">{{item.response.quality}}</span>
+    Status: <span class="print-field">{{item.response.approval}}</span>
 </div>
 
 <docs>
@@ -306,20 +306,20 @@
 </div>
 
 <div>
-    <p ng-if="model.response.user.name" class="small spaced text-center text-muted">
+    <p ng-if="item.response.user.name" class="small spaced text-center text-muted">
         <i class="fa fa-history"></i>
-        Version {{model.response.version}} submitted by
-        <a ng-href="#/3/user/{{model.response.user.id}}">
-            {{model.response.user.name}}</a>,
-        <span print-friendly-timeago="model.response.modified"></span>.
-        <span ng-if="model.response.$dirty" class="visible-print-inline">
+        Version {{item.response.version}} submitted by
+        <a ng-href="#/3/user/{{item.response.user.id}}">
+            {{item.response.user.name}}</a>,
+        <span print-friendly-timeago="item.response.modified"></span>.
+        <span ng-if="item.response.$dirty" class="visible-print-inline">
             Some modifications have not been saved.
         </span>
         <span>
             Attachments are not versioned.
         </span>
     </p>
-    <p ng-if="!model.response.user.name" class="spaced text-center">
+    <p ng-if="!item.response.user.name" class="spaced text-center">
         <i class="fa fa-history"></i>
         Response not submitted yet.
     </p>

@@ -141,6 +141,21 @@ angular.module('upmark.response.type', [
             }
         }, this);
     };
+
+    //check responses depend on choose by detang on 17/09/2019
+    ResponseType.prototype.validateResponses = function(responseParts, scope) {
+        this.zip(responseParts).forEach(function(part, index) {
+            try {
+                part.schema.validate(part.data, scope);
+            } catch (e) {
+              //empty response if choose make it invalid 
+              delete part.data.index;
+              delete part.data.note;
+            }
+        }, this);
+    };
+
+
     ResponseType.prototype.calculate_score = function(responseParts) {
         if (!responseParts || responseParts.length != this.parts.length)
             throw "Response is incomplete.";
@@ -164,6 +179,9 @@ angular.module('upmark.response.type', [
         this.name = pDef.name;
         this.type = pDef.type;
         this.description = pDef.description;
+        if (pDef.submeasure) {
+            this.submeasure=pDef.submeasure;
+        }
     };
 
 
@@ -426,6 +444,164 @@ angular.module('upmark.response.type', [
         },
         link: function(scope, elem, attrs) {
         },
+    };
+})
+
+
+.directive('responseTypesEditor', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            rt: '=responseTypesEditor',
+            weight: '=',
+            isBound: '=',
+        },
+        templateUrl: 'response_types_editor.html',
+        controller:  function($scope, Numbers, responseTypes, $timeout, Enqueue) {
+            $scope.$watch('rt', function(rt) {
+                $scope.rtEdit = {
+                    rt: rt,
+                    responseType: null,
+                    externs: {},
+                    response: {
+                        responseParts: [],
+                        comment: ''
+                    },
+                    activeTab: 'details',
+                };
+            });
+            $scope.addPart = function(rt, $event) {
+                var ids = {};
+                for (var i = 0; i < rt.parts.length; i++) {
+                    ids[rt.parts[i].id] = true;
+                }
+                var id;
+                for (var i = 0; i <= rt.parts.length; i++) {
+                    id = Numbers.idOf(i);
+                    if (!ids[id])
+                        break;
+                }
+                var part = {
+                    id: id,
+                    name: 'Response part ' + id.toUpperCase(),
+                };
+                $scope.setType(part, 'multiple_choice');
+                rt.parts.push(part);
+                $scope.updateFormula(rt);
+
+                $timeout(function() {
+                    $scope.rtEdit.activeTab = rt.parts.indexOf(part);
+                });
+            };
+            $scope.setType = function(part, type) {
+                part.type = type;
+                if (type == 'multiple_choice' && !part.options) {
+                    part.options = [
+                        {score: 0, name: 'No', 'if': null},
+                        {score: 1, name: 'Yes', 'if': null}
+                    ];
+                }
+            };
+            $scope.addOption = function(part) {
+                part.options.push({
+                    score: 0,
+                    name: 'Option ' + (part.options.length + 1)
+                })
+            };
+            $scope.updateFormula = function(rt) {
+                if (rt.parts.length <= 1) {
+                    rt.formula = null;
+                    return;
+                }
+                var formula = "";
+                for (var i = 0; i < rt.parts.length; i++) {
+                    var part = rt.parts[i];
+                    if (i > 0)
+                        formula += " + ";
+                    if (part.id)
+                        formula += part.id;
+                    else
+                        formula += "?";
+                }
+                rt.formula = formula;
+            };
+            $scope.remove = function(rt, list, item) {
+                var i = list.indexOf(item);
+                if (i < 0)
+                    return;
+                list.splice(i, 1);
+                if (item.options)
+                    $scope.updateFormula(rt);
+            };
+
+            var rtDefChanged = Enqueue(function() {
+                var rtDef = $scope.rtEdit.rt;
+                if (!rtDef) {
+                    $scope.rtEdit.responseType = null;
+                    return;
+                }
+                $scope.rtEdit.responseType = new responseTypes.ResponseType(
+                    rtDef.name, rtDef.parts, rtDef.formula);
+            }, 0, $scope);
+            $scope.$watch('rtEdit.rt', rtDefChanged);
+            $scope.$watch('rtEdit.rt', rtDefChanged, true);
+
+            $scope.partTypes = [
+                {name: 'multiple_choice', desc: 'Multiple choice'},
+                {name: 'numerical', desc: 'Numerical'},
+            ];
+            $scope.partTypeMap = $scope.partTypes.reduce(function(ts, t){
+                ts[t.name] = t.desc;
+                return ts;
+            }, {});
+
+            $scope.$watchGroup(['rt.nMeasures', 'isBound'], function(vars) {
+                var nMeasures = vars[0];
+                if ($scope.isBound)
+                    $scope.nMeasures = nMeasures - 1;
+                else
+                    $scope.nMeasures = nMeasures;
+            });
+
+            //$scope.loadFooItems= function(rt, list, item) {
+            //    $scope.rtEdit.activeTab = "preview";
+               // var i = list.indexOf(item);
+                //if (i < 0)
+                 //   return;
+                //list.splice(i, 1);
+                //if (item.options)
+                //    $scope.updateFormula(rt);
+            //};
+            //this.setActiveTab = function() { 
+            //    $scope.rtEdit.activeTab = "preview";
+            //};
+        },
+        link: function(scope, elem, attrs) {
+            //ngCtrl.setActiveTab();
+            //$scope.setActiveTab();
+            //var notSetActiveTab=true;
+            if (scope.$parent.$parent.$parent.$parent.previewList) {
+                scope.$parent.$parent.$parent.$parent.previewList.push(scope);
+            }
+            else {
+                scope.$parent.$parent.$parent.$parent.previewList=[scope];
+            }
+             
+            scope.setActiveTab = function(tab) { 
+                //if (setActiveTab) {
+                    angular.forEach(scope.$parent.$parent.$parent.$parent.previewList,function(s,i){
+                        //if (tab!='')
+                           s.rtEdit.activeTab = tab;
+                        //else
+                        //   s.rtEdit.activeTab = 'details'; 
+                    })
+                }
+                
+           // };           
+            //console.log(elem.controller('responseTypesEditor'));
+        },
+
+
     };
 })
 
