@@ -130,15 +130,7 @@ angular.module('upmark.survey', [
             $scope.$watch('structure', function(){
                 $scope.currentSurveyGroup = null;
                 $scope.setSurveyGroup()
-            });
-            
-            $scope.getIndexingFrom = function(){
-                var result = 1;
-                var upperLevel = $scope.structure.survey.structure.levels[$scope.upItem.level];
-                if(upperLevel && upperLevel.hasMeasures && upperLevel.indexingFrom !== null && upperLevel.indexingFrom !== undefined)
-                    result = upperLevel.indexingFrom;
-                return result;
-            };           
+            })
         }]
     }
 }])

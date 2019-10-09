@@ -149,16 +149,6 @@ class SurveyHandler(base_handler.BaseHandler):
             if not program:
                 raise errors.ModelError("No such program")
 
-            ## set only last level indexing_form 1 if no value, remove other level indexing_form 
-            levels=len(self.request_son.structure.levels)
-
-            for i, l in enumerate(self.request_son.structure.levels): 
-                if i+1 != levels and l.indexing_from:
-                    del l.indexing_from
-                if i+1 == levels and (not l.indexing_from):
-                    l.indexing_from=1
-
-
             survey = model.Survey(program=program)
             self._update(survey, self.request_son)
             session.add(survey)
@@ -201,16 +191,6 @@ class SurveyHandler(base_handler.BaseHandler):
                 .get((survey_id, program_id)))
             if not survey:
                 raise errors.MissingDocError("No such survey")
-
-            ## set only last level indexing_form 1 if no value, remove other level indexing_form 
-            levels=len(self.request_son.structure.levels)
-
-            for i, l in enumerate(self.request_son.structure.levels): 
-                if i+1 != levels and l.indexing_from:
-                    del l.indexing_from
-                if i+1 == levels and (not l.indexing_from):
-                    l.indexing_from=1
-
             self._update(survey, self.request_son)
 
             policy = user_session.policy.derive({

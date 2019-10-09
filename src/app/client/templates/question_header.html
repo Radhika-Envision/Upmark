@@ -59,8 +59,7 @@
     </a>
     <span ng-if="item.entity.title && $last">
         <span ng-if="item.entity.seq != null">
-            {{item.entity.seq + getIndexingFrom()}}.
-        </span>
+            {{item.entity.seq + 1}}.</span>
         <page-title>
             <span class="hidden">{{item.lineage}}</span>
             {{item.entity.title}}

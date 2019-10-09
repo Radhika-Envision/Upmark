@@ -88,11 +88,6 @@ class ResponseHandler(base_handler.BaseHandler):
                 r'/id$',
                 r'/title$',
                 r'/name$',
-                r'/description$',               
-                r'/seq$',
-                r'/parent$',
-                r'/parents$',
-                r'/parents/[0-9]+$',
                 # Fields to match from only the root object
                 r'^/submission_id$',
                 r'^/measure_id$',
@@ -112,8 +107,6 @@ class ResponseHandler(base_handler.BaseHandler):
                 r'/measure$',
                 r'/submission$',
                 r'/user$',
-                r'/qnode_measure$',
-                r'/parents$',
             )
 
             if dummy:

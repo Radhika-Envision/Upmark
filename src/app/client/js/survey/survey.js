@@ -98,8 +98,7 @@ angular.module('upmark.survey.survey', [
                 levels: [{
                     title: 'Categories',
                     label: 'C',
-                    hasMeasures: true,
-                    indexingFrom: 1
+                    hasMeasures: true
                 }]
             }
         });
@@ -130,7 +129,6 @@ angular.module('upmark.survey.survey', [
         model.structure.levels.push({
             title: '',
             label: '',
-            indexingFrom: 1,
             hasMeasures: true
         });
     };
@@ -142,8 +140,6 @@ angular.module('upmark.survey.survey', [
         model.structure.levels.splice(i, 1);
         if (model.structure.levels.length == 1)
             model.structure.levels[0].hasMeasures = true;
-        if (!model.structure.levels[model.structure.levels.length-1].indexingFrom)
-            model.structure.levels[model.structure.levels.length-1].indexingFrom=1;    
     };
 
     $scope.download = function(export_type) {
