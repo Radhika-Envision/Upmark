@@ -73,7 +73,7 @@
 <div ng-if="!edit.model && qnode.description || rnode" class="container">
     <div ng-if="rnode" class="stats">
         <div class="toolbar" ng-if="!showBulkApproval && !showBulkNa">
-            <button class="btn btn-default btn-round hidden-print"
+         <!--   <button class="btn btn-default btn-round hidden-print"
                     title="Bulk approval"
                     ng-click="toggleBulk()">
                 <i class="fa fa-fw"
@@ -86,7 +86,7 @@
                     highlight="showBulkNa"
                     highlight-dismiss="toggleBulkNa()">
                 <i class="fa fa-fw fa-ban"></i>
-            </button>
+            </button>-->
         </div>
         <div class="toolbar" ng-if="showBulkApproval"
                 highlight="showBulkApproval"
@@ -117,7 +117,7 @@
 
         <div class="stats-group">
             <span title="Score"
-                  ng-if="rnode.score != null && !structure.program.hideAggregate">
+                ng-if="rnode.score != null && !structure.program.hideAggregate && (!currentLevel.hasMeasures || rnode.notRelevant || edit.model)">
                 {{rnode.score | number:0}}
             </span>
             <span title="Progress">
@@ -134,7 +134,7 @@
 
             <docs>
                 <i class="fa-li fa fa-bar-chart fa-border"></i>
-                <h3>Scores and Progress</h3>
+                <h3>Scores and/or Progress</h3>
                 <p>
                     The score of a survey category is the sum of the scores of
                     the responses to its measures. To fill out this category,
@@ -202,6 +202,86 @@
                 </p>
             </docs>
         </div> <!-- class="stats-group"-->
+
+        <div class="stats-group" ng-if="currentLevel.hasMeasures && !rnode.notRelevant && !edit.model">
+                <span title="Score"
+                    ng-if="rnode.score != null && !structure.program.hideAggregate">
+                    {{rnode.score | number:0}}
+                </span>
+    
+                <span title="Answers"
+                      ng-if="totalAnswer != null && !structure.program.hideAggregate">
+                      {{totalAnswer | number:0}} 
+                </span>
+                /
+                <span title="Questions"
+                      ng-if="totalQuestion != null && !structure.program.hideAggregate">
+                      {{totalQuestion | number:0}}
+                </span>
+
+                <docs>
+                        <i class="fa-li fa fa-bar-chart fa-border"></i>
+                        <h3>Scores and Questions</h3>
+                        <p>
+                            The score of a survey category is the sum of the scores of
+                            the responses to its measures. To fill out this category,
+                            <abbr title="click through to lower/deeper categories and measures">
+                                drill-down</abbr>
+                            to the measures and respond to them.
+                        </p>
+                    </docs>
+
+            </div><!-- class="stats-group"-->
+
+
+
+
+        <div class="stats-group"  ng-if="currentLevel.hasMeasures && !rnode.notRelevant && !edit.model">
+            <script type="text/ng-template" id="/inline/response_history_item.html">
+                    <span class="field field-2">
+                        {{version.version}}
+                    </span>
+                    <span class="field field-4">
+                        {{version.approval}}
+                    </span>
+                    <span class="field field-8">
+                        {{version.user.name}}
+                    </span>
+                    <span print-friendly-timeago="version.modified"></span>
+            </script>
+            <history model="measures[0]" service="responseHistory.Response"
+                      query-params="{measureId: measures[0].id, submissionId: submission.id}"
+                      item-template-url="/inline/response_history_item.html" is-qnode='true'></history>
+     
+    
+             <!-- <button class="btn btn-round btn-on-danger"
+                     title="Not relevant"
+                     ng-click="toggleNotRelvant()"
+                     ng-class="{active: item.response.notRelevant}">
+                     <i class="fa fa-ban fa-fw"></i></button>
+             <docs ng-if="item.response.notRelevant" class="printable">
+                   <i class="fa-li fa fa-ban fa-border"></i>
+                   <p>
+                      This response is marked as not relevant. It does not
+                      contribute to the submission's score.
+                   </p>
+             </docs>-->
+
+            <button class="btn btn-default btn-round"
+                 title="Reset"
+                 ng-click="resetAllResponses()"
+                 ng-if="!structure.deletedItem">
+                 <i class="fa fa-times fa-fw"></i></button>
+     
+            <button class="btn btn-round"
+                 title="Save response"
+                 ng-click="saveAllResponses()"
+                 ng-class="item.response.$dirty ?
+                      'btn-primary btn-alert' :
+                      'btn-default'"
+                 ng-if="!structure.deletedItem">
+                 <i class="fa fa-check fa-fw"></i></button>
+         </div>
     </div>
 
     <div class="popover-container" ng-if="showBulkApproval">

@@ -37,6 +37,69 @@ angular.module('vpac.widgets.editor', [
         var success = function(model, getResponseHeaders) {
             try {
                 log.debug("Success");
+                if (model.obType=='measure')
+                {
+                    if (model.responseType && model.responseType.parts.length>0 
+                        && model.responseType.parts[0]['submeasure']){
+                            model.hasSubMeasures=true;
+                            model.rt=model.responseType;
+                            // create SubMeasures
+                            var subMeasures=[];
+                            var submeasure_id=[];
+                            angular.forEach(model.responseType.parts,function(item,index){
+                                if (subMeasures.length==0) {
+                                    model.subMeasureList.forEach(function(sub,i){
+                                        if (sub.id==item.submeasure) {
+                                            subMeasures.push({ 'id':item['submeasure'],
+                                            'description': sub['description'],
+                                            'rt':{'definition':{'parts':[item],'name':sub['title']}},
+                                            //'name': sub['title'],                            
+                                           })
+                                        }
+                                   
+                                    })
+
+
+                                    /*subMeasures.push({ 'id':item['submeasure'],
+                                    'description': item['description'],
+                                    'rt':{'definition':{'parts':[item]}}
+                                   })*/
+                                }
+                                else
+                                {
+                                    var notFoundSubmeasure=true;
+                                    angular.forEach(subMeasures,function(s,i){
+                                        if (s.id==item['submeasure']){
+                                            s.rt.definition.parts.push(item);
+                                            notFoundSubmeasure=false;
+                                        }
+            
+                                    })
+                                    if (notFoundSubmeasure) {
+                                        model.subMeasureList.forEach(function(sub,i){
+                                            if (sub.id==item.submeasure) {
+                                                subMeasures.push({ 'id':item['submeasure'],
+                                                'description': sub['description'],
+                                                'rt':{'definition':{'parts':[item],'name':sub['title']}},
+                                                //'name': sub['title'],
+                                               })
+                                            }
+                                       
+                                        })  
+                                        /*subMeasures.push({ 'id':item['submeasure'],
+                                              'description':item['description'],
+                                              'rt':{'definition':{'parts':[item]}}
+                                        })*/
+                                    }
+                                }
+                                
+            
+                            })
+                            model['subMeasures']=subMeasures;
+                        }
+            
+
+                }
                 that.getter.assign(that.scope, model);
                 that.model = null;
                 that.scope.$emit('EditSaved', model);

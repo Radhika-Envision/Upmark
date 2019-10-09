@@ -21,7 +21,8 @@ from sqlalchemy.orm import backref, foreign, relationship, remote, \
     validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.schema import ForeignKeyConstraint, UniqueConstraint
-from voluptuous import All, Length, Schema
+from voluptuous import All, Length, Schema, Optional
+
 from voluptuous.humanize import validate_with_humanized_errors
 
 import response_type
@@ -138,7 +139,8 @@ class Survey(Observable, Base):
             {
                 'title': All(str, Length(min=1)),
                 'label': All(str, Length(min=1, max=2)),
-                'has_measures': bool
+                'has_measures': bool,
+                Optional('indexing_from'): int
             }
         ], Length(min=1)),
         'measure': {
@@ -470,8 +472,12 @@ class ResponseType(Observable, Base):
 
     @validates('parts')
     def validate_parts(self, k, parts):
+        ## add for submeasure by datang 11/9/2019
+        ##if (len(parts)==1 and parts[0].keys[0]=='submeasure'):
+        ##    return parts
+            
         parts = validate_with_humanized_errors(
-            parts, response_type.response_parts_schema)
+           parts, response_type.response_parts_schema)
         response_type.validate_parts(parts)
         return parts
 

@@ -357,7 +357,7 @@ class Attachment(Base):
         GUID, ForeignKey("organisation.id"), nullable=False)
     submission_id = Column(GUID, nullable=False)
     measure_id = Column(GUID, nullable=False)
-
+    submeasure_id = Column(GUID, nullable=True)
     storage = Column(
         Enum('external', 'aws', 'database', native_enum=False),
         nullable=False)

@@ -164,11 +164,12 @@ class Activities:
         broadcast = cast(['broadcast'], ARRAY(VARCHAR))
         query = (
             query
+            .outerjoin(act_ref, sa.true()) ## move to here by tang
             .add_columns(
                 act_ref.c.unnest,
                 act_ref.c.ordinality,
                 model.Subscription.subscribed)
-            .outerjoin(act_ref, sa.true())
+            ## .outerjoin(act_ref, sa.true())
             .outerjoin(
                 model.Subscription,
                 model.Subscription.ob_refs[1] == act_ref.c.unnest)
