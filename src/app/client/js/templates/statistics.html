@@ -1,0 +1,268 @@
+<div class="header">
+<div class="container">
+    <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Collapse"
+                ng-click="layout.expandHeader = !layout.expandHeader">
+            <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
+            <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
+        </button>
+        <button class="btn btn-default btn-round" title="Print"
+                onclick="print()">
+            <i class="fa fa-print"></i>
+        </button>
+    </div>
+    <h2 page-title>
+        Box-and-Whisker Plot
+    </h2>
+    <h2 ng-class="layout.expandHeader ? null: 'pull-left'"
+            ng-if="struct2.program && struct1.program.id != struct2.program.id">
+        <span ng-if="!layout.expandHeader">L:</span>
+        <span ng-if="layout.expandHeader">Left:</span>
+    </h2>
+    <question-header entity="qnode1 || submission1.survey"
+        submission="submission1" get-url="getNavUrl"></question-header>
+    <h2 ng-class="layout.expandHeader ? null: 'pull-left'"
+            ng-if="struct2.program && struct1.program.id != struct2.program.id">
+        <span ng-if="!layout.expandHeader">R:</span>
+        <span ng-if="layout.expandHeader">Right:</span>
+    </h2>
+    <question-header entity="qnode2 || submission2.survey"
+        submission="submission2" get-url="getNavUrl"
+        ng-if="struct2.program && struct1.program.id != struct2.program.id"
+        ></question-header>
+</div>
+</div>
+
+<div class="subheader bg-muted">
+
+<div class="container text-muted submission-header">
+    <div class="toolbar">
+        <button class="btn-round btn btn-default"
+                ng-click="toggleDropdown(1)"
+                title="Choose a submission">
+            <i class="fa fa-caret-up"
+                ng-if="chooser == 1"></i>
+            <i class="fa fa-caret-down"
+                ng-if="chooser != 1"></i>
+        </button>
+    </div>
+    <div ng-if="submission2">
+        <span>L:</span>
+    </div>
+    <div title="Organisation 1">
+        <a ng-href="#/3/org/{{submission1.organisation.id}}"
+                class="stealth btn btn-link">
+            {{submission1.organisation.name}}</a>
+    </div>
+    <div title="Submission">
+        <a ng-href="#/3/submission/{{submission1.id}}"
+                class="stealth btn btn-link">
+            {{submission1.title}}</a>
+    </div>
+    <div title="Submission" ng-if="!submission1">
+        <span>
+            No first submission
+        </span>
+    </div>
+</div>
+
+<div class="atop" ng-if="chooser == 1"
+        submission-select="submission1"
+        track program="submission1.program"
+        org="org1"
+        format-url="getSubmissionUrl1"
+        disallow-none="submission2 == null"></div>
+
+<div class="container text-muted submission-header">
+    <div class="toolbar">
+        <button class="btn-round btn btn-default"
+                ng-click="toggleDropdown(2)"
+                title="Choose a second submission to compare against">
+            <i class="fa fa-caret-up"
+                ng-if="chooser == 2"></i>
+            <i class="fa fa-caret-down"
+                ng-if="chooser != 2"></i>
+        </button>
+    </div>
+    <div ng-if="submission2">
+        <span>R:</span>
+    </div>
+    <div title="Organisation 2" ng-if="submission2">
+        <a ng-href="#/3/org/{{submission2.organisation.id}}"
+                class="stealth btn btn-link">
+            {{submission2.organisation.name}}</a>
+    </div>
+    <div title="Submission" ng-if="submission2">
+        <a ng-href="#/3/submission/{{submission2.id}}"
+                class="stealth btn btn-link">
+            {{submission2.title}}</a>
+    </div>
+    <div title="Submission" ng-if="!submission2" class="hidden-print">
+        <span>
+            No second submission
+        </span>
+    </div>
+</div>
+
+<div class="atop" ng-if="chooser == 2"
+        submission-select="submission2"
+        track program="submission1.program"
+        org="org2"
+        format-url="getSubmissionUrl2"
+        disallow-none="submission1 == null"></div>
+
+</div>
+
+<div class="container">
+    <div class="form-group">
+        <approval-buttons model="approval" mode="'gte'"
+                allowed="allowedStates"></approval-buttons>
+    </div>
+</div>
+
+<div class="chart">
+    <div id="chart"></div>
+</div>
+
+<docs>
+    <i class="fa-li fa fa-bar-chart fa-border"></i>
+    <h3>Legend</h3>
+
+    <p ng-if="!submission2">
+        This is a
+        <a href="https://en.wikipedia.org/wiki/Box_plot">
+            box-and-whisker plot</a>
+        of a survey. The values for the chosen submission are plotted
+        against aggregate data for other submissions of the
+        same survey.
+    </p>
+    <img src="images/chart-box-sample.svg"
+        class="img-responsive center-block"
+        ng-if="!submission2">
+    <p ng-if="!submission2">
+        Each column shows eight pieces of information:
+    </p>
+
+    <p ng-if="submission2">
+        This is a
+        <a href="https://en.wikipedia.org/wiki/Box_plot">
+            box and whisker plot</a>
+        of two submissions. The values are plotted
+        against aggregate data for other submissions of the
+        same survey(s).
+    </p>
+    <img src="images/chart-box-sample-compare.svg"
+        class="img-responsive center-block"
+        ng-if="submission2">
+    <p ng-if="submission2">
+        Each column relates to a single sub-category of the current category.
+        The left side of the column shows the values for the first submission
+        (<em>L</em>) while the right side shows the values of the second
+        submission (<em>R</em>).
+        Each side of the column shows eight pieces of information:
+    </p>
+
+    <dl>
+        <dt>Submission value</dt>
+        <dd>
+            The actual score for the sub-category of the <em>selected
+            submission</em>.
+            This is the
+            <span class="underline underline-red"><span>
+                red line</span></span>.
+        </dd>
+
+        <dt>Upper bound</dt>
+        <dd>
+            The maximum possible score for the sub-category of the
+            <em>survey</em>. This is shown as the line at the top of
+            the chart.
+        </dd>
+
+        <dt>Max</dt>
+        <dd>
+            The actual
+            <a href="https://en.wikipedia.org/wiki/Maxima_and_minima">
+                maximum</a>
+            score for the sub-category of
+            all submissions across all organisations. 100% of
+            all submissions have a score less than or equal to this
+            value.
+            This is the
+            <span class="underline"><span>top whisker</span></span>.
+        </dd>
+
+        <dt>3rd quartile</dt>
+        <dd>
+            The third
+            <a href="https://en.wikipedia.org/wiki/Quartile">
+                quartile</a>;
+            75% of all submissions have a score less than or equal to
+            this value.
+            This is the top of the box.
+        </dd>
+
+        <dt>Median</dt>
+        <dd>
+            The second quartile.
+            50% of all submissions have a score less than or equal to
+            <a href="https://en.wikipedia.org/wiki/Median">
+                the median</a>.
+            This is the
+            <span class="underline underline-blue"><span>
+                blue line</span></span>.
+        </dd>
+
+        <dt>1st quartile</dt>
+        <dd>
+            The first quartile.
+            25% of all submissions have a score less than or equal to
+            this value.
+            This is the bottom of the box.
+        </dd>
+
+        <dt>Min</dt>
+        <dd>
+            The actual
+            <a href="https://en.wikipedia.org/wiki/Maxima_and_minima">
+                minimum</a>
+            score for the sub-category of the
+            all submissions across all organisations. 0% of
+            all submissions have a score less than or equal to this
+            value.
+            <span class="underline"><span>bottom whisker</span></span>.
+        </dd>
+
+        <dt>Lower bound</dt>
+        <dd>
+            The minimum possible score for the sub-category of the
+            <em>survey</em>. This is shown as the line at the bottom of
+            the chart.
+        </dd>
+    </dl>
+</docs>
+
+<docs>
+    <i class="fa-li fa fa-mouse-pointer fa-border"></i>
+    <h3>Interactivity</h3>
+    <p>
+        Hold your mouse over a column to see the numerical values.
+        Click on a column to
+        <a href="https://en.wikipedia.org/wiki/Drill_down">drill down</a>
+        into that sub-category.
+    </p>
+</docs>
+
+<docs>
+    <i class="fa-li fa fa-chevron-right fa-border"></i>
+    <h3>Approval</h3>
+    <p>
+        You can filter submissions by approval state by clicking on the
+        approval buttons. Higher levels of approval are included as well, e.g.
+        if you choose
+        <em class="text-bar2">final</em> then
+        <em class="text-bar3">reviwed</em> and
+        <em class="text-bar4">approved</em>
+        submissions are included in the aggregate statistics too.
+    </p>
+</docs>

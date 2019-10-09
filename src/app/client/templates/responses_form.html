@@ -1,0 +1,147 @@
+<div class="response">
+
+        <div>
+            <div class="toolbar compact">
+                <span ng-if="!edit.model" ng-transclude></span>
+            </div>
+            <h2>
+                Response
+        
+                <span class="text-muted" ng-if="isDummy">(sample)</span>
+                <span class="text-muted" ng-if="!isDummy">
+                    <small ng-if="state.message">
+                        <i class="fa fa-exclamation fa-fw"></i> {{state.message}}
+                    </small>
+                    <small ng-if="!state.message">
+                        <i class="fa fa-check fa-fw"></i> OK
+                    </small>
+                </span>
+        
+                <span class="text-muted pull-right" title="Score (weighted)"
+                    ><span class="visible-print-inline">Score</span
+                    >&nbsp;<span
+                          ng-if="checkRole('submission_view_single_score') && rt.parts.length"
+                          class="print-field"
+                    >{{state.score * weight | number:0}}</span
+                ></span>
+            </h2>
+        </div>
+        
+        <ol class="responses list-unstyled" ng-if="!response.notRelevant">
+            <li ng-repeat="partSchema in rt.parts"
+                    ng-class="{active: $index == state.active}"
+                    title="{{partSchema.description}}"
+                    class="clearfix part">
+                <div ng-if="partSchema.description" class="hidden-print" ng-hide="readonly">
+                            <label ng-click="state.active = $index">
+                                <span>{{partSchema.description}}</span>
+                            </label>
+                </div>                   
+                <div ng-if="partSchema.name" class="hidden-print" ng-hide="readonly">
+                    <label ng-click="state.active = $index">
+                        <span>{{partSchema.name}}</span>
+                    </label>
+                </div>
+                <div class="hidden-print" ng-hide="readonly"
+                        ng-init="partData = getPartData(partSchema)">
+                    <div class="btn-group btn-group-justified">
+                        <div class="btn-group"
+                                ng-if="partSchema.type == 'multiple_choice'"
+                                ng-repeat="o in partSchema.options">
+                            <button class="btn btn-default"
+                                    ng-class="{active: getPartData(partSchema).index == $index}"
+                                    ng-click="choose(partSchema, o)"
+                                    ng-disabled="!available(o)"
+                                    title="{{o.description || partSchema.description}}"
+                                ><span class="index">{{$index + 1}}</span
+                                ><span>{{o.name}}</span
+                            ></button>
+                        </div>
+                        <div class="input-group"
+                                ng-if="partSchema.type == 'numerical'">
+                            <span class="input-group-addon text-muted">
+                                {{
+                                    isFinite(partSchema.lower(state.variables)) ?
+                                    '' + partSchema.lower(state.variables) + ' ≤' :
+                                    ''
+                                }}
+                            </span>
+                            <input type="number" step="any" class="form-control"
+                                    ng-model="getPartData(partSchema).value"
+                                    title="{{partSchema.description}}"
+                                    placeholder="Enter a number">
+                            </input>
+                            <span class="input-group-addon text-muted">
+                                {{
+                                    isFinite(partSchema.upper(state.variables)) ?
+                                    '≤ ' + partSchema.upper(state.variables) :
+                                    ''
+                                }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div ng-class="readonly ? null : 'visible-print-block'">
+                    <span ng-if="partSchema.name">{{partSchema.name}}:</span>
+                    <span ng-if="partSchema.type == 'multiple_choice'"
+                            class="print-field">
+                        <span ng-if="partData.index != null">
+                            {{partData.index + 1}}
+                            {{partData.note}}
+                        </span>
+                        <span ng-if="partData.index == null">-</span>
+                    </span>
+                    <span ng-if="partSchema.type == 'numerical'"
+                            class="print-field">
+                        <span ng-if="partData.value != null">
+                            {{partData.value}}
+                        </span>
+                        <span ng-if="partData.value == null">-</span>
+                    </span>
+                </div>
+            </li>
+        </ol>
+        
+        <docs>
+            <i class="fa-li fa fa-check-square-o fa-border"></i>
+        
+            <div ng-repeat="partSchema in rt.parts"
+                    ng-init="partData = getPartData(partSchema)">
+                <h3>
+                    Response Part {{$index + 1}}. {{partSchema.name}}
+                </h3>
+                <p ng-if="partSchema.description" class="formatted"
+                    >{{partSchema.description}}</p>
+                <dl ng-init="pi = $index">
+                    <dt ng-repeat-start="o in partSchema.options | filter:description"
+                            ng-class="{active: partData.index == $index}">
+                        Option {{$index + 1}}. {{o.name}}
+                    </dt>
+                    <dd ng-repeat-end class="formatted"
+                            ng-class="{active: partData.index == $index}"
+                        >{{o.description}}</dd>
+                </dl>
+            </div>
+        </docs>
+        
+        <div class="part hidden-print" ng-hide="readonly">
+            <label for="comments">Comments</label>
+            <div ng-if="!readonly">
+                <markdown-editor id="comments"
+                    ng-model="response.comment"
+                    me-focus-on="'focus-comment'" title="Comments"
+                    me-blur-on="'blur-comment'"></markdown-editor>
+            </div>
+        </div>
+        
+        <div ng-class="readonly ? null : 'visible-print-block'">
+            <p>Comments: <em ng-if="!response.comment">None</em></p>
+            <div ng-if="response.comment" class="print-field"
+                ng-bind-html="response.comment | markdown"></div>
+        </div>
+        
+        <quality-buttons class="part" ng-if="hasQuality">
+        </quality-buttons>
+        
+        </div>
+        

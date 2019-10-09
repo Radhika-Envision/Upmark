@@ -1,0 +1,68 @@
+<div class="header">
+    <div class="container">
+        <div class="toolbar">
+            <a class="btn btn-default btn-round" title="File Import"
+                    ng-href="#/3/program/import" ng-if="checkRole('program_add')">
+                <i class="fa fa-fw fa-cloud-upload"></i></a>
+            <a class="btn btn-default btn-round" title="Add new"
+                    ng-href="#/3/program/new" ng-if="checkRole('program_add')">
+                <i class="fa fa-fw fa-plus"></i></a>
+        </div>
+        <h2>
+            Programs
+        </h2>
+    </div>
+</div>
+
+
+<div class="container">
+    <search-box model="search" result="programs">
+        <button class="btn btn-default hidden-print" type="button"
+                title="{{search.editable ?
+                    'Only show editable programs' :
+                    'Show both editable and finalised programs'}}"
+                ng-click="search.editable = !search.editable"
+                ng-if="checkRole('program_edit')">
+            <i class="fa fa-pencil-square-o">
+                <i ng-if="!search.editable"
+                    class="fa fa-question-circle fa-badge fa-badge-left"></i>
+            </i>
+            <span class="hidden-xs">Editable</span>
+        </button>
+        <delete-cycle model="search.deleted"></delete-cycle>
+    </search-box>
+
+    <ul class="list-results">
+        <li ng-repeat="program in programs"
+                ng-class="{
+                    'strike': program.deleted,
+                    'bg-warning': program.error,
+                }">
+            <a ng-href="#/3/program/{{program.id}}">
+                <h4>
+                    {{program.title}}
+                    <i ng-if="program.error"
+                        class="fa fa-exclamation-triangle text-muted"></i>
+                </h4>
+                <p class="truncate">{{program.description}}</p>
+            </a>
+        </li>
+        <li>
+            <div>
+            <p class="text-muted">
+                <span ng-if="search.editable">
+                    Displaying only <i>editable</i> programs.</span>
+
+                <span ng-if="!programs.length">
+                    No programs match your query.</span>
+
+                <span ng-if="!programs.length && checkRole('program_add')">
+                    You can create a program by pressing the
+                    <i class="fa fa-fw fa-plus"></i> button above.
+                </span>
+            </p>
+            </div>
+        </li>
+    </ul>
+
+</div>

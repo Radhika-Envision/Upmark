@@ -1,0 +1,23 @@
+<span uib-dropdown on-toggle="toggled(open)" dropdown-append-to-body>
+    <button class="btn btn-default btn-round" title="History" uib-dropdown-toggle>
+        <i class="fa fa-history"></i></button>
+
+    <ul uib-dropdown-menu class="dropdown-menu-right">
+        <li class="dropdown-header">Related programs</li>
+        <li ng-if="!programs.length && !programs.$resolved" class="dropdown-header">Loading...</li>
+        <li ng-if="!programs.length && programs.$resolved"
+                class="dropdown-header">None.</li>
+        <li ng-repeat="program in programs"
+                ng-class="{active: isActive(program), strike: program.deleted}">
+            <a href ng-click="navigate(program)">
+                {{program.title}}
+                <span class="pull-right nudge-right text-muted"
+                        ng-click="compare(program, $event)"
+                        ng-if="structure.survey && !isActive(program)">
+                    <i class="fa fa-exchange"
+                        title="Compare"></i>
+                </span>
+            </a>
+        </li>
+    </ul>
+</span>

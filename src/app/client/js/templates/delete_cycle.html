@@ -1,0 +1,14 @@
+<button class="btn btn-default hidden-print" type="button"
+        title="{{model === false ?
+            'Only show active items' :
+                model === true ?
+                'Only show deleted items' :
+                'Show both active and deleted items'}}"
+        ng-click="model = tricycle(model)">
+    <i class="fa fa-trash-o">
+        <i ng-if="model === false"
+            class="fa fa-times fa-badge"></i>
+        <i ng-if="model === null"
+            class="fa fa-question fa-badge"></i>
+    </i>
+</button>

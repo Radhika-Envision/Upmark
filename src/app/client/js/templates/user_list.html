@@ -1,0 +1,59 @@
+<div class="header">
+    <div class="container">
+        <div class="toolbar">
+            <a class="btn btn-default btn-round" title="Add new"
+                    ng-href="#/3/user/new{{org.id ? '?organisationId=' + org.id : ''}}"
+                    ng-if="checkRole('user_add')">
+                <i class="fa fa-fw fa-plus"></i></a>
+        </div>
+        <h2 page-title>
+            <i class="fa fa-fw fa-users"></i>
+            Users
+        </h2>
+    </div>
+</div>
+
+<div surrogate-height>
+<div class="container" surrogate-height-target>
+    <search-box model="search" result="users">
+        <delete-cycle model="search.deleted"></delete-cycle>
+    </search-box>
+
+  <table class="table table-hover">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th ng-if="!hideOrg">Organisation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr ng-repeat="user in users"
+            ng-class="{strike: user.deleted || user.organisation.deleted}"
+            any-href="/3/user/{{user.id}}">
+        <td>{{user.name}}</td>
+        <td ng-if="!hideOrg">{{user.organisation.name}}</td>
+      </tr>
+    </tbody>
+  </table>
+
+    <div>
+    <p class="text-muted">
+        <span ng-if="search.deleted === true">
+            Displaying only <i>inactive</i> users.</span>
+        <span ng-if="search.deleted === false">
+            Displaying only <i>active</i> users.</span>
+        <span ng-if="search.deleted == null">
+            Displaying both <i>active and inactive</i> users.</span>
+
+        <span ng-if="!users.length">
+            No users match your query.</span>
+
+        <span ng-if="!users.length && checkRole('user_add')">
+            You can create a user by pressing the
+            <i class="fa fa-fw fa-plus"></i> button above.
+        </span>
+    </p>
+    </div>
+</div>
+
+</div> <!-- surrogate-height -->

@@ -1,0 +1,41 @@
+<div class="header">
+    <div class="container">
+        <div class="toolbar">
+            <a class="btn btn-default btn-round" title="Add new"
+                    href="#/3/surveygroup/new" ng-if="checkRole('surveygroup_add')">
+                <i class="fa fa-fw fa-plus"></i></a>
+        </div>
+        <h2 page-title>
+            <i class="fa fa-fw fa-university"></i>
+            Survey groups
+        </h2>
+    </div>
+</div>
+<div class="container">
+    <search-box model="search" result="surveygroups">
+        <delete-cycle model="search.deleted"></delete-cycle>
+    </search-box>
+
+    <ul class="list-results">
+        <li ng-repeat="surveygroup in surveygroups" class="surveygroup;"
+                ng-class="{strike: surveygroup.deleted}">
+            <a class="surveygroup-tile"
+                ng-href="#/3/surveygroup/{{surveygroup.id}}">
+                <img class="surveygroup-icon"
+                    ng-src='/surveygroup/icon/{{surveygroup.id}}?size=30'>
+                </img>
+                <div class="text-elmt-container">
+                    <div class="surveygroup-title"
+                        ng-class="{ 'surveygroup-center-title' : !surveygroup.description}">
+                        {{surveygroup.title}}
+                    </div>
+                    <div class="surveygroup-desc">
+                        <p class="truncate" ng-if="surveygroup.description">
+                            {{surveygroup.description}}
+                        </p>
+                    </div>
+                </div>
+            </a>
+        </li>
+    </ul>
+</div>

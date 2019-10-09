@@ -9,6 +9,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 # Current model for 'autogenerate' support
+#sys.path.append("/e/iproject/Upmark_check/upmark/src/app/server/")
 from model.base import metadata as target_metadata
 from model.connection import get_database_url
 

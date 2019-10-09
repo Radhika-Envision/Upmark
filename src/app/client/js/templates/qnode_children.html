@@ -1,0 +1,103 @@
+<div class="section">
+    <div class="toolbar" highlight="edit.model" highlight-half>
+        <button class="btn btn-default btn-round" title="Reset order"
+                ng-click="edit.cancel()"
+                ng-if="edit.model">
+            <i class="fa fa-fw fa-times"></i></button>
+        <button class="btn btn-default btn-round" title="Save order"
+                ng-click="edit.save()"
+                ng-if="edit.model">
+            <i class="fa fa-fw fa-check"></i></button>
+        <button class="btn btn-default btn-round" title="Change order"
+                ng-click="edit.edit()"
+                ng-if="editable && model.length > 1 &&
+                       !edit.model && search.deleted === false &&
+                       checkRole('qnode_edit')">
+            <i class="fa fa-fw fa-unsorted"></i></button>
+        <a class="btn btn-default btn-round" title="Add new"
+                ng-href="#/3/qnode/new?{{query}}&parent={{qnode.id}}"
+                ng-if="editable && !edit.model && checkRole('qnode_add')">
+            <i class="fa fa-fw fa-plus"></i></a>
+        <a class="btn btn-default btn-round" title="Link to existing"
+                ng-href="#/3/qnode-link?{{query}}&parent={{qnode.id}}"
+                ng-if="editable && !edit.model && checkRole('qnode_add')">
+            <i class="fa fa-fw fa-link"></i></a>
+        <delete-cycle class="btn-round" model="search.deleted"
+            ng-if="!edit.model"></delete-cycle>
+    </div>
+    <h2 label="{{level.label}}" ng-class="'program-' + level.level">
+        {{level.title}}</h2>
+</div>
+<table class="table table-hover">
+    <tbody ui-sortable="dragOpts" ng-model="edit.model">
+        <tr ng-repeat="item in edit.model || model"
+                any-href="/3/qnode/{{item.id}}?{{query}}"
+                ng-disabled="edit.model"
+                ng-class="{
+                    'strike': item.deleted,
+                    'strike-black': getStats(item.id).notRelevant,
+                    'warning': item.error || getStats(item.id).error,
+                }">
+            <td class="shrink">{{item.seq + 1}}</td>
+            <td>
+                {{item.title}}
+                <span ng-if="item.error || getStats(item.id).error"
+                        class="text-muted">
+                    <i class="fa fa-exclamation-triangle"></i>
+                </span>
+            </td>
+            <td class="shrink text-muted numeric" title="Importance and Urgency"
+                    ng-if="submission"
+               ><span ng-if="getStats(item.id).importance"
+                   ><i class="fa fa-star text-muted"></i>
+                    {{getStats(item.id).importance}}</span
+               ><br class="visible-sm visible-xs">
+                <span ng-if="getStats(item.id).urgency"
+                   ><i class="fa fa-circle text-muted"></i>
+                    {{getStats(item.id).urgency}}</span>
+            </td>
+            <td class="shrink text-muted numeric" title="Score"
+                    ng-if="submission &&
+                           checkRole('submission_view_aggregate_score') &&
+                           !structure.program.hideAggregate">
+                <span>{{getStats(item.id).score | number:0}}</span
+                ><span ng-if="!structure.program.hideAggregate"
+                    ><span class="text-muted hidden-sm hidden-xs">/</span
+                    ><br class="visible-sm visible-xs"
+                    ><span class="denominator-sm denominator-xs"
+                        >{{item.totalWeight | number:0}}</span></span
+                >
+            </td>
+            <td class="shrink text-muted numeric" title="Weight"
+                    ng-if="!submission && checkRole('submission_view_aggregate_score')">
+                {{item.totalWeight | number:0}}
+            </td>
+            <td class="shrink" ng-if="submission">
+                <column-progress items="getStats(item.id).progressItems">
+                 </column-progress>
+            </td>
+            <td class="shrink text-muted numeric"
+                    title="Number of measures"
+                    ng-if="submission"
+                ><span>{{getStats(item.id).progressItems[0].value | number:0}}</span
+                ><span class="text-muted hidden-sm hidden-xs">/</span
+                ><br class="visible-sm visible-xs"
+                ><span class="denominator-sm denominator-xs"
+                    >{{item.nMeasures}}</span>
+            </td>
+            <td class="shrink text-muted numeric"
+                    title="Number of measures"
+                    ng-if="!submission">
+                {{item.nMeasures}}
+            </td>
+            <td class="shrink grab-handle" ng-if="edit.model"
+               ><span class="btn btn-default btn-round"
+                   title="Drag to reorder"
+                   highlight highlight-half>
+               <i class="fa fa-fw fa-unsorted"></i></span></td>
+        </tr>
+    </tbody>
+</table>
+<p ng-if="!edit.model && !model.length">
+    There are no <span ng-if="search.deleted">deleted</span> {{level.title}}.
+</p>

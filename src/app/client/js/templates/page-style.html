@@ -1,0 +1,23 @@
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Chrome/Android mobile web app settings -->
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1A80B6">
+<link rel="icon" sizes="192x192" href="/images/icon-192.png{{params.icon_query}}">
+
+<!-- Safari/iOS mobile web app settings -->
+<!-- TODO: To style the status bar, web-app-capable must be used. But this hides
+     the back button etc. so we need to provide our own. -->
+<!-- <meta name="apple-mobile-web-app-capable" content="yes"> -->
+<!-- <meta name="apple-mobile-web-app-status-bar-style" content="#1A80B6"> -->
+<link rel="apple-touch-icon" sizes="72x72" href="/images/icon-72.png{{params.icon_query}}">
+<link rel="apple-touch-icon" sizes="128x128" href="/images/icon-128.png{{params.icon_query}}">
+<link rel="apple-touch-icon" sizes="192x192" href="/images/icon-192.png{{params.icon_query}}">
+
+<link rel="shortcut icon" type="image/png" href="/images/icon-64.png{{params.icon_query}}">
+
+{% for s in params.stylesheets %}
+    <link rel="stylesheet" type="text/css" href="{{s}}">
+{% end %}
+<link rel="stylesheet" type="text/css" href="/css/user_style.css{{params.icon_query}}">

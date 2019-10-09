@@ -1,0 +1,20 @@
+<ordered-buttons class="btn-group-arrow-right" ng-model="m.model" mode="mode"
+        set-value="setValue(value, $event)"
+        title="Choose level of approval">
+    <ordered-button index="0" value="'draft'" ng-if="isAllowed('draft')">
+        <approval model="'draft'"></approval>
+        Draft
+    </ordered-button>
+    <ordered-button index="1" value="'final'" ng-if="isAllowed('final')">
+        <approval model="'final'"></approval>
+        Final
+    </ordered-button>
+    <ordered-button index="2" value="'reviewed'" ng-if="isAllowed('reviewed')">
+        <approval model="'reviewed'"></approval>
+        Reviewed
+    </ordered-button>
+    <ordered-button index="3" value="'approved'" ng-if="isAllowed('approved')">
+        <approval model="'approved'"></approval>
+        Approved
+    </ordered-button>
+</ordered-buttons>

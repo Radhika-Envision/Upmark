@@ -26,9 +26,12 @@ response_parts_schema = Schema([
                 Required('if', default=None): Any(
                     All(str, Length(min=1)), None),
                 Required('description', default=None): Any(
-                    All(str, Length(min=1)), None)
+                    All(str, Length(min=1)), None),
+                # Optional('submeasure'): Any(All(str, Length(min=1)), None),
             }
         ], Length(min=2)),
+        # for submeasure
+        Optional('submeasure'): Any(All(str, Length(min=1)), None),
         # Numerical
         Optional('lower'): Any(All(str, Length(min=1)), None),
         Optional('upper'): Any(All(str, Length(min=1)), None),
@@ -44,6 +47,7 @@ response_schema = Schema([
         },
         {
             'value': Coerce(float),
+            'comment': Any(All(str, Length(min=1)), None),
         },
     )
 ], required=True)

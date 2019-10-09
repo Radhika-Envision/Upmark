@@ -1,0 +1,58 @@
+<div class="header">
+    <div class="container">
+        <div class="toolbar">
+            <a class="btn btn-default btn-round" title="Add new"
+                    ng-href="#/3/custom/new"
+                    ng-if="checkRole('custom_query_add')">
+                <i class="fa fa-fw fa-plus"></i></a>
+        </div>
+        <h2>
+            Custom queries
+        </h2>
+    </div>
+</div>
+
+
+<div class="container">
+    <search-box model="search" result="customQueries">
+        <delete-cycle model="search.deleted"></delete-cycle>
+    </search-box>
+
+    <ul class="list-results">
+        <li ng-repeat="customQuery in customQueries"
+                ng-class="{
+                    'strike': customQuery.deleted,
+                    'bg-warning': customQuery.error,
+                }">
+            <a ng-href="#/3/custom/{{customQuery.id}}">
+                <h4>
+                    {{customQuery.title}}
+                </h4>
+                <p class="truncate">
+                    <span print-friendly-timeago="customQuery.modified"></span>
+                    <span ng-if="customQuery.description">
+                        - {{customQuery.description}}
+                    </span>
+                </p>
+            </a>
+        </li>
+        <li>
+            <div>
+            <p class="text-muted">
+                <span ng-if="search.editable">
+                    Displaying only <i>editable</i> queries.</span>
+
+                <span ng-if="!customQueries.length">
+                    No queries match your search terms.</span>
+
+                <span ng-if="!customQueries.length &&
+                        checkRole('custom_query_add')">
+                    You can create a query by pressing the
+                    <i class="fa fa-fw fa-plus"></i> button above.
+                </span>
+            </p>
+            </div>
+        </li>
+    </ul>
+
+</div>

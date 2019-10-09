@@ -1,0 +1,35 @@
+<div class="header"
+    ng-class="{'deleted': structure.deletedItem}">
+<div class="container">
+    <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Collapse"
+                ng-click="layout.expandHeader = !layout.expandHeader">
+            <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
+            <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
+        </button>
+        <program-history entity="survey" service="Survey"
+                ng-if="!edit.model"></program-history>
+    </div>
+    <question-header entity="survey"></question-header>
+</div>
+</div>
+
+<div class="container" ng-if="structure.survey.description">
+    <p>{{structure.survey.description}}</p>
+</div>
+
+
+<docs ng-if="structure.deletedItem">
+    <i class="fa-li fa fa-trash fa-border"></i>
+    <h3>Deleted</h3>
+    <p>
+        This survey, or its program, has been deleted. New submissions can't be
+        created.
+    </p>
+</docs>
+
+
+<div submission-select
+        program="structure.program"
+        survey="structure.survey"
+        org="org"></div>

@@ -1,0 +1,11 @@
+<span title="{{summary}}" tooltip="{{summary}}"
+        tooltip-append-to-body="true"
+        tooltip-trigger="click">
+    <span ng-repeat="item in items track by $index">
+        <span></span>
+        <span column-progress-column>
+            <span class="sr-only">
+                {{item.name}}: {{item.fraction * 100 | number:0}}</span>
+        </span>
+    </span>
+</span>

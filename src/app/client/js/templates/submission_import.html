@@ -1,0 +1,68 @@
+<div>
+
+<div class="header">
+<div class="container">
+    <div class="toolbar">
+        <button class="btn btn-primary btn-alert btn-round" title="Save"
+                ng-click="import()"
+                form="editor">
+            <i class="fa fa-check"></i></button>
+    </div>
+    <h2 label="A">Submission - Import</h2>
+</div>
+</div>
+
+<div class="container" ng-if="!submission.survey">
+    <p>Please choose a question set.</p>
+
+    <ul class="list-results">
+        <li>
+            <a ng-repeat="survey in surveys" href
+                    ng-click="submission.survey=survey">
+                <h4>{{survey.title}}</h4>
+            </a>
+        </li>
+    </ul>
+</div>
+
+<div class="container" ng-show="submission.survey && !progress.isWorking">
+    <form novalidate name="form" id="editor">
+        <div class="form-group" show-errors>
+            <label for="title">Name</label>
+            <span class="help-label" ng-if="form.title.$error.required">
+                Please provide a title.</span>
+            <input type="text" class="form-control" id="title" name="title"
+                ng-model="submission.title" required />
+        </div>
+        <div class="dropzone dz-nopreview" id="dropzone">
+            <div class="dz-default dz-message">
+                <p><i class="fa fa-cloud-upload fa-5x"></i></p>
+                <p>Drop a file here, or click to select one</p>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="container" ng-show="submission.survey && progress.isWorking">
+    <div class="modalprogress">
+        <div ng-if="progress.uploadFraction < 1">
+            <clock-progress fraction="progress.uploadFraction"></clock-progress>
+            <p>
+                Uploading
+                <span class="text-muted">
+                    {{progress.uploadFraction * 100 | number:0}}%
+                </span>
+            </p>
+        </div>
+        <div ng-if="progress.uploadFraction >= 1 && !progress.isFinished">
+            <i class="fa fa-circle-o-notch fa-spin fa-5x"></i>
+            <p>Processing</p>
+        </div>
+        <div ng-if="progress.isFinished">
+            <i class="fa fa-check fa-5x"></i>
+            <p>Finished</p>
+        </div>
+    </div>
+</div>
+
+</div>

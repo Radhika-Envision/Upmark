@@ -1,0 +1,20 @@
+<div class="toolbar">
+    <button class="btn btn-default btn-round"
+            ng-click="cycleModes()"
+            title="{{model.mode == 'rendered' ?
+                       'Rich text mode' :
+                       'Plain text mode (Markdown)'}}">
+        <i class="fa fa-i-cursor" ng-if="model.mode == 'rendered'"></i>
+        <i class="fa fa-paragraph" ng-if="model.mode != 'rendered'"></i>
+    </button>
+</div>
+
+<div textarea-label="{{!model.viewValue ? placeholder : ''}}">
+    <div class="form-control" ng-if="model.mode == 'rendered'" medium-editor
+        ng-model="model.viewValue" bind-options="options"
+        focus-on="meFocusOn" blur-on="meBlurOn"></div>
+
+    <textarea ng-if="model.mode != 'rendered'" class="form-control autoresize"
+        ng-model="model.viewValue"
+        focus-on="meFocusOn" blur-on="meBlurOn"></textarea>
+</div>

@@ -1,0 +1,34 @@
+<div class="header">
+<div class="container">
+    <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Collapse"
+                ng-click="layout.expandHeader = !layout.expandHeader">
+            <i class="fa fa-angle-double-up" ng-if="layout.expandHeader"></i>
+            <i class="fa fa-angle-double-down" ng-if="!layout.expandHeader"></i>
+        </button>
+
+        <a class="btn btn-default btn-round" title="Subscriptions"
+                ng-href="#/3/subscription/response_type?id={{responseType.id}}&id={{responseType.programId}}"
+                ng-if="!edit.model">
+            <i class="fa fa-envelope"></i></a>
+        <program-history entity="responseType" service="ResponseType"
+                ng-if="!edit.model"></program-history>
+    </div>
+    <question-header entity="responseType"></question-header>
+</div>
+</div>
+
+<div class="container">
+    <p>
+        This response type is used by
+        <a ng-href="#/3/measures?program={{responseType.programId}}&initialTerm=rt:{{responseType.id}}"
+            ><ng-pluralize count="responseType.nMeasures || 0" when="{
+                '1': '1 measure',
+                'other': '{} measures',
+            }"></ng-pluralize
+        ></a>.
+        <span ng-if="checkRole('response_type_edit')">
+            To edit this response type, go to the measure edit screen.
+        </span>
+    </p>
+</div>

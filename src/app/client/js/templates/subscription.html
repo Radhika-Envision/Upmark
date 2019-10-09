@@ -1,0 +1,133 @@
+<div class="header">
+<div class="container">
+    <div class="toolbar">
+        <button class="btn btn-default btn-round" title="Print"
+                onclick="print()">
+            <i class="fa fa-print"></i>
+        </button>
+    </div>
+    <h2 page-title>
+        Subscription to {{acts.obType(obType)}}
+    </h2>
+</div>
+</div>
+
+<div class="container" ng-if="!subscription">
+    <p ng-if="!objectMissing">
+        Loading...
+    </p>
+    <p ng-if="objectMissing" ng-switch="obType">
+        <span ng-switch-default>
+            Could not get subscription details.
+        </span>
+        <span ng-switch-when="rnode">
+            You can't subscribe to this {{acts.obType(obType)}} until one of its
+            measures is responded to. Try saving a response first, or subscribe
+            to a parent category or the submission it belongs to.
+        </span>
+        <span ng-switch-when="response">
+            You can't subscribe to this {{acts.obType(obType)}} until it exists.
+            Try saving the response first, or subscribe to one of the categories
+            it belongs to.
+        </span>
+    </p>
+</div>
+
+<div class="container" ng-if="subscription">
+    <p ng-if="subscription.effectivelySubscribed"
+            class="alert alert-success">
+        <i class="fa fa-circle-o"></i>
+        Changes to this {{acts.obType(subscription)}}
+        <strong>will appear</strong>
+        in <a href="#/3/">your timeline</a> because:
+    </p>
+    <p ng-if="!subscription.effectivelySubscribed"
+            class="alert alert-warning">
+        <i class="fa fa-times"></i>
+        Changes to this {{acts.obType(subscription)}}
+        will <strong>not</strong> appear
+        in <a href="#/3/">your timeline</a> because:
+    </p>
+    <ul class="list-results fa-ul fa-ul-big timeline">
+        <li ng-repeat="sub in subscriptions"
+                ng-class="{
+                    selected: sub.effectivelySubscribed,
+                    unselected: !sub.effectivelySubscribed,
+                    inherited: !$first && sub.subscribed == null
+                }">
+            <i class="fa fa-li fa-border fa-border-fill"
+                    ng-class="{
+                        'fa-circle-o': sub.subscribed === true,
+                        'fa-times': sub.subscribed === false,
+                        'fa-long-arrow-down': sub.subscribed == null,
+                    }">
+            </i>
+            <div class="toolbar hidden-print hover-parent fade">
+                <button class="btn btn-default btn-round"
+                        title="{{sub.effectivelySubscribed ?
+                                 'Unsubscribe from this ' + acts.obType(sub) :
+                                 'Subscribe to this ' + acts.obType(sub)}}"
+                        ng-click="toggle(sub)">
+                    <i class="fa fa-fw fa-check"
+                        ng-if="!sub.effectivelySubscribed"></i>
+                    <i class="fa fa-fw fa-times"
+                        ng-if="sub.effectivelySubscribed"></i>
+                </button>
+                <button class="btn btn-default btn-round"
+                        title="Remove this {{sub.subscribed === true ?
+                                 'subscription' :
+                                 'unsubscription'}}"
+                        ng-click="remove(sub)"
+                        ng-if="sub.subscribed != null">
+                    <i class="fa fa-fw fa-trash-o"></i>
+                </button>
+            </div>
+            <a ng-href="#{{acts.url(sub)}}"
+                    title="View this {{acts.obType(sub)}}">
+                <h4>{{sub.title}}</h4>
+                <p class="text-muted">
+                    <span ng-if="sub.subscribed === true">
+                        You have subscribed to this
+                        <em>{{acts.obType(sub)}}</em>
+                    </span>
+                    <span ng-if="sub.subscribed === false">
+                        You have unsubscribed from this
+                        <em>{{acts.obType(sub)}}</em>
+                    </span>
+                    <span ng-if="sub.subscribed == null">
+                        You have neither subscribed nor unsubscribed from this
+                        <em>{{acts.obType(sub)}}</em>
+                    </span>
+
+                    <span ng-if="!$last &&
+                            subscriptions[$index + 1].effectivelySubscribed ==
+                                sub.effectivelySubscribed">
+                        and
+                    </span>
+                    <span ng-if="!$last &&
+                            subscriptions[$index + 1].effectivelySubscribed !=
+                                sub.effectivelySubscribed">
+                        but
+                    </span>
+                </p>
+            </a>
+        </li>
+    </ul>
+    <docs>
+        <i class="fa fa-li fa-border fa-circle-o"></i>
+        <h3>Subscriptions</h3>
+        <p>
+            When you subscribe to something, you will be notified when it
+            changes, or when any of its children change. For example, if you
+            are subscribed to a category, you will be notified of when someone
+            changes the title of a measure inside that category. Notifications
+            appear in <a href="#/3/">your timeline</a>.
+        </p>
+        <p>
+            <strong>Tip:</strong> usually you should subscribe to higher-level
+            objects, and delete subscriptions rather than unsubscribing. For
+            example, prefer to subscribe to a category or survey instead of
+            a measure.
+        </p>
+    </docs>
+</div> <!-- container -->

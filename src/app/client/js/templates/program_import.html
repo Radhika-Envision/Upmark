@@ -1,0 +1,97 @@
+<div>
+<div class="header">
+<div class="container">
+    <div class="toolbar">
+        <button class="btn btn-primary btn-alert btn-round" title="Import"
+                ng-click="import()"
+                form="editor" ng-show="!progress.isWorking">
+            <i class="fa fa-check"></i></button>
+    </div>
+    <h2 label="Pg">Program - Import</h2>
+</div>
+</div>
+
+<div class="container" ng-show="!progress.isWorking">
+    <form novalidate name="form" id="editor">
+        <div class="form-group" show-errors>
+            <label for="title">Name</label>
+            <span class="help-label" ng-if="form.title.$error.required">
+                Please provide a title.</span>
+            <input type="text" class="form-control" id="title" name="title"
+                ng-model="program.title" required />
+        </div>
+        <div class="form-group">
+            <label for="title">Description</label>
+            <textarea type="text" class="form-control" id="desc" name="desc"
+                ng-model="program.description"></textarea>
+        </div>
+
+        <!-- Survey groups -->
+        <div ng-if="checkRole('surveygroup_delegate')">
+            <div class="section">
+                <div class="toolbar">
+                    <a class="btn btn-default btn-round" title="Add survey group"
+                            ng-click="program.surveygroups.push(null)">
+                        <i class="fa fa-fw fa-plus"></i>
+                    </a>
+                </div>
+                <h2>
+                    Survey groups
+                </h2>
+            </div>
+            <table class="table" ng-if="program.surveygroups.length">
+                <tr class="form-row" ng-repeat="(i, loc) in program.surveygroups track by $index">
+                    <td>
+                        <input type="text" class="form-control"
+                            id="surveygroup-search-{{$index}}"
+                            name="surveygroup-search-{{$index}}"
+                            ng-model="program.surveygroups[i]"
+                            uib-typeahead="g as g.title for g in searchSurveygroup($viewValue)"
+                            autocomplete="off" >
+                    </td>
+                    <td class="shrink">
+                        <button class="btn btn-default btn-round"
+                                title="Remove"
+                                ng-click="deleteSurveygroup($index)">
+                            <i class="fa fa-fw fa-trash-o"></i></button>
+                    </td>
+                </tr>
+            </table>
+            <p ng-if="!program.surveygroups.length" class="text-muted">
+                No survey groups have been selected. Press the
+                <i class="fa fa-plus"></i> button to add one.
+            </p>
+        </div>
+
+        <div class="dropzone dz-nopreview" id="dropzone">
+            <div class="dz-default dz-message">
+                <p><i class="fa fa-cloud-upload fa-5x"></i></p>
+                <p>Drop a file here, or click to select one</p>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="container" ng-show="progress.isWorking">
+    <div class="modalprogress">
+        <div ng-if="progress.uploadFraction < 1">
+            <clock-progress fraction="progress.uploadFraction"></clock-progress>
+            <p>
+                Uploading
+                <span class="text-muted">
+                    {{progress.uploadFraction * 100 | number:0}}%
+                </span>
+            </p>
+        </div>
+        <div ng-if="progress.uploadFraction >= 1 && !progress.isFinished">
+            <i class="fa fa-circle-o-notch fa-spin fa-5x"></i>
+            <p>Processing</p>
+        </div>
+        <div ng-if="progress.isFinished">
+            <i class="fa fa-check fa-5x"></i>
+            <p>Finished</p>
+        </div>
+    </div>
+</div>
+
+</div>
