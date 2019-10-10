@@ -1,14 +1,14 @@
 """add_column_submeasure_id_attachment_table
 
 Revision ID: 9663878a207b
-Revises: 9f9ea6cad563
+Revises: 009beb9045c3
 Create Date: 2019-10-09 11:38:45.702877
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '9663878a207b'
-down_revision = '9f9ea6cad563'
+down_revision = '009beb9045c3'
 branch_labels = None
 depends_on = None
 
@@ -36,5 +36,5 @@ def downgrade():
     #sa.ForeignKeyConstraint(['measure_id', 'program_id'], ['measure.id', 'measure.program_id'], name='measure_measure_measure_id_fkey'),
     #sa.ForeignKeyConstraint(['parent_measure_id', 'parent_program_id'], ['measure.id', 'measure.program_id'], name='measure_measure_parent_measure_id_fkey'),
     #sa.PrimaryKeyConstraint('id', name='measure_measure_pkey')
-    )
+    #)
     # ### end Alembic commands ###
