@@ -132,13 +132,22 @@ angular.module('upmark.survey.measure', [
                 // create SubMeasures
                 var subMeasures=[];
                 var submeasure_id=[];
+                var partObject=null;
                 angular.forEach(routeData.responseType.parts,function(item,index){
+                    if (item.type == 'multiple_choice') {
+                        partObject=new responseTypes.MultipleChoice(item);
+                    }
+                    else if (item.type == 'numerical') {
+                        partObject=new responseTypes.Numerical(item);
+                    } 
+                    partObject.submeasure= item['submeasure'];               
                     if (subMeasures.length==0) {
                         $scope.measure.subMeasureList.forEach(function(sub,i){
                             if (sub.id==item.submeasure) {
                                 subMeasures.push({ 'id':item['submeasure'],
                                 'description': sub['description'],
                                 'rt':{'definition':{'parts':[item],'name':sub['title']}},
+                                'rtRead':{'definition':{'parts':[partObject],'name':sub['title']}},
                                 'name': sub['title'],                         
                                })
                             }
@@ -149,8 +158,9 @@ angular.module('upmark.survey.measure', [
                     {
                         var notFoundSubmeasure=true;
                         angular.forEach(subMeasures,function(s,i){
-                            if (s.id==item['submeasure']){
+                            if (s.id==item['submeasure']){   
                                 s.rt.definition.parts.push(item);
+                                s.rtRead.definition.parts.push(partObject);
                                 notFoundSubmeasure=false;
                             }
 
@@ -161,6 +171,7 @@ angular.module('upmark.survey.measure', [
                                     subMeasures.push({ 'id':item['submeasure'],
                                     'description': sub['description'],
                                     'rt':{'definition':{'parts':[item],'name':sub['title']}},
+                                    'rtRead':{'definition':{'parts':[partObject],'name':sub['title']}},
                                     'name': sub['title'],
                                    })
                                 }
@@ -345,6 +356,17 @@ angular.module('upmark.survey.measure', [
             submissionId: $scope.submission.id
         }).$promise.then(
             function success(response) {
+                // should make response_parts change if response_type part type changed
+                if (response.responseParts.length>0) {
+                    angular.forEach($scope.rt.definition.parts, function(part,index){
+                       if ((part.type=='multiple_choice' && response.responseParts[index].value) ||
+                          (part.type=='numerical' && response.responseParts[index].index)) {
+                           response.responseParts[index]={};
+                        }
+                    });
+                }
+
+                //end type changed
                 $scope.setResponse(response);
             },
             function failure(details) {
@@ -587,15 +609,15 @@ angular.module('upmark.survey.measure', [
             //if (!$scope.edit.model.rt.name)
             
             {
-                $scope.edit.model.rt.name= $scope.edit.model.title;
+                $scope.edit.model.rt.name=$scope.edit.model.subMeasures[0].rt.definition.name //$scope.edit.model.title;
             }
             if (!$scope.edit.model.rt.parts)
             {
                 $scope.edit.model.rt.parts= [];
             }
             angular.forEach($scope.edit.model.subMeasures,function(item,index){
-                if (!item.rt.definition.name || item.rt.definition.name=='')
-                   item.rt.definition.name=$scope.edit.model+"_sub_"+index;
+                //if (!item.rt.definition.name || item.rt.definition.name=='')
+                //   item.rt.definition.name=$scope.edit.model+"_sub_"+index;
                 //item.rt.definition.description= item.description;  
                 item.title=item.rt.definition.name;
                 item.weight=$scope.edit.model.weight;
@@ -604,6 +626,11 @@ angular.module('upmark.survey.measure', [
             return $scope.edit.save();
         }
         else {
+            $scope.rt.definition.parts.forEach(function(part) {
+                if (part.submeasure) {
+                   delete part.submeasure;
+                }
+            });
             $scope.rt.definition.$createOrSave().then(
                 function success(definition) {
                     var measure = $scope.edit.model;

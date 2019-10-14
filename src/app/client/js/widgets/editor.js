@@ -8,8 +8,8 @@ angular.module('vpac.widgets.editor', [
  * Manages state for a modal editing session.
  */
 .factory('Editor', [
-        '$parse', 'log', 'Notifications', '$q', 'checkLogin',
-         function($parse, log, Notifications, $q, checkLogin) {
+        '$parse', 'log', 'Notifications', '$q', 'checkLogin', 'responseTypes',
+         function($parse, log, Notifications, $q, checkLogin, responseTypes) {
 
     function Editor(targetPath, scope, params, resource) {
         this.model = null;
@@ -46,13 +46,22 @@ angular.module('vpac.widgets.editor', [
                             // create SubMeasures
                             var subMeasures=[];
                             var submeasure_id=[];
+                            var partObject=null;
                             angular.forEach(model.responseType.parts,function(item,index){
+                                if (item.type == 'multiple_choice') {
+                                    partObject=new responseTypes.MultipleChoice(item);
+                                }
+                                else if (item.type == 'numerical') {
+                                    partObject=new responseTypes.Numerical(item);
+                                } 
+                                partObject.submeasure= item['submeasure'];   
                                 if (subMeasures.length==0) {
                                     model.subMeasureList.forEach(function(sub,i){
                                         if (sub.id==item.submeasure) {
                                             subMeasures.push({ 'id':item['submeasure'],
                                             'description': sub['description'],
                                             'rt':{'definition':{'parts':[item],'name':sub['title']}},
+                                            'rtRead':{'definition':{'parts':[partObject],'name':sub['title']}},
                                             //'name': sub['title'],                            
                                            })
                                         }
@@ -71,6 +80,7 @@ angular.module('vpac.widgets.editor', [
                                     angular.forEach(subMeasures,function(s,i){
                                         if (s.id==item['submeasure']){
                                             s.rt.definition.parts.push(item);
+                                            s.rtRead.definition.parts.push(partObject);
                                             notFoundSubmeasure=false;
                                         }
             
@@ -81,6 +91,7 @@ angular.module('vpac.widgets.editor', [
                                                 subMeasures.push({ 'id':item['submeasure'],
                                                 'description': sub['description'],
                                                 'rt':{'definition':{'parts':[item],'name':sub['title']}},
+                                                'rtRead':{'definition':{'parts':[partObject],'name':sub['title']}},
                                                 //'name': sub['title'],
                                                })
                                             }

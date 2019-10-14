@@ -1041,6 +1041,18 @@ if ($scope.submission) {
         submissionId: $scope.submission.id
     }).$promise.then(
         function success(response) {
+            // should make response_parts change if response_type part type changed
+            if (response.responseParts.length>0) {
+               angular.forEach($scope.rt.definition.parts, function(part,index){
+
+                    if ((part.type=='multiple_choice' && response.responseParts[index].value) ||
+                       (part.type=='numerical' && response.responseParts[index].index)) {
+                       response.responseParts[index]={};
+                    }
+                });
+            }
+            
+            //end type changed
             $scope.setResponse(response);
         },
         function failure(details) {

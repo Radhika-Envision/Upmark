@@ -516,15 +516,16 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                 raise errors.MissingDocError("No such program")
 
             if (self.request_son.has_sub_measures==True):
-            
+                # create repsone_type for measure
+                self.request_son.response_type_id=self.create_response_type(self.request_son.response_type_id, program_id, self.request_son.rt)
                 submeasures_list=[]
                 merger_parts=[]
                 for sm in self.request_son.sub_measures:
 
                     # create repsone_type for submeasure
                     
-                    sm.response_type_id=self.create_response_type(sm.response_type_id, program_id, sm.rt.definition)
-
+                    #sm.response_type_id=self.create_response_type(sm.response_type_id, program_id, sm.rt.definition)
+                    sm.response_type_id=self.request_son.response_type_id
                     # create submeasure
                     measure = model.Measure(program=program)
                     session.add(measure)
@@ -551,7 +552,8 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                 # self.request_son.rt.parts=[{'submeasure':submeasures_list}]
                 # merger_parts.append({'submeasure':submeasures_list})
                 self.request_son.rt.parts= merger_parts
-                self.request_son.response_type_id=self.create_response_type(self.request_son.response_type_id, program_id, self.request_son.rt)
+                #update response_type's parts which include submeasureId
+                self.request_son.response_type_id=self.update_response_type(self.request_son.response_type_id, program_id, self.request_son.rt)
                 # create measure
                 measure = model.Measure(program=program)
                 session.add(measure)
@@ -696,11 +698,24 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             verbs = set()
             if (self.request_son.has_sub_measures==True):
+
+                ## get used submeasureIds ***************
+                measure_responeType=self.get_responseType(self.request_son.response_type_id, program_id)             
+                submeasureIdList=[]
+                submeasureIdList.append(measure_id)
+                for p in measure_responeType.parts:
+                    if p.submeasure and (not (p.submeasure in submeasureIdList)):
+                       submeasureIdList.append(p.submeasure)
+                ## get used submeasureIds ***************   
+
+
             
                 submeasures_list=[]
                 merger_parts=[]
+
                 for sm in self.request_son.sub_measures:
                     if not sm.deleted:
+                        sm.response_type_id=self.request_son.response_type_id
                         if (sm.id and sm.id != 0):
                             subMeasure = (
                               session.query(model.Measure)
@@ -708,11 +723,21 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                         else:
                             subMeasure=None      
                         if not subMeasure:
+                           # get first unused submeasure
+                            subMeasure = (
+                                session.query(model.Measure)
+                                .filter(model.Measure.response_type_id == self.request_son.response_type_id)
+                                .filter(model.Measure.id.notin_(submeasureIdList)).first())
+
+                           # end for get first unused submeasure
+                        if not subMeasure:
+   
                            # raise errors.MissingDocError("No such measure")
 
                            # create repsone_type for submeasure
-                           sm.response_type_id=self.create_response_type(sm.response_type_id, program_id, sm.rt.definition)
 
+                           #sm.response_type_id=self.create_response_type(sm.response_type_id, program_id, sm.rt.definition)
+                           sm.response_type_id=self.request_son.response_type_id
                            ## create submeasure
                            subMeasure = model.Measure(program=program)
                            session.add(subMeasure)
@@ -730,7 +755,8 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                         session.flush()
                         submeasure_id = str(subMeasure.id)
                         #############
-
+                        if not (subMeasure.id in submeasureIdList):
+                            submeasureIdList.append(subMeasure.id)
                         # merge response_type parts
                         # self.request_son.rt.parts.append(self.request_son.rt) 
                         for rt_part in sm.rt.definition.parts:
