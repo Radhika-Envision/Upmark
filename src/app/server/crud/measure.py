@@ -811,7 +811,7 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
             self._update(measure, self.request_son)
             # Check if modified now to avoid problems with autoflush later
             if session.is_modified(measure):
-                verbs.append('update')
+                verbs.add('update')
                 for qnode_measure in measure.qnode_measures:
                     calculator.mark_measure_dirty(qnode_measure)
 

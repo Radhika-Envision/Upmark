@@ -450,12 +450,12 @@ angular.module('upmark.survey.qnode', [
             }
             if (args==null)
             {
-               totalQuestion=totalQuestion+1;
-               responseMeasure.push('error response');
+               //totalQuestion=totalQuestion+1;
+               //responseMeasure.push('error response');
             
                if (responseMeasure.length==$scope.qnode.nMeasures) {
-                   $scope.totalQuestion=totalQuestion;
-                   $scope.totalAnswer=totalAnswer;  
+                   //$scope.totalQuestion=totalQuestion;
+                   //$scope.totalAnswer=totalAnswer;  
                 }
             }
             
@@ -989,40 +989,39 @@ if ($scope.submission) {
 
         if (!response.responseParts)
             response.responseParts = [];
-
+        
         if ($scope.measure.subMeasureList) {
             response.subMeasures=$scope.measure.subMeasureList;
 
             //calculate the number of total questions and answer questions  
             response.questions=$scope.measure.subMeasureList.length;
-            if ($scope.measure.response.error==null || $scope.measure.response.error=="" )
+            if (response.responseParts.length>0 && (response.error==null || response.error=="" ))
             {
                 response.answerQuestions=$scope.measure.subMeasureList.length;
             }
             else {
-                response.answerQuestions==0;
+                response.answerQuestions=0;
             }
         }
         else
         {
             //calculate the number of total questions and answer questions
             response.questions=1;
-            if (response.error==null || response.error=="" )
+            if (response.responseParts.length>0 && (response.error==null || response.error=="" ))
             {
                 response.answerQuestions=1;
             }
             else {
-                response.answerQuestions==0;
+                response.answerQuestions=0;
             }
         }
-        //else {
-        //    if (response.measure) {
-        //       response.measure.description=$scope.measure.description;
-        //    }
-        //}
+        
+
         $scope.model.response = response;
         $scope.lastSavedResponse = angular.copy(response);
-        $scope.$emit('response-get-measures', response);
+        if ( response.version) {
+           $scope.$emit('response-get-measures', response);
+        }
     };
 
     var nullResponse = function(measure, submission) {
@@ -1041,6 +1040,18 @@ if ($scope.submission) {
         submissionId: $scope.submission.id
     }).$promise.then(
         function success(response) {
+            // should make response_parts change if response_type part type changed
+            if (response.responseParts.length>0) {
+               angular.forEach($scope.rt.definition.parts, function(part,index){
+
+                    if ((part.type=='multiple_choice' && response.responseParts[index].value) ||
+                       (part.type=='numerical' && response.responseParts[index].index)) {
+                       response.responseParts[index]={};
+                    }
+                });
+            }
+            
+            //end type changed
             $scope.setResponse(response);
         },
         function failure(details) {

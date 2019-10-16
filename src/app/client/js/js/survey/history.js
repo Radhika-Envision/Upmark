@@ -82,6 +82,11 @@ angular.module('upmark.survey.history', [
                 );
                 $scope.service.get(params).$promise.then(
                     function success(model) {
+                        if ($scope.model.subMeasures) {
+                            model.hasSubMeasures=true;
+                            model.subMeasures=$scope.model.subMeasures;
+                        }
+
                         $scope.model = model;
                         $scope.error = null;
                         $scope.versions = null;
