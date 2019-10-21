@@ -406,7 +406,10 @@ angular.module('upmark.survey.qnode', [
             totalQuestion=0;
             totalAnswer=0;
             responseMeasure=[];
-            $scope.$broadcast('save-response', { state: $scope.measures[0].response.approval });
+            $scope.$broadcast('save-response', { 
+                state: $scope.measures[0].response.approval,
+                saveAll : true
+            });
             /*$scope.rnode = ResponseNode.get({
                 submissionId: $scope.submission.id,
                 qnodeId: $scope.qnode.id
@@ -861,6 +864,11 @@ angular.module('upmark.survey.qnode', [
         
     };
 
+    $scope.$on('get-history', function(event, version) {
+        //set measures history approval
+        $scope.model[0].response.approval=version.approval;
+    });
+
 }])
 
 .controller('MeasuresCtrl', function(
@@ -1157,6 +1165,7 @@ if ($scope.submission) {
 $scope.$on('save-response', function(args) { 
     if (args.targetScope.measures[0].response.approval) {
         $scope.model.response.approval=args.targetScope.measures[0].response.approval;
+        $scope.model.response.saveAll=true;
     }
     //$scope.$parent.question.total = $scope.$parent.question.total+$scope.response.questions;
     //$scope.$parent.question.answer = $scope.$parent.question.total+$scope.response.answerQuestion;
