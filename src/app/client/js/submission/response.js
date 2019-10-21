@@ -1008,7 +1008,12 @@ angular.module('upmark.submission.response', [
             var recalculate = Enqueue(function() {
                 if ($scope.isDummy)
                     return;
-
+                if ($scope.response.measure && $scope.response.measure.parents && $scope.response.measure.parents.length>0) {
+                    $scope.response.parentSeq=($scope.response.measure.parents[0].seq+1)+'.';
+               }
+               else {
+                   $scope.response.parentSeq='';
+                }
                 //put submeasure seq, description, comment, attachement to responseType
                 if ($scope.response.subMeasures && $scope.response.subMeasures.length>0) {
                         var lastSubmeasureId=null;
@@ -1021,7 +1026,7 @@ angular.module('upmark.submission.response', [
                                }
                                $scope.response.subMeasures.forEach(function(sub,i){
                                if (sub.id==item.submeasure) {
-                                   item.subDesc=sub.description;
+                                   item.subDesc="<strong>"+ $scope.response.parentSeq + ($scope.response.qnodeMeasure.seq+1)+"." + (subSeq+1) + "</strong> "+sub.description;
                                    item.subSeq=subSeq;
                                    subSeq=subSeq+1;
                                } 
@@ -1038,12 +1043,7 @@ angular.module('upmark.submission.response', [
                 {
                     $scope.response.questions=1;
                 }
-                if ($scope.response.measure && $scope.response.measure.parents && $scope.response.measure.parents.length>0) {
-                    $scope.response.parentSeq=($scope.response.measure.parents[0].seq+1)+'.';
-               }
-               else {
-                   $scope.response.parentSeq='';
-                }
+
                 
                 // end of put submeasure seq, description, comment, attachement to responseType
 

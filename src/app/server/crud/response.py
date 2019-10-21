@@ -297,7 +297,7 @@ class ResponseHandler(base_handler.BaseHandler):
                 hours_since_update = td.total_seconds() / 60 / 60
 
                 if same_user and hours_since_update < 8:
-                    response.version_on_update = False
+                   response.version_on_update = False
 
                 modified = self.request_son.get("latest_modified", 0)
                 # Convert to int to avoid string conversion errors during
@@ -363,8 +363,10 @@ class ResponseHandler(base_handler.BaseHandler):
 
         update('approval', son)
         update('audit_reason', son)
-
-        if object_session(response).is_modified(response):
+        # (son.save_all and self.version_on_update): for when update in qnode level, response not change need save as well.
+        # this make sure all respsonse of measures as a whole version (same version number), so when got history response working
+        if object_session(response).is_modified(response) or (son.save_all and response.version_on_update):
+            
             update('modified', extras)
             update('user_id', extras)
 
