@@ -697,8 +697,13 @@ angular.module('upmark.survey.measure', [
 
     $scope.getSubmissionUrl = function(submission) {
         if (submission) {
-            return format('/3/measure/{}?submission={}',
-                $scope.measure.id, submission.id,
+            /* in submeasure function response should be depend on the parent of measures
+               should not anwser question per meausre */
+            //return format('/3/measure/{}?submission={}',
+            //    $scope.measure.id, submission.id,
+            //$scope.parent && $scope.parent.id || '');
+            return format('/3/qnode/{}?submission={}',
+                $scope.measure.parent.id , submission.id,
                 $scope.parent && $scope.parent.id || '');
         } else {
             return format('/3/measure/{}?program={}&survey={}',

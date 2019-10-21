@@ -336,13 +336,13 @@
                 ng-class="{active: $index == state.active}"
                 title="{{partSchema.description}}"
                 class="clearfix part" ng-if="response.subMeasures">
-                <div class="row" ng-if="partSchema.subDesc">
+                <!--<div class="row" ng-if="partSchema.subDesc">
                     <div class="col-md-12"  >
                         <div>
                             <h3><strong>{{response.parentSeq}}{{response.qnodeMeasure.seq+1}}.{{partSchema.subSeq}}</strong> Submeasure Details </h3>
                         </div>
                     </div>
-                </div>
+                </div>-->
                 <div class="row no-margin-bottom">
                     <div class="col-md-6">
                         <div ng-if="partSchema.subDesc" ng-hide="readonly">

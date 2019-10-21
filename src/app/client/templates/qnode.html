@@ -213,7 +213,11 @@
                       ng-if="totalAnswer != null && !structure.program.hideAggregate">
                       {{totalAnswer | number:0}} 
                 </span>
-                /
+                
+                <span ng-if="totalAnswer != null && totalQuestion != null && !structure.program.hideAggregate">
+                / 
+                </span>
+                
                 <span title="Questions"
                       ng-if="totalQuestion != null && !structure.program.hideAggregate">
                       {{totalQuestion | number:0}}

@@ -163,16 +163,16 @@
                   <tbody>
                   <tr>
                    <!--<td class="shrink numeric">{{item.parentSeq}}.{{item.seq + 1}}</td>-->
-                   <td class="shrink">{{item.parent.seq+1}}.{{item.seq + ((currentLevel && currentLevel.indexingFrom !== null && currentLevel.indexingFrom !== undefined) ? currentLevel.indexingFrom : 1)}}</td>                  
+                   <td class="shrink"><strong>{{item.parent.seq+1}}.{{item.seq + ((currentLevel && currentLevel.indexingFrom !== null && currentLevel.indexingFrom !== undefined) ? currentLevel.indexingFrom : 1)}}</strong></td>                  
                    <td any-href="/3/measure/{{item.id}}?{{query}}" ng-if="!submission">
-                        {{item.title}}
+                       {{item.title}}
                         <span ng-if="item.error || getStats(item.id).error"
                              class="text-muted">
                              <i class="fa fa-exclamation-triangle"></i>
                         </span>
                    </td>
                    <td ng-if="submission">
-                       {{item.title}}
+                    <strong>{{item.title}}</strong>
                        <span ng-if="item.error || getStats(item.id).error"
                              class="text-muted">
                              <i class="fa fa-exclamation-triangle"></i>
@@ -240,7 +240,7 @@
                     <tbody>    
                 <tr ng-if="rnode">
                     <td colspan="9">
-                      <div ng-hide="item.showMeasureDetail" class="container" ng-controller='MeasuresCtrl'>
+                      <div class="container"><!-- ng-hide="item.showMeasureDetail" ng-controller='MeasuresCtrl'>-->
                         <!--<div class="row no-margin-bottom" ng-if="submission && item.subMeasureList"-->
                         <div class="row no-margin-bottom" ng-if="submission"
                              ng-include="'measure_response_sub.html'">
