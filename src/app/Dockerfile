@@ -1,6 +1,6 @@
 FROM ubuntu:16.04
 
-MAINTAINER Alex Fraser <alex@vpac-innovations.com.au>
+MAINTAINER Wsaa Envision <wsaa@envisionit.com.au>
 
 RUN DEBIAN_FRONTEND=noninteractive \
     apt-get update && \

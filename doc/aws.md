@@ -46,7 +46,7 @@ Docker image.
     ```bash
     cd /home/ubuntu
 
-    git clone git@github.com:vpac-innovations/aquamark.git
+    git git@github.com:Radhika-Envision/Upmark.git
     cd aquamark
     make
     ```

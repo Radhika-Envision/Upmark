@@ -34,7 +34,7 @@ self-hosted database (no RDS or S3).
     1. Fetch the source.
 
         ```
-        git clone git@github.com:vpac-innovations/aquamark.git
+        git clone git@github.com:Radhika-Envision/Upmark.git
         ```
 
  1. Configure the app.

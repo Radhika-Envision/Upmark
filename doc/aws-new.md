@@ -9,7 +9,7 @@ so that only local SSH and Web ports are open.
 ```
 sudo apt-get update
 sudo apt-get install docker.io docker-compose
-git clone git@github.com:vpac-innovations/upmark.git
+git clone git@github.com:Radhika-Envision/Upmark.git
 cd upmark
 cp -a src/app/config ../u-conf
 nano ../u-conf/upmark.conf
