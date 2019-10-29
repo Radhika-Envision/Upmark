@@ -9,7 +9,7 @@ import model
 import logging
 import voluptuous
 from utils import ToSon, truthy, updater
-
+from numbers import Number
 
 log = logging.getLogger('app.crud.survey')
 
@@ -155,7 +155,7 @@ class SurveyHandler(base_handler.BaseHandler):
             for i, l in enumerate(self.request_son.structure.levels): 
                 if i+1 != levels and l.indexing_from:
                     del l.indexing_from
-                if i+1 == levels and (not l.indexing_from):
+                if i+1 == levels and ((not l.indexing_from or isinstance(l.indexing_from, Number)) and l.indexing_from != 0 or l.indexing_from < 0) :
                     l.indexing_from=1
 
 
@@ -208,7 +208,7 @@ class SurveyHandler(base_handler.BaseHandler):
             for i, l in enumerate(self.request_son.structure.levels): 
                 if i+1 != levels and l.indexing_from:
                     del l.indexing_from
-                if i+1 == levels and (not l.indexing_from):
+                if i+1 == levels and ((not l.indexing_from or isinstance(l.indexing_from, Number)) and l.indexing_from != 0 or l.indexing_from < 0) :
                     l.indexing_from=1
 
             self._update(survey, self.request_son)

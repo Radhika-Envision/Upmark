@@ -142,7 +142,7 @@
                                     edit.model.structure.levels.length-2
                                     ng-style="{visibility: $index == edit.model.structure.levels.length-1 ? null:'hidden' }"
                                     ng-model="level.indexingFrom" required 
-                                    ng-init="level.indexingFrom=($index == edit.model.structure.levels.length-1 && (!level.indexingFrom) ? 1: level.indexingFrom)"/>
+                                    ng-init="level.indexingFrom=($index == edit.model.structure.levels.length-1 && (!level.indexingFrom && level.indexingFrom!=0) ? 1: level.indexingFrom)"/>
                             </td>
                             <td class="shrink">                       
                         <button title="{{level.hasMeasures ?
