@@ -54,10 +54,45 @@ angular.module('upmark.response.type', [
     };
 
 
-    function ResponseType(name, partsDef, formula) {
+
+
+    /*function ResponseType(name, partsDef, formula, merge) {
         this.name = name;
-        this.parts = partsDef && partsDef.map(responsePart) || [];
+        this.parts = partsDef && partsDef.map(responsePart) || [];s
         this.formula = parse(formula);
+        var parts =angular.copy(this.parts);
+        var gormular=angular.copy(this.formula);
+        if (merge) {
+            parts =angular.copy( merge.parts && merge.parts.map(responsePart) || []);
+            formula=angular.copy(parse(merge.formula));
+        }
+
+        this.declaredVars = uniqueStrings(
+            parts.reduce(function(prev, part) {
+                return prev.concat(part.declaredVars);
+            }, []));
+        this.freeVars = uniqueStrings(
+            parts.reduce(function(prev, part) {
+                return prev.concat(part.freeVars);
+            }, refs(formula)));
+        this.unboundVars = uniqueStrings(
+            this.freeVars.filter(function(fv) {
+                return this.declaredVars.indexOf(fv) < 0;
+            }, this));
+    };*/
+
+    function ResponseType(name, partsDef, formula, merge) {
+        this.name = name;
+        
+        if (merge) {
+            //this.parts = merge.parts && merge.parts.map(responsePart) || [];
+            this.parts = partsDef && partsDef.map(responsePart) || [];
+           this.formula=parse(merge.formula);
+        }
+        else {
+            this.parts = partsDef && partsDef.map(responsePart) || [];
+            this.formula = parse(formula);
+        }
         this.declaredVars = uniqueStrings(
             this.parts.reduce(function(prev, part) {
                 return prev.concat(part.declaredVars);
@@ -71,6 +106,9 @@ angular.module('upmark.response.type', [
                 return this.declaredVars.indexOf(fv) < 0;
             }, this));
     };
+
+
+    
     ResponseType.prototype.zip = function(responseParts) {
         var partPairs = [];
         for (var i = 0; i < this.parts.length; i++) {
@@ -337,6 +375,9 @@ angular.module('upmark.response.type', [
         },
         templateUrl: 'response_type_editor.html',
         controller: function($scope, Numbers, responseTypes, $timeout, Enqueue) {
+            //$scope.$on("remove-responseType",function(){
+            //    $scope.$broadcast("remove-responseType");
+            //})
             $scope.$watch('rt', function(rt) {
                 $scope.rtEdit = {
                     rt: rt,
@@ -419,6 +460,10 @@ angular.module('upmark.response.type', [
                     $scope.rtEdit.responseType = null;
                     return;
                 }
+                //var merge=null;
+                //if ($scope.$root && $scope.$root.merge) {
+                //    merge=$scope.$root.merge;
+                //}
                 $scope.rtEdit.responseType = new responseTypes.ResponseType(
                     rtDef.name, rtDef.parts, rtDef.formula);
             }, 0, $scope);
@@ -453,11 +498,22 @@ angular.module('upmark.response.type', [
         restrict: 'A',
         scope: {
             rt: '=responseTypesEditor',
+            indexSub:'=indexSub',
+            formula:'=',
             weight: '=',
             isBound: '=',
         },
         templateUrl: 'response_types_editor.html',
-        controller:  function($scope, Numbers, responseTypes, $timeout, Enqueue) {
+        controller:  function($scope, Numbers, responseTypes, $timeout, Enqueue, $rootScope) {
+            if ($scope.indexSub || $scope.indexSub==0) {
+                if ($rootScope.rts && $rootScope.rts[$scope.indexSub]) {
+                    $rootScope.rts[$scope.indexSub]=$scope;
+                    //$rootScope.questions.push($scope);
+                }
+                else {
+                    //$rootScope.questions=[$scope];
+                }
+            }
             $scope.$watch('rt', function(rt) {
                 $scope.rtEdit = {
                     rt: rt,
@@ -535,16 +591,49 @@ angular.module('upmark.response.type', [
             };
 
             var rtDefChanged = Enqueue(function() {
+                //keep submeasure index
+                if ($scope.indexSub)
+                   $rootScope.indexSub=$scope.indexSub; 
                 var rtDef = $scope.rtEdit.rt;
                 if (!rtDef) {
                     $scope.rtEdit.responseType = null;
                     return;
                 }
+                var mergeParts=[];
+                angular.forEach($scope.$root.rts,function(rt,i){
+                    if (!angular.equals({}, rt)) {
+                       mergeParts=[...mergeParts, ...rt.rtEdit.rt.parts]
+                    }
+                });
+                var merge={parts:mergeParts, formula:$scope.formula};
                 $scope.rtEdit.responseType = new responseTypes.ResponseType(
-                    rtDef.name, rtDef.parts, rtDef.formula);
+                    rtDef.name, rtDef.parts, rtDef.formula, merge);
+                $scope.$emit('response-type-changed');
+                angular.forEach($scope.$root.rts,function(s,i){
+                    if (!angular.equals({},s)) { 
+                        if (s.rtEdit.activeTab == 'preview')               
+                            s.rtEdit.activeTab = 'details';
+                    }
+                })
             }, 0, $scope);
             $scope.$watch('rtEdit.rt', rtDefChanged);
             $scope.$watch('rtEdit.rt', rtDefChanged, true);
+            
+
+
+            /*$scope.$watch('formula',  function(vars) {
+                if ($scope.indexSub || $rootScope.indexSub) {
+                    return rtDefChanged;
+                }
+            }, true);*/ 
+
+            $scope.$watch('formula', rtDefChanged);
+
+            $scope.$watch('formula', rtDefChanged, true);
+
+
+
+
 
             $scope.partTypes = [
                 {name: 'multiple_choice', desc: 'Multiple choice'},
@@ -580,28 +669,46 @@ angular.module('upmark.response.type', [
             //ngCtrl.setActiveTab();
             //$scope.setActiveTab();
             //var notSetActiveTab=true;
-            if (scope.$parent.$parent.$parent.$parent.previewList) {
+            /*if (scope.$parent.$parent.$parent.$parent.previewList) {
                 scope.$parent.$parent.$parent.$parent.previewList.push(scope);
             }
             else {
                 scope.$parent.$parent.$parent.$parent.previewList=[scope];
-            }
+            }*/
              
             scope.setActiveTab = function(tab) { 
+                var lastRt=0;
+                var unboundVars=[];
+                var indexSub=scope.$root.indexSub;
+                angular.forEach(scope.$root.rts,function(s,i){
+                    if (!angular.equals({},s)) {                
+                       s.rtEdit.activeTab = tab;
+                       if (indexSub != i && s.rtEdit.responseType.unboundVars.length>0) {
+                        s.rtEdit.responseType.unboundVars=[];
+                     }
+                       lastRt=i;
+                    }
+                })
+                //only display in the last no empty submeasure
+                if (indexSub != lastRt && scope.$root.rts[indexSub].rtEdit.responseType.unboundVars.length>0) {
+                    unboundVars=angular.copy(scope.$root.rts[indexSub].rtEdit.responseType.unboundVars);
+                    scope.$root.rts[indexSub].rtEdit.responseType.unboundVars=[];
+                    scope.$root.rts[lastRt].rtEdit.responseType.unboundVars=angular.copy(unboundVars);
+                 }
+
+                /*scope.$root.rts[lastRt].rtEdit.responseType.unboundVars=unboundVars;
                 //if (setActiveTab) {
                     angular.forEach(scope.$parent.$parent.$parent.$parent.previewList,function(s,i){
                         //if (tab!='')
                            s.rtEdit.activeTab = tab;
                         //else
                         //   s.rtEdit.activeTab = 'details'; 
-                    })
-                }
+                    })*/
+            }
                 
            // };           
             //console.log(elem.controller('responseTypesEditor'));
         },
-
-
     };
 })
 

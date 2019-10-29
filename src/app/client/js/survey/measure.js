@@ -110,8 +110,19 @@ angular.module('upmark.survey.measure', [
         $scope, Measure, routeData, Editor, Authz,
         $location, Notifications, currentUser, Program, format, layout,
         Structure, Arrays, Response, hotkeys, $q, $timeout, $window,
-        responseTypes, ResponseType, Enqueue) {
-
+        responseTypes, ResponseType, Enqueue, $rootScope) {
+    if ($rootScope.questions) {
+        delete $rootScope.questions;
+    }
+    if ($rootScope.rts) {
+        delete $rootScope.rts;
+    } 
+    if ($rootScope.externs) {
+        delete $rootScope.externs;
+    }
+    if ($rootScope.indexSub) {
+        delete $rootScope.indexSub;
+    }  
     $scope.layout = layout;
     $scope.parent = routeData.parent;
     $scope.submission = routeData.submission;
@@ -129,6 +140,23 @@ angular.module('upmark.survey.measure', [
             && routeData.responseType.parts[0]['submeasure']){
                 $scope.measure.hasSubMeasures=true;
                 $scope.measure.rt=routeData.responseType;
+                $scope.measure.subMeasureList.forEach(function(sub,i){
+                    if ($rootScope.questions) {
+                        $rootScope.questions.push({})
+                    }
+                    else
+                    {
+                        $rootScope.questions=[{}]
+                    }
+                    if ($rootScope.rts) {
+                        $rootScope.rts.push({})
+                    }
+                    else
+                    {
+                        $rootScope.rts=[{}]
+                    }
+                });
+
                 // create SubMeasures
                 var subMeasures=[];
                 var submeasure_id=[];
@@ -146,7 +174,8 @@ angular.module('upmark.survey.measure', [
                             if (sub.id==item.submeasure) {
                                 subMeasures.push({ 'id':item['submeasure'],
                                 'description': sub['description'],
-                                'rt':{'definition':{'parts':[item],'name':sub['title']}},
+                                'rt':{'definition':{'parts':[item],'name':sub['title']},
+                                      'responseType': routeData.responseType || null },
                                 'rtRead':{'definition':{'parts':[partObject],'name':sub['title']}},
                                 'name': sub['title'],                         
                                })
@@ -238,14 +267,20 @@ angular.module('upmark.survey.measure', [
             subMeasures: [],
             responseTypeId: null,
             sourceVars: [],
-        });
+            rt:{ formula: 'a'}
+        })
+        //$scope.edit.model.rt.formula='a';measure.rt.formula
     }
 
 
 
     $scope.toggleHasSubMeasures = function(measure) {
+        if ($scope.$root.questions) {
+           //delete $scope.$root.questions;
+        }
         measure.hasSubMeasures = !measure.hasSubMeasures;
         if(measure.hasSubMeasures) {
+            $scope.edit.model.rt.formula='a';
             if (!measure.subMeasures) measure.subMeasures = [];
             if (measure.subMeasures.length <= 0) {
                 measure.rt=angular.copy($scope.rt);
@@ -256,7 +291,12 @@ angular.module('upmark.survey.measure', [
 
 
     $scope.removeSubMeasure = function(measure, subMeasure, index) {
-
+        if ($rootScope.questions && $rootScope.questions[index]) {
+            $rootScope.questions[index]={};
+        }
+        if ($rootScope.rts && $rootScope.rts[index]) {
+            $rootScope.rts[index]={};
+        }
         if (measure.subMeasures.length>1) 
         {
             measure.subMeasures.forEach(function(sm,i){
@@ -274,6 +314,7 @@ angular.module('upmark.survey.measure', [
 
 
     $scope.addSubMeasure = function(measure,rt) {
+
         if (!measure.subMeasures)  measure.subMeasures = [];
         measure.subMeasures.push({
             description: '',
@@ -288,10 +329,28 @@ angular.module('upmark.survey.measure', [
                 }  
             }     
         });
+        if ($rootScope.questions) {
+            $rootScope.questions.push({})
+        }
+        else
+        {
+            $rootScope.questions=[{}]
+        }
+        if ($rootScope.rts) {
+            $rootScope.rts.push({})
+        }
+        else
+        {
+            $rootScope.rts=[{}]
+        }
     };
 
-    $scope.newResponseType = function(type) {
+    $scope.newResponseType = function(type,index) {
         var parts;
+        let defaultFormula='a';
+        if (index) {
+            defaultFormula='';
+        }
         if (type == 'multiple_choice') {
             parts = [{type: 'multiple_choice', id: 'a', options: [
                 {name: 'No', score: 0},
@@ -300,13 +359,12 @@ angular.module('upmark.survey.measure', [
         } else if (type == 'numerical') {
             parts = [{type: 'numerical', id: 'a'}];
         }
-
         return new ResponseType({
             obType: 'response_type',
             programId: $scope.edit.model.programId,
             name: $scope.edit.model.title,
             parts: parts,
-            formula: 'a',
+            formula: defaultFormula,
         });
     };
     $scope.cloneResponseType = function() {
@@ -473,8 +531,10 @@ angular.module('upmark.survey.measure', [
             surveyId: measure.parent && measure.parent.survey.id,
             programId: $scope.program.id
         });
-        if (!measure.id)
+        if (!measure.id) {
             $scope.edit.edit();
+            //$scope.edit.model.rt.formula='a';
+        }
 
         if (measure.parents) {
             var parents = [];
@@ -494,14 +554,49 @@ angular.module('upmark.survey.measure', [
             !$scope.submission);
     });
 
+    $scope.removeReponseType=function(index){
+        if ($rootScope.questions && $rootScope.questions[index]) {
+            $rootScope.questions[index]={};
+        }
+        if ($rootScope.rts && $rootScope.rts[index]) {
+            $rootScope.rts[index]={};
+        }
+        //$scope.rt.definition=null;
+    }
+
+
     var rtDefChanged = Enqueue(function() {
         var rtDef = $scope.rt.definition;
-        if (!rtDef) {
+        if (!rtDef && !($scope.edit.model && $scope.edit.model.hasSubMeasures)) {           
             $scope.rt.responseType = null;
+            //$scope.$broadcast("remove-responseType");
             return;
         }
-        $scope.rt.responseType = new responseTypes.ResponseType(
-            rtDef.name, rtDef.parts, rtDef.formula);
+        // has submeasure, use measure's formula
+        if ($scope.edit.model && $scope.edit.model.hasSubMeasures) {
+            var mergeParts=[];
+            angular.forEach($rootScope.rts,function(rt,i){
+                if (!angular.equals({}, rt)) {
+                   mergeParts=[...mergeParts, ...rt.rtEdit.rt.parts]
+                }
+            });
+            var merge={parts:mergeParts, formula:$scope.edit.model.rt.formula};
+            $scope.rt.responseType = new responseTypes.ResponseType(
+                "", merge.parts, $scope.edit.model.rt.formula);
+            //set declaredVars freeVars unboundVars to current submeasure
+            if ($rootScope.indexSub) {
+               $rootScope.rts[$rootScope.indexSub].rtEdit.responseType.unboundVars=angular.copy($scope.rt.responseType.unboundVars);
+               $rootScope.rts[$rootScope.indexSub].rtEdit.responseType.freeVars=angular.copy($scope.rt.responseType.freeVars);
+               $rootScope.rts[$rootScope.indexSub].rtEdit.responseType.declaredVars=angular.copy($scope.rt.responseType.declaredVars);
+            }
+        }
+        else { //no submeasure, 
+            $scope.rt.responseType = new responseTypes.ResponseType(
+               rtDef.name, rtDef.parts, rtDef.formula);
+        }
+        
+
+
         //put submeasure seq, description, comment, attachement to responseType
         /*var lastSubmeasureId=null;
         var subSeq=1;
@@ -524,6 +619,16 @@ angular.module('upmark.survey.measure', [
         $scope.rt.responseType.parts[$scope.rt.responseType.parts.length-1].comment="";*/
 
     }, 0, $scope);
+
+    /*$scope.$watch('edit.model.rt.formula', function(){
+        if ($scope.measure.subMeasures) {
+            $scope.measure.subMeasures.forEach(function(sub,i){
+                sub.rt.definition.formula=$scope.edit.model.rt.formula;
+            }); 
+        }
+
+    });*/
+    $scope.$on('response-type-changed',rtDefChanged);
     $scope.$watch('rt.definition', rtDefChanged);
     $scope.$watch('rt.definition', rtDefChanged, true);
     $scope.$watchGroup(['rt.responseType', 'edit.model'], function(vars) {
@@ -597,6 +702,18 @@ angular.module('upmark.survey.measure', [
     };
 
     $scope.save = function() {
+        if ($rootScope.questions) {
+            delete $rootScope.questions;
+        }
+        if ($rootScope.rts) {
+            delete $rootScope.rts;
+        }
+        if ($rootScope.externs) {
+            delete $rootScope.externs;
+        }
+        if ($rootScope.indexSub) {
+            delete $rootScope.indexSub;
+        }  
         if (!$scope.edit.model)
             return;
         if (!$scope.rt.definition) {
@@ -651,6 +768,22 @@ angular.module('upmark.survey.measure', [
     };
     $scope.$on('EditSaved', function(event, model) {
         $location.url($scope.getUrl(model));
+        model.subMeasureList.forEach(function(sub,i){
+            if ($rootScope.questions) {
+                $rootScope.questions.push({})
+            }
+            else
+            {
+                $rootScope.questions=[{}]
+            }
+            if ($rootScope.rts) {
+                $rootScope.rts.push({})
+            }
+            else
+            {
+                $rootScope.rts=[{}]
+            }
+        });
     });
     $scope.$on('EditDeleted', function(event, model) {
         if (model.parent) {

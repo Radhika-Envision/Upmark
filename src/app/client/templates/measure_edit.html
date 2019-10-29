@@ -47,12 +47,14 @@
                         id="formula" name="formula"
                         ng-model="rt.formula"
                         title="The fomula to use to compute the score"/>-->
-                    <div class="col-md-6">
+                        <!--{{edit.model.rt.formula}}-->
+                    <div class="col-md-6">                       
                         <div class="input-group" show-errors>
                             <label for="formula" class="input-group-addon align-md">formula:</label>
                             <input type="text" class="form-control" id="formula" name="formula"
                                 title="The fomula to use to compute the score"
-                                ng-model="edit.model.rt.formula" min="0" step="any" required />
+                                ng-model="edit.model.rt.formula" step="any" required />
+                                <!--ng-model="edit.model.subMeasures[0].rt.definition.formula" step="any" required />-->
                         </div>
                     </div>
                 </div>
@@ -108,7 +110,7 @@
                                 placeholder="Description"
                                 title="Description"></markdown-editor>
                         </div>
-                        <!--{{sm}}-->
+                        <!--{{sm.rt}}-->
                     </div>
                     <div class="col-md-6" ng-if="!sm.deleted">
                         <div>
@@ -118,7 +120,8 @@
                                 <button class="btn btn-default btn-round"
                                         ng-if="sm.rt.definition && !sm.rt.showSearch"
                                         title="Clear"
-                                        ng-click="sm.rt.definition = null">
+                                        ng-click="sm.rt.definition = null; removeReponseType($index)">
+                                        <!--ng-click="sm.rt.definition = null">-->
                                     <i class="fa fa-trash-o"></i>
                                 </button>
                                 <button class="btn btn-default btn-round"
@@ -174,12 +177,12 @@
             
                     <div ng-if="!sm.rt.definition">
                         <button class="btn btn-default btn-block"
-                                ng-click="sm.rt.definition = newResponseType('numerical')">
+                                ng-click="sm.rt.definition = newResponseType('numerical',$index)">
                             <i class="fa fa-plus" ng-if="!sm.rt.showSearch"></i>
                             New numerical response type
                         </button>
                         <button class="btn btn-default btn-block"
-                                ng-click="sm.rt.definition = newResponseType('multiple_choice')">
+                                ng-click="sm.rt.definition = newResponseType('multiple_choice',$index)">
                             <i class="fa fa-plus" ng-if="!sm.rt.showSearch"></i>
                             New multiple-choice response type
                         </button>
@@ -189,11 +192,12 @@
                             Re-use response type from another measure
                         </button>
                     </div>
-                    <div ng-if="sm.rt.definition"
-                            response-types-editor="sm.rt.definition" weight="edit.model.weight"
+                    <!--{{edit.model.rt.formula}}-->
+                    <div ng-if="sm.rt.definition" 
+                            response-types-editor="sm.rt.definition" weight="edit.model.weight" index-sub="$index" formula="edit.model.rt.formula"
                             is-bound="sm.rt.definition.id && sm.rt.definition.id == measure.responseTypeId"></div>
             
-                    <h3 ng-if="sm.rt.responseType">Variable Bindings</h3>
+                    <!--h3 ng-if="sm.rt.responseType">Variable Bindings</h3>
                     <div ng-if="sm.rt.responseType">
                         <p ng-if="!sm.rt.responseType.unboundVars.length" class="text-muted">
                             This response type requires no external bindings.
@@ -242,8 +246,83 @@
                                     placeholder="Source variable">
                             </li>
                         </ul>
-                    </div>
+                    </div>-->
                     </div> <!-- .col- -->
+                </div>
+                <div class="row no-margin-bottom" ng-repeat="sm in edit.model.subMeasures">
+                        <div class="spaced" ng-if="sm.rtEdit.responseType.unboundVars.length">
+                                <h4>External Variables</h4>
+                                <p class="text-muted">
+                                    This response type uses external variables. These will
+                                    ultimately be bound to other measures. You can provide
+                                    values for them here for testing purposes.
+                                </p>
+                                <div class="input-group spaced"
+                                        ng-repeat="v in sm.rtEdit.responseType.unboundVars">
+                                    <label for="extern_{{v}}" class="input-group-addon align-md">
+                                        {{v}}:
+                                    </label>
+                                    <input type="text" class="form-control"
+                                        id="extern_{{v}}" name="extern_{{v}}"
+                                        ng-model="rtEdit.externs[v]" />
+                                </div>
+                            </div>
+                </div>
+             
+                <div class="row no-margin-bottom" ng-repeat="sm in edit.model.subMeasures">
+                        <div class="col-md-6"></div>
+                        <div class="col-md-6">
+                          <h3 ng-if="sm.rt.responseType">Variable Bindings</h3>
+                           <div ng-if="sm.rt.responseType">
+                    <p ng-if="!sm.rt.responseType.unboundVars.length" class="text-muted">
+                        This response type requires no external bindings.
+                    </p>
+                    <p ng-if="sm.rt.responseType.unboundVars.length && !edit.model.sourceVars"
+                            class="text-muted">
+                        This response type has free variables that must be sourced from
+                        other measures. You can not bind them now because you are
+                        viewing this measure outside the context of a survey. You can
+                        choose a survey in the Documentation panel.
+                    </p>
+                    <p ng-if="sm.rt.responseType.unboundVars.length && edit.model.sourceVars"
+                            class="text-muted">
+                        This response type has free variables that must be sourced from
+                        other measures:
+                    </p>
+                    <ul class="list-unstyled">
+                        <li ng-repeat="mv in edit.model.sourceVars"
+                                class="input-group"
+                                ng-class="{
+                                    'binding-warning': mv.$unused
+                                }">
+                            <label for="source-measure-{{$index}}"
+                                    class="input-group-addon align-sm-md">
+                                {{mv.targetField}} ←
+                            </label>
+                            <input type="text" class="form-control"
+                                id="source-measure-{{$index}}"
+                                name="source-measure-{{$index}}"
+                                ng-model="mv.sourceMeasure"
+                                uib-typeahead="m as m.title for m in searchMeasuresToBind($viewValue)"
+                                autocomplete="off"
+                                title="Source measure: {{mv.sourceMeasure.title}}"
+                                placeholder="Source measure">
+                            <label for="source-field-{{$index}}"
+                                    class="input-group-addon">
+                                •
+                            </label>
+                            <input type="text" class="form-control"
+                                id="source-field-{{$index}}"
+                                name="source-field-{{$index}}"
+                                ng-model="mv.sourceField"
+                                uib-typeahead="f for f in mv.sourceMeasure.declaredVars"
+                                autocomplete="off"
+                                typeahead-min-length="0"
+                                placeholder="Source variable">
+                        </li>
+                    </ul>
+                           </div>
+                        </div>
                 </div>
             </div>
             <div class="row" ng-show="!edit.model.hasSubMeasures">  

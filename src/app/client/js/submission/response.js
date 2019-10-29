@@ -463,19 +463,37 @@ angular.module('upmark.submission.response', [
         scope: {
             rt: '=type',
             response: '=model',
+            formula_:'=formula',
             weight_: '=weight',
             readonly: '=',
             hasQuality: '=',
             externs: '=',
             isDummy: '@',
+            indexSub:'=indexSub',
         },
         replace: true,
         templateUrl: 'response_form.html',
         transclude: true,
-        controller: ['$scope', 'hotkeys', 'Authz', 'Enqueue',
-                function($scope, hotkeys, Authz, Enqueue) {
+        controller: ['$scope', 'hotkeys', 'Authz', 'Enqueue','$rootScope', 'responseTypes',
+                function($scope, hotkeys, Authz, Enqueue,$rootScope, responseTypes) {
+            if ($scope.indexSub || $scope.indexSub==0) {
+                if ($rootScope.questions && $rootScope.questions[$scope.indexSub]) {
+                    $rootScope.questions[$scope.indexSub]=$scope;
+                    //$rootScope.questions.push($scope);
+                }
+                else {
+                    //$rootScope.questions=[$scope];
+                }
+            }
+            //$scope.$on("remove-responseType",function(){
+            //    $scope.remove=true;
+            //})
             $scope.$watch('weight_', function(weight) {
                 $scope.weight = weight == null ? 100 : weight;
+            });
+            
+            $scope.$watch('formula_', function(formula) {
+                $scope.formula = formula == null ? '' : Parser.parse(formula);
             });
 
             $scope.state = {
@@ -487,9 +505,142 @@ angular.module('upmark.submission.response', [
             var recalculate = Enqueue(function() {
                 if ($scope.isDummy)
                     return;
-                    
-                angular.forEach($scope.$parent.$parent.$parent.$parent.$parent.$parent.$parent.questionList, function(q,i){  
-               
+                let firstIndex=-1;
+                //angular.forEach($scope.$parent.$parent.$parent.$parent.$parent.$parent.$parent.questionList, function(q,i){  
+                let i=0;
+                var mergerRt={};
+                let mergePartsR=[];
+                let variables={};
+                let message='';
+                /*if ($scope.$root.externs)
+                   $rootScope.externs=angular.merge($scope.$root.externs, $scope.externs);
+                else
+                   $rootScope.externs=angular.merge({}, $scope.externs);*/
+                let externs ={};
+
+
+                while (firstIndex ==-1 && i<$scope.$root.questions.length) {
+                    let q=$scope.$root.questions[i];
+                    if (q.externs) {
+                       externs= angular.merge({}, q.externs);
+                    }
+                    if (!angular.equals({}, q)) {
+                        if (firstIndex==-1) {
+                            firstIndex=i
+                       
+                            var rt = q.rt,
+                            mergerRt=angular.copy(q.rt);
+                            mergerRt.formula=$scope.formula;
+                            partsR = q.response.responseParts;
+
+                            if (!rt || !partsR) {
+                                q.state.score = 0;
+                                q.state.active = 0;
+                                q.state.message = 'Loading';
+                                message = 'Loading';
+                                //return;
+                            }
+                            else {
+                                message = '';
+                                rt.parts.forEach(function(part, i) {
+                                   if (!partsR[i])
+                                      partsR[i] = {};
+                                });
+                                mergePartsR=[...mergePartsR, ...partsR];
+                                if (q.response.notRelevant) {
+                                   q.state.variables = angular.merge({}, $scope.externs);
+                                   //q.state.variables = angular.merge({}, $scope.$root.externs);
+                                   q.state.score = 0;
+                                } else {
+                                    q.state.variables = angular.merge(
+                                       {}, $scope.externs, rt.variables(partsR, true));
+                                       //var mergeVariables=$scope.mergeVariables();
+                                }
+                                variables = angular.merge(variables,q.state.variables);
+                            }
+                           
+                        }
+                        
+                    }
+                    i=i+1;
+                }
+
+                for (; i < $scope.$root.questions.length; i++) {
+                    let q=$scope.$root.questions[i];
+                    if (q.externs) {
+                        externs= angular.merge({}, q.externs);
+                     }
+                    if (!angular.equals({}, q)) {
+                        var rt = q.rt,
+                        partsR = q.response.responseParts;
+                        mergerRt.parts=[...mergerRt.parts,...q.rt.parts]
+                        if (!rt || !partsR) {
+                            q.state.score = 0;
+                            q.state.active = 0;
+                            q.state.message = 'Loading';
+                            //return;
+                        }
+                        else {
+                            message = '';
+                            let totalParts=partsR.length;
+                            rt.parts.forEach(function(part, i) {
+                                if (!partsR[i])
+                                   partsR[i] = {};
+                            });
+                            mergePartsR=[...mergePartsR, ...partsR];
+                            if (q.response.notRelevant) {
+                                q.state.variables = angular.merge({}, $scope.externs);
+                                q.state.score = 0;
+                             } else {
+                                q.state.variables = angular.merge(
+                                    {}, $scope.externs, rt.variables(partsR, true));
+                                    //var mergeVariables=$scope.mergeVariables();
+                             }
+                             variables = angular.merge(variables, q.state.variables);
+                        }
+
+                    }
+                }
+
+
+                    /*$scope.state.variables = angular.merge(
+                        {}, $scope.externs, rt.variables(partsR, true));*/ 
+                    if (message == 'Loading') {
+                        return;
+                    }    
+                    let mergeVariables=$scope.mergeVariables();   
+                    variables = angular.merge(variables, externs); 
+                    //$rootScope.merge={
+                    //    variables: mergeVariables,
+                    //    rt: mergerRt,
+                    //    parts: mergePartsR,
+                    //}
+                    try {
+                        mergerRt.validate(mergePartsR, variables);
+                        $scope.state.score = mergerRt.score(
+                            mergePartsR, variables);
+                        
+                        $scope.state.message = null;
+                        $scope.$root.questions[firstIndex].state.score =$scope.state.score;
+                        $scope.$root.questions[firstIndex].state.message=$scope.state.message;
+                    } catch (e) {
+                        $scope.state.message = '' + e;
+                        $scope.state.score = 0;
+                        $scope.$root.questions[firstIndex].state.score =$scope.state.score;
+                        $scope.$root.questions[firstIndex].state.message=$scope.state.message;
+                    }             
+                
+            }, 0, $scope);    
+
+
+
+
+         /*   var recalculate = Enqueue(function() {
+                if ($scope.isDummy)
+                    return;
+                 //angular.forEach($scope.$parent.$parent.$parent.$parent.$parent.$parent.$parent.questionList, function(q,i){  
+                angular.forEach($scope.$root.questions, function(q,i){
+                    if (!angular.equals({}, q)) {
                        var rt = q.rt,
                        partsR = q.response.responseParts;
 
@@ -523,22 +674,25 @@ angular.module('upmark.submission.response', [
                              q.state.message = '' + e;
                              q.state.score = 0;
                         }
-
-                    /*$scope.state.variables = angular.merge(
-                        {}, $scope.externs, rt.variables(partsR, true));
-                    try {
-                        rt.validate(partsR, $scope.state.variables);
-                        $scope.state.score = rt.score(
-                            partsR, $scope.state.variables);
-                        $scope.state.message = null;
-                    } catch (e) {
-                        $scope.state.message = '' + e;
-                        $scope.state.score = 0;
-                    }*/
+                    }
+                    //$scope.state.variables = angular.merge(
+                    //    {}, $scope.externs, rt.variables(partsR, true));
+                    //try {
+                    //    rt.validate(partsR, $scope.state.variables);
+                    //    $scope.state.score = rt.score(
+                    //        partsR, $scope.state.variables);
+                    //    $scope.state.message = null;
+                    //} catch (e) {
+                    //    $scope.state.message = '' + e;
+                    //    $scope.state.score = 0;
+                    //}
   
                 }
                 })
-            }, 0, $scope);
+            }, 0, $scope);*/
+
+
+
 
            /* var recalculate = Enqueue(function() {
                 if ($scope.isDummy)
@@ -687,19 +841,26 @@ angular.module('upmark.submission.response', [
                 if ($scope.isDummy)
                    return false; 
                 var mergeVariables=null;
-                if ($scope.$parent.$parent.$parent.$parent.$parent.$parent) 
+                //if ($scope.$parent.$parent.$parent.$parent.$parent.$parent) 
                 {
                
-                    angular.forEach($scope.$parent.$parent.$parent.$parent.$parent.$parent.$parent.questionList, function(q,i){
-
-                        if (q.state.variables) {
-                            if (i==0) {
+                    //angular.forEach($scope.$parent.$parent.$parent.$parent.$parent.$parent.$parent.questionList, function(q,i){
+                    angular.forEach($scope.$root.questions, function(q,i){
+                        if (!angular.equals({}, q)) {
+                           if (q.state.variables) {
+                            /*if (i==0) {
                                  mergeVariables= angular.merge({}, q.state.variables);
                             }
                             else if (i>0) {
                                  mergeVariables=angular.merge(mergeVariables, q.state.variables);
-                            }
-            
+                            }*/
+                                if (mergeVariables) {
+                                    mergeVariables=angular.merge(mergeVariables, q.state.variables);
+                                }
+                                else {
+                                    mergeVariables= angular.merge({}, q.state.variables);                               
+                                }            
+                          }
                         }
 
                     })
@@ -765,7 +926,7 @@ angular.module('upmark.submission.response', [
         }],
         link: function(scope, elem, attrs) {
             scope.debug = attrs.debug !== undefined;
-            if (!attrs.isResponse) {
+            /*if (!attrs.isResponse) {
                 if (scope.isDummy) {
                     scope.$parent.$parent.$parent.$parent.$parent.questionList=[];
                 }
@@ -777,7 +938,7 @@ angular.module('upmark.submission.response', [
                         scope.$parent.$parent.$parent.$parent.$parent.questionList=[scope];
                     }
                 }
-            }
+            }*/
         }
     }
                                       })
@@ -1026,7 +1187,7 @@ angular.module('upmark.submission.response', [
                                }
                                $scope.response.subMeasures.forEach(function(sub,i){
                                if (sub.id==item.submeasure) {
-                                   item.subDesc="<strong>"+ $scope.response.parentSeq + ($scope.response.qnodeMeasure.seq+1)+"." + (subSeq+1) + "</strong> "+sub.description;
+                                   item.subDesc="<strong>"+ $scope.response.parentSeq + ($scope.response.qnodeMeasure.seq+1)+"." + (subSeq) + "</strong> "+sub.description;
                                    item.subSeq=subSeq;
                                    subSeq=subSeq+1;
                                } 
