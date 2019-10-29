@@ -60,7 +60,8 @@ angular.module('vpac.widgets.editor', [
                                         if (sub.id==item.submeasure) {
                                             subMeasures.push({ 'id':item['submeasure'],
                                             'description': sub['description'],
-                                            'rt':{'definition':{'parts':[item],'name':sub['title']}},
+                                            'rt':{'definition':{'parts':[item],'name':sub['title']},
+                                                  'responseType': model.responseType || null },
                                             'rtRead':{'definition':{'parts':[partObject],'name':sub['title']}},
                                             //'name': sub['title'],                            
                                            })
