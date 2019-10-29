@@ -47,7 +47,7 @@ response_schema = Schema([
         },
         {
             'value': Coerce(float),
-            'comment': Any(All(str, Length(min=1)), None),
+            Optional('comment'): Any(All(str, Length(min=1)), None),
         },
     )
 ], required=True)
