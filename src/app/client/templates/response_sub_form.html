@@ -329,314 +329,326 @@
                                    
                 </div> 
             </div>
-
-
-
-            <li ng-repeat="partSchema in rt.parts"
-                ng-class="{active: $index == state.active}"
-                title="{{partSchema.description}}"
-                class="clearfix part" ng-if="response.subMeasures">
-                <!--<div class="row" ng-if="partSchema.subDesc">
-                    <div class="col-md-12"  >
-                        <div>
-                            <h3><strong>{{response.parentSeq}}{{response.qnodeMeasure.seq+1}}.{{partSchema.subSeq}}</strong> Submeasure Details </h3>
-                        </div>
-                    </div>
-                </div>-->
+           <li ng-repeat="subMeasure in rt.parts" ng-if = '$index==0 || rt.parts[$index-1].submeasure !=subMeasure.submeasure' class="clearfix part" >
                 <div class="row no-margin-bottom">
-                    <div class="col-md-6">
-                        <div ng-if="partSchema.subDesc" ng-hide="readonly">
-                            <!--<label ng-click="state.active = $index">
-                                <span>{{partSchema.description}}</span>
-                                <span>{{partSchema.subDesc}}</span>-->
-                                <div ng-bind-html="partSchema.subDesc | markdown"></div>
-                            <!--</label>-->
-                        </div> 
-                      
-                    </div>       
-                    <div class= "col-md-6">  
-                        <div ng-if="partSchema.name" class="hidden-print" ng-hide="readonly">
-                            <label ng-click="state.active = $index">
-                                <span>{{partSchema.name}}</span>
-                            </label>
-                        </div>
-                        <div class="hidden-print" ng-hide="readonly"
-                            ng-init="partData = getPartData(partSchema)">
-                            <div class="btn-group btn-group-justified">
-                                <div class="btn-group"
-                                    ng-if="partSchema.type == 'multiple_choice'"
-                                    ng-repeat="o in partSchema.options">
-                                    <button class="btn btn-default"
-                                         ng-class="{active: getPartData(partSchema).index == $index}"
-                                         ng-click="choose(partSchema, o)"
-                                         ng-disabled="!available(o)"
-                                         title="{{o.description || partSchema.description}}">
-                                        <span class="index">{{$index + 1}}</span>
-                                        <span>{{o.name}}</span>
-                                    </button>
-                                </div>
-                                <div class="input-group"
-                                     ng-if="partSchema.type == 'numerical'">
-                                    <span class="input-group-addon text-muted">
-                                        {{
-                                         isFinite(partSchema.lower(state.variables)) ?
-                                         '' + partSchema.lower(state.variables) + ' ≤' :
-                                         ''
-                                        }}
-                                    </span>
-                                    <input type="number" step="any" class="form-control"
-                                         ng-model="getPartData(partSchema).value"
-                                         title="{{partSchema.description}}"
-                                         placeholder="Enter a number">
-                                    </input>
-                                    <span class="input-group-addon text-muted">
-                                        {{
-                                          isFinite(partSchema.upper(state.variables)) ?
-                                          '≤ ' + partSchema.upper(state.variables) :
-                                          ''
-                                        }}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div ng-class="readonly ? null : 'visible-print-block'">
-                             <span ng-if="partSchema.name">{{partSchema.name}}:</span>
-                             <span ng-if="partSchema.type == 'multiple_choice'"
-                                   class="print-field">
-                           
-                                <span ng-if="partData.index != null">
-                                   {{partData.index + 1}}
-                                   {{partData.note}}
-                                </span>
-                                <span ng-if="partData.index == null">-</span>
-                            </span>
-                            <span ng-if="partSchema.type == 'numerical'"
-                                  class="print-field">
-                                 <span ng-if="partData.value != null">
-                                      {{partData.value}}
-                                 </span>
-                                 <span ng-if="partData.value == null">-</span>
-                            </span>
-                        </div>
-                  
-                    </div>
-                </div>
-                <div  class="row no-margin-bottom" ng-if="partSchema.comment!=null">
-                    <div class= "col-md-6"></div>
-                    <div class= "col-md-6" ng-controller="ResponseForMeasureAttachmentCtrl" ng-init="init(response.submissionId, partSchema.submeasure, response.qnodeMeasure.seq, $index,response.measureId)">  
-                         <!-- attachment-->
-                         <div>
-                                <div class="section">
-                                    <div class="toolbar" ng-if="!structure.deletedItem">
-                                        <button class="btn btn-default btn-round"
-                                                title="Upload"
-                                                ng-if="!showFileDrop && !m.externals.length"
-                                                ng-click="toggleFileDrop()">
-                                            <i class="fa fa-fw fa-cloud-upload"></i>
-                                        </button>
-                                        <button class="btn btn-default btn-round"
-                                                title="Add external link"
-                                                ng-if="!showFileDrop && !m.externals.length"
-                                                ng-click="addExternal()">
-                                            <i class="fa fa-fw fa-link">
-                                                <i class="fa fa-badge fa-plus"></i></i>
-                                        </button>
-                                        <button class="btn btn-default btn-round"
-                                            title="Cancel"
-                                            ng-if="showFileDrop || m.externals.length"
-                                            ng-click="cancelNewAttachments()">
-                                            <i class="fa fa-times fa-fw"></i></button>
-                                        <button class="btn btn-default btn-round"
-                                            title="Save response"
-                                            ng-if="showFileDrop || m.externals.length"
-                                            ng-click="saveResponse()">
-                                            <i class="fa fa-check fa-fw"></i></button>
-                                
-                                    </div>
-                                    <h3>Attachments</h3>
-                                </div>
-                                <div class="dropzone dz-nopreview" id="dropzone-{{partSchema.submeasure}}" ng-show="showFileDrop"> 
-                                      <!--   <div class="dropzone dz-nopreview" id="dropzone-{{response.qnodeMeasure.seq}}-{{$index}}" ng-show="showFileDrop"> 
-                                     ng-init="$last && initAttachment($index,$last)"data-ng-element-ready="initAttachment($index)">-->
-                                    <div class="dz-message" > <!-- ng-init="initAttachment($index)">-->
-                                        <p><i class="fa fa-cloud-upload fa-5x"></i></p>
-                                        <p>Drop files here, or click to select one</p>
-                                    </div>
-                                    <p class="text-warning">
-                                        <i class="fa fa-warning"></i>
-                                        Files that are uploaded <b>cannot</b> be deleted. For highly
-                                        confidential data, create an external link
-                                        <i class="fa fa-link"></i> instead.
-                                    </p>
-                                </div>
-                                <ul class="list-unstyled">
-                                    <li class="input-group" ng-repeat="external in m.externals">
-                                        <label class="input-group-addon" for="extname{{$index}}" title="Title">
-                                            <i class="fa fa-at"></i>
-                                            <span class="sr-only">Title</span>
-                                        </label>
-                                        <input type="text" id="extname{{$index}}"
-                                                class="form-control btn-default"
-                                                ng-model="external.fileName"
-                                                placeholder="Link title">
-                                        <label class="input-group-addon" for="exturl{{$index}}"
-                                                title="External link URL">
-                                            <i class="fa fa-link"></i>
-                                            <span class="sr-only">External link URL</span>
-                                        </label>
-                                        <input type="text" id="exturl{{$index}}"
-                                                class="form-control btn-default"
-                                                ng-model="external.url"
-                                                placeholder="Link URL">
-                                        <span class="input-group-btn">
-                                            <button class="btn btn-default" type="button"
-                                                    title="Delete this link"
-                                                    ng-click="deleteExternal($index)">
-                                                <i class="fa fa-trash-o"></i></button>
-                                        </span>
-                                    </li>
-                                </ul>
-                                <ul class="list-results fa-ul">
-                                    <li ng-repeat="attachment in m.attachments">
-                                        <a ng-href="{{getUrl(attachment)}}" download
-                                                ng-if="isUpload(attachment)"
-                                                class="hide-print-url"
-                                                ng-click="m.activeAttachment = attachment; $event.preventDefault()">
-                                            <button class="btn btn-default btn-round pull-right hidden-print"
-                                                    title="Remove"
-                                                    ng-click="
-                                                        m.deletingAttachment = m.deletingAttachment ?
-                                                            null : attachment;
-                                                        $event.stopPropagation();
-                                                        $event.preventDefault()"
-                                                    highlight="attachment == m.deletingAttachment"
-                                                    ng-if="!structure.deletedItem">
-                                                <i class="fa fa-fw"
-                                                    ng-class="m.deletingAttachment ?
-                                                              'fa-times' : 'fa-trash-o'"></i>
-                                            </button>
-                                            <h4>
-                                                <i class="fa fa-li fa-cloud-download text-muted"></i>
-                                                {{attachment.fileName}}
-                                            </h4>
-                                            <p>Uploaded file</p>
-                                        </a>
-                                        <div ng-if="attachment == m.activeAttachment" highlight class="text-center">
-                                          <p>
-                                            <i class="fa fa-bug"></i>
-                                            Attachments are not scanned for viruses.
-                                          </p>
-                                          <p>
-                                            <a ng-href="{{getUrl(attachment)}}" download
-                                                    ng-click="download(attachment); m.activeAttachment = null; $event.preventDefault()"
-                                                    class="btn btn-default active">
-                                                <i class="fa fa-cloud-download"></i>
-                                                Download
-                                            </a>
-                                            <button ng-click="m.activeAttachment = null"
-                                                    class="btn btn-default">
-                                                <i class="fa fa-times"></i>
-                                                Cancel
-                                            </button>
-                                          </p>
+                        <div class="col-md-6">
+                            <div ng-if="subMeasure.subDesc" ng-hide="readonly">
+                                <!--<label ng-click="state.active = $index">
+                                    <span>{{partSchema.description}}</span>
+                                    <span>{{partSchema.subDesc}}</span>-->
+                                    <div ng-bind-html="subMeasure.subDesc | markdown"></div>
+                                <!--</label>-->
+                            </div> 
+                          
+                        </div>       
+                        <div class="col-md-6">
+                             <div ng-repeat="partSchema in rt.parts"
+                                ng-class="{active: $index == state.active}"
+                                title="{{partSchema.description}}"
+                                class="clearfix part" ng-if="response.subMeasures && subMeasure.submeasure==partSchema.submeasure">
+                                <!--<div class="row" ng-if="partSchema.subDesc">
+                                    <div class="col-md-12"  >
+                                        <div>
+                                            <h3><strong>{{response.parentSeq}}{{response.qnodeMeasure.seq+1}}.{{partSchema.subSeq}}</strong> Submeasure Details </h3>
                                         </div>
-                                        <a ng-href="{{attachment.url}}"
-                                                ng-if="attachment.url && safeUrl(attachment.url)"
-                                                class="hide-print-url">
-                                            <button class="btn btn-default btn-round pull-right hidden-print"
-                                                    title="Remove"
-                                                    ng-click="
-                                                        m.deletingAttachment = m.deletingAttachment ?
-                                                            null : attachment;
-                                                        $event.stopPropagation();
-                                                        $event.preventDefault()"
-                                                    highlight="attachment == m.deletingAttachment"
-                                                    ng-if="!structure.deletedItem">
-                                                <i class="fa fa-fw"
-                                                    ng-class="m.deletingAttachment ?
-                                                              'fa-times' : 'fa-trash-o'"></i>
-                                            </button>
-                                            <h4>
-                                                <i class="fa fa-li fa-link text-muted"></i>
-                                                {{attachment.fileName || attachment.url}}
-                                            </h4>
-                                            <p>Web link: {{attachment.url}}</p>
-                                        </a>
-                                        <a ng-if="attachment.url && !safeUrl(attachment.url)"
-                                                select-text>
-                                            <button class="btn btn-default btn-round pull-right hidden-print"
-                                                    title="Remove"
-                                                    ng-click="m.deletingAttachment = m.deletingAttachment ? null : attachment"
-                                                    highlight="attachment == m.deletingAttachment"
-                                                    ng-if="!structure.deletedItem">
-                                                <i class="fa fa-fw fa-trash-o"></i></button>
-                                            <h4>
-                                                <i class="fa fa-li fa-paperclip text-muted"></i>
-                                                {{attachment.fileName}}
-                                            </h4>
-                                            <p>
-                                                External link:
-                                                <span select-text-target>{{attachment.url}}</span>
-                                            </p>
-                                        </a>
-                                        <div ng-if="attachment == m.deletingAttachment"
-                                              highlight highlight-dismiss="m.deletingAttachment = null"
-                                              class="text-center">
-                                          <p>
-                                            This action cannot be undone.
-                                            <span ng-if="isUpload(attachment)">
-                                              Nevertheless, the attachment cannot be actually deleted from the
-                                              server.
+                                    </div>
+                                </div>-->
+                                <div class="row no-margin-bottom">
+                                    <!--<div class="col-md-6">
+                                        <div ng-if="partSchema.subDesc" ng-hide="readonly">-->
+                                            <!--<label ng-click="state.active = $index">
+                                                <span>{{partSchema.description}}</span>
+                                                <span>{{partSchema.subDesc}}</span>-->
+                                                <!--<div ng-bind-html="partSchema.subDesc | markdown"></div>-->
+                                            <!--</label>-->
+                                        <!--</div> 
+                                      
+                                    </div>       
+                                    <div class= "col-md-6">  --> 
+                                        <div ng-if="partSchema.name" class="hidden-print" ng-hide="readonly">
+                                            <label ng-click="state.active = $index">
+                                                <span>{{partSchema.name}}</span>
+                                            </label>
+                                        </div>
+                                        <div class="hidden-print" ng-hide="readonly"
+                                            ng-init="partData = getPartData(partSchema)">
+                                            <div class="btn-group btn-group-justified">
+                                                <div class="btn-group"
+                                                    ng-if="partSchema.type == 'multiple_choice'"
+                                                    ng-repeat="o in partSchema.options">
+                                                    <button class="btn btn-default"
+                                                         ng-class="{active: getPartData(partSchema).index == $index}"
+                                                         ng-click="choose(partSchema, o)"
+                                                         ng-disabled="!available(o)"
+                                                         title="{{o.description || partSchema.description}}">
+                                                        <span class="index">{{$index + 1}}</span>
+                                                        <span>{{o.name}}</span>
+                                                    </button>
+                                                </div>
+                                                <div class="input-group"
+                                                     ng-if="partSchema.type == 'numerical'">
+                                                    <span class="input-group-addon text-muted">
+                                                        {{
+                                                         isFinite(partSchema.lower(state.variables)) ?
+                                                         '' + partSchema.lower(state.variables) + ' ≤' :
+                                                         ''
+                                                        }}
+                                                    </span>
+                                                    <input type="number" step="any" class="form-control"
+                                                         ng-model="getPartData(partSchema).value"
+                                                         title="{{partSchema.description}}"
+                                                         placeholder="Enter a number">
+                                                    </input>
+                                                    <span class="input-group-addon text-muted">
+                                                        {{
+                                                          isFinite(partSchema.upper(state.variables)) ?
+                                                          '≤ ' + partSchema.upper(state.variables) :
+                                                          ''
+                                                        }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div ng-class="readonly ? null : 'visible-print-block'">
+                                             <span ng-if="partSchema.name">{{partSchema.name}}:</span>
+                                             <span ng-if="partSchema.type == 'multiple_choice'"
+                                                   class="print-field">
+                                           
+                                                <span ng-if="partData.index != null">
+                                                   {{partData.index + 1}}
+                                                   {{partData.note}}
+                                                </span>
+                                                <span ng-if="partData.index == null">-</span>
                                             </span>
-                                          </p>
-                                          <p>
-                                            <button ng-href="{{getUrl(attachment)}}" download
-                                                    ng-click="deleteAttachment(attachment);
-                                                              m.deletingAttachment = null"
-                                                    class="btn btn-default active">
-                                                <i class="fa fa-trash-o"></i>
-                                                Unlink
-                                            </button>
-                                            <button ng-click="m.deletingAttachment = null"
-                                                    class="btn btn-default">
-                                                <i class="fa fa-times"></i>
-                                                Cancel
-                                            </button>
-                                          </p>
+                                            <span ng-if="partSchema.type == 'numerical'"
+                                                  class="print-field">
+                                                 <span ng-if="partData.value != null">
+                                                      {{partData.value}}
+                                                 </span>
+                                                 <span ng-if="partData.value == null">-</span>
+                                            </span>
                                         </div>
-                                    </li>
-                                    <li ng-if="!m.attachments.length" class="text-muted">
-                                        No attachments.
-                                    </li>
-                                </ul>
-                        </div> 
+                                  
+                                    <!--</div>-->
+                                </div>
+                                <div  class="row no-margin-bottom" ng-if="partSchema.comment!=null">
+                                    <!--<div class= "col-md-6"></div>-->
+                                    <div class= "col-md-12" ng-controller="ResponseForMeasureAttachmentCtrl" ng-init="init(response.submissionId, partSchema.submeasure, response.qnodeMeasure.seq, $index,response.measureId)">  
+                                         <!-- attachment-->
+                                         <div>
+                                                <div class="section">
+                                                    <div class="toolbar" ng-if="!structure.deletedItem">
+                                                        <button class="btn btn-default btn-round"
+                                                                title="Upload"
+                                                                ng-if="!showFileDrop && !m.externals.length"
+                                                                ng-click="toggleFileDrop()">
+                                                            <i class="fa fa-fw fa-cloud-upload"></i>
+                                                        </button>
+                                                        <button class="btn btn-default btn-round"
+                                                                title="Add external link"
+                                                                ng-if="!showFileDrop && !m.externals.length"
+                                                                ng-click="addExternal()">
+                                                            <i class="fa fa-fw fa-link">
+                                                                <i class="fa fa-badge fa-plus"></i></i>
+                                                        </button>
+                                                        <button class="btn btn-default btn-round"
+                                                            title="Cancel"
+                                                            ng-if="showFileDrop || m.externals.length"
+                                                            ng-click="cancelNewAttachments()">
+                                                            <i class="fa fa-times fa-fw"></i></button>
+                                                        <button class="btn btn-default btn-round"
+                                                            title="Save response"
+                                                            ng-if="showFileDrop || m.externals.length"
+                                                            ng-click="saveResponse()">
+                                                            <i class="fa fa-check fa-fw"></i></button>
+                                                
+                                                    </div>
+                                                    <h3>Attachments</h3>
+                                                </div>
+                                                <div class="dropzone dz-nopreview" id="dropzone-{{partSchema.submeasure}}" ng-show="showFileDrop"> 
+                                                      <!--   <div class="dropzone dz-nopreview" id="dropzone-{{response.qnodeMeasure.seq}}-{{$index}}" ng-show="showFileDrop"> 
+                                                     ng-init="$last && initAttachment($index,$last)"data-ng-element-ready="initAttachment($index)">-->
+                                                    <div class="dz-message" > <!-- ng-init="initAttachment($index)">-->
+                                                        <p><i class="fa fa-cloud-upload fa-5x"></i></p>
+                                                        <p>Drop files here, or click to select one</p>
+                                                    </div>
+                                                    <p class="text-warning">
+                                                        <i class="fa fa-warning"></i>
+                                                        Files that are uploaded <b>cannot</b> be deleted. For highly
+                                                        confidential data, create an external link
+                                                        <i class="fa fa-link"></i> instead.
+                                                    </p>
+                                                </div>
+                                                <ul class="list-unstyled">
+                                                    <li class="input-group" ng-repeat="external in m.externals">
+                                                        <label class="input-group-addon" for="extname{{$index}}" title="Title">
+                                                            <i class="fa fa-at"></i>
+                                                            <span class="sr-only">Title</span>
+                                                        </label>
+                                                        <input type="text" id="extname{{$index}}"
+                                                                class="form-control btn-default"
+                                                                ng-model="external.fileName"
+                                                                placeholder="Link title">
+                                                        <label class="input-group-addon" for="exturl{{$index}}"
+                                                                title="External link URL">
+                                                            <i class="fa fa-link"></i>
+                                                            <span class="sr-only">External link URL</span>
+                                                        </label>
+                                                        <input type="text" id="exturl{{$index}}"
+                                                                class="form-control btn-default"
+                                                                ng-model="external.url"
+                                                                placeholder="Link URL">
+                                                        <span class="input-group-btn">
+                                                            <button class="btn btn-default" type="button"
+                                                                    title="Delete this link"
+                                                                    ng-click="deleteExternal($index)">
+                                                                <i class="fa fa-trash-o"></i></button>
+                                                        </span>
+                                                    </li>
+                                                </ul>
+                                                <ul class="list-results fa-ul">
+                                                    <li ng-repeat="attachment in m.attachments">
+                                                        <a ng-href="{{getUrl(attachment)}}" download
+                                                                ng-if="isUpload(attachment)"
+                                                                class="hide-print-url"
+                                                                ng-click="m.activeAttachment = attachment; $event.preventDefault()">
+                                                            <button class="btn btn-default btn-round pull-right hidden-print"
+                                                                    title="Remove"
+                                                                    ng-click="
+                                                                        m.deletingAttachment = m.deletingAttachment ?
+                                                                            null : attachment;
+                                                                        $event.stopPropagation();
+                                                                        $event.preventDefault()"
+                                                                    highlight="attachment == m.deletingAttachment"
+                                                                    ng-if="!structure.deletedItem">
+                                                                <i class="fa fa-fw"
+                                                                    ng-class="m.deletingAttachment ?
+                                                                              'fa-times' : 'fa-trash-o'"></i>
+                                                            </button>
+                                                            <h4>
+                                                                <i class="fa fa-li fa-cloud-download text-muted"></i>
+                                                                {{attachment.fileName}}
+                                                            </h4>
+                                                            <p>Uploaded file</p>
+                                                        </a>
+                                                        <div ng-if="attachment == m.activeAttachment" highlight class="text-center">
+                                                          <p>
+                                                            <i class="fa fa-bug"></i>
+                                                            Attachments are not scanned for viruses.
+                                                          </p>
+                                                          <p>
+                                                            <a ng-href="{{getUrl(attachment)}}" download
+                                                                    ng-click="download(attachment); m.activeAttachment = null; $event.preventDefault()"
+                                                                    class="btn btn-default active">
+                                                                <i class="fa fa-cloud-download"></i>
+                                                                Download
+                                                            </a>
+                                                            <button ng-click="m.activeAttachment = null"
+                                                                    class="btn btn-default">
+                                                                <i class="fa fa-times"></i>
+                                                                Cancel
+                                                            </button>
+                                                          </p>
+                                                        </div>
+                                                        <a ng-href="{{attachment.url}}"
+                                                                ng-if="attachment.url && safeUrl(attachment.url)"
+                                                                class="hide-print-url">
+                                                            <button class="btn btn-default btn-round pull-right hidden-print"
+                                                                    title="Remove"
+                                                                    ng-click="
+                                                                        m.deletingAttachment = m.deletingAttachment ?
+                                                                            null : attachment;
+                                                                        $event.stopPropagation();
+                                                                        $event.preventDefault()"
+                                                                    highlight="attachment == m.deletingAttachment"
+                                                                    ng-if="!structure.deletedItem">
+                                                                <i class="fa fa-fw"
+                                                                    ng-class="m.deletingAttachment ?
+                                                                              'fa-times' : 'fa-trash-o'"></i>
+                                                            </button>
+                                                            <h4>
+                                                                <i class="fa fa-li fa-link text-muted"></i>
+                                                                {{attachment.fileName || attachment.url}}
+                                                            </h4>
+                                                            <p>Web link: {{attachment.url}}</p>
+                                                        </a>
+                                                        <a ng-if="attachment.url && !safeUrl(attachment.url)"
+                                                                select-text>
+                                                            <button class="btn btn-default btn-round pull-right hidden-print"
+                                                                    title="Remove"
+                                                                    ng-click="m.deletingAttachment = m.deletingAttachment ? null : attachment"
+                                                                    highlight="attachment == m.deletingAttachment"
+                                                                    ng-if="!structure.deletedItem">
+                                                                <i class="fa fa-fw fa-trash-o"></i></button>
+                                                            <h4>
+                                                                <i class="fa fa-li fa-paperclip text-muted"></i>
+                                                                {{attachment.fileName}}
+                                                            </h4>
+                                                            <p>
+                                                                External link:
+                                                                <span select-text-target>{{attachment.url}}</span>
+                                                            </p>
+                                                        </a>
+                                                        <div ng-if="attachment == m.deletingAttachment"
+                                                              highlight highlight-dismiss="m.deletingAttachment = null"
+                                                              class="text-center">
+                                                          <p>
+                                                            This action cannot be undone.
+                                                            <span ng-if="isUpload(attachment)">
+                                                              Nevertheless, the attachment cannot be actually deleted from the
+                                                              server.
+                                                            </span>
+                                                          </p>
+                                                          <p>
+                                                            <button ng-href="{{getUrl(attachment)}}" download
+                                                                    ng-click="deleteAttachment(attachment);
+                                                                              m.deletingAttachment = null"
+                                                                    class="btn btn-default active">
+                                                                <i class="fa fa-trash-o"></i>
+                                                                Unlink
+                                                            </button>
+                                                            <button ng-click="m.deletingAttachment = null"
+                                                                    class="btn btn-default">
+                                                                <i class="fa fa-times"></i>
+                                                                Cancel
+                                                            </button>
+                                                          </p>
+                                                        </div>
+                                                    </li>
+                                                    <li ng-if="!m.attachments.length" class="text-muted">
+                                                        No attachments.
+                                                    </li>
+                                                </ul>
+                                        </div> 
+                
+                
+                
+                                    </div>
+                                </div>
+                                <!--<div class="row no-margin-bottom" ng-if="partSchema.comment!=null">
+                                    <div class="part hidden-print" ng-hide="readonly">
+                                        <label for="comments">Comments</label>
+                                        <div ng-if="!readonly">
+                                            <markdown-editor id="comments"
+                                                ng-model="partSchema.comment"
+                                                me-focus-on="'focus-comment'" title="Comments"
+                                                me-blur-on="'blur-comment'"></markdown-editor>
+                                        </div>
+                                    </div>
+                                    
+                                    <div ng-class="readonly ? null : 'visible-print-block'">
+                                        <p>Comments: <em ng-if="!partSchema.comment">None</em></p>
+                                        <div ng-if="partSchema.comment" class="print-field"
+                                            ng-bind-html="partSchema.comment | markdown">
+                                        </div>
+                                    </div>
+                                </div>-->
+                      
+                            </div>
 
-
-
-                    </div>
-                </div>
-                <!--<div class="row no-margin-bottom" ng-if="partSchema.comment!=null">
-                    <div class="part hidden-print" ng-hide="readonly">
-                        <label for="comments">Comments</label>
-                        <div ng-if="!readonly">
-                            <markdown-editor id="comments"
-                                ng-model="partSchema.comment"
-                                me-focus-on="'focus-comment'" title="Comments"
-                                me-blur-on="'blur-comment'"></markdown-editor>
-                        </div>
-                    </div>
-                    
-                    <div ng-class="readonly ? null : 'visible-print-block'">
-                        <p>Comments: <em ng-if="!partSchema.comment">None</em></p>
-                        <div ng-if="partSchema.comment" class="print-field"
-                            ng-bind-html="partSchema.comment | markdown">
-                        </div>
-                    </div>
-                </div>-->
-      
-            </li>
-
-
+           </div>
+           </div>
+          </li>
 
 
         </ol>

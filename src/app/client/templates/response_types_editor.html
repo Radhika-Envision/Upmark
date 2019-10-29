@@ -176,8 +176,8 @@
         </uib-tab>
         <uib-tab index="'preview'" heading="Preview"  ng-click="setActiveTab('preview')">
             <response-form class="spaced" debug is-response-type="true"
-                type="rtEdit.responseType" model="rtEdit.response"
-                externs="rtEdit.externs" weight="weight"></response-form>
+                type="rtEdit.responseType" model="rtEdit.response" index-sub="indexSub"
+                externs="rtEdit.externs" weight="weight" formula="formula"></response-form>
     
             <div class="spaced" ng-if="rtEdit.responseType.unboundVars.length">
                 <h4>External Variables</h4>
