@@ -1112,6 +1112,7 @@ angular.module('upmark.submission.response', [
             hasQuality: '=',
             externs: '=',
             isDummy: '@',
+            level:'=',
         },
         replace: true,
         templateUrl: 'response_sub_form.html',
@@ -1187,7 +1188,7 @@ angular.module('upmark.submission.response', [
                                }
                                $scope.response.subMeasures.forEach(function(sub,i){
                                if (sub.id==item.submeasure) {
-                                   item.subDesc="<strong>"+ $scope.response.parentSeq + ($scope.response.qnodeMeasure.seq+1)+"." + (subSeq) + "</strong> "+sub.description;
+                                   item.subDesc="<strong>"+ $scope.response.parentSeq + ($scope.response.qnodeMeasure.seq+ $scope.getIndexingFrom())+"." + (subSeq) + "</strong> "+sub.description;
                                    item.subSeq=subSeq;
                                    subSeq=subSeq+1;
                                } 
@@ -1270,6 +1271,13 @@ angular.module('upmark.submission.response', [
             $scope.isFinite = isFinite;
 
             $scope.checkRole = Authz({program: $scope.program});
+
+            $scope.getIndexingFrom = function(){
+                var result = 1;
+                if($scope.level && $scope.level.hasMeasures && $scope.level.indexingFrom !== null && $scope.level.indexingFrom !== undefined)
+                    result = $scope.level.indexingFrom;
+                return result;
+            }; 
 
             hotkeys.bindTo($scope)
                 .add({
