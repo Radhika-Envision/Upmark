@@ -696,7 +696,8 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
             })
             policy.verify('surveygroup_interact')
 
-            verbs = set()
+            #verbs = set()
+            verbs = []
             if (self.request_son.has_sub_measures==True):
 
                 ## get used submeasureIds ***************
@@ -811,7 +812,8 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
             self._update(measure, self.request_son)
             # Check if modified now to avoid problems with autoflush later
             if session.is_modified(measure):
-                verbs.add('update')
+                #verbs.add('update')
+                verbs.append('update')
                 for qnode_measure in measure.qnode_measures:
                     calculator.mark_measure_dirty(qnode_measure)
 
