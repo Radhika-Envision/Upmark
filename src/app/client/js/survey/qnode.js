@@ -1049,15 +1049,19 @@ if ($scope.submission) {
     }).$promise.then(
         function success(response) {
             // should make response_parts change if response_type part type changed
-            if (response.responseParts.length>0) {
-               angular.forEach($scope.rt.definition.parts, function(part,index){
-                    if (response.responseParts.length<index) {
-                        if ((part.type=='multiple_choice' && response.responseParts[index].value) ||
-                           (part.type=='numerical' && response.responseParts[index].index)) {
-                           response.responseParts[index]={};
-                        }
+            if (response.responseParts && response.responseParts.length>0 
+                && $scope.rt.definition.parts.length==response.responseParts.length) {
+                angular.forEach($scope.rt.definition.parts, function(part,index){
+                    if ((part.type=='multiple_choice' && response.responseParts[index].value) ||
+                        (part.type=='numerical' && response.responseParts[index].index)) {
+                        response.responseParts[index]={};
                     }
+
                 });
+            }
+            else if (response.responseParts && response.responseParts.length>0) {
+                // response_type part and response_parts different length 
+                response.responseParts=[];
             }
             
             //end type changed
