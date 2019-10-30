@@ -1178,28 +1178,29 @@ angular.module('upmark.submission.response', [
                 }
                 //put submeasure seq, description, comment, attachement to responseType
                 if ($scope.response.subMeasures && $scope.response.subMeasures.length>0) {
-                        var lastSubmeasureId=null;
-                        var subSeq=1;
-                        if ($scope.rt && $scope.rt.parts && $scope.rt.parts.length>0) {
-                            $scope.rt.parts.forEach(function(item,index){
-                           if (lastSubmeasureId!=item.submeasure) {
-                              if (lastSubmeasureId) {
-                                  $scope.rt.parts[index-1].comment="";
-                               }
-                               $scope.response.subMeasures.forEach(function(sub,i){
-                               if (sub.id==item.submeasure) {
-                                   item.subDesc="<strong>"+ $scope.response.parentSeq + ($scope.response.qnodeMeasure.seq+ $scope.getIndexingFrom())+"." + (subSeq) + "</strong> "+sub.description;
-                                   item.subSeq=subSeq;
-                                   subSeq=subSeq+1;
-                               } 
-                               lastSubmeasureId=item.submeasure;
-                           });
-       
-                        }
-                        $scope.response.questions=subSeq;
-                   })
-                   $scope.rt.parts[$scope.rt.parts.length-1].comment="";
-                   }
+                    var lastSubmeasureId=null;
+                    var subSeq=1;
+                    if ($scope.rt && $scope.rt.parts && $scope.rt.parts.length>0) {
+                        $scope.rt.parts.forEach(function(item,index){
+                            if (lastSubmeasureId!=item.submeasure) {
+                                if (lastSubmeasureId) {
+                                    $scope.rt.parts[index-1].comment="";
+                                }
+                                if ($scope.response.parentSeq && $scope.response.qnodeMeasure) {
+                                    $scope.response.subMeasures.forEach(function(sub,i){
+                                        if (sub.id==item.submeasure) {
+                                            item.subDesc="<strong>"+ $scope.response.parentSeq + ($scope.response.qnodeMeasure.seq+ $scope.getIndexingFrom())+"." + (subSeq) + "</strong> "+sub.description;
+                                            item.subSeq=subSeq;
+                                            subSeq=subSeq+1;
+                                        } 
+                                        lastSubmeasureId=item.submeasure;
+                                    });
+                                }
+                            }
+                            $scope.response.questions=subSeq;
+                        })  
+                        $scope.rt.parts[$scope.rt.parts.length-1].comment="";
+                    }
                 }
                 else
                 {

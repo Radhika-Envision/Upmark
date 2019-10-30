@@ -677,25 +677,28 @@ angular.module('upmark.response.type', [
             }*/
              
             scope.setActiveTab = function(tab) { 
-                var lastRt=0;
-                var unboundVars=[];
-                var indexSub=scope.$root.indexSub;
-                angular.forEach(scope.$root.rts,function(s,i){
-                    if (!angular.equals({},s)) {                
-                       s.rtEdit.activeTab = tab;
-                       if (indexSub != i && s.rtEdit.responseType.unboundVars.length>0) {
-                        s.rtEdit.responseType.unboundVars=[];
-                     }
-                       lastRt=i;
-                    }
-                })
+                if (scope.$root.indexSub && scope.$root.rts) {
+                    var lastRt=0;
+                    var unboundVars=[];
+                    var indexSub=scope.$root.indexSub;
+                    angular.forEach(scope.$root.rts,function(s,i){
+                        if (!angular.equals({},s)) {                
+                            s.rtEdit.activeTab = tab;
+                            if (indexSub != i && s.rtEdit.responseType.unboundVars.length>0) {
+                            s.rtEdit.responseType.unboundVars=[];
+                        }
+                            lastRt=i;
+                        }
+                    })
                 //only display in the last no empty submeasure
-                if (indexSub != lastRt && scope.$root.rts[indexSub].rtEdit.responseType.unboundVars.length>0) {
-                    unboundVars=angular.copy(scope.$root.rts[indexSub].rtEdit.responseType.unboundVars);
-                    scope.$root.rts[indexSub].rtEdit.responseType.unboundVars=[];
-                    scope.$root.rts[lastRt].rtEdit.responseType.unboundVars=angular.copy(unboundVars);
-                 }
+                
+                    if (indexSub != lastRt && scope.$root.rts[indexSub].rtEdit.responseType.unboundVars.length>0) {
+                       unboundVars=angular.copy(scope.$root.rts[indexSub].rtEdit.responseType.unboundVars);
+                       scope.$root.rts[indexSub].rtEdit.responseType.unboundVars=[];
+                       scope.$root.rts[lastRt].rtEdit.responseType.unboundVars=angular.copy(unboundVars);
+                    }
 
+                }
                 /*scope.$root.rts[lastRt].rtEdit.responseType.unboundVars=unboundVars;
                 //if (setActiveTab) {
                     angular.forEach(scope.$parent.$parent.$parent.$parent.previewList,function(s,i){

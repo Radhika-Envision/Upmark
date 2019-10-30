@@ -584,7 +584,7 @@ angular.module('upmark.survey.measure', [
             $scope.rt.responseType = new responseTypes.ResponseType(
                 "", merge.parts, $scope.edit.model.rt.formula);
             //set declaredVars freeVars unboundVars to current submeasure
-            if ($rootScope.indexSub) {
+            if ($rootScope.indexSub && $rootScope.rts) {
                $rootScope.rts[$rootScope.indexSub].rtEdit.responseType.unboundVars=angular.copy($scope.rt.responseType.unboundVars);
                $rootScope.rts[$rootScope.indexSub].rtEdit.responseType.freeVars=angular.copy($scope.rt.responseType.freeVars);
                $rootScope.rts[$rootScope.indexSub].rtEdit.responseType.declaredVars=angular.copy($scope.rt.responseType.declaredVars);
@@ -702,7 +702,7 @@ angular.module('upmark.survey.measure', [
     };
 
     $scope.save = function() {
-        if ($rootScope.questions) {
+        /*if ($rootScope.questions) {
             delete $rootScope.questions;
         }
         if ($rootScope.rts) {
@@ -713,18 +713,17 @@ angular.module('upmark.survey.measure', [
         }
         if ($rootScope.indexSub) {
             delete $rootScope.indexSub;
-        }  
+        }  */
         if (!$scope.edit.model)
             return;
-        if (!$scope.rt.definition) {
-            Notifications.set('edit', 'error',
-                "Could not save: No repsonse type");
-            return;
-        }
         $scope.edit.model.has_sub_measures=$scope.edit.model.hasSubMeasures;
         if ($scope.edit.model.hasSubMeasures) {
             //if (!$scope.edit.model.rt.name)
-            
+            if (!$scope.rt.definition) {
+                Notifications.set('edit', 'error',
+                    "Could not save: No repsonse type");
+                return;
+            }
             {
                 $scope.edit.model.rt.name=$scope.edit.model.subMeasures[0].rt.definition.name //$scope.edit.model.title;
             }
@@ -732,14 +731,30 @@ angular.module('upmark.survey.measure', [
             {
                 $scope.edit.model.rt.parts= [];
             }
+
+            let error="";
             angular.forEach($scope.edit.model.subMeasures,function(item,index){
-                //if (!item.rt.definition.name || item.rt.definition.name=='')
-                //   item.rt.definition.name=$scope.edit.model+"_sub_"+index;
-                //item.rt.definition.description= item.description;  
-                item.title=item.rt.definition.name;
-                item.weight=$scope.edit.model.weight;
-                //item.has_sub_measures=false;
+                if (item.deleted != true) {
+                    if (item.rt.definition) {
+                        if (item.rt.definition.name && item.rt.definition.name!="") {
+                           item.title=item.rt.definition.name;
+                           item.weight=$scope.edit.model.weight;
+                        }
+                        else {
+                            error="Name is empty";
+                        }
+                    }
+                    else {
+                    // one of submeasure no response type, measure no response type
+                         error="Submeasure "+ (index + 1) +" no repsonse type";
+                    }
+                }
             })
+            if (error!="") {
+                Notifications.set('edit', 'error',
+                    "Could not save: "+ error);
+                return;
+            }
             return $scope.edit.save();
         }
         else {
@@ -768,22 +783,36 @@ angular.module('upmark.survey.measure', [
     };
     $scope.$on('EditSaved', function(event, model) {
         $location.url($scope.getUrl(model));
-        model.subMeasureList.forEach(function(sub,i){
-            if ($rootScope.questions) {
-                $rootScope.questions.push({})
-            }
-            else
-            {
-                $rootScope.questions=[{}]
-            }
-            if ($rootScope.rts) {
-                $rootScope.rts.push({})
-            }
-            else
-            {
-                $rootScope.rts=[{}]
-            }
-        });
+        if ($rootScope.questions) {
+            delete $rootScope.questions;
+        }
+        if ($rootScope.rts) {
+            delete $rootScope.rts;
+        }
+        if ($rootScope.externs) {
+            delete $rootScope.externs;
+        }
+        if ($rootScope.indexSub) {
+            delete $rootScope.indexSub;
+        }  
+        if (model.subMeasureList) {
+            model.subMeasureList.forEach(function(sub,i){
+                if ($rootScope.questions) {
+                    $rootScope.questions.push({})
+                }
+                else
+                {
+                    $rootScope.questions=[{}]
+                }
+                if ($rootScope.rts) {
+                    $rootScope.rts.push({})
+                }
+                else
+                {
+                    $rootScope.rts=[{}]
+                }
+            });
+        }
     });
     $scope.$on('EditDeleted', function(event, model) {
         if (model.parent) {
