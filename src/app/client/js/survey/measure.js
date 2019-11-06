@@ -175,7 +175,12 @@ angular.module('upmark.survey.measure', [
                                 subMeasures.push({ 'id':item['submeasure'],
                                 'description': sub['description'],
                                 'rt':{'definition':{'parts':[item],'name':sub['title']},
-                                      'responseType': routeData.responseType || null },
+                                      'responseType': routeData.responseType || null,
+                                      search: {
+                                        programId: $scope.measure.programId,
+                                        pageSize: 5,
+                                       }  
+                                    },
                                 'rtRead':{'definition':{'parts':[partObject],'name':sub['title']}},
                                 'name': sub['title'],                         
                                })
@@ -199,7 +204,14 @@ angular.module('upmark.survey.measure', [
                                 if (sub.id==item.submeasure) {
                                     subMeasures.push({ 'id':item['submeasure'],
                                     'description': sub['description'],
-                                    'rt':{'definition':{'parts':[item],'name':sub['title']}},
+                                    'rt':{
+                                            'definition':{'parts':[item],'name':sub['title']},
+                                            'responseType': routeData.responseType || null ,
+                                            search: {
+                                              programId: $scope.measure.programId,
+                                              pageSize: 5,
+                                            } 
+                                    },
                                     'rtRead':{'definition':{'parts':[partObject],'name':sub['title']}},
                                     'name': sub['title'],
                                    })
@@ -284,7 +296,7 @@ angular.module('upmark.survey.measure', [
             if (!measure.subMeasures) measure.subMeasures = [];
             if (measure.subMeasures.length <= 0) {
                 measure.rt=angular.copy($scope.rt);
-                $scope.addSubMeasure(measure, $scope.rt);
+                $scope.addSubMeasure(measure, angular.copy($scope.rt));
             }
         }
     };
@@ -692,11 +704,304 @@ angular.module('upmark.survey.measure', [
     }, 100, $scope);
     $scope.$watch('rt.search', applyRtSearch, true);
     $scope.$watch('rt.showSearch', applyRtSearch, true);
+    /*$scope.$watch('sm.rt.search', applyRtSearch, true);
+    $scope.measure.subMeasures.forEach(function(item){
+        $scope.$watch('item.rt.search', applyRtSearch, true);
+
+    })
+    $scope.$watchCollection(()=>($scope.measure.subMeasures.filter(sm=>sm.rt.search!=undefined).map(sm=>sm.rt.search)), applyRtSearch, true);
+    $scope.$watchCollection($scope.measure.subMeasures, applyRtSearch, true);*/
     $scope.chooseResponseType = function(rtDef) {
         ResponseType.get(rtDef, {
             programId: $scope.structure.program.id
         }).$promise.then(function(resolvedRtDef) {
-            $scope.rt.definition = resolvedRtDef;
+            if ($scope.edit.model.hasSubMeasures && resolvedRtDef && resolvedRtDef.parts[0].submeasure) {
+                //convert submeasure repsonse-type parts
+
+
+                var currentSubmeasres=0; // submeasres number in target measure 
+                var rtSubmeasures=0;  // submeasres number in source measure 
+                var preSubmeasure=null;
+                var sourceSubmeasure=[]
+                var partObject=null;
+                var targetRtDef=angular.copy(resolvedRtDef);
+                angular.forEach(resolvedRtDef.parts,function(item){
+                    if (item.type == 'multiple_choice') {
+                        partObject=new responseTypes.MultipleChoice(item);
+                    }
+                    else if (item.type == 'numerical') {
+                        partObject=new responseTypes.Numerical(item);
+                    } 
+                    partObject.submeasure= item.submeasure; 
+                    var itemCopy=angular.copy(item);
+                        
+                    if (preSubmeasure != item.submeasure) {
+                        rtSubmeasures=rtSubmeasures+1;
+                        sourceSubmeasure.push({ 
+                            id:item.submeasure,
+                            description: item.description,
+                            rt: {
+                                definition:{
+                                    parts:[itemCopy],
+                                    name:item.name,
+                                },
+                                responseType: resolvedRtDef || null ,
+                                search: {
+                                  programId: $scope.measure.programId,
+                                  pageSize: 5,
+                                } 
+                            },
+                            rtRead:{
+                                definition:{
+                                    parts:[partObject],
+                                    name:item.title
+                                }
+                            },
+                            name: item.title,
+                       })
+
+                    }
+                    else
+                    {
+                        sourceSubmeasure.rt.definition.parts.push(itemCopy);
+                        sourceSubmeasure.rtRead.definition.parts.push(partObject);
+                        
+                    }
+
+                    preSubmeasure=item.submeasure;
+                });
+
+                var subMeasures=[];
+                var partObject=null;
+
+                if ($scope.measure.subMeasures.length<=rtSubmeasures) {
+                    angular.forEach(sourceSubmeasure,function(item,index){
+                        if (index < $scope.measure.subMeasures.length) {
+                            angular.forEach(item.rt.definition.parts,function(part) {
+                                part.submeasure=$scope.measure.subMeasures[index].id;
+                            });
+                            angular.forEach(item.rtRead.definition.parts,function(part) {
+                                part.submeasure=$scope.measure.subMeasures[index].id;
+                            });
+
+                            subMeasures.push({ 
+                                id: $scope.measure.subMeasures[index].id,
+                                description: $scope.measure.subMeasures[index].description,
+                                rt:{
+                                    definition:{
+                                        parts:item.rt.definition.parts,
+                                        name:$scope.measure.subMeasures[index].name
+                                    },
+                                    responseType: resolvedRtDef || null,
+                                            
+                                    search: {
+                                        programId: $scope.measure.programId,
+                                        pageSize: 5,
+                                           
+                                    }  
+                                       
+                                },
+                                rtRead:{ 
+                                    definition:{
+                                        parts:item.rtRead.definition.parts,
+                                        name:$scope.measure.subMeasures[index].name,
+                                    }
+                                },
+                                name: $scope.measure.subMeasures[index].name,                         
+                            });
+                        }
+                        else {
+                            angular.forEach(item.rt.definition.parts,function(part) {
+                                delete part.submeasure;
+                            });
+                            angular.forEach(item.rtRead.definition.parts,function(part) {
+                                delete part.submeasure;
+                            });
+                            subMeasures.push({ 
+                                // id: $scope.measure.subMeasures[index].id,
+                                //description: $scope.measure.subMeasures[index].description,
+                                rt:{
+                                    definition:{
+                                        parts:item.rt.definition.parts,
+                                        name:item.name
+                                    },
+                                    responseType: resolvedRtDef || null,
+                                            
+                                    search: {
+                                        programId: $scope.measure.programId,
+                                        pageSize: 5,
+                                           
+                                    }  
+                                       
+                                },
+                                rtRead:{ 
+                                    definition:{
+                                        parts:item.rtRead.definition.parts,
+                                        name:item.name,
+                                    }
+                                },
+                                name: item.name,                         
+                            });
+
+                            if ($rootScope.questions) {
+                                $rootScope.questions.push({})
+                            }
+                            else
+                            {
+                                $rootScope.questions=[{}]
+                            }
+                            if ($rootScope.rts) {
+                                $rootScope.rts.push({})
+                            }
+                            else
+                            {
+                                $rootScope.rts=[{}]
+                            }
+
+
+
+
+                        }
+
+
+
+
+                    });
+
+
+
+                
+
+
+
+                /*angular.forEach($scope.measure.subMeasures,function(item){
+                    if (!angular.equals({}, item)) {
+                        currentSubmeasres=currentSubmeasres+1;
+                    }
+                }*/
+                /*--var submeasure_id=[];
+                
+                if ($scope.measure.subMeasures.length<=rtSubmeasures) {
+                    resolvedRtDef.name=$scope.measure.title;
+                    preSubmeasure=null;
+                    var currentSubmeasureIndex=-1;
+                    angular.forEach(resolvedRtDef.parts,function(item,index){
+                        if (preSubmeasure != item.submeasure) {
+                            currentSubmeasureIndex=currentSubmeasureIndex+1;
+                        }
+                        if (currentSubmeasureIndex<$scope.measure.subMeasures.length) {
+                            item.submeasure=$scope.measure.subMeasures[currentSubmeasureIndex].id;
+                            submeasure_id.push($scope.measure.subMeasures[currentSubmeasureIndex].id);
+                        }--*/
+                        /*else {
+                            delete item.submeasure;
+
+                            if ($rootScope.questions) {
+                                $rootScope.questions.push({})
+                            }
+                            else
+                            {
+                                $rootScope.questions=[{}]
+                            }
+                            if ($rootScope.rts) {
+                                $rootScope.rts.push({})
+                            }
+                            else
+                            {
+                                $rootScope.rts=[{}]
+                            }
+                        }*/
+
+                    /*--    preSubmeasure=item.submeasure;
+                    });
+
+                    var subMeasures=[];
+                    var partObject=null;
+                    
+                    angular.forEach(resolvedRtDef.parts,function(item,index){
+                        if (item.type == 'multiple_choice') {
+                            partObject=new responseTypes.MultipleChoice(item);
+                        }
+                        else if (item.type == 'numerical') {
+                            partObject=new responseTypes.Numerical(item);
+                        } 
+                        partObject.submeasure= item['submeasure']; 
+                        
+                        if (subMeasures.length==0) {
+                           $scope.measure.subMeasureList.forEach(function(sub,i){
+                                if (sub.id==item.submeasure) {
+                                    subMeasures.push({ id:item['submeasure'],
+                                        description: sub['description'],
+                                        rt:{
+                                            definition:{parts:[item],name:sub.title},
+                                            responseType: resolvedRtDef || null,
+                                            search: {
+                                                programId: $scope.measure.programId,
+                                                pageSize: 5,
+                                            }  
+                                        },
+                                        'rtRead':{'definition':{'parts':[partObject],'name':sub['title']}},
+                                        'name': sub['title'],                         
+                                    });
+                                }
+                       
+                            });
+                        }
+                        else
+                        {
+                            var notFoundSubmeasure=true;
+                            angular.forEach(subMeasures,function(s,i){
+                                if (s.id==item['submeasure']){   
+                                    s.rt.definition.parts.push(item);
+                                    s.rtRead.definition.parts.push(partObject);
+                                    notFoundSubmeasure=false;
+                                }
+    
+                            });
+                            if (notFoundSubmeasure) {
+                                $scope.measure.subMeasureList.forEach(function(sub,i){
+                                    if (sub.id==item.submeasure) {
+                                        subMeasures.push({ 'id':item['submeasure'],
+                                        'description': sub['description'],
+                                        'rt':{
+                                                'definition':{'parts':[item],'name':sub['title']},
+                                                'responseType': resolvedRtDef || null ,
+                                                search: {
+                                                  programId: $scope.measure.programId,
+                                                  pageSize: 5,
+                                                } 
+                                        },
+                                        'rtRead':{'definition':{'parts':[partObject],'name':sub['title']}},
+                                        'name': sub['title'],
+                                       })
+                                    }
+                               
+                                });     --*/                       
+                                /*subMeasures.push({ 'id':item['submeasure'],
+                                      'description':item['description'],
+                                      'rt':{'definition':{'parts':[item]}}
+                                })*/
+                           /*-- }
+                        }
+                    });--*/
+                    //$scope.measure['subMeasures']=angular.copy(subMeasures);
+                    $scope.edit.model.rt.parts=angular.copy(resolvedRtDef.parts);
+                    $scope.edit.model.rt.formula=resolvedRtDef.formula;
+                    $scope.edit.model.subMeasures=angular.copy(subMeasures);
+                }
+                else {
+                    Notifications.set('edit', 'error',
+                    "Could not copy: "+ "Submeasures in another measure should be the same the submeasure number of current measure");
+                }
+
+            }
+            else if ($scope.edit.model.hasSubMeasures && resolvedRtDef && (!resolvedRtDef.parts[0].submeasure)) {
+                Notifications.set('edit', 'error',
+                "Could not copy: "+ "Submeasures in another measure should be the same the submeasure number of current measure");
+            }
+            //else {
+                 $scope.rt.definition = resolvedRtDef;
+            //}
         });
         $scope.rt.showSearch = false;
     };
