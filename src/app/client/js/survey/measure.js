@@ -763,8 +763,8 @@ angular.module('upmark.survey.measure', [
                     }
                     else
                     {
-                        sourceSubmeasure.rt.definition.parts.push(itemCopy);
-                        sourceSubmeasure.rtRead.definition.parts.push(partObject);
+                        sourceSubmeasure[rtSubmeasures-1].rt.definition.parts.push(itemCopy);
+                        sourceSubmeasure[rtSubmeasures-1].rtRead.definition.parts.push(partObject);
                         
                     }
 
@@ -991,13 +991,13 @@ angular.module('upmark.survey.measure', [
                 }
                 else {
                     Notifications.set('edit', 'error',
-                    "Could not copy: "+ "Submeasures in another measure should be the same the submeasure number of current measure");
+                    "Could not copy: "+ "Submeasures in another measure should be more than the submeasure number of current measure");
                 }
 
             }
             else if ($scope.edit.model.hasSubMeasures && resolvedRtDef && (!resolvedRtDef.parts[0].submeasure)) {
                 Notifications.set('edit', 'error',
-                "Could not copy: "+ "Submeasures in another measure should be the same the submeasure number of current measure");
+                "Could not copy: "+ "Submeasures in another measure should be more than the submeasure number of current measure");
             }
             //else {
                  $scope.rt.definition = resolvedRtDef;
@@ -1022,6 +1022,11 @@ angular.module('upmark.survey.measure', [
         if (!$scope.edit.model)
             return;
         $scope.edit.model.has_sub_measures=$scope.edit.model.hasSubMeasures;
+        if ($scope.edit.model.sourceVars) {
+            $scope.edit.model.sourceVars = $scope.edit.model.sourceVars.filter(function(mv) {
+                return !mv.$unused;
+             });
+         }
         if ($scope.edit.model.hasSubMeasures) {
             //if (!$scope.edit.model.rt.name)
             if (!$scope.rt.definition) {
