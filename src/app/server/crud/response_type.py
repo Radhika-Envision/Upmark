@@ -109,6 +109,9 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
             sons = []
             for rt, count in rtcs:
                 rt_son = to_son(rt)
+                # if has submeasure, response type only for one measure
+                if rt.parts and 'submeasure' in rt.parts[0]:
+                    count=1
                 extra = {
                     'n_parts': len(rt.parts),
                     'n_measures': count,
