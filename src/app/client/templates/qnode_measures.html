@@ -191,7 +191,7 @@
                         </td>-->
                         <td class="shrink text-muted numeric"
                              title="Weight"
-                             ng-if="submission && checkRole('submission_view_aggregate_score')">
+                             ng-if="checkRole('submission_view_aggregate_score')">
                             <!--<span>{{getStats(item.id).score | number:0}}</span>
                             <span ng-if="!structure.program.hideAggregate">
                             <span class="text-muted hidden-sm hidden-xs">/</span>-->
@@ -200,7 +200,17 @@
                                 {{item.weight | number:0}}</span>
                             </span>
                         </td>
-
+                        <td class="shrink text-muted numeric"
+                            title="Number of sub measures"
+                            ng-if="checkRole('submission_view_aggregate_score')">
+                            <!--<span>{{getStats(item.id).score | number:0}}</span>
+                            <span ng-if="!structure.program.hideAggregate">
+                            <span class="text-muted hidden-sm hidden-xs">/</span>-->
+                            <br class="visible-sm visible-xs">
+                             <span class="denominator-sm denominator-xs">
+                               {{item.n_submeasures | number:0}}</span>
+                            </span>
+                        </td>
                   <!-- <td class="shrink" ng-if="submission">
                 <column-progress items="getStats(item.id).progressItems">
                  </column-progress>
@@ -218,12 +228,13 @@
                     title="Number of measures"
                     ng-if="!submission">
                 1
-                   </td>
-                   <td class="shrink grab-handle" ng-if="edit.model"
-               ><span class="btn btn-default btn-round"
-                   title="Drag to reorder"
-                   highlight highlight-half>
-                       <i class="fa fa-fw fa-unsorted"></i></span></td>-->
+                   </td>-->
+                   <td class="shrink grab-handle" ng-if="edit.model">
+                       <span class="btn btn-default btn-round"
+                            title="Drag to reorder"
+                            highlight highlight-half>
+                       <i class="fa fa-fw fa-unsorted"></i></span>
+                    </td>
                        <td class="shrink grab-handle" ng-if="rnode">
                             <button class="btn-round btn btn-default"
                               ng-click="toggleDropdown(item.showMeasureDetail)">

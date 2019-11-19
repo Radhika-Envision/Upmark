@@ -23,9 +23,19 @@ angular.module('vpac.widgets.editor', [
     Editor.prototype.edit = function() {
         log.debug("Creating edit object");
         this.model = angular.copy(this.getter(this.scope));
+        if (this.model.obType == 'measure')
+           this.scope.setRootScope(this.model);
     };
 
     Editor.prototype.cancel = function() {
+        if (this.model.obType == 'measure' ) {
+            if (this.scope.measure.hasSubMeasures) {
+                this.scope.rt.definition.name = this.scope.measure.responseType.name;
+            }
+            else {
+                this.scope.rt.definition = angular.copy(this.scope.measure.responseType); 
+            }
+        }
         this.model = null;
         Notifications.remove('edit');
     };
@@ -120,6 +130,7 @@ angular.module('vpac.widgets.editor', [
                 that.getter.assign(that.scope, model);
                 that.model = null;
                 that.scope.$emit('EditSaved', model);
+                //that.scope.setRootScope(model);
                 var message = "Saved";
                 if (getResponseHeaders('Operation-Details'))
                     message += ": " + getResponseHeaders('Operation-Details');
@@ -282,4 +293,38 @@ angular.module('vpac.widgets.editor', [
         });
         return editor;
     };
+
+    function setRootQuestions(scope) {
+        if (scope.$root.questions) {
+            delete scope.$root.questions;
+        }
+        if (scope.$root.rts) {
+            delete scope.$root.rts;
+        }
+        if (scope.$root.externs) {
+            delete scope.$root.externs;
+        }
+        if (scope.$root.indexSub) {
+            delete scope.$root.indexSub;
+        }  
+        if (scope.model.subMeasureList) {
+            scope.model.subMeasureList.forEach(function(sub,i){
+                if (scope.$root.questions) {
+                    scope.$root.questions.push({})
+                }
+                else
+                {
+                    scope.$root.questions=[{}]
+                }
+                if (scope.$root.rts) {
+                    scope.$root.rts.push({})
+                }
+                else
+                {
+                    scope.$root.rts=[{}]
+                }
+            });
+        }
+    }
+
 }])
