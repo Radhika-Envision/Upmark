@@ -346,6 +346,7 @@ angular.module('upmark.survey.measure', [
 
         if (!measure.subMeasures)  measure.subMeasures = [];
         measure.subMeasures.push({
+            name: rt.definition.name,
             description: '',
             responseTypeId: null,
             sourceVars: [],
@@ -998,10 +999,17 @@ angular.module('upmark.survey.measure', [
                 Notifications.set('edit', 'error',
                 "Could not copy: "+ "Submeasures in another measure should be more than the submeasure number of current measure");
             }
-            else {
+            else { 
+                // if edit measure  without submeasure and copy response type, response type name not change
+                // $scope.measure.responseType keep responseType data before change for recover when cancel edit 
+                if ($scope.rt.definition && $scope.rt.responseType && $scope.measure.id) {
+                    resolvedRtDef.name=$scope.measure.responseType.name;
+                }
                 $scope.rt.definition = angular.copy(resolvedRtDef);
                 $scope.rt.definition.id = null;
-                if (!$scope.edit.model.rt.name || $scope.edit.model.rt.name.trim().length==0 )
+                // if edit measure without submeasure, response type name not change
+                // if add measure without submeasure, response type name change depend on copy response type name
+                if (!$scope.edit.model.rt.name || $scope.edit.model.rt.name.trim().length==0 || !$scope.measure.id)
                    $scope.rt.definition.name = $scope.rt.definition.name + ' (Copy)'
                 $scope.rt.definition.nMeasures = 0;
 
@@ -1297,7 +1305,9 @@ angular.module('upmark.survey.measure', [
                     //$scope.measure['subMeasures']=angular.copy(subMeasures);
                     $scope.edit.model.rt.parts=angular.copy(resolvedRtDef.parts);
                     $scope.edit.model.rt.formula=resolvedRtDef.formula;
-                    if (!$scope.edit.model.rt.name || $scope.edit.model.rt.name.trim().length==0 )
+                    // if edit measure with submeasure, response type name not change
+                    // if add measure with submeasure, response type name change depend on copy response type name
+                    if (!$scope.edit.model.rt.name || $scope.edit.model.rt.name.trim().length==0 || !$scope.measure.id)
                        $scope.edit.model.rt.name=resolvedRtDef.name +" (copy)";
                     $scope.edit.model.subMeasures=angular.copy(subMeasures);
                     $scope.rt.definition = angular.copy(resolvedRtDef);

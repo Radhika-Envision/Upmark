@@ -77,8 +77,9 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
                             })
                             p['name']=submeasure.title
                     else:
-                        submeasures[len(submeasures)-1]['parts'].append(p)
-                        p['name']=submeasures[len(submeasures)-1]['name']
+                        if len(submeasures)>0:
+                           submeasures[len(submeasures)-1]['parts'].append(p)
+                           p['name']=submeasures[len(submeasures)-1]['name']
                     sid=p['submeasure']
                 count=1
             son = to_son(response_type) 
