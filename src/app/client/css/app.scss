@@ -13,7 +13,7 @@ body {
 .containerMeasures {
     width: 110%;
     max-height: 800px;
-    overflow-y: scroll;
+    overflow-y: auto;
     margin-left:-50px;
     //scrollbar-width: none; /* Firefox */
     //-ms-overflow-style: none;  /* IE 10+ */
