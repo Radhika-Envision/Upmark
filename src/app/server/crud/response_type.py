@@ -60,7 +60,28 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
                 r'/n_measures$',
                 r'/program$',
                 omit=True)
-            son = to_son(response_type)
+            # if has submeasure, response type only for one measure
+            submeasures = []
+            if response_type.parts and 'submeasure' in response_type.parts[0]:
+                sid=None                   
+                for p in response_type.parts:
+                    if p['submeasure'] != sid:
+                        submeasure = (
+                            session.query(model.Measure)
+                            .filter(model.Measure.id == p['submeasure']).first())
+                        if submeasure:    
+                            submeasures.append({
+                                'id': p['submeasure'],
+                                'parts': [p],
+                                'name': submeasure.title
+                            })
+                            p['name']=submeasure.title
+                    else:
+                        submeasures[len(submeasures)-1]['parts'].append(p)
+                        p['name']=submeasures[len(submeasures)-1]['name']
+                    sid=p['submeasure']
+                count=1
+            son = to_son(response_type) 
             son['nMeasures'] = count
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
@@ -101,6 +122,7 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
             to_son = ToSon(
                 r'/id$',
                 r'/name$',
+                r'/parts'
             )
             to_son_extra = ToSon(
                 r'/n_measures$',
@@ -108,15 +130,40 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
             )
             sons = []
             for rt, count in rtcs:
-                rt_son = to_son(rt)
+                
                 # if has submeasure, response type only for one measure
-                if rt.parts and 'submeasure' in rt.parts[0]:
-                    count=1
+                submeasures = []
+                if count>1:
+                    
+                    if rt.parts and 'submeasure' in rt.parts[0]:
+                        sid=None                   
+                        for p in rt.parts:
+                            sName=''
+                            if p['submeasure'] != sid:
+                                submeasure = (
+                                   session.query(model.Measure)
+                                   .filter(model.Measure.id == p['submeasure']).first())
+                                if submeasure:
+                                    sName=submeasure.title
+                                submeasures.append({
+                                   'id': p['submeasure'],
+                                   'parts': [p],
+                                   'name': sName
+                                })
+                                p['name']=sName
+                            else:
+                                submeasures[len(submeasures)-1]['parts'].append(p)
+                                p['name']=submeasures[len(submeasures)-1]['name']
+                            sid=p['submeasure']
+                        count=1
+                rt_son = to_son(rt)
                 extra = {
                     'n_parts': len(rt.parts),
                     'n_measures': count,
                 }
                 rt_son.update(to_son_extra(extra))
+                if len(submeasures) > 0:
+                    rt_son['submeasures']=submeasures
                 sons.append(rt_son)
 
         self.set_header("Content-Type", "application/json")
@@ -152,7 +199,7 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
                 .first())
             if rt_by_name:
                 raise errors.ModelError(
-                    "A response type of that name already exists")
+                    "'" + self.request_son.name + "' as a response type of that name already exists")
 
             response_type = model.ResponseType(program=program)
             session.add(response_type)
@@ -243,13 +290,15 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
                     .first())
                 if rt_by_name and rt_by_name != response_type:
                     raise errors.ModelError(
-                        "A response type of that name already exists")
+                        "'" + self.resquest_son.name + "' as a response type of that name already exists")
 
             try:
                 self._update(response_type, self.request_son)
             except ResponseTypeError as e:
                 raise errors.ModelError(str(e))
             except voluptuous.error.Error as e:
+                raise errors.ModelError(str(e))
+            except Exception as e:
                 raise errors.ModelError(str(e))
 
             verbs = []
@@ -273,6 +322,17 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
     def _update(self, response_type, son):
         '''Apply user-provided data to the saved model.'''
         update = updater(response_type, error_factory=errors.ModelError)
-        update('name', son)
+
+        current_value = getattr(response_type, 'name')
+        if 'name' in son:
+            value = son['name']
+
+        equal = current_value == value
+
+        if not equal:
+           log.debug('Setting %s: %s -> %s', 'name', current_value, value)
+           setattr(response_type, 'name', value)
+
+        #update('name', son)
         update('parts', son)
         update('formula', son)

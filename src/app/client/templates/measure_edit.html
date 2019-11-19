@@ -7,7 +7,8 @@
                                 'Has sub-measures as children' :
                                 'Can not have sub-measures as children'}}"
                             class="btn btn-default btn-round"
-                            ng-click="toggleHasSubMeasures(edit.model)">
+                            ng-click="toggleHasSubMeasures(edit.model)"
+                            ng-disabled="rt.definition.nMeasures > 1">
                             <i class="fa fa-fw fa-toggle-off"
                                 ng-hide="edit.model.hasSubMeasures"></i>
                             <i class="fa fa-fw fa-toggle-on"
@@ -21,17 +22,18 @@
                     <div class="col-md-12">
                         <div>
                             <div class="toolbar toolbar-h3"
-                                 highlight="rt.showSearch"
+                                 highlight="rt.showSearch && !subIndex && subIndex != 0"
                                  highlight-dismiss="rt.showSearch = false">
                                 <button class="btn btn-default btn-round" title="Add new sub-measure" ng-if="!rt.showSearch"
                                         ng-click="addSubMeasure(edit.model, null)">
                                     <i class="fa fa-fw fa-plus"></i>
                                 </button>
                                 <button class="btn btn-default btn-round"
-                                        title="Use a response type from another measure"
-                                        ng-click="rt.showSearch = !rt.showSearch">
-                                        <i class="fa fa-link" ng-if="!rt.showSearch"></i>
-                                        <i class="fa fa-times" ng-if="rt.showSearch"></i>
+                                        title="Copy a response type from another measure"
+                                        ng-click="rt.showSearch = !rt.showSearch; setSubIndex()">
+                                        <!--<i class="fa fa-link" ng-if="!rt.showSearch"></i>-->
+                                        <i class="fa fa-clone" ng-if="!rt.showSearch"></i>
+                                        <i class="fa fa-times" ng-if="rt.showSearch && !subIndex && subIndex != 0"></i>
                                 </button>
                             </div>
                             <h3>Measure Details</h3>
@@ -45,7 +47,7 @@
                         </div>
                     </div>
                     <div class="col-md-6">
-                            <div ng-if="rt.showSearch" class="popover-container spaced">
+                            <div ng-if="rt.showSearch && !subIndex && subIndex != 0" class="popover-container spaced">
                                     <div class="undim">
                                         <search-box model="rt.search" result="rt.searchRts" focus-init></search-box>
                                         <ul class="list-results">
@@ -56,7 +58,7 @@
                                                     </h4>
                                                     <p>
                                                         <ng-pluralize count="rtDef.nParts" when="{
-                                                            '0': 'Comment only',
+                                                            '0': 'Comment only.',
                                                             '1': '1 part.',
                                                             'other': '{} parts.',
                                                         }"></ng-pluralize>
@@ -64,6 +66,11 @@
                                                             '0': 'Unused.',
                                                             '1': 'Used by 1 measure.',
                                                             'other': 'Used by {} measures.',
+                                                        }"></ng-pluralize>
+                                                        <ng-pluralize count="rtDef.submeasures.length" when="{
+                                                            '0': 'No submeasure.',
+                                                            '1': '1 submeasure.',
+                                                            'other': '{} submeasures.',
                                                         }"></ng-pluralize>
                                                     </p>
                                                 </a>
@@ -93,10 +100,19 @@
                         <!--{{edit.model.rt.formula}}-->
                     <div class="col-md-6">                       
                         <div class="input-group" show-errors>
-                            <label for="formula" class="input-group-addon align-md">formula:</label>
+                            <label for="formula" class="input-group-addon align-md">Formula:</label>
                             <input type="text" class="form-control" id="formula" name="formula"
                                 title="The fomula to use to compute the score"
                                 ng-model="edit.model.rt.formula" step="any" required />
+                                <!--ng-model="edit.model.subMeasures[0].rt.definition.formula" step="any" required />-->
+                        </div>
+                    </div>
+                    <div class="col-md-6">                       
+                        <div class="input-group" show-errors>
+                            <label for="rtName" class="input-group-addon align-md">Response Type Name:</label>
+                            <input type="text" class="form-control" id="rtName" name="rtName"
+                                title="Response type name; usually, this should be more generic than the measure name"
+                                ng-model="edit.model.rt.name" required />
                                 <!--ng-model="edit.model.subMeasures[0].rt.definition.formula" step="any" required />-->
                         </div>
                     </div>
@@ -158,37 +174,37 @@
                     <div class="col-md-6" ng-if="!sm.deleted">
                         <div>
                             <div class="toolbar toolbar-h3"
-                                    highlight="sm.rt.showSearch"
-                                    highlight-dismiss="sm.rt.showSearch = false">
+                                    highlight="rt.showSearch && subIndex == $index"
+                                    highlight-dismiss="rt.showSearch = false">
                                 <button class="btn btn-default btn-round"
-                                        ng-if="sm.rt.definition && !sm.rt.showSearch"
+                                        ng-if="sm.rt.definition && !rt.showSearch"
                                         title="Clear"
                                         ng-click="sm.rt.definition = null; removeReponseType($index)">
                                         <!--ng-click="sm.rt.definition = null">-->
                                     <i class="fa fa-trash-o"></i>
                                 </button>
-                                <button class="btn btn-default btn-round"
+                                <!--<button class="btn btn-default btn-round"
                                         ng-if="!sm.rt.showSearch && sm.rt.definition.id"
                                         title="Duplicate this response type so that changes to it don't affect other measures"
                                         ng-click="sm.rt.definition = cloneResponseType()">
                                     <i class="fa fa-clone"></i>
-                                </button>
-                                <!--<button class="btn btn-default btn-round"
-                                        title="Use a response type from another measure"
-                                        ng-click="sm.rt.showSearch = !sm.rt.showSearch">
-                                    <i class="fa fa-link" ng-if="!sm.rt.showSearch"></i>
-                                    <i class="fa fa-times" ng-if="sm.rt.showSearch"></i>
                                 </button>-->
+                                <button class="btn btn-default btn-round"
+                                        title="Copy a response type from another measure"
+                                        ng-click="rt.showSearch = !rt.showSearch; setSubIndex($index) ">
+                                    <!--<i class="fa fa-link" ng-if="!rt.showSearch"></i>-->
+                                    <i class="fa fa-clone" ng-if="!rt.showSearch"></i>
+                                    <i class="fa fa-times" ng-if="rt.showSearch && subIndex == $index"></i>
+                                </button>
                             </div>
                             <h3>Response Type {{$index + 1}}</h3>
                         </div>
-            
-                    <div ng-if="sm.rt.showSearch" class="popover-container spaced">
+                    <div ng-if="rt.showSearch && subIndex == $index" class="popover-container spaced">                        
                         <div class="undim">
-                            <search-box model="sm.rt.search" result="sm.rt.searchRts" focus-init></search-box>
+                            <search-box model="rt.search" result="rt.searchRts" focus-init></search-box>
                             <ul class="list-results">
-                                <li ng-repeat="rtDef in sm.rt.searchRts">
-                                    <a href="" ng-click="chooseResponseType(rtDef)">
+                                <li ng-repeat="rtDef in rt.searchRts">
+                                    <a href="" ng-click="chooseResponseTypeForSubmeasure(rtDef)">
                                         <h4>
                                             {{rtDef.name}}
                                         </h4>
@@ -205,11 +221,35 @@
                                             }"></ng-pluralize>
                                         </p>
                                     </a>
+                                  
+                                        
+                                    <div class="row" ng-repeat="subDef in rtDef.submeasures" style="margin-bottom:unset;">
+                                        <div class="col-md-1"></div>
+                                        <div class="col-md-10">
+                                          <a href="" ng-click="chooseResponseTypeForSubmeasure(subDef)">
+                                            <h4>
+                                                {{subDef.name}} for sub measure {{$index}}
+                                            </h4>
+                                            <p>
+                                                <ng-pluralize count="subDef.parts.length" when="{
+                                                  '0': 'Comment only',
+                                                  '1': '1 part.',
+                                                  'other': '{} parts.',
+                                                }"></ng-pluralize>
+                                                <!--<ng-pluralize count="rtDef.nMeasures" when="{
+                                                  '0': 'Unused.',
+                                                  '1': 'Used by 1 measure.',
+                                                  'other': 'Used by {} measures.',
+                                                }"></ng-pluralize>-->
+                                            </p>
+                                          </a>
+                                        </div>
+                                    </div>
                                 </li>
                                 <li>
                                     <div>
                                         <p class="text-muted">
-                                            <span ng-if="!sm.rt.searchRts.length">
+                                            <span ng-if="!rt.searchRts.length">
                                                 No response types match your query.</span>
                                         </p>
                                     </div>
@@ -369,7 +409,7 @@
                 </div>
             </div>
             <div class="row" ng-show="!edit.model.hasSubMeasures">  
-                 <div class="col-md-6">
+                <div class="col-md-6">
                      <h3>Measure Details</h3>
                      <div class="input-group" show-errors>
                          <label for="title" class="input-group-addon align-md">Name:</label>
@@ -388,7 +428,8 @@
                             placeholder="Description"
                             title="Description"></markdown-editor>
                      </div>
-            </div> <!-- .col- -->
+                
+                </div> <!-- .col- -->
 
     <div class="col-md-6">
       <div>
@@ -401,18 +442,25 @@
                       ng-click="rt.definition = null">
                   <i class="fa fa-trash-o"></i>
               </button>
-              <button class="btn btn-default btn-round"
+              <!--<button class="btn btn-default btn-round"
                       ng-if="!rt.showSearch && rt.definition.id"
                       title="Duplicate this response type so that changes to it don't affect other measures"
                       ng-click="rt.definition = cloneResponseType()">
                   <i class="fa fa-clone"></i>
+              </button>-->
+              <button class="btn btn-default btn-round"  ng-if="!rt.showSearch"
+                      title="Use a response type from another measure"
+                      ng-click="rt.showSearch = !rt.showSearch; setLinkOrCopy('c')">
+                  <!--<i class="fa fa-link" ng-if="!rt.showSearch"></i>-->
+                  <i class="fa fa-clone" ng-if="!rt.showSearch"></i>
+                  <!--<i class="fa fa-times" ng-if="rt.showSearch"></i>-->
               </button>
               <button class="btn btn-default btn-round"
-                      title="Use a response type from another measure"
-                      ng-click="rt.showSearch = !rt.showSearch">
+                      title="link a response type from another measure"
+                      ng-click="rt.showSearch = !rt.showSearch; setLinkOrCopy('l')">
                   <i class="fa fa-link" ng-if="!rt.showSearch"></i>
                   <i class="fa fa-times" ng-if="rt.showSearch"></i>
-              </button>
+              </button>              
           </div>
           <h3>Response Type</h3>
       </div>
@@ -421,8 +469,8 @@
           <div class="undim">
               <search-box model="rt.search" result="rt.searchRts" focus-init></search-box>
               <ul class="list-results">
-                  <li ng-repeat="rtDef in rt.searchRts">
-                      <a href="" ng-click="chooseResponseType(rtDef)">
+                  <li ng-repeat="rtDef in rt.searchRts"  ng-if=" !rtDef.submeasures && !edit.model.hasSubMeasures || edit.model.hasSubMeasures">
+                      <a href="" ng-click="op=='l'? chooseResponseType(rtDef) : copyResponseType(rtDef)">
                           <h4>
                               {{rtDef.name}}
                           </h4>
@@ -463,11 +511,11 @@
               <i class="fa fa-plus" ng-if="!rt.showSearch"></i>
               New multiple-choice response type
           </button>
-          <button class="btn btn-default btn-block"
+          <!--<button class="btn btn-default btn-block"
                   ng-click="rt.showSearch = true">
               <i class="fa fa-link" ng-if="!rt.showSearch"></i>
               Re-use response type from another measure
-          </button>
+          </button>-->
       </div>
       <div ng-if="rt.definition"
               response-type-editor="rt.definition" weight="edit.model.weight"

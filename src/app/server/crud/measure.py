@@ -408,8 +408,20 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
             )
             sons = []
             for qm in qnode.qnode_measures:
+                ## get submeasures ***************
+                n_submeasures=0
+                subId= None
+                if qm.measure and qm.measure.response_type and qm.measure.response_type.parts:
+                    for p in qm.measure.response_type.parts:
+                        if  'submeasure' not in p:
+                            break
+                        if p['submeasure'] != subId:
+                           n_submeasures = n_submeasures + 1
+                        subId=p['submeasure']
+                ## get submeasures *************** 
                 mson = to_son(qm.measure)
                 mson.update(to_son(qm))
+                mson['n_submeasures'] = n_submeasures
                 mson['parent'] = mson['qnode']
                 del mson['qnode']
                 sons.append(mson)
@@ -677,12 +689,19 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
             self.ordering()
             return
 
+
         program_id = self.get_argument('programId', '')
         survey_id = self.get_argument('surveyId', '')
         parent_id = self.get_argument('parentId', '')
 
+
+
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
+            
+            # update response type name first, avoid not to update response type name after submeasure add
+            self.update_response_type(self.request_son.response_type_id, program_id, self.request_son.rt)  
+            session.flush()
 
             program = (
                 session.query(model.Program)
@@ -756,8 +775,9 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                         session.flush()
                         submeasure_id = str(subMeasure.id)
                         #############
-                        if not (subMeasure.id in submeasureIdList):
-                            submeasureIdList.append(subMeasure.id)
+                        #if not (subMeasure.id in submeasureIdList):
+                        if not (submeasure_id in submeasureIdList):
+                            submeasureIdList.append(submeasure_id)
                         # merge response_type parts
                         # self.request_son.rt.parts.append(self.request_son.rt) 
                         for rt_part in sm.rt.definition.parts:
@@ -779,7 +799,8 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
 
                 # update response_type
                 self.request_son.rt.parts= merger_parts
-                self.request_son.response_type_id=self.update_response_type(self.request_son.response_type_id, program_id, self.request_son.rt)           
+                withName=False
+                self.request_son.response_type_id=self.update_response_type(self.request_son.response_type_id, program_id, self.request_son.rt, withName)           
                 ## create repsone_type
                 ## self.request_son.rt.parts=[{'submeasure':submeasures_list}]
                 ## merger_parts.append({'submeasure':submeasures_list})
@@ -892,6 +913,7 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
             ##act.ensure_subscription(
             ##    user_session.user, measure, measure.program, self.reason)
             ##***** 
+
         self.get(measure_id)
 
     def ordering(self):
@@ -1179,6 +1201,19 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                 r'/program$',
                 omit=True)
             son = to_son(response_type)
+            if response_type.parts and 'submeasure' in response_type.parts[0]:
+                count=1   
+                    #sid=None                   
+                    #for p in response_type.parts:
+                    #    if p['submeasure'] != sid:
+                    #       submeasures.append({
+                    #           'id': p['submeasure'],
+                    #           'parts':[p]
+                    #        })
+                    #    else:
+                    #       submeasures[len(submeasures)-1]['parts'].append(p)
+                    #    sid=p['submeasure']
+                     
             son['nMeasures'] = count
         return son
 
@@ -1400,7 +1435,7 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                    .first())
                 if rt_by_name:
                    raise errors.ModelError(
-                      "A response type of that name already exists")
+                      "'"+rt_son.name + "' as a response type of that name already exists")
 
             response_type = model.ResponseType(program=program)
             session.add(response_type)
@@ -1409,6 +1444,8 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
             except ResponseTypeError as e:
                 raise errors.ModelError(str(e))
             except voluptuous.error.Error as e:
+                raise errors.ModelError(str(e))
+            except Exception as e:
                 raise errors.ModelError(str(e))
 
             try:
@@ -1427,7 +1464,7 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
         #self.get(response_type_id)
         return response_type_id
 
-    def update_response_type(self, response_type_id, program_id, rt_son):
+    def update_response_type(self, response_type_id, program_id, rt_son, withName=True):
         '''Create new'''
         #if response_type_id:
         #    raise errors.ModelError("Can't specify ID when creating")
@@ -1457,13 +1494,15 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                     .first())
                 if rt_by_name and rt_by_name != response_type:
                     raise errors.ModelError(
-                        "A response type of that name already exists")
+                        "'"+rt_son.name + "' as a response type of that name already exists")
 
             try:
-                self._update_response_type(response_type, rt_son)
+                self._update_response_type(response_type, rt_son, withName)
             except ResponseTypeError as e:
                 raise errors.ModelError(str(e))
             except voluptuous.error.Error as e:
+                raise errors.ModelError(str(e))
+            except Exception as e:
                 raise errors.ModelError(str(e))
 
             verbs = []
@@ -1481,13 +1520,14 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
             act.ensure_subscription(
                 user_session.user, response_type, response_type.program,
                 self.reason)
-
         #self.get(response_type_id)
         return response_type_id
 
-    def _update_response_type(self, response_type, son):
+  
+    def _update_response_type(self, response_type, son, withName=True):
         '''Apply user-provided data to the saved model.'''
         update = updater(response_type, error_factory=errors.ModelError)
-        update('name', son)
+        if withName:
+           update('name', son)
         update('parts', son)
         update('formula', son)
