@@ -68,17 +68,18 @@ angular.module('vpac.widgets.editor', [
                                 if (subMeasures.length==0) {
                                     model.subMeasureList.forEach(function(sub,i){
                                         if (sub.id==item.submeasure) {
-                                            subMeasures.push({ 'id':item['submeasure'],
-                                            'description': sub['description'],
-                                            'rt':{'definition':{'parts':[item],'name':sub['title']},                                                 
-                                                  'responseType': model.responseType || null,
-                                                   search: {
+                                            subMeasures.push({ 
+                                                'id':item['submeasure'],
+                                                'description': sub['description'],
+                                                'rt':{'definition':{'parts':[item],'name':sub['title']},                                                 
+                                                   'responseType': model.responseType || null,
+                                                    search: {
                                                       programId: model.programId,
                                                       pageSize: 5,
                                                     }  
                                                 },
-                                            'rtRead':{'definition':{'parts':[partObject],'name':sub['title']}},
-                                            //'name': sub['title'],                            
+                                                'rtRead':{'definition':{'parts':[partObject],'name':sub['title']}},
+                                                'name': sub['title'],                            
                                            })
                                         }
                                    
@@ -104,11 +105,12 @@ angular.module('vpac.widgets.editor', [
                                     if (notFoundSubmeasure) {
                                         model.subMeasureList.forEach(function(sub,i){
                                             if (sub.id==item.submeasure) {
-                                                subMeasures.push({ 'id':item['submeasure'],
-                                                'description': sub['description'],
-                                                'rt':{'definition':{'parts':[item],'name':sub['title']}},
-                                                'rtRead':{'definition':{'parts':[partObject],'name':sub['title']}},
-                                                //'name': sub['title'],
+                                                subMeasures.push({ 
+                                                    'id':item['submeasure'],
+                                                    'description': sub['description'],
+                                                    'rt':{'definition':{'parts':[item],'name':sub['title']}},
+                                                    'rtRead':{'definition':{'parts':[partObject],'name':sub['title']}},
+                                                    'name': sub['title'],
                                                })
                                             }
                                        
