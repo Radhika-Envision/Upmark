@@ -248,7 +248,7 @@ class updater:
         current_value = getattr(self.model, name)
         if name in son:
             value = son[name]
-            if sanitise:
+            if sanitise and value:
                 value = bleach.clean(value, strip=True)
         elif on_absent == updater.NULLIFY:
             value = None
