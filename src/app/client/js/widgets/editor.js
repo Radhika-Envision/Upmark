@@ -33,7 +33,14 @@ angular.module('vpac.widgets.editor', [
                 this.scope.rt.definition.name = this.scope.measure.responseType.name;
             }
             else {
-                this.scope.rt.definition = angular.copy(this.scope.measure.responseType); 
+                //this.scope.rt.definition = angular.copy(this.scope.measure.responseType); 
+                //this.scope.rt.definition =Object.assign({},this.scope.measure.responseType);
+                if ( !this.scope.rt.definition && this.scope.copyRT) {
+                    this.scope.rt.definition=angular.copy(this.scope.copyRT);
+                }
+                for (var attr in this.scope.measure.responseType) {
+                    this.scope.rt.definition[attr] = angular.copy(this.scope.measure.responseType[attr]);
+                }
             }
         }
         this.model = null;

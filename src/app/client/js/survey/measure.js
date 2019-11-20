@@ -268,7 +268,8 @@ angular.module('upmark.survey.measure', [
 
             }
 
-    } else {
+    } 
+    else {
         // Creating new
         $scope.measure = new Measure({
             obType: 'measure',
@@ -284,7 +285,10 @@ angular.module('upmark.survey.measure', [
         //$scope.edit.model.rt.formula='a';measure.rt.formula
     }
 
-
+    $scope.clearRT = function() {
+        $scope.copyRT=angular.copy($scope.rt.definition);
+        $scope.rt.definition = null;
+    }
 
     $scope.toggleHasSubMeasures = function(measure) {
         if ($scope.$root.questions) {
@@ -315,6 +319,10 @@ angular.module('upmark.survey.measure', [
         }
         else {
             $scope.rt.definition.name= measure.rt.name;
+            if (measure.rt.id)
+               $scope.rt.definition.id= measure.rt.id;
+            else 
+               $scope.rt.definition.id= measure.rt.definition.id;  
         }
     };
 
@@ -1004,13 +1012,17 @@ angular.module('upmark.survey.measure', [
                 // $scope.measure.responseType keep responseType data before change for recover when cancel edit 
                 if ($scope.rt.definition && $scope.rt.responseType && $scope.measure.id) {
                     resolvedRtDef.name=$scope.measure.responseType.name;
+                    resolvedRtDef.id=$scope.rt.definition.id;
                 }
                 $scope.rt.definition = angular.copy(resolvedRtDef);
-                $scope.rt.definition.id = null;
+                //$scope.rt.definition.id = null;
                 // if edit measure without submeasure, response type name not change
                 // if add measure without submeasure, response type name change depend on copy response type name
-                if (!$scope.edit.model.rt.name || $scope.edit.model.rt.name.trim().length==0 || !$scope.measure.id)
-                   $scope.rt.definition.name = $scope.rt.definition.name + ' (Copy)'
+                //if (!$scope.edit.model.rt.name || $scope.edit.model.rt.name.trim().length==0 || !$scope.measure.id) {
+                if (!$scope.measure.id) {
+                   $scope.rt.definition.name = $scope.rt.definition.name + ' (Copy)';
+                   $scope.rt.definition.id = null;
+                }
                 $scope.rt.definition.nMeasures = 0;
 
             }

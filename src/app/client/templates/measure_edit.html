@@ -438,8 +438,8 @@
                   highlight-dismiss="rt.showSearch = false">
               <button class="btn btn-default btn-round"
                       ng-if="rt.definition && !rt.showSearch"
-                      title="Clear"
-                      ng-click="rt.definition = null">
+                      title="Clear" ng-click="clearRT()">
+                      <!--ng-click="rt.definition = null">-->
                   <i class="fa fa-trash-o"></i>
               </button>
               <!--<button class="btn btn-default btn-round"
