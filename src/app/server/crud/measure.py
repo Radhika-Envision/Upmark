@@ -246,23 +246,45 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             if orphan != '' and truthy(orphan):
                 # Orphans only
+                # previous version: not consider submeasure
+                #query = (
+                #    session.query(model.Measure)
+                #    .outerjoin(model.QnodeMeasure)
+                #    .filter(model.Measure.program_id == program_id)
+                #    .filter(model.QnodeMeasure.qnode_id == None))
+                
+                # current version: not display submeasure
                 query = (
                     session.query(model.Measure)
                     .outerjoin(model.QnodeMeasure)
+                    .filter(model.Measure.id == model.QnodeMeasure.measure_id) # only measure
                     .filter(model.Measure.program_id == program_id)
-                    .filter(model.QnodeMeasure.qnode_id == None))
+                    .filter(model.QnodeMeasure.qnode_id == None))    
             elif orphan != '' and falsy(orphan):
                 # Non-orphans only
+                # previous version: not consider submeasure               
+                #query = (
+                #    session.query(model.Measure)
+                #    .join(model.QnodeMeasure)
+                #    .filter(model.Measure.program_id == program_id))
+                # current version: not display submeasure
                 query = (
                     session.query(model.Measure)
                     .join(model.QnodeMeasure)
-                    .filter(model.Measure.program_id == program_id))
+                    .filter(model.Measure.id == model.QnodeMeasure.measure_id) # only measure
+                    .filter(model.Measure.program_id == program_id))                    
             else:
                 # All measures
+                # previous version: not consider submeasure                 
+                #query = (
+                #    session.query(model.Measure)
+                #    .filter_by(program_id=program_id))
+                # current version: not display submeasure
                 query = (
                     session.query(model.Measure)
+                    .join(model.QnodeMeasure)                                  # only measure
+                    .filter(model.Measure.id == model.QnodeMeasure.measure_id) # only measure
                     .filter_by(program_id=program_id))
-
             rt_term = None
             if term:
                 plain_parts = []
@@ -699,9 +721,10 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
             
-            # update response type name first, avoid not to update response type name after submeasure add
-            self.update_response_type(self.request_son.response_type_id, program_id, self.request_son.rt)  
-            session.flush()
+            # if has sub measure,update response type name first, avoid not to update response type name after submeasure add
+            if (self.request_son.has_sub_measures==True):
+                self.update_response_type(self.request_son.response_type_id, program_id, self.request_son.rt)  
+                session.flush()
 
             program = (
                 session.query(model.Program)
@@ -1174,6 +1197,8 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
             response_type, count = (
                 session.query(model.ResponseType, func.count(model.Measure.id))
                 .outerjoin(model.Measure)
+                .join(model.QnodeMeasure)
+                .filter(model.Measure.id == model.QnodeMeasure.measure_id)
                 .filter(model.ResponseType.id == response_type_id)
                 .filter(model.ResponseType.program_id == program_id)
                 .group_by(model.ResponseType.id, model.ResponseType.program_id)

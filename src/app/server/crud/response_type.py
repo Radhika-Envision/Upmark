@@ -34,6 +34,8 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
             response_type, count = (
                 session.query(model.ResponseType, func.count(model.Measure.id))
                 .outerjoin(model.Measure)
+                .join(model.QnodeMeasure)
+                .filter(model.Measure.id == model.QnodeMeasure.measure_id)
                 .filter(model.ResponseType.id == response_type_id)
                 .filter(model.ResponseType.program_id == program_id)
                 .group_by(model.ResponseType.id, model.ResponseType.program_id)
@@ -109,7 +111,8 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
             query = (
                 session.query(model.ResponseType, func.count(model.Measure.id))
                 .outerjoin(model.Measure)
-                .filter(model.ResponseType.program_id == program_id)
+                .join(model.QnodeMeasure)
+                .filter(model.ResponseType.program_id == program_id and model.Measure.id == model.QnodeMeasure.measure_id)
                 .group_by(model.ResponseType.id, model.ResponseType.program_id)
                 .order_by(model.ResponseType.name))
 
@@ -291,7 +294,7 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
                     .first())
                 if rt_by_name and rt_by_name != response_type:
                     raise errors.ModelError(
-                        "'" + self.resquest_son.name + "' as a response type of that name already exists")
+                        "'" + self.request_son.name + "' as a response type of that name already exists")
 
             try:
                 self._update(response_type, self.request_son)
