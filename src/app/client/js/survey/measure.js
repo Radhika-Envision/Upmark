@@ -353,8 +353,10 @@ angular.module('upmark.survey.measure', [
     $scope.addSubMeasure = function(measure,rt) {
 
         if (!measure.subMeasures)  measure.subMeasures = [];
+        var rtName=''
+        if (rt.definition) rtName=rt.definition.name;
         measure.subMeasures.push({
-            name: rt.definition.name,
+            name: rtName,
             description: '',
             responseTypeId: null,
             sourceVars: [],
