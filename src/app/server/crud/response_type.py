@@ -30,16 +30,26 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
 
         with model.session_scope() as session:
             user_session = self.get_user_session(session)
-
+            # when add measure without submeasure, no measure for new rt after add rt, then count=0
             response_type, count = (
                 session.query(model.ResponseType, func.count(model.Measure.id))
                 .outerjoin(model.Measure)
-                .join(model.QnodeMeasure)
-                .filter(model.Measure.id == model.QnodeMeasure.measure_id)
                 .filter(model.ResponseType.id == response_type_id)
                 .filter(model.ResponseType.program_id == program_id)
                 .group_by(model.ResponseType.id, model.ResponseType.program_id)
                 .first()) or (None, None)
+
+            # count not equel 0, rt have used by measure, then should not remove submeasure that link with this rt
+            if count > 0:
+                response_type, count = (
+                    session.query(model.ResponseType, func.count(model.Measure.id))
+                    .outerjoin(model.Measure)
+                    .join(model.QnodeMeasure)
+                    .filter(model.Measure.id == model.QnodeMeasure.measure_id)
+                    .filter(model.ResponseType.id == response_type_id)
+                    .filter(model.ResponseType.program_id == program_id)
+                    .group_by(model.ResponseType.id, model.ResponseType.program_id)
+                    .first()) or (None, None)
             if not response_type:
                 raise errors.MissingDocError("No such response type")
 
@@ -137,7 +147,7 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
                 
                 # if has submeasure, response type only for one measure
                 submeasures = []
-                if count>1:
+                if count>0:
                     
                     if rt.parts and 'submeasure' in rt.parts[0]:
                         sid=None                   

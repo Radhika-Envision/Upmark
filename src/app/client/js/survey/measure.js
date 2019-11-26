@@ -354,7 +354,7 @@ angular.module('upmark.survey.measure', [
 
         if (!measure.subMeasures)  measure.subMeasures = [];
         var rtName=''
-        if (rt.definition) rtName=rt.definition.name;
+        if (rt && rt.definition) rtName=rt.definition.name;
         measure.subMeasures.push({
             name: rtName,
             description: '',
