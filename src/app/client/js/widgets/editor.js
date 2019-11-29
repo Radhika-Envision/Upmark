@@ -133,7 +133,7 @@ angular.module('vpac.widgets.editor', [
                             })
                             model['subMeasures']=subMeasures;
                         }
-            
+                        that.scope.rt.definition.nMeasures=model.responseType.nMeasures;
 
                 }
                 that.getter.assign(that.scope, model);
