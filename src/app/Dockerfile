@@ -37,7 +37,8 @@ RUN DEBIAN_FRONTEND=noninteractive \
     npm install -g bower && \
     pip3 install -vU setuptools pip && \
     rm -rf /var/lib/apt/lists/*
-
+#  Install dependencies to fix deploy issue
+RUN     pip3 install --upgrade pip setuptools wheel
 # Install dependencies before copying full source directory. This speeds up
 # Docker rebuilds.
 COPY requirements.txt requirements_force.txt /tmp/
