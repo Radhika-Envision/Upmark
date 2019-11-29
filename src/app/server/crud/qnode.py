@@ -55,6 +55,7 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
                 r'/n_measures$',
                 r'/is_editable$',
                 r'^/error$',
+                r'^/group$',
                 r'/program/tracking_id$',
                 r'/program/created$',
                 r'/program/hide_aggregate$',
@@ -185,6 +186,7 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
                 r'/ob_type$',
                 r'/id$',
                 r'/title$',
+                r'/group$',
                 r'/seq$',
                 r'/deleted$',
                 r'/n_measures$',
@@ -558,7 +560,9 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
         '''Apply user-provided data to the saved model.'''
         update = updater(qnode, error_factory=errors.ModelError)
         update('title', son)
+        update('group', son)
         update('description', son, sanitise=True)
+
 
     def ordering(self):
         '''Change the order of all children in a parent's collection.'''
@@ -568,7 +572,7 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
         parent_id = self.get_argument('parentId', '')
         root = self.get_argument('root', None)
 
-        if parent_id and root is None:
+        if parent_id and root is None: 
             raise errors.ModelError(
                 "Parent ID required, or specify 'root=' for root nodes")
         if root is not None and parent_id:

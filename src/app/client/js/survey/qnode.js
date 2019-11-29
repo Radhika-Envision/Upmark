@@ -401,6 +401,15 @@ angular.module('upmark.survey.qnode', [
         ];
      
         $scope.questions={total:0, answer:0};
+        
+        $scope.toggleDropdown = function() {             
+            if ($scope.showMeasureDetail)
+                $scope.showMeasureDetail=!$scope.showMeasureDetail
+            else
+                $scope.showMeasureDetail=true;
+            $scope.$broadcast("collapse-expansion", $scope.showMeasureDetail);
+        }
+
         $scope.saveAllResponses = function() {
             $scope.measureNum=0;
             totalQuestion=0;
@@ -584,6 +593,42 @@ angular.module('upmark.survey.qnode', [
             Notifications) {
 
     bind($scope, 'children', $scope, 'model', true);
+ 
+    $scope.checkGroup = function() {
+        var hasGroup=false;
+        if (!$scope.submission && $scope.model && $scope.model.length>0) {
+            for (var i=0;i<$scope.model.length;i++) {
+                if ($scope.model[i].group) {
+                   hasGroup=true;
+                  break;  
+                } 
+            }   
+        }   
+        return hasGroup;
+    }
+
+    $scope.toggleAllDropdown = function() {
+        $scope.hideDetail =! $scope.hideDetail;
+        if ($scope.model && $scope.model.length>0) {
+            $scope.model.forEach(function(item,index){
+               if (item.group) {
+                   item.hideDetail =$scope.hideDetail;
+               }
+            })
+        }
+    
+    }
+
+
+    $scope.toggleDropdown = function(index) {
+        $scope.model[index].hideDetail =! $scope.model[index].hideDetail;
+        for (var i=index+1;i<$scope.model.length;i++) {
+            if ($scope.model[index].group==$scope.model[i].group)
+               $scope.model[i].hideDetail =! $scope.model[i].hideDetail;
+            else
+               break;   
+        }      
+    };
 
     $scope.edit = Editor('model', $scope, {}, QuestionNode);
     $scope.$on('EditSaved', function(event, model) {
@@ -854,6 +899,12 @@ angular.module('upmark.survey.qnode', [
         else
             return dummyStats;
     };
+
+    $scope.$on("collapse-expansion", function(event, action){
+        $scope.measures.forEach(function(m){
+            m.showMeasureDetail=action;
+        });
+    })
 
     $scope.toggleDropdown = function(index) {
         var type = 'showMeasureDetail';
