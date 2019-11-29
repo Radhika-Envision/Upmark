@@ -785,10 +785,10 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                            subMeasure = model.Measure(program=program)
                            session.add(subMeasure)
                            self._update(subMeasure, sm)
-                           verbs = ['created']
+                           verbs = ['create']
                         else:
                            self._update(subMeasure, sm)
-                           verbs = ['updated']
+                           verbs = ['update']
                         ## create repsone_type for submeasure
                     
                         #sm.response_type_id=self.create_response_type(sm.response_type_id, program_id, sm.rt.definition)
@@ -808,16 +808,12 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                                rt_part["submeasure"]=submeasure_id
                             merger_parts.append(rt_part) 
                         submeasures_list.append(submeasure_id)
-                    
-                        ##***** error check later
-                        #if parent_id:
-                        #   verbs.append('relation')
-                        # act = Activities(session)
-                        # act.record(user_session.user, subMeasure, verbs)
-                        #act.ensure_subscription(
-                        #    user_session.user, subMeasure, subMeasure.program, self.reason)
-                        ##*****
-
+                        if parent_id:
+                           verbs.append('relation')
+                        act = Activities(session)
+                        act.record(user_session.user, subMeasure, verbs)
+                        act.ensure_subscription(
+                            user_session.user, subMeasure, subMeasure.program, self.reason)
                         log.info("update/create submeasure %s", submeasure_id) 
 
                 # update response_type
@@ -930,12 +926,10 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                     verbs.append('relation')
 
             calculator.execute()
-            ## error check later
-            ##act = Activities(session)
-            ##act.record(user_session.user, measure, verbs)
-            ##act.ensure_subscription(
-            ##    user_session.user, measure, measure.program, self.reason)
-            ##***** 
+            act = Activities(session)
+            act.record(user_session.user, measure, verbs)
+            act.ensure_subscription(
+                user_session.user, measure, measure.program, self.reason)
 
         self.get(measure_id)
 
