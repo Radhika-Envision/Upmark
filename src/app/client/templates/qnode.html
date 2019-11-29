@@ -53,7 +53,7 @@
 <div ng-if="edit.model">
 <div class="container">
     <form novalidate name="form" id="editor" form-nav-warn>
-        <div class="form-group" show-errors>
+        <div class="formsurvey-group" show-errors>
             <label for="title">Name</label>
             <span class="help-label" ng-if="form.title.$error.required">
                 Please provide a title.</span>
@@ -65,6 +65,11 @@
             <markdown-editor id="description"
                 ng-model="edit.model.description"
                 title="Description"></markdown-editor>
+        </div>
+        <div class="form-group" ng-if="currentLevel.hasMeasures">
+            <label for="group">Group</label>
+            <input type="text" class="form-control" id="group" name="group"
+                ng-model="edit.model.group" />
         </div>
     </form>
 </div>
@@ -127,10 +132,10 @@
                 <span class="text-muted" title="Total number of measures">
                     {{qnode.nMeasures}}</span>
             </span>
-            <span title="N/A">
+            <!--<span title="N/A">
                 <span title="Number of not-relevant responses">
                     <s>{{rnode.nNotRelevant}}</s></span>
-            </span>
+            </span>-->
 
             <docs>
                 <i class="fa-li fa fa-bar-chart fa-border"></i>
@@ -168,7 +173,7 @@
                     ng-class="{inherited: rnode.importance == null}">
                 <input-stars ng-model="stats.importance"></input-stars>
             </span>
-            <span title="Urgency"
+            <span title="Target maturity"
                     ng-class="{inherited: rnode.urgency == null}">
                 <input-stars ng-model="stats.urgency"
                     icon-empty="fa-circle-thin" icon-full="fa-circle"></input-stars>
@@ -285,6 +290,15 @@
                       'btn-default'"
                  ng-if="!structure.deletedItem">
                  <i class="fa fa-check fa-fw"></i></button>
+                 <td class="shrink grab-handle" ng-if="rnode">
+             <button class="btn-round btn btn-default" ng-attr-title="{{showMeasureDetail ?  'Show Measure Detail' : 'Hide Measure Detail'}}"
+                      ng-click="toggleDropdown()">
+                      <i class="fa fa-caret-up"
+                      ng-if="!showMeasureDetail"></i>
+                      <i class="fa fa-caret-down"
+                      ng-if="showMeasureDetail"></i>
+             </button>
+                </td>
          </div>
     </div>
 
