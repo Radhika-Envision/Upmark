@@ -225,6 +225,8 @@ class QuestionNode(Observable, Base):
     title = Column(Text, nullable=False)
     description = Column(Text)
 
+    group = Column(Text)
+
     __table_args__ = (
         ForeignKeyConstraint(
             ['parent_id', 'program_id'],
