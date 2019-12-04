@@ -291,12 +291,12 @@
                  ng-if="!structure.deletedItem">
                  <i class="fa fa-check fa-fw"></i></button>
                  <td class="shrink grab-handle" ng-if="rnode">
-             <button class="btn-round btn btn-default" ng-attr-title="{{showMeasureDetail ?  'Show Measure Detail' : 'Hide Measure Detail'}}"
+             <button class="btn-round btn btn-default" ng-attr-title="{{showMeasureDetail ?  'Hide All Measures Detail' : 'Show All Measures Detail'}}"
                       ng-click="toggleDropdown()">
                       <i class="fa fa-caret-up"
-                      ng-if="!showMeasureDetail"></i>
-                      <i class="fa fa-caret-down"
                       ng-if="showMeasureDetail"></i>
+                      <i class="fa fa-caret-down"
+                      ng-if="!showMeasureDetail"></i>
              </button>
                 </td>
          </div>
