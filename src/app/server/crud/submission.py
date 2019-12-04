@@ -15,7 +15,7 @@ from score import Calculator
 from utils import ToSon, truthy, updater
 from .approval import APPROVAL_STATES
 from surveygroup_actions import filter_surveygroups
-
+from response_type import ResponseTypeError
 
 log = logging.getLogger('app.crud.submission')
 
@@ -343,15 +343,44 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
             policy.verify('surveygroup_interact')
             policy.verify('submission_edit')
 
+            current_level = 0
             verbs = []
             if approval:
-                self.check_approval(session, submission, approval)
+                self.check_approval_down_one(session, submission, approval)
+                current_level = APPROVAL_STATES.index(submission.approval) 
                 if approval != submission.approval:
                     verbs.append('state')
                 submission.approval = approval
             self._update(submission, self.request_son)
             if session.is_modified(submission):
                 verbs.append('update')
+            
+            # update measures approval state
+            approval_level = APPROVAL_STATES.index(approval) 
+            if 'state' in verbs and approval_level > current_level:    
+                approval_level=approval_level-1
+                responses = (
+                    session.query(model.Response)
+                    .filter(model.Response.submission_id == submission.id,
+                       model.Response.approval == APPROVAL_STATES[approval_level])
+                    )
+                for response in responses:
+                    # update = updater(response, error_factory=errors.ModelError)
+                    # update('title', son)
+                    response.approval = approval
+                    try:
+                        calculator = Calculator.scoring(submission)
+                        calculator.mark_measure_dirty(response.qnode_measure)
+                        calculator.execute()
+                    except ResponseTypeError as e:
+                        raise errors.ModelError(str(e))
+
+
+                    act = Activities(session)
+                    act.record(user_session.user, response, verbs)
+                    act.ensure_subscription(
+                        user_session.user, response, response.submission,
+                        self.reason)
 
             if submission.deleted:
                 submission.deleted = False
@@ -397,6 +426,39 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
 
         self.finish()
 
+    # for submeasure version
+    def check_approval_down_one(self, session, submission, approval):
+        approval_set = self.approval_set_down_one(approval)
+
+        n_relevant_responses = (
+            session.query(model.Response)
+            .filter(model.Response.submission_id == submission.id,
+                    model.Response.approval.in_(approval_set))
+            .count())
+        n_measures = (
+            session.query(model.QnodeMeasure.measure_id)
+            .join(model.QuestionNode)
+            .filter(model.QuestionNode.survey_id == submission.survey_id,
+                    model.QuestionNode.program_id == submission.program_id,
+                    model.QnodeMeasure.program_id == submission.program_id,
+                    model.QnodeMeasure.qnode_id == model.QuestionNode.id,
+                    model.QuestionNode.deleted == False)
+            .distinct()
+            .count())
+
+        if n_relevant_responses < n_measures:
+            raise errors.ModelError(
+                "%d of %d responses are incomplete" %
+                (n_measures - n_relevant_responses, n_measures))
+
+    # for submeasure version: get last one level APPROVAL_STATES
+    def approval_set_down_one(self, minimum):
+        level=APPROVAL_STATES.index(minimum)
+        if level>0:
+            level=level-1
+        return APPROVAL_STATES[level:]
+
+    # for not submeasure version
     def check_approval(self, session, submission, approval):
         approval_set = self.approval_set(approval)
 
@@ -420,7 +482,7 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
             raise errors.ModelError(
                 "%d of %d responses are incomplete" %
                 (n_measures - n_relevant_responses, n_measures))
-
+    # for not submeasure version
     def approval_set(self, minimum):
         return APPROVAL_STATES[APPROVAL_STATES.index(minimum):]
 
