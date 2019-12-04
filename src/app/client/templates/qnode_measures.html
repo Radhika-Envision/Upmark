@@ -236,18 +236,18 @@
                        <i class="fa fa-fw fa-unsorted"></i></span>
                     </td>
                        <td class="shrink grab-handle" ng-if="rnode">
-                            <button class="btn-round btn btn-default"
+                            <button class="btn-round btn btn-default" ng-attr-title="{{item.showMeasureDetail ?  'Hide Measure Detail' : 'Show Measure Detail'}}"
                               ng-click="toggleDropdown(item.showMeasureDetail)">
                               <i class="fa fa-caret-up"
-                              ng-if="!item.showMeasureDetail"></i>
-                              <i class="fa fa-caret-down"
                               ng-if="item.showMeasureDetail"></i>
+                              <i class="fa fa-caret-down"
+                              ng-if="!item.showMeasureDetail"></i>
                             </button>
                         </td>
                     </tr>
                 </tbody>
             </table>  
-            <table class="table table-hover"  ng-hide="item.showMeasureDetail"  ng-controller='MeasuresCtrl' >
+            <table class="table table-hover"  ng-show="item.showMeasureDetail"  ng-controller='MeasuresCtrl' >
                     <tbody>    
                 <tr ng-if="rnode">
                     <td colspan="9">
