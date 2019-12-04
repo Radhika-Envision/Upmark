@@ -190,6 +190,7 @@ angular.module('upmark.submission.submission', [
     $scope.setState = function(state, $event) {
         $scope.submission.$save({approval: state},
             function success() {
+                $scope.$broadcast("state-changed");
                 Notifications.set('edit', 'success', "Saved", 5000);
             },
             function failure(details) {
