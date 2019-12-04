@@ -572,7 +572,8 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
         parent_id = self.get_argument('parentId', '')
         root = self.get_argument('root', None)
 
-        if parent_id and root is None: 
+        #if parent_id and root is None:
+        if parent_id is None and root is None: 
             raise errors.ModelError(
                 "Parent ID required, or specify 'root=' for root nodes")
         if root is not None and parent_id:
