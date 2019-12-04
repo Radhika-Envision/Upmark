@@ -9,7 +9,7 @@
                 ng-if="edit.model">
             <i class="fa fa-fw fa-check"></i></button>
         <button class="btn btn-default btn-round" title="Change order"
-                ng-click="edit.edit()"
+                ng-click="changeOrder()"
                 ng-if="editable && model.length > 1 &&
                        !edit.model && search.deleted === false &&
                        checkRole('qnode_edit')">
