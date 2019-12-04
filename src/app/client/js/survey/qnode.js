@@ -401,12 +401,12 @@ angular.module('upmark.survey.qnode', [
         ];
      
         $scope.questions={total:0, answer:0};
-        
+
         $scope.toggleDropdown = function() {             
-            if ($scope.showMeasureDetail)
-                $scope.showMeasureDetail=!$scope.showMeasureDetail
+            if ($scope.showMeasureDetail != null)
+                $scope.showMeasureDetail =! $scope.showMeasureDetail
             else
-                $scope.showMeasureDetail=true;
+                $scope.showMeasureDetail = true;
             $scope.$broadcast("collapse-expansion", $scope.showMeasureDetail);
         }
 
@@ -619,6 +619,16 @@ angular.module('upmark.survey.qnode', [
     
     }
 
+    $scope.changeOrder = function() {
+        if ($scope.checkGroup()) {
+            $scope.hideDetail =true;
+            $scope.toggleAllDropdown();
+        }
+        $scope.edit.edit();
+   
+    }
+
+
 
     $scope.toggleDropdown = function(index) {
         $scope.model[index].hideDetail =! $scope.model[index].hideDetail;
@@ -692,7 +702,8 @@ angular.module('upmark.survey.qnode', [
         $scope.level = level;
     });
 
-    if ($scope.submission) {
+    $scope.getChildren = function() {
+        if ($scope.submission) {
         // Get the responses that are associated with this qnode and submission.
         ResponseNode.query({
             submissionId: $scope.submission.id,
@@ -743,7 +754,16 @@ angular.module('upmark.survey.qnode', [
                     details.statusText);
             }
         );
+        }
     }
+
+    //get update qnode childen list after category level approval change
+    $scope.$on("state-changed", function(){
+        $scope.getChildren();
+    })
+
+    $scope.getChildren();
+
     var dummyStats = {
         score: 0,
         notRelevant: false,
@@ -815,6 +835,7 @@ angular.module('upmark.survey.qnode', [
         //args.state would have the state.
         $scope.$broadcast('save-response');
     });
+
     if ($scope.submission) {
         // Get the responses that are associated with this qnode and submission.
         Response.query({
