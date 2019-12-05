@@ -10,6 +10,13 @@ from sqlalchemy import engine_from_config, pool
 
 # Current model for 'autogenerate' support
 #sys.path.append("/e/iproject/Upmark_check/upmark/src/app/server/")
+
+
+src_dir = os.path.abspath(os.path.join(os.getcwd(), "src"))
+sys.path.append(src_dir)
+src_dir = os.path.abspath(os.path.join(os.getcwd(), "server"))
+sys.path.append(src_dir)
+
 from model.base import metadata as target_metadata
 from model.connection import get_database_url
 
