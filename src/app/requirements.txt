@@ -16,13 +16,13 @@ numpy~=1.13.0rc2
 passlib~=1.7.1
 passwordmeter~=0.1.8
 py_expression_eval~=0.3.4
-pyyaml~=3.12
+pyyaml>=4.2b1
 scour~=0.35
 sentinels~=1.0.0
 # simpleeval is still required by the version upgrade scripts
 simpleeval~=0.8.5
 slimit~=0.8.1
-SQLAlchemy~=1.1.10
+SQLAlchemy>=1.3.0
 sqlparse~=0.2.3
 tornado~=4.5.1
 voluptuous~=0.10.5
