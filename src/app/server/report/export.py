@@ -442,7 +442,7 @@ class Exporter:
                     url = base_url + "/#/3/measure/{}?submission={}".format(
                         measure.id, submission.id)
 
-                    # Walk up the tree to get the importance and urgency from the
+                    # Walk up the tree to get the importance and target from the
                     # parent rnodes
                     parent = qnode_measure.qnode
                     while parent and (importance is None or urgency is None):
