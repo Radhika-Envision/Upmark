@@ -53,6 +53,7 @@ angular.module('vpac.widgets.editor', [
         var that = this;
         var success = function(model, getResponseHeaders) {
             try {
+                Notifications.remove('longTimeSave');
                 log.debug("Success");
                 if (model.obType=='measure')
                 {
