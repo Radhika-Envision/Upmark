@@ -137,7 +137,7 @@ angular.module('upmark.survey.measure', [
         $scope.measure = routeData.measure;
         // check hasSubmeasure from response_type 
         if (routeData.responseType && routeData.responseType.parts.length>0 
-            && routeData.responseType.parts[0]['submeasure']){
+            && routeData.responseType.parts[0]['submeasureSeq']){
                 $scope.measure.hasSubMeasures=true;
                 $scope.measure.rt=routeData.responseType;
                 /*$scope.measure.subMeasureList.forEach(function(sub,i){
@@ -162,6 +162,10 @@ angular.module('upmark.survey.measure', [
                 var submeasure_id=[];
                 var partObject=null;
                 angular.forEach(routeData.responseType.parts,function(item,index){
+                    if ($scope.measure.responseType && $scope.measure.responseType.parts[index]
+                        && $scope.measure.responseType.parts[index].submeasureSeq == item.submeasureSeq ) {
+                        item['submeasure']=$scope.measure.responseType.parts[index]['submeasure']
+                    }
                     if (item.type == 'multiple_choice') {
                         partObject=new responseTypes.MultipleChoice(item);
                     }
@@ -328,12 +332,7 @@ angular.module('upmark.survey.measure', [
 
 
     $scope.removeSubMeasure = function(measure, subMeasure, index) {
-        if ($rootScope.questions && $rootScope.questions[index]) {
-            $rootScope.questions[index]={};
-        }
-        if ($rootScope.rts && $rootScope.rts[index]) {
-            $rootScope.rts[index]={};
-        }
+
         if (measure.subMeasures.length>1) 
         {
             measure.subMeasures.forEach(function(sm,i){
@@ -341,8 +340,21 @@ angular.module('upmark.survey.measure', [
                     return subMeasure.deleted=true;
                 }
             })
-
         }
+        if (!subMeasure.deleted && measure.rt.nMeasures > 1) {
+            Notifications.set('edit', 'warning',
+                "Measure with submeasures linked response type should not remove all submeasure.", 5000 );
+            return;
+        }
+
+
+        if ($rootScope.questions && $rootScope.questions[index]) {
+            $rootScope.questions[index]={};
+        }
+        if ($rootScope.rts && $rootScope.rts[index]) {
+            $rootScope.rts[index]={};
+        }
+
         if (!subMeasure.deleted)
            $scope.toggleHasSubMeasures(measure)
            
@@ -827,6 +839,7 @@ angular.module('upmark.survey.measure', [
 
     $scope.setLinkOrCopy=function(op) {
         $scope.rt.search.term="";
+        $scope.preOp=$scope.op;
         $scope.op=op;
     }
 
@@ -862,7 +875,7 @@ angular.module('upmark.survey.measure', [
         ResponseType.get(rtDef, {
             programId: $scope.structure.program.id
         }).$promise.then(function(resolvedRtDef) {
-            if ($scope.edit.model.hasSubMeasures && resolvedRtDef && resolvedRtDef.parts[0].submeasure) {
+            if ($scope.edit.model.hasSubMeasures && resolvedRtDef && resolvedRtDef.parts[0].submeasureSeq) {
                 //convert submeasure repsonse-type parts
                 var currentSubmeasres=0; // submeasres number in target measure 
                 var rtSubmeasures=0;  // submeasres number in source measure 
@@ -877,12 +890,13 @@ angular.module('upmark.survey.measure', [
                     else if (item.type == 'numerical') {
                         partObject=new responseTypes.Numerical(item);
                     } 
-                    partObject.submeasure= item.submeasure; 
+                    partObject.submeasureSeq= item.submeasureSeq; 
                     var itemCopy=angular.copy(item);
-                    if (preSubmeasure != item.submeasure) {
+                    if (preSubmeasure != item.submeasureSeq) {
                         rtSubmeasures=rtSubmeasures+1;
                         sourceSubmeasure.push({ 
-                            id:item.submeasure,
+                            //id:item.submeasure,
+                            submeasureSeq:item.submeasureSeq,
                             description: item.description,
                             rt: {
                                 definition:{
@@ -909,7 +923,7 @@ angular.module('upmark.survey.measure', [
                         sourceSubmeasure[rtSubmeasures-1].rt.definition.parts.push(itemCopy);
                         //sourceSubmeasure[rtSubmeasures-1].rtRead.definition.parts.push(partObject);
                     }
-                    preSubmeasure=item.submeasure;
+                    preSubmeasure=item.submeasureSeq;
                 });
                 var subMeasures=[];
                 var partObject=null;
@@ -917,13 +931,15 @@ angular.module('upmark.survey.measure', [
                     angular.forEach(sourceSubmeasure,function(item,index){
                         if (index < $scope.measure.subMeasures.length) {
                             angular.forEach(item.rt.definition.parts,function(part) {
-                                part.submeasure=$scope.measure.subMeasures[index].id;
+                                //part.submeasure=$scope.measure.subMeasures[index].id;
+                                part.submeasureSeq=$scope.measure.subMeasures[index].submeasureSeq;
                             });
                             //angular.forEach(item.rtRead.definition.parts,function(part) {
                             //    part.submeasure=$scope.measure.subMeasures[index].id;
                             //});
                             subMeasures.push({ 
-                                id: $scope.measure.subMeasures[index].id,
+                                //id: $scope.measure.subMeasures[index].id,
+                                submeasureSeq: $scope.measure.subMeasures[index].submeasureSeq,
                                 description: $scope.measure.subMeasures[index].description,
                                 rt:{
                                     definition:{
@@ -947,7 +963,7 @@ angular.module('upmark.survey.measure', [
                         }
                         else {
                             angular.forEach(item.rt.definition.parts,function(part) {
-                                delete part.submeasure;
+                                delete part.submeasureSeq;
                             });
                             //angular.forEach(item.rtRead.definition.parts,function(part) {
                             //    delete part.submeasure;
@@ -1005,7 +1021,7 @@ angular.module('upmark.survey.measure', [
                 }
 
             }
-            else if ($scope.edit.model.hasSubMeasures && resolvedRtDef && (!resolvedRtDef.parts[0].submeasure)) {
+            else if ($scope.edit.model.hasSubMeasures && resolvedRtDef && (!resolvedRtDef.parts[0].submeasureSeq)) {
                 Notifications.set('edit', 'error',
                 "Could not copy: "+ "Submeasures in another measure should be more than the submeasure number of current measure");
             }
@@ -1033,11 +1049,11 @@ angular.module('upmark.survey.measure', [
         $scope.rt.showSearch = false;
     };
 
-    $scope.chooseResponseType = function(rtDef) {
+    $scope.chooseResponseType = function(rtDef, op) {
         ResponseType.get(rtDef, {
             programId: $scope.structure.program.id
         }).$promise.then(function(resolvedRtDef) {
-            if ($scope.edit.model.hasSubMeasures && resolvedRtDef && resolvedRtDef.parts[0].submeasure) {
+            if ($scope.edit.model.hasSubMeasures && resolvedRtDef && resolvedRtDef.parts[0].submeasureSeq) {
                 //convert submeasure repsonse-type parts
 
 
@@ -1054,13 +1070,14 @@ angular.module('upmark.survey.measure', [
                     else if (item.type == 'numerical') {
                         partObject=new responseTypes.Numerical(item);
                     } 
-                    partObject.submeasure= item.submeasure; 
+                    partObject.submeasureSeq= item.submeasureSeq; 
                     var itemCopy=angular.copy(item);
                         
-                    if (preSubmeasure != item.submeasure) {
+                    if (preSubmeasure != item.submeasureSeq) {
                         rtSubmeasures=rtSubmeasures+1;
                         sourceSubmeasure.push({ 
-                            id:item.submeasure,
+                            //id:item.submeasure,
+                            submeasureSeq: item.submeasureSeq,
                             description: item.description,
                             rt: {
                                 definition:{
@@ -1090,7 +1107,7 @@ angular.module('upmark.survey.measure', [
                         
                     }
 
-                    preSubmeasure=item.submeasure;
+                    preSubmeasure=item.submeasureSeq;
                 });
 
                 var subMeasures=[];
@@ -1109,7 +1126,8 @@ angular.module('upmark.survey.measure', [
                         //}
                         if (index < $scope.edit.model.subMeasures.length) {
                             angular.forEach(item.rt.definition.parts,function(part) {
-                                part.submeasure=$scope.edit.model.subMeasures[index].id;
+                                //part.submeasure=$scope.edit.model.subMeasures[index].id;
+                                part.submeasureSeq=$scope.edit.model.subMeasures[index].submeasureSeq;
                             });
                             //angular.forEach(item.rtRead.definition.parts,function(part) {
                             //    part.submeasure=$scope.edit.model.subMeasures[index].id;
@@ -1117,7 +1135,8 @@ angular.module('upmark.survey.measure', [
 
                                
                             subMeasures.push({ 
-                                id: $scope.edit.model.subMeasures[index].id,
+                                //id: $scope.edit.model.subMeasures[index].id,
+                                submeasureSeq: $scope.edit.model.subMeasures[index].submeasureSeq,
                                 description: $scope.edit.model.subMeasures[index].description,
                                 rt:{
                                     definition:{
@@ -1144,7 +1163,7 @@ angular.module('upmark.survey.measure', [
                         }
                         else {
                             angular.forEach(item.rt.definition.parts,function(part) {
-                                delete part.submeasure;
+                                delete part.submeasureSeq;
                             });
                             //angular.forEach(item.rtRead.definition.parts,function(part) {
                             //    delete part.submeasure;
@@ -1319,20 +1338,44 @@ angular.module('upmark.survey.measure', [
                     //$scope.measure['subMeasures']=angular.copy(subMeasures);
                     $scope.edit.model.rt.parts=angular.copy(resolvedRtDef.parts);
                     $scope.edit.model.rt.formula=resolvedRtDef.formula;
+                    if (op=='l')
+                       $scope.edit.model.rt.nMeasures=resolvedRtDef.nMeasures;
+                    else if (!$scope.measure.id) 
+                       $scope.edit.model.rt.nMeasures= 0; // if new measure and copy respsone type, response type no use by measure 
+                    else 
+                       $scope.edit.model.rt.nMeasures= $scope.rt.definition.nMeasures;  
+                    $scope.edit.model.rt.id=resolvedRtDef.id;
+                    $scope.edit.model.rt.programId=resolvedRtDef.programId;
                     // if edit measure with submeasure, response type name not change
                     // if add measure with submeasure, response type name change depend on copy response type name
+                    //************need to fix alway keep response type when copy response type to exist rmeasure************
                     if (!$scope.edit.model.rt.name || $scope.edit.model.rt.name.trim().length==0 || !$scope.measure.id)
-                       $scope.edit.model.rt.name=resolvedRtDef.name +" (copy)";
+                        if (op=='c') 
+                           $scope.edit.model.rt.name=resolvedRtDef.name +" (copy)";
+                    if ($scope.measure.id && op=='c')
+                       $scope.edit.model.rt.name=$scope.measure.responseType.name;       
+                    // if link response type, name must change
+                    if (op=='l') 
+                        $scope.edit.model.rt.name=resolvedRtDef.name   
+                    
                     $scope.edit.model.subMeasures=angular.copy(subMeasures);
+                    var nMeasures=$scope.rt.definition.nMeasures;
                     $scope.rt.definition = angular.copy(resolvedRtDef);
+                    $scope.rt.definition.nMeasures=nMeasures;
+                    if (!$scope.edit.model.id && op=='c' ) {
+                        $scope.rt.definition.nMeasures=0;
+                        $scope.edit.model.rt.id=null;
+                    }
                 }
                 else {
+                    $scope.op = $scope.preOp;
                     Notifications.set('edit', 'error',
                     "Could not copy: "+ "Submeasures in another measure should be more than the submeasure number of current measure");
                 }
 
             }
-            else if ($scope.edit.model.hasSubMeasures && resolvedRtDef && (!resolvedRtDef.parts[0].submeasure)) {
+            else if ($scope.edit.model.hasSubMeasures && resolvedRtDef && (!resolvedRtDef.parts[0].submeasureSeq)) {
+                $scope.op = $scope.preOp;
                 Notifications.set('edit', 'error',
                 "Could not copy: "+ "Submeasures in another measure should be more than the submeasure number of current measure");
             }
@@ -1360,12 +1403,18 @@ angular.module('upmark.survey.measure', [
         if (!$scope.edit.model)
             return;
          
+        if ($scope.edit.model.rt && $scope.edit.model.rt.nMeasures > 1) {   
+            Notifications.set('longTimeSave', 'warning',
+            "All measures linked this response type would be updated, so it may take long time.");
+        }
+        
 
         if (!$scope.rt.definition && !$scope.edit.model.hasSubMeasures) {
             Notifications.set('edit', 'error',
                 "Could not save: No repsonse type");
             return;
         }
+
         $scope.edit.model.has_sub_measures=$scope.edit.model.hasSubMeasures;
         if ($scope.edit.model.sourceVars) {
             $scope.edit.model.sourceVars = $scope.edit.model.sourceVars.filter(function(mv) {

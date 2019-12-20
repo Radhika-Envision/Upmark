@@ -8,7 +8,7 @@
                                 'Can not have sub-measures as children'}}"
                             class="btn btn-default btn-round"
                             ng-click="toggleHasSubMeasures(edit.model)"
-                            ng-disabled="rt.definition.nMeasures > 1">
+                            ng-disabled="op=='l' || rt.definition.nMeasures && rt.definition.nMeasures > 1">
                             <i class="fa fa-fw fa-toggle-off"
                                 ng-hide="edit.model.hasSubMeasures"></i>
                             <i class="fa fa-fw fa-toggle-on"
@@ -28,13 +28,29 @@
                                         ng-click="addSubMeasure(edit.model, null)">
                                     <i class="fa fa-fw fa-plus"></i>
                                 </button>
-                                <button class="btn btn-default btn-round"
+                                <!--<button class="btn btn-default btn-round" ng-if="!rt.showSearch"
                                         title="Copy a response type from another measure"
-                                        ng-click="rt.showSearch = !rt.showSearch; setSubIndex()">
-                                        <!--<i class="fa fa-link" ng-if="!rt.showSearch"></i>-->
-                                        <i class="fa fa-clone" ng-if="!rt.showSearch"></i>
+                                        ng-click="rt.showSearch = !rt.showSearch; setSubIndex()">-->
+                                        <!--**<i class="fa fa-link" ng-if="!rt.showSearch"></i>**-->
+                                      <!--  <i class="fa fa-clone" ng-if="!rt.showSearch"></i>
                                         <i class="fa fa-times" ng-if="rt.showSearch && !subIndex && subIndex != 0"></i>
+                                </button>-->
+                                
+                                <button class="btn btn-default btn-round"  ng-if="!rt.showSearch"
+                                    title="Use a response type from another measure"
+                                    ng-click="rt.showSearch = !rt.showSearch; setSubIndex(); setLinkOrCopy('c')">
+                                    <!--<i class="fa fa-link" ng-if="!rt.showSearch"></i>-->
+                                    <i class="fa fa-clone" ng-if="!rt.showSearch"></i>
+                                    <!--<i class="fa fa-times" ng-if="rt.showSearch"></i>-->
                                 </button>
+                                <button class="btn btn-default btn-round"
+                                    title="link a response type from another measure"
+                                    ng-click="rt.showSearch = !rt.showSearch; setSubIndex(); setLinkOrCopy('l')">
+                                    <i class="fa fa-link" ng-if="!rt.showSearch"></i>
+                                    <i class="fa fa-times" ng-if="rt.showSearch && !subIndex && subIndex != 0"></i>
+                                </button>   
+
+
                             </div>
                             <h3>Measure Details</h3>
                         </div>
@@ -52,7 +68,7 @@
                                         <search-box model="rt.search" result="rt.searchRts" focus-init></search-box>
                                         <ul class="list-results">
                                             <li ng-repeat="rtDef in rt.searchRts">
-                                                <a href="" ng-click="chooseResponseType(rtDef)">
+                                                <a href="" ng-click="chooseResponseType(rtDef,op)">
                                                     <h4>
                                                         {{rtDef.name}}
                                                     </h4>
@@ -228,20 +244,19 @@
                                         <div class="col-md-10">
                                           <a href="" ng-click="chooseResponseTypeForSubmeasure(subDef)">
                                             <h4>
-                                                {{subDef.name}} for sub measure {{$index}}
-                                            </h4>
-                                            <p>
-                                                <ng-pluralize count="subDef.parts.length" when="{
-                                                  '0': 'Comment only',
-                                                  '1': '1 part.',
-                                                  'other': '{} parts.',
-                                                }"></ng-pluralize>
+                                                <ng-pluralize count="subDef.parts.length" 
+                                                    when="{ '0': 'Comment only ',
+                                                            '1': '1 part ',
+                                                            'other': '{} parts ',
+                                                        }">
+                                                </ng-pluralize>
+                                                in response type for sub measure {{$index + 1 }}.
                                                 <!--<ng-pluralize count="rtDef.nMeasures" when="{
                                                   '0': 'Unused.',
                                                   '1': 'Used by 1 measure.',
                                                   'other': 'Used by {} measures.',
                                                 }"></ng-pluralize>-->
-                                            </p>
+                                            </h4>
                                           </a>
                                         </div>
                                     </div>
@@ -331,6 +346,21 @@
                         </ul>
                     </div>-->
                     </div> <!-- .col- -->
+                </div>
+                <div class="row no-margin-bottom">
+                    <div class="col-md-6"></div>
+                    <div class="col-md-6">
+                        <p class="text-muted" ng-if="edit.model.rt.nMeasures">
+                            This response type is used by
+                            <a ng-href="#/3/measures?program={{edit.model.rt.programId}}&initialTerm=rt:{{edit.model.rt.id}}">
+                                <ng-pluralize count="edit.model.rt.nMeasures" when="{
+                                    '1': '1 measure',
+                                    'other': '{} measures',}">
+                                </ng-pluralize>
+                            </a>
+                            <span ng-if="edit.model.rt.id && edit.model.rt.id == edit.model.responseTypeId"> (including this one)</span>
+                        </p>
+                    </div>
                 </div>
                 <div class="row no-margin-bottom" ng-repeat="sm in edit.model.subMeasures">
                         <div class="spaced" ng-if="sm.rtEdit.responseType.unboundVars.length">

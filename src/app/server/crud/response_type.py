@@ -74,26 +74,48 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
                 omit=True)
             # if has submeasure, response type only for one measure
             submeasures = []
-            if response_type.parts and 'submeasure' in response_type.parts[0]:
+            if response_type.parts and 'submeasure_seq' in response_type.parts[0]:
                 sid=None                   
                 for p in response_type.parts:
-                    if p['submeasure'] != sid:
-                        submeasure = (
-                            session.query(model.Measure)
-                            .filter(model.Measure.id == p['submeasure']).first())
-                        if submeasure:    
+                    if p['submeasure_seq'] != sid:
+                        #submeasure = (
+                        #    session.query(model.Measure)
+                        #    .filter(model.Measure.submeasure_seq == p['submeasure_seq'])
+                        #    .filter(model.Measure.response_type_id == response_type.id).first())
+                        #if submeasure:    
                             submeasures.append({
-                                'id': p['submeasure'],
+                                'id': p['submeasure_seq'],
                                 'parts': [p],
-                                'name': submeasure.title
+                                #'name': 'sub measure ' + str(p['submeasure_seq'])
                             })
-                            p['name']=submeasure.title
+                            #p['name']='sub measure ' + str(p['submeasure_seq'])
                     else:
                         if len(submeasures)>0:
                            submeasures[len(submeasures)-1]['parts'].append(p)
-                           p['name']=submeasures[len(submeasures)-1]['name']
-                    sid=p['submeasure']
-                count=1
+                           #p['name']=submeasures[len(submeasures)-1]['name']
+                    sid=p['submeasure_seq']
+
+
+            #if response_type.parts and 'submeasure' in response_type.parts[0]:
+            #    sid=None                   
+            #    for p in response_type.parts:
+            #        if p['submeasure'] != sid:
+            #            submeasure = (
+            #                session.query(model.Measure)
+            #                .filter(model.Measure.id == p['submeasure']).first())
+            #            if submeasure:    
+            #                submeasures.append({
+            #                    'id': p['submeasure'],
+            #                    'parts': [p],
+            #                    'name': submeasure.title
+            #                })
+            #                p['name']=submeasure.title
+            #        else:
+            #            if len(submeasures)>0:
+            #               submeasures[len(submeasures)-1]['parts'].append(p)
+            #               p['name']=submeasures[len(submeasures)-1]['name']
+            #        sid=p['submeasure']
+            #    count=1
             son = to_son(response_type) 
             son['nMeasures'] = count
         self.set_header("Content-Type", "application/json")
@@ -144,32 +166,52 @@ class ResponseTypeHandler(base_handler.Paginate, base_handler.BaseHandler):
             )
             sons = []
             for rt, count in rtcs:
-                
-                # if has submeasure, response type only for one measure
                 submeasures = []
                 if count>0:
-                    
-                    if rt.parts and 'submeasure' in rt.parts[0]:
+                    if rt.parts and 'submeasure_seq' in rt.parts[0]:
                         sid=None                   
                         for p in rt.parts:
-                            sName=''
-                            if p['submeasure'] != sid:
-                                submeasure = (
-                                   session.query(model.Measure)
-                                   .filter(model.Measure.id == p['submeasure']).first())
-                                if submeasure:
-                                    sName=submeasure.title
+                            #sName=''
+                            if p['submeasure_seq'] != sid:
+                                #submeasure = (
+                                #    session.query(model.Measure)
+                                #    .filter(model.Measure.submeasure_seq == p['submeasure_seq'])
+                                #    .filter(model.Measure.response_type_id == rt.id).first())
+                                #if submeasure:
+                                    #sName=submeasure.title #'response type ' + str(p['submeasure_seq'])
                                 submeasures.append({
-                                   'id': p['submeasure'],
+                                   'id': p['submeasure_seq'],
                                    'parts': [p],
-                                   'name': sName
+                                   #'name': sName
                                 })
-                                p['name']=sName
+                                #p['name']=sName
                             else:
-                                submeasures[len(submeasures)-1]['parts'].append(p)
-                                p['name']=submeasures[len(submeasures)-1]['name']
-                            sid=p['submeasure']
-                        count=1
+                                if len(submeasures)>0:
+                                    submeasures[len(submeasures)-1]['parts'].append(p)
+                                    #p['name']=submeasures[len(submeasures)-1]['name']
+                            sid=p['submeasure_seq']
+
+
+                    #    sid=None                   
+                    #    for p in rt.parts:
+                    #        sName=''
+                    #        if p['submeasure'] != sid:
+                    #            submeasure = (
+                    #               session.query(model.Measure)
+                    #               .filter(model.Measure.id == p['submeasure']).first())
+                    #            if submeasure:
+                    #                sName=submeasure.title
+                    #            submeasures.append({
+                    #               'id': p['submeasure'],
+                    #               'parts': [p],
+                    #               'name': sName
+                    #            })
+                    #           p['name']=sName
+                    #        else:
+                    #            submeasures[len(submeasures)-1]['parts'].append(p)
+                    #           p['name']=submeasures[len(submeasures)-1]['name']
+                    #        sid=p['submeasure']
+                    #    count=1
                 rt_son = to_son(rt)
                 extra = {
                     'n_parts': len(rt.parts),

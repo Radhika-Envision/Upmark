@@ -103,14 +103,22 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                 measure_responeType=self.get_responseType(measure.response_type_id, program_id)
                 son['responseType']=measure_responeType
             # response_types=json.load(measure_responeType.parts)
-            submeasureIdList=[]
-            for p in measure_responeType.parts:
-                if p.submeasure and (not (p.submeasure in submeasureIdList)):
-                     submeasureIdList.append(p.submeasure)
-            if len(submeasureIdList) >0:
-               son['subMeasureList']=self.get_measureList(submeasureIdList, program_id, survey_id)
-
-
+            ## get submeasures ***************
+            #submeasureIdList=[]
+            #for p in measure_responeType.parts:
+            #    if p.submeasure and (not (p.submeasure in submeasureIdList)):
+            #         submeasureIdList.append(p.submeasure)
+            ## get submeasures ***************
+            #if len(submeasureIdList) >0:
+            #   son['subMeasureList']=self.get_measureList(submeasureIdList, program_id, survey_id)
+            if measure_responeType.parts[0].submeasure_seq or measure_responeType.parts[0].submeasureSeq:
+                son['subMeasureList'] = self.get_submeasures(measure.id, measure.response_type_id, program_id, survey_id)
+                for p in measure_responeType.parts:
+                    for item in son['subMeasureList']:
+                        if item.submeasureSeq == p.submeasureSeq:
+                            p.submeasure = item.id
+                            break
+                  
 
             if survey_id:
                 qnode_measure = measure.get_qnode_measure(survey_id)
@@ -435,11 +443,11 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                 subId= None
                 if qm.measure and qm.measure.response_type and qm.measure.response_type.parts:
                     for p in qm.measure.response_type.parts:
-                        if  'submeasure' not in p:
+                        if  'submeasure_seq' not in p:
                             break
-                        if p['submeasure'] != subId:
+                        if p['submeasure_seq'] != subId:
                            n_submeasures = n_submeasures + 1
-                        subId=p['submeasure']
+                        subId=p['submeasure_seq']
                 ## get submeasures *************** 
                 mson = to_son(qm.measure)
                 mson.update(to_son(qm))
@@ -504,19 +512,24 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                 measure_responeType=self.get_responseType(qm.measure.response_type_id, program_id)
 
                 ## get submeasures ***************
-                submeasureIdList=[]
-                for p in measure_responeType.parts:
-                    if p.submeasure and (not (p.submeasure in submeasureIdList)):
-                       submeasureIdList.append(p.submeasure)
+                #submeasureIdList=[]
+                #for p in measure_responeType.parts:
+                #    if p.submeasure and (not (p.submeasure in submeasureIdList)):
+                #       submeasureIdList.append(p.submeasure)
 
                 ## get submeasures ***************   
-
-
-
                 mson = to_son(qm.measure)
                 mson.update(to_son(qm))
-                if len(submeasureIdList) >0:
-                   mson['subMeasureList']=self.get_measureList(submeasureIdList, program_id, qnode.survey.id)
+                #if len(submeasureIdList) >0:
+                #   mson['subMeasureList']=self.get_measureList(submeasureIdList, program_id, qnode.survey.id)
+                if measure_responeType.parts[0].submeasure_seq or measure_responeType.parts[0].submeasureSeq :
+                    mson['subMeasureList']=self.get_submeasures(qm.measure.id, qm.measure.response_type_id, program_id, qnode.survey_id)
+                    for p in measure_responeType.parts:
+                        for item in mson['subMeasureList']:
+                            if item.submeasureSeq == p.submeasureSeq:
+                                p.submeasure = item.id
+                                break
+
                 mson['response']=measure_respone
                 mson['responseType']=measure_responeType
                 mson['parent'] = mson['qnode']
@@ -549,59 +562,208 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
             if not program:
                 raise errors.MissingDocError("No such program")
 
+            # set 0 as submeasure sequence number for measure 
+            self.request_son.submeasure_seq = 0
+
+
+            ## response type link measure number
+            #rt_links = 1
+            #if self.request_son.rt.nMeasures:
+            #   rt_links = self.request_son.rt.nMeasures + 1
+            ## set response type link measure numberM
+            #self.request_son.response_type_link = rt_links
+
+
             if (self.request_son.has_sub_measures==True):
-                # create repsone_type for measure
-                self.request_son.response_type_id=self.create_response_type(self.request_son.response_type_id, program_id, self.request_son.rt)
-                submeasures_list=[]
-                merger_parts=[]
-                for sm in self.request_son.sub_measures:
+                submeasure_num = 0
+                if (not self.request_son.rt.id): 
+                    # create repsone_type for measure
+                    self.request_son.response_type_id=self.create_response_type(self.request_son.rt.id, program_id, self.request_son.rt)
+                else :
+                    self.request_son.response_type_id = self.request_son.rt.id
 
-                    # create repsone_type for submeasure
-                    
-                    #sm.response_type_id=self.create_response_type(sm.response_type_id, program_id, sm.rt.definition)
-                    sm.response_type_id=self.request_son.response_type_id
-                    # create submeasure
-                    measure = model.Measure(program=program)
-                    session.add(measure)
-                    self._update(measure, sm)
-                    ##???? get measureId as submeasure
-                    session.flush()
-                    submeasure_id = str(measure.id)
-                     # merge response_type parts
-                    # self.request_son.rt.parts.append(self.request_son.rt) 
-                    for rt_part in sm.rt.definition.parts:
-                        rt_part["submeasure"]=submeasure_id
-                        merger_parts.append(rt_part) 
-                    submeasures_list.append(submeasure_id)
-                    verbs = ['create']
-                    if parent_id:
-                       verbs.append('relation')
-                    act = Activities(session)
-                    act.record(user_session.user, measure, verbs)
-                    act.ensure_subscription(
-                        user_session.user, measure, measure.program, self.reason)
-
-                    log.info("Created submeasure %s", submeasure_id)               
-                # create repsone_type
-                # self.request_son.rt.parts=[{'submeasure':submeasures_list}]
-                # merger_parts.append({'submeasure':submeasures_list})
-                self.request_son.rt.parts= merger_parts
-                #update response_type's parts which include submeasureId
-                self.request_son.response_type_id=self.update_response_type(self.request_son.response_type_id, program_id, self.request_son.rt)
                 # create measure
                 measure = model.Measure(program=program)
                 session.add(measure)
                 self._update(measure, self.request_son)
+                session.flush()
+                measure_id = str(measure.id)
+
+                linkMeasures = (
+                    session.query(model.Measure.id)
+                        .join(model.QnodeMeasure)
+                        .filter(model.Measure.id == model.QnodeMeasure.measure_id)
+                        .filter(model.Measure.id != measure_id)
+                        .filter(model.Measure.response_type_id == self.request_son.response_type_id).all())
+                linkMeasureIds = []
+                for m in linkMeasures:
+                    linkMeasureIds.append(str(m.id))
+
+
+
+                if len(linkMeasureIds) > 0:
+                    submeasure_num,  =(session.query(func.count(model.Measure.id))
+                        .filter(model.Measure.measure_id == linkMeasureIds[0])
+                        .filter(model.Measure.submeasure_seq > 0).first() ) or (0, ) 
+
+                submeasures_list=[]
+                merger_parts=[]
+                submeasure_seq = 0               
+                submeasure_deleted = 0
+                submeasure_added = 0
+                #for sm in self.request_son.sub_measures:
+                for seq, sm in enumerate(self.request_son.sub_measures):
+                    if sm.deleted:
+                        submeasure_deleted = submeasure_deleted + 1
+                        sm.submeasure_seq = -1
+                        if (sm.id and sm.id != 0):
+                            subMeasure = (
+                              session.query(model.Measure)
+                              .get((sm.id, program_id)))
+                        else:
+                            subMeasure=None  
+                        if subMeasure:
+                            subMeasure.submeasure_seq = -1
+                            verbs = ['delete']
+
+                            session.flush()
+
+                            act = Activities(session)
+                            act.record(user_session.user, subMeasure, verbs)
+                            act.ensure_subscription(
+                                user_session.user, subMeasure, subMeasure.program, self.reason)
+                            log.info("delete submeasure %s", subMeasure.id) 
+                            
+                        subMeasureDelete = (
+                            session.query(model.Measure)
+                            .filter(model.Measure.measure_id.in_(linkMeasureIds))
+                            .filter(model.Measure.submeasure_seq == seq+1 ).all()) 
+
+                        for sm in subMeasureDelete:
+                            sm.submeasure_seq = -1
+                            verbs = ['delete']
+
+                            session.flush()
+
+                            act = Activities(session)
+                            act.record(user_session.user, sm, verbs)
+                            act.ensure_subscription(
+                                user_session.user, sm, sm.program, self.reason)
+                            log.info("delete submeasure %s", sm.id) 
+                    else:
+                        submeasure_seq = submeasure_seq +1
+                        #sm.response_type_id=self.create_response_type(sm.response_type_id, program_id, sm.rt.definition)
+                        sm.response_type_id=self.request_son.response_type_id
+                        
+                        # create submeasure
+                        subMeasure = model.Measure(program=program)
+                        session.add(subMeasure)
+                        ## set response type link measure number for all submeasures of this measure
+                        #sm.response_type_link = rt_links
+                        sm.measure_id=measure_id
+                        sm.submeasure_seq = submeasure_seq
+                        self._update(subMeasure, sm)
+                        ##???? get measureId as submeasure
+                        session.flush()
+                        submeasure_id = str(subMeasure.id)
+                        # merge response_type parts
+                        # self.request_son.rt.parts.append(self.request_son.rt) 
+                        for rt_part in sm.rt.definition.parts:
+                            #rt_part["submeasure"]=submeasure_id
+                            rt_part.submeasure_seq = submeasure_seq
+                            merger_parts.append(rt_part) 
+                        submeasures_list.append(submeasure_id)
+                        verbs = ['create']
+                        if parent_id:
+                            verbs.append('relation')
+                        act = Activities(session)
+                        act.record(user_session.user, subMeasure, verbs)
+                        act.ensure_subscription(
+                            user_session.user, subMeasure, subMeasure.program, self.reason)
+
+                        log.info("Created submeasure %s", submeasure_id)      
+                        # has deleted submeasure or submeasure number more than these of meausres link response type , 
+                        # submeasures of all measures line response type need to update 
+                        if submeasure_deleted or submeasure_num < seq+1 :
+                            for ml in linkMeasureIds:
+                                subMeasure = (
+                                    session.query(model.Measure)
+                                    .filter(model.Measure.response_type_id == self.request_son.response_type_id)
+                                    .filter(model.Measure.measure_id == ml)
+                                    .filter(model.Measure.submeasure_seq == seq+1 ).first())      
+                                if not subMeasure:
+                                    # get first unused submeasure
+                                    subMeasure = (
+                                        session.query(model.Measure)
+                                        .filter(model.Measure.response_type_id == measure.response_type_id)
+                                        .filter(model.Measure.measure_id == ml)
+                                        .filter(model.Measure.submeasure_seq == -1 ).first())
+                                    # end for get first unused submeasure
+                                    sm.measure_id = ml
+                                    if not subMeasure:
+            
+                                        # raise errors.MissingDocError("No such measure")
+
+                                        # create repsone_type for submeasure
+
+                                        #sm.response_type_id=self.create_response_type(sm.response_type_id, program_id, sm.rt.definition)
+                                        #sm.response_type_id=self.request_son.response_type_id
+                                        ## create submeasure
+                                        subMeasure = model.Measure(program=program)
+                                        session.add(subMeasure)
+                                        self._update(subMeasure, sm)
+                                        verbs = ['create']
+                                    else:
+                                        #self._update(subMeasure, sm)
+                                        subMeasure.submeasure_seq = submeasure_seq
+                                        verbs = ['update']
+                                else:
+                                    subMeasure.submeasure_seq = submeasure_seq
+                                    verbs = ['update'] 
+
+                                ## create repsone_type for submeasure
+                                
+                                #sm.response_type_id=self.create_response_type(sm.response_type_id, program_id, sm.rt.definition)
+                    
+                                ###???? get measureId as submeasure
+                                session.flush()
+                                submeasure_id = str(subMeasure.id)
+                                #############
+                                #if not (subMeasure.id in submeasureIdList):
+                                #if not (submeasure_id in submeasureIdList):
+                                #    submeasureIdList.append(submeasure_id)
+                                submeasures_list.append(submeasure_id)
+                                if parent_id:
+                                    verbs.append('relation')
+                                act = Activities(session)
+                                act.record(user_session.user, subMeasure, verbs)
+                                act.ensure_subscription(
+                                    user_session.user, subMeasure, subMeasure.program, self.reason)
+                                log.info("update/create submeasure %s", submeasure_id) 
+
+
+                # create repsone_type
+                # self.request_son.rt.parts=[{'submeasure':submeasures_list}]
+                # merger_parts.append({'submeasure':submeasures_list})
+                self.request_son.rt.parts= merger_parts
+                #update response_type's parts which include submeasureId submeasure_seq
+                self.request_son.response_type_id=self.update_response_type(self.request_son.response_type_id, program_id, self.request_son.rt)
+                ## create measure
+                #measure = model.Measure(program=program)
+                #session.add(measure)
+                #self._update(measure, self.request_son)
                 ## get new measure.id                    
                     ## get new submeasure.id
                     # create measure_measure
             else:
-                 measure = model.Measure(program=program)
-                 session.add(measure)
-                 self._update(measure, self.request_son)
+                measure = model.Measure(program=program)
+                session.add(measure)
+                self._update(measure, self.request_son)
+                session.flush()
+                measure_id = str(measure.id)
 
             # Need to flush so object has an ID to record action against.
-            session.flush()
+            #session.flush()
 
             calculator = Calculator.structural()
             if parent_id:
@@ -630,7 +792,7 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
 
             calculator.execute()
 
-            measure_id = str(measure.id)
+            #measure_id = str(measure.id)
 
             verbs = ['create']
             if parent_id:
@@ -738,27 +900,127 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
             })
             policy.verify('surveygroup_interact')
 
+            measure = (
+                session.query(model.Measure)
+                .get((measure_id, program_id)))
+            if not measure:
+                raise errors.MissingDocError("No such measure")
+
+            submeasure_num,  =(session.query(func.count(model.Measure.id))
+                .filter(model.Measure.measure_id == measure_id)
+                .filter(model.Measure.submeasure_seq > 0).first() ) or (0, ) 
+            #rt_links = self.request_son.rt['n_measures']
+            #if measure.response_type_id != self.request_son.response_type_id:
+                ## response type link measure number
+                #rt_links = rt_links + 1
+           
+            # set 0 as submeasure sequence number for measure 
+            self.request_son['submeasure_seq'] = 0
+
             #verbs = set()
             verbs = []
             if (self.request_son.has_sub_measures==True):
 
                 ## get used submeasureIds ***************
-                measure_responeType=self.get_responseType(self.request_son.response_type_id, program_id)             
-                submeasureIdList=[]
-                submeasureIdList.append(measure_id)
-                for p in measure_responeType.parts:
-                    if p.submeasure and (not (p.submeasure in submeasureIdList)):
-                       submeasureIdList.append(p.submeasure)
+                ## this version: submeasureid in response type parts
+                #measure_responeType=self.get_responseType(self.request_son.response_type_id, program_id)             
+                #submeasureIdList=[]
+                #submeasureIdList.append(measure_id)
+                #for p in measure_responeType.parts:
+                #    if p.submeasure and (not (p.submeasure in submeasureIdList)):
+                #       submeasureIdList.append(p.submeasure)
                 ## get used submeasureIds ***************   
 
+                ## get used submeasureIds ***************
+                ## this version: submeasure sequence number in response type parts
+                #/*measure_responeType=self.get_responseType(self.request_son.response_type_id, program_id)             
+                #submeasureIdList=[]
+                #submeasureIdList.append(measure_id)
+                #for p in measure_responeType.parts:
+                #    if p.submeasure and (not (p.submeasure in submeasureIdList)):
+                #       submeasureIdList.append(p.submeasure) */
+                ## get used submeasureIds ***************   
+                measure_id = str(measure.id)
 
-            
+                linkMeasures = (
+                    session.query(model.Measure.id)
+                        .join(model.QnodeMeasure)
+                        .filter(model.Measure.id == model.QnodeMeasure.measure_id)
+                        .filter(model.Measure.id != measure_id)
+                        .filter(model.Measure.response_type_id == self.request_son.response_type_id).all())
+                linkMeasureIds = []
+                for m in linkMeasures:
+                    linkMeasureIds.append(str(m.id))
+
                 submeasures_list=[]
                 merger_parts=[]
+                submeasure_seq = 0
+                submeasure_deleted = 0
+                submeasure_added = 0
+                #for sm in self.request_son.sub_measures:
+                for seq, sm in enumerate(self.request_son.sub_measures):    
+                    if sm.deleted:
+                        submeasure_deleted = submeasure_deleted + 1
+                        sm.submeasure_seq = -1
+                        if (sm.id and sm.id != 0):
+                            subMeasure = (
+                              session.query(model.Measure)
+                              .get((sm.id, program_id)))
+                        else:
+                            subMeasure=None  
+                        if subMeasure:
+                            subMeasure.submeasure_seq = -1
+                            verbs = ['delete']
 
-                for sm in self.request_son.sub_measures:
-                    if not sm.deleted:
-                        sm.response_type_id=self.request_son.response_type_id
+                            session.flush()
+
+                            act = Activities(session)
+                            act.record(user_session.user, subMeasure, verbs)
+                            act.ensure_subscription(
+                                user_session.user, subMeasure, subMeasure.program, self.reason)
+                            log.info("delete submeasure %s", subMeasure.id) 
+                        #for i in range (1, rt_links):
+                        #    if i != sm.response_type_link:
+                        #        subMeasure = (
+                        #            session.query(model.Measure)
+                        #            .filter(model.Measure.response_type_id == measure.response_type_id)
+                        #            .filter(model.Measure.response_type_link == i)
+                        #            .filter(model.Measure.submeasure_seq == seq+1 ).first())      
+                        #        if subMeasure:
+                        #            subMeasure.s
+                        # ubmeasure_seq = -1
+                        #            verbs = ['delete']
+
+                        #            session.flush()
+
+                        #            act = Activities(session)
+                        #            act.record(user_session.user, subMeasure, verbs)
+                        #            act.ensure_subscription(
+                        #                user_session.user, subMeasure, subMeasure.program, self.reason)
+                        #            log.info("delete submeasure %s", subMeasure.id) 
+
+                        subMeasureDelete = (
+                            session.query(model.Measure)
+                            .filter(model.Measure.measure_id.in_(linkMeasureIds))
+                            .filter(model.Measure.submeasure_seq == seq+1 ).all()) 
+
+                        for sm in subMeasureDelete:
+                            sm.submeasure_seq = -1
+                            verbs = ['delete']
+
+                            session.flush()
+
+                            act = Activities(session)
+                            act.record(user_session.user, sm, verbs)
+                            act.ensure_subscription(
+                                user_session.user, sm, sm.program, self.reason)
+                            log.info("delete submeasure %s", sm.id)         
+
+
+
+                    else:
+                        submeasure_seq = submeasure_seq +1
+                        sm.response_type_id = self.request_son.response_type_id
                         if (sm.id and sm.id != 0):
                             subMeasure = (
                               session.query(model.Measure)
@@ -767,12 +1029,18 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                             subMeasure=None      
                         if not subMeasure:
                            # get first unused submeasure
+                            #subMeasure = (
+                            #    session.query(model.Measure)
+                            #    .filter(model.Measure.response_type_id == self.request_son.response_type_id)
+                            #    .filter(model.Measure.id.notin_(submeasureIdList)).first())
                             subMeasure = (
                                 session.query(model.Measure)
-                                .filter(model.Measure.response_type_id == self.request_son.response_type_id)
-                                .filter(model.Measure.id.notin_(submeasureIdList)).first())
-
+                                .filter(model.Measure.response_type_id == measure.response_type_id)
+                                .filter(model.Measure.measure_id == measure.id)
+                                .filter(model.Measure.submeasure_seq == -1 ).first())
                            # end for get first unused submeasure
+                        sm.measure_id=measure_id
+                        sm.submeasure_seq = submeasure_seq
                         if not subMeasure:
    
                            # raise errors.MissingDocError("No such measure")
@@ -786,26 +1054,25 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                            session.add(subMeasure)
                            self._update(subMeasure, sm)
                            verbs = ['create']
+                           submeasure_added = submeasure_added +1
                         else:
                            self._update(subMeasure, sm)
+                           #subMeasure.measureId=measure_id
+                           #subMeasure.submeasure_seq = submeasure_seq
                            verbs = ['update']
-                        ## create repsone_type for submeasure
-                    
-                        #sm.response_type_id=self.create_response_type(sm.response_type_id, program_id, sm.rt.definition)
 
-                    
                         ###???? get measureId as submeasure
                         session.flush()
                         submeasure_id = str(subMeasure.id)
                         #############
                         #if not (subMeasure.id in submeasureIdList):
-                        if not (submeasure_id in submeasureIdList):
-                            submeasureIdList.append(submeasure_id)
+                        #if not (submeasure_id in submeasureIdList):
+                        #    submeasureIdList.append(submeasure_id)
                         # merge response_type parts
                         # self.request_son.rt.parts.append(self.request_son.rt) 
                         for rt_part in sm.rt.definition.parts:
-                            if not "submeasure" in rt_part:
-                               rt_part["submeasure"]=submeasure_id
+                            #if not "submeasure_seq" in rt_part:
+                            rt_part.submeasure_seq=submeasure_seq
                             merger_parts.append(rt_part) 
                         submeasures_list.append(submeasure_id)
                         if parent_id:
@@ -815,6 +1082,121 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                         act.ensure_subscription(
                             user_session.user, subMeasure, subMeasure.program, self.reason)
                         log.info("update/create submeasure %s", submeasure_id) 
+
+
+                        # has deleted submeasure or added submeasure, submeasures of all measures line response type need to update 
+                        #if submeasure_deleted or submeasure_added:
+                            #for i in range (1, rt_links):
+                            #   if i != sm.response_type_link:
+                            #        subMeasure = (
+                            #            session.query(model.Measure)
+                            #            .filter(model.Measure.response_type_id == measure.response_type_id)
+                            #            .filter(model.Measure.response_type_link == i)
+                            #            .filter(model.Measure.submeasure_seq == seq+1 ).first())      
+                            #        if not subMeasure:
+                            #            # get first unused submeasure
+                            #            subMeasure = (
+                            #                session.query(model.Measure)
+                            #                .filter(model.Measure.response_type_id == measure.response_type_id)
+                            #                .filter(model.Measure.response_type_link == i)
+                            #                .filter(model.Measure.submeasure_seq == -1 ).first())
+                            #            # end for get first unused submeasure
+                            #        sm.response_type_link = i
+                            #       #sm.submeasure_seq = submeasure_seq
+                            #        if not subMeasure:
+            
+                            #            # raise errors.MissingDocError("No such measure")
+
+                            #           # create repsone_type for submeasure
+
+                            #            #sm.response_type_id=self.create_response_type(sm.response_type_id, program_id, sm.rt.definition)
+                            #            #sm.response_type_id=self.request_son.response_type_id
+                            #            ## create submeasure
+                            #            subMeasure = model.Measure(program=program)
+                            #            session.add(subMeasure)
+                            #            self._update(subMeasure, sm)
+                            #            verbs = ['create']
+                            #        else:
+                            #            self._update(subMeasure, sm)
+                            #            verbs = ['update']
+
+
+                            #        ## create repsone_type for submeasure
+                                
+                            #        #sm.response_type_id=self.create_response_type(sm.response_type_id, program_id, sm.rt.definition)
+                    
+                            #       ###???? get measureId as submeasure
+                            #        session.flush()
+                            #        submeasure_id = str(subMeasure.id)
+                            #        #############
+                            #        #if not (subMeasure.id in submeasureIdList):
+                            #        #if not (submeasure_id in submeasureIdList):
+                            #        #    submeasureIdList.append(submeasure_id)
+                            #        submeasures_list.append(submeasure_id)
+                            #       if parent_id:
+                            #           verbs.append('relation')
+                            #        act = Activities(session)
+                            #        act.record(user_session.user, subMeasure, verbs)
+                            #        act.ensure_subscription(
+                            #            user_session.user, subMeasure, subMeasure.program, self.reason)
+                            #        log.info("update/create submeasure %s", submeasure_id) 
+                    
+                        if submeasure_deleted or submeasure_num < seq +1 :
+                            for ml in linkMeasureIds:
+                                subMeasure = (
+                                    session.query(model.Measure)
+                                    .filter(model.Measure.response_type_id == self.request_son.response_type_id)
+                                    .filter(model.Measure.measure_id == ml)
+                                    .filter(model.Measure.submeasure_seq == seq+1 ).first())      
+                                if not subMeasure:
+                                    # get first unused submeasure
+                                    subMeasure = (
+                                        session.query(model.Measure)
+                                        .filter(model.Measure.response_type_id == measure.response_type_id)
+                                        .filter(model.Measure.measure_id == ml)
+                                        .filter(model.Measure.submeasure_seq == -1 ).first())
+                                    # end for get first unused submeasure
+                                    sm.measure_id = ml
+                                    if not subMeasure:
+            
+                                        # raise errors.MissingDocError("No such measure")
+
+                                        # create repsone_type for submeasure
+
+                                        #sm.response_type_id=self.create_response_type(sm.response_type_id, program_id, sm.rt.definition)
+                                        #sm.response_type_id=self.request_son.response_type_id
+                                        ## create submeasure
+                                        subMeasure = model.Measure(program=program)
+                                        session.add(subMeasure)
+                                        self._update(subMeasure, sm)
+                                        verbs = ['create']
+                                    else:
+                                        #self._update(subMeasure, sm)
+                                        subMeasure.submeasure_seq = submeasure_seq
+                                        verbs = ['update']
+                                else:
+                                    subMeasure.submeasure_seq = submeasure_seq
+                                    verbs = ['update']   
+
+                                ## create repsone_type for submeasure
+                                
+                                #sm.response_type_id=self.create_response_type(sm.response_type_id, program_id, sm.rt.definition)
+                    
+                                ###???? get measureId as submeasure
+                                session.flush()
+                                submeasure_id = str(subMeasure.id)
+                                #############
+                                #if not (subMeasure.id in submeasureIdList):
+                                #if not (submeasure_id in submeasureIdList):
+                                #    submeasureIdList.append(submeasure_id)
+                                submeasures_list.append(submeasure_id)
+                                if parent_id:
+                                    verbs.append('relation')
+                                act = Activities(session)
+                                act.record(user_session.user, subMeasure, verbs)
+                                act.ensure_subscription(
+                                    user_session.user, subMeasure, subMeasure.program, self.reason)
+                                log.info("update/create submeasure %s", submeasure_id) 
 
                 # update response_type
                 self.request_son.rt.parts= merger_parts
@@ -837,15 +1219,7 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                 # self.request_son.rt.parts=[{'submeasure':submeasures_list}]
                 # merger_parts.append({'submeasure':submeasures_list})
             
-            
-
-
-            measure = (
-                session.query(model.Measure)
-                .get((measure_id, program_id)))
-            if not measure:
-                raise errors.MissingDocError("No such measure")
-          
+         
             #verbs = set()
             
             calculator = Calculator.structural()
@@ -975,6 +1349,8 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
         update('description', son)
         # update('description', son, sanitise=True)
         # update('has_sub_measures', son)
+        update('measure_id',son)
+        update('submeasure_seq',son)
 
     def _update_qnode_measure(self, qnode_measure, son):
         if 'source_vars' in son:
@@ -1220,8 +1596,8 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                 r'/program$',
                 omit=True)
             son = to_son(response_type)
-            if response_type.parts and 'submeasure' in response_type.parts[0]:
-                count=1   
+            #if response_type.parts and 'submeasure' in response_type.parts[0]:
+            #    count=1   
                     #sid=None                   
                     #for p in response_type.parts:
                     #    if p['submeasure'] != sid:
@@ -1425,6 +1801,53 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
         return sons
 
 
+    def get_submeasures(self, measureId, responseTypeId, program_id, survey_id):
+        '''Get a list.'''
+        with model.session_scope() as session:
+            user_session = self.get_user_session(session)
+            program = (
+                session.query(model.Program)
+                .options(joinedload('surveygroups'))
+                .get(program_id))
+
+            if not program:
+                raise errors.MissingDocError("No such program")
+
+            if survey_id:
+                survey = (
+                    session.query(model.Survey).get([survey_id, program_id]))
+            else:
+                survey = None
+
+            policy = user_session.policy.derive({
+                'survey': survey,
+                'program': program,
+                'surveygroups': program.surveygroups,
+            })
+            policy.verify('surveygroup_interact')
+            policy.verify('measure_view')
+
+            query = (
+                session.query(model.Measure)
+                     .filter(model.Measure.response_type_id == responseTypeId)
+                     .filter(model.Measure.measure_id == measureId)
+                     .filter(model.Measure.submeasure_seq > 0))   
+            measures = query.all()
+            to_son = ToSon(
+                r'/id$',
+                r'/title$',
+                r'/description$',
+                r'/program_id$',
+                r'/measureId',
+                r'/submeasure_seq',
+            )
+            sons=[]
+            for s in measures:
+                mson = to_son(s)
+                sons.append(mson)
+
+        return sons
+
     def create_response_type(self, response_type_id, program_id, rt_son):
         '''Create new'''
         if response_type_id:
@@ -1548,5 +1971,8 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
         update = updater(response_type, error_factory=errors.ModelError)
         if withName:
            update('name', son)
+        for p in son.parts:
+            if 'submeasure' in p:
+                del p.submeasure
         update('parts', son)
         update('formula', son)
