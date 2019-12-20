@@ -596,7 +596,8 @@ angular.module('upmark.survey.qnode', [
  
     $scope.checkGroup = function() {
         var hasGroup=false;
-        if (!$scope.submission && $scope.model && $scope.model.length>0) {
+        //if (!$scope.submission && $scope.model && $scope.model.length>0) { // group not in survey
+        if ($scope.model && $scope.model.length>0) {  // group also in survey
             for (var i=0;i<$scope.model.length;i++) {
                 if ($scope.model[i].group) {
                    hasGroup=true;
