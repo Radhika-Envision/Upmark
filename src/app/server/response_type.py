@@ -32,6 +32,8 @@ response_parts_schema = Schema([
         ], Length(min=2)),
         # for submeasure
         Optional('submeasure'): Any(All(str, Length(min=1)), None),
+        # for submeasure sequence number
+        Optional('submeasure_seq'): Any(All(int), None),
         # Numerical
         Optional('lower'): Any(All(str, Length(min=1)), None),
         Optional('upper'): Any(All(str, Length(min=1)), None),
