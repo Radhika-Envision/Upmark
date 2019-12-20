@@ -44,10 +44,10 @@
                     'strike-black': getStats(item.id).notRelevant, 
                     'warning': item.error || getStats(item.id).error,
                 }"
-                ng-if='(!submission && item.group && ($index==0 || model[$index-1].group !=item.group 
+                ng-if='(item.group && ($index==0 || model[$index-1].group !=item.group 
                     || edit.model[$index-1].group != edit.item.group )) || !item.hideDetail'>
             <td>
-                <table  class="table table-hover" ng-if="!submission && item.group && ($index==0 || model[$index-1].group !=item.group 
+                <table  class="table table-hover" ng-if="item.group && ($index==0 || model[$index-1].group !=item.group 
                     || edit.model[$index-1].group != edit.item.group )">
                     <tr>
                         <td>
@@ -66,7 +66,7 @@
                 </table>    
                 <table class="table table-hover" ng-if='!item.hideDetail'>                   
                     <tr any-href="/3/qnode/{{item.id}}?{{query}}" >
-                       <td  class="shrink text-muted numeric" ng-if="!submission && item.group"></td>
+                       <td  class="shrink text-muted numeric" ng-if="item.group"></td>
                        <td class="shrink">{{item.seq + 1}}</td>
                        <td>
                           {{item.title}}
