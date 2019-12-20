@@ -312,6 +312,12 @@ class Measure(Observable, Base):
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=True)
     weight = Column(Float, nullable=False)
+      
+    # use for seq number of measure and submeasure link to response type, 
+    # same number of measure and submeasures of this measure 
+    measure_id = Column(GUID, nullable=True)
+    # seq number of subneasures, measure is 0, submeasures is >0  
+    submeasure_seq = Column(Integer, default=0, nullable=True)
 
     __table_args__ = (
         ForeignKeyConstraint(
