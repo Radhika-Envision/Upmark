@@ -938,7 +938,7 @@ angular.module('upmark.survey.measure', [
                             //    part.submeasure=$scope.measure.subMeasures[index].id;
                             //});
                             subMeasures.push({ 
-                                //id: $scope.measure.subMeasures[index].id,
+                                id: $scope.measure.subMeasures[index].id,
                                 submeasureSeq: $scope.measure.subMeasures[index].submeasureSeq,
                                 description: $scope.measure.subMeasures[index].description,
                                 rt:{
@@ -969,7 +969,7 @@ angular.module('upmark.survey.measure', [
                             //    delete part.submeasure;
                             //});
                             subMeasures.push({ 
-                                // id: $scope.measure.subMeasures[index].id,
+                                //id: $scope.measure.subMeasures[index].id,
                                 //description: $scope.measure.subMeasures[index].description,
                                 rt:{
                                     definition:{
@@ -1135,7 +1135,7 @@ angular.module('upmark.survey.measure', [
 
                                
                             subMeasures.push({ 
-                                //id: $scope.edit.model.subMeasures[index].id,
+                                id: $scope.edit.model.subMeasures[index].id,
                                 submeasureSeq: $scope.edit.model.subMeasures[index].submeasureSeq,
                                 description: $scope.edit.model.subMeasures[index].description,
                                 rt:{
@@ -1169,7 +1169,7 @@ angular.module('upmark.survey.measure', [
                             //    delete part.submeasure;
                             //});
                             subMeasures.push({ 
-                                // id: $scope.measure.subMeasures[index].id,
+                                //id: $scope.measure.subMeasures[index].id,
                                 //description: $scope.measure.subMeasures[index].description,
                                 rt:{
                                     definition:{
@@ -1355,11 +1355,15 @@ angular.module('upmark.survey.measure', [
                     if ($scope.measure.id && op=='c')
                        $scope.edit.model.rt.name=$scope.measure.responseType.name;       
                     // if link response type, name must change
-                    if (op=='l') 
-                        $scope.edit.model.rt.name=resolvedRtDef.name   
+                    if (op=='l') {
+                        $scope.edit.model.rt.name=resolvedRtDef.name;
+                        $scope.edit.model.responseTypeId=resolvedRtDef.id; // make measure link to selected response type 
+                    }
                     
                     $scope.edit.model.subMeasures=angular.copy(subMeasures);
-                    var nMeasures=$scope.rt.definition.nMeasures;
+                    var nMeasures=1;
+                    if ($scope.rt.definition && $scope.rt.definition.nMeasures)
+                       nMeasures=$scope.rt.definition.nMeasures;
                     $scope.rt.definition = angular.copy(resolvedRtDef);
                     $scope.rt.definition.nMeasures=nMeasures;
                     if (!$scope.edit.model.id && op=='c' ) {
