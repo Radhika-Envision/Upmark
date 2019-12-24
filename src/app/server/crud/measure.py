@@ -695,7 +695,7 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                                     # get first unused submeasure
                                     subMeasure = (
                                         session.query(model.Measure)
-                                        .filter(model.Measure.response_type_id == measure.response_type_id)
+                                        #.filter(model.Measure.response_type_id == measure.response_type_id)
                                         .filter(model.Measure.measure_id == ml)
                                         .filter(model.Measure.submeasure_seq == -1 ).first())
                                     # end for get first unused submeasure
@@ -1035,7 +1035,7 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                             #    .filter(model.Measure.id.notin_(submeasureIdList)).first())
                             subMeasure = (
                                 session.query(model.Measure)
-                                .filter(model.Measure.response_type_id == measure.response_type_id)
+                                #.filter(model.Measure.response_type_id == measure.response_type_id)
                                 .filter(model.Measure.measure_id == measure.id)
                                 .filter(model.Measure.submeasure_seq == -1 ).first())
                            # end for get first unused submeasure
@@ -1152,7 +1152,7 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                                     # get first unused submeasure
                                     subMeasure = (
                                         session.query(model.Measure)
-                                        .filter(model.Measure.response_type_id == measure.response_type_id)
+                                        #.filter(model.Measure.response_type_id == measure.response_type_id)
                                         .filter(model.Measure.measure_id == ml)
                                         .filter(model.Measure.submeasure_seq == -1 ).first())
                                     # end for get first unused submeasure
