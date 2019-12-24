@@ -322,10 +322,11 @@ angular.module('upmark.survey.measure', [
             }
         }
         else {
-            $scope.rt.definition.name= measure.rt.name;
+            if (measure.rt.name)
+                $scope.rt.definition.name= measure.rt.name;
             if (measure.rt.id)
                $scope.rt.definition.id= measure.rt.id;
-            else 
+            else if (measure.rt.definition && measure.rt.definition.id)
                $scope.rt.definition.id= measure.rt.definition.id;  
         }
     };
@@ -872,6 +873,7 @@ angular.module('upmark.survey.measure', [
          $scope.rt.showSearch = false;
     }
     $scope.copyResponseType = function(rtDef) {
+        $scope.disabledBtnChangeSubMeasures = false;
         ResponseType.get(rtDef, {
             programId: $scope.structure.program.id
         }).$promise.then(function(resolvedRtDef) {
@@ -1055,8 +1057,6 @@ angular.module('upmark.survey.measure', [
         }).$promise.then(function(resolvedRtDef) {
             if ($scope.edit.model.hasSubMeasures && resolvedRtDef && resolvedRtDef.parts[0].submeasureSeq) {
                 //convert submeasure repsonse-type parts
-
-
                 var currentSubmeasres=0; // submeasres number in target measure 
                 var rtSubmeasures=0;  // submeasres number in source measure 
                 var preSubmeasure=null;
@@ -1208,133 +1208,9 @@ angular.module('upmark.survey.measure', [
                             {
                                 $rootScope.rts=[{}]
                             }
-
-
-
-
                         }
-
-
-
-
                     });
 
-
-
-                
-
-
-
-                /*angular.forEach($scope.measure.subMeasures,function(item){
-                    if (!angular.equals({}, item)) {
-                        currentSubmeasres=currentSubmeasres+1;
-                    }
-                }*/
-                /*--var submeasure_id=[];
-                
-                if ($scope.measure.subMeasures.length<=rtSubmeasures) {
-                    resolvedRtDef.name=$scope.measure.title;
-                    preSubmeasure=null;
-                    var currentSubmeasureIndex=-1;
-                    angular.forEach(resolvedRtDef.parts,function(item,index){
-                        if (preSubmeasure != item.submeasure) {
-                            currentSubmeasureIndex=currentSubmeasureIndex+1;
-                        }
-                        if (currentSubmeasureIndex<$scope.measure.subMeasures.length) {
-                            item.submeasure=$scope.measure.subMeasures[currentSubmeasureIndex].id;
-                            submeasure_id.push($scope.measure.subMeasures[currentSubmeasureIndex].id);
-                        }--*/
-                        /*else {
-                            delete item.submeasure;
-
-                            if ($rootScope.questions) {
-                                $rootScope.questions.push({})
-                            }
-                            else
-                            {
-                                $rootScope.questions=[{}]
-                            }
-                            if ($rootScope.rts) {
-                                $rootScope.rts.push({})
-                            }
-                            else
-                            {
-                                $rootScope.rts=[{}]
-                            }
-                        }*/
-
-                    /*--    preSubmeasure=item.submeasure;
-                    });
-
-                    var subMeasures=[];
-                    var partObject=null;
-                    
-                    angular.forEach(resolvedRtDef.parts,function(item,index){
-                        if (item.type == 'multiple_choice') {
-                            partObject=new responseTypes.MultipleChoice(item);
-                        }
-                        else if (item.type == 'numerical') {
-                            partObject=new responseTypes.Numerical(item);
-                        } 
-                        partObject.submeasure= item['submeasure']; 
-                        
-                        if (subMeasures.length==0) {
-                           $scope.measure.subMeasureList.forEach(function(sub,i){
-                                if (sub.id==item.submeasure) {
-                                    subMeasures.push({ id:item['submeasure'],
-                                        description: sub['description'],
-                                        rt:{
-                                            definition:{parts:[item],name:sub.title},
-                                            responseType: resolvedRtDef || null,
-                                            search: {
-                                                programId: $scope.measure.programId,
-                                                pageSize: 5,
-                                            }  
-                                        },
-                                        'rtRead':{'definition':{'parts':[partObject],'name':sub['title']}},
-                                        'name': sub['title'],                         
-                                    });
-                                }
-                       
-                            });
-                        }
-                        else
-                        {
-                            var notFoundSubmeasure=true;
-                            angular.forEach(subMeasures,function(s,i){
-                                if (s.id==item['submeasure']){   
-                                    s.rt.definition.parts.push(item);
-                                    s.rtRead.definition.parts.push(partObject);
-                                    notFoundSubmeasure=false;
-                                }
-    
-                            });
-                            if (notFoundSubmeasure) {
-                                $scope.measure.subMeasureList.forEach(function(sub,i){
-                                    if (sub.id==item.submeasure) {
-                                        subMeasures.push({ 'id':item['submeasure'],
-                                        'description': sub['description'],
-                                        'rt':{
-                                                'definition':{'parts':[item],'name':sub['title']},
-                                                'responseType': resolvedRtDef || null ,
-                                                search: {
-                                                  programId: $scope.measure.programId,
-                                                  pageSize: 5,
-                                                } 
-                                        },
-                                        'rtRead':{'definition':{'parts':[partObject],'name':sub['title']}},
-                                        'name': sub['title'],
-                                       })
-                                    }
-                               
-                                });     --*/                       
-                                /*subMeasures.push({ 'id':item['submeasure'],
-                                      'description':item['description'],
-                                      'rt':{'definition':{'parts':[item]}}
-                                })*/
-                           /*-- }
-                        }
-                    });--*/
                     //$scope.measure['subMeasures']=angular.copy(subMeasures);
                     $scope.edit.model.rt.parts=angular.copy(resolvedRtDef.parts);
                     $scope.edit.model.rt.formula=resolvedRtDef.formula;
@@ -1352,12 +1228,17 @@ angular.module('upmark.survey.measure', [
                     if (!$scope.edit.model.rt.name || $scope.edit.model.rt.name.trim().length==0 || !$scope.measure.id)
                         if (op=='c') 
                            $scope.edit.model.rt.name=resolvedRtDef.name +" (copy)";
-                    if ($scope.measure.id && op=='c')
-                       $scope.edit.model.rt.name=$scope.measure.responseType.name;       
+                    if ($scope.measure.id && op=='c') {
+                       // when copy selected response type, keep measure's response type id and name
+                       $scope.edit.model.rt.name=$scope.measure.responseType.name; 
+                       $scope.edit.model.responseTypeId=$scope.measure.responseType.id;  
+
+                    }      
                     // if link response type, name must change
                     if (op=='l') {
+                        // make measure link to selected response type, change measure's response type id and name as linked selected response type id and name
                         $scope.edit.model.rt.name=resolvedRtDef.name;
-                        $scope.edit.model.responseTypeId=resolvedRtDef.id; // make measure link to selected response type 
+                        $scope.edit.model.responseTypeId=resolvedRtDef.id; 
                     }
                     
                     $scope.edit.model.subMeasures=angular.copy(subMeasures);
@@ -1386,8 +1267,13 @@ angular.module('upmark.survey.measure', [
             else {
                 $scope.rt.definition = resolvedRtDef;
             }
+            if ($scope.op=='l') {
+                $scope.disabledBtnChangeSubMeasures = true;
+            }
+            else {
+                $scope.disabledBtnChangeSubMeasures = false;
+            }
         });
-        
         $scope.rt.showSearch = false;
     };
 
