@@ -8,7 +8,7 @@
                                 'Can not have sub-measures as children'}}"
                             class="btn btn-default btn-round"
                             ng-click="toggleHasSubMeasures(edit.model)"
-                            ng-disabled="op=='l' || rt.definition.nMeasures && rt.definition.nMeasures > 1">
+                            ng-disabled="disabledBtnChangeSubMeasures || rt.definition.nMeasures && rt.definition.nMeasures > 1">
                             <i class="fa fa-fw fa-toggle-off"
                                 ng-hide="edit.model.hasSubMeasures"></i>
                             <i class="fa fa-fw fa-toggle-on"
