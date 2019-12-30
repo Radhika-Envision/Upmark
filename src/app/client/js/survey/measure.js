@@ -877,6 +877,9 @@ angular.module('upmark.survey.measure', [
         ResponseType.get(rtDef, {
             programId: $scope.structure.program.id
         }).$promise.then(function(resolvedRtDef) {
+            var noteMessage = "copy";
+            if ($scope.op == 'l')
+               noteMessage="link";
             if ($scope.edit.model.hasSubMeasures && resolvedRtDef && resolvedRtDef.parts[0].submeasureSeq) {
                 //convert submeasure repsonse-type parts
                 var currentSubmeasres=0; // submeasres number in target measure 
@@ -1018,14 +1021,18 @@ angular.module('upmark.survey.measure', [
                     $scope.rt.definition = resolvedRtDef;
                 }
                 else {
+                    $scope.op = $scope.preOp;
                     Notifications.set('edit', 'error',
-                    "Could not copy: "+ "Submeasures in another measure should be more than the submeasure number of current measure");
+                    "Could not " + noteMessage + ": " + 
+                    "Measure which selected response type used by should be having equal or more sub measures than the sub measure number of current measure");
                 }
 
             }
             else if ($scope.edit.model.hasSubMeasures && resolvedRtDef && (!resolvedRtDef.parts[0].submeasureSeq)) {
+                $scope.op = $scope.preOp;
                 Notifications.set('edit', 'error',
-                "Could not copy: "+ "Submeasures in another measure should be more than the submeasure number of current measure");
+                "Could not " + noteMessage + ": " + 
+                "Measure which selected response type used by should be having equal or more sub measures than the sub measure number of current measure");
             }
             else { 
                 // if edit measure  without submeasure and copy response type, response type name not change
@@ -1055,6 +1062,9 @@ angular.module('upmark.survey.measure', [
         ResponseType.get(rtDef, {
             programId: $scope.structure.program.id
         }).$promise.then(function(resolvedRtDef) {
+            var noteMessage = "copy";
+            if ($scope.op == 'l')
+               noteMessage="link";
             if ($scope.edit.model.hasSubMeasures && resolvedRtDef && resolvedRtDef.parts[0].submeasureSeq) {
                 //convert submeasure repsonse-type parts
                 var currentSubmeasres=0; // submeasres number in target measure 
@@ -1255,14 +1265,16 @@ angular.module('upmark.survey.measure', [
                 else {
                     $scope.op = $scope.preOp;
                     Notifications.set('edit', 'error',
-                    "Could not copy: "+ "Submeasures in another measure should be more than the submeasure number of current measure");
+                    "Could not " + noteMessage + ": " + 
+                    "Measure which selected response type used by should be having equal or more sub measures than the sub measure number of current measure");
                 }
 
             }
             else if ($scope.edit.model.hasSubMeasures && resolvedRtDef && (!resolvedRtDef.parts[0].submeasureSeq)) {
                 $scope.op = $scope.preOp;
                 Notifications.set('edit', 'error',
-                "Could not copy: "+ "Submeasures in another measure should be more than the submeasure number of current measure");
+                "Could not " + noteMessage + ": " + 
+                "Measure which selected response type used by should be having equal or more sub measures than the sub measure number of current measure");
             }
             else {
                 $scope.rt.definition = resolvedRtDef;
