@@ -1024,7 +1024,7 @@ angular.module('upmark.survey.measure', [
                     $scope.op = $scope.preOp;
                     Notifications.set('edit', 'error',
                     "Could not " + noteMessage + ": " + 
-                    "Measure which selected response type used by should be having equal or more sub measures than the sub measure number of current measure");
+                    "Selected response type should be having equal or more sub measures than the current measure");
                 }
 
             }
@@ -1032,7 +1032,7 @@ angular.module('upmark.survey.measure', [
                 $scope.op = $scope.preOp;
                 Notifications.set('edit', 'error',
                 "Could not " + noteMessage + ": " + 
-                "Measure which selected response type used by should be having equal or more sub measures than the sub measure number of current measure");
+                "Selected response type should be having equal or more sub measures than the current measure");
             }
             else { 
                 // if edit measure  without submeasure and copy response type, response type name not change
@@ -1266,7 +1266,7 @@ angular.module('upmark.survey.measure', [
                     $scope.op = $scope.preOp;
                     Notifications.set('edit', 'error',
                     "Could not " + noteMessage + ": " + 
-                    "Measure which selected response type used by should be having equal or more sub measures than the sub measure number of current measure");
+                    "Selected response type should be having equal or more sub measures than the current measure");
                 }
 
             }
@@ -1274,7 +1274,7 @@ angular.module('upmark.survey.measure', [
                 $scope.op = $scope.preOp;
                 Notifications.set('edit', 'error',
                 "Could not " + noteMessage + ": " + 
-                "Measure which selected response type used by should be having equal or more sub measures than the sub measure number of current measure");
+                "Selected response type should be having equal or more sub measures than the current measure");
             }
             else {
                 $scope.rt.definition = resolvedRtDef;
