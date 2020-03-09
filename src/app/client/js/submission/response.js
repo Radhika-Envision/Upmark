@@ -494,6 +494,13 @@ angular.module('upmark.submission.response', [
             
             $scope.$watch('formula_', function(formula) {
                 $scope.formula = formula == null ? '' : Parser.parse(formula);
+                if ($scope.formula && $scope.formula.functions) {
+                    $scope.formula.functions.median = function(...arr) {
+                        const mid = Math.floor(arr.length / 2),
+                            nums = [...arr].sort((a, b) => a - b);
+                        return arr.length % 2 !== 0 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2;
+                    }
+                } 
             });
 
             $scope.state = {
@@ -1185,6 +1192,11 @@ angular.module('upmark.submission.response', [
                             if (lastSubmeasureId!=item.submeasure) {
                                 if (lastSubmeasureId) {
                                     $scope.rt.parts[index-1].comment="";
+                                    //put comment empty if not comment in response of submeasure
+                                    if ($scope.response && $scope.response.responseParts && $scope.response.responseParts[index-1] 
+                                        && $scope.response.responseParts[index-1].comment == undefined) {
+                                        $scope.response.responseParts[index-1].comment='';
+                                    }
                                 }
                                 if ($scope.response.parentSeq && $scope.response.qnodeMeasure) {
                                     $scope.response.subMeasures.forEach(function(sub,i){
@@ -1200,6 +1212,11 @@ angular.module('upmark.submission.response', [
                             $scope.response.questions=subSeq;
                         })  
                         $scope.rt.parts[$scope.rt.parts.length-1].comment="";
+                        //put comment empty if not comment in response of submeasure
+                        if ($scope.response && $scope.response.responseParts && $scope.response.responseParts[$scope.rt.parts.length-1] 
+                            && $scope.response.responseParts[$scope.rt.parts.length-1].comment == undefined) {
+                            $scope.response.responseParts[$scope.rt.parts.length-1].comment='';
+                        }
                     }
                 }
                 else
@@ -1250,7 +1267,7 @@ angular.module('upmark.submission.response', [
             $scope.$watch('externs', recalculate, true);
 
             $scope.getPartData = function(partSchema) {
-                if ($scope.isDummy)
+                if ($scope.isDummy || (!$scope.rt) || (!$scope.rt.parts ))
                     return;
                 var i = $scope.rt.parts.indexOf(partSchema);
                 return $scope.response.responseParts[i];
