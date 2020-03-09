@@ -1,5 +1,5 @@
 import logging
-
+import statistics
 from py_expression_eval import Parser
 from voluptuous import All, Any, Coerce, Length, Match, Optional, Required, \
     Schema
@@ -46,10 +46,11 @@ response_schema = Schema([
         {
             'index': int,
             'note': All(str, Length(min=1)),
+            Optional('comment'): Any(All(str, Length(min=0)), None),
         },
         {
             'value': Coerce(float),
-            Optional('comment'): Any(All(str, Length(min=1)), None),
+            Optional('comment'): Any(All(str, Length(min=0)), None),
         },
     )
 ], required=True)
@@ -84,6 +85,11 @@ def validate_formula(formula):
 
 parser = Parser()
 
+
+def median(*args):
+    return statistics.median(args)
+
+parser.functions['median']=median
 
 def unique_strings(ss):
     return sorted(set(ss))

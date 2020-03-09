@@ -93,6 +93,13 @@ angular.module('upmark.response.type', [
             this.parts = partsDef && partsDef.map(responsePart) || [];
             this.formula = parse(formula);
         }
+        if (this.formula && this.formula.functions) {
+            this.formula.functions.median = function(...arr) {
+                const mid = Math.floor(arr.length / 2),
+                    nums = [...arr].sort((a, b) => a - b);
+                return arr.length % 2 !== 0 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2;
+            }
+        }
         this.declaredVars = uniqueStrings(
             this.parts.reduce(function(prev, part) {
                 return prev.concat(part.declaredVars);
@@ -419,12 +426,14 @@ angular.module('upmark.response.type', [
                     part.options = [
                         {score: 0, name: 'No', 'if': null},
                         {score: 1, name: 'Yes', 'if': null}
+                        //{score: 0.5, name: 'Yes', 'if': null}
                     ];
                 }
             };
             $scope.addOption = function(part) {
                 part.options.push({
                     score: 0,
+                    //score: part.options.length / (part.options.length + 1),
                     name: 'Option ' + (part.options.length + 1)
                 })
             };
@@ -555,12 +564,14 @@ angular.module('upmark.response.type', [
                     part.options = [
                         {score: 0, name: 'No', 'if': null},
                         {score: 1, name: 'Yes', 'if': null}
+                        //{score: 0.5, name: 'Yes', 'if': null}
                     ];
                 }
             };
             $scope.addOption = function(part) {
                 part.options.push({
                     score: 0,
+                    //score: part.options.length / (part.options.length + 1),
                     name: 'Option ' + (part.options.length + 1)
                 })
             };
