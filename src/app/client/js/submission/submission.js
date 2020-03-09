@@ -121,7 +121,31 @@ angular.module('upmark.submission.submission', [
         function($scope, Submission, Survey, routeData, Editor, Authz,
              layout, $location, format, $filter, Notifications,
              Structure, LocationSearch, download) {
-
+    // hard copy survey id in production to keep export menu for old survey
+    // for new survey only need one export menu 'One measure per row'  
+    let oldSurvey = ["19c574ad-4a02-4980-9f4a-6928ef4bc4f1",
+                     "d4688eae-a732-47a2-8389-23ecdf495f04",
+                     "c4ad63f1-2f10-465f-b3e6-74944602c624",
+                     "eeb94743-ae00-412d-b89a-639b03677bc5",
+                     "bda5e693-cd1f-4b3d-ab1b-8519f019272b",
+                     "d4688eae-a732-47a2-8389-23ecdf495f04",
+                     "18eab68c-1936-41e6-9de7-88d4d53a487e",
+                     "eeb94743-ae00-412d-b89a-639b03677bc5",
+                     "d4688eae-a732-47a2-8389-23ecdf495f04",
+                     "067248b9-ee0d-4507-aad7-31159f636502",
+                     "44ef39ac-b8bb-4412-b522-27b82e90a836",
+                     "c8ed0f05-1a4f-49d5-b965-f3b25c74765a",
+                     "19c574ad-4a02-4980-9f4a-6928ef4bc4f1",
+                     "c4ad63f1-2f10-465f-b3e6-74944602c624",
+                     "14a90222-7783-48c7-8127-ad10d00007c3",
+                     "8ebb3782-49f7-447c-b7dc-d3c8417f12fa",
+                     "4159bcbf-4416-4f94-b07a-c02c7fa4bf6a",
+                     "284a5043-ffe5-4920-bb66-6a9adfa09973",
+                     "57108d7a-f69e-4120-8d16-ac22f383eb0f",
+                     "af7021fc-0de0-4410-975e-06ee604e225d",
+                     "9ddabc3c-d259-433e-80f9-621fd685225b",
+                     "7b490e0f-3e04-40e6-97ad-2ab52d19e526",
+                     "d68d14cb-ad72-478c-af70-a37948e36838"];
     $scope.layout = layout;
     $scope.program = routeData.program;
     $scope.edit = Editor('submission', $scope, {});
@@ -129,6 +153,8 @@ angular.module('upmark.submission.submission', [
         // Editing old
         $scope.submission = routeData.submission;
         $scope.children = routeData.qnodes;
+        if (oldSurvey.indexOf($scope.submission.survey.id) < 0)
+            $scope.hideExportMenu=true;
     } else {
         // Creating new
         $scope.submission = new Submission({

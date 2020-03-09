@@ -10,7 +10,7 @@
 
             <ul uib-dropdown-menu class="dropdown-menu-right">
                 <li class="dropdown-header">Export report</li>
-                <li>
+                <li ng-hide='hideExportMenu'>
                     <a title="Download Excel file"
                             ng-click="downloadSubmissionReport('nested', submission.id)"
                             download>
@@ -26,7 +26,7 @@
                         One measure per row
                     </a>
                 </li>
-                <li>
+                <li ng-hide='hideExportMenu'>
                     <a title="Download Excel file"
                             ng-click="reports.formOpen = !reports.formOpen">
                         <i class="fa fa-clock-o"></i>

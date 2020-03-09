@@ -20,7 +20,7 @@
 
             <ul uib-dropdown-menu class="dropdown-menu-right">
                 <li class="dropdown-header">Export survey structure</li>
-                <li>
+                <li ng-hide='hideExportMenu'>
                     <a title="Download Excel file"
                             ng-click="download('nested')"
                             download>
@@ -142,6 +142,7 @@
                                     edit.model.structure.levels.length-2
                                     ng-style="{visibility: $index == edit.model.structure.levels.length-1 ? null:'hidden' }"
                                     ng-model="level.indexingFrom" required 
+                                    placeholder="Enter a number"
                                     ng-init="level.indexingFrom=($index == edit.model.structure.levels.length-1 && (!level.indexingFrom && level.indexingFrom!=0) ? 1: level.indexingFrom)"/>
                             </td>
                             <td class="shrink">                       
