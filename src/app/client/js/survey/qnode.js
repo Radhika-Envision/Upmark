@@ -750,7 +750,9 @@ angular.module('upmark.survey.qnode', [
                 if ($rootScope.qnodes && $rootScope.qnodes.length>0) {
                     for (var i=0;i<$rootScope.qnodes.length;i++) {
                     //$rootScope.qnodes.forEach(function(item,index){
-                        if ($rootScope.qnodes[i].id == $scope.qnode.id) {
+                        if ($scope.qnode && $rootScope.qnodes[i].id == $scope.qnode.id && (!$rootScope.qnodes[i].submissionId && !$rootScope.qnodes[i].surveyId) ||
+                           ((!$rootScope.qnodes[i].id && !$rootScope.qnodes[i].surveyId && $scope.submission ) && $rootScope.qnodes[i].submissionId == $scope.submission.id )
+                           || ((!$rootScope.qnodes[i].id && !$rootScope.qnodes[i].submissionId && $scope.survey ) && $rootScope.qnodes[i].surveyId == $scope.survey.id )) {
                             notQnode = false;
                             var sameStatus=true;
                             if ($scope.children && $scope.children.length>0) {
@@ -776,17 +778,44 @@ angular.module('upmark.survey.qnode', [
                 }
                 if (notQnode) {
                     if ($rootScope.qnodes) {
-                        $rootScope.qnodes.push({
-                            id: $scope.qnode.id,
-                            children: children
-                        })
+                        if ($scope.qnode) {
+                            $rootScope.qnodes.push({
+                                id: $scope.qnode.id,
+                                children: children
+                            })
+                        }
+                        else if ($scope.submission) {
+                            $rootScope.qnodes.push( {
+                                submissionId: $scope.submission.id,
+                                children: children
+                            })
+                        }
+                        else if ($scope.survey)  {
+                            $rootScope.qnodes=[ {
+                                surveyId: $scope.survey.id,
+                                children: children
+                            }]                            
+                        }
                     }
                     else {
-
-                        $rootScope.qnodes=[ {
-                            id: $scope.qnode.id,
-                            children: children
-                        }]
+                        if ($scope.qnode) {
+                            $rootScope.qnodes=[ {
+                                id: $scope.qnode.id,
+                                children: children
+                            }]
+                        }
+                        else if ($scope.submission)  {
+                            $rootScope.qnodes=[ {
+                                submissionId: $scope.submission.id,
+                                children: children
+                            }]                            
+                        }
+                        else if ($scope.survey)  {
+                            $rootScope.qnodes=[ {
+                                surveyId: $scope.survey.id,
+                                children: children
+                            }]                            
+                        }
                     }
                 }
             }
