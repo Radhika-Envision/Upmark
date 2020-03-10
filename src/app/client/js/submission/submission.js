@@ -123,6 +123,7 @@ angular.module('upmark.submission.submission', [
              Structure, LocationSearch, download) {
     // hard copy survey id in production to keep export menu for old survey
     // for new survey only need one export menu 'One measure per row'  
+    // **** last item "5f6b69cf-6338-4cd2-8fb8-3e6456c0ff6a" fro testing stage, remove when deploy to production
     let oldSurvey = ["19c574ad-4a02-4980-9f4a-6928ef4bc4f1",
                      "d4688eae-a732-47a2-8389-23ecdf495f04",
                      "c4ad63f1-2f10-465f-b3e6-74944602c624",
@@ -145,7 +146,8 @@ angular.module('upmark.submission.submission', [
                      "af7021fc-0de0-4410-975e-06ee604e225d",
                      "9ddabc3c-d259-433e-80f9-621fd685225b",
                      "7b490e0f-3e04-40e6-97ad-2ab52d19e526",
-                     "d68d14cb-ad72-478c-af70-a37948e36838"];
+                     "d68d14cb-ad72-478c-af70-a37948e36838",
+                     "5f6b69cf-6338-4cd2-8fb8-3e6456c0ff6a"];
     $scope.layout = layout;
     $scope.program = routeData.program;
     $scope.edit = Editor('submission', $scope, {});
