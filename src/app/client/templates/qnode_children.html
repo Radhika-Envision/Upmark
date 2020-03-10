@@ -86,7 +86,10 @@
                         </td>
                         <td class="shrink text-muted numeric" title="Score"
                             ng-if="submission && checkRole('submission_view_aggregate_score') && !structure.program.hideAggregate">
-                            <span>{{getStats(item.id).score | number:0}}</span>
+                            <span>{{getStats(item.id).score | number:2}}</span>
+                        </td>
+                        <td class="shrink text-muted numeric" title="Total weight"
+                            ng-if="submission && checkRole('submission_view_aggregate_score') && !structure.program.hideAggregate">
                             <span ng-if="!structure.program.hideAggregate">
                                 <span class="text-muted hidden-sm hidden-xs">/</span>
                                 <br class="visible-sm visible-xs">
@@ -101,10 +104,12 @@
                             <column-progress items="getStats(item.id).progressItems">
                             </column-progress>
                         </td>
-                        <td class="shrink text-muted numeric" title="Number of measures" ng-if="submission">
+                        <td class="shrink text-muted numeric" title="Number of answer measures" ng-if="submission">
                             <span>{{getStats(item.id).progressItems[0].value | number:0}}</span>
                             <span class="text-muted hidden-sm hidden-xs">/</span>
                             <br class="visible-sm visible-xs">
+                        </td> 
+                        <td class="shrink text-muted numeric" title="Number of measures" ng-if="submission">                        
                             <span class="denominator-sm denominator-xs">{{item.nMeasures}}</span>
                         </td>
                         <td class="shrink text-muted numeric" title="Number of measures" ng-if="!submission">
