@@ -24,7 +24,7 @@
                     >&nbsp;<span
                           ng-if="checkRole('submission_view_single_score') && rt.parts.length"
                           class="print-field"
-                    >{{state.score * weight | number:0}}</span
+                    >{{state.score * weight | number:2}}</span
                 ></span>
             </h2>
         </div>
@@ -307,24 +307,24 @@
         
                             <!--</div>-->
                         </div>
-                        <!--<div class="row no-margin-bottom" ng-if="partSchema.comment!=null">
+                        <div class="row no-margin-bottom" ng-if="getPartData(partSchema).comment!=null">
                             <div class="part hidden-print" ng-hide="readonly">
                                 <label for="comments">Comments</label>
                                 <div ng-if="!readonly">
                                     <markdown-editor id="comments"
-                                        ng-model="partSchema.comment"
+                                        ng-model="getPartData(partSchema).comment"
                                         me-focus-on="'focus-comment'" title="Comments"
                                         me-blur-on="'blur-comment'"></markdown-editor>
                                 </div>
                             </div>
                             
                             <div ng-class="readonly ? null : 'visible-print-block'">
-                                <p>Comments: <em ng-if="!partSchema.comment">None</em></p>
-                                <div ng-if="partSchema.comment" class="print-field"
-                                    ng-bind-html="partSchema.comment | markdown">
+                                <p>Comments: <em ng-if="!getPartData(partSchema).comment">None</em></p>
+                                <div ng-if="getPartData(partSchema).comment" class="print-field"
+                                    ng-bind-html="getPartData(partSchema).comment | markdown">
                                 </div>
                             </div>
-                        </div>-->
+                        </div>
               
                                    
                 </div> 
@@ -625,24 +625,24 @@
                 
                                     </div>
                                 </div>
-                                <!--<div class="row no-margin-bottom" ng-if="partSchema.comment!=null">
+                                <div class="row no-margin-bottom" ng-if="getPartData(partSchema).comment!=null || partSchema.comment!=null">
                                     <div class="part hidden-print" ng-hide="readonly">
                                         <label for="comments">Comments</label>
                                         <div ng-if="!readonly">
                                             <markdown-editor id="comments"
-                                                ng-model="partSchema.comment"
+                                                ng-model="getPartData(partSchema).comment"
                                                 me-focus-on="'focus-comment'" title="Comments"
                                                 me-blur-on="'blur-comment'"></markdown-editor>
                                         </div>
                                     </div>
                                     
                                     <div ng-class="readonly ? null : 'visible-print-block'">
-                                        <p>Comments: <em ng-if="!partSchema.comment">None</em></p>
-                                        <div ng-if="partSchema.comment" class="print-field"
-                                            ng-bind-html="partSchema.comment | markdown">
+                                        <p>Comments: <em ng-if="!getPartData(partSchema).comment">None</em></p>
+                                        <div ng-if="getPartData(partSchema).comment" class="print-field"
+                                            ng-bind-html="getPartData(partSchema).comment | markdown">
                                         </div>
                                     </div>
-                                </div>-->
+                                </div>
                       
                             </div>
 
