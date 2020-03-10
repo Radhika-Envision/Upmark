@@ -123,7 +123,7 @@
         <div class="stats-group">
             <span title="Score"
                 ng-if="rnode.score != null && !structure.program.hideAggregate && (!currentLevel.hasMeasures || rnode.notRelevant || edit.model)">
-                {{rnode.score | number:0}}
+                {{rnode.score | number:2}}
             </span>
             <span title="Progress">
                 <column-progress items="stats.progressItems"></column-progress>
@@ -211,7 +211,7 @@
         <div class="stats-group" ng-if="currentLevel.hasMeasures && !rnode.notRelevant && !edit.model">
                 <span title="Score"
                     ng-if="rnode.score != null && !structure.program.hideAggregate">
-                    {{rnode.score | number:0}}
+                    {{rnode.score | number:2}}
                 </span>
     
                 <span title="Answers"
