@@ -369,6 +369,7 @@ class Exporter:
         format_int = workbook.add_format()
         format_int.set_num_format(1)
         format_date = workbook.add_format({'num_format': 'dd/mmm/yy'})
+        format_2_decimal = workbook.add_format({'num_format': '0.00'})
         url_format = workbook.add_format({
             'font_color': 'blue',
             'underline':  1
@@ -465,8 +466,9 @@ class Exporter:
                 line, level_length + max_parts + 2, urgency, format_int)
 
                 score = None
-                comment = None
+                comment = ''
                 quality = None
+                self.comment = ''
                 if response:
                     if not response.not_relevant:
                         self.write_response_parts(
@@ -500,10 +502,11 @@ class Exporter:
 
                     if user_role != 'clerk':
                         if response.measure.weight != 0:
-                            score = response.score / response.measure.weight
+                            score = response.score #/ response.measure.weight
                         else:
                             score = 0
-                    comment = response.comment
+                    if response.comment or submission_id:
+                       comment = response.comment + '; '
                     quality = response.quality
 
                 if user_role in {'clerk', 'org_admin'}:
@@ -513,17 +516,18 @@ class Exporter:
 
                 worksheet.write(
                         line, level_length + max_parts + 9,
-                        score, format_percent)
+                        score, format_2_decimal)
+                #        score, format_percent)
                 worksheet.write(
                         line, level_length + max_parts + 10,
                         weight, format_no_wrap)
                 worksheet.write(
                         line, level_length + max_parts + 11,
                         quality, format_no_wrap)
-
                 worksheet.write(
                         line, level_length + max_parts + 12,
-                        comment, format_comment)
+                        comment + self.comment , format_comment)
+                        #comment, format_comment)
 
                 worksheet.write_url(line, level_length + max_parts + 13,
                         url, url_format, "Link")
@@ -587,7 +591,8 @@ class Exporter:
             sheet.write(0, len(levels) + index + 1, response_parts[index],
                 format)
         sheet.write(0, len(levels) + max_response + 1, "Importance", format)
-        sheet.write(0, len(levels) + max_response + 2, "Urgency", format)
+        #sheet.write(0, len(levels) + max_response + 2, "Urgency", format)
+        sheet.write(0, len(levels) + max_response + 2, "Target Maturity", format)
         sheet.write(0, len(levels) + max_response + 3, "Final Report By", format)
         sheet.write(0, len(levels) + max_response + 4, "Final Report Date", format)
         sheet.write(0, len(levels) + max_response + 5, "Review By", format)
@@ -606,9 +611,28 @@ class Exporter:
             self.write_qnode(sheet, qnode.parent, line, format, col - 1)
         sheet.write(line, col, str(qnode.seq + 1) + ". " + qnode.title, format)
 
+    #def write_response_parts(self, sheet, parts, line, format, col):
+    #    if parts != None:
+    #        for part in parts:
+    #            if 'index' in part:
+    #                sheet.write(
+    #                    line, col, "%d - %s" % (part["index"] + 1, part["note"]),
+    #                    format)
+    #            else:
+    #                sheet.write(line, col, "%s" % part["value"], format)
+    #            col = col + 1
+    #    return col
+
     def write_response_parts(self, sheet, parts, line, format, col):
+        smIdx = 1
         if parts != None:
             for part in parts:
+                if 'comment' in part:
+                    comment=''
+                    if part["comment"] and part["comment"] != '':
+                        comment = part["comment"]                   
+                    self.comment= self.comment  + comment + '; '
+                    smIdx = smIdx + 1
                 if 'index' in part:
                     sheet.write(
                         line, col, "%d - %s" % (part["index"] + 1, part["note"]),
