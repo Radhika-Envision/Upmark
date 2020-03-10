@@ -4,6 +4,13 @@ angular.module('upmark.survey.qnode', [
     'ngResource', 'ngSanitize', 'ui.select', 'ui.sortable',
     'upmark.admin.settings', 'upmark.user', 'upmark.chain'])
 
+/*//#  test use session to keep status
+.factory('Status',  ['$resource', function($resource) {
+    return $resource('/status', {},
+        {  get: { method: 'GET', cache: false }, save: { method: 'POST' },
+    });
+}])
+//###############*/
 
 .config(function($routeProvider, chainProvider) {
     $routeProvider
@@ -587,10 +594,17 @@ angular.module('upmark.survey.qnode', [
 })
 
 
-.controller('QnodeChildren', ['$scope', 'bind', 'Editor', 'QuestionNode',
+.controller('QnodeChildren', ['$scope', '$rootScope', '$http', 'bind', 'Editor', 'QuestionNode', 
         'ResponseNode', 'Notifications',
-        function($scope, bind, Editor, QuestionNode, ResponseNode,
+        function($scope, $rootScope, $http, bind, Editor, QuestionNode, ResponseNode, 
             Notifications) {
+/*// test use session to keep status
+.controller('QnodeChildren', ['$scope', '$rootScope', '$http','bind', 'Editor', 'QuestionNode', 'Status',
+        'ResponseNode', 'Notifications',
+        function($scope, $rootScope, $http, bind, Editor, QuestionNode, Status, ResponseNode, 
+            Notifications) {
+// ###################*/
+    //$scope.hideDetail=$rootScope.hideDetail;       
 
     bind($scope, 'children', $scope, 'model', true);
  
@@ -610,6 +624,7 @@ angular.module('upmark.survey.qnode', [
 
     $scope.toggleAllDropdown = function() {
         $scope.hideDetail =! $scope.hideDetail;
+        $rootScope.hideDetail=$scope.hideDetail;  
         if ($scope.model && $scope.model.length>0) {
             $scope.model.forEach(function(item,index){
                if (item.group) {
@@ -633,12 +648,37 @@ angular.module('upmark.survey.qnode', [
 
     $scope.toggleDropdown = function(index) {
         $scope.model[index].hideDetail =! $scope.model[index].hideDetail;
+        /*// test use session to keep status
+        $scope.status=new Status({ statusList: [{id: $scope.model[index].id, hideDetail: $scope.model[index].hideDetail}] });
+        // ##################*/
         for (var i=index+1;i<$scope.model.length;i++) {
-            if ($scope.model[index].group==$scope.model[i].group)
-               $scope.model[i].hideDetail =! $scope.model[i].hideDetail;
+            if ($scope.model[index].group==$scope.model[i].group) {
+                $scope.model[i].hideDetail =! $scope.model[i].hideDetail;
+                /*// test use session to keep status
+                $scope.status.statusList.push({id: $scope.model[i].id, hideDetail: $scope.model[i].hideDetail});
+                //############ */   
+            }
             else
                break;   
-        }      
+        }   
+        /*// test use session to keep status
+        $scope.status.$save();  */
+        /*$http.post('/status',$scope.status).success(function(response){
+            Notifications.set('edit', 'success', 'message');
+        })
+        Status.save({
+            
+        }, $scope.status,
+            function success(measure, headers) {
+                var message = "Saved";
+                Notifications.set('edit', 'success', message);
+            },
+            function failure(details) {
+                Notifications.set('edit', 'error',
+                    "Could not save: " );
+            }
+        );
+        //############    */ 
     };
 
     $scope.edit = Editor('model', $scope, {}, QuestionNode);
@@ -689,6 +729,67 @@ angular.module('upmark.survey.qnode', [
             deleted: deleted
         }, function(children) {
             $scope.children = children;
+            var hasGroup=false;
+            if ($scope.children && $scope.children.length>0) {  // group also in survey
+                for (var i=0;i<$scope.children.length;i++) {
+                    if ($scope.children[i].group) {
+                       hasGroup=true;
+                      break;  
+                    } 
+                }   
+            }   
+            /*if ($scope.children && $scope.children.length>0) {
+                $scope.children.forEach(function(item,index){
+                   if (item.group) {
+                       item.hideDetail =$scope.hideDetail;
+                   }
+                })
+            }  */
+            if (hasGroup) {
+                var notQnode = true;
+                if ($rootScope.qnodes && $rootScope.qnodes.length>0) {
+                    for (var i=0;i<$rootScope.qnodes.length;i++) {
+                    //$rootScope.qnodes.forEach(function(item,index){
+                        if ($rootScope.qnodes[i].id == $scope.qnode.id) {
+                            notQnode = false;
+                            var sameStatus=true;
+                            if ($scope.children && $scope.children.length>0) {
+                                $scope.children.forEach(function(item,index){
+                                    if (item.group &&  $rootScope.qnodes[i].children &&  $rootScope.qnodes[i].children.length>0) {
+                                        $rootScope.qnodes[i].children.forEach(function(child,index){
+                                            if (child.id == item.id)
+                                               item.hideDetail = child.hideDetail;
+                                        })
+                                    }
+                                    if (index > 0 && sameStatus) {
+                                        sameStatus= ( $scope.children[index-1].hideDetail == $scope.children[index].hideDetail)
+                                    }
+                                })
+                            }
+                            if (sameStatus && $scope.children && $scope.children.length>0) {
+                                $scope.hideDetail = $scope.children[0].hideDetail;
+                            }
+                            $rootScope.qnodes[i].children = children;
+                            break;
+                        }   
+                    }        
+                }
+                if (notQnode) {
+                    if ($rootScope.qnodes) {
+                        $rootScope.qnodes.push({
+                            id: $scope.qnode.id,
+                            children: children
+                        })
+                    }
+                    else {
+
+                        $rootScope.qnodes=[ {
+                            id: $scope.qnode.id,
+                            children: children
+                        }]
+                    }
+                }
+            }
         });
     });
 
@@ -1005,6 +1106,7 @@ $scope.newResponseType = function(type) {
     if (type == 'multiple_choice') {
         parts = [{type: 'multiple_choice', id: 'a', options: [
             {name: 'No', score: 0},
+            //{name: 'Yes', score: 0.5}]
             {name: 'Yes', score: 1}]
         }];
     } else if (type == 'numerical') {
