@@ -791,10 +791,10 @@ angular.module('upmark.survey.qnode', [
                             })
                         }
                         else if ($scope.survey)  {
-                            $rootScope.qnodes=[ {
+                            $rootScope.qnodes.push( {
                                 surveyId: $scope.survey.id,
                                 children: children
-                            }]                            
+                            })                          
                         }
                     }
                     else {
