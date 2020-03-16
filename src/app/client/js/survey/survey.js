@@ -102,8 +102,7 @@ angular.module('upmark.survey.survey', [
                      "af7021fc-0de0-4410-975e-06ee604e225d",
                      "9ddabc3c-d259-433e-80f9-621fd685225b",
                      "7b490e0f-3e04-40e6-97ad-2ab52d19e526",
-                     "d68d14cb-ad72-478c-af70-a37948e36838",
-                     "5f6b69cf-6338-4cd2-8fb8-3e6456c0ff6a"];
+                     "d68d14cb-ad72-478c-af70-a37948e36838"];
 
     $scope.layout = layout;
     $scope.program = routeData.program;
