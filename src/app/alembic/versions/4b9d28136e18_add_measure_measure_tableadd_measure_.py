@@ -1,14 +1,14 @@
-"""add submeasure id in attachment and group in qnode and measureid seq link in measure
+"""add_measure_measure_tableadd_measure_measure_tableadd submeasure id in attachment and group in qnode and measureid seq link in measure
 
-Revision ID: d6ebaa606356
-Revises: 0e0b20b46cd0
-Create Date: 2019-12-20 15:51:02.448514
+Revision ID: 4b9d28136e18
+Revises: 009beb9045c3
+Create Date: 2020-03-17 13:22:51.943200
 
 """
 
 # revision identifiers, used by Alembic.
-revision = 'd6ebaa606356'
-down_revision = '0e0b20b46cd0'
+revision = '4b9d28136e18'
+down_revision = '009beb9045c3'
 branch_labels = None
 depends_on = None
 
