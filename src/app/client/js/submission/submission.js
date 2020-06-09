@@ -120,7 +120,7 @@ angular.module('upmark.submission.submission', [
 .controller('SubmissionCtrl',
         function($scope, Submission, Survey, routeData, Editor, Authz,
              layout, $location, format, $filter, Notifications,
-             Structure, LocationSearch, download) {
+             Structure, LocationSearch, download, $http) {
     // hard copy survey id in production to keep export menu for old survey
     // for new survey only need one export menu 'One measure per row'  
     // **** last item "5f6b69cf-6338-4cd2-8fb8-3e6456c0ff6a" fro testing stage, remove when deploy to production
@@ -147,13 +147,19 @@ angular.module('upmark.submission.submission', [
                      "9ddabc3c-d259-433e-80f9-621fd685225b",
                      "7b490e0f-3e04-40e6-97ad-2ab52d19e526",
                      "d68d14cb-ad72-478c-af70-a37948e36838"];
+    //let suveyOfAssetManagement = '60f224d0-a96c-41a1-9a46-3fa4aed86262'; // hardcode for debug, change before deploy to production
     $scope.layout = layout;
     $scope.program = routeData.program;
+    $scope.showCreateAssetReport = false;
     $scope.edit = Editor('submission', $scope, {});
+
     if (routeData.submission) {
         // Editing old
         $scope.submission = routeData.submission;
         $scope.children = routeData.qnodes;
+        if ($scope.submission.showCreateAssetReport) {
+            $scope.showCreateAssetReport = true;
+        }
         if (oldSurvey.indexOf($scope.submission.survey.id) < 0)
             $scope.hideExportMenu=true;
     } else {
@@ -282,6 +288,38 @@ angular.module('upmark.submission.submission', [
 
     $scope.openCalender = function() {
         $scope.calender.opened = true
+    };
+
+    $scope.createAssetReport = function() {
+        var path = 'src/app/client/';
+        var uri= 'report/';
+        var url = '/report/exportAssetReport/' + $scope.submission.id;
+        url += '/survey/' + $scope.submission.survey.id;
+        url += '/"'+ path + '"."' + uri + '"';
+        $http.get(url).then(
+            function success(response) {
+                //var message = "Export finished";
+                if (response.data.errorMessage) {
+                    Notifications.set('export', 'warning', response.data.errorMessage);
+                }
+                else {
+                    Notifications.set('export', 'info', response.data.message, 5000);
+                    var fileName = response.data.report;
+                    $scope.downloadFile(fileName);
+                }
+            },
+            function failure(response) {
+                Notifications.set('export', 'error',
+                    "Error: " + response.statusText);
+            }
+        );
+    };
+
+    $scope.downloadFile= function(fileName) {
+        var link=document.createElement('a');
+        document.body.appendChild(link);
+        link.href="http://"+window.location.host + '/' + fileName ;
+        link.click();
     };
 })
 

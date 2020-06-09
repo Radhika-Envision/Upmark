@@ -16,7 +16,7 @@ from utils import ToSon, truthy, updater
 from .approval import APPROVAL_STATES
 from surveygroup_actions import filter_surveygroups
 from response_type import ResponseTypeError
-
+import os
 log = logging.getLogger('app.crud.submission')
 
 MAX_WORKERS = 4
@@ -70,6 +70,10 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
                 r'/program/hide_aggregate$',
             )
             son = to_son(submission)
+            # menu for export asset management show if asset management template exist  
+            templateFile = "src/app/client/report/" + submission.survey.title + ' Template.xlsx'
+            if os.path.isfile(templateFile):
+                son["showCreateAssetReport"] = True
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(son))
         self.finish()
@@ -355,32 +359,33 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
             if session.is_modified(submission):
                 verbs.append('update')
             
-            # update measures approval state
-            approval_level = APPROVAL_STATES.index(approval) 
-            if 'state' in verbs and approval_level > current_level:    
-                approval_level=approval_level-1
-                responses = (
-                    session.query(model.Response)
-                    .filter(model.Response.submission_id == submission.id,
-                       model.Response.approval == APPROVAL_STATES[approval_level])
+            # update measures approval state, when save edited submission no approval, so here should not 
+            if approval!='':
+                approval_level = APPROVAL_STATES.index(approval) 
+                if 'state' in verbs and approval_level > current_level:    
+                    approval_level=approval_level-1
+                    responses = (
+                        session.query(model.Response)
+                        .filter(model.Response.submission_id == submission.id,
+                         model.Response.approval == APPROVAL_STATES[approval_level])
                     )
-                for response in responses:
-                    # update = updater(response, error_factory=errors.ModelError)
-                    # update('title', son)
-                    response.approval = approval
-                    try:
-                        calculator = Calculator.scoring(submission)
-                        calculator.mark_measure_dirty(response.qnode_measure)
-                        calculator.execute()
-                    except ResponseTypeError as e:
-                        raise errors.ModelError(str(e))
+                    for response in responses:
+                        # update = updater(response, error_factory=errors.ModelError)
+                        # update('title', son)
+                        response.approval = approval
+                        try:
+                            calculator = Calculator.scoring(submission)
+                            calculator.mark_measure_dirty(response.qnode_measure)
+                            calculator.execute()
+                        except ResponseTypeError as e:
+                            raise errors.ModelError(str(e))
 
 
-                    act = Activities(session)
-                    act.record(user_session.user, response, verbs)
-                    act.ensure_subscription(
-                        user_session.user, response, response.submission,
-                        self.reason)
+                        act = Activities(session)
+                        act.record(user_session.user, response, verbs)
+                        act.ensure_subscription(
+                            user_session.user, response, response.submission,
+                            self.reason)
 
             if submission.deleted:
                 submission.deleted = False

@@ -31,6 +31,7 @@ from report.prog_export import ExportProgramHandler
 from report.sub_export import ExportSubmissionHandler
 from report.sub_stats import StatisticsHandler
 from report.sub_temporal import TemporalReportHandler
+from report.exportAssetReport import ExportAssetHandler
 import template
 from utils import get_package_dir, truthy
 
@@ -271,6 +272,8 @@ def get_mappings():
         (r"/report/diff.json", DiffHandler, {}),
         (r"/report/prog/export/([^/]*)/survey/([^/]*)/([^.]+)\.(.+)",
             ExportProgramHandler, {}),
+        (r"/report/exportAssetReport/([^/]*)/survey/([^/]*)/([^.]+)\.(.+)",
+            ExportAssetHandler, {}),
         (r"/report/sub/temporal/([^/]*)\.(.+)",
             TemporalReportHandler, {}),
         (r"/report/sub/export/([^/]*)/([^.]+)\.(.+)",
@@ -292,6 +295,10 @@ def get_mappings():
             ImportSubmissionHandler, {}),
         (r"/redirect", protocol.RedirectHandler),
         (r"/remap.json", crud.remap.IdMapperHandler),
+
+        # test use session to keep status
+        #(r"/status", authn.StatusHandler),
+        ########################
 
         (r"/(.*)", tornado.web.StaticFileHandler, {
             'path': os.path.join(package_dir, "..", "client")}),

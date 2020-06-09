@@ -76,7 +76,7 @@ angular.module('upmark.survey.survey', [
 .controller('SurveyCtrl', function(
         $scope, Survey, routeData, Editor, Authz, layout,
         $location, format, QuestionNode, Structure,
-        Notifications, download) {
+        Notifications, download, $http) {
     // hard copy survey id in production to keep export menu for old survey
     // for new survey only need one export menu 'One measure per row'   
     // **** last item "5f6b69cf-6338-4cd2-8fb8-3e6456c0ff6a" fro testing stage, remove when deploy to production
@@ -191,6 +191,25 @@ angular.module('upmark.survey.survey', [
             }
         );
     };
+
+    $scope.download1 = function() {
+        //var fileName = 'Asset Report.xlsx'
+        var url = '/report/exportAssetReport/1'; // + $scope.program.id;
+        //url += '/survey/' + $scope.survey.id;
+        //url += '/' + export_type + '.xlsx';
+        url += '/asset.xlsx';
+        $http.get(url).then(
+            function success(response) {
+                var message = "Export finished";
+                Notifications.set('export', 'info', message, 5000);
+            },
+            function failure(response) {
+                Notifications.set('export', 'error',
+                    "Error: " + response.statusText);
+            }
+        );
+    };
+
 
     $scope.checkRole = Authz({program: $scope.program});
     $scope.QuestionNode = QuestionNode;

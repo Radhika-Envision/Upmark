@@ -13,6 +13,7 @@ libsass~=0.12.3
 #munch~=2.1.1
 -e git://github.com/Infinidat/munch.git@ac91ac51cfd7d69d9c237695e307012e7ae44569#egg=munch
 numpy~=1.13.0rc2
+openpyxl~=3.0.3
 passlib~=1.7.1
 passwordmeter~=0.1.8
 py_expression_eval~=0.3.4

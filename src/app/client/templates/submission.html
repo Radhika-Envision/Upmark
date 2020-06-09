@@ -33,7 +33,14 @@
                         Temporal report
                     </a>
                 </li>
-
+                <li ng-show='showCreateAssetReport'>
+                    <a title="Download Excel file"
+                            ng-click="createAssetReport()"
+                            download>
+                        <i class="fa fa-list-ol"></i>
+                        Export asset management report
+                    </a>
+                </li>
             </ul>
         </span>
         <a class="btn btn-default btn-round" title="Statistics"
