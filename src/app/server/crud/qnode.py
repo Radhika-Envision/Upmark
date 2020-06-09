@@ -205,7 +205,47 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
                 to_son.exclude(r'/total_weight$')
 
             sons = to_son(query.all())
+            # test use session to keep status
+            #status_session = self.get_secure_cookie('status')
+            #status_ids = status_session.decode('utf8')
+            #status_array = status_ids.split(',')
+            #for son in sons:
+            #    if son.id in status_array:
+            #        son['hideDetail'] = True
+            #####################################
+            for son in sons:
+                question=0
+                ids = []
+                pIds=[son.id]
+                
+                for pId in pIds:
+                    sIds = (
+                        session.query(model.QuestionNode)
+                        .filter(model.QuestionNode.parent_id == pId))
+                    if not sIds.first():
+                         ids.append(pId)
+                    else: 
+                        for cid in sIds:
+                            pIds.append(cid.id)
+                qnodeMeasures = (
+                    session.query(model.Measure, model.QnodeMeasure)
+                    .filter(model.Measure.id == model.QnodeMeasure.measure_id)
+                    .filter(model.QnodeMeasure.qnode_id.in_(ids)))  
+                for qnodeMeasure in qnodeMeasures:
+                    rt = (
+                        session.query(model.ResponseType)
+                        .filter(model.ResponseType.id == qnodeMeasure.Measure.response_type_id).first())
+                    seq = 0
+                    for p in rt.parts:
+                        if "submeasure_seq" in p and p["submeasure_seq"] > question:
+                            seq = p["submeasure_seq"]
+                        else:
+                            question += 1
+                    question = question + seq
+                son['nQuestion'] = question
 
+            #    if son.id in status_array:
+            #        son['hideDetail'] = True
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
         self.finish()
@@ -632,3 +672,34 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
             policy.verify('qnode_edit')
 
         self.query()
+
+# test use session to keep status
+#class Status1Handler(base_handler.BaseHandler):
+
+#    def get(self):
+#        status_ids = self.get_secure_cookie('status')
+#        return status_ids
+
+
+#    def post(self):
+
+#       statusList=self.request_son.status_list
+#        status_session = self.get_secure_cookie('status')
+#        status_ids = status_session.decode('utf8')
+#        status_array = status_ids.split(',')
+#        for status in statusList:
+#            if not status.id in status_array and status.hide_detail:
+#                status_array.append(status.id)
+#            if not status.hide_detail and status.id in status_array:
+#                status_array.remove(status.id)
+#        status_ids = ','.join(status_array) 
+#        self.set_secure_cookie(
+#            "status", status_cookie.encode('utf8'),
+#            expires=self.session_expires)           
+
+#    def get_status_session(self, db_session):
+#        status_ids = self.get_secure_cookie('status')
+#        return status_ids
+
+####################################
+

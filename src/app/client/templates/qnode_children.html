@@ -104,9 +104,17 @@
                             <column-progress items="getStats(item.id).progressItems">
                             </column-progress>
                         </td>
-                        <td class="shrink text-muted numeric" title="Number of answer measures" ng-if="submission">
-                            <span>{{getStats(item.id).progressItems[0].value | number:0}}</span>
+                        <td class="shrink text-muted numeric" title="Number of answer questions" ng-if="submission">
+                            <!--<span>{{getStats(item.id).progressItems[0].value | number:0}}</span>
+                            <span>{{getStats(item.id).nAnswer | number:0}}</span>-->
+                            <span>{{getAnswers(item.id) | number:0}}</span>
                             <span class="text-muted hidden-sm hidden-xs">/</span>
+                            <br class="visible-sm visible-xs">
+                        </td> 
+                        <td class="shrink text-muted numeric" title="Number of questions" ng-if="submission">
+                            <!--<span>{{getStats(item.id).progressItems[0].value | number:0}}</span>
+                            <span>{{getStats(item.id).nQuestion | number:0}}</span>-->
+                            <span>{{item.nQuestion}}</span>
                             <br class="visible-sm visible-xs">
                         </td> 
                         <td class="shrink text-muted numeric" title="Number of measures" ng-if="submission">                        

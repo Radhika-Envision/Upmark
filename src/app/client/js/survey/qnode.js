@@ -728,6 +728,7 @@ angular.module('upmark.survey.qnode', [
             root: qid ? undefined : '',
             deleted: deleted
         }, function(children) {
+
             $scope.children = children;
             var hasGroup=false;
             if ($scope.children && $scope.children.length>0) {  // group also in survey
@@ -847,9 +848,12 @@ angular.module('upmark.survey.qnode', [
                 for (var i = 0; i < rnodes.length; i++) {
                     var rnode = rnodes[i];
                     var nm = rnode.qnode.nMeasures;
+                    //$scope.aAnswer=rnode.qnode.nAnswer;
                     rmap[rnode.qnode.id] = {
                         score: rnode.score,
                         notRelevant: rnode.nNotRelevant >= nm,
+                        nAnswer : rnode.qnode.nAnswer,
+                        nQuestion : rnode.qnode.nQuestion,
                         progressItems: [
                             {
                                 name: 'Draft',
@@ -929,6 +933,13 @@ angular.module('upmark.survey.qnode', [
             return $scope.rnodeMap[qnodeId];
         else
             return dummyStats;
+    };
+
+    $scope.getAnswers = function(qnodeId) {
+        if ($scope.rnodeMap && $scope.rnodeMap[qnodeId] && $scope.rnodeMap[qnodeId].nAnswer)
+            return $scope.rnodeMap[qnodeId].nAnswer;
+        else
+            return 0;
     };
 }])
 
@@ -1211,8 +1222,39 @@ if ($scope.submission) {
             {
                 response.answerQuestions=$scope.measure.subMeasureList.length;
             }
-            else {
+            else if (response.responseParts.length>0 )
+            {
+                //calculate answer question number
+                var seq=0;
                 response.answerQuestions=0;
+                var rt=$scope.measure.responseType.parts;
+                var hasAnswer=true;
+                for (var r=0; r < rt.length; r++) {
+                    
+                    if (response.responseParts[r] && (hasAnswer || seq != rt[r].submeasureSeq)) {
+                        if (seq != rt[r].submeasureSeq) {
+                            if (seq > 0) {
+                                if (hasAnswer){
+                                    response.answerQuestions += 1;
+                                }
+                                else {
+                                    hasAnswer=true;
+                                }
+                            }
+                            seq = rt[r].submeasureSeq;
+                        }
+                        if (!response.responseParts[r].index && !response.responseParts[r].value && hasAnswer) {
+                            hasAnswer=false;
+                        }
+                    }
+                }
+                if (seq>0 &&  hasAnswer) {
+                    response.answerQuestions += 1;
+                }
+
+            }
+            else {
+                response.answerQuestions = 0;
             }
         }
         else

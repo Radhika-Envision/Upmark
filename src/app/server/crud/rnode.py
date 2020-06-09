@@ -17,6 +17,9 @@ from score import Calculator
 from utils import ToSon, updater
 from .approval import APPROVAL_STATES
 
+import xlrd
+import xlsxwriter
+import openpyxl as xl
 
 log = logging.getLogger('app.crud.rnode')
 
@@ -130,7 +133,8 @@ class ResponseNodeHandler(base_handler.BaseHandler):
         self.write(json_encode(son))
         self.finish()
 
-    def query(self, submission_id):
+    def query(self, submission_id): 
+ 
         '''Get a list.'''
         parent_id = self.get_argument('parentId', '')
         root = self.get_argument('root', None)
@@ -197,6 +201,82 @@ class ResponseNodeHandler(base_handler.BaseHandler):
                     r'/total_weight$'
                 )
             sons = to_son(children)
+            
+
+
+            
+            for son in sons:
+                answer=0
+                ids = []
+                pIds=[son.qnode.id]
+                
+                for pId in pIds:
+                    sIds = (
+                        session.query(model.QuestionNode)
+                        .filter(model.QuestionNode.parent_id == pId))
+                    if not sIds.first():
+                         ids.append(pId)
+                    else: 
+                        for cid in sIds:
+                            pIds.append(cid.id)
+
+
+
+                answerResponses = (
+                    session.query(model.Response, model.Measure, model.QnodeMeasure)
+                    .filter(model.Response.submission_id == submission_id)
+                    .filter(model.Response.measure_id == model.Measure.id)
+                    .filter(model.Measure.id == model.QnodeMeasure.measure_id)
+                    .filter(model.QnodeMeasure.qnode_id.in_(ids)))  
+
+                #for answerResponse in answerResponses:
+                #    if answerResponse.Response.variables != {}:
+                #        answer=answer+1
+                #son.qnode['nAnswer']=answer
+                question = 0
+                answer = 0    
+                for answerResponse in answerResponses:
+                    #if answerResponse.Response.variables != {}:
+                    if len(answerResponse.Response.response_parts)>0:
+                        #calculate answer question number
+                        hasAnswer = True
+                        seq = 0
+
+                        rt = answerResponse.Measure.response_type.parts
+                        for r, p in enumerate(rt):
+                            if (not 'submeasure_seq' in p ):
+                                if (seq > 0):
+                                    question += 1
+                                    if (hasAnswer):
+                                        answer += 1
+                                    else:
+                                        hasAnswer=True
+                                if ((answerResponse.Response.response_parts[r] is None or answerResponse.Response.response_parts[r] == {} or
+                                    ((not 'index' in answerResponse.Response.response_parts[r].keys()) and 
+                                    (not 'value' in answerResponse.Response.response_parts[r].keys()))) and hasAnswer):
+                                    hasAnswer=False    
+                            else:           
+                                if (hasAnswer or seq != p['submeasure_seq']):
+                                    if (seq != p['submeasure_seq']):
+                                        if (seq > 0):
+                                            question += 1
+                                            if (hasAnswer):
+                                                answer += 1
+                                            else:
+                                                hasAnswer=True
+
+                                        seq = p['submeasure_seq']
+                          
+                                    if ((answerResponse.Response.response_parts[r] is None or answerResponse.Response.response_parts[r] == {} or
+                                        ((not 'index' in answerResponse.Response.response_parts[r].keys()) and 
+                                        (not 'value' in answerResponse.Response.response_parts[r].keys()))) and hasAnswer):
+                                        hasAnswer=False        
+                  
+                        if (seq > 0 and  hasAnswer):
+                            answer += 1
+                            question += 1
+                    son.qnode['nAnswer']=answer
+                    son.qnode['nQuestion']=question
 
         self.set_header("Content-Type", "application/json")
         self.write(json_encode(sons))
