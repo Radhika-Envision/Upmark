@@ -19,6 +19,9 @@ from tornado.escape import json_encode
 
 #qnode_id = '9eaf4f51-e760-482c-86f8-df7028ccae51'
 #survey_id = '60f224d0-a96c-41a1-9a46-3fa4aed86262'
+# table first  column number, user to check if template match survey
+table1FirstColumn = 1
+table2FirstColumn = 12
 BUF_SIZE = 4096
 MAX_WORKERS = 4
 class ExportAssetHandler(base_handler.BaseHandler):
@@ -87,9 +90,9 @@ class ExportAssetHandler(base_handler.BaseHandler):
                         .filter(model.ResponseNode.qnode_id == q.id)
                         .filter(model.ResponseNode.submission_id == submission_id).first())
                 if (qTarget is not None and qTarget.urgency is not None):
-                    targets.append({11: q.seq + 1, 12 : str(q.seq + 1) + ' ' + q.title, 18: qTarget.urgency})
+                    targets.append({table2FirstColumn: q.seq + 1, (1+table2FirstColumn) : str(q.seq + 1) + ' ' + q.title, (7+table2FirstColumn): qTarget.urgency})
                 else: 
-                    targets.append({11: q.seq + 1, 12 : str(q.seq + 1) + ' ' + q.title, 18: 0}) 
+                    targets.append({table2FirstColumn: q.seq + 1, (1+table2FirstColumn) : str(q.seq + 1) + ' ' + q.title, (7+table2FirstColumn): 0}) 
                 answerResponses = (
                     session.query(model.Measure, model.QnodeMeasure)
                         .filter(model.Measure.id == model.QnodeMeasure.measure_id)
@@ -139,9 +142,15 @@ class ExportAssetHandler(base_handler.BaseHandler):
                              
                  
                         sheets.append(
-                            {1: q.group, 2 : q.seq + 1, 3: q.title,
-                            4: response.QnodeMeasure.seq + 1, 5: response.Measure.title,
-                            6: str(q.seq + 1) + '.' + str(response.QnodeMeasure.seq + 1) +'.' + str(p.submeasure_seq), 7: p.description, 8: score
+                            { 
+                                table1FirstColumn: q.group, 
+                                (1+table1FirstColumn): q.seq + 1, 
+                                (2+table1FirstColumn): q.title,
+                                (3+table1FirstColumn): response.QnodeMeasure.seq + 1, 
+                                (4+table1FirstColumn): response.Measure.title,
+                                (5+table1FirstColumn): str(q.seq + 1) + '.' + str(response.QnodeMeasure.seq + 1) +'.' + str(p.submeasure_seq),
+                                (6+table1FirstColumn): p.description, 
+                                (7+table1FirstColumn): score
                             })  
         
 
@@ -175,7 +184,7 @@ class ExportAssetHandler(base_handler.BaseHandler):
                         #                    hasAnswer=False        
             sRows = len(sheets)
             tRows = len(targets)
-            if (tSheet.cell(sRows+2,1).value and tSheet.cell(sRows+3,1).value is None) and (tSheet.cell(tRows+2,11).value and tSheet.cell(tRows+3,11).value is None):
+            if (tSheet.cell(sRows+2,table1FirstColumn).value and tSheet.cell(sRows+3,table1FirstColumn).value is None) and (tSheet.cell(tRows+2,table2FirstColumn).value and tSheet.cell(tRows+3,table2FirstColumn).value is None):
                 # saving the destination excel file 
                 for j, r in enumerate(sheets):
                     for i in range(1,len(r.keys())+1):
