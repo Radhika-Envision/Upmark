@@ -5,7 +5,7 @@ import os
 import tempfile
 
 from tornado import gen
-import requests
+
 
 #from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import object_session
@@ -17,9 +17,11 @@ import errors
 import model
 from tornado.escape import json_encode
 
+#import requests
 #qnode_id = '9eaf4f51-e760-482c-86f8-df7028ccae51'
 #survey_id = '60f224d0-a96c-41a1-9a46-3fa4aed86262'
 # table first  column number, user to check if template match survey
+
 table1FirstColumn = 1
 table2FirstColumn = 12
 BUF_SIZE = 4096
