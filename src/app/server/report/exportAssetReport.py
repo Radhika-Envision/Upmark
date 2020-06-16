@@ -195,6 +195,7 @@ class ExportAssetHandler(base_handler.BaseHandler):
                         tSheet.cell(3+j,k).value=r[k] 
                 #file = open(fileName, 'w+')       
                 template.save(fileName)  
+                template.close()
                 result["message"] = "Export finished"
                 result["report"] = reportName
             else:
