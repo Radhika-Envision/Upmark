@@ -74,8 +74,7 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
             # local path "src/app/client/report/" + submission.survey.title + ' Template.xlsx"
             #templateFile = "src/app/client/report/" + submission.survey.title + ' Template.xlsx'
             # local path "app/client/report/" + submission.survey.title + ' Template.xlsx"
-            son["currentPath"] = os.getcwd()
-            templateFile = "app/client/report/" + submission.survey.title + ' Template.xlsx'
+            templateFile = "client/report/" + submission.survey.title + ' Template.xlsx'
             if os.path.isfile(templateFile):
                 son["showCreateAssetReport"] = True
         self.set_header("Content-Type", "application/json")
