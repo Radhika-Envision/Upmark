@@ -70,8 +70,11 @@ class SubmissionHandler(base_handler.Paginate, base_handler.BaseHandler):
                 r'/program/hide_aggregate$',
             )
             son = to_son(submission)
-            # menu for export asset management show if asset management template exist  
-            templateFile = "src/app/client/report/" + submission.survey.title + ' Template.xlsx'
+            # menu for export asset management show if asset management template exist  src/app/client/report
+            # local path "src/app/client/report/" + submission.survey.title + ' Template.xlsx"
+            #templateFile = "src/app/client/report/" + submission.survey.title + ' Template.xlsx'
+            # local path "app/client/report/" + submission.survey.title + ' Template.xlsx"
+            templateFile = "app/client/report/" + submission.survey.title + ' Template.xlsx'
             if os.path.isfile(templateFile):
                 son["showCreateAssetReport"] = True
         self.set_header("Content-Type", "application/json")

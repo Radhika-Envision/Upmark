@@ -291,7 +291,8 @@ angular.module('upmark.submission.submission', [
     };
 
     $scope.createAssetReport = function() {
-        var path = 'src/app/client/';
+        //var path = 'src/app/client/'; //for local
+        var path = 'app/client/'; //for deploy
         var uri= 'report/';
         var url = '/report/exportAssetReport/' + $scope.submission.id;
         url += '/survey/' + $scope.submission.survey.id;
