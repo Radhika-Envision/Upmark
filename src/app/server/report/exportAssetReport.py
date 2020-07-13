@@ -33,7 +33,7 @@ class ExportAssetHandler(base_handler.BaseHandler):
 
     @tornado.web.authenticated
     @gen.coroutine
-    def get(self, submission_id, survey_id, path, uri):
+    def get(self, submission_id, survey_id, program_id, path, uri):
         son={}
         #path = os.getcwd() + "/doc/"
         #path = 'src/app/client/'
@@ -57,7 +57,7 @@ class ExportAssetHandler(base_handler.BaseHandler):
                     tSheet = template.worksheets[0]                                  
                     #check survey template
                     if tSheet.cell(1,1).value == surveyName + " RAW DATA":
-                        son = self.export(submission_id, survey_id, template, tSheet, path, reportName)
+                        son = self.export(submission_id, survey_id, program_id, template, tSheet, path, reportName)
                         #son["report"] = reportName
                     else:
                         son["errorMessage"] = "No template to create " + surveyName + " report"
@@ -72,7 +72,7 @@ class ExportAssetHandler(base_handler.BaseHandler):
         self.finish()
 
 
-    def export(self, submission_id, survey_id, template, tSheet, path, reportName):
+    def export(self, submission_id, survey_id, program_id, template, tSheet, path, reportName):
         fileName= path + reportName
         result= {}
         with model.session_scope() as session:
@@ -80,6 +80,7 @@ class ExportAssetHandler(base_handler.BaseHandler):
             qnodes = (session.query(model.QuestionNode)
                     #.filter((model.QuestionNode.parent_id == qnode_id) | (model.QuestionNode.survey_id == survey_id)) 
                     .filter(model.QuestionNode.survey_id == survey_id)
+                    .filter(model.QuestionNode.program_id == program_id)
                     .filter(model.QuestionNode.deleted != True )
                     .order_by(model.QuestionNode.seq))
       
@@ -97,8 +98,13 @@ class ExportAssetHandler(base_handler.BaseHandler):
                     targets.append({table2FirstColumn: q.seq + 1, (1+table2FirstColumn) : str(q.seq + 1) + ' ' + q.title, (7+table2FirstColumn): 0}) 
                 answerResponses = (
                     session.query(model.Measure, model.QnodeMeasure)
+                        .filter(model.Measure.deleted != True)
+                        .filter(model.Measure.program_id == program_id)
+                        .filter(model.QnodeMeasure.program_id == model.Measure.program_id)
                         .filter(model.Measure.id == model.QnodeMeasure.measure_id)
-                        .filter(model.QnodeMeasure.qnode_id == q.id)
+                        .filter(model.QnodeMeasure.qnode_id == q.id ) 
+                        #.filter(model.QuestionMeasure.program_id == model.Program.id)
+                        #.filter(model.Program.deleted != True)
                         .order_by(model.QnodeMeasure.seq))
  
                 #row = {"subject_head": q.group, "subject_number" : q.seq + 1, 'subject_name': q.title}

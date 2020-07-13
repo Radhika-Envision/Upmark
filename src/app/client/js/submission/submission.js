@@ -296,6 +296,7 @@ angular.module('upmark.submission.submission', [
         var uri= 'report/';
         var url = '/report/exportAssetReport/' + $scope.submission.id;
         url += '/survey/' + $scope.submission.survey.id;
+        url += '/program/' + $scope.program.id;
         url += '/"'+ path + '"."' + uri + '"';
         $http.get(url).then(
             function success(response) {
