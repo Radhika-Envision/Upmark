@@ -112,6 +112,7 @@ class ExportAssetHandler(base_handler.BaseHandler):
                     subMeasure = (
                         session.query(model.Measure)
                         .filter(model.Measure.measure_id == response.Measure.id)
+                        #.filter(model.Measure.response_type_id == response.Measure.response_type_id)
                         .filter(model.Measure.submeasure_seq > 0)
                         .order_by(model.Measure.submeasure_seq))
                     answerResponse = (
@@ -201,7 +202,8 @@ class ExportAssetHandler(base_handler.BaseHandler):
                     keys= list(r.keys())
                     for k in keys:
                         tSheet.cell(3+j,k).value=r[k] 
-                #file = open(fileName, 'w+')       
+                if os.path.isfile(fileName):    
+                    os.remove(fileName) 
                 template.save(fileName)  
                 template.close()
                 result["message"] = "Export finished"
