@@ -320,7 +320,7 @@ angular.module('upmark.submission.submission', [
     $scope.downloadFile= function(fileName) {
         var link=document.createElement('a');
         document.body.appendChild(link);
-        link.href="http://"+window.location.host + '/' + fileName ;
+        link.href="http://"+window.location.host + '/' + fileName +"?time=" +Date.now();
         link.click();
     };
 })
