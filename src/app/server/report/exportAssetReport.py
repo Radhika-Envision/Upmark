@@ -24,6 +24,7 @@ from tornado.escape import json_encode
 
 table1FirstColumn = 1
 table2FirstColumn = 12
+targetColumnName = 'Target'
 BUF_SIZE = 4096
 MAX_WORKERS = 4
 class ExportAssetHandler(base_handler.BaseHandler):
@@ -44,6 +45,7 @@ class ExportAssetHandler(base_handler.BaseHandler):
             survey = (
                 session.query(model.Survey)
                     .filter(model.Survey.id == survey_id)
+                    .filter(model.Survey.program_id == program_id)
                     .filter(model.Survey.deleted != True).first())     
             if survey: 
                 surveyName = survey.title 
@@ -75,6 +77,8 @@ class ExportAssetHandler(base_handler.BaseHandler):
     def export(self, submission_id, survey_id, program_id, template, tSheet, path, reportName):
         fileName= path + reportName
         result= {}
+        # if return -1, no column in template file
+        targetColumn = self.getColumnNumber(targetColumnName,tSheet)
         with model.session_scope() as session:
             #user_session = self.get_user_session(session)
             qnodes = (session.query(model.QuestionNode)
@@ -92,10 +96,11 @@ class ExportAssetHandler(base_handler.BaseHandler):
                     session.query(model.ResponseNode)
                         .filter(model.ResponseNode.qnode_id == q.id)
                         .filter(model.ResponseNode.submission_id == submission_id).first())
+                # targetColumn < 0 , no target column in template file, so should not fill valumn to any cell
                 if (qTarget is not None and qTarget.urgency is not None):
-                    targets.append({table2FirstColumn: q.seq + 1, (1+table2FirstColumn) : str(q.seq + 1) + ' ' + q.title, (7+table2FirstColumn): qTarget.urgency})
+                    targets.append({table2FirstColumn: q.seq + 1, (1+table2FirstColumn) : str(q.seq + 1) + ' ' + q.title, (targetColumn ): qTarget.urgency})
                 else: 
-                    targets.append({table2FirstColumn: q.seq + 1, (1+table2FirstColumn) : str(q.seq + 1) + ' ' + q.title, (7+table2FirstColumn): 0}) 
+                    targets.append({table2FirstColumn: q.seq + 1, (1+table2FirstColumn) : str(q.seq + 1) + ' ' + q.title, (targetColumn ): 0}) 
                 answerResponses = (
                     session.query(model.Measure, model.QnodeMeasure)
                         .filter(model.Measure.deleted != True)
@@ -201,7 +206,9 @@ class ExportAssetHandler(base_handler.BaseHandler):
                 for j, r in enumerate(targets):  
                     keys= list(r.keys())
                     for k in keys:
-                        tSheet.cell(3+j,k).value=r[k] 
+                        # if key < 0 , value should not fill to cell 
+                        if ( k > -1 ) :
+                            tSheet.cell(3+j,k).value=r[k] 
                 if os.path.isfile(fileName):    
                     os.remove(fileName) 
                 template.save(fileName)  
@@ -212,6 +219,19 @@ class ExportAssetHandler(base_handler.BaseHandler):
                 result["errorMessage"] = "Template file not match this survey to export asset management report"
         return result
 
+    # find column index  in template file, no this column in template file, return -1
+    def getColumnNumber(self, columnName, sheet):
+        index = table2FirstColumn
+        while index == index:           
+                if sheet.cell(2,index).value == columnName:
+                    return index
+                if sheet.cell(2,index).value == None:
+                    return -1
+                index = index +1    
 
+        return -1
+
+
+ 
        
   

@@ -227,14 +227,27 @@ class QuestionNodeHandler(base_handler.Paginate, base_handler.BaseHandler):
                     else: 
                         for cid in sIds:
                             pIds.append(cid.id)
+                #qnodeMeasures = (
+                    #session.query(model.Measure, model.QnodeMeasure)
+                    #.filter(model.Measure.id == model.QnodeMeasure.measure_id)
+                    #.filter(model.QnodeMeasure.qnode_id.in_(ids))) 
                 qnodeMeasures = (
                     session.query(model.Measure, model.QnodeMeasure)
-                    .filter(model.Measure.id == model.QnodeMeasure.measure_id)
-                    .filter(model.QnodeMeasure.qnode_id.in_(ids)))  
+                        .filter(model.Measure.deleted != True)
+                        .filter(model.Measure.submeasure_seq >= 0)
+                        .filter(model.Measure.program_id == program_id)
+                        .filter(model.QnodeMeasure.program_id == model.Measure.program_id)
+                        .filter(model.Measure.id == model.QnodeMeasure.measure_id)
+                        .filter(model.QnodeMeasure.qnode_id.in_(ids))) 
+                        #.filter(model.QuestionMeasure.program_id == model.Program.id)
+                        #.filter(model.Program.deleted != True)
+                        #.order_by(model.QnodeMeasure.seq)) 
                 for qnodeMeasure in qnodeMeasures:
                     rt = (
                         session.query(model.ResponseType)
-                        .filter(model.ResponseType.id == qnodeMeasure.Measure.response_type_id).first())
+                        .filter(model.ResponseType.id == qnodeMeasure.Measure.response_type_id)
+                        .filter(model.ResponseType.program_id == program_id)
+                        .first())
                     seq = 0
                     for p in rt.parts:
                         if "submeasure_seq" in p and p["submeasure_seq"] > question:

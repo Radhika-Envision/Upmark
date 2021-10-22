@@ -222,13 +222,21 @@ class ResponseNodeHandler(base_handler.BaseHandler):
 
 
 
+                #answerResponses = (
+                #    session.query(model.Response, model.Measure, model.QnodeMeasure)
+                #    .filter(model.Response.submission_id == submission_id)
+                #    .filter(model.Response.measure_id == model.Measure.id)
+                #    .filter(model.Measure.id == model.QnodeMeasure.measure_id)
+                #    .filter(model.QnodeMeasure.qnode_id.in_(ids)))  
                 answerResponses = (
                     session.query(model.Response, model.Measure, model.QnodeMeasure)
                     .filter(model.Response.submission_id == submission_id)
+                    .filter(model.Response.program_id == model.Measure.program_id)
                     .filter(model.Response.measure_id == model.Measure.id)
+                    .filter(model.Measure.program_id == submission.program_id)
+                    .filter(model.QnodeMeasure.program_id == model.Measure.program_id)
                     .filter(model.Measure.id == model.QnodeMeasure.measure_id)
                     .filter(model.QnodeMeasure.qnode_id.in_(ids)))  
-
                 #for answerResponse in answerResponses:
                 #    if answerResponse.Response.variables != {}:
                 #        answer=answer+1
