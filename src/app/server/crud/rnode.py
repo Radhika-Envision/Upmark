@@ -274,11 +274,13 @@ class ResponseNodeHandler(base_handler.BaseHandler):
                                                 hasAnswer=True
 
                                         seq = p['submeasure_seq']
-                          
-                                    if ((answerResponse.Response.response_parts[r] is None or answerResponse.Response.response_parts[r] == {} or
-                                        ((not 'index' in answerResponse.Response.response_parts[r].keys()) and 
-                                        (not 'value' in answerResponse.Response.response_parts[r].keys()))) and hasAnswer):
-                                        hasAnswer=False        
+                                    if (r >= 0 and r < len(answerResponse.Response.response_parts)):
+                                        if ((answerResponse.Response.response_parts[r] is None or answerResponse.Response.response_parts[r] == {} or
+                                            ((not 'index' in answerResponse.Response.response_parts[r].keys()) and 
+                                            (not 'value' in answerResponse.Response.response_parts[r].keys()))) and hasAnswer):
+                                            hasAnswer=False   
+                                    else :
+                                       hasAnswer=False      
                   
                         if (seq > 0 and  hasAnswer):
                             answer += 1
