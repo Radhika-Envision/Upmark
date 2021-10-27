@@ -184,7 +184,7 @@ def get_resource(name, context=None):
             conf_path = '%s.%s' % (conf_path_stem, ext)
             try:
                 with open(conf_path) as f:
-                    config = yaml.load(f)
+                    config = yaml.load(f, Loader=yaml.FullLoader)
                     break
             except FileNotFoundError:
                 continue
@@ -257,7 +257,7 @@ def bower_versions():
     versions = {}
     for path in Path(directory).glob('*/.bower.json'):
         with path.open() as f:
-            component_meta = yaml.load(f)
+            component_meta = yaml.load(f, Loader=yaml.FullLoader)
         if 'version' in component_meta:
             name = component_meta['name']
             name = name.replace('-', '_')
