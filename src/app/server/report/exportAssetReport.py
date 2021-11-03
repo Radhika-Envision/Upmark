@@ -114,12 +114,30 @@ class ExportAssetHandler(base_handler.BaseHandler):
  
                 #row = {"subject_head": q.group, "subject_number" : q.seq + 1, 'subject_name': q.title}
                 for response in answerResponses:
-                    subMeasure = (
-                        session.query(model.Measure)
-                        .filter(model.Measure.measure_id == response.Measure.id)
-                        #.filter(model.Measure.response_type_id == response.Measure.response_type_id)
-                        .filter(model.Measure.submeasure_seq > 0)
-                        .order_by(model.Measure.submeasure_seq))
+                    #subMeasure = (
+                    #    session.query(model.Measure)
+                    #    .filter(model.Measure.measure_id == response.Measure.id)
+                    #    #.filter(model.Measure.response_type_id == response.Measure.response_type_id)
+                    #    .filter(model.Measure.submeasure_seq > 0)
+                    #    .order_by(model.Measure.submeasure_seq))
+                    if (program_id == '67c24a53-fc44-43a5-9fe0-c331e7717352'):   
+                        subMeasure = (
+                            session.query(model.Measure)
+                            .filter(model.Measure.measure_id == response.Measure.id)
+                            #.filter(model.Measure.response_type_id == response.Measure.response_type_id)
+                            .filter(model.Measure.program_id == program_id)
+                            .filter(model.Measure.submeasure_seq > 0)
+                            .filter(model.Measure.deleted != True)
+                            .order_by(model.Measure.submeasure_seq))
+                    else:
+                        subMeasure = (
+                            session.query(model.Measure)
+                            .filter(model.Measure.measure_id == response.Measure.id)
+                            #.filter(model.Measure.response_type_id == response.Measure.response_type_id)
+                            #.filter(model.Measure.program_id == program_id)
+                            .filter(model.Measure.submeasure_seq > 0)
+                            .filter(model.Measure.deleted != True)
+                            .order_by(model.Measure.submeasure_seq))                           
                     answerResponse = (
                         session.query(model.Response, model.Measure)
                             .filter(model.Response.measure_id == model.Measure.id)
