@@ -120,7 +120,16 @@ class ExportAssetHandler(base_handler.BaseHandler):
                     #    #.filter(model.Measure.response_type_id == response.Measure.response_type_id)
                     #    .filter(model.Measure.submeasure_seq > 0)
                     #    .order_by(model.Measure.submeasure_seq))
-                    if (program_id == '67c24a53-fc44-43a5-9fe0-c331e7717352'):   
+                    #if (survey_id == 'c9255e07-96eb-4772-8606-7a78e549ce1e'):  
+                    # get first submeasure depend on measure_id and program_id, 
+                    subMeasure = (
+                        session.query(model.Measure)
+                        .filter(model.Measure.measure_id == response.Measure.id)
+                        .filter(model.Measure.program_id == program_id)
+                        .filter(model.Measure.submeasure_seq == 1)
+                        .filter(model.Measure.deleted != True))
+                    if (len(subMeasure.all()) > 0): 
+                        # no submeasure depend on measure_id and program_id, not consider program 
                         subMeasure = (
                             session.query(model.Measure)
                             .filter(model.Measure.measure_id == response.Measure.id)
@@ -130,6 +139,7 @@ class ExportAssetHandler(base_handler.BaseHandler):
                             .filter(model.Measure.deleted != True)
                             .order_by(model.Measure.submeasure_seq))
                     else:
+                        # exist submeasure depend on measure_id and program_id, need consider program
                         subMeasure = (
                             session.query(model.Measure)
                             .filter(model.Measure.measure_id == response.Measure.id)
