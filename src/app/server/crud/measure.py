@@ -1827,11 +1827,29 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
             policy.verify('surveygroup_interact')
             policy.verify('measure_view')
 
-            query = (
-                session.query(model.Measure)
-                     .filter(model.Measure.response_type_id == responseTypeId)
-                     .filter(model.Measure.measure_id == measureId)
-                     .filter(model.Measure.submeasure_seq > 0))   
+            #query = (
+            #    session.query(model.Measure)
+            #         .filter(model.Measure.response_type_id == responseTypeId)
+            #         .filter(model.Measure.measure_id == measureId)
+            #         .filter(model.Measure.submeasure_seq > 0))  
+            if (self.IsSubMeasureMultiUse(session,measureId,program_id) > 0):
+                # consider program when sub measure not belong to multiple measure
+                query = (
+                    session.query(model.Measure)
+                        .filter(model.Measure.response_type_id == responseTypeId)
+                        .filter(model.Measure.program_id == program_id)
+                        .filter(model.Measure.measure_id == measureId)
+                        .filter(model.Measure.deleted != True)
+                        .filter(model.Measure.submeasure_seq > 0))                                
+            else:
+                #sub measure not belong to multiple measure, then not consider program
+                query = (
+                    session.query(model.Measure)
+                        .filter(model.Measure.response_type_id == responseTypeId)
+                        #.filter(model.Measure.program_id == program_id)
+                        .filter(model.Measure.measure_id == measureId)
+                        .filter(model.Measure.deleted != True)
+                        .filter(model.Measure.submeasure_seq > 0))                        
             measures = query.all()
             to_son = ToSon(
                 r'/id$',
@@ -1976,3 +1994,12 @@ class MeasureHandler(base_handler.Paginate, base_handler.BaseHandler):
                 del p.submeasure
         update('parts', son)
         update('formula', son)
+    #check if measure has multiple sub measures
+    def IsSubMeasureMultiUse(self, session, measure_id, program_id):
+        subMeasure = (
+            session.query(model.Measure)
+            .filter(model.Measure.measure_id == measure_id)
+            .filter(model.Measure.program_id == program_id)
+            .filter(model.Measure.submeasure_seq == 1)
+            .filter(model.Measure.deleted != True)) 
+        return len(subMeasure.all())  
